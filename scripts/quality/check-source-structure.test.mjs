@@ -382,7 +382,7 @@ test("allows capability consumers, pure state dependencies and comments describi
     "packages/shared/src/modules/wallet/send.ts": 'import { ABI } from "../../utils/blockchain/abis/goodDollar";',
     "packages/shared/src/modules/profile-avatar/publisher.ts": 'import { sign } from "../auth/account-message-signer";',
     "packages/shared/src/hooks/client-ui/wallet/useCeloWallet.ts": 'import { settlement } from "../../../modules/commitment-pooling/funding";',
-    "packages/shared/src/hooks/admin-ui/hub/useAssessment.ts": 'import { select } from "../../../stores/transitions/assessment";',
+    "packages/shared/src/hooks/admin-ui/review/useAssessment.ts": 'import { select } from "../../../stores/transitions/assessment";',
   };
   const root = fixture(files);
   try {

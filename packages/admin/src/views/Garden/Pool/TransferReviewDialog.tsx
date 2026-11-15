@@ -14,7 +14,7 @@ export interface TransferReviewDialogProps {
   recipient: string;
   /** The pool and record this disbursement belongs to, when opened from an inspector. */
   target?: ReactNode;
-  tone: "garden" | "hub" | "community";
+  tone: "garden" | "review" | "community";
   isLoading: boolean;
   onClose: () => void;
   onConfirm: () => Promise<unknown>;

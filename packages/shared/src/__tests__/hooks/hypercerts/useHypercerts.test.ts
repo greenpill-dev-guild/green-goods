@@ -175,7 +175,7 @@ describe("useHypercerts", () => {
       expect(result.current.error).toBeInstanceOf(Error);
     });
 
-    // The Hub's Hypercerts tab says its read failed until a refresh succeeds.
+    // Review's Hypercerts tab says its read failed until a refresh succeeds.
     it("clears a failed read once a refresh succeeds, busy while it runs", async () => {
       mockGetGardenHypercerts.mockRejectedValueOnce(new Error("indexer unavailable"));
       const { result } = renderHookWithQueryClient(

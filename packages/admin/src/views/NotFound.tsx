@@ -19,7 +19,7 @@ export default function NotFound() {
         })}
         action={
           <Button size="sm" asChild>
-            <Link to="/hub">
+            <Link to="/review">
               {formatMessage({
                 id: "app.admin.nav.backToHub",
                 defaultMessage: "Back to Review",

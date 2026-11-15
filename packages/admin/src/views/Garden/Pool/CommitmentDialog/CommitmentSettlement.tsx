@@ -27,7 +27,7 @@ import {
   stepLabel,
 } from "./commitmentSettlementPresentation";
 
-type Tone = "garden" | "hub" | "community";
+type Tone = "garden" | "review" | "community";
 
 export interface CommitmentSettlementProps {
   settlement: CommitmentSettlementController;

@@ -25,20 +25,26 @@ describe("admin sheet registry", () => {
     );
   });
 
-  it("restores route-backed Hub sheets only when the path owns the sheet", () => {
-    expect(isRouteSheetRestorable(toWorkDetailContentId("work-7"), "/hub/work/work-7")).toBe(true);
-    expect(isRouteSheetRestorable(toWorkDetailContentId("work-7"), "/hub/work")).toBe(false);
+  it("restores route-backed Review sheets only when the path owns the sheet", () => {
+    expect(isRouteSheetRestorable(toWorkDetailContentId("work-7"), "/review/work/work-7")).toBe(
+      true
+    );
+    expect(isRouteSheetRestorable(toWorkDetailContentId("work-7"), "/review/work")).toBe(false);
     // An assessment's record belongs to the Assessments tab's path; its old
     // address under Certify only redirects there and owns no sheet.
     const assessmentSheet = toCertificationContentId("assessment-1");
-    expect(isRouteSheetRestorable(assessmentSheet, "/hub/assess/assessment-1")).toBe(true);
-    expect(isRouteSheetRestorable(assessmentSheet, "/hub/certify/assessment-1")).toBe(false);
-    expect(isRouteSheetRestorable(assessmentSheet, "/hub/assess/create")).toBe(false);
+    expect(isRouteSheetRestorable(assessmentSheet, "/review/assess/assessment-1")).toBe(true);
+    expect(isRouteSheetRestorable(assessmentSheet, "/review/certify/assessment-1")).toBe(false);
+    expect(isRouteSheetRestorable(assessmentSheet, "/review/assess/create")).toBe(false);
   });
 
-  it("never restores retired hub:history sheet ids from stale persisted state", () => {
-    expect(isRouteSheetRestorable("hub:history:event-1", "/hub/history/event-1")).toBe(false);
-    expect(isRouteSheetRestorable("hub:history:event-1", "/hub")).toBe(false);
+  it("never restores retired hub: sheet ids from stale persisted state", () => {
+    expect(isRouteSheetRestorable("hub:history:event-1", "/review/history/event-1")).toBe(false);
+    expect(isRouteSheetRestorable("hub:history:event-1", "/review")).toBe(false);
+    // Review's ids took the review: prefix (2026-11-14); one saved before then
+    // must not reopen as an unknown sheet on the path it used to own.
+    expect(isRouteSheetRestorable("hub:work-detail:work-7", "/review/work/work-7")).toBe(false);
+    expect(isRouteSheetRestorable("hub:submit-work", "/review/work")).toBe(false);
   });
 
   it("restores route-backed Actions inspectors only when the path owns the sheet", () => {

@@ -44,9 +44,9 @@ const input = toConfirmFixture({
   disputed: [{ commitment: disputed, garden: DEMO_GARDEN, gardenName: "Orchard Garden" }],
 });
 
-// The Hub's read, which also lists what waits on the reader's own confirmation.
+// Review's read, which also lists what waits on the reader's own confirmation.
 const own = commitmentFixture({ commitmentId: 44n, metadataCID: "own" });
-const hubInput = {
+const reviewInput = {
   ...input,
   own: [{ commitment: own, garden: TUNDE, gardenName: "River Garden" }],
 };
@@ -59,7 +59,7 @@ const metadata = new Map([
 
 describe("selectConfirmQueueRows", () => {
   it("projects ordinary, own, fallback, and disputed rows with their authority facts", () => {
-    const rows = selectConfirmQueueRows({ toConfirm: hubInput, byCID: metadata, search: "" });
+    const rows = selectConfirmQueueRows({ toConfirm: reviewInput, byCID: metadata, search: "" });
 
     expect(rows.map((row) => row.eligibility)).toEqual([
       "ORDINARY",
@@ -99,7 +99,7 @@ describe("selectConfirmQueueRows", () => {
   it("lets the client request only ordinary rows, never the reader's own", () => {
     expect(
       selectConfirmQueueRows({
-        toConfirm: hubInput,
+        toConfirm: reviewInput,
         byCID: metadata,
         search: "",
         include: ["ORDINARY"],

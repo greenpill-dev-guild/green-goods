@@ -392,7 +392,7 @@ vi.mock("@green-goods/shared/utils/blockchain/address", async (importOriginal) =
 vi.mock("@green-goods/shared/utils/navigation/admin-routes", () => ({
   adminRoutes: {
     gardenSettings: () => "/garden/settings",
-    hub: () => "/hub",
+    review: () => "/review",
   },
 }));
 
@@ -494,7 +494,7 @@ function TestProviders({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <IntlProvider locale="en" messages={enMessages}>
-        <MemoryRouter initialEntries={["/hub/work/submit"]}>{children}</MemoryRouter>
+        <MemoryRouter initialEntries={["/review/work/submit"]}>{children}</MemoryRouter>
       </IntlProvider>
     </QueryClientProvider>
   );

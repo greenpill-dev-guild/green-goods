@@ -96,9 +96,9 @@ function renderPageTransition(initialPath = "/page-a", navTargets = ["/page-a", 
           <Route path="/page-a" element={<PageA />} />
           <Route path="/page-b" element={<PageB />} />
           <Route path="/page-c" element={<PageWithItem />} />
-          <Route path="/hub/work/:workId" element={<PageB />} />
-          <Route path="/hub/history" element={<PageB />} />
-          <Route path="/hub/history/:historyEventId" element={<PageB />} />
+          <Route path="/review/work/:workId" element={<PageB />} />
+          <Route path="/review/history" element={<PageB />} />
+          <Route path="/review/history/:historyEventId" element={<PageB />} />
         </Route>
       </Routes>
     </MemoryRouter>
@@ -270,10 +270,10 @@ describe("PageTransition", () => {
     expect(mockOrchestrator.openSheet).not.toHaveBeenCalled();
   });
 
-  it("does not restore Hub detail sheets unless the target URL still owns the sheet", async () => {
+  it("does not restore Review detail sheets unless the target URL still owns the sheet", async () => {
     mockOrchestrator.onNavigateArrive.mockReturnValue({
       sheetOpen: "left",
-      sheetContentId: "hub:work-detail:item-7",
+      sheetContentId: "review:work-detail:item-7",
       formState: {},
       scrollPosition: 0,
     });
@@ -289,25 +289,25 @@ describe("PageTransition", () => {
     expect(mockOrchestrator.openSheet).not.toHaveBeenCalled();
   });
 
-  it("restores Hub detail sheets when the target URL still owns the sheet", async () => {
+  it("restores Review detail sheets when the target URL still owns the sheet", async () => {
     mockOrchestrator.onNavigateArrive.mockReturnValue({
       sheetOpen: "left",
-      sheetContentId: "hub:work-detail:item-7",
+      sheetContentId: "review:work-detail:item-7",
       formState: {},
       scrollPosition: 0,
     });
 
-    renderPageTransition("/page-a", ["/page-a", "/hub/work/item-7"]);
+    renderPageTransition("/page-a", ["/page-a", "/review/work/item-7"]);
     const user = userEvent.setup();
 
-    await user.click(screen.getByTestId("nav-/hub/work/item-7"));
+    await user.click(screen.getByTestId("nav-/review/work/item-7"));
 
     await waitFor(() => {
-      expect(mockOrchestrator.openSheet).toHaveBeenCalledWith("left", "hub:work-detail:item-7");
+      expect(mockOrchestrator.openSheet).toHaveBeenCalledWith("left", "review:work-detail:item-7");
     });
   });
 
-  it("never restores retired Hub history sheets from stale persisted state", async () => {
+  it("never restores retired History sheets from stale persisted state", async () => {
     // The History stage retired 2026-08-25: its routes redirect and the
     // inspector is gone, but workspace state persisted before the release can
     // still carry hub:history:* ids. Restoring one would open an empty sheet.
@@ -318,10 +318,10 @@ describe("PageTransition", () => {
       scrollPosition: 0,
     });
 
-    renderPageTransition("/page-a", ["/page-a", "/hub/history/allocation-1"]);
+    renderPageTransition("/page-a", ["/page-a", "/review/history/allocation-1"]);
     const user = userEvent.setup();
 
-    await user.click(screen.getByTestId("nav-/hub/history/allocation-1"));
+    await user.click(screen.getByTestId("nav-/review/history/allocation-1"));
 
     await waitFor(() => {
       expect(mockOrchestrator.onNavigateArrive).toHaveBeenCalled();
@@ -350,20 +350,20 @@ describe("PageTransition", () => {
     expect(css).not.toContain("view-transition-name: gg-canvas-bottom");
   });
 
-  it("keeps Hub stage tab pane changes motionless", () => {
+  it("keeps Review stage tab pane changes motionless", () => {
     // The pane's layout rules live in admin-layout.css; index.css holds the motion.
     const css = ["../../index.css", "../../styles/admin-layout.css"]
       .map((path) => readFileSync(resolve(__dirname, path), "utf-8"))
       .join("\n");
 
-    // The pane no longer carries `key={hub.stage}`, so a stage switch doesn't
+    // The pane no longer carries `key={review.stage}`, so a stage switch doesn't
     // remount the subtree — there is nothing to animate. The CSS must not
     // (re)introduce a pane animation or transition that would make tab changes
     // move; the earlier `animation/transition/transform: none` suppression was
     // guarding against a remount that no longer happens.
     expect(css).not.toContain("hub-fade-in");
-    expect(css).not.toMatch(/\.hub-results-pane\s*{[^}]*animation:/s);
-    expect(css).not.toMatch(/\.hub-results-pane\s*{[^}]*transition:/s);
+    expect(css).not.toMatch(/\.review-results-pane\s*{[^}]*animation:/s);
+    expect(css).not.toMatch(/\.review-results-pane\s*{[^}]*transition:/s);
   });
 
   it("keeps persistent navigation active-state changes motionless", () => {
@@ -397,16 +397,16 @@ describe("PageTransition", () => {
   });
 
   it("swaps instantly without a cross-fade for same-view tab changes", async () => {
-    // Both paths live under the same top-level view (/hub/*), i.e. a tab change.
-    renderPageTransition("/hub/history", ["/hub/history", "/hub/work/item-7"]);
+    // Both paths live under the same top-level view (/review/*), i.e. a tab change.
+    renderPageTransition("/review/history", ["/review/history", "/review/work/item-7"]);
     const user = userEvent.setup();
 
-    await user.click(screen.getByTestId("nav-/hub/work/item-7"));
+    await user.click(screen.getByTestId("nav-/review/work/item-7"));
 
     // Outlet still swaps and arrive bookkeeping runs, but no View Transitions
     // cross-fade fires for an intra-view tab change.
     await waitFor(() => {
-      expect(mockOrchestrator.onNavigateArrive).toHaveBeenCalledWith("/hub/work/item-7");
+      expect(mockOrchestrator.onNavigateArrive).toHaveBeenCalledWith("/review/work/item-7");
     });
     expect(mockStartViewTransition).not.toHaveBeenCalled();
   });
@@ -419,17 +419,21 @@ describe("PageTransition", () => {
     document.body.appendChild(main);
 
     try {
-      renderPageTransition("/hub/history", ["/hub/history", "/hub/work/item-7", "/page-b"]);
+      renderPageTransition("/review/history", [
+        "/review/history",
+        "/review/work/item-7",
+        "/page-b",
+      ]);
       const user = userEvent.setup();
 
-      // Same view (hub → hub): scroll position is preserved.
-      await user.click(screen.getByTestId("nav-/hub/work/item-7"));
+      // Same view (review → review): scroll position is preserved.
+      await user.click(screen.getByTestId("nav-/review/work/item-7"));
       await waitFor(() => {
-        expect(mockOrchestrator.onNavigateArrive).toHaveBeenCalledWith("/hub/work/item-7");
+        expect(mockOrchestrator.onNavigateArrive).toHaveBeenCalledWith("/review/work/item-7");
       });
       expect(scrollTo).not.toHaveBeenCalled();
 
-      // Cross view (hub → page-b): the new view lands at the top.
+      // Cross view (review → page-b): the new view lands at the top.
       await user.click(screen.getByTestId("nav-/page-b"));
       await waitFor(() => {
         expect(scrollTo).toHaveBeenCalledWith({ top: 0 });

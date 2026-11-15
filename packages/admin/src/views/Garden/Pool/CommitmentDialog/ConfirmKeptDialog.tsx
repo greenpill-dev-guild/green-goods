@@ -28,7 +28,7 @@ export interface ConfirmKeptDialogProps {
  * The review before a commitment is confirmed as kept: which commitment, in
  * which garden's pool, kept by whom, and whether this confirmation closes it
  * for good. The act is final, so it never fires from a bare button (spec C.48:
- * the Hub's acts open a dialog), and the Hub queue and the inspector share
+ * Review's acts open a dialog), and the Review queue and the inspector share
  * this one dialog so it reads the same wherever it is taken.
  */
 export function ConfirmKeptDialog({

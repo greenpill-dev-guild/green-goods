@@ -22,9 +22,9 @@ const meta: Meta<typeof AdminViewActions> = {
 export default meta;
 type Story = StoryObj<typeof AdminViewActions>;
 
-/** The Hub trio with a different tab active per story — positions identical,
+/** Review's trio with a different tab active per story — positions identical,
  *  only the fill moves. */
-function hubTrio(activeId: "submit-work" | "create-assessment" | "create-hypercert" | "none") {
+function reviewTrio(activeId: "submit-work" | "create-assessment" | "create-hypercert" | "none") {
   return [
     {
       id: "submit-work",
@@ -61,27 +61,27 @@ function hubTrio(activeId: "submit-work" | "create-assessment" | "create-hyperce
 }
 
 export const WorkTabActive: Story = {
-  args: { items: hubTrio("submit-work") },
+  args: { items: reviewTrio("submit-work") },
 };
 
 export const CertifyTabActive: Story = {
-  args: { items: hubTrio("create-hypercert") },
+  args: { items: reviewTrio("create-hypercert") },
 };
 
-/** The Hub is a review surface: its trio renders outlined, and Submit Work,
+/** Review is a review surface: its trio renders outlined, and Submit Work,
  *  the declared primary, still sorts rightmost and fills the FAB (DL-043). */
-export const HubTrioOutlined: Story = {
+export const ReviewTrioOutlined: Story = {
   args: {
-    items: hubTrio("none").map((action) =>
+    items: reviewTrio("none").map((action) =>
       action.id === "submit-work" ? { ...action, primary: true } : action
     ),
   },
 };
 
-/** Read surfaces (Hub History, Garden Activity…) keep the trio outlined —
+/** Read surfaces (Review's retired History, Garden Activity…) keep the trio outlined —
  *  no filled action, no FAB on mobile. */
 export const ReadSurfaceAllOutlined: Story = {
-  args: { items: hubTrio("none") },
+  args: { items: reviewTrio("none") },
 };
 
 export const WithGhostLink: Story = {
@@ -95,14 +95,14 @@ export const WithGhostLink: Story = {
         onClick: fn(),
         variant: "ghost",
       },
-      ...hubTrio("submit-work").slice(0, 2),
+      ...reviewTrio("submit-work").slice(0, 2),
     ],
   },
 };
 
 export const DisabledAction: Story = {
   args: {
-    items: hubTrio("submit-work").map((action) =>
+    items: reviewTrio("submit-work").map((action) =>
       action.id === "create-assessment" ? { ...action, disabled: true } : action
     ),
   },

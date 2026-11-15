@@ -211,8 +211,8 @@ export function useGardenWorkspaceController() {
         return {
           ...event,
           href: event.itemId
-            ? adminRoutes.hubWorkDetail(event.itemId, { gardenId: selectedGardenAddress })
-            : adminRoutes.hubWork({ gardenId: selectedGardenAddress }),
+            ? adminRoutes.reviewWorkDetail(event.itemId, { gardenId: selectedGardenAddress })
+            : adminRoutes.reviewWork({ gardenId: selectedGardenAddress }),
         };
       }
 

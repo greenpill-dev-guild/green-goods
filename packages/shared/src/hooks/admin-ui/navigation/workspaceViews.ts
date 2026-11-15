@@ -2,7 +2,7 @@ import { RiAppsLine, RiHammerFill, RiSeedlingLine, RiTeamLine } from "@remixicon
 import type { ToolbarSlot } from "../../../components/Canvas";
 import { adminRoutes } from "../../../utils/navigation/admin-routes";
 
-export type AdminPrimaryWorkspaceId = "hub" | "garden" | "community" | "actions";
+export type AdminPrimaryWorkspaceId = "review" | "garden" | "community" | "actions";
 export type AdminWorkspacePermission = "showWork" | "showGarden" | "showCommunity" | "showActions";
 
 export interface AdminWorkspaceViewDefinition {
@@ -17,12 +17,12 @@ export interface AdminWorkspaceViewDefinition {
 
 export const ADMIN_WORKSPACE_VIEWS: AdminWorkspaceViewDefinition[] = [
   {
-    id: "hub",
+    id: "review",
     label: "Review",
     labelId: "hub.nav.review",
     icon: RiAppsLine,
-    rootPath: "/hub",
-    href: adminRoutes.hub(),
+    rootPath: "/review",
+    href: adminRoutes.review(),
     permission: "showWork",
   },
   {

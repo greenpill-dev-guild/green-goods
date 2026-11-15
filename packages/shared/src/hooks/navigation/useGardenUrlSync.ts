@@ -32,7 +32,7 @@ export interface GardenUrlSyncResult {
  *
  * - Active garden identity is route-owned by `useAdminGardenContext`.
  * - Tab/filter updates use replace to avoid history pollution.
- * - Non-Hub item open/close uses push so browser back clears focused query state first.
+ * - Non-Review item open/close uses push so browser back clears focused query state first.
  */
 export function useGardenUrlSync(): GardenUrlSyncResult {
   const [searchParams, setSearchParams] = useSearchParams();

@@ -45,7 +45,7 @@ export interface CommitmentDialogPanelProps {
   /** The pool's garden: the authority a garden fallback uses. */
   garden: Address;
   commitmentId: string;
-  tone: "garden" | "hub" | "community";
+  tone: "garden" | "review" | "community";
   /**
    * Open the seeding wizard on this commitment's answers. Only a surface that
    * has a seeding wizard passes it, and only the pool's stewards are offered it.
@@ -58,7 +58,7 @@ export interface CommitmentDialogPanelProps {
 /**
  * W10, one commitment in the steward's dialect (uiux-spec §6.7, follow-up
  * item 2: sectioned anatomy). Rendered inside the Garden workspace's left
- * inspector or the Hub's Confirm stage; every act goes through the shared
+ * inspector or Review's Confirm stage; every act goes through the shared
  * controller, every reasoned act through AdminReasonDialog, and a fallback
  * confirmation appears only when the ordinary path is unreachable, naming
  * the garden whose authority it uses.
@@ -129,7 +129,7 @@ function CommitmentRecord({
     );
   const actDisabled = !dialog.isOnline || dialog.isActing;
   // Every dialog below names the commitment and its garden's pool first: the
-  // inspector also opens from the Hub and the protocol list, where the header
+  // inspector also opens from Review and the protocol list, where the header
   // cannot say which garden a write lands in.
   const target = <GardenPoolTarget chainId={chainId} garden={garden} record={title} />;
   const stage = stageIndex(commitment.onchainState, commitment.evidenceCount);

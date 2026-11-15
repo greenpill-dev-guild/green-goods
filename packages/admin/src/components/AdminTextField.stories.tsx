@@ -220,7 +220,7 @@ export const MessageHoldsTheLine: Story = {
 };
 
 const WORKSPACE_TONES = [
-  ["hub", "Hub"],
+  ["review", "Review"],
   ["garden", "Garden"],
   ["community", "Community"],
   ["actions", "Actions"],

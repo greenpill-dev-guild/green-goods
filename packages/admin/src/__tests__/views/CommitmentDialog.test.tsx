@@ -534,7 +534,7 @@ describe("CommitmentDialogPanel (W10)", () => {
     ).toBeInTheDocument();
   });
 
-  it("confirms a record as kept only from the review the Hub shares, naming the record, its pool and who kept it", async () => {
+  it("confirms a record as kept only from the review Review's Confirm stage shares, naming the record, its pool and who kept it", async () => {
     mocks.controller = controller({
       commitment: {
         onchainState: "READY_FOR_CONFIRMATION",
@@ -940,7 +940,7 @@ describe("CommitmentDialogPanel (W10)", () => {
     expect(screen.queryByRole("button", { name: "Seed Another Like This" })).toBeNull();
     reader.unmount();
 
-    // The Hub's Confirm stage renders this panel with no wizard beside it.
+    // Review's Confirm stage renders this panel with no wizard beside it.
     mocks.controller = controller();
     renderPanel();
     expect(screen.queryByRole("button", { name: "Seed Another Like This" })).toBeNull();

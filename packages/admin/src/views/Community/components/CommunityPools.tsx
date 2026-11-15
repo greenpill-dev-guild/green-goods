@@ -23,7 +23,7 @@ import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { poolStatusChip } from "@/views/Garden/Pool/poolPresentation";
-import { HubConfirmQueue } from "@/views/Hub/components/HubConfirmQueue";
+import { ReviewConfirmQueue } from "@/views/Review/components/ReviewConfirmQueue";
 import { GardenCreatorsPanel } from "./GardenCreatorsCard";
 import { ProtocolFundingOperationsPanel } from "./ProtocolFundingOperationsPanel";
 import { SettlementOperationsPanel } from "./SettlementOperationsCard";
@@ -290,7 +290,7 @@ function ProtocolOperations({
             "Promises from any garden that opted in and that nobody local can still confirm. Only these rows reach the team; no other garden's pool is browsed here.",
         })}
       </p>
-      <HubConfirmQueue
+      <ReviewConfirmQueue
         toConfirm={protocolToConfirm}
         chainId={chainId}
         normalizedSearch=""

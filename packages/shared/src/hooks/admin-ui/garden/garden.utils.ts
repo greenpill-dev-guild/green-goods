@@ -26,7 +26,7 @@ export interface GardenHeaderStatsInput {
 /**
  * Build the inline MetaStrip items rendered in the Garden header. Pairs the
  * garden's roster (gardeners) with its own output (certified impact) — the
- * "who's here + what they've produced" of a garden. Pending work is the Hub's
+ * "who's here + what they've produced" of a garden. Pending work is Review's
  * concern (the review queue lives there) and treasury lives on Community, so
  * neither is restated here. Returns [] when no garden is selected so the
  * metadata slot stays clean during the workspace selection gate. Per audit §5.6

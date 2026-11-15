@@ -35,10 +35,10 @@ function renderGuardedRoute(redirect: ReactNode) {
       },
       {
         // Still loading its code when the redirect starts, like the cockpit's views on arrival.
-        path: "/hub",
+        path: "/review",
         lazy: async () => {
           await new Promise((resolve) => setTimeout(resolve, 20));
-          return { Component: () => <h1>Hub</h1> };
+          return { Component: () => <h1>Review</h1> };
         },
       },
     ],
@@ -52,10 +52,10 @@ function renderGuardedRoute(redirect: ReactNode) {
 
 describe("PersistentRedirect", () => {
   it("lands on its target although the garden sync rewrote the address first", async () => {
-    const { router, addresses } = renderGuardedRoute(<PersistentRedirect to="/hub" />);
+    const { router, addresses } = renderGuardedRoute(<PersistentRedirect to="/review" />);
 
-    expect(await screen.findByRole("heading", { name: "Hub" })).toBeVisible();
+    expect(await screen.findByRole("heading", { name: "Review" })).toBeVisible();
     expect(addresses).toContain("/community?gardenId=0x1");
-    expect(router.state.location.pathname).toBe("/hub");
+    expect(router.state.location.pathname).toBe("/review");
   });
 });

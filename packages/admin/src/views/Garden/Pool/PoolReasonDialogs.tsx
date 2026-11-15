@@ -23,7 +23,7 @@ export function PoolReasonDialogs({
   pool: PoolConsoleController;
   /** The pool each reasoned act lands on, named first in every dialog. */
   target: PoolWriteTarget;
-  tone: "garden" | "hub" | "community";
+  tone: "garden" | "review" | "community";
   reasonDialog: ReasonDialog;
   setReasonDialog: Dispatch<SetStateAction<ReasonDialog>>;
 }) {

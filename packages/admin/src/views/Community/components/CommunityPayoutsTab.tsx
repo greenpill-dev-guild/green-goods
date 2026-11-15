@@ -19,7 +19,7 @@ import {
   CampaignCookieJarCreateDialog,
   CampaignCookieJarPanel,
 } from "@/views/Cookies/components/CampaignCookieJar";
-import { CookieJarPayoutPanel } from "@/views/Hub/components/CookieJarPayoutPanel";
+import { CookieJarPayoutPanel } from "@/views/Review/components/CookieJarPayoutPanel";
 
 export type CommunityPayoutsTabProps = Pick<
   CommunityWorkspace,

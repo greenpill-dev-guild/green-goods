@@ -13,7 +13,7 @@ export interface PoolDialogsProps {
   pool: PoolConsoleController;
   /** The pool every dialog here writes to, named first in each of them. */
   target: PoolWriteTarget;
-  tone: "garden" | "hub" | "community";
+  tone: "garden" | "review" | "community";
   flow: FlowState;
   setFlow: Dispatch<SetStateAction<FlowState>>;
   settingsOpen: boolean;

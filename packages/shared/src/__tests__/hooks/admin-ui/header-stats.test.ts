@@ -15,7 +15,7 @@ import {
   selectAllocationSplits,
 } from "../../../hooks/admin-ui/community/community.utils";
 import { buildGardenHeaderStats } from "../../../hooks/admin-ui/garden/garden.utils";
-import { buildHubHeaderStats } from "../../../hooks/admin-ui/hub/hub.utils";
+import { buildReviewHeaderStats } from "../../../hooks/admin-ui/review/review.utils";
 
 function makeFormatMessage() {
   return vi.fn(
@@ -37,7 +37,7 @@ describe("buildGardenHeaderStats", () => {
     expect(items).toEqual([]);
   });
 
-  it("emits gardeners / impact items in that order (pending work lives on Hub)", () => {
+  it("emits gardeners / impact items in that order (pending work lives on Review)", () => {
     const items = buildGardenHeaderStats({
       hasSelectedGarden: true,
       gardenerCount: 5,
@@ -205,9 +205,9 @@ describe("selectAllocationSplits", () => {
   });
 });
 
-describe("buildHubHeaderStats", () => {
+describe("buildReviewHeaderStats", () => {
   it("returns an empty array when no garden is selected", () => {
-    const items = buildHubHeaderStats({
+    const items = buildReviewHeaderStats({
       hasSelectedGarden: false,
       waitingOverWeekCount: 3,
       formatMessage: makeFormatMessage(),
@@ -216,7 +216,7 @@ describe("buildHubHeaderStats", () => {
   });
 
   it("counts work waiting over a week in plain ink (stage depth lives on the tabs)", () => {
-    const items = buildHubHeaderStats({
+    const items = buildReviewHeaderStats({
       hasSelectedGarden: true,
       waitingOverWeekCount: 3,
       formatMessage: makeFormatMessage(),

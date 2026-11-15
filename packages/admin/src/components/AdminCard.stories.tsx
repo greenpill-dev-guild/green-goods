@@ -20,7 +20,7 @@ const meta: Meta<typeof AdminCard> = {
           "layer and never lift.",
           "",
           "**Workspace tone** belongs to the canvas, not the card: inside a",
-          '`[data-tone="hub|garden|community|actions"]` scope the card keeps its surface.',
+          '`[data-tone="review|garden|community|actions"]` scope the card keeps its surface.',
         ].join("\n"),
       },
     },
@@ -154,7 +154,7 @@ export const StateCatalog: Story = {
 export const WithToneWash: Story = {
   render: () => (
     <div className="grid gap-4 md:grid-cols-2">
-      {(["hub", "garden", "community", "actions"] as const).map((tone) => (
+      {(["review", "garden", "community", "actions"] as const).map((tone) => (
         <div key={tone} data-tone={tone} className="rounded-2xl bg-bg-white-0 p-4">
           <div className="mb-2 type-label-sm font-semibold uppercase tracking-[0.06em] text-text-soft">
             [data-tone=&quot;{tone}&quot;]

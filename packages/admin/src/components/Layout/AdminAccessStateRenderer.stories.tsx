@@ -32,7 +32,7 @@ const meta: Meta<typeof AdminAccessStateRenderer> = {
   component: AdminAccessStateRenderer,
   tags: ["autodocs"],
   decorators: [
-    withRouter(["/hub/work"]),
+    withRouter(["/review/work"]),
     withCanvasFrame({
       className: "p-0",
       heightClassName: "h-[640px]",

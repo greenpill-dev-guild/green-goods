@@ -5,11 +5,11 @@ import { useLocation, useOutlet } from "react-router-dom";
 
 /**
  * Top-level workspace key = first path segment (garden / community / actions /
- * hub). Intentionally a raw first-segment compare rather than the canonical
+ * review). Intentionally a raw first-segment compare rather than the canonical
  * `getAdminWorkspaceForPath()` — we only need "did the top-level segment
  * change", and a raw compare also distinguishes any future top-level route not
  * yet registered in `ADMIN_WORKSPACE_ROOTS`, which the canonical helper would
- * collapse into its `"hub"` fallback and wrongly treat as the same workspace
+ * collapse into its `"review"` fallback and wrongly treat as the same workspace
  * (suppressing the cross-fade + scroll reset).
  */
 function getViewKey(pathname: string): string {

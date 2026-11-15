@@ -246,7 +246,7 @@ export const BothSizes: Story = {
 export const CockpitStates: Story = {
   parameters: { surface: "admin" },
   render: () => (
-    <div className="grid max-w-3xl gap-4 sm:grid-cols-2" data-tone="hub">
+    <div className="grid max-w-3xl gap-4 sm:grid-cols-2" data-tone="review">
       {STATES.map((state) => (
         <div key={state.name} className="rounded-[var(--radius-lg)] bg-bg-white-0">
           <EmptyState {...state.props} />

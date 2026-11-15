@@ -7,7 +7,7 @@
  *   - spinner (loading)
  *   - WalletRequiredConnectShell (embedded auth)
  *   - connect prompt (unauthenticated)
- *   - <Navigate to="/hub/work" /> (authenticated + eligible gardens)
+ *   - <Navigate to="/review/work" /> (authenticated + eligible gardens)
  *   - CanvasGardenAccessState (authenticated + zero eligible gardens)
  */
 
@@ -207,7 +207,7 @@ describe("IndexRoute", () => {
     expect(screen.getByTestId("top-context-bar")).toBeInTheDocument();
   });
 
-  it("redirects to /hub when authenticated with at least one eligible garden", () => {
+  it("redirects to /review when authenticated with at least one eligible garden", () => {
     mockEligibleAdminGardens.current = {
       ...mockEligibleAdminGardens.current,
       eligibleGardens: [{ id: "garden-1", name: "Garden One", location: "Quito" }],
@@ -219,7 +219,7 @@ describe("IndexRoute", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByTestId("navigate")).toHaveAttribute("data-to", "/hub/work");
+    expect(screen.getByTestId("navigate")).toHaveAttribute("data-to", "/review/work");
   });
 
   it("opens garden creation from the no-access state when permitted", async () => {
@@ -264,10 +264,10 @@ describe("IndexRoute", () => {
     expect(screen.queryByTestId("canvas-no-garden-access")).not.toBeInTheDocument();
   });
 
-  it("redirects to the hub when role-confirmed gardens land via the stale-base-list cross-check", () => {
+  it("redirects to Review when role-confirmed gardens land via the stale-base-list cross-check", () => {
     // Simulates the steward/no-garden symptom: useGardens returned [] but
     // useRole proved a steward garden, so useEligibleAdminGardens injected
-    // a stub. IndexRoute must redirect to the hub instead of the no-access shell.
+    // a stub. IndexRoute must redirect to Review instead of the no-access shell.
     mockEligibleAdminGardens.current = {
       ...mockEligibleAdminGardens.current,
       eligibleGardens: [{ id: "garden-stub", name: "Stub Garden", location: "" }],
@@ -280,6 +280,6 @@ describe("IndexRoute", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByTestId("navigate")).toHaveAttribute("data-to", "/hub/work");
+    expect(screen.getByTestId("navigate")).toHaveAttribute("data-to", "/review/work");
   });
 });

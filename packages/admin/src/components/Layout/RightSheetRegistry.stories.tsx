@@ -146,7 +146,7 @@ function RightSheetRegistryHarness({ initialContentId }: RightSheetRegistryHarne
           if (!next) setContentId(null);
         }}
         title={descriptor?.title ?? ""}
-        tone="hub"
+        tone="review"
       >
         {descriptor?.content}
       </AdminSideSheet>
@@ -171,7 +171,7 @@ const meta: Meta<typeof RightSheetRegistryHarness> = {
   decorators: [
     withAdminIdentity,
     withSeededQueryClient(STORYBOOK_ADMIN_SHELL_SEEDS),
-    withRouter(["/hub"]),
+    withRouter(["/review"]),
     withCanvasFrame({
       className: "admin-m3 workspace-canvas-grid",
       heightClassName: "h-[680px]",

@@ -17,11 +17,11 @@ interface ControlledChromeContractProps {
 
 const slots: ToolbarSlot[] = [
   {
-    id: "hub",
+    id: "review",
     label: "Review",
     labelId: "hub.nav.review",
     icon: RiAppsLine,
-    path: "/hub",
+    path: "/review",
     visible: true,
   },
   {
@@ -77,8 +77,8 @@ function ControlledChromeContract({ theme }: ControlledChromeContractProps) {
     <div
       className="admin-m3 workspace-canvas workspace-canvas-grid h-full min-h-[680px]"
       data-theme={theme}
-      data-tone="hub"
-      data-workspace="hub"
+      data-tone="review"
+      data-workspace="review"
     >
       <div className="canvas-area-top">
         <AppBar
@@ -129,7 +129,7 @@ function ControlledChromeContract({ theme }: ControlledChromeContractProps) {
       <div className="canvas-area-bottom">
         <NavigationBar
           slots={slots}
-          activePath="/hub"
+          activePath="/review"
           onNavigate={fn()}
           fab={{
             actions: [
@@ -180,7 +180,7 @@ const meta = {
     withCanvasFrame({
       className: "p-0",
       heightClassName: "h-[720px]",
-      workspace: "hub",
+      workspace: "review",
     }),
   ],
 } satisfies Meta<typeof ControlledChromeContract>;

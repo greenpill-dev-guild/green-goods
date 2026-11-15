@@ -158,7 +158,7 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
         })}
         icon={RiCameraLine}
         size="md"
-        tone="hub"
+        tone="review"
         preventClose={busy}
         actions={
           <div className="flex flex-wrap items-center justify-end gap-2">
@@ -310,7 +310,7 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
         cancelLabel={formatMessage({ id: "profile.avatar.cancel", defaultMessage: "Cancel" })}
         variant="danger"
         isLoading={busy}
-        tone="hub"
+        tone="review"
       />
     </>
   );

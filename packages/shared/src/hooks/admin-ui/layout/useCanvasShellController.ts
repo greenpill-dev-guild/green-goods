@@ -40,7 +40,7 @@ import {
 
 export interface CanvasRouteChromeState {
   activePath: string;
-  leftDialogTone: "hub" | "garden" | "community" | "actions";
+  leftDialogTone: "review" | "garden" | "community" | "actions";
   rawWorkspaceId: ReturnType<typeof getAdminWorkspaceForPath>;
   workspaceId: ReturnType<typeof getAdminWorkspaceForPath>;
 }
@@ -52,7 +52,7 @@ export function selectCanvasRouteChrome(
   const rawActivePath = getAdminWorkspaceRoot(pathname);
   const rawWorkspaceId = getAdminWorkspaceForPath(pathname);
   const normalizeProfile = isDesktop && rawWorkspaceId === "profile";
-  const workspaceId = normalizeProfile ? "hub" : rawWorkspaceId;
+  const workspaceId = normalizeProfile ? "review" : rawWorkspaceId;
   const leftDialogTone =
     workspaceId === "garden"
       ? "garden"
@@ -60,10 +60,10 @@ export function selectCanvasRouteChrome(
         ? "community"
         : workspaceId === "actions"
           ? "actions"
-          : "hub";
+          : "review";
 
   return {
-    activePath: normalizeProfile ? adminRoutes.hub() : rawActivePath,
+    activePath: normalizeProfile ? adminRoutes.review() : rawActivePath,
     leftDialogTone,
     rawWorkspaceId,
     workspaceId,
@@ -180,7 +180,7 @@ export function useCanvasShellController({
     () => selectCanvasRouteChrome(location.pathname, isDesktop),
     [isDesktop, location.pathname]
   );
-  const isCoreWorkspace = ["/hub", "/garden", "/community"].includes(routeChrome.activePath);
+  const isCoreWorkspace = ["/review", "/garden", "/community"].includes(routeChrome.activePath);
   const visibleSlotCount = useMemo(() => slots.filter((slot) => slot.visible).length, [slots]);
   const gardens = useMemo(
     () => eligibleGardens.map((garden) => ({ id: garden.id, name: garden.name })),
@@ -222,7 +222,7 @@ export function useCanvasShellController({
     pendingDesktopAccountTabRef.current = parseAccountSheetTab(
       new URLSearchParams(location.search).get(ACCOUNT_TAB_SEARCH_PARAM)
     );
-    navigate(adminRoutes.hub(), { replace: true });
+    navigate(adminRoutes.review(), { replace: true });
   }, [isDesktop, location.search, navigate, routeChrome.rawWorkspaceId]);
 
   useEffect(() => {

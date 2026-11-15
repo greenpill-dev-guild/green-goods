@@ -39,7 +39,7 @@ const fundCookieJar: FabAction = {
 };
 
 // Each workspace's action set, as its view declares it.
-const hubDial = fabConfig(
+const reviewDial = fabConfig(
   {
     id: "submit-work",
     icon: RiAddLine,
@@ -87,7 +87,7 @@ const meta = {
   tags: ["autodocs", "storybook-ci"],
   parameters: {
     layout: "fullscreen",
-    workspace: "hub",
+    workspace: "review",
     docs: {
       description: {
         component:
@@ -108,7 +108,7 @@ const meta = {
       </div>
     ),
   ],
-  args: { config: hubDial, mobileFloating: true },
+  args: { config: reviewDial, mobileFloating: true },
 } satisfies Meta<typeof FabButton>;
 
 export default meta;
@@ -154,9 +154,9 @@ function opensDial(...labels: string[]): Play {
   };
 }
 
-export const Hub: Story = { play: restsClosed };
+export const Review: Story = { play: restsClosed };
 
-export const HubOpen: Story = {
+export const ReviewOpen: Story = {
   play: opensDial("Submit Work", "Create Assessment", "Create Hypercert"),
 };
 

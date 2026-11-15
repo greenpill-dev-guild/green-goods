@@ -26,7 +26,7 @@ export function CommitmentSettlementDisbursements({
   target,
 }: {
   settlement: CommitmentSettlementController;
-  tone: "garden" | "hub" | "community";
+  tone: "garden" | "review" | "community";
   target?: ReactNode;
 }) {
   const intl = useIntl();

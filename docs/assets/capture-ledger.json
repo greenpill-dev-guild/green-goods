@@ -430,7 +430,7 @@
     {
       "page": "docs/docs/community/steward-guide/reviewing-work.mdx",
       "images": ["/img/screenshots/admin-review-queue-example.png"],
-      "capture_note": "Open the record behind the card. The card gives you the action, sender and status. Read the full photos, numbers and note before deciding.\n  Source: local static Storybook, HubWorkQueue / With Example Photo, 13 October 2026; cropped to one card from 1440 \u00d7 900. Build recorded in the Plan Hub image ledger. Photo: Leon Brooks, Seedlings, public domain. The garden, sender and work record are fictional."
+      "capture_note": "Open the record behind the card. The card gives you the action, sender and status. Read the full photos, numbers and note before deciding.\n  Source: local static Storybook, ReviewWorkQueue / With Example Photo, 13 October 2026; cropped to one card from 1440 \u00d7 900. Build recorded in the Plan Hub image ledger. Photo: Leon Brooks, Seedlings, public domain. The garden, sender and work record are fictional."
     },
     {
       "page": "docs/docs/community/steward-guide/reviewing-work.mdx",

@@ -1,7 +1,7 @@
 /**
  * View-action grammar tests.
  *
- * Hub, Garden, and Community keep fixed header actions. Community exposes the
+ * Review, Garden, and Community keep fixed header actions. Community exposes the
  * same three coordination actions on every tab, with tab bodies carrying the
  * detail work.
  *
@@ -24,11 +24,14 @@ import {
   buildGardenViewActions,
   type GardenWorkspaceView,
 } from "../../../hooks/admin-ui/garden/garden.utils";
-import { buildHubViewActions, type HubPipelineStage } from "../../../hooks/admin-ui/hub/hub.utils";
+import {
+  buildReviewViewActions,
+  type ReviewPipelineStage,
+} from "../../../hooks/admin-ui/review/review.utils";
 
 const GARDEN = "0xabcabcabcabcabcabcabcabcabcabcabcabcabca";
 
-const HUB_STAGES: HubPipelineStage[] = ["confirm", "work", "assess", "certify"];
+const REVIEW_STAGES: ReviewPipelineStage[] = ["confirm", "work", "assess", "certify"];
 const GARDEN_VIEWS: GardenWorkspaceView[] = ["health", "impact", "activity"];
 
 function visibleIds(actions: Array<{ id: string; visible?: boolean }>): string[] {
@@ -41,19 +44,19 @@ function primaryIds(actions: Array<{ id: string; visible?: boolean; primary?: bo
     .map((action) => action.id);
 }
 
-describe("buildHubViewActions — fixed primary", () => {
-  const buildFor = (stage: HubPipelineStage) =>
-    buildHubViewActions(stage, true, true, vi.fn(), { gardenAddress: GARDEN });
+describe("buildReviewViewActions — fixed primary", () => {
+  const buildFor = (stage: ReviewPipelineStage) =>
+    buildReviewViewActions(stage, true, true, vi.fn(), { gardenAddress: GARDEN });
 
   it("keeps the same action ids and order on every stage", () => {
     const expected = ["submit-work", "create-assessment", "create-hypercert"];
-    for (const stage of HUB_STAGES) {
+    for (const stage of REVIEW_STAGES) {
       expect(visibleIds(buildFor(stage))).toEqual(expected);
     }
   });
 
   it("declares submit-work as the fixed primary on every stage", () => {
-    for (const stage of HUB_STAGES) {
+    for (const stage of REVIEW_STAGES) {
       expect(primaryIds(buildFor(stage))).toEqual(["submit-work"]);
     }
   });
@@ -65,21 +68,21 @@ describe("buildHubViewActions — fixed primary", () => {
   });
 
   it("renders the trio outlined on every stage, so no action out-shouts the queue (DL-043)", () => {
-    for (const stage of HUB_STAGES) {
+    for (const stage of REVIEW_STAGES) {
       const variants = buildFor(stage).map((action) => action.variant);
       expect(variants).toEqual(["secondary", "secondary", "secondary"]);
     }
   });
 
   it("blanks role-gated actions for read-only stewards", () => {
-    const actions = buildHubViewActions("work", false, false, vi.fn(), {
+    const actions = buildReviewViewActions("work", false, false, vi.fn(), {
       gardenAddress: GARDEN,
     });
     expect(visibleIds(actions)).toEqual([]);
   });
 
   it("makes create-assessment the declared primary for evaluator-only viewers, still outlined", () => {
-    const actions = buildHubViewActions("assess", false, true, vi.fn(), {
+    const actions = buildReviewViewActions("assess", false, true, vi.fn(), {
       gardenAddress: GARDEN,
     });
 
@@ -95,7 +98,7 @@ describe("buildHubViewActions — fixed primary", () => {
     "certify",
   ] as const)("opens each flow over %s, keeping its sort and scope (DL-140)", (stage) => {
     const navigate = vi.fn();
-    const actions = buildHubViewActions(stage, true, true, navigate, {
+    const actions = buildReviewViewActions(stage, true, true, navigate, {
       gardenAddress: GARDEN,
       sort: "oldest",
       scope: "approved",
@@ -105,7 +108,7 @@ describe("buildHubViewActions — fixed primary", () => {
       actions.find((action) => action.id === id)?.onClick();
     }
 
-    const stageUrl = `/hub/${stage}?gardenId=${GARDEN}&sort=oldest&scope=approved`;
+    const stageUrl = `/review/${stage}?gardenId=${GARDEN}&sort=oldest&scope=approved`;
     expect(navigate.mock.calls.map(([target]) => target)).toEqual([
       `${stageUrl}&item=submit-work`,
       `${stageUrl}&item=create-assessment`,

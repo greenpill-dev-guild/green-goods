@@ -81,9 +81,9 @@ test.describe("Admin Production Flows CI", () => {
 
     const criticalRoutes = [
       ["/garden/create", "Create Garden"],
-      [`/hub/assess?${TEST_GARDEN_CONTEXT}&item=create-assessment`, "Create Assessment"],
+      [`/review/assess?${TEST_GARDEN_CONTEXT}&item=create-assessment`, "Create Assessment"],
       [`/community/endowment/vault?${TEST_GARDEN_CONTEXT}`, "Community"],
-      [`/hub/certify?${TEST_GARDEN_CONTEXT}&item=create-hypercert`, "Create Hypercert"],
+      [`/review/certify?${TEST_GARDEN_CONTEXT}&item=create-hypercert`, "Create Hypercert"],
     ];
 
     for (const [route, heading] of criticalRoutes) {

@@ -109,7 +109,7 @@ export function buildCommandPaletteResults({
         id: "app.admin.nav.quickAction.pendingReviews",
         defaultMessage: "Go to Pending Reviews",
       }),
-      href: adminRoutes.hubWork(),
+      href: adminRoutes.reviewWork(),
       roles: ["deployer", "steward"],
     },
     {

@@ -24,7 +24,7 @@ export type OpenDialog =
   | null;
 
 /** The panel's workspace tone, forwarded to every dialog it opens. */
-export type CommitmentDialogTone = "garden" | "hub" | "community";
+export type CommitmentDialogTone = "garden" | "review" | "community";
 
 /** The confirmation path when the ordinary one is unreachable, else null. */
 export type FallbackPath = "POOL_FALLBACK" | "PROTOCOL_FALLBACK" | null;

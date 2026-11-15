@@ -10,11 +10,11 @@ import { expect, fn, userEvent, within } from "storybook/test";
 import { NavigationBar, type ToolbarSlot } from "./NavigationBar";
 
 const workSlot: ToolbarSlot = {
-  id: "hub",
+  id: "review",
   label: "Review",
   labelId: "hub.nav.review",
   icon: RiClipboardLine,
-  path: "/hub",
+  path: "/review",
   visible: true,
 };
 
@@ -124,7 +124,7 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   args: {
     slots: primarySlots,
-    activePath: "/hub",
+    activePath: "/review",
     onNavigate: fn(),
   },
   play: async ({ args, canvasElement }) => {
@@ -149,7 +149,7 @@ export const CommunityActive: Story = {
 export const SingleVisibleSlotHidden: Story = {
   args: {
     slots: [workSlot, { ...gardenSlot, visible: false }, { ...communitySlot, visible: false }],
-    activePath: "/hub",
+    activePath: "/review",
     onNavigate: fn(),
   },
   render: (args) => (
@@ -171,7 +171,7 @@ export const HiddenActions: Story = {
 export const WithFab: Story = {
   args: {
     slots: primarySlots,
-    activePath: "/hub",
+    activePath: "/review",
     onNavigate: fn(),
     fab: submitWorkFab,
   },
@@ -195,7 +195,7 @@ export const Mobile: Story = {
 export const MobileSpeedDial: Story = {
   args: {
     slots: primarySlots,
-    activePath: "/hub",
+    activePath: "/review",
     onNavigate: fn(),
     fab: speedDialFab,
   },

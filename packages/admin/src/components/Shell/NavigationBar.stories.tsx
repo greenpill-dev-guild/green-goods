@@ -10,11 +10,11 @@ import { NavigationBar } from "./NavigationBar";
 
 const slots: ToolbarSlot[] = [
   {
-    id: "hub",
+    id: "review",
     label: "Review",
     labelId: "hub.nav.review",
     icon: RiAppsLine,
-    path: "/hub",
+    path: "/review",
     visible: true,
   },
   {
@@ -60,12 +60,12 @@ const meta = {
     withCanvasFrame({
       className: "relative",
       heightClassName: "min-h-[420px]",
-      workspace: "hub",
+      workspace: "review",
     }),
   ],
   args: {
     slots,
-    activePath: "/hub",
+    activePath: "/review",
     onNavigate: fn(),
   },
 } satisfies Meta<typeof NavigationBar>;

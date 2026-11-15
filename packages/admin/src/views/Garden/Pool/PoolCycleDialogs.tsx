@@ -24,7 +24,7 @@ export function PoolCycleDialogs({
   pool: PoolConsoleController;
   /** The pool whose cycle this is, named first in both dialogs. */
   target: PoolWriteTarget;
-  tone: "garden" | "hub" | "community";
+  tone: "garden" | "review" | "community";
   cycleDialog: CycleDialog;
   setCycleDialog: Dispatch<SetStateAction<CycleDialog>>;
 }) {
