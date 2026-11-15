@@ -26,6 +26,7 @@
     {
       "risk": "sensitive",
       "prefixes": [
+        ".agents/",
         ".github/",
         ".claude/",
         ".codex/",
@@ -428,6 +429,7 @@
       "runInQa": true,
       "runInEvidence": true,
       "exact": [
+        ".agents/adapter.md",
         "AGENTS.md",
         "CLAUDE.md",
         ".claude/context/codebase-architecture.md",
@@ -441,6 +443,7 @@
         "scripts/quality/check-direct-tested-seams.mjs",
         "scripts/quality/check-direct-tested-seams.test.mjs",
         "scripts/quality/check-codex-docs.js",
+        "scripts/quality/check-react-patterns.js",
         "scripts/quality/check-guidance-links.mjs",
         "scripts/quality/check-skill-behavior-contracts.mjs",
         ".plans/README.md"

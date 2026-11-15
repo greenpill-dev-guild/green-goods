@@ -1,170 +1,99 @@
 ---
 name: ship
+description: Commit, push, and open or update a PR with targeted local proof, the push gate, and current-head CI as the final check. Use when the user asks to commit, push, open a PR, ship, release, or prove a branch is ready, or asks for a dry-run ship check.
 user-invocable: false
-description: Publish changes safely with targeted local proof, a budgeted push gate, and current-head GitHub CI. Runs the explicit full local gate only for offline/full-readiness requests or releases; critical surfaces run the selector's mandatory override.
 argument-hint: "[--dry-run] [--no-commit] [--pr] [--full-local]"
 ---
 
-# Ship Skill
+# Ship
 
-Publish Green Goods changes without duplicating CI locally. Ordinary work proves the changed
-behavior, passes the ready-for-CI push gate, and lets GitHub CI own broad regression coverage and
-merge approval. Critical work keeps its mandatory override; release work keeps the complete local
-gate.
+## Adapter
+
+Read `.agents/adapter.md` at the repository root: section `## ship`, plus `## checks` for commands. If the file, a section, or a field is missing, say so in one line and use the defaults written as "(default: ...)". Adapter fields are the bold names that follow `## checks` or carry a "(default: ...)". Without `## checks`, take commands from the repository's package scripts, Makefile, or CI config, name the ones you used, and treat auth, payment, and deploy code as critical.
 
 ## Iron law
+
+Publish without re-running CI locally. Ordinary work proves the changed behavior, passes the push gate, and lets required CI own broad regression coverage and merge approval. Critical surfaces keep their mandatory override; releases keep the full local gate.
 
 ```
 NO READINESS CLAIM WITHOUT FRESH EVIDENCE FOR THE CURRENT SHA
 ```
 
-For ordinary publication, fresh evidence means targeted behavior proof, the post-commit Push Gate,
-and required GitHub CI green for the PR's current head SHA. Pending, missing, stale-SHA, or
-unavailable CI is `BLOCKED`; a local full-suite run is not a substitute for PR approval.
-
-For releases or an explicit offline/full-local readiness request, fresh evidence also includes the
-complete local Ship Gate from [`validation-pipeline.md`](../../context/validation-pipeline.md). For
-critical surfaces it includes the selector's mandatory override (step 2); an ordinary critical
-commit or push does not require the complete Ship Gate.
+For ordinary publication, fresh evidence is targeted behavior proof, the post-commit push gate, and required CI green at the PR's current head SHA. Pending, missing, stale-SHA, or unavailable CI is `BLOCKED`; a local full suite never substitutes for PR approval. A release or an explicit full-local request adds the `full` tier (`release` for a release). A critical surface adds its mandatory override (step 2); an ordinary critical commit or push does not need the `full` tier.
 
 ## Activation
 
-| Trigger | Action |
+| Request | Flow |
 |---|---|
-| “commit”, “push”, or “open a PR” | Targeted proof → commit → Push Gate → push/PR → current-head CI |
-| “ready to ship” or `--full-local` | Full local Ship Gate, then the publication flow |
-| Critical surface | Mandatory override (owner typecheck and focused suite plus consumer typechecks; the full local gate for contracts, consumer suites and builds included), then the publication flow |
-| Release | Complete local Ship Gate, then the publication flow |
-| “dry-run ship check” | Selected validation only; no commit, push, or PR |
+| "commit", "push", or "open a PR" | targeted proof → commit → push gate → push or PR → current-head CI |
+| "ready to ship" or `--full-local` | `full` tier, then the publication flow |
+| critical surface (`## checks` **Criticality**) | mandatory override, then the publication flow |
+| release | `release` tier, then the publication flow |
+| "dry-run ship check" (`--dry-run`) | planned validation only; no commit, push, or PR |
 
-Do not activate this skill for "QA mode", "quick fix", "get this to staging", or similar requests
-unless the user also asks to commit, open a PR, merge, release, or prove the branch is ready.
-QA-only requests stay in QA Speed Mode and do not activate publication.
+"QA mode", "quick fix", "get this to staging", and similar requests stay in the `targeted` tier and do not publish unless the user also asks to commit, open a PR, merge, release, or prove the branch ready. `--no-commit` stops before the commit; `--pr` opens or updates the PR.
 
-## 1. Resolve branch and comparison base
+## 1. Resolve branch and base
 
 Confirm the branch, worktree, staging area, and remote before validation:
 
 ```bash
 git rev-parse --abbrev-ref HEAD
-node scripts/quality/branch-name-policy.mjs "$(git branch --show-current)"
 git status --short
 git remote -v
 ```
 
-Use the live PR base branch when one exists. Otherwise use `origin/develop`. Fetch the resolved base
-before computing the change set, then inspect commits and diff against that base. Never assume
-`origin/main`.
+Run **Branch check** too (default: none). Use the live PR base when one exists, otherwise `## checks` **Base** (default: the remote default branch). Fetch the resolved base before computing the change set, then inspect commits and the diff against it. Never assume a base.
 
-Stop on a detached HEAD, `main`, `master`, or `develop`; an invalid branch name; credential-like
-files; a staged file larger than 5 MB without confirmation; unrelated working-tree changes that
-overlap the publication scope; or no actual change to publish.
+Stop on: a detached HEAD; a branch in **Protected branches** (default: the default branch); a branch name **Branch check** rejects; credential-like files; a staged file over 5 MB without confirmation; unrelated working-tree changes that overlap the publication scope; nothing to publish.
 
-For PR creation, never infer Linear linkage from the branch. Every PR names exactly one Linear
-issue with an explicit reference line in its body: `Fixes <ID>`, `Refs <ID>`, or
-`Relates to <ID>`, with the identifier Linear gave the issue, such as `PRD-123` or `RESR-45`.
-When the work has no issue yet, find or file one before opening the PR, as
-[Every pull request names an issue](../../context/linear-routing-rules.md#every-pull-request-names-an-issue)
-says.
+Never infer the tracker issue from the branch name. When **PR issue line** requires one (default: no requirement), find or file the issue before opening the PR.
 
 ## 2. Prove the changed behavior
 
-Render the selector plan before running validation. Run the smallest direct acceptance check for
-the changed behavior. Add owner-package typecheck/build only when an interface, route, generated
-artifact, or runtime composition moved.
+Render the check plan (`## checks` **Selector**) before running validation. Run the smallest direct acceptance check for the changed behavior; add the owner package's typecheck or build only when an interface, route, generated artifact, or runtime composition moved. When the selector refuses to start for lack of focused proof, give it a focused test, narrow the change, or choose an existing explicit acceptance check: never broaden to full suites to get past it.
 
-Use `--test-path <surface>:<path>` to give the selector direct proof. A `needs-focus` plan starts
-nothing: provide a focused test, narrow the change, or choose an existing explicit acceptance
-check.
-
-If the selector marks any surface critical, run its mandatory override: for Shared, the owner's
-typecheck and focused suite plus every consumer's typechecks, with CI owning the consumer suites and
-builds; for contracts, the full local gate, consumer suites and builds included. For a release or explicit `--full-local`
-request, run the complete Ship Gate. Do not use compatibility flags or receipts to suppress
-critical checks.
+For a critical surface, run its mandatory override (`## checks` **Criticality**). For a release or `--full-local`, run the `full` or `release` tier. Compatibility flags and reused receipts never suppress critical checks.
 
 ## 3. Commit the proven change
 
-Stage only the approved paths and inspect the complete cached diff. Pre-commit is limited to
-`lint-staged`; it is not a repository readiness gate. Create a conventional commit, then verify the
-resulting commit tree and working tree before continuing.
+Stage only the approved paths, by name, and read the complete cached diff. Commit hooks (**Hooks**; default: whatever the repository installs) are not a readiness gate. Write the subject in **Commit format** (default: the style of recent commits), then verify the resulting commit tree and the working tree before continuing. Never commit secrets, environment files, or unrelated work.
 
-Commit subjects use `type(scope): description` with the repository's allowed types and scopes.
-Never commit secrets, environment files, or unrelated work.
+When the change finishes a tracked plan, the PR also carries that plan's closeout record (plan skill, Close a plan, steps 1 to 5); the archive commit lands after the human merge.
 
-When the change finishes a Plan Hub, the PR also carries the hub's closeout record (plan skill
-[Closing a Plan Hub](../plan/SKILL.md#closing-a-plan-hub), steps 1–5); the archive commit lands
-after the human merge.
+## 4. Run the push gate
 
-## 4. Run the post-commit Push Gate
+Run the `push` tier against the committed tree (`## checks` **Tiers**) under **Push gate** rules (default: none). The push gate is a thin pre-check; its plan names what it leaves to PR CI, and CI runs those (step 6). A budget overrun or missing focused proof blocks publication. Reuse a passing receipt only when the commit, working-tree state, command, policy, toolchain, validated paths, and environment all match exactly.
 
-Run the exact ready-for-CI contract against the committed tree:
+## 5. Push and open or update the PR
 
-```bash
-node scripts/dev/ci-local.js --intent push --reuse-passing-receipts \
-  --test-path <surface>:<focused-test-path>
-```
+Push normally to the verified branch and remote. Never force-push or publish directly to a protected branch. Open a PR only when asked, following **PR** (default: the repository PR template, opened as a draft), with validation evidence and any required issue line.
 
-The push gate is a thin pre-check: format, lint, cheap repository checks, owner and consumer
-typechecks, docs drift and focused tests. The plan lists the builds, Storybook build, browser
-presets and whole suites it leaves to PR CI; current-head CI runs them (step 6). A critical
-contracts change keeps its full local gate, consumer suites and builds included.
+After publication, fetch the live PR metadata again and record its current head SHA. A local commit or a successful push message alone is not proof that the PR contains the change.
 
-Routine work has a 90-second hard limit; sensitive work has 180 seconds; a saturated host (1-minute
-load above 1.5× the host CPU count) suspends the limit, so it stops no check. `needs-focus` and
-`budget-exceeded` block publication. Passing receipts are reusable only when the commit,
-working-tree fingerprint, command, policy, toolchain, validated paths, and environment match
-exactly. The pre-push hook calls the same command and may reuse that exact pass.
+## 6. Require current-head CI
 
-## 5. Push and create or update the PR
+Wait for every required workflow selected for the changed paths to finish at the PR's current head SHA (`## checks` **CI**). A failure blocks readiness. Pending, missing, or unavailable CI yields a `BLOCKED` report; never run a broad local fallback and call the PR approved. Critical surfaces need both the mandatory override and current-head CI; ordinary work needs the targeted local checks and current-head CI.
 
-Push normally to the verified branch and remote. Never force-push or publish directly to a
-protected branch. Create the PR only when requested, using the repository PR template, draft label,
-automation label, validation evidence, and its Linear reference line.
+## 7. Merge, then close out
 
-After publication, fetch the live PR metadata again and record its current head SHA. A local commit
-or successful push message alone is not proof that the PR contains the change.
-
-## 6. Require current-head CI for readiness
-
-Wait for all required workflows selected for the changed paths to finish on the current PR head
-SHA. A failure blocks readiness. Pending, missing, or unavailable CI yields a blocked report; do not
-run a broad local fallback and call the PR approved.
-
-Critical surfaces require both the selector's mandatory override and current-head CI, which owns
-the consumer suites and builds. Ordinary work needs the targeted local contract and current-head CI.
-
-## 7. Close out Linear after a merge
-
-Publication does not authorize a merge, and a merge does not finish the Linear record. When the
-user asks for the merge or reports one, run the closeout in
-[After a merge](../../context/linear-routing-rules.md#after-a-merge). That section owns the steps,
-their conditions, and what the closeout may write; `Done` waits for a person's review.
+Publication never authorizes a merge. When the user authorizes one, use **Merge** (default: `.agents/merge-policy.json` when the repository has one, with its merge method, and auto-merge only for a change whose highest tier allows it, so never for a critical path; otherwise ask which method). A merge does not finish the tracker record: when the user asks for a merge or reports one, run **After merge** (default: none), which owns its steps, conditions, and permitted writes.
 
 ## Output
 
-Report the resolved base, branch and head SHA, targeted proof, Push Gate status and elapsed time,
-whether the full local gate was required, commit and push result, PR URL, current-head CI state,
-and the Linear line: the issue the PR names with its observed state (saying when the closeout
-linked or filed it after the merge), `bot PR` for an exempt bot PR, or `not checked`. The Linear
-line reports; it does not change the outcome. Use one of these outcomes:
-
-- `READY`: current-head required CI is green and every applicable local contract passed.
-- `BLOCKED`: local proof, push budget, publication, or current-head CI is pending/unavailable.
+Report the resolved base, branch and head SHA, targeted proof, push gate status and elapsed time, whether the full tier was required, the commit and push result, the PR URL, current-head CI state, and **Report line** (default: none). The report line informs; it never changes the outcome.
+- `READY`: required current-head CI is green and every applicable local check passed.
+- `BLOCKED`: local proof, push budget, publication, or current-head CI is pending or unavailable.
 - `FAILED`: a required local or CI check failed.
 
 ## Anti-patterns
 
-- Do not run full Client, Admin, and Agent suites locally for an ordinary Shared implementation
-  change; CI owns that regression fanout.
-- Do not treat PR creation, commit, or push alone as a reason to run the full local Ship Gate.
-- Do not approve a PR from local evidence while required CI is pending or stale.
-- Do not bypass `needs-focus`, the hard deadline, critical overrides, hooks, or receipt freshness.
-- Do not assume `origin/main`; resolve the live PR base or use `origin/develop`.
+- Running consumer suites locally for an ordinary change when CI owns that fanout (`## checks` **CI**).
+- Treating a PR, commit, or push alone as a reason for the `full` tier.
+- Approving a PR from local evidence while required CI is pending or stale.
+- Bypassing focused-proof requirements, push deadlines, critical overrides, hooks, or receipt freshness.
+- Assuming a base branch instead of resolving the live PR base or `## checks` **Base**.
 
-## Unattended maintenance
+## Unattended runs
 
-Keep unattended maintenance PRs to 20 changed files or fewer, as drafts with the required labels.
-Do not modify deployment/upgrade scripts or environment files, add packages or top-level
-directories, or edit agent operating guidance unless the assigned task explicitly requests it.
-These limits do not authorize publication or merging.
+Unattended maintenance PRs stay within **Unattended** (default: draft PRs only, with no changes to deploy scripts, environment files, dependencies, or agent guidance unless the task asks). These limits never authorize publication or merging.

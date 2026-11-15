@@ -1,423 +1,79 @@
----
-name: agent-teams
-description: Coordinate multiple Claude Code sessions as a team with shared tasks and inter-agent messaging.
-parent: plan
----
+# Agent teams
 
-# Agent Teams Sub-Skill
+Part of the [plan skill](SKILL.md). Coordinate several agent sessions as one team: a lead, teammates with their own context, a shared task list, and direct messages between them. Scripts, lane models, ownership, and dispatch mechanics come from the adapter's `## plan` section, field **Teams**.
 
-Coordinate multiple Claude Code instances working together. One session leads, teammates work independently with their own context, and they communicate directly with each other via a shared task list and messaging.
+## Modes
 
-**References**: [Claude Code Agent Teams docs](https://code.claude.com/docs/en/agent-teams), `AGENTS.md`, `.claude/settings.json` (canonical Claude Code settings and hooks surface).
+| Mode | Signal |
+|---|---|
+| `teams` (default) | orchestration intent: "coordinate a team", "spawn teammates", "parallel lanes" |
+| `teams-build` | orchestration plus implementation |
+| `teams-review` | orchestration plus review: "parallel review", "team review" |
+| `teams-investigate` | orchestration plus investigation: "competing hypotheses", "test theories in parallel" |
 
-> **Experimental feature** — requires `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS: "1"` in `.claude/settings.json` (already configured for this project).
+Run the **Teams** preflight before spawning (default: confirm the harness supports agent teams). If it fails, use subagents with the same ownership model.
 
----
+## Teams or subagents
 
-## Activation
+Use a team when parallel exploration and debate help, when teammates can each own a piece of a new module, for competing hypotheses, or for cross-layer coordination. Use subagents for sequential or dependent work, workers that never need to talk, same-file edits (teams overwrite each other), or routine work one session handles.
 
-Fires when the plan skill routes to teams. Plan detects orchestration intent (see plan `SKILL.md` Activation) and selects the mode from the user's framing:
-
-| Mode | Selection signal |
-|------|------------------|
-| `teams` (default) | Orchestration intent: "coordinate a team", "spawn teammates", "parallel lanes" |
-| `teams-build` | Orchestration + implementation framing |
-| `teams-review` | Orchestration + review framing ("parallel review", "team review") |
-| `teams-investigate` | Orchestration + investigation framing ("competing hypotheses", "test theories in parallel") |
-
-Before spawning, run preflight:
-
-```bash
-bash .claude/scripts/check-agent-teams-readiness.sh
-```
-
-Codex-driving teammates must also run `bash .claude/scripts/check-codex-lane-readiness.sh`. The
-preflight uses the shared Codex binary resolver and verifies that delegated lanes receive only the
-fixed non-secret environment allowlist; it never links the root `.env` into a worktree.
-
-If preflight fails, fall back to subagents (Task tool) with the same ownership model.
-
----
-
-## Part 1: When to Use Teams vs Subagents
-
-**Use agent teams when:**
-- Research/review benefits from parallel exploration and debate
-- New modules or features where teammates each own a separate piece
-- Debugging with competing hypotheses tested in parallel
-- Cross-layer coordination (contracts + shared + client changes)
-
-For mixed-worker teams — some lanes design-sensitive (Claude's strength), others spec-clear implementation (Codex's strength) — spawn codex-driving teammates rather than having the lead dispatch Codex directly. See [Part 11: Codex Lanes](#part-11-codex-lanes--teammates-that-dispatch-codex).
-
-**Use subagents (Task tool) instead when:**
-- Tasks are sequential or have many dependencies
-- Workers don't need to communicate with each other
-- Same-file edits are required (teams cause overwrite conflicts)
-- The task is routine and a single session handles it fine
-
-| | Subagents | Agent Teams |
+| | Subagents | Team |
 |---|---|---|
-| **Context** | Own window; results return to caller | Own window; fully independent |
-| **Communication** | Report back to main agent only | Teammates message each other directly |
-| **Coordination** | Main agent manages all work | Shared task list with self-coordination |
-| **Best for** | Focused tasks where only the result matters | Complex work requiring discussion |
-| **Token cost** | Lower | Higher — scales with team size |
+| Context | own window; results return to the caller | own window; fully independent |
+| Communication | report to the caller only | teammates message each other |
+| Coordination | the caller manages all work | shared task list, self-coordinating |
+| Best for | focused tasks where only the result matters | complex work that needs discussion |
+| Token cost | lower | higher, scaling with team size |
 
----
+## Composition
 
-## Part 2: Team Composition
+Default 3 to 4 teammates; 5 only when the task truly needs it; never more, because cost scales with every teammate. Shape the team to the task:
+- Build: one teammate per lane along the dependency flow (**Teams** lane model).
+- Review: independent specialists, such as security, performance, and test coverage, with the lead challenging claims.
+- Investigate: one investigator per hypothesis, with the lead arbitrating and declaring the winner.
 
-**Default: 3-4 teammates.** Claude decides team size based on the task. Only go to 5 when the task genuinely requires it. Never exceed 5 — token costs scale linearly.
+## Lead
 
-### Green Goods Lane Model (suggested, not mandatory)
+The lead coordinates and never implements while teammates are active. It creates the team, spawns teammates with full task context, creates 5 or 6 tasks per teammate, monitors and redirects failing approaches, challenges claims and demands evidence, synthesizes results, gives an explicit PASS or FAIL with reasons for review work, and shuts teammates down at the end. A lead that starts implementing should wait for its teammates instead.
 
-For cross-package work, align teammates to the dependency flow:
+## Spawning
 
-```
-Lead (coordinates, synthesizes, reviews integration)
-├─ chain-specialist      (contracts + indexer)
-├─ middleware-specialist  (shared package)
-└─ app-specialist         (client + admin)
-```
+Teammates do not inherit the lead's conversation. They load the repository guides themselves, so every task-specific detail goes in the spawn prompt: the files, the flow to examine, the exact property to verify, and the report shape with severity ratings. "Review the contracts" is not a spawn prompt.
 
-For review or investigation, use independent specialists:
+Require plan approval before changes on the **Teams** high-risk surfaces (default: deploy scripts, migrations, and anything that changes production state). The teammate stays in read-only plan mode until the lead approves.
 
-```
-Lead (synthesizes findings, challenges claims)
-├─ security-reviewer
-├─ performance-reviewer
-└─ test-coverage-reviewer
-```
+## Ownership
 
-For debugging with competing hypotheses:
+Two teammates editing one file overwrite each other. Give each teammate a distinct set of files (**Teams** ownership table); when two need the same package, split it by directory. Never assign one file to two teammates.
 
-```
-Lead (arbitrates, declares winner)
-├─ hypothesis-A investigator
-├─ hypothesis-B investigator
-└─ hypothesis-C investigator
-```
+## Tasks
 
-**Key principle: shape the team to the task, not the other way around.**
+Aim for 5 or 6 tasks per teammate: everyone stays productive and the lead can reassign a stuck teammate's work. Too small: "add a type annotation" (coordination costs more than it saves). Right: "implement the X hook with tests". Too large: "refactor the whole package" (too long without a check-in). Tasks move pending → in_progress → completed, and a task with unresolved dependencies cannot be claimed.
 
----
+## Completion signals
 
-## Part 3: Lead Behavior
+Completion hooks (**Teams**) keep a teammate working only when its idle reason or task output carries an error signal (error, failed, timeout, crash), and require a retry or a blocker report to the lead. Hooks run no package or repository suites: the lead owns validation.
 
-The lead coordinates — it does NOT implement while teammates are active.
+## Cleanup
 
-Lead responsibilities:
-- Create the team and spawn teammates with detailed context
-- Create tasks in the shared task list (aim for 5-6 tasks per teammate)
-- Monitor progress and redirect approaches that aren't working
-- Challenge claims and request evidence before accepting findings
-- Synthesize results across teammates
-- Issue explicit PASS/FAIL verdict with reasons for review work
-- Shut down teammates and clean up when done
+Clean up through the lead, never a teammate: send each teammate a shutdown request, wait for every confirmation, then clean up the team. The lead checks for active teammates first.
 
-If the lead starts implementing instead of waiting:
+## Shortcuts
 
-> "Wait for your teammates to complete their tasks before proceeding."
+- Build: "Create a team to implement <TARGET>. Give each teammate a distinct set of files, 5 or 6 tasks each, plan approval for high-risk surfaces; integrate after the teammates finish."
+- Review: "Create a team to review <TARGET>. One angle per teammate (security, performance, correctness, test coverage); have them challenge each other's findings; synthesize a Critical/High/Medium/Low report."
+- Investigate: "Create a team to investigate <TARGET>. One hypothesis per teammate; each actively tries to disprove the others; the theory that survives is the likely root cause."
 
----
+## Dispatched lanes
 
-## Part 4: Spawning Teammates with Context
+When some lanes are design-sensitive and others are spec-clear implementation, give the spec-clear lanes to teammates that dispatch a non-interactive agent CLI through the **Teams** dispatcher. The teammate drives the dispatch, not the lead: raw output, worktree paths, and cleanup stay out of the lead's context; results pass the same completion signals; the lead keeps managing teammates, not processes; and the teammate holding the task context reviews the output.
 
-**Critical**: teammates do NOT inherit the lead's conversation history. They need the applicable AGENTS.md and project context, but task-specific details must be in the spawn prompt.
+- **Assignment**: UI components, layouts, design iteration, responsive and accessibility polish, and cross-cutting state machines go to interactive teammates. Implementation from a clear spec, hooks and stores, mechanical transforms, test scaffolding from eval criteria, and string extraction or translation passes go to dispatched lanes. A review or QA pass after integration fits either; a dispatched pass works well there. An ambiguous lane goes to an interactive teammate, which may dispatch on its own. Lane owner is a hint, not a contract.
+- **Spawn prompt**: name the lane, the base branch, the work branch, and the prompt file; say to run the dispatch in the background; check the result for success and passing tests; on a partial or failed result, read the reported issues and either re-dispatch with a refined prompt or report the blocker. On success: review the diff in the worktree, merge into the base without fast-forward, remove the worktree and work branch, and report the merge SHA, files changed, and any deviation from the prompt.
+- **Ownership**: the rules above apply unchanged, one lane per teammate and no overlapping files. A dispatching teammate owns its worktree, its work branch, the files edited there, and merging back.
+- **Parallel lanes** coordinate through the shared task list; a task's `depends_on` holds downstream lanes until upstream merges land. Example: lane A (dispatched) implementation, no deps; lane B (dispatched) hooks, no deps; lane C (interactive) UI, after A and B; lane D (dispatched) integration tests, after A, B, and C.
+- **Dispatch prompts** (**Teams** prompt guide): state the goal, not the steps; name the files and plan docs to read; declare what not to do; include "Done when" with validation commands; ask for no upfront plan or status updates, which cause early stopping; repeat nothing the repository guide already says.
 
-Good spawn prompt:
-```
-Spawn a chain specialist teammate with this prompt:
-"Review the HatsModule authorization flow in packages/contracts/src/modules/Hats.sol.
-Focus on whether createHat permissions are correctly enforced when called from
-GardenToken.createGarden(). The Hats Protocol requires wearing the parent hat
-to create children — verify this is checked. Report findings with severity ratings."
-```
+## Anti-patterns
 
-Bad spawn prompt:
-```
-Spawn a teammate to review the contracts.
-```
-
-### Plan Approval for High-Risk Work
-
-For contract changes or protocol-affecting work, require plan approval:
-
-```
-Spawn a chain specialist to refactor the deploy script.
-Require plan approval before they make any changes.
-```
-
-The teammate works in read-only plan mode until the lead approves. Use this for:
-- Any Solidity contract modifications
-- Deploy script changes
-- Changes affecting on-chain state
-
----
-
-## Part 5: File Ownership (Conflict Prevention)
-
-**Two teammates editing the same file causes overwrites.** Break work so each teammate owns different files.
-
-| Lane | Owns | Does NOT touch |
-|------|------|----------------|
-| chain | `packages/contracts/**`, `packages/indexer/**` | shared, client, admin |
-| middleware | `packages/shared/**` | contracts, client, admin |
-| app | `packages/client/**`, `packages/admin/**` | contracts, shared |
-
-When multiple teammates need to touch the same package (e.g., both need shared), split by directory:
-- Teammate A owns `shared/src/hooks/garden/`
-- Teammate B owns `shared/src/hooks/work/`
-
-**Never assign two teammates to the same file.**
-
----
-
-## Part 6: Task Sizing
-
-Aim for **5-6 tasks per teammate**. This keeps everyone productive and lets the lead reassign work if someone gets stuck.
-
-| Size | Example | Verdict |
-|------|---------|---------|
-| Too small | "Add a type annotation" | Coordination overhead > benefit |
-| Just right | "Implement the useGardenPools hook with tests" | Self-contained, clear deliverable |
-| Too large | "Refactor the entire shared package" | Too long without check-ins |
-
-Tasks have three states: **pending** → **in_progress** → **completed**
-
-Tasks can depend on other tasks — a pending task with unresolved dependencies can't be claimed until those complete.
-
----
-
-## Part 7: Coordination Signals (Hooks)
-
-Two hook types surface error signals when teammates finish assigned work. The coordinating agent
-owns validation; completion hooks do not run package or repository suites.
-
-### TeammateIdle Hook
-Runs when a teammate is about to go idle. Exit code 2 sends feedback and keeps them working.
-
-Script: `.claude/scripts/teammate-idle-gate.sh`
-- Blocks idle when reason contains error signals (error, failed, timeout, crash)
-- Requires retry or blocker report to lead
-
-### TaskCompleted Hook
-Runs when a task is being marked complete. Exit code 2 prevents completion only when the task output
-contains an explicit error signal.
-
-Script: `.claude/scripts/task-completion-gate.sh`
-- Blocks completion on error signals in the task output
-- Otherwise reports an advisory pass and leaves validation to the coordinator
-
----
-
-## Part 8: Cleanup
-
-Always clean up through the lead, never through a teammate.
-
-```
-1. Ask each teammate to shut down (lead sends shutdown requests)
-2. Wait for all teammates to confirm shutdown
-3. Tell the lead: "Clean up the team"
-```
-
-The lead checks for active teammates before cleanup — shut them all down first.
-
----
-
-## Part 9: Display Modes
-
-| Mode | Setting | Best For |
-|------|---------|----------|
-| **in-process** (default) | `teammateMode: "in-process"` | Any terminal. Use Shift+Down to cycle through teammates. |
-| **split-panes** | `teammateMode: "tmux"` | tmux or iTerm2. See all teammates at once. |
-
-This project uses `"in-process"` by default (configured in `.claude/settings.json`).
-
-**In-process controls:**
-- **Shift+Down**: cycle through teammates
-- **Enter**: view a teammate's session
-- **Escape**: interrupt a teammate's current turn
-- **Ctrl+T**: toggle the task list
-
----
-
-## Part 10: Shortcut Templates
-
-### Build mode (parallel implementation)
-
-Teammates each own a piece, build independently, lead integrates.
-
-```
-Create a team to implement <TARGET>.
-- Assign each teammate a distinct set of files (no overlap)
-- Create 5-6 tasks per teammate
-- Use plan approval for any contract changes
-- Wait for teammates to finish before integrating
-```
-
-### Review mode (parallel lenses)
-
-Each teammate applies a different lens. No implementation.
-
-```
-Create a team to review <TARGET>.
-- Each teammate reviews from a different angle (security, performance, correctness, test coverage)
-- Have teammates challenge each other's findings
-- Synthesize into a severity-ranked report (Critical/High/Medium/Low)
-```
-
-### Investigate mode (competing hypotheses)
-
-Teammates test different theories and debate.
-
-```
-Create a team to investigate <TARGET>.
-- Each teammate pursues a different hypothesis
-- Have them actively try to disprove each other's theories
-- The theory that survives is most likely the root cause
-```
-
----
-
-## Part 11: Codex Lanes — Teammates That Dispatch Codex
-
-For cross-package work that mixes design-sensitive UI (Claude's strength) with spec-clear implementation (Codex's strength), spawn Claude teammates that dispatch Codex internally rather than having the lead coordinate two worker kinds.
-
-**Why teammates drive Codex, not the lead:**
-- Keeps the lead's context clean — no codex JSON, worktree paths, or cleanup bash
-- Codex output flows through the same `TeammateIdle` / `TaskCompleted` hook gates
-- Lead coordination stays uniform: it manages teammates, not processes
-- The teammate with task context reviews codex output in the right place
-
-### Preflight
-
-Run before spawning a team that uses codex lanes:
-
-```bash
-bash .claude/scripts/check-codex-lane-readiness.sh
-```
-
-Validates codex binary, canonical schema (`.codex/output-schema.json`), jq, and the worktree parent. Fails clearly if any piece is missing.
-
-### Lane Assignment
-
-Shape lanes to each worker's strengths. Lane owner is a hint, not a rigid contract.
-
-| Lane type | Claude teammate | Codex-driving teammate |
-|---|---|---|
-| UI components, layouts, design iteration | ✓ | |
-| Responsive / a11y polish | ✓ | |
-| State machines with cross-cutting concerns | ✓ | |
-| Contract implementation from clear spec | | ✓ |
-| Hooks, stores, mechanical transforms | | ✓ |
-| Test scaffolding from eval criteria | | ✓ |
-| i18n string extraction / translation pass | | ✓ |
-| Reviewer / QA pass after integration | either | ✓ |
-
-If a lane's nature is ambiguous, give it to a Claude teammate — it can decide whether to delegate to codex on the fly.
-
-### Spawning a Codex-Driving Teammate
-
-The teammate's spawn prompt tells it to use the dispatch script. It does NOT need to know the dispatch mechanics — the script handles the worktree, fixed non-secret child environment, and output schema.
-
-Good spawn prompt:
-
-```
-Spawn a codex-driving teammate with this prompt:
-"You own the `factory` lane for phase-1a. Dispatch codex via:
-
-  bash .claude/scripts/dispatch-codex-lane.sh \
-    --lane factory \
-    --base feature/<feature-slug> \
-    --branch feature/factory-registration \
-    --prompt-file .plans/active/<feature-slug>/handoffs/factory.md
-
-Run it via Bash with run_in_background=true. When it completes, read the JSON
-from stdout, open result_file, and verify status == success and tests_passed == true.
-If status is partial or failed, read the issues array and either re-dispatch with
-a refined prompt or report back to the lead with the blocker.
-
-On success: review the diff in the worktree, merge into feature/<feature-slug>
-with --no-ff, then clean up:
-
-  git worktree remove /tmp/gg-codex-factory
-  git branch -d feature/factory-registration
-
-Report the merge SHA, files changed, and any deviations from the original prompt."
-```
-
-Bad spawn prompt (missing the lane mechanics):
-
-```
-Spawn a teammate to run codex on the factory task.
-```
-
-### Dispatcher Contract
-
-`.claude/scripts/dispatch-codex-lane.sh` is the single entry point.
-
-- Required args: `--lane`, `--base`, `--branch <type/work-description>`, and either `--prompt` or `--prompt-file`
-- Optional: `--schema` (default `.codex/output-schema.json`)
-- Side effects: creates `/tmp/gg-codex-<lane>` worktree on the caller-supplied work branch and runs `codex exec --approve-for-me` with a fixed non-secret environment and closed stdin; this flag already selects workspace-write and cannot be combined with `-s`; root `.env` is never linked, so secret-backed validation remains a parent-session or human-run gate
-- Stdout: JSON with `result_file`, `worktree`, `branch`, `dispatch_exit`
-- Does NOT clean up — that is the teammate's job after review and merge
-- Env overrides: `CODEX` (binary path), `CODEX_HOME` (configured Codex state directory),
-  `CODEX_WORKTREE_PARENT` (default `/tmp`)
-- Re-check `codex exec --help` before changing these flags; the CLI surface changes between releases.
-
-### File Ownership With Codex Lanes
-
-Codex teammates follow the same ownership rules as Part 5. Assign each lane to exactly one teammate. A codex-driving teammate owns:
-
-- Its worktree path (`/tmp/gg-codex-<lane>`)
-- Its caller-supplied work branch (`<type>/<work-description>`)
-- The files codex edits within the worktree
-- Merging the worktree back to the base branch
-
-Two codex-driving teammates must NOT target overlapping files, same rule as two Claude teammates editing the same file. The lead enforces this via lane assignment.
-
-### Parallel Dispatch
-
-Multiple codex-driving teammates run in parallel. Each owns a separate lane and worktree. The shared task list coordinates them — tasks can declare `depends_on` so downstream lanes wait for upstream merges.
-
-Example phase structure:
-
-```
-Lane A (codex):  contracts implementation    — no deps
-Lane B (codex):  hooks implementation        — no deps
-Lane C (claude): UI components               — depends on A, B merged
-Lane D (codex):  integration tests           — depends on A, B, C merged
-```
-
-### Codex Prompt Hygiene
-
-Codex teammates hand prompts to codex via `--prompt-file`. Follow the [Codex Prompting Guide](https://developers.openai.com/codex/prompting):
-
-- State the goal, not the steps — codex is autonomous, not a step-runner
-- Name which files to read, which plan docs reference (codex reads them itself)
-- Declare what NOT to do (scope boundaries) explicitly
-- Include a "Done when" section with validation commands
-- Do NOT ask codex for upfront plans or status updates (causes early stopping)
-- Do NOT repeat info from `AGENTS.md` (codex loads it automatically)
-
-### Canonical References
-
-- Dispatcher: `.claude/scripts/dispatch-codex-lane.sh`
-- Preflight: `.claude/scripts/check-codex-lane-readiness.sh`
-- Output schema: `.codex/output-schema.json`
-- Codex config: `.codex/config.toml`
-- Plan-specific orchestration: the current feature hub's `handoffs/` directory
-
----
-
-## Anti-Patterns
-
-- Spawning 6+ teammates (token cost explodes, coordination degrades)
-- Assigning two teammates to the same file (overwrite conflicts)
-- Using teams for sequential, dependent work (use a single session)
-- Lead implementing while teammates are active (lead should coordinate only)
-- Spawn prompts without task-specific context (teammates can't read the lead's mind)
-- Letting teams run unattended too long (check in, redirect, synthesize)
-- Not cleaning up through the lead (orphaned resources)
-- Using rigid team templates for every task (shape the team to the work)
+Six or more teammates; two teammates on one file; teams for sequential, dependent work; a lead implementing while teammates work; spawn prompts without task context; teams left unattended too long; cleanup outside the lead; one rigid template for every task.
