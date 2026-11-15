@@ -72,7 +72,7 @@ Run `/audit drift plans` weekly. Beyond the checker's output, list **closeout ca
 hubs whose implementation PR has merged, whose Linear parent is `Done`, or whose lanes stayed
 `ready` or `in_progress` after the merge, plus hubs untouched for 14+ days
 (`node scripts/harness/plan-hub.mjs stale --days 14`). After scope lock, close each through the plan
-skill's [Closing a Plan Hub](../plan/SKILL.md#closing-a-plan-hub) procedure.
+skill's [Close a plan](../plan/SKILL.md#close-a-plan) procedure.
 
 Routing: guidance/plans/docs drift → a scoped fix pass after the user approves findings by number (plan mode for anything large); design-system drift → `/review --scope design-system`; cleanup-shaped findings → recommend `clean --scope <scope> --dry-run` first, never full `/clean` without approval; anything that looks like a production bug, broken flow, or data/API/indexer failure → `debug`, not cleanup.
 
