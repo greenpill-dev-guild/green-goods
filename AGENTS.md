@@ -50,7 +50,7 @@ the machine-wide hooks that read `.agents/policy.json`; this repository's own ho
 | --- | --- | --- |
 | `bun run test`, never `bun test` | blocked by the shared guards and both harnesses' hooks | `.agents/policy.json` `bun-test`, `scripts/harness/command-policy.mjs` |
 | Bun contract wrappers, never raw Forge | the shared guards ask; the Codex hook blocks `forge build` and `forge test` | `.agents/policy.json` `forge-direct` |
-| Mainnet deploys and broadcasts to a live network need out-of-band confirmation | the shared guards ask; the Codex hook blocks | `.agents/policy.json` `mainnet-*`, `production-broadcast`, `vercel-prod`, `fly-deploy` |
+| Mainnet deploys, and broadcasts that name a live `--network`, need out-of-band confirmation | the shared guards ask; the Codex hook blocks | `.agents/policy.json` `mainnet-*`, `production-broadcast`, `vercel-prod`, `fly-deploy` |
 | Root `.env` only | edits to a package-level env file are blocked | `.agents/policy.json` `package-env`, `.claude/settings.json`, `.codex/hooks/edit_policy.sh` |
 | No secrets in Git | push protection; reading a `.env` file through the shell is blocked | GitHub secret scanning, `scripts/harness/command-policy.mjs` |
 | React hooks live in `packages/shared/src/hooks` | edits to app hook folders are blocked; exported consumer hooks fail lint | `.agents/policy.json` `client-hooks`, `admin-hooks`, `check-react-patterns.js` |
@@ -59,24 +59,26 @@ the machine-wide hooks that read `.agents/policy.json`; this repository's own ho
 | Default chain through `getDefaultChain()` or `DEFAULT_CHAIN_ID` | an import rule; chain-id literals are not linted | `check-source-structure.js` |
 | Package boundaries, placement and file size | structure check in each package workflow | `check-source-structure.js` |
 | Debt baselines only shrink | growth against the base fails | `check-source-structure.js`, `check-react-patterns.js` |
-| The shared `logger`, not `console` | lint with warnings denied | `.oxlintrc.json` `no-console` |
+| The shared `logger`, not `console`, outside the indexer | lint with warnings denied | `.oxlintrc.json` `no-console` |
 | Lockfile and release-age gate | frozen installs and a minimum release age | `.github/actions/setup-js`, `bunfig.toml` |
-| Report changes to sensitive surfaces | the shared guards print a notice on edits to manifests, lockfiles, CI, agent and harness configuration, and critical paths | `.agents/policy.json` `config-*`, `critical-*` |
+| Report changes to sensitive surfaces | the shared guards print a notice on edits to manifests, the lockfile, workflows, `.agents`, `.claude` and `.codex`, and critical paths | `.agents/policy.json` `config-*`, `critical-*` |
 | Critical changes keep their proof | the check selector's critical overrides | `scripts/data/validation-policy.json` |
 | Run the push intent before publication | pre-push hook | `.husky/pre-push` |
 | Current-head CI passes before merge | required check | `CI Gate` in the `develop` and `main` rulesets |
-| Contracts, CI, agent guidance and env files have code owners | review requests | `.github/CODEOWNERS` |
+| Contracts, workflows, `AGENTS.md`, `CLAUDE.md`, `.claude`, `.codex` and env files have code owners | review requests | `.github/CODEOWNERS` |
 | Local guides, Common Commands, the skills link and `CLAUDE.md` as an import stay true | guidance check | `check-codex-docs.js` |
 | Plan hubs live in `.plans/{ideas,backlog,active}` | plan hub validation in CI | `scripts/harness/plan-hub.mjs validate` |
-| Authenticated proof only for its surface class | the selector's `browser-proof` paths | `scripts/data/validation-policy.json` |
+| Authenticated surface changes ask for authenticated proof | the selector's `browser-proof` paths, which also catch some public routes | `scripts/data/validation-policy.json` |
 | The release gate needs a real attestation | placeholders are refused | `scripts/dev/ci-local.js` |
-| Brave only for the DevTools MCP wrapper | other browsers are refused | `scripts/mcp/brave-devtools.mjs` |
+| Brave only for the DevTools MCP wrapper | a local launch refuses other browsers; a remote endpoint is not checked | `scripts/mcp/brave-devtools.mjs` |
 | WebMCP exposes only public-safe tools | pinned tools and routes | `packages/client/src/__tests__/webmcp.test.ts` |
 | Linear is the backlog | GitHub Issues are off; Linear writes are shape-checked | repository settings, the `lint-linear-issue.sh` hook |
 
 Review alone holds the rest: reading the nearest `AGENTS.md`, Bun for package operations other
 than tests, approval before installing dependencies, merge commits only (both rulesets still allow
-squash), code and CI that do not depend on `.plans/`, labeled rendered proof and a Linear line in
+squash), broadcasts that rely on a script's default network, a notice for edits to `AGENTS.md`,
+code owners for `.agents` and `.github/actions`, `context.log` rather than `console` in the
+indexer, code and CI that do not depend on `.plans/`, labeled rendered proof and a Linear line in
 every PR body, and registering new scripts in `scripts/README.md`.
 
 ## Scope and workflow
