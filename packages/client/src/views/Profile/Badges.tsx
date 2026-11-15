@@ -1,6 +1,5 @@
 import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
 import { Alert } from "@green-goods/shared/components/Alert";
-import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import { formatAddress } from "@green-goods/shared/utils/app/text";
 import type { Address } from "@green-goods/shared/types/domain";
 import { GREENWILL_BADGE_IDS, type GreenWillBadgeView } from "@green-goods/shared/types/greenwill";
@@ -23,7 +22,7 @@ import { RiAwardLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
-import { BadgeArtwork } from "./BadgeArtwork";
+import { BadgeDetails } from "./BadgeDetails";
 import { BadgeTile } from "./BadgeTile";
 
 const BADGE_ORDER = ["genesis", "first-work", "first-support"] as const;
@@ -99,15 +98,6 @@ function badgeStatusLabel(intl: ReturnType<typeof useIntl>, status: ProfileBadge
     id: "app.profile.badges.claimableStatus",
     defaultMessage: "Ready to claim",
   });
-}
-
-/**
- * When the account was issued the badge: the block time its ownership record
- * carries, in seconds. A badge not yet held, or a record without a time, has none.
- */
-function earnedAt(badge: GreenWillBadgeView): Date | null {
-  const issuedAt = badge.ownership?.issuedAt ?? 0;
-  return issuedAt > 0 ? new Date(issuedAt * 1000) : null;
 }
 
 export const ProfileBadges: React.FC = () => {
@@ -274,9 +264,6 @@ export const ProfileBadges: React.FC = () => {
       : null;
   const selectedTitle = selectedBadge ? badgeTitle(intl, selectedBadge.slug) : "";
   const selectedEarned = claimLanded || selectedBadge?.profileStatus === "earned";
-  // The date arrives with the badge's ownership record, so a claim that has
-  // landed before the list catches up shows its success and no date yet.
-  const selectedEarnedAt = selectedBadge ? earnedAt(selectedBadge) : null;
 
   if (!primaryAddress) {
     return renderBadgeState(
@@ -428,87 +415,54 @@ export const ProfileBadges: React.FC = () => {
         sheetSize="tall"
       >
         {selectedBadge && (
-          <div className="flex flex-col items-center gap-4 text-center">
-            <BadgeArtwork
-              slug={selectedBadge.slug}
-              chainId={selectedBadge.chainId}
-              unlockLock={selectedBadge.unlockLock}
-              size="sheet"
-            />
-            <div className="flex flex-col items-center gap-1.5">
-              {/* The standing, and beside an earned badge's pill the day it was earned. */}
-              <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
-                {/* A badge's standing describes its sheet, so it is not one of the page's statuses. */}
-                <StatusBadge
-                  role="none"
-                  size="sm"
-                  variant={selectedEarned ? "success" : "warning"}
-                  showIcon={false}
+          <BadgeDetails
+            badge={selectedBadge}
+            earned={selectedEarned}
+            statusLabel={badgeStatusLabel(intl, selectedEarned ? "earned" : "claimable")}
+            description={badgeDescription(intl, selectedBadge.slug)}
+            note={selectedClaim.note}
+            claimProgress={
+              claimLanded ? (
+                <Alert
+                  className="w-full text-start"
+                  variant="success"
+                  title={intl.formatMessage(
+                    { id: "app.profile.badges.claim.successTitle" },
+                    { badge: selectedTitle }
+                  )}
                 >
-                  {badgeStatusLabel(intl, selectedEarned ? "earned" : "claimable")}
-                </StatusBadge>
-                {selectedEarnedAt ? (
-                  <time
-                    dateTime={selectedEarnedAt.toISOString()}
-                    className="type-meta text-text-sub-600"
-                  >
-                    {intl.formatDate(selectedEarnedAt, {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
-                  </time>
-                ) : null}
-              </div>
-              {selectedClaim.note ? (
-                <p className="type-meta text-text-sub-600">{selectedClaim.note}</p>
-              ) : null}
-            </div>
-            {/* A claim's progress sits under the standing it changes, above the
-                description, so a small phone keeps it in view over the claim bar. */}
-            {claimLanded ? (
-              <Alert
-                className="w-full text-start"
-                variant="success"
-                title={intl.formatMessage(
-                  { id: "app.profile.badges.claim.successTitle" },
-                  { badge: selectedTitle }
-                )}
-              >
-                {intl.formatMessage({ id: "app.profile.badges.claim.successMessage" })}
-              </Alert>
-            ) : claimAwaiting ? (
-              <Alert
-                className="w-full text-start"
-                variant="info"
-                title={intl.formatMessage({ id: "app.profile.badges.claim.awaitingTitle" })}
-              >
-                {intl.formatMessage({ id: "app.profile.badges.claim.awaitingMessage" })}
-              </Alert>
-            ) : selectedClaimState?.isPending ? (
-              <p role="status" className="type-meta text-text-sub-600">
-                {intl.formatMessage({ id: "app.profile.badges.claim.pendingMessage" })}
-              </p>
-            ) : claimFailure ? (
-              <Alert
-                className="w-full text-start"
-                variant={claimFailure.kind === "cancelled" ? "warning" : "error"}
-                title={
-                  claimFailure.kind === "cancelled"
-                    ? intl.formatMessage({ id: "app.profile.badges.claim.cancelledTitle" })
-                    : intl.formatMessage(
-                        { id: "app.profile.badges.claim.failedTitle" },
-                        { badge: selectedTitle }
-                      )
-                }
-              >
-                {intl.formatMessage({ id: claimFailure.messageId })}
-              </Alert>
-            ) : null}
-            <p className="type-body text-text-sub-600">
-              {badgeDescription(intl, selectedBadge.slug)}
-            </p>
-          </div>
+                  {intl.formatMessage({ id: "app.profile.badges.claim.successMessage" })}
+                </Alert>
+              ) : claimAwaiting ? (
+                <Alert
+                  className="w-full text-start"
+                  variant="info"
+                  title={intl.formatMessage({ id: "app.profile.badges.claim.awaitingTitle" })}
+                >
+                  {intl.formatMessage({ id: "app.profile.badges.claim.awaitingMessage" })}
+                </Alert>
+              ) : selectedClaimState?.isPending ? (
+                <p role="status" className="type-meta text-text-sub-600">
+                  {intl.formatMessage({ id: "app.profile.badges.claim.pendingMessage" })}
+                </p>
+              ) : claimFailure ? (
+                <Alert
+                  className="w-full text-start"
+                  variant={claimFailure.kind === "cancelled" ? "warning" : "error"}
+                  title={
+                    claimFailure.kind === "cancelled"
+                      ? intl.formatMessage({ id: "app.profile.badges.claim.cancelledTitle" })
+                      : intl.formatMessage(
+                          { id: "app.profile.badges.claim.failedTitle" },
+                          { badge: selectedTitle }
+                        )
+                  }
+                >
+                  {intl.formatMessage({ id: claimFailure.messageId })}
+                </Alert>
+              ) : null
+            }
+          />
         )}
       </DialogShell>
     </>
