@@ -164,6 +164,28 @@ Payouts in the admin).
 
 ## HatsModule Operational Notes
 
+### Protocol delegation (PRD-615)
+
+The existing Green Goods Safe governs policy and recovery through AccessManager. HatsModule
+continues to wear Community and administer garden Hat trees. No Team Safe or extra Community
+wearer is needed. Effective Team Hat wearers can grant and revoke Stewards through the module
+across all configured gardens. They cannot use that delegation to assign Owners, remap a garden,
+change jar policy, or upgrade a contract. Product Lead, Agents and Deployer remain independent
+roles; their Hats do not grant Team membership. Registry permission to create gardens is also
+separate from the technical Deployer Hat.
+
+Use the module's role events for the app roster and its actor audit for administrative history.
+Check effective Hats membership at transaction time. Removing Steward can leave Owner, Gardener
+or Evaluator roles intact; complete offboarding requires reviewing each held role. A source
+revocation updates a remote Hats-linked Safe only after successful delivery and destination
+readback. Ordinary test Safes require separate owner updates.
+
+Prepare the three Arbitrum Safe files with `release hats-delegation`. Deploy the additive indexer
+schema before activation, verify the proxy, controllers and all 18 garden records after execution,
+then release the app permissions. The existing AccessManager delay remains in force. Rollback
+uses Safe governance to disable Team delegation or restore the previous implementation; garden
+records and Safe-controlled protocol Hat controllers remain intact.
+
 ### Hat burns and phantom wearers
 
 `HatsModule` is the eligibility module of every role hat a garden's tree creates, so it revokes by burning: `setHatWearerStatus(hatId, account, false, true)` removes the hat and lowers its supply, and good standing leaves the account free to wear it again. A hat with a different eligibility module can't be revoked this way, and the call reverts.

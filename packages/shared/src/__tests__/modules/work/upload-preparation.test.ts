@@ -68,6 +68,7 @@ function harness(jobs: Job[], overrides: Partial<UploadPreparationPorts> = {}) {
     }),
     recover: vi.fn(async () => []),
     now: () => clock,
+    record: () => undefined,
     ...overrides,
   };
   return {
@@ -241,19 +242,83 @@ describe("preparing queued items in the background", () => {
     expect(order).toEqual(["b"]);
   });
 
-  it("backs off an item whose answer never arrived", async () => {
-    const { ports, advance } = harness([queued("a")], {
-      prepare: vi.fn(async (): Promise<PreparationResult> => "retry-later"),
-    });
+  it("backs off an item whose answer never arrived, and says so until a try answers", async () => {
+    const prepare = vi.fn(async (_job: Job): Promise<PreparationResult> => "retry-later");
+    const { ports, advance } = harness([queued("a"), queued("b")], { prepare });
     preparation = createUploadPreparation(ports);
 
     await settled(preparation);
     await settled(preparation);
-    expect(ports.prepare).toHaveBeenCalledOnce();
+    expect(prepare).toHaveBeenCalledTimes(2);
+    // A work's page reads this to say its preparation failed and will be tried again (PRD-1488).
+    expect(uploadPreparationStore.getSnapshot().retryingJobIds).toEqual(new Set(["a", "b"]));
 
+    prepare.mockResolvedValue("ready");
     advance(30_001);
     await settled(preparation);
-    expect(ports.prepare).toHaveBeenCalledTimes(2);
+    expect(prepare).toHaveBeenCalledTimes(4);
+    expect(uploadPreparationStore.getSnapshot().retryingJobIds).toEqual(new Set());
+  });
+
+  it("tries a backed-off item again at once when the person asks, and forgets a discarded one", async () => {
+    const prepare = vi.fn(async (_job: Job): Promise<PreparationResult> => "retry-later");
+    const jobs = [queued("a"), queued("b")];
+    const { ports } = harness(jobs, {
+      prepare,
+      listJobs: async () => jobs,
+      getJob: async (id) => jobs.find((job) => job.id === id),
+    });
+    preparation = createUploadPreparation(ports);
+    await settled(preparation);
+    expect(prepare).toHaveBeenCalledTimes(2);
+
+    preparation.retryNow("a");
+    await vi.waitFor(() => expect(prepare).toHaveBeenCalledTimes(3));
+    expect(prepare.mock.calls[2]?.[0]).toMatchObject({ id: "a" });
+
+    // A discarded work no longer waits on anything here.
+    jobs.splice(1, 1);
+    await settled(preparation);
+    expect(uploadPreparationStore.getSnapshot().retryingJobIds).toEqual(new Set(["a"]));
+
+    preparation.stop();
+    expect(uploadPreparationStore.getSnapshot().retryingJobIds).toEqual(new Set());
+  });
+
+  it("records each item's start, answer and retry, with no content of the item", async () => {
+    const record = vi.fn();
+    const prepare = vi.fn(async (_job: Job): Promise<PreparationResult> => "retry-later");
+    const { ports, advance } = harness([queued("a")], { prepare, record });
+    preparation = createUploadPreparation(ports);
+    await settled(preparation);
+
+    prepare.mockImplementation(async (job: Job): Promise<PreparationResult> => {
+      advance(1_700);
+      job.meta = {
+        ...job.meta,
+        preparation: { status: "blocked", reason: "NotGardenMember", checkedAt: "now" },
+      };
+      return "blocked";
+    });
+    advance(30_001);
+    await settled(preparation);
+
+    // The events say how long each try took and how many there were, so a work that keeps
+    // failing reads apart from one that is slow; nothing names the work or the person.
+    expect(record.mock.calls.map(([event]) => event)).toEqual([
+      { type: "started", kind: "work", attempt: 1 },
+      { type: "finished", kind: "work", attempt: 1, result: "retry-later", durationMs: 0 },
+      { type: "retry-scheduled", kind: "work", attempt: 1, delayMs: 30_000 },
+      { type: "started", kind: "work", attempt: 2 },
+      {
+        type: "finished",
+        kind: "work",
+        attempt: 2,
+        result: "blocked",
+        durationMs: 1_700,
+        reason: "NotGardenMember",
+      },
+    ]);
   });
 
   it("releases its claim and stops this document's retries after a module fails", async () => {

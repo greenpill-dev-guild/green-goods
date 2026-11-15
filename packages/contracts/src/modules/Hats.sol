@@ -1,15 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { IStewardRoleObserver } from "../interfaces/IStewardRoleObserver.sol";
-
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
 import { IGardenAccessControl } from "../interfaces/IGardenAccessControl.sol";
 import { IHatsModule } from "../interfaces/IHatsModule.sol";
-import { ICVSyncPowerFacet } from "../interfaces/ICVSyncPowerFacet.sol";
+import { HatsRoleSync } from "../lib/HatsRoleSync.sol";
+import { HatsEligibilitySetup } from "../lib/HatsEligibilitySetup.sol";
 import { IHats } from "../interfaces/IHats.sol";
 import { IHatsModuleFactory } from "../interfaces/IHatsModuleFactory.sol";
 import { IKarmaGAPModule } from "../interfaces/IKarmaGAPModule.sol";
@@ -99,18 +98,8 @@ contract HatsModule is
     error NotGardenMember();
     error OwnerCannotLeave(address garden);
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // Constants
-    // ═══════════════════════════════════════════════════════════════════════════
-
     /// @notice Maximum number of conviction strategies per garden (bounds gas in _syncConvictionPower)
     uint256 public constant MAX_CONVICTION_STRATEGIES = 10;
-
-    /// @notice Gas stipend for each syncPower external call to prevent gas griefing
-    /// @dev A malicious strategy could consume all remaining gas, starving subsequent strategies.
-    ///      100k gas accommodates strategies with cold SSTORE operations (20k each) while
-    ///      preventing griefing. Worst case: 10 strategies * 100k = 1M gas for sync.
-    uint256 internal constant SYNC_POWER_GAS_STIPEND = 100_000;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Storage
@@ -166,10 +155,25 @@ contract HatsModule is
     event StewardObserverSet(address indexed garden, address indexed observer);
     event StewardObserverDeferred(address indexed garden, address indexed account);
 
+    struct ProtocolRoles {
+        uint256 team;
+        uint256 productLead;
+        uint256 agents;
+        uint256 deployer;
+    }
+
+    /// @notice Protocol roles are independent; only Team delegates garden Steward administration.
+    ProtocolRoles public protocolRoleHats;
+    event ProtocolRoleHatsUpdated(uint256 team, uint256 productLead, uint256 agents, uint256 deployer);
+    event GardensToggleControllerUpdated(uint256 indexed gardensHat, address indexed controller);
+    event RoleManaged(
+        address indexed garden, address indexed actor, address indexed account, GardenRole role, bool granted
+    );
+
     /// @notice Storage gap for future upgrades.
     /// @dev Slot layout: storage-layouts/HatsModule.json.
     ///      State and gap occupy 50 slots; consume gap slots when adding storage.
-    uint256[34] private __gap;
+    uint256[30] private __gap;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Constructor & Initializer
@@ -346,46 +350,45 @@ contract HatsModule is
             gardensHat, _buildDetails(name, "Admin"), type(uint32).max, defaultModule, defaultModule, true, ""
         );
 
-        // Mint admin hat to garden account + module (for role administration)
-        hats.mintHat(adminHatId, garden);
+        // The module administers role hats; garden accounts do not receive raw Hats administration.
         hats.mintHat(adminHatId, address(this));
 
+        GardenHats memory config;
         // Create role hats under admin hat
-        uint256 ownerHatId = hats.createHat(
+        config.ownerHatId = hats.createHat(
             adminHatId, _buildDetails(name, "Owner"), type(uint32).max, defaultModule, defaultModule, true, ""
         );
-        uint256 operatorHatId = hats.createHat(
+        config.operatorHatId = hats.createHat(
             adminHatId, _buildDetails(name, "Steward"), type(uint32).max, defaultModule, defaultModule, true, ""
         );
-        uint256 evaluatorHatId = hats.createHat(
+        config.evaluatorHatId = hats.createHat(
             adminHatId, _buildDetails(name, "Evaluator"), type(uint32).max, defaultModule, defaultModule, true, ""
         );
-        uint256 gardenerHatId = hats.createHat(
+        config.gardenerHatId = hats.createHat(
             adminHatId, _buildDetails(name, "Gardener"), type(uint32).max, defaultModule, defaultModule, true, ""
         );
-        uint256 funderHatId = hats.createHat(
+        config.funderHatId = hats.createHat(
             adminHatId, _buildDetails(name, "Funder"), type(uint32).max, defaultModule, defaultModule, true, ""
         );
-        uint256 communityHatIdLocal = hats.createHat(
+        config.communityHatId = hats.createHat(
             adminHatId, _buildDetails(name, "Community"), type(uint32).max, defaultModule, defaultModule, true, ""
         );
 
-        _configureEligibilityModules(funderHatId, communityHatIdLocal, operatorHatId, communityToken);
+        _configureEligibilityModules(config.funderHatId, config.communityHatId, config.operatorHatId, communityToken);
 
-        gardenHats[garden] = GardenHats({
-            ownerHatId: ownerHatId,
-            operatorHatId: operatorHatId,
-            evaluatorHatId: evaluatorHatId,
-            gardenerHatId: gardenerHatId,
-            funderHatId: funderHatId,
-            communityHatId: communityHatIdLocal,
-            adminHatId: adminHatId,
-            configured: true
-        });
+        config.adminHatId = adminHatId;
+        config.configured = true;
+        gardenHats[garden] = config;
 
         emit GardenHatTreeCreated(garden, adminHatId);
         emit GardenConfigured(
-            garden, ownerHatId, operatorHatId, evaluatorHatId, gardenerHatId, funderHatId, communityHatIdLocal
+            garden,
+            config.ownerHatId,
+            config.operatorHatId,
+            config.evaluatorHatId,
+            config.gardenerHatId,
+            config.funderHatId,
+            config.communityHatId
         );
     }
 
@@ -395,14 +398,17 @@ contract HatsModule is
 
     /// @inheritdoc IHatsModule
     function grantRole(address garden, address account, GardenRole role) external override nonReentrant {
-        _requireOwnerOrOperator(garden);
+        // Preserve open joining without letting a garden account bypass role-specific authorization.
+        if (msg.sender != garden || role != GardenRole.Gardener) _requireRoleManager(garden, account, role, false);
         _grantRole(garden, account, role);
+        emit RoleManaged(garden, msg.sender, account, role, true);
     }
 
     /// @inheritdoc IHatsModule
     function revokeRole(address garden, address account, GardenRole role) external override nonReentrant {
-        _requireOwnerOrOperator(garden);
+        _requireRoleManager(garden, account, role, true);
         _revokeRole(garden, account, role);
+        emit RoleManaged(garden, msg.sender, account, role, false);
     }
 
     /// @inheritdoc IHatsModule
@@ -415,11 +421,12 @@ contract HatsModule is
         override
         nonReentrant
     {
-        _requireOwnerOrOperator(garden);
         if (accounts.length != roles.length) revert ArrayLengthMismatch();
 
         for (uint256 i = 0; i < accounts.length; i++) {
+            _requireRoleManager(garden, accounts[i], roles[i], false);
             _grantRole(garden, accounts[i], roles[i]);
+            emit RoleManaged(garden, msg.sender, accounts[i], roles[i], true);
         }
     }
 
@@ -433,11 +440,12 @@ contract HatsModule is
         override
         nonReentrant
     {
-        _requireOwnerOrOperator(garden);
         if (accounts.length != roles.length) revert ArrayLengthMismatch();
 
         for (uint256 i = 0; i < accounts.length; i++) {
+            _requireRoleManager(garden, accounts[i], roles[i], true);
             _revokeRole(garden, accounts[i], roles[i]);
+            emit RoleManaged(garden, msg.sender, accounts[i], roles[i], false);
         }
     }
 
@@ -473,7 +481,7 @@ contract HatsModule is
     )
         external
     {
-        if (msg.sender != owner() && !configAuthority[msg.sender] && msg.sender != garden) {
+        if (msg.sender != owner() && !configAuthority[msg.sender]) {
             revert NotGardenAdmin(msg.sender, garden);
         }
 
@@ -504,7 +512,7 @@ contract HatsModule is
     /// @notice Remove hat configuration for a garden
     /// @dev Reverts garden to native access control
     function deconfigureGarden(address garden) external {
-        if (msg.sender != owner() && !configAuthority[msg.sender] && msg.sender != garden) {
+        if (msg.sender != owner() && !configAuthority[msg.sender]) {
             revert NotGardenAdmin(msg.sender, garden);
         }
 
@@ -596,7 +604,11 @@ contract HatsModule is
 
     /// @notice Configure the observer without giving it authority to change source roles.
     /// @dev Setting zero disables notification. Public refresh still reads canonical state directly.
-    function setStewardObserver(address garden, address observer) external onlyOwner nonReentrant {
+    function setStewardObserver(address garden, address observer) external nonReentrant {
+        // Preserve the deployed one-time bootstrap capability without allowing observer replacement.
+        if (msg.sender != owner() && (!configAuthority[msg.sender] || stewardObserver[garden] != address(0))) {
+            revert NotGardenAdmin(msg.sender, garden);
+        }
         if (!gardenHats[garden].configured) revert GardenNotConfigured(garden);
         if (observer != address(0) && observer.code.length == 0) revert ZeroAddress();
         stewardObserver[garden] = observer;
@@ -625,14 +637,69 @@ contract HatsModule is
         emit ProtocolHatIdsUpdated(_communityHatId, _gardensHatId, _protocolGardenersHatId);
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // Internal Helpers
-    // ═══════════════════════════════════════════════════════════════════════════
+    /// @notice Set independent protocol role IDs. Zero disables that role's module integration.
+    /// @dev Governance retains membership, eligibility and toggle administration in Hats itself.
+    function setProtocolRoleHats(uint256 team, uint256 productLead, uint256 agents, uint256 deployer) external onlyOwner {
+        _setProtocolRoleHats(team, productLead, agents, deployer);
+    }
+
+    /// @notice Configure delegation and move the Gardens toggle to the existing governance controller.
+    /// @dev The owner controls Hats.setHatStatus through its normal governance execution route.
+    ///      Require the handoff to preserve the current effective status; other role toggles are untouched.
+    function configureProtocolAdministration(
+        uint256 team,
+        uint256 productLead,
+        uint256 agents,
+        uint256 deployer
+    )
+        external
+        onlyOwner
+        nonReentrant
+    {
+        _setProtocolRoleHats(team, productLead, agents, deployer);
+        bool beforeStatus = hats.isActive(gardensHatId);
+        hats.changeHatToggle(gardensHatId, owner());
+        bool afterStatus = hats.isActive(gardensHatId);
+        if (afterStatus != beforeStatus) revert InvalidHatId();
+        emit GardensToggleControllerUpdated(gardensHatId, owner());
+    }
+
+    function _setProtocolRoleHats(uint256 team, uint256 productLead, uint256 agents, uint256 deployer) private {
+        uint256[4] memory ids = [team, productLead, agents, deployer];
+        if (!HatsLib.areProtocolRolesValid(hats, gardensHatId, ids)) revert InvalidHatId();
+        protocolRoleHats = ProtocolRoles(team, productLead, agents, deployer);
+        emit ProtocolRoleHatsUpdated(team, productLead, agents, deployer);
+    }
+
+    /// @notice Live Team membership, including the Hat's eligibility and active state.
+    function isProtocolTeam(address account) public view returns (bool) {
+        uint256 team = protocolRoleHats.team;
+        return team != 0 && hats.isWearerOfHat(account, team);
+    }
+
+    /// @notice Release C compatibility: remove obsolete raw administration from garden accounts.
+    function revokeAccountAdminHats(address[] calldata gardens) external onlyOwner {
+        for (uint256 i = 0; i < gardens.length; i++) {
+            uint256 adminHatId = gardenHats[gardens[i]].adminHatId;
+            if (adminHatId != 0) hats.setHatWearerStatus(adminHatId, gardens[i], false, false);
+        }
+    }
+
+    function _requireRoleManager(address garden, address account, GardenRole role, bool revoke) internal view {
+        if (!gardenHats[garden].configured) revert GardenNotConfigured(garden);
+        if (msg.sender == owner() || msg.sender == gardenToken || msg.sender == gardensModule) return;
+        if (isOwnerOf(garden, msg.sender)) return;
+        if (role == GardenRole.Steward && isProtocolTeam(msg.sender)) return;
+        // A local Steward cannot promote an Owner or strip an Owner's subordinate roles.
+        if (role == GardenRole.Owner || (revoke && isOwnerOf(garden, account)) || !isOperatorOf(garden, msg.sender)) {
+            revert NotGardenAdmin(msg.sender, garden);
+        }
+    }
 
     function _requireOwnerOrOperator(address garden) internal view {
         if (!gardenHats[garden].configured) revert GardenNotConfigured(garden);
+        if (msg.sender == owner()) return;
         if (msg.sender == gardenToken) return;
-        if (msg.sender == garden) return;
         if (msg.sender == gardensModule) return;
         if (!isOwnerOf(garden, msg.sender) && !isOperatorOf(garden, msg.sender)) {
             revert NotGardenAdmin(msg.sender, garden);
@@ -705,7 +772,7 @@ contract HatsModule is
         emit RoleRevoked(garden, account, role);
         _notifyStewardObserver(garden, account, role);
         if (role == GardenRole.Owner || role == GardenRole.Steward) {
-            _syncProjectAdmin(garden, account, false);
+            _syncProjectAdmin(garden, account, isOwnerOf(garden, account) || isStewardOf(garden, account));
         }
         // Best-effort conviction power sync -- sync failure MUST NOT revert role revocation.
         // Sync fires post-transfer intentionally: strategies must see the updated hat state
@@ -716,50 +783,18 @@ contract HatsModule is
     }
 
     function _syncProjectAdmin(address garden, address account, bool add) internal {
-        if (address(karmaGAPModule) == address(0)) {
-            emit KarmaHookFailed(garden, account, IKarmaGAPModule.KarmaSyncOperation.Access, "module_unavailable");
-            return;
-        }
-        if (add) {
-            try karmaGAPModule.addProjectAdmin(garden, account) { }
-            catch {
-                emit KarmaHookFailed(garden, account, IKarmaGAPModule.KarmaSyncOperation.Access, "module_call_reverted");
-            }
-        } else {
-            try karmaGAPModule.removeProjectAdmin(garden, account) { }
-            catch {
-                emit KarmaHookFailed(garden, account, IKarmaGAPModule.KarmaSyncOperation.Access, "module_call_reverted");
-            }
-        }
+        HatsRoleSync.projectAdmin(karmaGAPModule, garden, account, add);
     }
 
     function _syncConvictionPower(address garden, address account) internal {
-        address[] storage strategies = gardenConvictionStrategies[garden];
-        uint256 len = strategies.length;
-        if (len == 0) return;
-
-        for (uint256 i = 0; i < len; i++) {
-            address strategy = strategies[i];
-            // solhint-disable-next-line no-empty-blocks
-            try ICVSyncPowerFacet(strategy).syncPower{ gas: SYNC_POWER_GAS_STIPEND }(account) {
-                emit ConvictionSyncTriggered(garden, account, strategy);
-            } catch Error(string memory reason) {
-                emit ConvictionSyncFailed(garden, account, strategy, reason);
-            } catch {
-                emit ConvictionSyncFailed(garden, account, strategy, "");
-            }
-        }
+        HatsRoleSync.convictionPower(gardenConvictionStrategies[garden], garden, account);
     }
 
     function _notifyStewardObserver(address garden, address account, GardenRole role) private {
-        if (role != GardenRole.Owner && role != GardenRole.Steward) return;
-        address observer = stewardObserver[garden];
-        if (observer == address(0)) return;
-        // Enough for canonical refresh + bounded best-effort CCIP dispatch; failure cannot restore the role.
-        try IStewardRoleObserver(observer).syncSteward{ gas: 800_000 }(account) { }
-        catch {
-            emit StewardObserverDeferred(garden, account);
-        }
+        if (
+            (role == GardenRole.Owner || role == GardenRole.Steward)
+                && !HatsRoleSync.notifyStewardObserver(stewardObserver[garden], account)
+        ) emit StewardObserverDeferred(garden, account);
     }
 
     function _checkRole(address garden, address account, GardenRole role) internal view returns (bool) {
@@ -787,56 +822,21 @@ contract HatsModule is
 
     function _configureEligibilityModules(
         uint256 funderHatId,
-        uint256 communityHatIdParam,
+        uint256 communityHatIdLocal,
         uint256 operatorHatId,
         address communityToken
     )
         internal
     {
-        if (funderEligibilityModule != address(0)) {
-            address funderModule = funderEligibilityModule;
-            if (address(hatsModuleFactory) != address(0)) {
-                bytes memory initData = abi.encode(operatorHatId, operatorHatId);
-                try hatsModuleFactory.createHatsModule(funderEligibilityModule, funderHatId, "", initData, 0) returns (
-                    address createdModule
-                ) {
-                    funderModule = createdModule;
-                } catch {
-                    emit EligibilityModuleCreationFailed(funderHatId, "funder");
-                    funderModule = address(0);
-                }
-            }
-            if (funderModule != address(0)) {
-                try hats.changeHatEligibility(funderHatId, funderModule) { }
-                catch {
-                    emit EligibilityModuleCreationFailed(funderHatId, "funder");
-                }
-            }
-        }
-
-        if (communityEligibilityModule != address(0)) {
-            address communityModule = communityEligibilityModule;
-            if (address(hatsModuleFactory) != address(0)) {
-                if (communityToken == address(0)) revert ZeroAddress();
-                bytes memory otherArgs = abi.encodePacked(communityToken, communityMinBalance);
-                try hatsModuleFactory.createHatsModule(
-                    communityEligibilityModule, communityHatIdParam, otherArgs, "", 0
-                ) returns (
-                    address createdModule
-                ) {
-                    communityModule = createdModule;
-                } catch {
-                    emit EligibilityModuleCreationFailed(communityHatIdParam, "community");
-                    communityModule = address(0);
-                }
-            }
-            if (communityModule != address(0)) {
-                try hats.changeHatEligibility(communityHatIdParam, communityModule) { }
-                catch {
-                    emit EligibilityModuleCreationFailed(communityHatIdParam, "community");
-                }
-            }
-        }
+        HatsEligibilitySetup.configure(
+            HatsEligibilitySetup.Config(
+                hats, hatsModuleFactory, funderEligibilityModule, communityEligibilityModule, communityMinBalance
+            ),
+            funderHatId,
+            communityHatIdLocal,
+            operatorHatId,
+            communityToken
+        );
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

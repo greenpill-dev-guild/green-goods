@@ -1,6 +1,11 @@
 import "./storybook.css";
 import type { Preview } from "@storybook/react";
 import { mocked, sb } from "storybook/test";
+import { useQueryClient } from "@tanstack/react-query";
+import { roleKeys } from "../src/config/query-keys/identity";
+import { usePrimaryAddress } from "../src/hooks/auth/usePrimaryAddress";
+import { useCurrentChain } from "../src/hooks/blockchain/useChainConfig";
+import { useProtocolRoles } from "../src/hooks/roles/useProtocolRoles";
 import { useServiceAccess, useServiceAccessMutation } from "../src/hooks/commitment-pooling/useServiceAccess";
 import { useServiceOfferLines } from "../src/hooks/commitment-pooling/useServiceOfferLines";
 import { unavailableServiceAccess } from "../src/modules/commitment-pooling/data-service-access";
@@ -83,6 +88,7 @@ sb.mock(import("../src/hooks/greenwill/useGreenWillBadges.ts"), { spy: true });
 sb.mock(import("../src/hooks/profile/useProfileAvatar.ts"), { spy: true });
 sb.mock(import("../src/hooks/public/usePublicGardens.ts"), { spy: true });
 sb.mock(import("../src/hooks/roles/useHasRole.ts"), { spy: true });
+sb.mock(import("../src/hooks/roles/useProtocolRoles.ts"), { spy: true });
 sb.mock(import("../src/hooks/vault/useGardenVaults.ts"), { spy: true });
 sb.mock(import("../src/hooks/vault/useMyVaultDeposits.ts"), { spy: true });
 sb.mock(import("../src/hooks/vault/useOctantVaultPositions.ts"), { spy: true });
@@ -106,6 +112,18 @@ sb.mock(import("../src/modules/app/posthog-browser.ts"), { spy: true });
 
 const preview: Preview = {
   beforeEach: () => {
+    // Role facts are explicit story seeds. Previewing a shell never calls a live Hats RPC.
+    mocked(useProtocolRoles).mockImplementation(() => {
+      const client = useQueryClient();
+      const account = usePrimaryAddress();
+      const chain = useCurrentChain();
+      return client.getQueryData<ReturnType<typeof useProtocolRoles>>(
+        roleKeys.protocolRoles(account ?? undefined, chain)
+      ) ?? {
+        team: false, productLead: false, agents: false, deployer: false,
+        isLoading: false, isError: false,
+      };
+    });
     // Every story starts without service RPC/signing. Individual stories may replace these facts.
     mocked(useServiceAccess).mockImplementation((key) => ({
       data: key ? unavailableServiceAccess(key) : undefined,

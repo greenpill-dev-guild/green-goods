@@ -27,6 +27,13 @@ import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { useLiveQuery } from "../utils/useLiveQuery";
 
+/**
+ * What background preparation is doing for one queued item it has not answered yet. It is
+ * working on it, now or later in this pass; or a try failed and it will try again by itself;
+ * or it waits, for everyone, on Data Saver, a steady connection, or an app update.
+ */
+export type ItemPreparation = "working" | "retrying" | "data-saver" | "connection" | "app-update";
+
 export interface WorkUploads {
   /** Items Upload all sends now. */
   readyCount: number;
@@ -53,6 +60,8 @@ export interface WorkUploads {
     workUID: string
   ): { jobId: string; status: QueuedUploadStatus; savedAt: number } | undefined;
   statusOf(jobId: string): QueuedUploadStatus | undefined;
+  /** What preparation is doing for this item, read when its status is still preparing. */
+  preparationOf(jobId: string): ItemPreparation;
   upload(): Promise<UploadOutcome | undefined>;
   uploadOne(jobId: string): Promise<UploadOutcome | undefined>;
   retryOne(jobId: string): Promise<void>;
@@ -213,6 +222,18 @@ export function useWorkUploads(options: { inScope?: GardenScopeFilter } = {}): W
     waitingDecisionGardenIds: summary.waitingDecisionGardenIds,
     decisionFor: (workUID) => summary.decisionsByWorkId.get(workUID.toLowerCase()),
     statusOf: (jobId) => summary.statuses.get(jobId),
+    preparationOf: (jobId) => {
+      // A try under way outranks the backoff it may end with.
+      if (preparation.activeJobId === jobId) return "working";
+      // Preparation runs only on a confirmed connection, and before it loads it reports no pause.
+      if (connectivity.state !== "online" || preparation.paused === "unconfirmed")
+        return "connection";
+      if (preparation.paused === "data-saver") return "data-saver";
+      if (preparation.paused === "app-code") return "app-update";
+      if (preparation.retryingJobIds.has(jobId)) return "retrying";
+      // Hidden or held for a send, it resumes by itself as soon as it can.
+      return "working";
+    },
     // The upload reads each job's readiness again; scoped, it is handed this list's jobs only.
     upload: () => mutation.mutateAsync(inScope ? summary.scopedJobIds : undefined),
     uploadOne: (jobId) => mutation.mutateAsync([jobId]),

@@ -61,6 +61,12 @@ Old names in this table are historical labels, not runnable examples.
 
 ## Contract operations
 
+`bun run contracts -- release hats-delegation --mode plan --safe-nonce <n> --output <private-directory>`
+prepares the PRD-615 implementation deployment, governance schedule and execution as three
+ordinary Safe calls. It requires a clean committed revision and matching production artifacts.
+The command never signs or broadcasts. `--mode preflight` checks the production artifact;
+`--mode verify --plan <private-plan>` checks activation state, with receipt verification separate.
+
 `bun run contracts -- help` lists operations; command-specific help lists supported arguments.
 The [operational reference and migration table](../docs/docs/builders/packages/contract-operations.mdx)
 are generated from the package-owned CLI definitions. Network and execution mode are explicit for
@@ -391,6 +397,7 @@ workflow does not merge PRs or change required checks.
 - `ipfs-hybrid.ts` — Pinata client helpers used by `ops/ipfs-repin.ts` and `ops/upload-action-images.ts`.
 - `dev-shared.js` — shared dev-script helpers, including tool/version probes, Bun-to-Node re-exec with the repo's Node 22 toolchain, loopback URL probes for local smoke checks, and the git isolation helpers: `fixtureGitEnvironment()` for any test that builds a throwaway repository (`cwd` alone does not isolate git under a hook), plus the shared-config leak checks `ci-local.js` runs.
 - `env-schema.mjs` — dotenv/schema parser and profile-required-key helpers used by `dev/env-check.js` and env-parity checks, and the sync-safety check `dev/env-sync.js` runs on `env.schema` before `op inject`.
+- `browser-support.mjs` — the supported browser minimum (Chrome and Edge 111, Firefox 128, Safari 16.4 on macOS and iOS) as Vite build targets; the client and admin Vite configs pass it as `build.target`, and the client's service worker build takes the same list.
 - `env-parity.mjs` — Vercel build-time environment-parity and Sentry-DSN assertions used by the client and admin Vite configs, and the rule that keeps Vercel's `VITE_`-prefixed system variables out of the browser bundles.
 - `git-guardrails.mjs` — shared Git/base-ref resolution for diff-aware quality and contracts checks, including invalid CI base fallback.
 - `vitest-shared-graph.mjs` — splits the Shared Vitest config's Node test files into those that share one module graph and those that keep their own: files that mock, stub, assign globals directly, reset modules, use IndexedDB, or carry a `// @shared-graph isolate: <reason>` marker stay isolated; `quality/check-shared-graph-tests.mjs` checks the result. Covered by `quality/workflow-performance-parity.test.mjs`.
