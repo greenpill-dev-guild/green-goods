@@ -83,6 +83,21 @@ const harmless = [
   "cat <<'DOC'\nvercel --prod\nbun test\ncat .env\nDOC\nbun run test",
   "python3 - <<'PY'\nlabels = ['PRODUCTION DEPLOYMENT', 'Production/mainnet']\nPY",
   "# deploy mainnet\nbun run test # bun test",
+  // Lookups name a command without running it.
+  "command -v bun test", "command -V bun test", "command -pv bun test",
+  // A broadcast whose last network is a test network, and a release rehearsal, stay unprompted.
+  "bun run contracts -- deploy core --network sepolia --mode broadcast",
+  "bun run contracts -- deploy core --network=localhost --mode=broadcast",
+  "bun script/upgrade.ts signal-pool-yield-wiring --network arbitrum --network sepolia --broadcast",
+  "bun run contracts -- release source-upgrades --mode broadcast --mode simulate --plan plan.json",
+  // Help and explain never broadcast; a broadcast flag outside the contracts package needs a live network.
+  "bun run contracts -- release operator --help",
+  "bun run contracts -- release source-upgrades --mode broadcast --explain",
+  "bun run contracts -- help release operator",
+  "node scripts/tool.mjs --mode broadcast",
+  "bun run test -- --mode broadcast",
+  "bun run lint packages/contracts/script/release-operator.ts",
+  "bun script/deploy.ts core -n sepolia -b",
 ];
 for (const command of harmless) {
   test(`harmless shell input: ${command.split("\n")[0]}`, () => {
@@ -189,6 +204,22 @@ const commandFloor = {
       "bun run contracts -- ens deploy-mainnet --network mainnet --mode broadcast",
       "bun script/deploy/backfill-pools.ts --network arbitrum --broadcast",
       "bun script/upgrade.ts signal-pool-yield-wiring --network sepolia --network arbitrum --broadcast",
+      // The networkless release operations act on the live chains, in every live mode.
+      "bun run contracts -- release source-upgrades --mode broadcast --plan plan.json --step 1",
+      "bun run contracts -- release downstream --mode broadcast --manifest manifest.json",
+      "bun run contracts -- release source-upgrades --mode broadcast-safe --plan plan.json",
+      "bun run contracts -- release source-upgrades --mode sign-safe --plan plan.json",
+      "bun run contracts -- release source-upgrades --mode simulate --mode broadcast --plan plan.json",
+      "bun run contracts -- release operator --stage garden-roles --commit 0123456789abcdef0123456789abcdef01234567",
+      "bun script/release-operator.ts --commit 0123456789abcdef0123456789abcdef01234567",
+      // The deploy parser's short spellings, the last network winning, and overrides that pick the chain.
+      "bun script/deploy.ts core -n arbitrum -b",
+      "bun script/deploy.ts core --network sepolia -n arbitrum --broadcast",
+      "bun script/migrate-vaults.ts --network=sepolia --broadcast --rpc-url https://arb.example --chain-id 42161",
+      // The source-upgrade script's own live flags, and the tsx launcher.
+      "bun script/deploy/source-upgrade-release.ts --broadcast-safe --plan plan.json",
+      "bun script/deploy/source-upgrade-release.ts --sign-safe --plan plan.json",
+      "npx tsx script/migrate-vaults.ts --broadcast",
     ],
     ...production,
   },
