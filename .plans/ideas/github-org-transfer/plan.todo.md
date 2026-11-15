@@ -109,7 +109,8 @@
 
 ## Reference Sweep Contents
 
-Find every candidate with `git grep -n greenpill-dev-guild -- ':!.plans'`.
+Find candidates with `git grep -n greenpill-dev-guild -- ':!.plans'`. Routine specs also name the
+repository without its organization, so add `git grep -n -A2 '^repos:' -- docs/routines`.
 
 Update:
 - `.github/CODEOWNERS`: the new maintain team (decision 12).
@@ -121,7 +122,9 @@ Update:
 - `packages/client/src/components/Public/PublicFooter.tsx` and its test.
 - `README.md` and `docs/docs/builders/getting-started.mdx`: the clone URL and `cd platform`.
 - Builder docs pages that link to the repository.
-- Routine specs in `docs/routines/` that build repository URLs or clone the repository.
+- Routine specs in `docs/routines/` that build repository URLs or clone the repository, plus the
+  `repos:` frontmatter entries and rebuild notes that name the repository `green-goods`, which
+  become `platform`. The `environment: green-goods` lines name the cloud environment and stay.
 - `.claude/skills/qa-triage/references/intake.md`: the compare URL.
 - The old Linear workspace URL in living files: guidance such as
   `.claude/context/linear-routing-rules.md`, `.github/ISSUE_TEMPLATE/config.yml`, docs pages, and
