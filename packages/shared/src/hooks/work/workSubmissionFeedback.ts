@@ -12,10 +12,12 @@ import {
   trackWorkSubmissionFailed,
   trackWorkSubmissionOffline,
   trackWorkSubmissionQueued,
+  trackWorkSubmissionStarted,
   trackWorkSubmissionSuccess,
   trackWorkWalletRequestExpired,
   trackWorkWalletRequestFailed,
 } from "../../modules/app/analytics-events";
+import { getDistinctId } from "../../modules/app/posthog";
 import { connectivityStore } from "../../stores/connectivity";
 import { trackContractError, trackUploadError } from "../../modules/app/error-tracking";
 import { walletProgressToasts, toastService } from "../../components/toast";
@@ -58,12 +60,15 @@ function recordFailure(error: unknown, record: FailureRecord) {
   };
 
   // The person declined the Terms, or left before answering them: nothing was admitted.
+  // A step before admission, such as a promise take-up, said why it did not go where it ran; its
+  // own records say whether that was a failure or a decline, so it is not counted as a cancel.
   if (error instanceof UploadPolicyCancelledError) {
+    const terms = error.stage === "terms";
     trackWorkSubmissionFailed({
       ...submission,
-      error: "UploadPolicyDeclined",
+      error: terms ? "UploadPolicyDeclined" : "StoppedBeforeAdmission",
       submissionPhase: "review",
-      parsedErrorFamily: "UserRejected",
+      parsedErrorFamily: terms ? "UserRejected" : "StoppedBeforeAdmission",
     });
     return undefined;
   }
@@ -167,6 +172,31 @@ function recordFailure(error: unknown, record: FailureRecord) {
   return { cancelled: false, phase, uploadBatchId, title, message, parsed } as const;
 }
 
+/** The analytics person each journey's Submit started under, when the transport had one. */
+const startedUnder = new Map<string, string>();
+
+/**
+ * Records that a Submit started, and under which analytics person. The mutation's callbacks still
+ * run after the submitting screen is gone, by when the account may have changed, so a Submit's
+ * ending is recorded only under the person its start was (PRD-1495).
+ */
+export function recordWorkSubmissionStart(
+  event: Parameters<typeof trackWorkSubmissionStarted>[0]
+): void {
+  recordBestEffort(() => {
+    const person = getDistinctId();
+    if (event.workSubmissionJourneyId && person !== "not-initialized")
+      startedUnder.set(event.workSubmissionJourneyId, person);
+    trackWorkSubmissionStarted(event);
+  });
+}
+
+/** False once the analytics person changed after the journey's Submit started. */
+function underStartingPerson(journeyId: string): boolean {
+  const person = startedUnder.get(journeyId);
+  return person === undefined || person === getDistinctId();
+}
+
 /**
  * Records how a Submit failed when nobody is watching it any more: the person left the flow
  * while it was sent. Nothing is shown, but the attempt keeps its ending (PRD-1495).
@@ -178,7 +208,8 @@ export function recordWorkSubmissionFailure(
   variables: { images: readonly File[] }
 ): void {
   // Called from the mutation's own callbacks: a record that fails must not change the Submit.
-  recordBestEffort(() =>
+  recordBestEffort(() => {
+    if (!underStartingPerson(origin.journeyId)) return;
     recordFailure(error, {
       authMode: options.authMode,
       actionUID: options.actionUID,
@@ -186,8 +217,8 @@ export function recordWorkSubmissionFailure(
       chainId: DEFAULT_CHAIN_ID,
       imageCount: variables.images.length,
       workSubmissionJourneyId: origin.journeyId,
-    })
-  );
+    });
+  });
 }
 
 /**
@@ -203,6 +234,7 @@ export function recordWorkSubmissionOutcome(
 ): void {
   // Called from the mutation's own callbacks: a record that fails must not change the Submit.
   recordBestEffort(() => {
+    if (!underStartingPerson(origin.journeyId)) return;
     const submission = {
       actionUID: actionUID ?? 0,
       authMode,

@@ -3,6 +3,7 @@ import { useIntl } from "react-intl";
 import {
   recordWorkSubmissionFailure,
   recordWorkSubmissionOutcome,
+  recordWorkSubmissionStart,
   showWorkSubmissionFailure,
 } from "./workSubmissionFeedback";
 import { createDraftUploadPersistence } from "../../modules/work/draft-upload";
@@ -19,10 +20,7 @@ import {
   workToasts,
 } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
-import {
-  trackWorkSubmissionStarted,
-  trackWorkWalletRequestStarted,
-} from "../../modules/app/analytics-events";
+import { trackWorkWalletRequestStarted } from "../../modules/app/analytics-events";
 import { addBreadcrumb } from "../../modules/app/error-tracking";
 import {
   hasRecordedSend,
@@ -275,7 +273,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         assertWorkUploadConsent(receipt, userAddress);
         origin.uploadConsent = receipt;
         if (variables.beforeAdmission && !(await variables.beforeAdmission()))
-          throw new UploadPolicyCancelledError();
+          throw new UploadPolicyCancelledError("before-admission");
         if (!ownsFlow(origin)) throw new UploadPolicyCancelledError();
       }
       const workSubmissionJourneyId = origin.journeyId;
@@ -300,7 +298,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         imageCount: variables?.images.length ?? 0,
         workSubmissionJourneyId,
       });
-      trackWorkSubmissionStarted({
+      recordWorkSubmissionStart({
         actionUID: actionUID ?? 0,
         authMode,
         imageCount: variables?.images.length ?? 0,

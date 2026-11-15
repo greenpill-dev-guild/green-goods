@@ -144,7 +144,7 @@ export const FROZEN_ALLOWLIST = {
   "packages/shared/src/hooks/app/useServiceWorkerUpdate.ts": 568,
   "packages/shared/src/hooks/cookie-jar/useCampaignCookieJar.ts": 727,
   "packages/shared/src/hooks/index.ts": 604,
-  "packages/shared/src/hooks/work/useWorkMutation.ts": 524,
+  "packages/shared/src/hooks/work/useWorkMutation.ts": 522,
   "packages/shared/src/index.ts": 1418,
   "packages/shared/src/modules/app/analytics-events.ts": 504,
   "packages/shared/src/modules/app/posthog.ts": 553,

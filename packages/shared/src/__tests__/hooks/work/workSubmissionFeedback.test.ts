@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   recordWorkSubmissionFailure,
   recordWorkSubmissionOutcome,
+  recordWorkSubmissionStart,
   showWorkSubmissionFailure,
 } from "../../../hooks/work/workSubmissionFeedback";
 import { createOfflineTxHash } from "../../../modules/job-queue/queue-policy";
@@ -32,9 +33,16 @@ vi.mock("../../../modules/app/analytics-events", () => ({
   trackWorkSubmissionFailed: vi.fn(),
   trackWorkSubmissionOffline: vi.fn(),
   trackWorkSubmissionQueued: vi.fn(),
+  trackWorkSubmissionStarted: vi.fn(),
   trackWorkSubmissionSuccess: vi.fn(),
   trackWorkWalletRequestExpired: vi.fn(),
   trackWorkWalletRequestFailed: vi.fn(),
+}));
+// Who the analytics transport names now: a test changes it to stand for an account switch.
+const analyticsPerson = vi.hoisted(() => ({ current: "person-a" }));
+vi.mock("../../../modules/app/posthog", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../modules/app/posthog")>()),
+  getDistinctId: () => analyticsPerson.current,
 }));
 
 const context = {
@@ -206,6 +214,55 @@ describe("recording a Submit's ending", () => {
       })
     );
     expect(trackContractError).not.toHaveBeenCalled();
+  });
+
+  it("records a stop before admission, such as a take-up that did not go, apart from a declined Terms prompt", () => {
+    const stopped = new UploadPolicyCancelledError("before-admission");
+    recordWorkSubmissionFailure(stopped, options, journey, { images: [] });
+    expect(trackWorkSubmissionFailed).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        error: "StoppedBeforeAdmission",
+        parsedErrorFamily: "StoppedBeforeAdmission",
+        submissionPhase: "review",
+      })
+    );
+  });
+
+  it("records a Submit's ending only under the analytics person its start was", () => {
+    const sent = {
+      kind: "direct",
+      txHash: `0x${"ef".repeat(32)}`,
+      sponsored: false,
+      clientWorkId: "work-2",
+    } as const;
+    const start = (journeyId: string) =>
+      recordWorkSubmissionStart({ authMode: "passkey", workSubmissionJourneyId: journeyId });
+    try {
+      // The account changed while the Submit was still out: its ending is not recorded at all.
+      analyticsPerson.current = "person-a";
+      start("switched");
+      analyticsPerson.current = "person-b";
+      recordWorkSubmissionOutcome({ journeyId: "switched", outcome: sent }, sent.txHash, options);
+      recordWorkSubmissionFailure(
+        new Error("late"),
+        options,
+        { journeyId: "switched" },
+        { images: [] }
+      );
+      expect(trackWorkSubmissionSuccess).not.toHaveBeenCalled();
+      expect(trackWorkSubmissionFailed).not.toHaveBeenCalled();
+
+      // Same person, or a start made before analytics connected: the ending is recorded.
+      start("same");
+      recordWorkSubmissionOutcome({ journeyId: "same", outcome: sent }, sent.txHash, options);
+      analyticsPerson.current = "not-initialized";
+      start("early");
+      analyticsPerson.current = "person-b";
+      recordWorkSubmissionOutcome({ journeyId: "early", outcome: sent }, sent.txHash, options);
+      expect(trackWorkSubmissionSuccess).toHaveBeenCalledTimes(2);
+    } finally {
+      analyticsPerson.current = "person-a";
+    }
   });
 
   it("records a send whose check has not answered as awaiting confirmation, never as a success", () => {

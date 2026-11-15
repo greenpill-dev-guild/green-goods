@@ -342,7 +342,16 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
   }
   return async (jobId: string, context: ProcessJobContext): Promise<ProcessJobResult> => {
     const claim = await acquireWorkJobs([jobId]);
-    if (!claim) return { success: false, skipped: true, error: "already-processing" };
+    if (!claim) {
+      // Another holder, such as another tab, is sending it: a tap that sends nothing says why.
+      const held = context.explicit ? await deps.store.getJob(jobId) : undefined;
+      if (held)
+        deps.analytics.jobSkipped(held.kind, "already-processing", {
+          explicit: true,
+          started: false,
+        });
+      return { success: false, skipped: true, error: "already-processing" };
+    }
     // Keep the claim alive for the whole send. A wallet or passkey prompt can
     // stay open past the claim's lifetime, and a claim that lapsed there would
     // let another tab discard or resend a job whose transaction may still go out.
