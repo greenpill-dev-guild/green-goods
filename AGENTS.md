@@ -56,7 +56,7 @@ the machine-wide hooks that read `.agents/policy.json`; this repository's own ho
 | React hooks live in `packages/shared/src/hooks` | edits to app hook folders are blocked; exported hooks defined in Client or Admin fail lint | `.agents/policy.json` `client-hooks`, `admin-hooks`, `check-react-patterns.js` |
 | Admin, Client, Agent and Indexer consume Shared through its declared exports | lint | `check-react-patterns.js` rule 11 |
 | No new raw timers (in React modules), raw listeners or address strings in Shared, Client and Admin | shrink-only lint baseline | `check-react-patterns.js`, `scripts/quality/data/lint-rules-baseline.json` |
-| Default chain through `getDefaultChain()` or `DEFAULT_CHAIN_ID` | an import rule; chain-id literals are not linted | `check-source-structure.js` |
+| Shared imports `DEFAULT_CHAIN_ID` from `config/default-chain`, not `config/blockchain` | structure check | `check-source-structure.js` |
 | Package boundaries, placement and file size | structure check in each package workflow, the extension's excepted | `check-source-structure.js` |
 | The structure and React-pattern debt baselines only shrink | growth against the base fails | `check-source-structure.js`, `check-react-patterns.js` |
 | The shared `logger`, not `console`, outside the indexer | lint with warnings denied | `.oxlintrc.json` `no-console` |
@@ -65,14 +65,14 @@ the machine-wide hooks that read `.agents/policy.json`; this repository's own ho
 | Critical changes keep their proof | the check selector's critical overrides | `scripts/data/validation-policy.json` |
 | Run the push intent before publication | pre-push hook | `.husky/pre-push` |
 | Current-head CI passes before merge | required check | `CI Gate` in the `develop` and `main` rulesets |
-| Contracts, workflows, `AGENTS.md`, `CLAUDE.md`, `.claude`, `.codex` and env files have code owners | review requests | `.github/CODEOWNERS` |
+| Contract source, tests, scripts, deployments and config; workflows; the root and `packages/*` guides; `CLAUDE.md`; `.claude`; `.codex`; and root env files have code owners | review requests | `.github/CODEOWNERS` |
 | Local guides exist and name commands that exist; the skills link and `CLAUDE.md` as an import stay intact | guidance check | `check-codex-docs.js` |
 | Plan hubs live in `.plans/{ideas,backlog,active}` | plan hub validation in CI | `scripts/harness/plan-hub.mjs validate` |
 | Authenticated surface changes ask for authenticated proof | the selector's `browser-proof` paths, which also catch some public routes | `scripts/data/validation-policy.json` |
 | The release gate needs a real attestation | placeholders are refused | `scripts/dev/ci-local.js` |
 | Brave only for the DevTools MCP wrapper | a local launch refuses other browsers; a remote endpoint is not checked | `scripts/mcp/brave-devtools.mjs` |
 | WebMCP exposes only public-safe tools | pinned tools and routes | `packages/client/src/__tests__/webmcp.test.ts` |
-| Linear is the backlog | GitHub Issues are off; Linear writes are shape-checked | repository settings, the `lint-linear-issue.sh` hook |
+| Linear is the backlog | GitHub Issues are off; issues saved through a `save_issue` MCP tool are shape-checked | repository settings, the `lint-linear-issue.sh` hook |
 
 Review alone holds the rest: reading the nearest `AGENTS.md`, Bun for package operations other
 than tests, `bun test` after Bun's global options, approval before installing dependencies, merge
@@ -80,7 +80,7 @@ commits only (both rulesets still allow squash), live writers with no broadcast 
 `open-minting.mjs`), `forge script`, private hooks outside hook folders, the other debt baselines,
 secrets GitHub has no pattern for, the release age of versions already in the lockfile, env files
 in other package folders such as `docs/`, reading `.env` through other programs, a notice for edits to
-`AGENTS.md`, code owners for `.agents` and `.github/actions`, `context.log` rather than `console` in
+`AGENTS.md`, choosing the default chain through `getDefaultChain()` or `DEFAULT_CHAIN_ID`, code owners for `.agents`, `.github/actions`, other contracts files, `docs/AGENTS.md` and package env files, Linear writes through other paths, `context.log` rather than `console` in
 the indexer, Shared's declared exports in contracts tooling, raw timers outside React modules and
 the three ratcheted patterns outside Shared, Client and Admin, the extension's structure, guide
 prose beyond its commands, code and CI that do not depend on `.plans/`, labeled rendered proof and a Linear line in
