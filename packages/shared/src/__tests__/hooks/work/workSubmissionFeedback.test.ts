@@ -1,12 +1,22 @@
 import { createIntl, createIntlCache } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { showWorkSubmissionFailure } from "../../../hooks/work/workSubmissionFeedback";
+import {
+  recordWorkSubmissionFailure,
+  recordWorkSubmissionOutcome,
+  showWorkSubmissionFailure,
+} from "../../../hooks/work/workSubmissionFeedback";
+import { createOfflineTxHash } from "../../../modules/job-queue/queue-policy";
 import { WorkSendCancelledError } from "../../../modules/work/send-outcome";
+import { UploadPolicyCancelledError } from "../../../modules/work/upload-policy";
 import { WorkSubmissionError } from "../../../modules/work/wallet-submission/types";
 import { ConnectionNeededError } from "../../../utils/errors/unsent-failures";
 import { toastService, walletProgressToasts } from "../../../components/toast";
 import { trackContractError } from "../../../modules/app/error-tracking";
-import { trackWorkSubmissionFailed } from "../../../modules/app/analytics-events";
+import {
+  trackWorkSubmissionFailed,
+  trackWorkSubmissionQueued,
+  trackWorkSubmissionSuccess,
+} from "../../../modules/app/analytics-events";
 
 vi.mock("../../../components/toast", () => ({
   toastService: { info: vi.fn(), error: vi.fn() },
@@ -18,6 +28,8 @@ vi.mock("../../../modules/app/error-tracking", () => ({
 }));
 vi.mock("../../../modules/app/analytics-events", () => ({
   trackWorkSubmissionFailed: vi.fn(),
+  trackWorkSubmissionQueued: vi.fn(),
+  trackWorkSubmissionSuccess: vi.fn(),
   trackWorkWalletRequestExpired: vi.fn(),
   trackWorkWalletRequestFailed: vi.fn(),
 }));
@@ -144,5 +156,62 @@ describe("showWorkSubmissionFailure", () => {
     expect(toastService.info).not.toHaveBeenCalled();
     expect(trackContractError).toHaveBeenCalled();
     expect(toastService.error).toHaveBeenCalled();
+  });
+});
+
+// PRD-1495: every Submit ends on record, whoever is still looking at it.
+describe("recording a Submit's ending", () => {
+  beforeEach(() => vi.clearAllMocks());
+  const options = { authMode: "passkey" as const, actionUID: 1 };
+  const journey = { journeyId: "test-journey" };
+
+  it("records a failure nobody is watching any more, and shows nothing", () => {
+    recordWorkSubmissionFailure(new Error("Unknown send outcome"), options, journey, {
+      images: [new File(["x"], "photo.jpg")],
+    });
+    expect(trackWorkSubmissionFailed).toHaveBeenCalledWith(
+      expect.objectContaining({ imageCount: 1, workSubmissionJourneyId: "test-journey" })
+    );
+    expect(trackContractError).toHaveBeenCalled();
+    expect(toastService.error).not.toHaveBeenCalled();
+    expect(walletProgressToasts.error).not.toHaveBeenCalled();
+  });
+
+  it("records a declined Terms prompt as a Submit the person cancelled, not a failure", () => {
+    recordWorkSubmissionFailure(new UploadPolicyCancelledError(), options, journey, { images: [] });
+    expect(trackWorkSubmissionFailed).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        error: "UploadPolicyDeclined",
+        parsedErrorFamily: "UserRejected",
+        submissionPhase: "review",
+      })
+    );
+    expect(trackContractError).not.toHaveBeenCalled();
+  });
+
+  it("records a send whose check has not answered as awaiting confirmation, never as a success", () => {
+    const awaiting = {
+      kind: "awaiting-confirmation",
+      reason: "connection-unconfirmed",
+      txHash: `0x${"ab".repeat(32)}`,
+      sponsored: true,
+      jobId: "job-1",
+      clientWorkId: "work-1",
+    } as const;
+    recordWorkSubmissionOutcome({ ...journey, outcome: awaiting }, awaiting.txHash, options);
+    expect(trackWorkSubmissionQueued).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ status: "awaiting-confirmation", reason: "connection-unconfirmed" })
+    );
+    expect(trackWorkSubmissionSuccess).not.toHaveBeenCalled();
+
+    const queued = { ...awaiting, kind: "queued", reason: undefined } as const;
+    recordWorkSubmissionOutcome(
+      { ...journey, outcome: queued },
+      createOfflineTxHash("job-1"),
+      options
+    );
+    expect(trackWorkSubmissionSuccess).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ wasOffline: true, submissionPhase: "success" })
+    );
   });
 });

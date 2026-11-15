@@ -205,6 +205,8 @@ import { toastService, walletProgressToasts, workToasts } from "../../components
 import { worksKeys } from "../../config/query-keys/work";
 import { useWorkMutation } from "../../hooks/work/useWorkMutation";
 import {
+  trackWorkSubmissionFailed,
+  trackWorkSubmissionSuccess,
   trackWorkWalletRequestExpired,
   trackWorkWalletRequestStarted,
 } from "../../modules/app/analytics-events";
@@ -623,6 +625,40 @@ describe("hooks/work/useWorkMutation", () => {
     });
     expect(onSuccess).not.toHaveBeenCalled();
     expect(workMutationStoreMocks.setSubmissionCompleted).not.toHaveBeenCalled();
+    // The screen moved on, but the Submit still has its ending on record (PRD-1495).
+    expect(trackWorkSubmissionSuccess).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ authMode: "wallet", wasOffline: false })
+    );
+  });
+
+  it("records a Submit that failed after the person left the flow, without telling them", async () => {
+    let fail!: (error: Error) => void;
+    vi.mocked(submitWorkDirectly).mockReturnValueOnce(
+      new Promise((_resolve, reject) => {
+        fail = reject;
+      })
+    );
+    const onError = vi.fn();
+    workMutationStoreMocks.activeDraftId = "original-draft";
+    const { result } = renderHook(() => useWorkMutation({ ...defaultOptions, onError }), {
+      wrapper: createWrapper(),
+    });
+    let submitting!: Promise<unknown>;
+    act(() => {
+      submitting = result.current.mutateAsync({ draft: createMockWorkDraft(), images: [] });
+    });
+    await waitFor(() => expect(submitWorkDirectly).toHaveBeenCalled());
+    workMutationStoreMocks.activeDraftId = "different-draft";
+    await act(async () => {
+      const rejected = expect(submitting).rejects.toThrow("execution reverted");
+      fail(new Error("execution reverted"));
+      await rejected;
+    });
+
+    expect(trackWorkSubmissionFailed).toHaveBeenCalledOnce();
+    expect(onError).not.toHaveBeenCalled();
+    expect(walletProgressToasts.error).not.toHaveBeenCalled();
+    expect(toastService.error).not.toHaveBeenCalled();
   });
 
   it.each([
