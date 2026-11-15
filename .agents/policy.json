@@ -3,7 +3,7 @@
   "commands": [
     {
       "id": "bun-test",
-      "prefix": ["bun", "test"],
+      "pattern": "^(\\S*/)?bun test( |$)",
       "action": "block",
       "message": "Use `bun run test` instead of `bun test`; Green Goods relies on the Vitest wrapper."
     },
@@ -27,13 +27,19 @@
     },
     {
       "id": "mainnet-deploy",
-      "pattern": "^(\\S*/)?((bun|npm|pnpm)( run)?|node|bash|sh) (\\S*[/:._-])?(deploy|upgrade)([/:._-]\\S*)?( \\S+)* (\\S*[/:=._-])?mainnet([/:._-]\\S*)?( |$)",
+      "pattern": "^(\\S*/)?((bun|npm|pnpm)( run)?|node|bash|sh) (\\S*[/:._-])?(deploy|upgrade)(?=[/:._ -]|$).*(^|[ /:=._-])mainnet([/:._ -]|$)",
       "action": "ask",
       "message": "PRODUCTION DEPLOYMENT: requires explicit out-of-band confirmation before proceeding."
     },
     {
       "id": "mainnet-contracts",
-      "pattern": "^(\\S*/)?(bun|npm|pnpm) run contracts( \\S+)* (deploy|upgrade)( \\S+)* (\\S*[/:=._-])?mainnet([/:._-]\\S*)?( |$)",
+      "pattern": "^(\\S*/)?(bun|npm|pnpm) run contracts(?=.* (deploy|upgrade)( |$))(?=.*[ /:=._-]mainnet([/:._ -]|$))",
+      "action": "ask",
+      "message": "PRODUCTION DEPLOYMENT: requires explicit out-of-band confirmation before proceeding."
+    },
+    {
+      "id": "production-broadcast",
+      "pattern": "^(\\S*/)?(bun|npm|pnpm|node|bash|sh)(?= |$)(?=.* --mode(=| )broadcast( |$))(?=.* --network(=| )(mainnet|arbitrum|celo|gnosis)( |$))",
       "action": "ask",
       "message": "PRODUCTION DEPLOYMENT: requires explicit out-of-band confirmation before proceeding."
     }
@@ -143,14 +149,14 @@
     },
     {
       "id": "config-agents",
-      "glob": ".agents/skills/**",
+      "glob": ".agents/**",
       "action": "notice",
       "message": "Agent harness configuration: keep scope tight, never weaken a check as a workaround, and call out validation explicitly."
     }
   ],
   "proof": {
     "commands": [
-      "^node scripts/dev/(ci-local|node-cli)\\.js\\b",
+      "^node scripts/dev/ci-local\\.js\\b",
       "^node scripts/quality/[\\w.-]+\\.m?js\\b",
       "^bash scripts/(quality|contracts)/check-[\\w.-]+\\.sh\\b",
       "^bun run (contracts|indexer|agent|client|admin|shared|docs|qa) (test|build|lint|typecheck|check)[\\w:-]*\\b",

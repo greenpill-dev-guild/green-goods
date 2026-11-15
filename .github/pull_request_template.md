@@ -27,10 +27,10 @@ The numbers or observations that show the problem, and what changed.
 
 ## Verification
 
-The checks that ran after the last commit, with their commands and results, chosen by tier
-(`.agents/merge-policy.json`) through `bun run check --plan -- --intent push`. Label any rendered
+The checks that ran after the last commit, with their commands and results, as the check selector
+plans them for the change's risk (`bun run check --plan -- --intent push`). Label any rendered
 proof with the engine and session that produced it (AGENTS.md § Browser Evidence), or say that it
-is pending and why.
+is pending and why. When the change adds more test lines than source lines, say so and why.
 
 ## Not verified
 

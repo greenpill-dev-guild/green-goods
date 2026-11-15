@@ -15,6 +15,7 @@ const guidanceExact = new Set([
   "scripts/data/qa-test-id-ledger.json",
 ]);
 const guidancePrefixes = [
+  ".agents/",
   "packages/qa/",
   "scripts/agents/",
   ".codex/",

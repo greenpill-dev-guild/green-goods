@@ -114,15 +114,48 @@ function scanCommands(source) {
   return { commands, partial };
 }
 
+// Words that run the rest of the command without a shell string, with the options that take a
+// value: the same set the machine-wide guards strip, so .agents/policy.json rules match alike.
+const WRAPPERS = new Map([
+  ["env", ["-u", "--unset", "-C", "--chdir"]],
+  ["command", []],
+  ["builtin", []],
+  ["exec", ["-a"]],
+  ["time", []],
+  ["nohup", []],
+  ["nice", ["-n", "--adjustment"]],
+  ["timeout", ["-s", "--signal", "-k", "--kill-after"]],
+  ["caffeinate", ["-t", "-w"]],
+  ["sudo", ["-u", "--user", "-g", "--group", "-h", "--host", "-p", "--prompt", "-C", "--close-from", "-D", "--chdir", "-r", "--role", "-t", "--type", "-U", "--other-user", "-T", "--command-timeout"]],
+  ["npx", ["-p", "--package", "-c", "--call", "-w", "--workspace"]],
+  ["bunx", ["-p", "--package"]],
+  ["bun x", ["-p", "--package"]],
+  ["npm exec", ["-p", "--package", "-c", "--call", "-w", "--workspace"]],
+  ["pnpm dlx", ["--package"]],
+  ["pnpm exec", []],
+  ["yarn dlx", ["-p", "--package"]],
+  ["yarn exec", []],
+]);
+const PACKAGE_RUNNERS = new Set(["npx", "bunx", "bun x", "npm exec", "pnpm dlx", "pnpm exec", "yarn dlx", "yarn exec"]);
+const ASSIGNMENT = /^[A-Za-z_][A-Za-z_0-9]*=/;
+
 function executableWords(words) {
   const args = words.filter((word) => !word.inputFile);
-  while (args.length && /^[A-Za-z_][A-Za-z_0-9]*=/.test(args[0].value)) args.shift();
-  // These wrappers preserve the command's meaning without executing a shell string.
-  while (["env", "command", "exec"].includes(args[0]?.value)) {
-    args.shift();
-    while (args[0] && (args[0].value === "--" || /^[A-Za-z_][A-Za-z_0-9]*=/.test(args[0].value))) args.shift();
+  for (;;) {
+    while (args.length && ASSIGNMENT.test(args[0].value)) args.shift();
+    const wrapper = [`${args[0]?.value} ${args[1]?.value}`, args[0]?.value].find((name) => WRAPPERS.has(name));
+    if (!wrapper) return args;
+    args.splice(0, wrapper.split(" ").length);
+    const valueOptions = WRAPPERS.get(wrapper);
+    while (args.length && (args[0].value.startsWith("-") || (wrapper === "env" && ASSIGNMENT.test(args[0].value)))) {
+      const [option] = args.splice(0, 1);
+      if (option.value === "--") break;
+      if (valueOptions.includes(option.value)) args.shift();
+    }
+    if (wrapper === "timeout") args.shift();
+    // A package runner names a package, maybe with a version: `vercel@62.1.0` runs `vercel`.
+    if (PACKAGE_RUNNERS.has(wrapper) && args[0]) args[0] = { ...args[0], value: args[0].value.replace(/^(@?[^@]+)@.*$/, "$1") };
   }
-  return args;
 }
 
 function isSecretFile(value) {
@@ -185,7 +218,16 @@ function commandDecision(words, harness) {
   const operation = /(?:^|[/:._-])(deploy|upgrade)(?:$|[/:._-])/i.test(script ?? "");
   const mainnet = values.some((arg) => /(?:^|[/:=._-])mainnet(?:$|[/:._-])/i.test(arg));
   const contractsOperation = values[2] === "contracts" && values.some((arg) => /^(deploy|upgrade)$/.test(arg));
-  const production = ((operation || contractsOperation) && mainnet) ||
+  const option = (name) => {
+    const index = values.indexOf(name);
+    if (index >= 0) return values[index + 1] ?? "";
+    return values.find((arg) => arg.startsWith(`${name}=`))?.slice(name.length + 1);
+  };
+  // The contracts wrappers broadcast with --mode broadcast; these networks are live chains.
+  const productionBroadcast = ["bun", "npm", "pnpm", "node", "bash", "sh"].includes(executable) &&
+    option("--mode") === "broadcast" &&
+    /^(mainnet|arbitrum|celo|gnosis)$/i.test(option("--network") ?? "");
+  const production = ((operation || contractsOperation) && mainnet) || productionBroadcast ||
     (executable === "vercel" && values.includes("--prod")) ||
     (harness === "codex" && executable === "fly" && values[1] === "deploy");
   if (production) return {

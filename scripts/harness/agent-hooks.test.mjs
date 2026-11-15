@@ -158,20 +158,39 @@ test("unsupported shell programs are explicitly partial and events never certify
 
 // .agents/policy.json declares these rules for the machine-wide guards. This repository's own
 // hooks stay their floor where those guards are absent (cloud sessions, other contributors), so
-// every declared rule keeps an enforcer here, in the harnesses named, and no declared command
-// pattern fires on the harmless inputs above.
+// every declared rule keeps an enforcer here, in the harnesses named, with the matching action.
 const policy = JSON.parse(readFileSync(join(root, ".agents/policy.json"), "utf8"));
+const production = { claude: "warn", codex: "block" };
 const commandFloor = {
-  "bun-test": { samples: ["bun test", "MODE=qa bun test"], claude: "block", codex: "block" },
+  "bun-test": {
+    samples: ["bun test", "MODE=qa bun test", "timeout 600 bun test", "/opt/homebrew/bin/bun test"],
+    claude: "block",
+    codex: "block",
+  },
   "forge-direct": { samples: ["forge build", "forge test"], codex: "block" },
-  "vercel-prod": { samples: ["vercel --prod"], claude: "warn", codex: "block" },
+  "vercel-prod": { samples: ["vercel --prod", "npx vercel@62.1.0 --prod"], ...production },
   "fly-deploy": { samples: ["fly deploy"], codex: "block" },
-  "mainnet-deploy": { samples: ["bun script/deploy.ts core --network mainnet --broadcast"], claude: "warn", codex: "block" },
-  "mainnet-contracts": { samples: ["bun run contracts upgrade --network mainnet"], claude: "warn", codex: "block" },
+  "mainnet-deploy": {
+    samples: ["bun script/deploy.ts core --network mainnet --broadcast", "bash scripts/deploy-mainnet.sh", "bun script/deploy-mainnet.ts --broadcast"],
+    ...production,
+  },
+  "mainnet-contracts": {
+    samples: ["bun run contracts upgrade --network mainnet", "bun run contracts --network mainnet upgrade all"],
+    ...production,
+  },
+  "production-broadcast": {
+    samples: [
+      "bun run contracts -- upgrade signal-pool-yield-wiring --network arbitrum --mode broadcast",
+      "bun run contracts -- ens migrate --network=mainnet --mode=broadcast",
+      "bun run contracts -- deploy core --network gnosis --mode broadcast",
+    ],
+    ...production,
+  },
 };
 const critical = { claude: "notice", codex: "notice" };
 const pathFloor = {
-  "package-env": { file: "packages/client/.env.local", claude: "block", codex: "block" },
+  // .env.example, not .env.local: the secret-file rule would block a .env.local by itself.
+  "package-env": { file: "packages/client/.env.example", claude: "block", codex: "block" },
   "client-hooks": { file: "packages/client/src/hooks/useThing.ts", claude: "block" },
   "admin-hooks": { file: "packages/admin/src/hooks/useThing.ts", claude: "block" },
   "critical-contracts": { file: "packages/contracts/src/Garden.sol", ...critical },
@@ -188,8 +207,18 @@ const pathFloor = {
   "config-workflows": { file: ".github/workflows/client.yml", codex: "notice" },
   "config-codex": { file: ".codex/hooks.json", codex: "notice" },
   "config-claude": { file: ".claude/settings.json", codex: "notice" },
-  "config-agents": { file: ".agents/skills/review/SKILL.md", codex: "notice" },
+  "config-agents": { file: ".agents/policy.json", codex: "notice" },
 };
+// Files no path rule may name, so an over-broad glob fails here.
+const ordinaryFiles = ["README.md", "docs/docs/index.mdx", "packages/client/src/views/Home.tsx", "packages/shared/src/utils/format.ts"];
+// The floor's counterpart of each policy action: Claude's hook only warns where the guard asks.
+const floorKind = {
+  block: { claude: "block", codex: "block" },
+  ask: { claude: "warn", codex: "block" },
+  notice: { claude: "notice", codex: "notice" },
+};
+const noticeText = { claude: /CRITICAL SURFACE/, codex: /Green Goods edit context/ };
+const hasJq = spawnSync("jq", ["--version"]).status === 0;
 
 // The shared guards' glob rule: ** spans folders, * and ? stay inside one.
 function globRegex(glob) {
@@ -220,15 +249,16 @@ function editHooks(harness, file) {
     .map((hook) => invoke(hook.command, { tool_name: "Write", tool_input: { file_path: absolute } }));
 }
 
-function assertFloor(want, results, label) {
-  if (want === "block") assert.ok(results.some((result) => result.code === 2), `${label} must block`);
-  else {
-    assert.ok(results.every((result) => result.code === 0), `${label} must not block`);
-    assert.ok(results.some((result) => result.output.trim()), `${label} must say why`);
+function assertFloor(harness, want, results, label, notice = /\S/) {
+  if (want === "block") {
+    assert.ok(results.some((result) => result.code === 2 && /BLOCKED/.test(result.output)), `${label} must block`);
+    return;
   }
+  assert.ok(results.every((result) => result.code === 0), `${label} must not block`);
+  assert.ok(results.some((result) => notice.test(result.output)), `${label} must say why`);
 }
 
-test("every .agents/policy.json rule keeps an enforcer in this repository's own hooks", () => {
+test("every .agents/policy.json rule keeps an enforcer in this repository's own hooks", (t) => {
   assert.deepEqual(policy.commands.map((rule) => rule.id).sort(), Object.keys(commandFloor).sort());
   assert.deepEqual(policy.paths.map((rule) => rule.id).sort(), Object.keys(pathFloor).sort());
   for (const rule of policy.commands) {
@@ -238,8 +268,9 @@ test("every .agents/policy.json rule keeps an enforcer in this repository's own 
       assert.ok(policyMatches(rule, sample), `${rule.id} must match ${sample}`);
       for (const harness of ["claude", "codex"]) {
         if (!floor[harness]) continue;
+        assert.equal(floor[harness], floorKind[rule.action][harness], `${rule.id}: ${rule.action} needs a ${harness} ${floorKind[rule.action][harness]}`);
         const results = commandHooks(harness, sample);
-        assertFloor(floor[harness], results, `${harness} ${sample}`);
+        assertFloor(harness, floor[harness], results, `${harness} ${sample}`);
         assert.ok(results.some((result) => result.output.includes(rule.message)), `${harness} ${sample}: same message as ${rule.id}`);
       }
     }
@@ -248,8 +279,15 @@ test("every .agents/policy.json rule keeps an enforcer in this repository's own 
     const floor = pathFloor[rule.id];
     assert.ok(floor.claude || floor.codex, `${rule.id} has no floor enforcer`);
     assert.ok(globRegex(rule.glob).test(floor.file), `${rule.id} must match ${floor.file}`);
+    for (const file of ordinaryFiles) assert.equal(globRegex(rule.glob).test(file), false, `${rule.id} must not match ${file}`);
     for (const harness of ["claude", "codex"]) {
-      if (floor[harness]) assertFloor(floor[harness], editHooks(harness, floor.file), `${harness} ${floor.file}`);
+      if (!floor[harness]) continue;
+      assert.equal(floor[harness], floorKind[rule.action][harness], `${rule.id}: ${rule.action} needs a ${harness} ${floorKind[rule.action][harness]}`);
+      if (harness === "codex" && !hasJq) {
+        t.diagnostic(`jq is not installed, so the Codex edit hooks do nothing here: ${rule.id} is unchecked for Codex`);
+        continue;
+      }
+      assertFloor(harness, floor[harness], editHooks(harness, floor.file), `${harness} ${floor.file}`, noticeText[harness]);
     }
   }
 });

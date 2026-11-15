@@ -6,7 +6,7 @@
   "requiredChecks": ["CI Gate"],
   "tiers": {
     "critical": {
-      "about": "AGENTS.md Change Criticality: contract source and release tooling, and Shared code that signs, sends a transaction, moves funds, or changes auth, session or queue state. scripts/data/validation-policy.json criticalOverrides is authoritative: the check selector also escalates every Shared file its exact list names and any file that reaches a sharedMutationPrimitives call. The owner reviews and merges; never auto-merged.",
+      "about": "AGENTS.md Change Criticality: contract source and release tooling, and Shared code that signs, sends a transaction, moves funds, or changes auth, session or queue state. The check selector's risk (`bun run check --plan`) decides a change's tier: it also escalates every file in scripts/data/validation-policy.json criticalOverrides and any Shared file that reaches a sharedMutationPrimitives call, so these paths are only its prefixes. Never auto-merged; the owner merges. Code-owner review cannot gate this tier, because GitHub refuses approval of one's own pull request.",
       "paths": [
         "packages/contracts/src/**",
         "packages/contracts/script/**",
@@ -29,11 +29,11 @@
         "packages/shared/src/hooks/work/**",
         "packages/shared/src/hooks/vault/**"
       ],
-      "requireCodeOwnerReview": true,
+      "requireCodeOwnerReview": false,
       "autoMerge": false
     },
     "sensitive": {
-      "about": "AGENTS.md Change Criticality and Essential rules: agent runtime, indexer lifecycle, plan evidence, validation and migration tooling, admin workflow state, client journeys, read-only Shared hooks, and manifests, lockfiles, CI, agent instructions and harness configuration. A fresh agent reviews the change adversarially before it merges on green.",
+      "about": "AGENTS.md Change Criticality and Essential rules: agent runtime, indexer lifecycle, plan evidence, validation and migration tooling, admin workflow state, client journeys, read-only Shared hooks, and manifests, lockfiles, CI, agent instructions and harness configuration. The selector's risk decides the tier here too. A fresh agent reviews the change adversarially before it merges on green.",
       "paths": [
         ".github/**",
         ".agents/**",

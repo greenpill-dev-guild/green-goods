@@ -35,7 +35,8 @@ test("hook and doctor edits select their behavioral proof", () => {
   const cases = [
     ["review-guardrails-test", [
       ".claude/scripts/task-completion-gate.sh", ".claude/scripts/teammate-idle-gate.sh",
-      ".codex/hooks/pre_tool_policy.sh", ".claude/settings.json", ".codex/hooks.json",
+      ".codex/hooks/pre_tool_policy.sh", ".codex/hooks/edit_policy.sh", ".agents/policy.json",
+      ".claude/settings.json", ".codex/hooks.json",
       "scripts/harness/command-policy.mjs", "scripts/harness/agent-hooks.test.mjs",
     ]],
     ["validation-system-test", [
