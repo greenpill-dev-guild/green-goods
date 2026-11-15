@@ -751,7 +751,7 @@ describe("garden join request public API", () => {
     );
     expect(queue.status).toBe(400);
     const differentAudience = await app.request(`/public/gardens/${GARDEN}/join-requests/me`, {
-      headers: headers(grant, "https://green-goods-preview-greenpilldevguild.vercel.app"),
+      headers: headers(grant, "https://green-goods-preview-greengoods.vercel.app"),
     });
     expect(differentAudience.status).toBe(401);
   });
@@ -1110,7 +1110,7 @@ describe("garden join request public API", () => {
     const { app, rateLimitPressure } = createApp({ signatureVerifier });
 
     for (let attempt = 0; attempt < 10; attempt += 1) {
-      const origin = `https://green-goods-${attempt}-greenpilldevguild.vercel.app`;
+      const origin = `https://green-goods-${attempt}-greengoods.vercel.app`;
       expect((await submitForGarden(app, GARDEN, APPLICANT, origin)).status).toBe(401);
     }
 
@@ -1118,7 +1118,7 @@ describe("garden join request public API", () => {
       app,
       GARDEN,
       APPLICANT,
-      "https://green-goods-next-greenpilldevguild.vercel.app"
+      "https://green-goods-next-greengoods.vercel.app"
     );
     expect(limited.status).toBe(429);
     expect(signatureVerifier).toHaveBeenCalledTimes(10);
@@ -1143,7 +1143,7 @@ describe("garden join request public API", () => {
 
     for (let attempt = 1; attempt <= 30; attempt += 1) {
       const gardenAddress = `0x${attempt.toString(16).padStart(40, "0")}` as Address;
-      const origin = `https://green-goods-${attempt}-greenpilldevguild.vercel.app`;
+      const origin = `https://green-goods-${attempt}-greengoods.vercel.app`;
       expect((await submitForGarden(app, gardenAddress, APPLICANT, origin)).status).toBe(401);
     }
 
@@ -1152,7 +1152,7 @@ describe("garden join request public API", () => {
       app,
       limitedGarden,
       APPLICANT,
-      "https://green-goods-next-greenpilldevguild.vercel.app"
+      "https://green-goods-next-greengoods.vercel.app"
     );
     expect(limited.status).toBe(429);
     expect(signatureVerifier).toHaveBeenCalledTimes(30);
@@ -1163,7 +1163,7 @@ describe("garden join request public API", () => {
     const { app } = createApp({ signatureVerifier });
 
     for (let attempt = 1; attempt <= 120; attempt += 1) {
-      const origin = `https://green-goods-read-${attempt}-greenpilldevguild.vercel.app`;
+      const origin = `https://green-goods-read-${attempt}-greengoods.vercel.app`;
       const response =
         attempt % 2 === 0
           ? await app.request(`/public/gardens/${GARDEN}/join-requests/me`, {
@@ -1176,10 +1176,7 @@ describe("garden join request public API", () => {
     }
 
     const limited = await app.request(`/public/gardens/${GARDEN}/join-requests/me`, {
-      headers: headers(
-        proof("read_self"),
-        "https://green-goods-read-next-greenpilldevguild.vercel.app"
-      ),
+      headers: headers(proof("read_self"), "https://green-goods-read-next-greengoods.vercel.app"),
     });
     expect(limited.status).toBe(429);
     expect(signatureVerifier).toHaveBeenCalledTimes(120);
@@ -1190,7 +1187,7 @@ describe("garden join request public API", () => {
     const { app } = createApp({ signatureVerifier });
 
     for (let attempt = 1; attempt <= 30; attempt += 1) {
-      const origin = `https://green-goods-resolve-${attempt}-greenpilldevguild.vercel.app`;
+      const origin = `https://green-goods-resolve-${attempt}-greengoods.vercel.app`;
       const response =
         attempt % 2 === 0
           ? await app.request(`/public/gardens/${GARDEN}/join-requests/me`, {
@@ -1225,7 +1222,7 @@ describe("garden join request public API", () => {
       method: "DELETE",
       headers: headers(
         proof("withdraw", APPLICANT, { requestId: "request-1", expectedRevision: 0 }),
-        "https://green-goods-resolve-next-greenpilldevguild.vercel.app"
+        "https://green-goods-resolve-next-greengoods.vercel.app"
       ),
     });
     expect(limited.status).toBe(429);

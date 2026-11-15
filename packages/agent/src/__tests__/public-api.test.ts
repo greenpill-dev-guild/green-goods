@@ -426,10 +426,14 @@ describe("public funding intent API", () => {
     expect(response.headers.get("access-control-allow-headers")).toContain("Content-Type");
   });
 
-  it("answers funding-intent CORS preflight for owned Vercel previews", async () => {
+  // Hosts Vercel issues under the `greengoods` team: a client deployment, an admin deployment,
+  // and a branch alias.
+  it.each([
+    "https://green-goods-qbf9uec53-greengoods.vercel.app",
+    "https://green-goods-admin-9u1ctb8om-greengoods.vercel.app",
+    "https://green-goods-git-develop-greengoods.vercel.app",
+  ])("answers funding-intent CORS preflight for owned Vercel previews: %s", async (previewOrigin) => {
     const { app } = createFundingApp();
-    const previewOrigin =
-      "https://green-goods-git-feature-nyc-vault-crow-880636-greenpilldevguild.vercel.app";
 
     const response = await app.request(PUBLIC_AGENT_ROUTES.fundingIntents, {
       method: "OPTIONS",
@@ -461,13 +465,20 @@ describe("public funding intent API", () => {
     expect((await response.json()).errorCode).toBe("origin_not_allowed");
   });
 
-  it("rejects funding-intent CORS preflight for unrelated Vercel origins", async () => {
+  it.each([
+    // Another Vercel team.
+    "https://green-goods-8bccw8q6a-attacker.vercel.app",
+    // The team's former slug, which it no longer owns.
+    "https://green-goods-git-develop-greenpilldevguild.vercel.app",
+    // An owned preview host without https.
+    "http://green-goods-git-develop-greengoods.vercel.app",
+  ])("rejects funding-intent CORS preflight for other Vercel origins: %s", async (origin) => {
     const { app } = createFundingApp();
 
     const response = await app.request(PUBLIC_AGENT_ROUTES.fundingIntents, {
       method: "OPTIONS",
       headers: {
-        origin: "https://green-goods-8bccw8q6a-attacker.vercel.app",
+        origin,
         "access-control-request-method": "POST",
         "access-control-request-headers": "content-type",
       },

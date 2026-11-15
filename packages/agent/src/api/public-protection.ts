@@ -295,13 +295,14 @@ export function resolveAllowedOrigins(
   return new Set(LOCAL_DEVELOPMENT_PUBLIC_ORIGINS);
 }
 
+// Vercel names preview hosts `<project>-<hash>-<team slug>.vercel.app` or
+// `<project>-git-<branch>-<team slug>.vercel.app`, and the team slug is `greengoods`. The former
+// slug, `greenpilldevguild`, no longer belongs to the team, so hosts under it are refused.
 function isGreenGoodsVercelPreviewOrigin(origin: string): boolean {
   try {
     const { hostname, protocol } = new URL(origin);
     if (protocol !== "https:") return false;
-    return /^green-goods(?:-[a-z0-9-]+)?-greenpilldevguild\.vercel\.app$/.test(
-      hostname.toLowerCase()
-    );
+    return /^green-goods(?:-[a-z0-9-]+)?-greengoods\.vercel\.app$/.test(hostname.toLowerCase());
   } catch {
     return false;
   }
