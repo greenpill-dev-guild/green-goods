@@ -24,7 +24,7 @@ Root `DESIGN.md` front matter is the canonical DesignMD token source. Surface `D
 | Artifact | Role |
 |----------|------|
 | Root `DESIGN.md` | Canonical Warm Earth DesignMD front matter + creative brief |
-| `packages/admin/DESIGN.md` | Restrained steward cockpit: the shared language at a denser setting, its own dials, Plus Jakarta Sans |
+| `packages/admin/DESIGN.md` | Restrained steward workspace: the shared language at a denser setting, its own dials, Plus Jakarta Sans |
 | `packages/client/DESIGN.pwa.md` | Installed PWA field tool, Plus Jakarta Sans, bottom AppBar |
 | `packages/client/DESIGN.browser.md` | Public browser site, editorial browser treatment |
 | `docs/DESIGN.md` | Docusaurus documentation dialect, Manrope/Bricolage/IBM Plex Mono |

@@ -32,7 +32,7 @@ Every surface, component, and interaction in Green Goods expresses:
 
 **From M3 Expressive** (skipped): 35 iconic shapes (we use garden-themed shapes selectively), 5 button sizes (we use 3), button groups, split buttons, FAB menu, carousel, slider (future work if needed).
 
-**From Liquid Glass** (skipped): the translucent material itself (Green Goods surfaces are solid, and the cockpit's nav dock is the one translucent piece, DL-108), platform-specific macOS density rules, SF Symbols dependency, SwiftUI-specific APIs. We take the principles, not the Apple-platform implementation.
+**From Liquid Glass** (skipped): the translucent material itself (Green Goods surfaces are solid, and the Hub's nav dock is the one translucent piece, DL-108), platform-specific macOS density rules, SF Symbols dependency, SwiftUI-specific APIs. We take the principles, not the Apple-platform implementation.
 
 ---
 
@@ -110,11 +110,11 @@ Emphasis is carried by fill, outline, and color. The corner belongs to the surfa
 | **Secondary** (outlined, "Cancel" included) | 16px | Capsule | One step tighter in the app: 12px; none on the website | Second actions, "Cancel" (DL-016), "Add Link" |
 | **Tertiary** (text) | No container at rest; 16px fill on hover and focus | Capsule fill on hover and focus | None | Inline actions, a rare third action; 44px hit area |
 | **Icon buttons** | Circle | Circle | Tightens to the 12px squircle | Close, back, share, menu, remove |
-| **Chips** | Capsule | Capsule | None | Filters and choices; selected uses the action fill (DL-017), the workspace tone's in the cockpit (DL-101) |
+| **Chips** | Capsule | Capsule | None | Filters and choices; selected uses the action fill (DL-017), the workspace tone's in the Hub (DL-101) |
 
 **Rule (DL-026; values DL-029 for the app, DL-089 for the website)**: one button corner per surface. In the installed app it is the 16px field corner (`rounded.lg`), so a button and the field beside it share one shape; the 32px compact size keeps that corner's proportion rather than its number, 12px at rest and 8px pressed (`--gg-button-radius-compact`, `--gg-button-radius-compact-pressed`; DL-038), because 16px on a 32px button is a full capsule and stopped reading as one of the app's buttons. On the public website buttons are capsules (`rounded.full`) at every size, at rest and while pressed (DL-089); its editorial cards, dialogs, and panels stay square. The website's shell carries `data-site="website"`, and the corner tokens (`--gg-button-radius`, `--gg-button-radius-pressed`, and their `-compact` pair) sit on `:root`, so dialogs and sheets that portal out of the shell match the page. Labels are regular weight in the app and semibold on the website (`--gg-button-weight`). The shared `Button` (`emphasis`), `IconButton`, and `Chip` encode this and have no shape prop and no legacy `variant`; client code never hand-rolls a button (DL-025). The capsule-primary rule (DL-003) is superseded: applied everywhere, it mismatched every button pair.
 
-**Admin note**: cockpit buttons are pills (the shared `Button` at the cockpit's density, DL-119, with Title Case action labels per DL-012), sized on the DL-011 compact metric (28/32/40 with a 44px finger box on every tier and one 14px label, DL-030), and the admin FAB follows the capsule rule at both sizes (`rounded-full`: 48px dock circle, 56px extended floating capsule; DL-010). Admin radii are the fixed 4/8/12/16/9999 set plus the shared card's 24px corner (`--gg-card-radius`, DL-102), with no 20 or 28px steps. The capsule is that set's 9999 step, and the cockpit's chips take it as the app's do: a selected filter chip fills with the workspace tone's action pair (DL-101).
+**Admin note**: Hub buttons are pills (the shared `Button` at the Hub's density, DL-119, with Title Case action labels per DL-012), sized on the DL-011 compact metric (28/32/40 with a 44px finger box on every tier and one 14px label, DL-030), and the admin FAB follows the capsule rule at both sizes (`rounded-full`: 48px dock circle, 56px extended floating capsule; DL-010). Admin radii are the fixed 4/8/12/16/9999 set plus the shared card's 24px corner (`--gg-card-radius`, DL-102), with no 20 or 28px steps. The capsule is that set's 9999 step, and the Hub's chips take it as the app's do: a selected filter chip fills with the workspace tone's action pair (DL-101).
 
 ### Shape Morphing
 
@@ -131,7 +131,7 @@ Interactive elements shift shape on engagement. This creates physical, tactile f
 - Press: scale(0.985). In the installed app every card or row that opens something (`data-pressable="card"` or `"row"`) presses in through one rule in the client's `animation.css` (DL-039); the public website's cards stay still
 - Combined: the card feels like it's being pressed into the surface
 
-**Haptics** (DL-039, DL-041): the installed app answers every press from one listener (`installPressHaptics`, mounted by `PwaRuntime`, so sign-in answers too). The listener reads what the markup already says: tabs (the app bar's included, as `data-pressable="tab"`), chips, switches, radios and checkboxes (native or ARIA), and anything with a pressed state (`aria-pressed`, such as a card that toggles a choice) get the selection tap; buttons, links, and every other declared pressable (card, row, media, trigger, fab) get the light tap. Text fields, dropdowns, scrims, and disabled controls stay silent. A new control answers without asking, so a control never calls a press haptic itself; outcome haptics (success, error, warning) stay with the code that knows the outcome. Settings offers a Vibration switch, shown only where the device can vibrate (iPhones have no Vibration API). The admin cockpit and the public website install nothing.
+**Haptics** (DL-039, DL-041): the installed app answers every press from one listener (`installPressHaptics`, mounted by `PwaRuntime`, so sign-in answers too). The listener reads what the markup already says: tabs (the app bar's included, as `data-pressable="tab"`), chips, switches, radios and checkboxes (native or ARIA), and anything with a pressed state (`aria-pressed`, such as a card that toggles a choice) get the selection tap; buttons, links, and every other declared pressable (card, row, media, trigger, fab) get the light tap. Text fields, dropdowns, scrims, and disabled controls stay silent. A new control answers without asking, so a control never calls a press haptic itself; outcome haptics (success, error, warning) stay with the code that knows the outcome. Settings offers a Vibration switch, shown only where the device can vibrate (iPhones have no Vibration API). The Hub and the public website install nothing.
 
 **Admin carve-out**: the card motion above is client canon. Admin cards never lift, scale, glow, or step up in elevation: a card is the shared card surface (DL-102), and its hover and press feedback is the neutral ink layer `rgb(var(--m3-on-surface)/0.08)` only.
 
@@ -238,10 +238,10 @@ Two schemes control the personality of motion across the interface:
 
 | Scheme | When | Feel | Spring Character |
 |--------|------|------|-----------------|
-| **Standard** | Productivity, data-dense, steward cockpit | Efficient, professional, minimal overshoot | Spatial tokens as defined above |
+| **Standard** | Productivity, data-dense, steward workspace (the Hub) | Efficient, professional, minimal overshoot | Spatial tokens as defined above |
 | **Expressive** | Hero moments, celebrations, onboarding, ritual | Playful, bouncy, delightful overshoot | Spatial tokens with +50% duration and higher overshoot |
 
-**Standard** is the default for the admin cockpit: stewards scanning a review queue need motion that aids, not entertains. **Expressive** activates for hero moments (see § Hero Moments): garden creation, first submission, hypercert minting.
+**Standard** is the default for the Hub: stewards scanning a review queue need motion that aids, not entertains. **Expressive** activates for hero moments (see § Hero Moments): garden creation, first submission, hypercert minting.
 
 The motion scheme is set at the surface level, not per-component. A "Ritual" paradigm surface uses Expressive; a "Command Surface" uses Standard.
 
@@ -344,7 +344,7 @@ Each garden can derive an accent palette from its visual identity. This is M3's 
 
 ### Dark Mode Palette (Admin)
 
-Dark mode is a **deliberate palette, not a light inversion**. Three rules carry it. The warm surface ladder is the Earth ramp in shared `theme.css`, and both surfaces build on it (DL-097): the cockpit through its `--m3-*` roles in `admin-m3-tokens.css`, the installed app through `--bg-canvas` and the Warm Earth surface tokens. The tones and the elevation ladder stay in admin-scoped files (`packages/admin/src/index.css`, `admin-m3-tokens.css`), and the public website keeps its own dark ground. Toggle is `[data-theme="dark"]` on `<html>`.
+Dark mode is a **deliberate palette, not a light inversion**. Three rules carry it. The warm surface ladder is the Earth ramp in shared `theme.css`, and both surfaces build on it (DL-097): the Hub through its `--m3-*` roles in `admin-m3-tokens.css`, the installed app through `--bg-canvas` and the Warm Earth surface tokens. The tones and the elevation ladder stay in admin-scoped files (`packages/admin/src/index.css`, `admin-m3-tokens.css`), and the public website keeps its own dark ground. Toggle is `[data-theme="dark"]` on `<html>`.
 
 **1. Warm surface ladder (Warm Earth at low lightness).** Surfaces keep a constant warm hue (~65 OKLCH) with raised chroma so they read warm even when dark. Following the M3-dark convention, **higher elevation = lighter**: the card sits ten points of OKLCH lightness above the canvas (1.26:1), so separation comes from *tonal lift, not a drop shadow* (black shadows are invisible on near-black).
 
@@ -375,10 +375,10 @@ The dark card hairline on both surfaces is `--earth-700` (`67 61 55`, the ink at
 
 **Light mode follows the same discipline** (applied 2026-07-03 after a 190-pair audit):
 
-- **Dual-safe light tones**: light garden is `green-800` (5.7:1 both as white-text fill and as text on white; green-600/700 failed one or both), light actions `purple-700` (7.93; DL-045 moved Actions off the error red), light home `neutral-600`, light community `orange-700`, which the cockpit's amber ramp makes #B45309 (white at 5.02:1, its `orange-800` hover at 7.09:1). That ramp sits on `<body>` in the admin's `index.css`, so the canvas and the dialogs, side sheets and toasts it portals draw one orange; on the shared ramp those portals drew before, `orange-700` carried white at only 4.01:1, and Storybook mirrors the ramp for admin stories. Hub light already passed and is unchanged. The cockpit's filled controls lay the neutral ink layer over their fill and beneath their label (Rule 18), so hover and press deepen a light fill and lift a dark one and never fall below the rest contrast (painted over the label too, the layer took Community's dark pair from 4.58:1 to 3.66:1); `WorkspaceToneContrast.guard` holds every tone at rest and in each state to AA, in both themes, through that ramp, and checks that Storybook's copy matches it.
+- **Dual-safe light tones**: light garden is `green-800` (5.7:1 both as white-text fill and as text on white; green-600/700 failed one or both), light actions `purple-700` (7.93; DL-045 moved Actions off the error red), light home `neutral-600`, light community `orange-700`, which the Hub's amber ramp makes #B45309 (white at 5.02:1, its `orange-800` hover at 7.09:1). That ramp sits on `<body>` in the admin's `index.css`, so the canvas and the dialogs, side sheets and toasts it portals draw one orange; on the shared ramp those portals drew before, `orange-700` carried white at only 4.01:1, and Storybook mirrors the ramp for admin stories. The light `review` tone (Review's) already passed and is unchanged. The Hub's filled controls lay the neutral ink layer over their fill and beneath their label (Rule 18), so hover and press deepen a light fill and lift a dark one and never fall below the rest contrast (painted over the label too, the layer took Community's dark pair from 4.58:1 to 3.66:1); `WorkspaceToneContrast.guard` holds every tone at rest and in each state to AA, in both themes, through that ramp, and checks that Storybook's copy matches it.
 - **Light surfaces are the linen ladder**: the M3 containers ride a warm linen family (constant hue ~85, chroma .005–.012, in `admin-m3-tokens.css`), not gray Tailwind neutrals; cards and sheets stay white. This mirrors dark's hue-65 ladder so both modes carry Warm Earth. The installed app takes the same ground (DL-097): white cards on the linen canvas, with a `neutral-200` card hairline (1.18:1 on linen).
 - **`--tone-focus-ring`** is the only token for focus indicators: = `--tone-action` in light, = `--tone-on-surface-accent` in dark (deep fills measure 2.3–2.7 against dark surfaces, below the 3:1 non-text minimum). Never ring with `--tone-action` directly.
-- **Control outline and focus (DL-098)**: the shared fields, chips and secondary buttons draw `--gg-control-outline` (neutral-500 in light, 4.80:1 on white; neutral-400 on the installed app's dark card, 6.14:1; the cockpit's `--m3-outline`), and buttons, chips, fields and the switch draw focus as one solid 2px ring with a 2px offset in the surface's focus role, the cockpit's `--tone-focus-ring` or the installed app's `--focus-ring` (`--primary-on-surface`, mint in dark), in place of the 3px halo (about 1.3:1). The public website keeps its hairline and its halo.
+- **Control outline and focus (DL-098)**: the shared fields, chips and secondary buttons draw `--gg-control-outline` (neutral-500 in light, 4.80:1 on white; neutral-400 on the installed app's dark card, 6.14:1; the Hub's `--m3-outline`), and buttons, chips, fields and the switch draw focus as one solid 2px ring with a 2px offset in the surface's focus role, the Hub's `--tone-focus-ring` or the installed app's `--focus-ring` (`--primary-on-surface`, mint in dark), in place of the 3px halo (about 1.3:1). The public website keeps its hairline and its halo.
 - **State roles:** `-dark` steps for text/icons (they flip per mode: `-950` in light, `-400` in dark), `-lighter`+`-dark` for badges, `-base` for **fills only**. Admin-scope class backstops re-point stray `text-*-base` usages, but new code writes `text-*-dark`. The brand green `#1FC16B` (`--primary-base`) remains for soft highlights and brand decoration. Any green fill that carries text, a number, or a glyph (count badges, step markers, selected chips, pills, audio play/pause) uses the `--primary-action` / `--primary-action-foreground` pair: deep green with white content in light (DL-017), pale mint `tertiary-dark` (`#C2F5DA`) with near-black `on-tertiary-dark` (`#0C0A09`) ink in the dark PWA (16.34:1; DL-088). Dark PWA hover uses `tertiary-dark-hover` (`#84EBB4`). PWA green labels, icons, navigation indicators, selection borders, switches and native selection controls share `--primary-on-surface` (DL-086, DL-088; PRD-1150): `green-800` in light (5.72:1 on white), mint in dark (12.55:1 on the highest dark surface). The mint aliases are scoped to PWA presentation and Storybook app surfaces; public and admin retain their own palettes. `--primary-dark` stays deep and is not a PWA text role (DL-053). Domain and status roles retain their independent colors.
 - **Client error fills:** a red fill that carries white text (the filled danger button, error badges) uses `--error-action` (`red-700`, 5.26:1) with hover and press on `--error-action-hover` (`red-800`, 6.98:1), in both themes; `--error-base` stays for text-free marks and tints (DL-053).
 - **Client information fills:** a blue fill that carries white text (the information badge, the current submission stage) uses `--information-action` (`blue-500`, 5.10:1) in every theme, because the installed app's dark lifts `--information-base` for its icons (DL-097).
@@ -407,21 +407,21 @@ No action is shorter than 32px and no hit area is smaller than 44px. Fields use 
 (`controlSize` sm 40, md 44, lg 48), and a single-line field is exactly its step whatever its text:
 display-size digits and editorial type sit centered inside it instead of growing it.
 
-**Field anatomy** (DL-105): every field in the installed app and the cockpit puts its label above the control at the field title's 14px / 500 (`gg-field-label`) and its hint, error or count on the message line under it (`gg-field-message`, 12/16px type), except `FileUploadField`, which still puts its help above the upload well. The line reserves the surface's message lines whether or not it shows a message, two on each, so a message that fits never moves the form and a longer one grows the line. Each surface keeps its corner and heights, and the public website keeps its underline field (DL-024).
+**Field anatomy** (DL-105): every field in the installed app and the Hub puts its label above the control at the field title's 14px / 500 (`gg-field-label`) and its hint, error or count on the message line under it (`gg-field-message`, 12/16px type), except `FileUploadField`, which still puts its help above the upload well. The line reserves the surface's message lines whether or not it shows a message, two on each, so a message that fits never moves the form and a longer one grows the line. Each surface keeps its corner and heights, and the public website keeps its underline field (DL-024).
 
 **Primitives**: `Button` (`emphasis` primary / secondary / tertiary, `tone` default / danger / warning,
 `size`, `loading` stays focusable), `IconButton` (a circle at the same four sizes, `aria-label`
 required; a header launcher's count or status dot rides its `badge` slot), `Chip` (a 32px capsule
 toggle with a 44px hit area), `Switch` (a 44 × 24 track with a 44px hit box), `CountBadge` (every
 count on both surfaces, DL-099: a capsule 16px tall and at least 16px wide, with 11px numerals at
-weight 600 on the action pair, the cockpit's on its workspace tone's accent; a 2px ring of the
+weight 600 on the action pair, the Hub's on its workspace tone's accent; a 2px ring of the
 surface behind it on an icon or a control's edge and none beside a label; 99+ above 99, 9+ on the
 app's bottom bar). All live in
 `@green-goods/shared`. Composite pieces ride the same anatomy: `DatePicker` and `FileUploadField`
 are field-shaped triggers (`gg-control`), `ConfidenceSelector` and `AssetSelector` are radio
 chips, `AudioRecorder` and toasts use `Button`, `ImagePreviewDialog` uses `IconButton` (DL-031).
 
-**Tab rows** (DL-100) share one anatomy on both surfaces: equal-width cells, the active cell tinted with its accent at 10% under the accent label and a 2px underline, and the `CountBadge` beside the label with no ring. Labels are 12px below 640px and 14px from 640px, at weight 500 whether selected or not. Each surface keeps its height and its overflow: the installed app's `StandardTabs` are 44px (48px from 640px) and let a long label take a second line; the cockpit's `AdminTabRail` is 36px, keeps every label on one line in a cell never narrower than its content, and scrolls a row that cannot hold its cells. From 640px the cockpit's row is at most 180px per tab and keeps to the left.
+**Tab rows** (DL-100) share one anatomy on both surfaces: equal-width cells, the active cell tinted with its accent at 10% under the accent label and a 2px underline, and the `CountBadge` beside the label with no ring. Labels are 12px below 640px and 14px from 640px, at weight 500 whether selected or not. Each surface keeps its height and its overflow: the installed app's `StandardTabs` are 44px (48px from 640px) and let a long label take a second line; the Hub's `AdminTabRail` is 36px, keeps every label on one line in a cell never narrower than its content, and scrolls a row that cannot hold its cells. From 640px the Hub's row is at most 180px per tab and keeps to the left.
 
 **Surface tokens**: every size reads one block token (`--gg-button-block-*`, `--gg-icon-size-*`)
 plus `--gg-button-inline-*`, `--gg-hit-block`, and the label sizes `--gg-label-md/sm`, with the app
@@ -431,22 +431,22 @@ setting the tokens, never by restyling a component (DL-031).
 
 **Color variants** (from M3): Filled (primary), Outlined (secondary), Text (tertiary). A tonal fill is not a separate emphasis. Combined with shape, these give sufficient hierarchy without introducing more sizes.
 
-**Admin carve-out**: the size/morph table above is client canon. Cockpit buttons are the shared `Button` and `IconButton`, which admin views render directly with DL-119's code change (until it lands, through `AdminButton` and `AdminIconButton`, which render the same pieces, DL-115): pill at every size on the 28/32/40 compact metric (DL-011), Title Case labels (DL-012), no press-morph and no press scale; the primary fills with `--tone-action`, hovering and pressing on its tone's measured `--tone-action-hover` step with no elevation (DL-009, DL-115), and a disabled button takes the neutral pair (a 12% ink fill under a 38% ink label) instead of a dim, over any color a call site adds (DL-119). Shared pieces the cockpit renders keep the shared family, and admin `index.css` sets the family's tokens so a shared `Button` lands on the cockpit tiers (lg and md → 40, sm → 32, compact → 28) as a pill with a 14px / 500 label and a 44px finger box; `surface="admin"` puts a shared field on the responsive field tier and the switch on the M3 52 × 32 track (DL-031).
+**Admin carve-out**: the size/morph table above is client canon. Hub buttons are the shared `Button` and `IconButton`, which admin views render directly with DL-119's code change (until it lands, through `AdminButton` and `AdminIconButton`, which render the same pieces, DL-115): pill at every size on the 28/32/40 compact metric (DL-011), Title Case labels (DL-012), no press-morph and no press scale; the primary fills with `--tone-action`, hovering and pressing on its tone's measured `--tone-action-hover` step with no elevation (DL-009, DL-115), and a disabled button takes the neutral pair (a 12% ink fill under a 38% ink label) instead of a dim, over any color a call site adds (DL-119). Shared pieces the Hub renders keep the shared family, and admin `index.css` sets the family's tokens so a shared `Button` lands on the Hub tiers (lg and md → 40, sm → 32, compact → 28) as a pill with a 14px / 500 label and a 44px finger box; `surface="admin"` puts a shared field on the responsive field tier and the switch on the M3 52 × 32 track (DL-031).
 
 ### Floating Toolbar
 
-Contextual page-level actions: client/spatial vocabulary, not a shipped admin surface. The admin cockpit's primary actions live in the `AdminViewActions` header row and the nav-shell FAB.
+Contextual page-level actions: client/spatial vocabulary, not a shipped admin surface. The Hub's primary actions live in the `AdminViewActions` header row and the nav-shell FAB.
 
 - Desktop: always visible, docked to content zone edge or floating centered
 - Mobile: replaced by bottom navigation bar
 - Pairs with FAB for hero action emphasis
 - Holds buttons, icon buttons, and search field
-- Solid, like every surface but the cockpit's nav dock (DL-108)
+- Solid, like every surface but the Hub's nav dock (DL-108)
 - Capsule shape (the toolbar itself is a capsule container; items inside are concentric)
 
 ### Sheets
 
-> **Admin cockpit exception**: the steward cockpit (`packages/admin`) has **retired workspace side sheets**: the shared sheet renderers are deleted and every workspace action and detail/inspection flow is a centered `AdminDialog` (full-viewport scrim; bottom-sheet on mobile). The one sanctioned side sheet is **`AdminSideSheet`**, reserved for the three global AppBar surfaces (Profile, Settings, Notifications): right-docked and solid on desktop, AdminDialog-identical bottom sheet on mobile. See [prompt-contract.md § Overlays](./prompt-contract.md). The sheet motion below applies to the **client PWA's own sheet patterns** (wallet drawer, `PwaSheet`, mobile detail flows); `SheetBody` / `SheetFooter` / `SheetDivider` survive as layout primitives *inside* an `AdminDialog` or `AdminSideSheet` body.
+> **Hub exception**: the Hub (`packages/admin`) has **retired workspace side sheets**: the shared sheet renderers are deleted and every workspace action and detail/inspection flow is a centered `AdminDialog` (full-viewport scrim; bottom-sheet on mobile). The one sanctioned side sheet is **`AdminSideSheet`**, reserved for the three global AppBar surfaces (Profile, Settings, Notifications): right-docked and solid on desktop, AdminDialog-identical bottom sheet on mobile. See [prompt-contract.md § Overlays](./prompt-contract.md). The sheet motion below applies to the **client PWA's own sheet patterns** (wallet drawer, `PwaSheet`, mobile detail flows); `SheetBody` / `SheetFooter` / `SheetDivider` survive as layout primitives *inside* an `AdminDialog` or `AdminSideSheet` body.
 
 Client detail surfaces that slide from the edge, anchored to their trigger (source-anchored interaction):
 
@@ -465,7 +465,7 @@ Admin workspace action/detail flows open in centered `AdminDialog`; the admin ca
 | **Nav Rail** (side) | Tablet, desktop sidebar | Collapsible (icons only) / expandable (icons + labels) | Icon moves from above to beside label when expanded |
 | **Floating Toolbar** | Desktop content zone | Capsule, solid | Contextual actions, always visible |
 
-**Admin dock**: the cockpit's bottom nav is a flat dock and the one translucent surface in Green Goods (DL-108): `rgb(var(--admin-surface-0)/0.85)` with 12px blur, a 1px ink ring, and the warm chrome shadow (`0 18px 44px rgb(var(--warm-shadow)/0.14)`); the active item is a tone primary-container pill. The Floating Toolbar row is client/spatial vocabulary. Admin ships no floating toolbar.
+**Admin dock**: the Hub's bottom nav is a flat dock and the one translucent surface in Green Goods (DL-108): `rgb(var(--admin-surface-0)/0.85)` with 12px blur, a 1px ink ring, and the warm chrome shadow (`0 18px 44px rgb(var(--warm-shadow)/0.14)`); the active item is a tone primary-container pill. The Floating Toolbar row is client/spatial vocabulary. Admin ships no floating toolbar.
 
 **App bar**: the installed app's bottom bar keeps its own chrome, a solid white bar with a hairline and 16px top corners, and takes the dock's active recipe in the app's green (DL-107): a 56 × 32 pill of `--primary-container` (green-100, green-900 in dark) behind the active tab's line icon, drawn in `--primary-container-foreground`, with the label in ink at weight 600. Every tab holds the pill's width, so no tab moves when the active one changes.
 
@@ -489,14 +489,14 @@ Wavy progress makes the indicator feel alive and active: the progress isn't just
 
 Every empty, loading, failed and not-ready state on both surfaces is one state block, Shared's `EmptyState` (DL-106). Its sizes come from the type roles, so each surface draws it at its own density:
 
-| Part | Spec | App (16px density) | Cockpit (14px density) |
+| Part | Spec | App (16px density) | Hub (14px density) |
 |------|------|--------------------|------------------------|
 | **Tile** | `.gg-state-mark`: a 56px circle with a 24px glyph; the glyph spins while content loads | 56px | 56px |
 | **Title** | `type-title-md`, weight 600, lines balanced | 18/24 | 16/24 |
 | **Line** | `type-body`, one description, no orphans | 16px | 14px |
-| **Action** | The surface's own button, 14px under the line | Shared `Button` | Shared `Button` at the cockpit's density |
+| **Action** | The surface's own button, 14px under the line | Shared `Button` | Shared `Button` at the Hub's density |
 
-**Color roles**: a calm tile reads `--gg-state-mark-fill` and `--gg-state-mark-ink`. Unset, they give the app's green (`--primary-on-surface` at 10% behind the full ink); the cockpit sets a neutral ink tint (`--text-strong-950` at 6%) and its sub ink, because the workspace tone keeps to its budget (Rule 18). Setting that one pair to the tone's container and ink would turn it to the workspace tint. A warning takes `--warning-lighter` behind `--warning-base`, and a failure `--error-lighter` behind `--error-base`, on both surfaces.
+**Color roles**: a calm tile reads `--gg-state-mark-fill` and `--gg-state-mark-ink`. Unset, they give the app's green (`--primary-on-surface` at 10% behind the full ink); the Hub sets a neutral ink tint (`--text-strong-950` at 6%) and its sub ink, because the workspace tone keeps to its budget (Rule 18). Setting that one pair to the tone's container and ink would turn it to the workspace tint. A warning takes `--warning-lighter` behind `--warning-base`, and a failure `--error-lighter` behind `--error-base`, on both surfaces.
 
 **Behavior**: a failure is announced as an alert; calm and warning states are not live regions. `placement` keeps the app's anchors: `sheet` holds the tile and title at a sheet tab's upper-middle anchor (DL-036), `list` sets them 32px under a list's header row (DL-056), and `center` centers the block in its space. The block draws no frame of its own; it sits in its context's card, dialog or route space.
 
@@ -621,7 +621,7 @@ From Liquid Glass: persistent navigation bars now rely more on symbols (icons) t
 - Text labels only when the icon is genuinely ambiguous (e.g., "Select" vs "Edit": a pencil could mean either).
 - Don't pair symbol with text in a way that reads as a single button.
 - When actions are closely related (multiple copy variants), use the symbol once to introduce the group, then text for variants.
-- The admin cockpit already follows this in its nav dock and AppBar icon actions (admin has no floating toolbar).
+- The Hub already follows this in its nav dock and AppBar icon actions (admin has no floating toolbar).
 
 **Grouping** (from Liquid Glass): Related bar items should share one background:
 - Group by function and frequency: related actions together
