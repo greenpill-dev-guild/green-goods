@@ -11,6 +11,7 @@ import {
   findBrokenRootCodePaths,
   findMissingInstructionSections,
   findStaleLockedDecisions,
+  findUnknownCodeNames,
   findUntaggedFenceOpenings,
   parseNameStatus,
   scanDeletedSurfaceReferences,
@@ -334,4 +335,23 @@ test("rejects unknown CLI arguments", () => {
   const result = spawnSync(process.execPath, [script, "--unknown"], { encoding: "utf8" });
   assert.equal(result.status, 2);
   assert.match(result.stderr, /unknown argument/);
+});
+
+test("guidance may name only code that tracked source contains, outside examples and retirements", () => {
+  const known = new Set(["useQueueStats", "parseContractError", "DEFAULT_CHAIN_ID"]);
+  const text = [
+    "Use `useQueueStats()` and `parseContractError` with `DEFAULT_CHAIN_ID`.",
+    "Prefer `useQueueStatistics` for counts and `USER_FRIENDLY_ERRORS` for copy.",
+    "`AdminSettingRow` was retired for the shared row.",
+    "Plain words like `Address`, `jobs` or `bun run test` are not code names.",
+    "```ts",
+    "const value = useExampleOnly();",
+    "```",
+    "Name a hook like `useXxxForm`.",
+  ].join("\n");
+  assert.deepEqual(findUnknownCodeNames(text, "guide.md", known), [
+    "guide.md:2: no tracked source names `useQueueStatistics`",
+    "guide.md:2: no tracked source names `USER_FRIENDLY_ERRORS`",
+  ]);
+  assert.deepEqual(findUnknownCodeNames("Call `newHelper()` here.", "guide.md", known, new Map([["newHelper", "reason"]])), []);
 });

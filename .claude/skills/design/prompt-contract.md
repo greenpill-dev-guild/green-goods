@@ -184,9 +184,9 @@ AI design tools MUST map generated output to these existing exports. Do not inve
 | `NavigationBar` | Bottom workspace tabs: Review, Garden, Community, Actions (+ mobile-only Profile tab); symbol-first; role-adaptive |
 | `FabButton` (`Shell/FabButton`) | Per-workspace primary action in the nav shell, a capsule at both sizes (`rounded-full`): 48px dock circle, 56px extended floating capsule with label (DL-010); integrated via `FabProvider` |
 
-**Admin wrappers** (exported from `packages/admin/src/components/Admin*.tsx`, where the filesystem is the roster of record; 22 wrappers across 19 files once DL-109's code change retires `AdminSettingRow` for the shared `FactRow` and DL-119's retires `AdminButton` and `AdminIconButton`, since `AdminConfirmDialog` lives in `AdminDialog.tsx` and `AdminSelect`/`AdminTextArea` in `AdminTextField.tsx`; `AdminLoadingScreen` and `AdminSignIn` are screens, not wrappers):
+**Admin wrappers** (exported from `packages/admin/src/components/Admin*.tsx`, where the filesystem is the roster of record; `AdminConfirmDialog` lives in `AdminDialog.tsx` and `AdminSelect`/`AdminTextArea` in `AdminTextField.tsx`; `AdminLoadingScreen` and `AdminSignIn` are screens, not wrappers):
 
-`AdminCard` · `AdminCheckbox` · `AdminChoiceGroup` · `AdminConfirmDialog` · `AdminDialog` · `AdminFieldGroup` · `AdminFilterChip` · `AdminInlineField` · `AdminInputChip` · `AdminLinearProgress` · `AdminListRow` · `AdminReasonDialog` · `AdminSearchToolbar` · `AdminSelect` · `AdminSelectableCard` · `AdminSideSheet` · `AdminSortSelect` · `AdminTabRail` · `AdminTextArea` · `AdminTextField` · `AdminTooltip` · `AdminViewActions`
+`AdminCard` · `AdminCheckbox` · `AdminChoiceGroup` · `AdminConfirmDialog` · `AdminDialog` · `AdminDialogHeader` · `AdminFieldGroup` · `AdminFilterChip` · `AdminInlineField` · `AdminInputChip` · `AdminLinearProgress` · `AdminListRow` · `AdminReasonDialog` · `AdminSearchToolbar` · `AdminSelect` · `AdminSelectableCard` · `AdminSideSheet` · `AdminSortSelect` · `AdminTabRail` · `AdminTextArea` · `AdminTextField` · `AdminTooltip` · `AdminUploadConsentDialog` · `AdminViewActions`
 
 Form selects use `AdminSelect` (full field anatomy, the label above, the shared select's chevron, empty-value option as the placeholder row); `AdminSortSelect` is the toolbar sort pill only, never a form control.
 
@@ -204,7 +204,7 @@ All sit on the compact metric and the reduced admin shape scale, 4/8/12/16/9999 
 - The action picker: `ActionPicker` (media cards with the action's banner in one listbox, `components/Cards/ActionPicker`, with DL-111's code change).
 - Identity / data display: `AddressDisplay`, `StatusBadge`, `Alert`. (`DomainBadge` stays a client primitive: admin renders a neutral white/90 domain chip on `ReviewWorkCard` instead.)
 
-**Reference composition**: `/review` route. Model new admin surfaces on it. `DashboardLayout` / `Sidebar` / `Header` are legacy. Do not start from them.
+**Reference composition**: `/review` route. Model new admin surfaces on it.
 
 ## Companion Files
 

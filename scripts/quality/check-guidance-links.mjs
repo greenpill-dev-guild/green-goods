@@ -119,6 +119,85 @@ const RETIRED_PATTERNS = [
   /(^|[\s`(])\/(principles|architecture|audit-then-ship|drift)\b/,
 ];
 
+// Code names guidance may write that no tracked source contains, each with the reason it stays.
+// A name guidance mentions only to say it was removed needs no entry: a retirement notice covers it.
+export const UNTRACKED_CODE_NAMES = new Map([
+  ["anyoneWithLink", "Google Drive permission role"],
+  ["fullText", "Google Drive search field"],
+  ["modifiedTime", "Google Drive file field"],
+  ["relatedTo", "Linear relation type"],
+  ["sortOrder", "Linear API field"],
+  ["externalIds", "Linear customer field"],
+  ["CHANGES_REQUESTED", "GitHub review state"],
+  ["reviewDecision", "GitHub GraphQL field"],
+  ["reviewThreads", "GitHub GraphQL field"],
+  ["isOutdated", "GitHub GraphQL field"],
+  ["endCursor", "GitHub GraphQL page cursor"],
+  ["EnterWorktree", "Claude Code tool"],
+  ["MockDb", "Envio's generated test database, not tracked"],
+  ["POSTHOG_PROJECT_ID_APP", "routine environment variable, set outside the repository"],
+  ["POSTHOG_PROJECT_ID_ADMIN", "routine environment variable, set outside the repository"],
+  ["OUT_OF_SCOPE", "review verdict the skills define"],
+  ["PATH_TRACED", "evidence label the skills define"],
+  ["DEPENDENCY_WALKED", "evidence label the skills define"],
+  ["LIVE_OBSERVED", "evidence label the skills define"],
+  ["NEEDS_INPUT", "debug outcome the skill defines"],
+  ["useXxxForm", "naming placeholder"],
+  ["useEntity", "naming placeholder"],
+  ["useEntityVerb", "naming placeholder"],
+  ["useAdjective", "naming placeholder"],
+  ["testRevert_", "test-name category the naming rule forbids"],
+]);
+// Records of past decisions and sample inputs, where a name may be one that has since gone.
+const CODE_NAME_SCAN_EXEMPT = [/^\.claude\/skills\/design\/decision-log\.md$/, /^\.claude\/skills\/qa-triage\/fixtures\//];
+const CODE_NAME_SOURCES = ["packages", "scripts", "tests", ".github", ".claude/hooks", ".claude/scripts", ".codex", "docs/src", "docs/scripts"];
+const CODE_FILE_RE = /\.(ts|tsx|js|jsx|mjs|cjs|mts|cts|sol|json|ya?ml|sh|toml|graphql|css)$/;
+
+/** A backticked name that reads as code: camelCase, PascalCase with a second capital, or UPPER_SNAKE. */
+function isCodeName(token) {
+  return /^[A-Za-z_][\w]*$/.test(token) && token.length >= 4 &&
+    (/[a-z][A-Z]/.test(token) || /^[A-Z][A-Z0-9]*_[A-Z0-9_]+$/.test(token) || /^[a-z]+[A-Z]/.test(token));
+}
+
+/** Code names in a guidance file's inline code that `knownNames` lacks; fenced examples are skipped. */
+export function findUnknownCodeNames(text, relativePath, knownNames, allowed = UNTRACKED_CODE_NAMES) {
+  const failures = [];
+  let fenced = false;
+  for (const [index, line] of text.split(/\r?\n/).entries()) {
+    if (/^\s*(```|~~~)/.test(line)) {
+      fenced = !fenced;
+      continue;
+    }
+    if (fenced) continue;
+    for (const match of line.matchAll(/`([^`\n]+)`/g)) {
+      const token = match[1].trim().replace(/\(\)$/, "").replace(/^[@$]/, "");
+      if (!isCodeName(token) || knownNames.has(token) || allowed.has(token)) continue;
+      if (isExplicitRetirementNotice(line, token)) continue;
+      failures.push(`${relativePath}:${index + 1}: no tracked source names \`${token}\``);
+    }
+  }
+  return failures;
+}
+
+/** Every identifier in tracked source, scripts, tests, workflows and hooks. */
+function collectCodeNames() {
+  const files = runGit(repoRoot, ["ls-files", "--", ...CODE_NAME_SOURCES, "*.json", "*.toml"]).stdout.split(/\r?\n/)
+    .filter((file) => CODE_FILE_RE.test(file));
+  const names = new Set();
+  for (const file of files) {
+    // This checker's test holds stale names as fixtures, so it never vouches for one.
+    if (file === "scripts/quality/check-guidance-links.test.mjs") continue;
+    let text;
+    try {
+      text = fs.readFileSync(path.join(repoRoot, file), "utf8");
+    } catch {
+      continue;
+    }
+    for (const match of text.matchAll(/[A-Za-z_][\w]*/g)) names.add(match[0]);
+  }
+  return names;
+}
+
 const LINK_RE = /\]\(([^)#\s]+?\.mdx?)(#[^)]*)?\)/g;
 const ROOT_CODE_PATH_RE = /`((?:docs|packages|scripts|\.claude)\/[^`\s]+?\.mdx?)`/g;
 const RUN_RES = [
@@ -539,6 +618,7 @@ function main() {
     path.join(repoRoot, "ONBOARDING.md"),
   ].filter((file) => fs.existsSync(file));
   const knownScripts = collectKnownScripts();
+  const knownCodeNames = collectCodeNames();
   const instructions = Object.fromEntries(["AGENTS.md", "CLAUDE.md"].map((name) => [
     name, fs.existsSync(path.join(repoRoot, name)) ? fs.readFileSync(path.join(repoRoot, name), "utf8") : "",
   ]));
@@ -575,6 +655,9 @@ function main() {
       failures.push(
         ...scanPersistentRetiredReferences([{ path: relativePath, text }]),
       );
+    }
+    if (!CODE_NAME_SCAN_EXEMPT.some((pattern) => pattern.test(relativePath))) {
+      failures.push(...findUnknownCodeNames(text, relativePath, knownCodeNames));
     }
   }
 
@@ -699,7 +782,7 @@ function main() {
     process.exit(1);
   }
   console.log(
-    `check-guidance-links: ${guidanceFiles.length} guidance files OK (links, commands, retirements, changed fences, banner parity, and DL citations).`,
+    `check-guidance-links: ${guidanceFiles.length} guidance files OK (links, commands, code names, retirements, changed fences, banner parity, and DL citations).`,
   );
 }
 
