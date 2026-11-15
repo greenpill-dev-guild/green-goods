@@ -296,8 +296,8 @@ describe("Take Part", () => {
       onchainState: "REQUESTED",
       derivedState: "REQUESTED",
     });
-    const requested = { requested: new Set(["8"]), queued: new Set<string>() };
-    const queued = { requested: new Set<string>(), queued: new Set(["8"]) };
+    const requested = { ...NO_TAKE_UPS, requested: new Set(["8"]) };
+    const queued = { ...NO_TAKE_UPS, queued: new Set(["8"]) };
     expect(takePartEmptyReason({ ...input([othersAsk]), takeUps: requested })).toBe("none");
     expect(takePartEmptyReason({ ...input([othersAsk, readersOwn]), takeUps: queued })).toBe(
       "none"
@@ -364,6 +364,64 @@ describe("Take Part", () => {
     expect(entries.map((entry) => [entry.kind, entry.copy?.commitmentId])).toEqual([
       ["group", 40n],
     ]);
+  });
+
+  // PRD-1492: Take Part said "1 available" for a reviewed group whose page held its act with
+  // "None are available right now": another member's request was waiting on the one open copy.
+  it("lists a reviewed group while a copy nobody has asked for is left, counted as its page counts it", () => {
+    const metadata = new Map<string, CommitmentMetadataV1>([
+      ["cid-set", { version: 1, title: "Water survey", displayGroup: { version: 1, id: "set-1" } }],
+    ]);
+    const reviewedCopy = (id: number) =>
+      promise(id, {
+        direction: "REQUEST",
+        onchainState: "REQUESTED",
+        derivedState: "REQUESTED",
+        claimMode: "APPROVAL_GATED",
+        metadataCID: "cid-set",
+      });
+    const entriesWhile = (askedFor: ReadonlySet<string> | null) =>
+      takePartEntries({
+        commitments: [reviewedCopy(41), reviewedCopy(40)],
+        metadataByCID: metadata,
+        viewer: READER,
+        poolOpen: true,
+        clock: CLOCK,
+        takeUps: { ...NO_TAKE_UPS, askedFor },
+      });
+
+    // A neighbor asked for copy 40: copy 41 is still free, and the row says one waits on a steward.
+    const [listed] = entriesWhile(new Set(["40"]));
+    expect(listed?.copy.commitmentId).toBe(41n);
+    expect(listed?.kind === "group" && listed.availabilityKnown).toBe(true);
+    expect(listed?.kind === "group" && listed.group.counts).toMatchObject({
+      available: 1,
+      requested: 1,
+    });
+    // Both asked for: nothing is left to ask for, so Take Part lists nothing, as the page holds.
+    expect(entriesWhile(new Set(["40", "41"]))).toEqual([]);
+    // Requests that could not be read leave the group listed, its availability unknown as on
+    // its page, never "2 available".
+    const [unread] = entriesWhile(null);
+    expect(unread?.kind === "group" && unread.availabilityKnown).toBe(false);
+    // A single reviewed ask stays listed beside a neighbor's request: a steward chooses between
+    // asks on one promise, while a group sends each ask to its own copy (D5).
+    const reviewedAsk = promise(50, {
+      direction: "REQUEST",
+      onchainState: "REQUESTED",
+      derivedState: "REQUESTED",
+      claimMode: "APPROVAL_GATED",
+    });
+    expect(
+      takePartEntries({
+        commitments: [reviewedAsk],
+        metadataByCID: metadata,
+        viewer: READER,
+        poolOpen: true,
+        clock: CLOCK,
+        takeUps: { ...NO_TAKE_UPS, askedFor: new Set(["50"]) },
+      }).map((entry) => entry.copy.commitmentId)
+    ).toEqual([50n]);
   });
 
   it("takes nothing up while the pool is not open, as the promise page's take-up gate reads it", () => {
@@ -448,6 +506,23 @@ describe("the reader's own take-ups (#1292's review, decision 18)", () => {
     ],
   ])("lists Take Part %s", (_case, input, expected) => {
     expect(listed([ask(9), gatedAsk(8), gatedAsk(7)], viewerTakeUps(input))).toEqual(expected);
+  });
+
+  it("keeps every request waiting on a steward, anyone's, and none it could not read", () => {
+    const pendingRequests = [
+      request(8, "PENDING", NEIGHBOUR),
+      request(7, "PENDING"),
+      request(6, "DECLINED", NEIGHBOUR),
+    ];
+    const read = viewerTakeUps({ viewer: READER, pendingRequests, queued: new Set() });
+
+    expect([...(read.askedFor ?? [])]).toEqual(["8", "7"]);
+    // The reader's own request is still theirs to follow on its page.
+    expect([...read.requested]).toEqual(["7"]);
+    expect(
+      viewerTakeUps({ viewer: READER, pendingRequests, queued: new Set(), requestsRead: false })
+        .askedFor
+    ).toBeNull();
   });
 
   it("leaves an accepted request's promise out: a steward made it the reader's own", () => {

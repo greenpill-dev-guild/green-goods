@@ -69,6 +69,8 @@ const mocks = vi.hoisted(() => ({
   retryMetadata: vi.fn(),
   membershipUnavailable: false,
   retryMembership: vi.fn(),
+  /** The copies with a request waiting on a steward, anyone's. */
+  asks: [] as bigint[],
 }));
 
 vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({ usePrimaryAddress: () => LINA }));
@@ -104,7 +106,12 @@ vi.mock("../../../hooks/commitment-pooling/useCommitmentMetadata", () => ({
   }),
 }));
 vi.mock("../../../hooks/commitment-pooling/usePoolClaimRequests", () => ({
-  usePoolClaimRequests: () => ({ rows: [], isLoading: false, isError: false, refetch: vi.fn() }),
+  usePoolClaimRequests: () => ({
+    rows: mocks.asks.map((commitmentId) => ({ claim: { commitmentId } })),
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  }),
 }));
 vi.mock("../../../hooks/commitment-pooling/useCommitmentQueueState", () => ({
   useCommitmentQueueState: () => ({
@@ -152,6 +159,7 @@ describe("usePromiseGroupController", () => {
     mocks.pendingActs = new Map();
     mocks.metadataFailed = false;
     mocks.membershipUnavailable = false;
+    mocks.asks = [];
     mocks.detail.mockImplementation(async (id: bigint) =>
       commitmentDetailFixture({
         commitment:
@@ -199,6 +207,24 @@ describe("usePromiseGroupController", () => {
     expect(result.current.counts).toMatchObject({ available: 0, ended: 2 });
     await act(async () => result.current.takeUp.start());
     expect(mocks.enqueue).not.toHaveBeenCalled();
+  });
+
+  // PRD-1492: the page held its act with "None are available right now" beside "1 available",
+  // because the one open copy already had someone's request on it.
+  it("counts a reviewed group's asked-for copies as waiting on a steward, as its held act reads them", () => {
+    mocks.commitments = [copy(11), copy(12)].map((record) => ({
+      ...record,
+      claimMode: "APPROVAL_GATED" as const,
+    }));
+    mocks.asks = [11n];
+    const { result, rerender } = render();
+    expect(result.current.bar).toEqual({ act: "askToTakeUp", hold: null });
+    expect(result.current.counts).toMatchObject({ available: 1, requested: 1 });
+
+    mocks.asks = [11n, 12n];
+    rerender();
+    expect(result.current.bar).toEqual({ act: "askToTakeUp", hold: "none" });
+    expect(result.current.counts).toMatchObject({ available: 0, requested: 2 });
   });
 
   it("on the protocol pool, sends nothing until the person chooses who takes it up", async () => {

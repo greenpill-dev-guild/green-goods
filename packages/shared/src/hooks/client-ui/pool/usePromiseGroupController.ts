@@ -15,14 +15,14 @@
 import { useCallback, useMemo } from "react";
 
 import {
-  type DisplayGroupCounts,
   type DisplayGroupEntry,
   groupCommitmentsForDisplay,
 } from "../../../modules/commitment-pooling/display-groups";
 import {
   findDisplayGroup,
   type GroupTakeUpBar,
-  groupCountsOnClock,
+  type GroupTakeUpCounts,
+  groupTakeUpCounts,
   isAtTakeUpLimit,
   isViewerCopy,
   pickCopyToTakeUp,
@@ -48,7 +48,7 @@ import { useDueClock } from "../../commitment-pooling/useDueClock";
 import { usePoolClaimRequests } from "../../commitment-pooling/usePoolClaimRequests";
 import { type GroupTakeUpContext, type GroupTakeUpState, useGroupTakeUp } from "./useGroupTakeUp";
 
-export type { GroupTakeUpBar, GroupTakeUpContext, GroupTakeUpState };
+export type { GroupTakeUpBar, GroupTakeUpContext, GroupTakeUpCounts, GroupTakeUpState };
 
 interface ClaimGardenOption {
   address: Address;
@@ -64,7 +64,8 @@ export interface PromiseGroupController {
   /** One copy, for the terms every copy shares. */
   sample: CommitmentReadModel | null;
   metadata: CommitmentMetadataV1 | null;
-  counts: DisplayGroupCounts | null;
+  /** The counts its act reads (`groupTakeUpCounts`), so none says available what it won't take. */
+  counts: GroupTakeUpCounts | null;
   /** False when the copies or the asks on them couldn't be read: counts may be stale. */
   availabilityKnown: boolean;
   /** The reader's own copies, each an ordinary row that opens its page. */
@@ -294,8 +295,14 @@ export function usePromiseGroupController(input: {
     group,
     sample,
     metadata: sample?.metadataCID ? (byCID.get(sample.metadataCID.trim()) ?? null) : null,
-    // A copy past due counts as ended, so the page never says one is available beside a held act.
-    counts: group ? (due.known ? groupCountsOnClock(group, due.clock) : group.counts) : null,
+    // A copy past due counts as ended, and one a steward has a request on as waiting on them, so
+    // the page never says one is available beside a held act. While the due dates are unread the
+    // counts stand as the chain has them, and the page says availability is unknown.
+    counts: group
+      ? due.known
+        ? groupTakeUpCounts(group, { clock: due.clock, askedFor })
+        : { ...group.counts, requested: 0 }
+      : null,
     availabilityKnown,
     yours,
     bar,

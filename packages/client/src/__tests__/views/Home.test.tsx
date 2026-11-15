@@ -163,12 +163,15 @@ type Status = "loading" | "error" | "none" | "choose" | "ready";
 type Role = "owner" | "steward" | "evaluator" | "gardener";
 
 const selectGarden = vi.fn();
+const acknowledgeAddedGardens = vi.fn();
 const refetch = vi.fn();
 
 function setActive(
   status: Status,
   mine: Array<[Garden, Role[]]> = [],
-  activeId: string | null = null
+  activeId: string | null = null,
+  /** Gardens the account was added to that this device has not announced yet. */
+  added: Garden[] = []
 ) {
   state.active = {
     status,
@@ -182,6 +185,8 @@ function setActive(
       refetch,
     },
     selectGarden,
+    addedGardens: added,
+    acknowledgeAddedGardens,
   };
 }
 
@@ -730,6 +735,78 @@ describe("Home under its child routes", () => {
     renderHome(entry);
 
     expect(screen.getByTestId("home-journal")).toBeVisible();
+  });
+});
+
+// PRD-1492: a new steward was added to a second garden and the App said nothing, leaving them in
+// the community garden.
+describe("a garden the member was added to", () => {
+  const shownToast = () => vi.mocked(toastService.info).mock.calls.at(-1)?.[0];
+
+  it("says so once, in a toast that waits, and Switch opens Home there", () => {
+    setActive(
+      "ready",
+      [
+        [TAS, ["steward"]],
+        [VIDA, ["steward"]],
+      ],
+      TAS.id,
+      [VIDA]
+    );
+    renderHome();
+
+    expect(toastService.info).toHaveBeenCalledOnce();
+    expect(shownToast()).toMatchObject({
+      title: "You're now part of Vida Verde",
+      message: "Switch now, or anytime from Your Gardens.",
+      persistent: true,
+      action: { label: "Switch" },
+    });
+    expect(acknowledgeAddedGardens).toHaveBeenCalledExactlyOnceWith([VIDA.id]);
+    // Being added moves nothing until the member chooses.
+    expect(selectGarden).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: /TAS HUB/ })).toBeVisible();
+
+    act(() => shownToast()?.action?.onClick());
+    expect(selectGarden).toHaveBeenCalledExactlyOnceWith(VIDA.id);
+  });
+
+  it("names how many gardens when there are several, and opens Your Gardens to choose", async () => {
+    setActive(
+      "ready",
+      [
+        [TAS, ["steward"]],
+        [VIDA, ["gardener"]],
+        [AIYELOJA, ["gardener"]],
+      ],
+      TAS.id,
+      [VIDA, AIYELOJA]
+    );
+    renderHome();
+
+    expect(shownToast()).toMatchObject({
+      title: "You're now part of 2 more gardens",
+      action: { label: "See Your Gardens" },
+    });
+    act(() => shownToast()?.action?.onClick());
+    expect(await screen.findByRole("dialog", { name: "Your Gardens" })).toBeVisible();
+    expect(selectGarden).not.toHaveBeenCalled();
+  });
+
+  it("lets the first-login page list a new garden among the member's, with no toast", () => {
+    setActive(
+      "choose",
+      [
+        [TAS, ["steward"]],
+        [VIDA, ["gardener"]],
+      ],
+      null,
+      [VIDA]
+    );
+    renderHome();
+
+    expect(toastService.info).not.toHaveBeenCalled();
+    expect(acknowledgeAddedGardens).toHaveBeenCalledExactlyOnceWith([VIDA.id]);
   });
 });
 
