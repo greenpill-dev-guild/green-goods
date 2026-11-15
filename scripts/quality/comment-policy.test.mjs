@@ -208,3 +208,21 @@ test("documentation stays on declarations exported later by name or as the defau
   const code = "/** Counts unread items. */\nfunction CountBadge() {}\n/** The badge. */\nconst Badge = () => null;\n/** Private. */\nfunction helper() {}\nexport { CountBadge };\nexport default Badge;\n";
   assert.deepEqual(kinds(code), ["documentation", "documentation", "remove"]);
 });
+
+test("JSDoc-form directives, object and union JSDoc types, and copyright notices in Solidity are kept", () => {
+  assert.deepEqual(kinds("/** @vitest-environment jsdom */\nconst x = 1;\n"), ["directive"]);
+  assert.deepEqual(kinds("/**\n * @vitest-environment jsdom\n */\nconst x = 1;\n"), ["directive"]);
+  assert.deepEqual(kinds("/** @param {{id: string}} value */\nfunction f(value) {}\n", "example.mjs"), ["documentation"]);
+  assert.deepEqual(kinds("/** @returns {(string|number)} */\nfunction g() {}\n", "example.mjs"), ["documentation"]);
+  assert.deepEqual(kinds("/* Copyright (c) 2026 Example */\ncontract C {}\n", "C.sol"), ["licence"]);
+});
+
+test("a removed comment that held a line break leaves one, so automatic semicolons stay", () => {
+  const code = "function f(value) {\n  return/* narration\n  */value;\n}\n";
+  assert.equal(purgeSource(code, "example.ts").code, "function f(value) {\n  return\nvalue;\n}\n");
+});
+
+test("a JSX container whose comment sits on its own line goes with its braces", () => {
+  const code = "export const View = () => (\n  <div>\n    {\n      /* narration */\n    }\n    <p>Text</p>\n  </div>\n);\n";
+  assert.equal(purgeSource(code, "example.tsx").code, "export const View = () => (\n  <div>\n    <p>Text</p>\n  </div>\n);\n");
+});

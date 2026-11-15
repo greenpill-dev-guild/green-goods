@@ -91,7 +91,7 @@ function constraintKind(text) {
   if (!REASON.test(text)) return "remove";
   return externalTerms().test(text) ? "dependency" : "rationale";
 }
-const JSDOC_TYPES = /@(type|param\s*\{|returns?\s*\{|typedef|template|satisfies|import|callback|property\s*\{|enum|deprecated|overload)\b/;
+const JSDOC_TYPES = /@((type|typedef|template|satisfies|import|callback|enum|deprecated|overload)\b|(param|returns?|property)\s*\{)/;
 
 function languageOf(file) {
   if (file.endsWith(".tsx")) return "tsx";
@@ -142,11 +142,19 @@ function emptyJsxContainers(program) {
   return containers;
 }
 
+/** The comment's lines without the leading `*` a block comment's lines carry. */
+function commentLines(text) {
+  return text.split("\n").map((line) => line.replace(/^\s*\*+\s?/, ""));
+}
+
+const isDirective = (text, patterns = DIRECTIVES) =>
+  [text, ...commentLines(text)].some((line) => patterns.some((pattern) => pattern.test(line)));
+
 export function classifyComment(comment, { exported }) {
   const text = comment.value;
   const doc = comment.type === "Block" && text.startsWith("*");
   if (LICENCE.test(text) || (comment.type === "Block" && text.startsWith("!"))) return "licence";
-  if (DIRECTIVES.some((pattern) => pattern.test(text))) return "directive";
+  if (isDirective(text)) return "directive";
   if (doc && (exported || JSDOC_TYPES.test(text))) return "documentation";
   return constraintKind(text);
 }
@@ -201,15 +209,15 @@ const isNatSpec = (comment) => (comment.type === "Line" ? comment.value.startsWi
 
 export function classifySolidityComment(comment) {
   const text = comment.value;
-  if (/SPDX-License-Identifier/.test(text)) return "licence";
-  if (SOLIDITY_DIRECTIVES.some((pattern) => pattern.test(text))) return "directive";
+  if (LICENCE.test(text)) return "licence";
+  if (isDirective(text, SOLIDITY_DIRECTIVES)) return "directive";
   // NatSpec documents the contract surface and carries tooling tags such as @custom:oz-upgrades.
   if (isNatSpec(comment)) return "documentation";
   return constraintKind(text);
 }
 
 function classifySoliditySource(code) {
-  const standalone = (value) => /SPDX-License-Identifier/.test(value) || SOLIDITY_DIRECTIVES.some((pattern) => pattern.test(value));
+  const standalone = (value) => LICENCE.test(value) || isDirective(value, SOLIDITY_DIRECTIVES);
   // A NatSpec line (`///`) and a plain line (`//`) never join: they are different kinds of comment.
   const joins = (previous, next) => previous.startsWith("/") === next.startsWith("/");
   return groupComments(code, solidityComments(code), { standalone, joins }).map((comment) => ({
@@ -247,11 +255,6 @@ function lineEnd(code, index) {
 // that holds only comments, or the comment itself, with a space where deleting it would join two
 // tokens (`return/* x */value` stays `return value`).
 function removal(code, comment) {
-  const start = lineStart(code, comment.start);
-  const end = lineEnd(code, comment.end);
-  if (!code.slice(start, comment.start).trim() && !code.slice(comment.end, end).trim()) {
-    return { from: start, to: Math.min(end + 1, code.length), text: "" };
-  }
   if (comment.container) {
     const [open, close] = comment.container;
     if (!code.slice(lineStart(code, open), open).trim() && !code.slice(close, lineEnd(code, close)).trim()) {
@@ -259,8 +262,15 @@ function removal(code, comment) {
     }
     return { from: open, to: close, text: "" };
   }
+  const start = lineStart(code, comment.start);
+  const end = lineEnd(code, comment.end);
+  if (!code.slice(start, comment.start).trim() && !code.slice(comment.end, end).trim()) {
+    return { from: start, to: Math.min(end + 1, code.length), text: "" };
+  }
   let from = comment.start;
   while (from > start && /[ \t]/.test(code[from - 1])) from--;
+  // A line break inside the comment can end a statement (`return/* x\n*/value` returns nothing), so it stays.
+  if (code.slice(comment.start, comment.end).includes("\n")) return { from, to: comment.end, text: "\n" };
   const joins = from > 0 && /\S/.test(code[from - 1]) && /\S/.test(code[comment.end] ?? "");
   return { from, to: comment.end, text: joins ? " " : "" };
 }
