@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { jobQueueDB } from "../../modules/job-queue/db";
 import { jobQueueEventBus } from "../../modules/job-queue/event-bus";
+import { trackUploadPreparation } from "../../modules/job-queue/job-analytics";
 import { connectivityStore } from "../../stores/connectivity";
 import type { Address } from "../../types/domain";
 import { isDataSaverOn, networkInformation } from "../../utils/app/network-information";
@@ -53,6 +54,7 @@ export function useWorkUploadPreparation(userAddress: Address | null | undefined
         prepare: (job, jobChainId, claim) => prepareQueuedJob(job, jobChainId, claim),
         recover: recoverStuckWork,
         now: () => Date.now(),
+        record: trackUploadPreparation,
       });
       preparationModule.setActiveUploadPreparation(preparation);
 
