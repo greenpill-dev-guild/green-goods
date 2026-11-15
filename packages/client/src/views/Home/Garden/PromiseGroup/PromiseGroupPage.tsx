@@ -1,8 +1,10 @@
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { Button } from "@green-goods/shared/components/Button";
 import type { CommitmentReadModel, InboxCommitment } from "@green-goods/shared/commitment-pooling";
-import type { DisplayGroupCounts } from "@green-goods/shared/modules/commitment-pooling/display-groups";
-import type { GroupTakeUpBar } from "@green-goods/shared/hooks/client-ui/pool/usePromiseGroupController";
+import type {
+  GroupTakeUpBar,
+  GroupTakeUpCounts,
+} from "@green-goods/shared/hooks/client-ui/pool/usePromiseGroupController";
 import { formatCommitmentUnits } from "@green-goods/shared/i18n/commitmentUnits";
 import { RiHandHeartLine, RiRefreshLine, RiSeedlingLine, RiTimeLine } from "@remixicon/react";
 import { type ReactNode, useId } from "react";
@@ -35,7 +37,7 @@ export interface PromiseGroupPageProps {
   note: string | null;
   /** The reward each one carries, in words, or null when they carry none. */
   reward: string | null;
-  counts: DisplayGroupCounts;
+  counts: GroupTakeUpCounts;
   availabilityKnown: boolean;
   /** The pool's at-once limit, stated for promises it counts against. */
   cap: bigint | null;

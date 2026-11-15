@@ -13,13 +13,18 @@
  *   list, so nothing is lost.
  * - `none` when the account has no garden.
  * - `ready` with the remembered garden while it is still the account's, or with the one
- *   garden, which selects itself and is remembered.
+ *   garden, which selects itself, and is remembered when nothing else is.
  * - `choose` when several remain and none of them is remembered.
  *
  * A remembered garden the account no longer holds stops winning on the next load and stays
  * stored: nothing is forgotten behind the member's back, and no garden the account cannot see
- * is selected. Drafts, queued jobs, promise links and permission checks never read it; each
- * carries or reads its own garden.
+ * is selected. So a list that comes back without it, even one that lags behind the account or
+ * was saved before it joined, opens its one garden without replacing the choice, and the next
+ * list that holds the remembered garden opens it again (PRD-1492). Drafts, queued jobs, promise
+ * links and permission checks never read it; each carries or reads its own garden.
+ *
+ * `gardensAddedSince` says which of the account's gardens this device has not seen it hold, so
+ * Home can tell a member they were added to a garden and offer to switch to it.
  */
 
 import { isZeroAddress } from "../../utils/blockchain/address";
@@ -33,7 +38,10 @@ export type ActiveGardenResolution =
    */
   | { status: "loading" | "error"; gardenId: string | null }
   | { status: "none" | "choose"; gardenId: null }
-  /** `remember` is true when the one garden selected itself and the device should keep it. */
+  /**
+   * `remember` is true when the one garden selected itself with nothing remembered, so the
+   * device should keep it.
+   */
   | { status: "ready"; gardenId: string; remember: boolean };
 
 export interface ActiveGardenInputs {
@@ -72,8 +80,25 @@ export function resolveActiveGarden({
     ? gardenIds.find((gardenId) => gardenId.toLowerCase() === rememberedId.toLowerCase())
     : undefined;
   if (stillMine) return { status: "ready", gardenId: stillMine, remember: false };
-  if (gardenIds.length === 1) return { status: "ready", gardenId: gardenIds[0], remember: true };
+  if (gardenIds.length === 1) {
+    return { status: "ready", gardenId: gardenIds[0], remember: rememberedId === null };
+  }
   return { status: "choose", gardenId: null };
+}
+
+/**
+ * The account's gardens this device has not seen it hold: the gardens it was added to since the
+ * App last read its gardens, a steward's welcome included. `seen` is undefined on a device that
+ * never read them for the account, which records what the account holds and announces nothing,
+ * so signing in never lists every garden as new. A garden the account left is not an addition.
+ */
+export function gardensAddedSince(
+  seen: readonly string[] | undefined,
+  gardenIds: readonly string[]
+): string[] {
+  if (!seen) return [];
+  const known = new Set(seen.map((gardenId) => gardenId.toLowerCase()));
+  return gardenIds.filter((gardenId) => !known.has(gardenId.toLowerCase()));
 }
 
 /**
