@@ -6,10 +6,11 @@
 //
 // Kept: licence headers, functional directives (compiler, linter, bundler, analyzer and repository
 // markers), documentation on exported declarations and their members, type annotations in JSDoc,
-// all NatSpec (with its @custom tags), constraints an outside dependency forces (one named with a
-// reason), and comments that claim a constraint (important, temporary, a workaround, a warning
-// against removal), which `--report constraints` lists for the owner's review. Removed: everything
-// else (narration, banners, commented-out code). The purge is idempotent, so re-running it on any
+// all NatSpec (with its @custom tags), reasons (why the code is this way: a consequence, a
+// deliberate choice, a constraint an outside dependency forces), and comments that claim a
+// constraint (important, temporary, a workaround, a warning against changing it), which
+// `--report constraints` lists for the owner's review. Removed: everything else (narration,
+// banners, commented-out code). The purge is idempotent, so re-running it on any
 // branch resolves its own conflicts. Deployed contract sources (packages/contracts/src) are never
 // rewritten.
 //
@@ -69,17 +70,22 @@ export function externalTerms(root = repoRoot) {
   return dependencyTerms;
 }
 
-// A comment that claims the code around it must stay as it is. Each one goes to the owner's review
-// table (`--report constraints`), where it is kept, dropped, or encoded as a type, test or lint.
-const CLAIM = /\b(important|temporar(y|ily)|workaround|work around|hacky?|do not (remove|delete|change|touch|reorder|move|inline|rename|simplify)|don't (remove|delete|change|touch|reorder|move|inline|rename|simplify)|must (not|stay|remain|run|be|come|happen)|keep (this|these|it|the)\b|never (remove|change|reorder|call|use|await|import|block)|order matters|todo|fixme|xxx|remove (this|once|when|after)|until\b|bug in|upstream)\b/i;
-// A dependency or platform named together with a reason is a constraint the code cannot show.
-const CAUSE = /\b(because|since|so|requires?|required|needs?|otherwise|breaks?|fails?|bugs?|quirks?|only works|(does not|doesn't|cannot|can't|won't) (support|handle|accept|allow|work|read|resolve)|must|forces?|forced|expects?|rejects?|refuses?)\b/i;
+// A comment that claims the code around it must stay as it is: important, temporary, a workaround,
+// a warning against changing it. Each one goes to the owner's review table (`--report
+// constraints`), where it is kept, dropped, or encoded as a type, test or lint.
+const CLAIM = /\b(important|temporar(y|ily)|workarounds?|work around|hacky?|do not|don't|never|must|should not|shouldn't|may not|has to|have to|keep (this|these|it|them|the)\b|order matters|todo|fixme|xxx|remove (this|once|when|after)|until\b)/i;
+// A reason, a consequence or a deliberate choice: why the code is this way rather than another.
+// Not narration, so the purge keeps it; a named dependency with one is a dependency constraint.
+const REASON = /\b(because|since|so|so that|otherwise|would|without|unless|requires?|required|needs?|demands?|expects?|rejects?|refuses?|breaks?|broke|crash(es|ed)?|fails?|failed|throws?|bugs?|quirks?|only|cannot|can't|won't|doesn't|does not|rather than|instead|on purpose|deliberately|intentionally|by design|the whole point|load-bearing)\b/i;
 
-/** "constraint" for a claim the owner reviews, "dependency" for a reason an outside tool forces. */
+/**
+ * The kind a remaining comment takes: "constraint" for a claim the owner reviews, "dependency" for
+ * a reason an outside tool or platform forces, "rationale" for any other reason, else "remove".
+ */
 function constraintKind(text) {
   if (CLAIM.test(text)) return "constraint";
-  if (externalTerms().test(text) && CAUSE.test(text)) return "dependency";
-  return "remove";
+  if (!REASON.test(text)) return "remove";
+  return externalTerms().test(text) ? "dependency" : "rationale";
 }
 const JSDOC_TYPES = /@(type|param\s*\{|returns?\s*\{|typedef|template|satisfies|import|callback|property\s*\{|enum|deprecated|overload)\b/;
 
@@ -185,7 +191,9 @@ export function classifySource(code, file) {
   const { program, comments, errors } = parseSync(file, code, { lang: languageOf(file), sourceType: "module" });
   if (errors.length) throw new Error(`${file}: does not parse (${errors[0].message})`);
   const spans = exportedSpans(program);
-  return groupComments(code, comments).map((comment) => ({
+  // Oxc also reports a hashbang (`#!/usr/bin/env node`) as a line comment; it is the program's, not a comment.
+  const real = comments.filter((comment) => comment.start !== program.hashbang?.start);
+  return groupComments(code, real).map((comment) => ({
     ...comment,
     kind: classifyComment(comment, { exported: spans.some(([start, end]) => comment.start >= start && comment.end <= end) }),
   }));
@@ -255,6 +263,7 @@ export function main(argv = process.argv.slice(2)) {
   const changed = [];
   const constraints = [];
   let dependencies = 0;
+  let rationale = 0;
   const skipped = [];
   for (const file of sourceFiles(paths)) {
     if (DEPLOYED_CONTRACT_SOURCE.test(file)) {
@@ -266,6 +275,7 @@ export function main(argv = process.argv.slice(2)) {
     const code = readFileSync(absolute, "utf8");
     const result = purgeSource(code, file);
     dependencies += result.kept.filter((entry) => entry.kind === "dependency").length;
+    rationale += result.kept.filter((entry) => entry.kind === "rationale").length;
     for (const comment of result.kept.filter((entry) => entry.kind === "constraint")) {
       constraints.push({ file, line: lineOf(code, comment.start), text: code.slice(comment.start, comment.end) });
     }
@@ -278,7 +288,7 @@ export function main(argv = process.argv.slice(2)) {
     return 0;
   }
   const total = changed.reduce((sum, entry) => sum + entry.removed, 0);
-  console.log(`${mode === "--write" ? "Removed" : "Would remove"} ${total} comment(s) from ${changed.length} file(s); ${constraints.length} claimed constraint(s) kept for review; ${dependencies} dependency constraint(s) kept.`);
+  console.log(`${mode === "--write" ? "Removed" : "Would remove"} ${total} comment(s) from ${changed.length} file(s); ${constraints.length} claimed constraint(s) kept for review; ${dependencies} dependency constraint(s) and ${rationale} reason(s) kept.`);
   if (skipped.length) console.log(`Skipped ${skipped.length} deployed contract source file(s) under packages/contracts/src.`);
   return mode === "--check" && changed.length ? 1 : 0;
 }

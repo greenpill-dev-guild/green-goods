@@ -143,3 +143,30 @@ test("claims go to the owner's table, a named dependency needs a reason, and a b
   ].join("\n");
   assert.deepEqual(kinds(code), ["constraint", "dependency", "remove"]);
 });
+
+test("reasons and warnings survive the purge: only narration goes", () => {
+  const code = [
+    "/** The secret is required. Falling back to defaults would ship an app that looks signed in and is not. */",
+    "function config() {}",
+    "// `.js`, not `.ts`: Vercel compiles this to ESM and Node demands an explicit extension. Without it the function crashes at load.",
+    'import { resolveCaller } from "../auth.js";',
+    "// Never merge onto an assumed-empty base: that would overwrite the whole record.",
+    "const previous = read();",
+    "// Null rather than absent, so the page can tell signed out from a failed request.",
+    "const address = null;",
+    "// caseId -> person -> entry, the shape the page renders from.",
+    "const entries = {};",
+    "",
+  ].join("\n");
+  assert.deepEqual(kinds(code), ["rationale", "dependency", "constraint", "rationale", "remove"]);
+  const purged = purgeSource(code, "example.ts").code;
+  assert.doesNotMatch(purged, /caseId -> person/);
+  assert.match(purged, /would ship an app/);
+  assert.match(purged, /demands an explicit extension/);
+});
+
+test("a hashbang is never read as a comment", () => {
+  const code = "#!/usr/bin/env node\n// Narration that goes.\nconst x = 1;\n";
+  assert.deepEqual(kinds(code, "tool.mjs"), ["remove"]);
+  assert.equal(purgeSource(code, "tool.mjs").code, "#!/usr/bin/env node\nconst x = 1;\n");
+});
