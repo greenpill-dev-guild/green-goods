@@ -49,15 +49,15 @@ the machine-wide hooks that read `.agents/policy.json`; this repository's own ho
 | Rule | Enforcer | Where |
 | --- | --- | --- |
 | `bun run test`, never `bun test` | blocked by the shared guards and both harnesses' hooks | `.agents/policy.json` `bun-test`, `scripts/harness/command-policy.mjs` |
-| Bun contract wrappers, never raw Forge | the shared guards ask; the Codex hook blocks `forge build` and `forge test` | `.agents/policy.json` `forge-direct` |
+| Bun contract wrappers, not raw `forge build` or `forge test` | the shared guards ask; the Codex hook blocks | `.agents/policy.json` `forge-direct` |
 | Mainnet deploys, and broadcasts that name a live `--network`, need out-of-band confirmation | the shared guards ask; the Codex hook blocks | `.agents/policy.json` `mainnet-*`, `production-broadcast`, `vercel-prod`, `fly-deploy` |
-| Root `.env` only | edits to a package-level env file are blocked | `.agents/policy.json` `package-env`, `.claude/settings.json`, `.codex/hooks/edit_policy.sh` |
-| No secrets in Git | push protection; reading a `.env` file through the shell is blocked | GitHub secret scanning, `scripts/harness/command-policy.mjs` |
+| No env files under `packages/*` | edits to `packages/*/.env*` are blocked | `.agents/policy.json` `package-env`, `.claude/settings.json`, `.codex/hooks/edit_policy.sh` |
+| No secrets in Git | push protection; reading a `.env` file with a common reader such as `cat`, `grep` or `sed` is blocked | GitHub secret scanning, `scripts/harness/command-policy.mjs` |
 | React hooks live in `packages/shared/src/hooks` | edits to app hook folders are blocked; exported consumer hooks fail lint | `.agents/policy.json` `client-hooks`, `admin-hooks`, `check-react-patterns.js` |
-| Consume Shared through its declared exports | lint | `check-react-patterns.js` rule 11 |
-| No new raw timers, raw listeners or address strings | shrink-only lint baseline | `check-react-patterns.js`, `scripts/quality/data/lint-rules-baseline.json` |
+| Admin, Client, Agent and Indexer consume Shared through its declared exports | lint | `check-react-patterns.js` rule 11 |
+| No new raw timers (in React modules), raw listeners or address strings in Shared, Client and Admin | shrink-only lint baseline | `check-react-patterns.js`, `scripts/quality/data/lint-rules-baseline.json` |
 | Default chain through `getDefaultChain()` or `DEFAULT_CHAIN_ID` | an import rule; chain-id literals are not linted | `check-source-structure.js` |
-| Package boundaries, placement and file size | structure check in each package workflow | `check-source-structure.js` |
+| Package boundaries, placement and file size | structure check in each package workflow, the extension's excepted | `check-source-structure.js` |
 | Debt baselines only shrink | growth against the base fails | `check-source-structure.js`, `check-react-patterns.js` |
 | The shared `logger`, not `console`, outside the indexer | lint with warnings denied | `.oxlintrc.json` `no-console` |
 | Lockfile and release-age gate | frozen installs and a minimum release age | `.github/actions/setup-js`, `bunfig.toml` |
@@ -66,7 +66,7 @@ the machine-wide hooks that read `.agents/policy.json`; this repository's own ho
 | Run the push intent before publication | pre-push hook | `.husky/pre-push` |
 | Current-head CI passes before merge | required check | `CI Gate` in the `develop` and `main` rulesets |
 | Contracts, workflows, `AGENTS.md`, `CLAUDE.md`, `.claude`, `.codex` and env files have code owners | review requests | `.github/CODEOWNERS` |
-| Local guides, Common Commands, the skills link and `CLAUDE.md` as an import stay true | guidance check | `check-codex-docs.js` |
+| Local guides exist and name commands that exist; the skills link and `CLAUDE.md` as an import stay intact | guidance check | `check-codex-docs.js` |
 | Plan hubs live in `.plans/{ideas,backlog,active}` | plan hub validation in CI | `scripts/harness/plan-hub.mjs validate` |
 | Authenticated surface changes ask for authenticated proof | the selector's `browser-proof` paths, which also catch some public routes | `scripts/data/validation-policy.json` |
 | The release gate needs a real attestation | placeholders are refused | `scripts/dev/ci-local.js` |
@@ -76,9 +76,12 @@ the machine-wide hooks that read `.agents/policy.json`; this repository's own ho
 
 Review alone holds the rest: reading the nearest `AGENTS.md`, Bun for package operations other
 than tests, approval before installing dependencies, merge commits only (both rulesets still allow
-squash), broadcasts that rely on a script's default network, a notice for edits to `AGENTS.md`,
-code owners for `.agents` and `.github/actions`, `context.log` rather than `console` in the
-indexer, code and CI that do not depend on `.plans/`, labeled rendered proof and a Linear line in
+squash), broadcasts that rely on a script's default network, `forge script`, env files in other
+package folders such as `docs/`, reading `.env` through other programs, a notice for edits to
+`AGENTS.md`, code owners for `.agents` and `.github/actions`, `context.log` rather than `console` in
+the indexer, Shared's declared exports in contracts tooling, raw timers outside React modules and
+the three ratcheted patterns outside Shared, Client and Admin, the extension's structure, guide
+prose beyond its commands, code and CI that do not depend on `.plans/`, labeled rendered proof and a Linear line in
 every PR body, and registering new scripts in `scripts/README.md`.
 
 ## Scope and workflow
