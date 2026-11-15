@@ -345,6 +345,8 @@ describe("Home journal", () => {
       render(<RecentActivity gardenId={GARDEN} />);
 
       expect(screen.getByRole("heading", { level: 2, name: "Recent Activity" })).toBeVisible();
+      // PRD-1492: a new steward could not tell whether these were their own works or the garden's.
+      expect(screen.getByText("Everyone's work in this garden")).toBeVisible();
       const rows = screen.getAllByRole("button", {
         name: /Compost turn|Seed library|Fence repair/,
       });
@@ -433,6 +435,8 @@ describe("Home journal", () => {
       render(<RecentActivity gardenId={GARDEN} />);
 
       expect(screen.getByText(/^Offline · Saved /)).toBeVisible();
+      // Whose work it is still says so beside the saved copy's note.
+      expect(screen.getByText("Everyone's work in this garden")).toBeVisible();
       expect(screen.getAllByRole("button", { name: /Seed library/ })).toHaveLength(1);
     });
   });

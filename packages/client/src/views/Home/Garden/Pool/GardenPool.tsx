@@ -78,8 +78,9 @@ export function GardenPool({ pool }: GardenPoolProps) {
   const { formatMessage } = intl;
   const navigate = useNavigate();
   const controller = useGardenPoolController(pool);
-  // Copies of one set fold into a group row, counted on the chain's clock as the group's page
-  // counts them; the reader's own stay ordinary rows.
+  // Copies of one set fold into a group row, counted as the group's page counts them, on the
+  // chain's clock and with the copies a steward has a request on; the reader's own stay ordinary
+  // rows.
   const entries = usePoolPromiseEntries({
     chainId: controller.chainId,
     poolId: pool.poolId,
@@ -295,7 +296,7 @@ export function GardenPool({ pool }: GardenPoolProps) {
                     key={entry.group.key}
                     group={entry.group}
                     title={controller.titleOf(entry.group.children[0]?.metadataCID)}
-                    availabilityUnknown={controller.commitments.isError}
+                    availabilityUnknown={controller.commitments.isError || !entry.availabilityKnown}
                     // None is left to take up and the untaken ones are past due: the group
                     // says so, as a single past-due promise's row does.
                     pastDue={

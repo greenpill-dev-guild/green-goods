@@ -13,8 +13,9 @@
  * - Take Part lists the promises open to take up that the reader did not make: their own
  *   offers and asks are theirs to withdraw, not to join. Nor does it list one they already
  *   asked for or are taking up from this phone (`ViewerTakeUps`). Copies of one set fold into
- *   one row, as on the Pool tab. Submit Work's Start step lists the asks among them that the
- *   reader takes up in one tap.
+ *   one row, counted as the Pool tab and the group's page count them, and a steward-reviewed
+ *   set is listed only while a copy nobody has asked for is left (D5, PRD-1492). Submit Work's
+ *   Start step lists the asks among them that the reader takes up in one tap.
  *
  * A section reads in one state, so loading, a failure and "nothing saved offline" are never
  * mistaken for "nothing here".
@@ -26,8 +27,10 @@ import { commitmentNeedsSeat } from "../commitment-pooling/acts";
 import { groupCommitmentsForDisplay } from "../commitment-pooling/display-groups";
 import { cycleStanding, type DueClock } from "../commitment-pooling/due-dates";
 import {
+  type CountedPoolListEntry,
+  canChooseCopy,
+  countTakeUpGroup,
   isOpenToTakeUp,
-  type PoolListEntry,
   selectPoolListEntries,
 } from "../commitment-pooling/group-browsing";
 import type { CommitmentMetadataV1 } from "../commitment-pooling/metadata";
@@ -185,7 +188,7 @@ export interface TakePartRow {
 }
 
 /** A Take Part entry: a promise as the Pool tab's row, or copies of one set as one group. */
-export type TakePartEntry = PoolListEntry<TakePartRow> & {
+export type TakePartEntry = CountedPoolListEntry<TakePartRow> & {
   /**
    * The copy the entry stands for and opens: the promise itself, or a group's first copy the
    * reader could take up, which may not be its first child.
@@ -203,9 +206,18 @@ export interface ViewerTakeUps {
   requested: ReadonlySet<string>;
   /** A take-up still on this phone: queued, sending, or failed and not yet discarded. */
   queued: ReadonlySet<string>;
+  /**
+   * Promises with a request waiting on a steward, anyone's, the reader's included: a reviewed
+   * group passes them over (D5). Null when the pool's requests could not be read.
+   */
+  askedFor: ReadonlySet<string> | null;
 }
 
-export const NO_TAKE_UPS: ViewerTakeUps = { requested: new Set(), queued: new Set() };
+export const NO_TAKE_UPS: ViewerTakeUps = {
+  requested: new Set(),
+  queued: new Set(),
+  askedFor: new Set(),
+};
 
 /**
  * The reader's take-ups, from the pool's pending requests and the claims on this phone. A
@@ -221,21 +233,26 @@ export function viewerTakeUps(input: {
   >[];
   /** Promises with a claim on this phone (`useCommitmentQueueState().takeUpIds`). */
   queued: ReadonlySet<string>;
+  /** False when the requests read failed, so whose copies are asked for is unknown. */
+  requestsRead?: boolean;
 }): ViewerTakeUps {
   const { viewer } = input;
+  const pending = input.pendingRequests.filter((request) => request.state === "PENDING");
   const requested = new Set(
     viewer
-      ? input.pendingRequests
+      ? pending
           .filter(
             (request) =>
-              request.state === "PENDING" &&
-              (isSameAccount(request.claimant, viewer) ||
-                isSameAccount(request.requestedBy, viewer))
+              isSameAccount(request.claimant, viewer) || isSameAccount(request.requestedBy, viewer)
           )
           .map((request) => request.commitmentId.toString())
       : []
   );
-  return { requested, queued: input.queued };
+  const askedFor =
+    input.requestsRead === false
+      ? null
+      : new Set(pending.map((request) => request.commitmentId.toString()));
+  return { requested, queued: input.queued, askedFor };
 }
 
 /**
@@ -318,11 +335,18 @@ export function takePartEntries(input: TakePartInput): TakePartEntry[] {
     }),
     viewer,
   });
-  // A group is listed for a copy among `rows`, so it always has one the reader could take up.
+  // A group stands for a copy its page's act could take: one among `rows`, and in a reviewed
+  // group one nobody has asked for yet (D5). With none left there is nothing to take part in.
+  const { clock, takeUps } = input;
+  const askedFor = takeUps.askedFor ?? new Set<string>();
   return entries.flatMap((entry): TakePartEntry[] => {
     if (entry.kind === "single") return [{ ...entry, copy: entry.row.commitment }];
-    const copy = entry.group.children.find((child) => openIds.has(child.id));
-    return copy ? [{ ...entry, copy }] : [];
+    const copy = entry.group.children.find(
+      (child) => openIds.has(child.id) && canChooseCopy(child, { viewer, askedFor, clock })
+    );
+    if (!copy) return [];
+    const counted = countTakeUpGroup(entry.group, { clock, askedFor: takeUps.askedFor });
+    return [{ kind: "group", ...counted, copy }];
   });
 }
 
