@@ -180,6 +180,40 @@ describe("a chat message that is not delivered", () => {
     });
     expect(JSON.stringify(recorded.lines)).not.toMatch(/baobab|agree/i);
   });
+
+  it("records a provider's repeated failure for the same attempt only once", async () => {
+    harness.close();
+    harness = new Harness({ settings: { maxOutboxAttempts: 1 } });
+    await harness.say(ADA, "Today I planted twelve baobab seedlings by the fence");
+    const { providerMessageId } = harness.core.db
+      .query("SELECT provider_message_id AS providerMessageId FROM delivery_attempts")
+      .get() as { providerMessageId: string };
+    for (const eventId of ["status-1", "status-2"]) {
+      const response = await harness.post({
+        kind: "delivery_status",
+        providerRealm: ADA.realm,
+        eventId,
+        providerMessageId,
+        status: "failed",
+        errorCode: "telegram_403",
+        occurredAt: harness.clock.now(),
+      });
+      expect(response.status).toBeLessThan(400);
+      await harness.drain();
+    }
+
+    const undelivered = {
+      replyKind: "prompt:processing_consent",
+      errorCode: "telegram_403",
+      attempt: 1,
+      maxAttempts: 1,
+    };
+    expect(logged("error", "Chat message could not be delivered")).toEqual([undelivered]);
+    expectErrorEvent("Chat message could not be delivered", "reporting.outbox", undelivered);
+    expect(harness.core.db.query("SELECT state FROM delivery_outbox").get()).toEqual({
+      state: "terminal_failed",
+    });
+  });
 });
 
 describe("a background reply with nobody to address", () => {
