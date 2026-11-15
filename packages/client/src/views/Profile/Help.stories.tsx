@@ -69,6 +69,7 @@ export const Promises: Story = {
 
 /** A steward of TAS HUB: the Green Goods Hub leads Learn & Connect and opens this build's Hub. */
 export const Steward: Story = {
+  tags: ["storybook-ci"],
   args: { hubUrl: "https://hub.example.org" },
   beforeEach: signedInWith([memberGarden(TAS_HUB, ["steward"])], TAS_HUB.id),
   play: async ({ canvasElement }) => {
@@ -81,6 +82,7 @@ export const Steward: Story = {
 
 /** A gardener only: no Hub row, and Learn & Connect starts with the guides. */
 export const Gardener: Story = {
+  tags: ["storybook-ci"],
   args: { hubUrl: "https://hub.example.org" },
   beforeEach: signedInWith([memberGarden(AIYELOJA, ["gardener"])], AIYELOJA.id),
   play: async ({ canvasElement }) => {
