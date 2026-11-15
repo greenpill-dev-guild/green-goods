@@ -50,7 +50,7 @@ packages/admin/src/
 
 | Role | Who | What it opens | Read it as |
 |------|-----|---------------|------------|
-| **Steward** | An owner or steward of a garden (indexer query) | That garden in the cockpit | `isSteward`, `stewardGardens` |
+| **Steward** | An owner or steward of a garden (indexer query) | That garden in the Hub | `isSteward`, `stewardGardens` |
 | **Garden creator** | The deployment registry's owner, or an account on its allowlist | Create Garden, and nothing else | `isDeployer`, `role === "deployer"` |
 | **Protocol team** | The registry's owner, or an owner or steward of the Green Goods Community Garden | The protocol's surfaces, such as the Actions workspace and the Campaign Cookie Jars card | `isProtocolTeam` |
 
@@ -64,7 +64,7 @@ last answer, which may be cached. With no answer (a registry too old to have the
 that fails) the card stays hidden, even from an account that may manage the list. Being a garden
 creator never makes an account part of the protocol team.
 
-Evaluators reach the cockpit through `useEligibleAdminGardens`, not `useRole`. It lists the
+Evaluators reach the Hub through `useEligibleAdminGardens`, not `useRole`. It lists the
 gardens the account owns, stewards, or evaluates from the base list, which holds a chain's newest
 50 gardens; adds owned and stewarded gardens the role query finds beyond it; and adds the
 Community Garden for the protocol team. No role sees every garden.

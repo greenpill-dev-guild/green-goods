@@ -109,7 +109,7 @@ components:
 |---------|----------|----------|----------|------------|
 | **Docs** | Community members, gardeners, stewards, funders, builders | Field manual and builder reference | Readable reference surface | Docusaurus navbar, sidebar, table of contents |
 
-**Hard rule:** Docs stay docs. Preserve Docusaurus structure, long-form readability, compact reference patterns, and clear sidebars. Do not import the Green Goods Hub's cockpit chrome, the Green Goods App's bottom navigation, or the Green Goods Website's marketing hero treatment unless the docs home explicitly needs a concise opening moment.
+**Hard rule:** Docs stay docs. Preserve Docusaurus structure, long-form readability, compact reference patterns, and clear sidebars. Do not import the Green Goods Hub's chrome, the Green Goods App's bottom navigation, or the Green Goods Website's marketing hero treatment unless the docs home explicitly needs a concise opening moment.
 
 ---
 
@@ -157,7 +157,7 @@ The docs dialect is quieter than the public browser site. It supports learning a
 - Keep docs copy calm, instructional, and source-aware.
 
 **Don't:**
-- Use admin-only language such as steward cockpit, workbench row, KPI tile, or utility copy as the docs design frame.
+- Use the Hub's own language, such as workbench row, KPI tile, or utility copy, as the docs design frame.
 - Use installed-PWA chrome such as bottom `AppBar`, standalone-app safe areas, or PWA-only navigation.
 - Use public browser lookbook treatment, oversized marketing heroes, or editorial image-first pages unless the docs home explicitly calls for it.
 - Blend PWA and browser shell rules into docs examples; name the surface being documented.

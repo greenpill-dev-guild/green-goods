@@ -196,7 +196,7 @@ All stores live in `packages/shared/src/stores/` (exported via `stores/index.ts`
 
 | Store | Purpose |
 |-------|---------|
-| `useAdminStore` | Admin cockpit state + tx status (`TransactionInfo`/`TransactionStatus`) |
+| `useAdminStore` | Hub state + tx status (`TransactionInfo`/`TransactionStatus`) |
 | `useCreateGardenStore` | Multi-step garden-creation flow (`persist`) |
 | `useCreateAssessmentStore` | Multi-step assessment-creation flow (`persist` + `partialize`) |
 | `useHypercertWizardStore` | Hypercert minting wizard |

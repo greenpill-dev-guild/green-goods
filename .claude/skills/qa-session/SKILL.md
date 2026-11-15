@@ -143,7 +143,7 @@ Log every dictated item to `tmp/qa-session/<slug>/qa-session-<slug>.md` **immedi
 walk with diagnosis monologues — one-line acknowledgment plus the triage question, nothing more.
 
 ```markdown
-### OBS-07 · 14:32 · admin /hub/work · defect
+### OBS-07 · 14:32 · admin /review/work · defect
 > "the approve button is below the fold again on review"
 resolved: ReviewForm actions not routed through AdminDialog.actions (defect-grammar Tier 1)
 case: ADM-012
