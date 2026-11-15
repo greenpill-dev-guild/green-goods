@@ -1,4 +1,5 @@
 import { createLogger } from "../logger";
+import { captureAgentException } from "../sentry";
 import { readControl } from "./controls";
 import { inTransaction } from "./database";
 import { decryptConversationChat } from "./identity-store";
@@ -342,24 +343,48 @@ function recordSendResult(
   });
 }
 
-/** A failed delivery waits for its next attempt, or ends once it is terminal or exhausted. */
+/**
+ * A failed delivery waits for its next attempt, or ends once it is terminal or exhausted. A wait
+ * leaves a warning; an end leaves an error and an error event, since the message never reaches
+ * the chat. Only the reply's kind, the error code and the attempt count are recorded.
+ */
 export function endOrRetry(
   core: ReportingCore,
   outboxId: string,
   input: { terminal: boolean; code: string; next: number; now: number }
 ): void {
-  core.db
+  const row = core.db
     .query(
       `UPDATE delivery_outbox SET state = $state, last_error_code = $code, next_attempt_at = $next, updated_at = $now
-       WHERE id = $id`
+       WHERE id = $id RETURNING reply_kind, attempts`
     )
-    .run({
+    .get({
       id: outboxId,
       state: input.terminal ? "terminal_failed" : "retry_wait",
       code: input.code,
       next: input.next,
       now: input.now,
-    });
+    }) as { reply_kind: string; attempts: number } | null;
+  if (!row) return;
+  const fields = {
+    replyKind: row.reply_kind,
+    errorCode: input.code,
+    attempt: row.attempts,
+    maxAttempts: core.settings.maxOutboxAttempts,
+  };
+  if (!input.terminal) {
+    log.warn(
+      { ...fields, retryInMs: input.next - input.now },
+      "Chat message not delivered; trying again"
+    );
+    return;
+  }
+  log.error(fields, "Chat message could not be delivered");
+  captureAgentException(new Error("Chat message could not be delivered"), {
+    source: "reporting.outbox",
+    surface: "reporting",
+    metadata: fields,
+  });
 }
 
 /** A crash between claim and result leaves `dispatching`; treat it as uncertain and retry later. */

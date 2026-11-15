@@ -1,4 +1,5 @@
 import { createLogger } from "../logger";
+import { captureAgentException } from "../sentry";
 import { type CoordinatorDeps, processConversation } from "./coordinator/turn";
 import { inTransaction } from "./database";
 import { conversationsWithWork, consumeInboxEvent, readInboxPayload } from "./inbox";
@@ -74,12 +75,47 @@ async function runJobs(deps: ReportingWorkerDeps, limit: number): Promise<number
         delayMs: 30_000,
       };
     }
-    inTransaction(deps.core.db, () => {
-      if (outcome.status === "done") completeJob(deps.core, job);
-      else retryJob(deps.core, job, outcome.errorCode, outcome.delayMs);
-    });
+    if (outcome.status === "done") {
+      inTransaction(deps.core.db, () => completeJob(deps.core, job));
+    } else {
+      const { errorCode, delayMs } = outcome;
+      const result = inTransaction(deps.core.db, () =>
+        retryJob(deps.core, job, errorCode, delayMs)
+      );
+      recordRetry(job, errorCode, delayMs, result);
+    }
   }
   return ran;
+}
+
+/**
+ * Every retry leaves a warning, and a job that spends its last attempt leaves an error and an
+ * error event, so no job uses up its attempts without a trace. Only the kind, the error code and
+ * the attempt count are recorded: a handler's error message can carry addresses, hashes or links.
+ * A fenced result belongs to the worker that took the job over, which records its own.
+ */
+function recordRetry(
+  job: ClaimedJob,
+  errorCode: string,
+  delayMs: number,
+  result: ReturnType<typeof retryJob>
+): void {
+  const fields = {
+    kind: job.kind,
+    errorCode,
+    attempt: job.attempts,
+    maxAttempts: job.maxAttempts,
+  };
+  if (result === "retrying") {
+    log.warn({ ...fields, retryInMs: delayMs }, "Reporting job will try again");
+  } else if (result === "failed") {
+    log.error(fields, "Reporting job ran out of attempts");
+    captureAgentException(new Error("Reporting job ran out of attempts"), {
+      source: "reporting.worker",
+      surface: "reporting",
+      metadata: fields,
+    });
+  }
 }
 
 /** An unreachable indexer must not stop the queues: turns keep using the last garden list. */
