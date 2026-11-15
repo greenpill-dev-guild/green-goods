@@ -151,6 +151,8 @@ function executableWords(words) {
     while (args.length && (args[0].value.startsWith("-") || (wrapper === "env" && ASSIGNMENT.test(args[0].value)))) {
       const [option] = args.splice(0, 1);
       if (option.value === "--") break;
+      // `command -v` and `command -V` look the name up and run nothing.
+      if (wrapper === "command" && /^-[A-Za-z]*[vV]/.test(option.value)) return [];
       // A package runner's call string is a command of its own, evaluated by evaluateCommand.
       if (PACKAGE_RUNNERS.has(wrapper) && /^(-c|--call)(=|$)/.test(option.value)) {
         const call = option.value.includes("=") ? { value: option.value.slice(option.value.indexOf("=") + 1) } : args.shift();
@@ -233,10 +235,15 @@ function commandDecision(words, harness) {
     });
     return value;
   };
-  // The contracts wrappers broadcast with --mode broadcast; these networks are live chains.
+  // A contracts broadcast or Safe signature is live unless its last --network is a test network:
+  // the networkless release operations always act on the live chains. The release operator
+  // broadcasts whatever its stage needs, so it always asks.
+  const broadcasting = /^(broadcast(-\S+)?|sign-safe)$/.test(option("--mode") ?? "") || values.includes("--broadcast");
+  const testNetwork = /^(localhost|sepolia)$/.test(option("--network") ?? "");
+  const releaseOperator = values.some((arg, index) =>
+    (arg === "release" && values[index + 1] === "operator") || /(?:^|\/)release-operator(?:\.[a-z]+)?$/.test(arg));
   const productionBroadcast = ["bun", "npm", "pnpm", "node", "bash", "sh"].includes(executable) &&
-    (option("--mode") === "broadcast" || values.includes("--broadcast")) &&
-    /^(mainnet|arbitrum|celo|gnosis)$/i.test(option("--network") ?? "");
+    ((broadcasting && !testNetwork) || releaseOperator);
   const production = ((operation || contractsOperation) && mainnet) || productionBroadcast ||
     (executable === "vercel" && values.includes("--prod")) ||
     (harness === "codex" && executable === "fly" && values[1] === "deploy");

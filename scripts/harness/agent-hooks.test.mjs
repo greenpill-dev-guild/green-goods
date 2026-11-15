@@ -83,6 +83,13 @@ const harmless = [
   "cat <<'DOC'\nvercel --prod\nbun test\ncat .env\nDOC\nbun run test",
   "python3 - <<'PY'\nlabels = ['PRODUCTION DEPLOYMENT', 'Production/mainnet']\nPY",
   "# deploy mainnet\nbun run test # bun test",
+  // Lookups name a command without running it.
+  "command -v bun test", "command -V bun test", "command -pv bun test",
+  // A broadcast whose last network is a test network, and a release rehearsal, stay unprompted.
+  "bun run contracts -- deploy core --network sepolia --mode broadcast",
+  "bun run contracts -- deploy core --network=localhost --mode=broadcast",
+  "bun script/upgrade.ts signal-pool-yield-wiring --network arbitrum --network sepolia --broadcast",
+  "bun run contracts -- release source-upgrades --mode broadcast --mode simulate --plan plan.json",
 ];
 for (const command of harmless) {
   test(`harmless shell input: ${command.split("\n")[0]}`, () => {
@@ -189,6 +196,14 @@ const commandFloor = {
       "bun run contracts -- ens deploy-mainnet --network mainnet --mode broadcast",
       "bun script/deploy/backfill-pools.ts --network arbitrum --broadcast",
       "bun script/upgrade.ts signal-pool-yield-wiring --network sepolia --network arbitrum --broadcast",
+      // The networkless release operations act on the live chains, in every live mode.
+      "bun run contracts -- release source-upgrades --mode broadcast --plan plan.json --step 1",
+      "bun run contracts -- release downstream --mode broadcast --manifest manifest.json",
+      "bun run contracts -- release source-upgrades --mode broadcast-safe --plan plan.json",
+      "bun run contracts -- release source-upgrades --mode sign-safe --plan plan.json",
+      "bun run contracts -- release source-upgrades --mode simulate --mode broadcast --plan plan.json",
+      "bun run contracts -- release operator --stage garden-roles --commit 0123456789abcdef0123456789abcdef01234567",
+      "bun script/release-operator.ts --commit 0123456789abcdef0123456789abcdef01234567",
     ],
     ...production,
   },
