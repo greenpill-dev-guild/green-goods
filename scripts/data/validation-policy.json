@@ -441,6 +441,7 @@
         "scripts/quality/check-direct-tested-seams.mjs",
         "scripts/quality/check-direct-tested-seams.test.mjs",
         "scripts/quality/check-codex-docs.js",
+        "scripts/quality/check-react-patterns.js",
         "scripts/quality/check-guidance-links.mjs",
         "scripts/quality/check-skill-behavior-contracts.mjs",
         ".plans/README.md"

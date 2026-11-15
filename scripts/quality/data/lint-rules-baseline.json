@@ -85,7 +85,6 @@
       "packages/client/src/components/Public/Vault/VaultCheckoutShell.tsx": 5,
       "packages/client/src/components/Public/atoms/EditorialAtoms.tsx": 2,
       "packages/client/src/routes/PublicShell.tsx": 4,
-      "packages/client/src/sw/worker.ts": 6,
       "packages/client/src/views/Home/WorkDashboard/index.tsx": 2,
       "packages/client/src/views/Home/homePlace.ts": 2,
       "packages/shared/src/components/Canvas/NavigationBar.tsx": 2,

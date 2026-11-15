@@ -206,7 +206,7 @@ function validateRootGuide() {
     "BLOCKING_RULES",
     "rule-11-undeclared-shared-import",
     "includeAdvisory: false",
-    "Default lint ignores this file",
+    "RATCHETED_RULES",
   ]) {
     if (!patternGate.includes(marker)) {
       fail(`scripts/quality/check-react-patterns.js: missing high-signal gate marker: ${marker}`);

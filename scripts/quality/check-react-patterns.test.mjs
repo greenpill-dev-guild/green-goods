@@ -12,6 +12,7 @@ import {
   findSharedExportTargetViolations,
   parseJsxAttributes,
   parseRatchetBaseline,
+  ratchetFailures,
   scanRule14Source,
   scanRule19Source,
   shrinkRatchet,
@@ -307,6 +308,45 @@ test("the ratchet baseline may not grow over the base branch's copy", () => {
     findRatchetBaselineGrowth({ "rule-5-address-as-string": { "a.ts": 2, "b.ts": 1 } }, base),
     [{ rule: "rule-5-address-as-string", file: "b.ts", was: 0, now: 1 }],
   );
+  assert.deepEqual(findRatchetBaselineGrowth({ "rule-5-address-as-string": { "a.ts": 3 } }, base), [
+    { rule: "rule-5-address-as-string", file: "a.ts", was: 2, now: 3 },
+  ]);
   assert.deepEqual(findRatchetBaselineGrowth({ "rule-5-address-as-string": { "a.ts": 9 } }, null), []);
   assert.equal(parseRatchetBaseline(JSON.stringify({ note: "an old advisory inventory", rules: {} })), null);
+});
+
+test("a renamed file keeps its allowance, and the baseline key may move with it", () => {
+  const baseline = { "rule-1-raw-timer": { "old.ts": 2 } };
+  const renames = new Map([["new.ts", "old.ts"]]);
+  const counts = { "rule-1-raw-timer": { "new.ts": 2 } };
+  assert.deepEqual(compareRatchet(baseline, counts, renames), { grown: [], stale: [] });
+  assert.deepEqual(shrinkRatchet(baseline, { "rule-1-raw-timer": { "new.ts": 1 } }, renames), {
+    "rule-1-raw-timer": { "new.ts": 1 },
+  });
+  assert.deepEqual(findRatchetBaselineGrowth({ "rule-1-raw-timer": { "new.ts": 2 } }, baseline, renames), []);
+  assert.equal(compareRatchet(baseline, { "rule-1-raw-timer": { "new.ts": 3 } }, renames).grown.length, 1);
+});
+
+test("a ratchet baseline with anything but positive whole counts for known rules is refused", () => {
+  const baseline = (counts) => JSON.stringify({ version: 1, counts });
+  for (const count of ["any", {}, 0, -1, 1.5, null]) {
+    assert.throws(() => parseRatchetBaseline(baseline({ "rule-1-raw-timer": { "a.ts": count } })), /positive whole number/);
+  }
+  assert.throws(() => parseRatchetBaseline(baseline({ "rule-6-zustand-whole-state": { "a.ts": 1 } })), /unknown rule/);
+  assert.deepEqual(parseRatchetBaseline(baseline({ "rule-1-raw-timer": { "a.ts": 2 } })), { "rule-1-raw-timer": { "a.ts": 2 } });
+});
+
+test("a stale count fails where the change touches it, and everywhere when the base is unknown", () => {
+  const baseline = { "rule-1-raw-timer": { "touched.ts": 2, "elsewhere.ts": 1 } };
+  const hits = [{ rule: "rule-1-raw-timer", file: "touched.ts", line: 4 }];
+  const context = { base: "origin/develop", previous: baseline, changed: new Set(["touched.ts"]), renames: new Map() };
+  const known = ratchetFailures({ hits, baseline, context });
+  assert.equal(known.failures.length, 2);
+  assert.match(known.failures[1], /touched\.ts: 2 -> 1/);
+  assert.ok(known.notes.some((note) => /1 count\(s\) fell below the baseline in files this change does not touch/.test(note)));
+  const unknown = ratchetFailures({ hits, baseline, context: { base: null, previous: null, changed: null, renames: new Map() } });
+  assert.equal(unknown.failures.length, 3);
+  assert.ok(unknown.notes.some((note) => /checked against the tree only/.test(note)));
+  const grown = ratchetFailures({ hits: [...hits, ...hits, ...hits], baseline, context });
+  assert.match(grown.failures[0], /touched\.ts: 3 hit\(s\) \(lines 4, 4, 4\), baseline allows 2/);
 });
