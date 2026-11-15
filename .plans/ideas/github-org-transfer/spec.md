@@ -68,8 +68,12 @@ observed directly), Inferred (reasoned from established facts), Unresolved.
   GitHub-hosted, and actions must be pinned by SHA. One cross-organization dependency exists:
   `.github/workflows/supply-chain-guardrails.yml` checks out the guild's public `.github`
   repository at a pinned commit.
+- CI Gate runs only on pull request events, so checks that passed before the move can still
+  satisfy branch protection after it. Chromatic publishing and the Lighthouse jobs run only on
+  manual dispatch.
 - All non-owner access comes through guild teams, and CODEOWNERS names a guild team. There are no
-  direct collaborators.
+  direct collaborators. GitHub applies the target organization's base repository permission and
+  member privileges to a transferred repository; both organizations' base permission was `read`.
 - The repository has its own CONTRIBUTING, SECURITY, CODE_OF_CONDUCT and LICENSE files. It inherits
   SUPPORT and FUNDING from the guild's `.github` repository.
 - One organization-level secret and one variable reach the repository from the guild. No workflow
@@ -87,7 +91,7 @@ the Vercel project search by repository URL. Vendor behavior below comes from ve
 | Category | What matters for a transfer | Confidence |
 |---|---|---|
 | Web deploys (Vercel) | The app must be installed on the organization that owns the repository; missing app access is a documented reason commits stop deploying. Whether the project link survives is undocumented. The documented repair, disconnect and reconnect, may drop deploy hooks. | Established, link survival Unresolved |
-| Agent deploys (Fly GitHub app) | Relinking after a transfer is undocumented. A GitHub Actions deploy with a deploy token is the documented fallback. A Fly community notice from 12 to 13 Nov 2026 (not official docs) says GitHub tokens were revoked and auto-deploy resumes only after the person who linked the repository signs in again. | Unresolved |
+| Agent deploys (Fly GitHub app) | Relinking after a transfer is undocumented. A GitHub Actions deploy with a deploy token is the documented fallback. A Fly community notice from 12 to 13 Nov 2026 (not official docs) says GitHub tokens were revoked and auto-deploy resumes only after the person who linked the repository signs in again. Observed on 2026-11-14: the Fly.io check runs on `develop` pushes and not on `main`, although `packages/agent/README.md` and the 2.0.0 deployment runbook still say `main`. | Unresolved |
 | Indexer (Envio Cloud) | Envio identifies organizations by their GitHub name and says pushes stop deploying after an organization rename; contact them first. There is no self-serve way to change an indexer's repository. Each deployment has its own endpoint URL, and deleting an indexer deletes its deployments. | Established |
 | Review bots (CodeRabbit, Codex) | CodeRabbit learnings belong to the Git organization and move by export and import; organization UI settings stay behind, and this repository has no `.coderabbit.yaml`. Codex review is switched on per repository. | Established |
 | Tracker (Linear) | Several GitHub organizations can be connected for pull request automation; commit linking works for one organization through a webhook. Attachment continuity after a transfer is undocumented. | Established, continuity Unresolved |

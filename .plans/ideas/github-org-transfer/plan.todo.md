@@ -48,9 +48,14 @@
    recorded in this hub.
 2. **Prepare the organization.** Keep 2FA required, require sign-off on web commits, and let only
    owners create public repositories (decision 10). Match the Actions policy: SHA pinning and a
-   read-only default token. Create the three teams (maintain, triage, write; decision 12) and
-   invite anyone missing. Verify: every current access path except the read-only team has a
-   counterpart (`gh api repos/greenpill-dev-guild/green-goods/teams`).
+   read-only default token. GitHub applies the target organization's base repository permission
+   and member privileges to a transferred repository, so match those to the guild's as well (both
+   organizations read `read` on 2026-11-14). Create the three teams (maintain, triage, write;
+   decision 12) and invite anyone missing; every invitation must be accepted before the move.
+   Verify effective access, not only team attachment: list each person's role on the repository
+   (`gh api 'repos/greenpill-dev-guild/green-goods/collaborators?affiliation=all' --jq '.[] | [.login, .role_name]'`)
+   and check that everyone with write, triage or maintain access belongs to the matching new team.
+   Keep that list outside this public repository.
 3. **Create `green-goods/.github`** with the organization profile README, the SUPPORT and FUNDING
    files, and the supply-chain guardrail script (decision 11). Verify: the script runs against a
    checkout of this repository, and the commit to pin is recorded.
@@ -61,15 +66,21 @@
    `gh api orgs/green-goods/installations` lists each app.
 5. **Draft the reference sweep pull request** (contents below), so it moves with the repository.
    Verify: CI passes on the draft.
-6. **Snapshot settings for comparison and remove dead config.** Record rulesets, secret names,
-   environments, webhooks, Actions permissions, CodeQL default setup and team access. Turn off
-   the GitHub Pages configuration, whose site already returns 404.
+6. **Snapshot settings for comparison and remove dead config.** Record the repository's ID and
+   node ID (`gh api repos/greenpill-dev-guild/green-goods --jq '.id, .node_id'`), rulesets, secret
+   names, environments, webhooks, Actions permissions, CodeQL default setup, team access, each
+   person's effective role, and both organizations' base repository permission. Keep the access
+   lists outside this public repository. Turn off the GitHub Pages configuration, whose site
+   already returns 404.
 
 ### Phase B: Cutover (a quiet window of about an hour)
 
-7. **Pick the window and freeze merges.** Choose a quiet weekend after the 2.1.0 release ships
-   (decision 15). Weekend hours in Pacific time are clear of routines: the weekday routines finish
-   on Friday evening and resume early on Monday. Confirm with the routine list on the day.
+7. **Pick the window, recheck the target and freeze merges.** Choose a quiet weekend after the
+   2.1.0 release ships (decision 15). Before freezing, confirm the transfer can still succeed:
+   `gh api repos/green-goods/platform` must return 404, and no repository in `green-goods` may be a
+   fork in this repository's network (no fork whose `source` is `greenpill-dev-guild/camp-green`).
+   Weekend hours in Pacific time are clear of routines: the weekday routines finish on Friday
+   evening and resume early on Monday. Confirm with the routine list on the day.
 8. **Transfer** the repository to `green-goods`, entering `platform` as the new name.
 9. **Restore access and remotes.** Grant the three new teams access, add the repository to any app
    installed for selected repositories, and run `git remote set-url` once in the primary checkout,
@@ -78,8 +89,12 @@
 11. **Reconnect integrations**: Vercel projects, the Fly app, the TinaCloud repository, the Linear
     organization, CodeRabbit (import the learnings, reapply settings), Codex review, Sentry,
     PostHog, Chromatic and the Lighthouse token.
-12. **Merge the sweep pull request** as the end-to-end check, then promote the website and docs
-    production builds, which do not promote themselves.
+12. **Exercise the new installations, then merge the sweep pull request.** Push a commit to the
+    sweep branch after the transfer, such as the final link updates. CI Gate runs only on pull
+    request events, and checks that passed before the transfer can still satisfy branch
+    protection, so merge only on fresh results from that push: CI Gate, Vercel previews and both
+    review bots. Then promote the website and docs production builds, which do not promote
+    themselves.
 13. **Update the routines.** With the spec edits merged, send each stored prompt and source update
     with the full job configuration (a partial update resets the routine's session settings), then
     re-read each routine.
@@ -153,4 +168,5 @@ retired name can be reused, even by this repository, is unresolved.
 
 - [ ] `node scripts/harness/plan-hub.mjs validate` for hub changes
 - [ ] `bun run check --plan -- --intent push` to select checks for the sweep pull request
-- [ ] The acceptance checks in `eval.md` on cutover day
+- [ ] The cutover gates in `eval.md` during the window, and its follow-up checks within the first
+      week
