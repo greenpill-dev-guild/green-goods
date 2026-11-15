@@ -151,6 +151,8 @@ function executableWords(words) {
     while (args.length && (args[0].value.startsWith("-") || (wrapper === "env" && ASSIGNMENT.test(args[0].value)))) {
       const [option] = args.splice(0, 1);
       if (option.value === "--") break;
+      // `command -v` and `command -V` look the name up and run nothing.
+      if (wrapper === "command" && /^-[A-Za-z]*[vV]/.test(option.value)) return [];
       // A package runner's call string is a command of its own, evaluated by evaluateCommand.
       if (PACKAGE_RUNNERS.has(wrapper) && /^(-c|--call)(=|$)/.test(option.value)) {
         const call = option.value.includes("=") ? { value: option.value.slice(option.value.indexOf("=") + 1) } : args.shift();
@@ -233,10 +235,31 @@ function commandDecision(words, harness) {
     });
     return value;
   };
-  // The contracts wrappers broadcast with --mode broadcast; these networks are live chains.
-  const productionBroadcast = ["bun", "npm", "pnpm", "node", "bash", "sh"].includes(executable) &&
-    (option("--mode") === "broadcast" || values.includes("--broadcast")) &&
-    /^(mainnet|arbitrum|celo|gnosis)$/i.test(option("--network") ?? "");
+  // A contracts broadcast or Safe signature asks unless its last network is a test network; any
+  // other command asks only when it names a live network. The contracts scripts read the last of
+  // `--network` and `-n`, and some default to a live chain or follow `--rpc-url` or `--chain-id`,
+  // so an override always asks. The release operator broadcasts whatever its stage needs. Help and
+  // explain never broadcast.
+  const runner = ["bun", "npm", "pnpm", "node", "bash", "sh", "tsx"].includes(executable);
+  const contractsAt = (index) => values[index] === "contracts" && (values[index + 1] === "--" ? index + 2 : index + 1);
+  const help = values.some((arg) => ["--help", "-h", "--explain"].includes(arg)) ||
+    values.some((_, index) => contractsAt(index) && values[contractsAt(index)] === "help");
+  let lastNetwork;
+  values.forEach((arg, index) => {
+    if (arg === "--network" || arg === "-n") lastNetwork = values[index + 1] ?? "";
+    else if (arg.startsWith("--network=")) lastNetwork = arg.slice("--network=".length);
+  });
+  const broadcasting = /^(broadcast(-\S+)?|sign-safe)$/.test(option("--mode") ?? "") ||
+    values.some((arg) => /^(--broadcast(-\S+)?|--sign-safe|-b)$/.test(arg));
+  const liveNetwork = /^(mainnet|arbitrum|celo|gnosis)$/.test(lastNetwork ?? "");
+  const testNetwork = /^(localhost|sepolia)$/.test(lastNetwork ?? "");
+  const contractsCommand = values.some((arg) => arg === "contracts" || /(?:^|\/)script\/\S+\.(?:ts|mjs|js)$/.test(arg));
+  const networkOverride = values.some((arg) => /^--(rpc-url|chain-id)(=|$)/.test(arg));
+  const releaseOperator =
+    values.some((_, index) => contractsAt(index) && values[contractsAt(index)] === "release" && values[contractsAt(index) + 1] === "operator") ||
+    (["bun", "node", "tsx"].includes(executable) && /(?:^|\/)release-operator\.(?:ts|mjs|js)$/.test(values[values[1] === "run" ? 2 : 1] ?? ""));
+  const productionBroadcast = runner && !help && (releaseOperator ||
+    (broadcasting && (liveNetwork || (contractsCommand && (networkOverride || !testNetwork)))));
   const production = ((operation || contractsOperation) && mainnet) || productionBroadcast ||
     (executable === "vercel" && values.includes("--prod")) ||
     (harness === "codex" && executable === "fly" && values[1] === "deploy");
