@@ -162,6 +162,7 @@ const directRootTestChecks = new Map([
   ["scripts/ops/dependabot-sync.test.mjs", "dependabot-sync-test"],
   ["scripts/harness/agent-hooks.test.mjs", "review-guardrails-test"],
   ["scripts/lib/env-schema.test.mjs", "env-schema-test"],
+  ["scripts/quality/comment-policy.test.mjs", "comment-policy-test"],
   ["scripts/lib/dev-shared.test.mjs", "validation-system-test"],
   ["scripts/quality/select-validation.test.mjs", "validation-system-test"],
   ["scripts/dev/ci-local.test.mjs", "validation-system-test"],

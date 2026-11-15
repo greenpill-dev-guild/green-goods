@@ -1,0 +1,145 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { classifySource, groupComments, main, purgeSource } from "./comment-policy.mjs";
+
+const kinds = (code, file = "example.ts") => classifySource(code, file).map((comment) => comment.kind);
+
+test("licence headers, directives and tool markers are never removed", () => {
+  const code = [
+    "// SPDX-License-Identifier: MIT",
+    "/* eslint-disable no-console */",
+    "// @ts-expect-error the fixture omits a field on purpose",
+    "const value = /* @vite-ignore */ load(path);",
+    "// TEST-QUALITY: allow-small-test-file - one isolated regression",
+    "// biome-ignore lint/style/noNonNullAssertion: asserted above",
+    "export const PURE = /*#__PURE__*/ create();",
+  ].join("\n");
+  assert.deepEqual(kinds(code), ["licence", "directive", "directive", "directive", "directive", "directive", "directive"]);
+  assert.equal(purgeSource(code, "example.ts").code, code);
+});
+
+test("documentation stays on exported declarations and their members, and goes elsewhere", () => {
+  const code = [
+    "/** Narration on a private helper. */",
+    "function helper() {}",
+    "/** Public API. */",
+    "export interface Shape {",
+    "  /** Member docs stay with the export. */",
+    "  size: number;",
+    "}",
+  ].join("\n");
+  assert.deepEqual(kinds(code), ["remove", "documentation", "documentation"]);
+  assert.equal(purgeSource(code, "example.ts").code.includes("Narration"), false);
+});
+
+test("JSDoc that carries types stays in JavaScript", () => {
+  assert.deepEqual(kinds("/** @param {string} name */\nfunction greet(name) {}", "example.mjs"), ["documentation"]);
+});
+
+test("a run of line comments reads as one comment, kept or removed whole", () => {
+  const code = "// The worker stops after 30 s idle in MV3,\n// so remember the id while it runs.\nconst id = 1;\n";
+  const comments = groupComments(code, classifySource(code, "example.ts"));
+  assert.equal(comments.length, 1);
+  // A platform named with its consequence is a dependency constraint, kept for good.
+  assert.deepEqual(kinds(code), ["dependency"]);
+  assert.equal(purgeSource(code, "example.ts").code, code);
+});
+
+test("narration, banners and commented-out code are removed with their lines", () => {
+  const code = [
+    "// ==== Helpers ====",
+    "// Handler for the GardenMinted event",
+    "export function onMint() {",
+    "  // const legacy = readLegacy();",
+    "  return 1; // the result",
+    "}",
+    "",
+  ].join("\n");
+  assert.equal(purgeSource(code, "example.ts").code, "export function onMint() {\n  return 1;\n}\n");
+});
+
+test("a JSX comment container goes with its comment", () => {
+  const code = "export const View = () => (\n  <div>\n    {/* the header */}\n    <h1>Title http://example.org</h1>\n  </div>\n);\n";
+  assert.equal(
+    purgeSource(code, "example.tsx").code,
+    "export const View = () => (\n  <div>\n    <h1>Title http://example.org</h1>\n  </div>\n);\n",
+  );
+});
+
+test("strings, templates and regular expressions are never read as comments", () => {
+  const code = "export const a = '// not a comment';\nexport const b = `/* nor this */`;\nexport const c = /\\/\\/x/g;\n";
+  assert.deepEqual(kinds(code), []);
+  assert.equal(purgeSource(code, "example.ts").code, code);
+});
+
+test("a purge is idempotent, so it can be re-run on any branch", () => {
+  const code = "// Narration that goes.\n// TODO keep until the migration lands\nexport const x = 1; // trailing narration\n";
+  const once = purgeSource(code, "example.ts").code;
+  assert.equal(purgeSource(once, "example.ts").code, once);
+  assert.match(once, /TODO keep until the migration lands/);
+});
+
+test("Solidity keeps its licence, NatSpec, analyzer directives and constraints, and drops narration", () => {
+  const code = [
+    "// SPDX-License-Identifier: MIT",
+    "pragma solidity ^0.8.28;",
+    "",
+    "/// @title Garden registry",
+    "/// @custom:oz-upgrades-unsafe-allow constructor",
+    "contract Registry {",
+    '    string internal constant SITE = "https://example.org/a//b"; // the site',
+    "    /**",
+    "     * @notice Registers a garden.",
+    "     */",
+    "    function register() external {",
+    "        // ---- checks ----",
+    "        // solhint-disable-next-line avoid-low-level-calls",
+    '        (bool ok, ) = msg.sender.call("");',
+    "        // Must stay after the call: the receiver reads the old state.",
+    "        ok;",
+    "    }",
+    "}",
+    "",
+  ].join("\n");
+  assert.deepEqual(kinds(code, "Registry.sol"), [
+    "licence", "documentation", "remove", "documentation", "remove", "directive", "constraint",
+  ]);
+  const purged = purgeSource(code, "Registry.sol").code;
+  assert.doesNotMatch(purged, /the site|---- checks/);
+  assert.match(purged, /"https:\/\/example\.org\/a\/\/b";\n/);
+  assert.match(purged, /@custom:oz-upgrades-unsafe-allow constructor/);
+  assert.match(purged, /solhint-disable-next-line/);
+  assert.equal(purgeSource(purged, "Registry.sol").code, purged);
+});
+
+test("a NatSpec line and a plain comment under it stay separate comments", () => {
+  const code = "/// @notice Kept.\n// narration that goes\nuint256 constant X = 1;\n";
+  assert.deepEqual(kinds(code, "Lib.sol"), ["documentation", "remove"]);
+  assert.equal(purgeSource(code, "Lib.sol").code, "/// @notice Kept.\nuint256 constant X = 1;\n");
+});
+
+test("deployed contract sources are never rewritten", () => {
+  const out = [];
+  const log = console.log;
+  console.log = (line) => out.push(line);
+  try {
+    assert.equal(main(["--check", "packages/contracts/src/tokens/Garden.sol"]), 0);
+  } finally {
+    console.log = log;
+  }
+  assert.match(out.join("\n"), /Would remove 0 comment\(s\) from 0 file\(s\)/);
+  assert.match(out.join("\n"), /Skipped 1 deployed contract source file/);
+});
+
+test("claims go to the owner's table, a named dependency needs a reason, and a bare mention is narration", () => {
+  const code = [
+    "// TODO: drop once the indexer ships the field",
+    "const a = 1;",
+    "// Safari rejects the request without a body, so send an empty one",
+    "const b = 2;",
+    "// Read the garden with viem",
+    "const c = 3;",
+    "",
+  ].join("\n");
+  assert.deepEqual(kinds(code), ["constraint", "dependency", "remove"]);
+});
