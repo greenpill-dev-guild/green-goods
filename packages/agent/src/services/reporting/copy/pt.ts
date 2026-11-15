@@ -261,6 +261,8 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
     "Sua publicação foi enviada, mas ainda não consigo confirmá-la na blockchain. Não vou enviá-la duas vezes; aviso quando souber.",
   "publish.unknown":
     "Não recebi resposta da sua carteira, então ainda não sei se foi enviado. Não vou enviar de novo; estou verificando a blockchain e aviso o que encontrar.",
+  "publish.unconfirmed":
+    "Verifiquei a blockchain e ainda não encontro seu relato, então parei de procurar. Não vou enviá-lo de novo. Se ele não aparecer no jardim, escreva para {support}.",
   "publish.rejected":
     "A assinatura foi recusada, então nada foi publicado. Aqui está seu relato de novo; confirme quando quiser.",
   "publish.reverted":
@@ -322,6 +324,8 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
     "A assinatura foi recusada, então sua revisão não foi registrada. Aqui está ela de novo; confirme quando quiser.",
   "review.reverted":
     "O registro da sua revisão falhou na blockchain. Confira e confirme novamente para tentar de novo.",
+  "review.unconfirmed":
+    "Verifiquei a blockchain e ainda não encontro sua revisão, então parei de procurar. Não vou enviá-la de novo. Se ela não aparecer no trabalho, escreva para {support}.",
   "recovery.started":
     "Para mover sua conta Green Goods para este chat, abra esta página e verifique a conta que você usava antes. O link expira em 10 minutos.",
   "recovery.code": "Digite este código na página de recuperação do Green Goods: {code}",

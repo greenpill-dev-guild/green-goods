@@ -315,6 +315,35 @@ describe("owner publication", () => {
     expect(row("SELECT state FROM execution_operations")).toEqual({ state: "published" });
   });
 
+  it("says so once when the chain check stops without finding the report", async () => {
+    await confirmLinkAndPublish(harness);
+    const { browser, view, envelope } = await openSigningPage(harness);
+    await reserve(browser, view, envelope);
+    // The page is closed before it reports: the wallet window ends and the chain check begins.
+    harness.clock.advance(harness.core.settings.walletResponseWindowMs);
+    await harness.drain();
+    expect(sentTexts().at(-1)).toContain("I'm checking the chain and will tell you what I find.");
+
+    // Nothing ever lands, so every check comes back empty until the job has no attempts left.
+    for (let pass = 0; pass < 45; pass += 1) {
+      harness.clock.advance(30_000);
+      await harness.drain();
+    }
+    expect(row("SELECT state FROM processing_jobs WHERE kind = 'reconcile_operation'")).toEqual({
+      state: "failed",
+    });
+    const stopped =
+      "I've checked the chain and still can't find your report, so I've stopped checking. I won't send it again. If it doesn't show in the garden, write to contact@greengoods.app.";
+    expect(sentTexts().filter((text) => text === stopped)).toHaveLength(1);
+    // Stopping the check sends nothing: the one attempt keeps its reservation.
+    expect(row("SELECT state FROM execution_operations")).toEqual({ state: "reconciling" });
+    expect(row("SELECT count(*) AS n FROM execution_attempts")).toEqual({ n: 1 });
+    // From now on every reply says what happened instead of "being published".
+    expect(await harness.say(ADA, "STATUS")).toEqual([stopped]);
+    expect(await harness.say(ADA, "CANCEL")).toEqual([stopped]);
+    expect(await harness.say(ADA, "We also weeded the beds")).toEqual([stopped]);
+  });
+
   it("waits for a reported hash that is not mined yet instead of calling it a conflict", async () => {
     await confirmLinkAndPublish(harness);
     const { browser, view, envelope } = await openSigningPage(harness);

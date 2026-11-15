@@ -14,6 +14,8 @@ import { operationForSubject } from "../operations";
 import { setParticipantLocale } from "../participants";
 import { retryPreparation } from "../preparation";
 import { closeConversationPrompt, resolvePrompt } from "../prompts";
+import { publicationCheckStopped } from "../reconciliation";
+import type { ReportingCore } from "../runtime";
 import type { ChatCommand } from "./commands";
 import {
   commitContentChange,
@@ -158,6 +160,14 @@ function askLanguage(writer: TurnWriter): void {
   );
 }
 
+/**
+ * What a report that can no longer change answers: that it is being published, or, once the chain
+ * check ended without finding it, that the check stopped and where to turn.
+ */
+export function frozenReply(core: ReportingCore, draft: DraftRecord): ReportingCopyKey {
+  return publicationCheckStopped(core, draft.id) ? "publish.unconfirmed" : "report.frozen";
+}
+
 function cancelDraft(writer: TurnWriter): void {
   const { core, ctx } = writer;
   const draft = ctx.draft;
@@ -165,7 +175,7 @@ function cancelDraft(writer: TurnWriter): void {
   const { refused } = commitLifecycle(core, draft, [{ type: "CANCEL" }], {
     participantAction: true,
   });
-  if (refused.length > 0) return writer.say("report.frozen");
+  if (refused.length > 0) return writer.say(frozenReply(core, draft));
   closeConversationPrompt(core, ctx.conversationId);
   invalidateConfirmation(core, { draftId: draft.id });
   enqueueJob(core, {
@@ -211,12 +221,12 @@ export function handleReportCommand(
       return cancelDraft(writer);
     case "edit":
       if (draft && EDITABLE_STATES.has(lifecycleState(draft))) return askEditMenu(writer, draft);
-      return writer.say(draft ? "report.frozen" : "report.noStatus");
+      return writer.say(draft ? frozenReply(core, draft) : "report.noStatus");
     case "garden":
       // The same question EDIT reaches through its menu, one word away.
       if (draft && EDITABLE_STATES.has(lifecycleState(draft)))
         return askGarden(writer, draft, ctx.account?.address ?? null);
-      return writer.say(draft ? "report.frozen" : "report.noStatus");
+      return writer.say(draft ? frozenReply(core, draft) : "report.noStatus");
     case "join": {
       const account = ctx.account?.address;
       if (!account) return writer.say("link.notLinked");
@@ -229,6 +239,7 @@ export function handleReportCommand(
       return writer.say(draft ? "report.resumeFirst" : "report.newStarted");
     case "status": {
       if (!draft) return writer.say("report.noStatus");
+      if (publicationCheckStopped(core, draft.id)) return writer.say("publish.unconfirmed");
       const state = STATE_COPY[lifecycleState(draft)] ?? "state.publishing";
       return writer.say("report.status", {
         garden: gardenLabel(core.gardens, draft.content.garden?.address),
