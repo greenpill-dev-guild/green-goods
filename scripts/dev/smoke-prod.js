@@ -31,8 +31,10 @@ const PRODUCTION_AGENT_BROWSER_ORIGINS = [
   "https://greengoods.app",
   "https://www.greengoods.app",
   "https://admin.greengoods.app",
+  "https://hub.greengoods.app",
   "https://beta.greengoods.app",
   "https://beta.admin.greengoods.app",
+  "https://beta.hub.greengoods.app",
 ];
 // An origin the agent must refuse with HTTP 403, so an allowlist that admits anything fails too.
 const PRODUCTION_AGENT_REFUSED_ORIGIN = "https://not-allowed.example.com";

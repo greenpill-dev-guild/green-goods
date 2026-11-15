@@ -32,6 +32,9 @@ const DOMAIN = "greengoods.app";
 const BETA = "https://beta.greengoods.app";
 const WWW = "https://www.greengoods.app";
 const ADMIN = "https://admin.greengoods.app";
+// hub.greengoods.app serves the Hub beside admin.greengoods.app (PRD-1485).
+const HUB = "https://hub.greengoods.app";
+const BETA_HUB = "https://beta.hub.greengoods.app";
 const PREVIEW = "https://green-goods-git-some-branch-greenpilldevguild.vercel.app";
 const LOCALHOST = "http://localhost:3001";
 const LOOPBACK_ADDRESS = "http://127.0.0.1:3001";
@@ -52,8 +55,10 @@ function createDirectoryApp(
     allowedOrigins: new Set([
       BETA,
       "https://beta.admin.greengoods.app",
+      BETA_HUB,
       WWW,
       ADMIN,
+      HUB,
       LOCALHOST,
       LOOPBACK_ADDRESS,
     ]),
@@ -231,8 +236,10 @@ describe("passkey directory", () => {
   it.each([
     [BETA, "kernel-0.3.3"],
     ["https://beta.admin.greengoods.app", "kernel-0.3.3"],
+    [BETA_HUB, "kernel-0.3.3"],
     [WWW, "kernel-0.3.1-legacy"],
     [ADMIN, "kernel-0.3.1-legacy"],
+    [HUB, "kernel-0.3.1-legacy"],
   ])("pins new account profiles at registration on %s", async (origin, accountProfile) => {
     const { app, store } = createDirectoryApp();
     const { start, verify } = await signUp(app, "ana", { origin, accountProfileVersion: 1 });
