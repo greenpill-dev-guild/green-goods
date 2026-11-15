@@ -1,4 +1,5 @@
 import type { Job, WorkJobPayload } from "../../types/job-queue";
+import type { UploadPreparationEvent } from "../work/upload-preparation";
 import { parseContractError } from "../../utils/errors/contract-errors";
 import { getStorageQuota } from "../../utils/storage/quota";
 import { addBreadcrumb } from "../app/error-tracking";
@@ -98,6 +99,33 @@ export function trackJobPermanentlyFailed(job: Job): void {
     },
     PRIVATE_QUEUE_EVENT_OPTIONS
   );
+}
+
+/**
+ * Track one try of background preparation: when it starts, how it ends, and the wait before it
+ * runs again. The kind, the try's number and its timing tell a work that keeps failing from one
+ * that is slow; nothing names the work, what it holds, or whose it is.
+ */
+export function trackUploadPreparation(event: UploadPreparationEvent): void {
+  const tried = { job_kind: event.kind, attempt: event.attempt };
+  switch (event.type) {
+    case "started":
+      trackPrivateQueueEvent("upload_preparation_started", tried);
+      return;
+    case "finished":
+      trackPrivateQueueEvent("upload_preparation_finished", {
+        ...tried,
+        result: event.result,
+        duration_ms: event.durationMs,
+        ...(event.reason ? { blocked_reason: event.reason } : {}),
+      });
+      return;
+    case "retry-scheduled":
+      trackPrivateQueueEvent("upload_preparation_retry_scheduled", {
+        ...tried,
+        delay_ms: event.delayMs,
+      });
+  }
 }
 
 /**

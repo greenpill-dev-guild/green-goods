@@ -336,6 +336,36 @@ export const ArrivalUploadsInAnotherGardenSpanish: Story = arrivalStory("es");
 
 export const ArrivalUploadsInAnotherGardenPortuguese: Story = arrivalStory("pt");
 
+/**
+ * A steward added the member to Vida Verde while the chip shows TAS HUB (PRD-1492): Home says so
+ * once, in a toast that stays until it is acted on, and stays in TAS HUB until Switch.
+ */
+const addedStory = (locale: keyof typeof MESSAGES): Story => ({
+  beforeEach: homeState({
+    ...activeGarden(
+      "ready",
+      [memberGarden(TAS_HUB, ["steward"]), memberGarden(VIDA_VERDE, ["steward"])],
+      TAS_HUB.id
+    ),
+    addedGardens: [VIDA_VERDE],
+  }),
+  decorators: [withToastViewport, withLocale],
+  parameters: { locale, viewport: { options: PHONE_VIEWPORTS } },
+  globals: { viewport: { value: "homePhone360" } },
+});
+
+export const AddedToAGarden: Story = {
+  ...addedStory("en"),
+  play: async () => {
+    await expect(await screen.findByText("You're now part of Vida Verde")).toBeVisible();
+    await expect(screen.getByRole("button", { name: "Switch" })).toBeVisible();
+  },
+};
+
+export const AddedToAGardenSpanish: Story = addedStory("es");
+
+export const AddedToAGardenPortuguese: Story = addedStory("pt");
+
 const unplacedArrivalStory = (locale: keyof typeof MESSAGES): Story => ({
   ...arrivalStory(locale),
   beforeEach: () => {

@@ -1656,7 +1656,9 @@ describe("useWorkSubmissionFlowController", () => {
       listed: false,
       named: "Creekside",
     },
-    { flow: "work in the active garden", garden: ACTIVE_GARDEN, named: null },
+    // PRD-1492: a new steward met the garden their work was for only on Review, because the
+    // line under the steps named a garden only when it was not the active one.
+    { flow: "work in the active garden", garden: ACTIVE_GARDEN, named: "Riverside" },
     {
       flow: "a draft while the active garden is still unknown",
       garden: DRAFT_GARDEN,

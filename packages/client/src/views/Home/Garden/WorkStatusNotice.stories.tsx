@@ -1,3 +1,4 @@
+import type { ItemPreparation } from "@green-goods/shared/hooks/work/useWorkUploads";
 import en from "@green-goods/shared/i18n/en";
 import es from "@green-goods/shared/i18n/es";
 import pt from "@green-goods/shared/i18n/pt";
@@ -28,18 +29,27 @@ const withLocale: Decorator = (Story, context) => {
 };
 
 /** The work, with the time it took, as the queue keeps it on this phone. */
-function page(work: Work): Work {
+function page(work: Work, submissionState?: string): Work {
   const metadata = JSON.parse(work.metadata) as Record<string, unknown>;
   return {
     ...work,
     media: [FIXTURE_WORK_MEDIA[0], FIXTURE_WORK_MEDIA[1]],
-    metadata: JSON.stringify({ ...metadata, timeSpentMinutes: 90 }),
+    metadata: JSON.stringify({
+      ...metadata,
+      ...(submissionState ? { submissionState } : {}),
+      timeSpentMinutes: 90,
+    }),
   };
 }
+
+/** The ready work as it was before preparation answered for it. */
+const PREPARING = page(QUEUED_WORK_PAGES.ready, "preparing");
 
 interface QueuedWorkPageProps {
   work: Work;
   isOnline?: boolean;
+  /** What preparation is doing for the work while it has no answer yet. */
+  preparation?: ItemPreparation;
 }
 
 /**
@@ -47,7 +57,7 @@ interface QueuedWorkPageProps {
  * still on this phone in a notice under the heading, and only the acts in the
  * fixed bar, Discard and the primary as two equal halves, or one full-width act.
  */
-function QueuedWorkPage({ work, isOnline = true }: QueuedWorkPageProps) {
+function QueuedWorkPage({ work, isOnline = true, preparation = "working" }: QueuedWorkPageProps) {
   return (
     <article>
       <TopNav onBackClick={fn()} overlay />
@@ -62,12 +72,12 @@ function QueuedWorkPage({ work, isOnline = true }: QueuedWorkPageProps) {
           effectiveStatus={work.status}
           onDownloadData={fn()}
           onShare={fn()}
-          notice={<WorkStatusNotice work={work} isOnline={isOnline} />}
+          notice={<WorkStatusNotice work={work} isOnline={isOnline} preparation={preparation} />}
           footer={
             <WorkUploadFooter
               work={work}
               isOnline={isOnline}
-              pausedForDataSaver={false}
+              preparation={preparation}
               onPrepareNow={fn()}
               onRetry={fn()}
               isRetrying={false}
@@ -139,4 +149,51 @@ export const CheckingSpanish: Story = {
 export const CheckingPortuguese: Story = {
   args: { work: page(QUEUED_WORK_PAGES.checking) },
   parameters: { locale: "pt" },
+};
+
+/** Preparation is on it: the one state that spins, and no Discard while it works. */
+export const Preparing: Story = { args: { work: PREPARING } };
+
+/** A try failed and waits to be made again: Discard and Try Again, no spinner (PRD-1488). */
+export const PreparationRetrying: Story = {
+  args: { work: PREPARING, preparation: "retrying" },
+};
+
+export const PreparationRetryingSpanish: Story = {
+  args: { work: PREPARING, preparation: "retrying" },
+  parameters: { locale: "es" },
+};
+
+export const PreparationRetryingPortuguese: Story = {
+  args: { work: PREPARING, preparation: "retrying" },
+  parameters: { locale: "pt" },
+};
+
+/** Waiting on a steady connection: it says so, and the work can still be discarded. */
+export const PreparationWaitingForConnection: Story = {
+  args: { work: PREPARING, preparation: "connection" },
+};
+
+export const PreparationWaitingForConnectionSpanish: Story = {
+  args: { work: PREPARING, preparation: "connection" },
+  parameters: { locale: "es" },
+};
+
+export const PreparationWaitingForConnectionPortuguese: Story = {
+  args: { work: PREPARING, preparation: "connection" },
+  parameters: { locale: "pt" },
+};
+
+export const PreparationPausedForDataSaver: Story = {
+  args: { work: PREPARING, preparation: "data-saver" },
+};
+
+/** The longest pause title, in the language where it runs longest. */
+export const PreparationPausedForDataSaverSpanish: Story = {
+  args: { work: PREPARING, preparation: "data-saver" },
+  parameters: { locale: "es" },
+};
+
+export const PreparationWaitingForUpdate: Story = {
+  args: { work: PREPARING, preparation: "app-update" },
 };
