@@ -27,14 +27,15 @@ const ARBITRUM_CHAIN_ID = 42161;
 const DEFAULT_PRODUCTION_AGENT_URL = "https://agent.greengoods.app";
 // Browser surfaces that must reach the production agent. AGENT_ALLOWED_ORIGINS
 // lives only in Fly secrets, so this live preflight is what guards the list.
+// https://hub.greengoods.app and https://beta.hub.greengoods.app join it once
+// they serve the Hub and the secret lists them (PRD-1485); until then they
+// would fail every production smoke run.
 const PRODUCTION_AGENT_BROWSER_ORIGINS = [
   "https://greengoods.app",
   "https://www.greengoods.app",
   "https://admin.greengoods.app",
-  "https://hub.greengoods.app",
   "https://beta.greengoods.app",
   "https://beta.admin.greengoods.app",
-  "https://beta.hub.greengoods.app",
 ];
 // An origin the agent must refuse with HTTP 403, so an allowlist that admits anything fails too.
 const PRODUCTION_AGENT_REFUSED_ORIGIN = "https://not-allowed.example.com";
