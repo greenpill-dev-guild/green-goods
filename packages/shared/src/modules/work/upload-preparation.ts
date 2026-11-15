@@ -5,7 +5,8 @@
  * at a time under a claim, so Upload all only has to sign. Preparation pauses
  * while the connection is unconfirmed, while the page is hidden, under Data
  * Saver unless the person asks to prepare anyway, and while Upload all or a
- * Submit is sending.
+ * Submit is sending. An item whose try fails without an answer waits out a
+ * backoff, and says so, until it is tried again.
  * Recovery of work earlier builds gave up on runs once, before the first item.
  *
  * @module modules/work/upload-preparation
@@ -17,7 +18,7 @@ import { logger } from "../app/logger";
 import { appCodeRecovery } from "../app/cache-recovery";
 import type { WorkClaim } from "../job-queue/work-claims";
 import type { PreparationResult } from "./prepare-queued-work";
-import { isUploadJob, queuedUploadStatus } from "./upload-state";
+import { isUploadJob, queuedUploadStatus, uploadPreparationOf } from "./upload-state";
 
 export type UploadPreparationPause =
   | "unconfirmed"
@@ -36,12 +37,20 @@ export interface UploadPreparationSnapshot {
    * stops, so the next person to sign in on this page starts under Data Saver again.
    */
   dataSaverOverride: boolean;
+  /**
+   * Items whose last try failed without an answer, waiting out their backoff. A new set is
+   * published whenever one joins or leaves it.
+   */
+  retryingJobIds: ReadonlySet<string>;
 }
+
+const NO_RETRIES: ReadonlySet<string> = new Set();
 
 const INITIAL_SNAPSHOT: UploadPreparationSnapshot = {
   activeJobId: null,
   paused: null,
   dataSaverOverride: false,
+  retryingJobIds: NO_RETRIES,
 };
 
 let snapshot = INITIAL_SNAPSHOT;
@@ -52,7 +61,8 @@ function publish(next: Partial<UploadPreparationSnapshot>) {
   if (
     merged.activeJobId === snapshot.activeJobId &&
     merged.paused === snapshot.paused &&
-    merged.dataSaverOverride === snapshot.dataSaverOverride
+    merged.dataSaverOverride === snapshot.dataSaverOverride &&
+    merged.retryingJobIds === snapshot.retryingJobIds
   )
     return;
   snapshot = merged;
@@ -68,6 +78,25 @@ export const uploadPreparationStore = {
     };
   },
 };
+
+/**
+ * One try at preparing an item, for telemetry: the item's kind and which try it is, how the try
+ * ended and how long it took, and the wait before the next. Nothing names the item, its content
+ * or its owner, so a work that keeps failing reads apart from a slow one without identifying it.
+ */
+export type UploadPreparationEvent =
+  | { type: "started"; kind: string; attempt: number }
+  | {
+      type: "finished";
+      kind: string;
+      attempt: number;
+      /** `error` when the try threw instead of answering. */
+      result: PreparationResult | "error";
+      durationMs: number;
+      /** Why a blocked item was refused, by the fixed name of the refusal. */
+      reason?: string;
+    }
+  | { type: "retry-scheduled"; kind: string; attempt: number; delayMs: number };
 
 export interface UploadPreparationPorts {
   userAddress: Address;
@@ -87,6 +116,7 @@ export interface UploadPreparationPorts {
   prepare(job: Job, chainId: number, claim: WorkClaim): Promise<PreparationResult>;
   recover(userAddress: Address): Promise<unknown>;
   now(): number;
+  record(event: UploadPreparationEvent): void;
 }
 
 interface PreparationHold {
@@ -101,6 +131,8 @@ export interface UploadPreparation {
   suspend(): PreparationHold;
   /** Prepare under Data Saver for the rest of this session. */
   prepareNow(): void;
+  /** Forget one item's backoff and prepare it now, as the person's own Try Again asks. */
+  retryNow(jobId: string): void;
   /** End this session's preparation, and the Data Saver override with it. */
   stop(): void;
 }
@@ -124,6 +156,13 @@ export function createUploadPreparation(ports: UploadPreparationPorts): UploadPr
   const retries = new Map<string, { attempts: number; at: number }>();
   // A blocked item is checked again once a session: a membership may have changed.
   const recheckedBlocked = new Set<string>();
+
+  // The snapshot names the items in `retries`, so a work's page can say its try failed.
+  const announceRetries = () =>
+    publish({ retryingJobIds: retries.size === 0 ? NO_RETRIES : new Set(retries.keys()) });
+  const forgetRetry = (id: string) => {
+    if (retries.delete(id)) announceRetries();
+  };
 
   const pauseReason = async (): Promise<UploadPreparationPause | null> => {
     if (appCodeRecovery.getSnapshot()) return "app-code";
@@ -153,14 +192,37 @@ export function createUploadPreparation(ports: UploadPreparationPorts): UploadPr
       const job = await ports.getJob(id);
       if (stopped || suspended > 0 || !job || !wantsPreparation(job)) return;
       publish({ activeJobId: id });
-      const result = await ports.prepare(job, ports.chainId, claim);
+      const { kind } = job;
+      const attempt = (retries.get(id)?.attempts ?? 0) + 1;
+      const startedAt = ports.now();
+      ports.record({ type: "started", kind, attempt });
+      let result: PreparationResult;
+      try {
+        result = await ports.prepare(job, ports.chainId, claim);
+      } catch (error) {
+        const durationMs = ports.now() - startedAt;
+        ports.record({ type: "finished", kind, attempt, result: "error", durationMs });
+        throw error;
+      }
+      // Preparation records its answer on the job it was handed, a refusal's reason included.
+      const refusal = result === "blocked" ? uploadPreparationOf(job) : undefined;
+      ports.record({
+        type: "finished",
+        kind,
+        attempt,
+        result,
+        durationMs: ports.now() - startedAt,
+        ...(refusal?.status === "blocked" ? { reason: refusal.reason } : {}),
+      });
       if (result === "retry-later") {
-        const attempts = (retries.get(id)?.attempts ?? 0) + 1;
-        const delay = Math.min(RETRY_BASE_MS * 2 ** (attempts - 1), RETRY_MAX_MS);
-        retries.set(id, { attempts, at: ports.now() + delay });
+        const delay = Math.min(RETRY_BASE_MS * 2 ** (attempt - 1), RETRY_MAX_MS);
+        const waitingAlready = retries.has(id);
+        retries.set(id, { attempts: attempt, at: ports.now() + delay });
+        if (!waitingAlready) announceRetries();
+        ports.record({ type: "retry-scheduled", kind, attempt, delayMs: delay });
         return;
       }
-      retries.delete(id);
+      forgetRetry(id);
       // A blocked item is checked once a session, and only the chain refusing it
       // again spends that check: a transient failure must not retire it.
       if (result === "blocked") recheckedBlocked.add(id);
@@ -188,7 +250,13 @@ export function createUploadPreparation(ports: UploadPreparationPorts): UploadPr
           await ports.recover(ports.userAddress);
           recovered = true;
         }
-        const candidates = (await ports.listJobs()).filter(wantsPreparation);
+        const queued = await ports.listJobs();
+        // A discarded or confirmed item waits on nothing here any more.
+        const listed = new Set(queued.map((job) => job.id));
+        const gone = [...retries.keys()].filter((id) => !listed.has(id));
+        for (const id of gone) retries.delete(id);
+        if (gone.length > 0) announceRetries();
+        const candidates = queued.filter(wantsPreparation);
         for (const { id } of candidates) {
           if (stopped) return;
           const pausedMidway = await pauseReason();
@@ -250,10 +318,19 @@ export function createUploadPreparation(ports: UploadPreparationPorts): UploadPr
       publish({ dataSaverOverride: true });
       start();
     },
+    retryNow: (jobId) => {
+      forgetRetry(jobId);
+      start();
+    },
     stop: () => {
       stopped = true;
       clearTimeout(retryTimer);
-      publish({ activeJobId: null, paused: null, dataSaverOverride: false });
+      publish({
+        activeJobId: null,
+        paused: null,
+        dataSaverOverride: false,
+        retryingJobIds: NO_RETRIES,
+      });
     },
   };
 }
@@ -278,6 +355,11 @@ export function scheduleUploadPreparation(): void {
 
 export function prepareUploadsNow(): void {
   active?.prepareNow();
+}
+
+/** Prepare one item again now, forgetting the backoff an earlier failed try left on it. */
+export function retryUploadPreparationNow(jobId: string): void {
+  active?.retryNow(jobId);
 }
 
 /** Hold preparation back, the current one and any set before the release, until released. */

@@ -66,6 +66,8 @@ vi.mock("../../../modules/job-queue/db", () => ({
         return { unsubscribe() {} };
       },
     }),
+    // The live view of the queue; offlineReads.test.ts covers the reads it triggers.
+    observeJobs: () => ({ subscribe: () => ({ unsubscribe() {} }) }),
     getImagesForJob: (...args: unknown[]) => mockGetImagesForJob(...args),
   },
 }));

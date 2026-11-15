@@ -9,6 +9,7 @@ import { resolve } from "path";
 import { defineConfig, loadEnv, type Plugin, type UserConfig } from "vite";
 import mkcert from "vite-plugin-mkcert";
 import { VitePWA } from "vite-plugin-pwa";
+import { SUPPORTED_BROWSER_TARGETS } from "../../scripts/lib/browser-support.mjs";
 import {
   assertEnvParity,
   assertSentryDsnResolvable,
@@ -315,6 +316,9 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
       filename: "sw.ts",
       injectManifest: {
         rollupFormat: "iife",
+        // The plugin's default is build.target; naming the same list keeps a plugin
+        // upgrade from moving the worker off the supported minimum.
+        target: [...SUPPORTED_BROWSER_TARGETS],
         minify: nodeEnv === "production",
         sourcemap: false,
         // Build-time VITE_ flags come from the same env files.
@@ -445,6 +449,8 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     envDir: rootDir,
     envPrefix: ["VITE_", "SKIP_"],
     build: {
+      // The supported minimum, named so a Vite upgrade cannot move it; the CSS target follows it.
+      target: [...SUPPORTED_BROWSER_TARGETS],
       // 'hidden' emits .map files for server-side upload (PostHog / Sentry) but
       // omits the sourceMappingURL comment, so the maps are never referenced from
       // — or served to — browsers. The upload lane deletes them after upload.
