@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -318,5 +318,51 @@ describe("SheetActions layout contract (DL-016)", () => {
     expect(block('[data-scroll-edge="bottom"]')).toMatch(
       /background-attachment:\s*local,\s*scroll/
     );
+  });
+});
+
+// The apps support Chrome 111, Safari 16.4 and Firefox 128. Tests render only in a current
+// engine, so these source contracts stand in for the old ones: each guards a feature that
+// broke a page in an older browser.
+describe("supported browser floor", () => {
+  const packagesRoot = resolve(__dirname, "../../../..");
+  const sourceFiles = (extension: RegExp) =>
+    ["shared", "client", "admin"].flatMap((pkg) => {
+      const root = resolve(packagesRoot, pkg, "src");
+      return (readdirSync(root, { recursive: true }) as string[])
+        .filter((file) => extension.test(file) && !/__(tests|mocks)__/.test(file))
+        .map((file) => ({
+          file: `${pkg}/src/${file}`,
+          text: readFileSync(resolve(root, file), "utf-8"),
+        }));
+    });
+  const withoutComments = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, "");
+
+  it("draws no color with relative color syntax, which drops the color before Chrome 119", () => {
+    const relativeColor = /\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\(\s*from\s/;
+    const offenders = sourceFiles(/\.css$/).filter(({ text }) =>
+      relativeColor.test(withoutComments(text))
+    );
+    expect(offenders.map(({ file }) => file)).toEqual([]);
+  });
+
+  it("hides a native popover where the browser has no Popover API", () => {
+    expect(withoutComments(utilitiesContent)).toMatch(
+      /@supports not selector\(:popover-open\)\s*\{\s*\[popover\]\s*\{\s*display:\s*none;\s*\}\s*\}/
+    );
+  });
+
+  it("gives every subgrid row its own columns where subgrid is missing, before Chrome 117", () => {
+    const unguarded = sourceFiles(/\.tsx?$/).flatMap(({ file, text }) =>
+      text
+        .split("\n")
+        .filter(
+          (line) =>
+            line.includes("grid-cols-subgrid") &&
+            !line.includes("not-supports-[grid-template-columns:subgrid]:grid-cols-")
+        )
+        .map(() => file)
+    );
+    expect(unguarded).toEqual([]);
   });
 });
