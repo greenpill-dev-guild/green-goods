@@ -146,7 +146,7 @@ export const FROZEN_ALLOWLIST = {
   "packages/shared/src/hooks/index.ts": 604,
   "packages/shared/src/hooks/work/useWorkMutation.ts": 524,
   "packages/shared/src/index.ts": 1418,
-  "packages/shared/src/modules/app/analytics-events.ts": 505,
+  "packages/shared/src/modules/app/analytics-events.ts": 504,
   "packages/shared/src/modules/app/posthog.ts": 553,
   "packages/shared/src/modules/data/marketplace.ts": 550,
   "packages/shared/src/modules/job-queue/db.ts": 536,

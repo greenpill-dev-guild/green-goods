@@ -14,9 +14,11 @@ import { toastService, walletProgressToasts } from "../../../components/toast";
 import { trackContractError } from "../../../modules/app/error-tracking";
 import {
   trackWorkSubmissionFailed,
+  trackWorkSubmissionOffline,
   trackWorkSubmissionQueued,
   trackWorkSubmissionSuccess,
 } from "../../../modules/app/analytics-events";
+import { connectivityStore } from "../../../stores/connectivity";
 
 vi.mock("../../../components/toast", () => ({
   toastService: { info: vi.fn(), error: vi.fn() },
@@ -28,6 +30,7 @@ vi.mock("../../../modules/app/error-tracking", () => ({
 }));
 vi.mock("../../../modules/app/analytics-events", () => ({
   trackWorkSubmissionFailed: vi.fn(),
+  trackWorkSubmissionOffline: vi.fn(),
   trackWorkSubmissionQueued: vi.fn(),
   trackWorkSubmissionSuccess: vi.fn(),
   trackWorkWalletRequestExpired: vi.fn(),
@@ -219,15 +222,42 @@ describe("recording a Submit's ending", () => {
       expect.objectContaining({ status: "awaiting-confirmation", reason: "connection-unconfirmed" })
     );
     expect(trackWorkSubmissionSuccess).not.toHaveBeenCalled();
+  });
 
-    const queued = { ...awaiting, kind: "queued", reason: undefined } as const;
-    recordWorkSubmissionOutcome(
-      { ...journey, outcome: queued },
-      createOfflineTxHash("job-1"),
-      options
+  it("records work saved for later as saved, not as a success, and says why it was not sent", () => {
+    const queued = {
+      kind: "queued",
+      txHash: createOfflineTxHash("job-1"),
+      sponsored: false,
+      jobId: "job-1",
+      clientWorkId: "work-1",
+    } as const;
+    const online = vi.spyOn(connectivityStore, "getSnapshot");
+    try {
+      online.mockReturnValue(false);
+      recordWorkSubmissionOutcome({ ...journey, outcome: queued }, queued.txHash, options);
+      online.mockReturnValue(true);
+      recordWorkSubmissionOutcome({ ...journey, outcome: queued }, queued.txHash, options);
+      const unconfirmed = { ...queued, reason: "connection-unconfirmed" } as const;
+      recordWorkSubmissionOutcome({ ...journey, outcome: unconfirmed }, queued.txHash, options);
+    } finally {
+      online.mockRestore();
+    }
+    expect(vi.mocked(trackWorkSubmissionOffline).mock.calls.map(([saved]) => saved.reason)).toEqual(
+      ["offline", "not-sent", "connection-unconfirmed"]
     );
+    expect(trackWorkSubmissionSuccess).not.toHaveBeenCalled();
+
+    // Only a send that reached the chain is a success.
+    const sent = {
+      kind: "direct",
+      txHash: `0x${"cd".repeat(32)}`,
+      sponsored: false,
+      clientWorkId: "work-1",
+    } as const;
+    recordWorkSubmissionOutcome({ ...journey, outcome: sent }, sent.txHash, options);
     expect(trackWorkSubmissionSuccess).toHaveBeenCalledExactlyOnceWith(
-      expect.objectContaining({ wasOffline: true, submissionPhase: "success" })
+      expect.objectContaining({ wasOffline: false, submissionPhase: "success" })
     );
   });
 });

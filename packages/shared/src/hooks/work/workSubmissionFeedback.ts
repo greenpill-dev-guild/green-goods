@@ -10,11 +10,13 @@ import { UploadPolicyCancelledError } from "../../modules/work/upload-policy";
 import { isCancelledTxError } from "../../utils/errors/tx-error-classifier";
 import {
   trackWorkSubmissionFailed,
+  trackWorkSubmissionOffline,
   trackWorkSubmissionQueued,
   trackWorkSubmissionSuccess,
   trackWorkWalletRequestExpired,
   trackWorkWalletRequestFailed,
 } from "../../modules/app/analytics-events";
+import { connectivityStore } from "../../stores/connectivity";
 import { trackContractError, trackUploadError } from "../../modules/app/error-tracking";
 import { walletProgressToasts, toastService } from "../../components/toast";
 import { formatErrorForToast, parseAndFormatError } from "../../utils/errors/contract-errors";
@@ -190,8 +192,9 @@ export function recordWorkSubmissionFailure(
 
 /**
  * Records how a Submit that did not fail ended, whether or not the person is still in the flow
- * (PRD-1495). A send on record whose check has not answered is not a success yet, so it is
- * recorded as queued and awaiting confirmation instead of leaving the Submit without an end.
+ * (PRD-1495). Only a send that reached the chain is a success. A send on record whose check has
+ * not answered is queued and awaiting confirmation, and work the queue keeps to send later is
+ * saved for later (`work_submission_offline`), each with the reason it was not sent.
  */
 export function recordWorkSubmissionOutcome(
   origin: Pick<WorkMutationOrigin, "journeyId" | "outcome">,
@@ -211,6 +214,13 @@ export function recordWorkSubmissionOutcome(
         ...submission,
         status: "awaiting-confirmation",
         ...(origin.outcome.reason ? { reason: origin.outcome.reason } : {}),
+      });
+      return;
+    }
+    if (origin.outcome?.kind === "queued") {
+      trackWorkSubmissionOffline({
+        ...submission,
+        reason: origin.outcome.reason ?? (connectivityStore.getSnapshot() ? "not-sent" : "offline"),
       });
       return;
     }

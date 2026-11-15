@@ -134,6 +134,7 @@ vi.mock("../../modules/app/analytics-events", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../modules/app/analytics-events")>()),
   trackWorkSubmissionStarted: vi.fn(),
   trackWorkSubmissionSuccess: vi.fn(),
+  trackWorkSubmissionOffline: vi.fn(),
   trackWorkSubmissionFailed: vi.fn(),
   trackWorkWalletRequestStarted: vi.fn(),
   trackWorkWalletRequestExpired: vi.fn(),
@@ -206,6 +207,7 @@ import { worksKeys } from "../../config/query-keys/work";
 import { useWorkMutation } from "../../hooks/work/useWorkMutation";
 import {
   trackWorkSubmissionFailed,
+  trackWorkSubmissionOffline,
   trackWorkSubmissionSuccess,
   trackWorkWalletRequestExpired,
   trackWorkWalletRequestStarted,
@@ -1063,6 +1065,11 @@ describe("hooks/work/useWorkMutation", () => {
 
       expect(txHash).toMatch(/^0xoffline_/);
       expect(txHash?.startsWith("0xoffline_")).toBe(true);
+      // Saved for later is not a success: the queue sends it (PRD-1495).
+      expect(trackWorkSubmissionOffline).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({ reason: "offline" })
+      );
+      expect(trackWorkSubmissionSuccess).not.toHaveBeenCalled();
     });
   });
 

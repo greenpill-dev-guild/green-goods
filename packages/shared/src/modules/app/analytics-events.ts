@@ -294,11 +294,10 @@ export const trackWorkWalletRequestFailed = createTracker<WorkTrackingSafeMetada
   workSubmissionTrackerOptions
 );
 
-export const trackWorkSubmissionOffline = createTracker<{
-  gardenAddress: string;
-  actionUID: number;
-  jobId: string;
-}>(ANALYTICS_EVENTS.WORK_SUBMISSION_OFFLINE);
+/** A Submit the queue keeps to send later: saved, not sent, so not a success (PRD-1495). */
+export const trackWorkSubmissionOffline = createTracker<
+  WorkTrackingSafeMetadata & { reason: "offline" | "connection-unconfirmed" | "not-sent" }
+>(ANALYTICS_EVENTS.WORK_SUBMISSION_OFFLINE, workSubmissionTrackerOptions);
 
 // WORK APPROVAL TRACKING
 
