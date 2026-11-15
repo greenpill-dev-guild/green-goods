@@ -133,7 +133,9 @@ export function activationView(
     context.grant.purpose === "reporting"
       ? draftView(core, context.resourceId)
       : reviewView(core, context.resourceId);
-  if (view) return view;
+  // A first report exists only once the owner asks to prepare it. The page reads a summary with
+  // no operation as one still being prepared, so it would wait instead of offering that step.
+  if (view) return view.operation ? view : null;
   if (!context.operation || context.operation.state !== "published") return null;
   return {
     ok: true,
