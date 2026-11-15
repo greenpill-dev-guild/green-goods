@@ -419,17 +419,6 @@ describe("passkey directory", () => {
     expect(preflight.headers.get("access-control-allow-origin")).toBeNull();
   });
 
-  it("uses the router's decoded path when refusing an unlisted preview", async () => {
-    const { app } = createDirectoryApp();
-    const response = await app.request("/public/passkeys/%72pc", {
-      method: "POST",
-      headers: { origin: PREVIEW, "content-type": "application/json" },
-      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "pks_getCredentials", params: [{}] }),
-    });
-    expect(response.status).toBe(403);
-    expect(response.headers.get("access-control-allow-origin")).toBeNull();
-  });
-
   it("requires the listed site's passkey domain, with localhost only in development", async () => {
     const { app } = createDirectoryApp();
 

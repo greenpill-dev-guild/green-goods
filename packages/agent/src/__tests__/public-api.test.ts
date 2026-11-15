@@ -426,28 +426,6 @@ describe("public funding intent API", () => {
     expect(response.headers.get("access-control-allow-headers")).toContain("Content-Type");
   });
 
-  // Hosts Vercel issues under the `greengoods` team: a client deployment, an admin deployment,
-  // and a branch alias.
-  it.each([
-    "https://green-goods-qbf9uec53-greengoods.vercel.app",
-    "https://green-goods-admin-9u1ctb8om-greengoods.vercel.app",
-    "https://green-goods-git-develop-greengoods.vercel.app",
-  ])("answers funding-intent CORS preflight for owned Vercel previews: %s", async (previewOrigin) => {
-    const { app } = createFundingApp();
-
-    const response = await app.request(PUBLIC_AGENT_ROUTES.fundingIntents, {
-      method: "OPTIONS",
-      headers: {
-        origin: previewOrigin,
-        "access-control-request-method": "POST",
-        "access-control-request-headers": "content-type",
-      },
-    });
-
-    expect(response.status).toBe(204);
-    expect(response.headers.get("access-control-allow-origin")).toBe(previewOrigin);
-  });
-
   it("rejects funding-intent CORS preflight for untrusted origins", async () => {
     const { app } = createFundingApp();
 
@@ -465,14 +443,17 @@ describe("public funding intent API", () => {
     expect((await response.json()).errorCode).toBe("origin_not_allowed");
   });
 
+  // A hostname is no proof of ownership: Vercel hands out `.vercel.app` names first come, first
+  // served. Only listed origins are answered, so none of these is.
   it.each([
-    // Another Vercel team.
-    "https://green-goods-8bccw8q6a-attacker.vercel.app",
+    // A real deployment and a real branch alias under the `greengoods` team.
+    "https://green-goods-qbf9uec53-greengoods.vercel.app",
+    "https://green-goods-git-develop-greengoods.vercel.app",
+    // A name any Vercel account can claim that ends like one of ours.
+    "https://green-goods-x-greengoods.vercel.app",
     // The team's former slug, which it no longer owns.
     "https://green-goods-git-develop-greenpilldevguild.vercel.app",
-    // An owned preview host without https.
-    "http://green-goods-git-develop-greengoods.vercel.app",
-  ])("rejects funding-intent CORS preflight for other Vercel origins: %s", async (origin) => {
+  ])("rejects funding-intent CORS preflight from unlisted Vercel hosts: %s", async (origin) => {
     const { app } = createFundingApp();
 
     const response = await app.request(PUBLIC_AGENT_ROUTES.fundingIntents, {
