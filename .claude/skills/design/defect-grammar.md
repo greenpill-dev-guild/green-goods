@@ -29,11 +29,11 @@ Narrow candidates by:
 
 | User says… | Agent filters by… |
 |------------|-------------------|
-| "in Review" / "in Garden" / etc. | `data-workspace` on CanvasLayout root (Review's id is `hub`; "the Hub" names the whole dashboard and narrows nothing) |
+| "in Review" / "in Garden" / etc. | `data-workspace` on CanvasLayout root (Review's id is `review`; "the Hub" names the whole dashboard and narrows nothing) |
 | "at the top" / "top bar" | `data-region="canvas-area-top"` |
 | "the main area" / "the content" | `data-region="main-scroll-area"` |
 | "the bottom nav" / "tabs at bottom" | `data-region="canvas-area-bottom"` |
-| "the card" | `data-component="AdminCard"` (also `HubWorkCard` / `WorkbenchCard`) + visible rect |
+| "the card" | `data-component="AdminCard"` (also `ReviewWorkCard` / `WorkbenchCard`) + visible rect |
 | "the tabs" | `data-component="AdminTabRail"` |
 | "the search" / "search bar" | `data-component="AdminSearchToolbar"` |
 | "that button" / "the CTA" | the shared button, `.gg-button` (an icon button is `.gg-icon-button`) with its `data-emphasis` and `data-size`; the nav-shell FAB is `data-component="FabButton"` |
@@ -52,7 +52,7 @@ Narrow candidates by:
 | "the action card" on the Actions workspace | the action's shared `WorkbenchCard` (no `data-component` tag, so narrow by its title and rect) |
 | "the inline field" | `data-component="AdminInlineField"` |
 | "the garden switcher" / "the garden pill" | `data-component="GardenChip"` (shared 36px pill in the AppBar) |
-| "the work card" | `data-component="HubWorkCard"` |
+| "the work card" | `data-component="ReviewWorkCard"` |
 
 ### Tier 2: Static grep (authenticated Brave access unavailable, or page not open)
 
@@ -66,7 +66,7 @@ Use the casual-term mapping above, narrow to the workspace directory, and cross-
 
 If Tier 1 + 2 do not narrow to a single candidate, ask in terms the user recognizes:
 
-> "On `/hub`, is this the `AdminCard` in WorkSubmissions, or the `GardenCommunityCard` on the same view?"
+> "On `/review`, is this the `AdminCard` in WorkSubmissions, or the `GardenCommunityCard` on the same view?"
 
 Never ask the user to formalize their report in the grammar. That is the agent's job.
 
@@ -103,7 +103,7 @@ The left column is what the user says. The right column is the internal statemen
 
 | User says | Agent's internal statement |
 |-----------|----------------------------|
-| "The card in Review feels tight." | `AdminCard in /hub WorkSubmissions → spacing: expected p-4 (16px), AdminCard's default padding, currently p-3 (12px)` |
+| "The card in Review feels tight." | `AdminCard in /review WorkSubmissions → spacing: expected p-4 (16px), AdminCard's default padding, currently p-3 (12px)` |
 | "The top bar on Garden feels detached from the page." | `canvas-area-top in /garden → hierarchy: AppBar reads detached from the canvas (expected: transparent root over the --tone-surface-tint-color wash); check the wash gradient and sticky-header transparency` |
 | "The tabs on Community snap weirdly." | `AdminTabRail in /community → motion: hover/active text transition hardcodes ease-out 200ms instead of --spring-effects-fast (each cell draws its own underline: there is no sliding indicator to animate)` |
 | "The input label looks wrong at phone width." | `AdminTextField in AdminDialog create-garden form → responsive: the label above the box wraps to two lines below 400px container width, so its box sits lower than the field beside it` |

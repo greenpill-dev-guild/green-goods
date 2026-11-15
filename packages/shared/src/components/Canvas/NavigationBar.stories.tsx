@@ -10,18 +10,18 @@ import { expect, fn, userEvent, within } from "storybook/test";
 import { NavigationBar, type ToolbarSlot } from "./NavigationBar";
 
 const workSlot: ToolbarSlot = {
-  id: "hub",
+  id: "review",
   label: "Review",
-  labelId: "cockpit.nav.hub",
+  labelId: "hub.nav.review",
   icon: RiClipboardLine,
-  path: "/hub",
+  path: "/review",
   visible: true,
 };
 
 const gardenSlot: ToolbarSlot = {
   id: "garden",
   label: "Garden",
-  labelId: "cockpit.nav.garden",
+  labelId: "hub.nav.garden",
   icon: RiSeedlingLine,
   path: "/garden",
   visible: true,
@@ -30,7 +30,7 @@ const gardenSlot: ToolbarSlot = {
 const communitySlot: ToolbarSlot = {
   id: "community",
   label: "Community",
-  labelId: "cockpit.nav.community",
+  labelId: "hub.nav.community",
   icon: RiTeamLine,
   path: "/community",
   visible: true,
@@ -74,13 +74,13 @@ const speedDialFab = {
       id: "create-assessment",
       icon: RiClipboardLine,
       label: "Create Assessment",
-      labelId: "cockpit.hub.action.createAssessment",
+      labelId: "hub.review.action.createAssessment",
     },
     {
       id: "create-hypercert",
       icon: RiSeedlingLine,
       label: "Create Hypercert",
-      labelId: "cockpit.hub.action.createHypercert",
+      labelId: "hub.review.action.createHypercert",
     },
   ],
   onAction: fn(),
@@ -124,7 +124,7 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   args: {
     slots: primarySlots,
-    activePath: "/hub",
+    activePath: "/review",
     onNavigate: fn(),
   },
   play: async ({ args, canvasElement }) => {
@@ -149,7 +149,7 @@ export const CommunityActive: Story = {
 export const SingleVisibleSlotHidden: Story = {
   args: {
     slots: [workSlot, { ...gardenSlot, visible: false }, { ...communitySlot, visible: false }],
-    activePath: "/hub",
+    activePath: "/review",
     onNavigate: fn(),
   },
   render: (args) => (
@@ -171,7 +171,7 @@ export const HiddenActions: Story = {
 export const WithFab: Story = {
   args: {
     slots: primarySlots,
-    activePath: "/hub",
+    activePath: "/review",
     onNavigate: fn(),
     fab: submitWorkFab,
   },
@@ -195,7 +195,7 @@ export const Mobile: Story = {
 export const MobileSpeedDial: Story = {
   args: {
     slots: primarySlots,
-    activePath: "/hub",
+    activePath: "/review",
     onNavigate: fn(),
     fab: speedDialFab,
   },

@@ -21,7 +21,7 @@ export interface ImpactTabProps {
   gardenId: string;
   canManage: boolean;
   canReview: boolean;
-  /** Whether the viewer may create a hypercert in the Hub, where the empty state points. */
+  /** Whether the viewer may create a hypercert in Review, where the empty state points. */
   canCertify?: boolean;
   section: string | undefined;
   selectedItem: string | undefined;
@@ -155,8 +155,8 @@ export function ImpactTab({
                     action={
                       canCertify ? (
                         <Button emphasis="secondary" size="compact" asChild>
-                          <Link to={adminRoutes.hubCertifyCreate(gardenRouteContext)}>
-                            {formatMessage({ id: "cockpit.hub.action.createHypercert" })}
+                          <Link to={adminRoutes.reviewCertifyCreate(gardenRouteContext)}>
+                            {formatMessage({ id: "hub.review.action.createHypercert" })}
                           </Link>
                         </Button>
                       ) : undefined
@@ -242,8 +242,8 @@ export function ImpactTab({
                     action={
                       canReview ? (
                         <Button emphasis="secondary" size="compact" asChild>
-                          <Link to={adminRoutes.hubAssessCreate(gardenRouteContext)}>
-                            {formatMessage({ id: "cockpit.hub.action.createAssessment" })}
+                          <Link to={adminRoutes.reviewAssessCreate(gardenRouteContext)}>
+                            {formatMessage({ id: "hub.review.action.createAssessment" })}
                           </Link>
                         </Button>
                       ) : undefined

@@ -53,7 +53,7 @@ const PILL: Record<VoucherIssuerStatus, "success" | "warning" | "info" | "neutra
 /** The card in the protocol garden's Community, Coordination, on the live reads. */
 export function VoucherIssuerOnboarding({ canPrepare }: { canPrepare: boolean }) {
   const intl = useIntl();
-  const t = (key: string) => intl.formatMessage({ id: `cockpit.community.voucherDesk.${key}` });
+  const t = (key: string) => intl.formatMessage({ id: `hub.community.voucherDesk.${key}` });
   const choices = SERVICE_ISSUER_ROUTES.flatMap((route) =>
     route.pools.map((pool) => ({ route, pool, key: `${route.service.id}:${pool.id}` }))
   );
@@ -179,7 +179,7 @@ export function VoucherIssuerCard({
 }: Props) {
   const intl = useIntl();
   const text = (key: string, values?: Record<string, string | number>) =>
-    intl.formatMessage({ id: `cockpit.community.voucherIssuers.${key}` }, values);
+    intl.formatMessage({ id: `hub.community.voucherIssuers.${key}` }, values);
   const [open, setOpen] = useState<{ row: VoucherIssuerRow; kind: VoucherIssuerDialogKind } | null>(
     null
   );
@@ -319,7 +319,7 @@ export function VoucherIssuerCard({
                       disabled={!canPrepare}
                       onClick={() => onEdit(row.record!.draft)}
                     >
-                      {intl.formatMessage({ id: "cockpit.community.voucherDesk.edit" })}
+                      {intl.formatMessage({ id: "hub.community.voucherDesk.edit" })}
                     </Button>
                   ) : null}
                 </div>

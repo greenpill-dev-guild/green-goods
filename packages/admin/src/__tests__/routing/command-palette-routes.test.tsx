@@ -144,7 +144,7 @@ describe("CommandPalette Routes", () => {
     expect(screen.getByText("Actions")).toBeInTheDocument();
   });
 
-  it("omits Community when the navigation bar hides it, since its route redirects to Hub", () => {
+  it("omits Community when the navigation bar hides it, since its route redirects to Review", () => {
     mockPermissions.showCommunity = false;
     renderWithProviders(
       <MemoryRouter>

@@ -5,7 +5,7 @@ import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 
 /**
- * Manage Members is a route-driven action flow — same pattern as the Hub
+ * Manage Members is a route-driven action flow — same pattern as Review's
  * create flows (useAdminGardenContext resolves the garden from the URL, not
  * a possibly-stale Zustand selection). `useGardenDetailData` already does its
  * own id-based garden resolution plus `canManage`/`roleMembers`, so this

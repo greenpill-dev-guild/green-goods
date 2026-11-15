@@ -25,11 +25,11 @@ violated half of these. Validators check structure; this contract is what "desig
 - **The primary is rightmost; secondaries sit left of it in declaration order.** Destructive acts
   never share a cluster with routine acts: they get their own row, region, or the confirm
   dialog's danger slot. (Brief: destructive separation; Fitts's Law.)
-- **A review surface renders its action set outlined.** Review, the `/hub` workspace, exists to
+- **A review surface renders its action set outlined.** Review, the `/review` workspace, exists to
   review work, so its trio (Submit Work, Create Assessment, Create Hypercert) fills no button
   above the queue. The declared primary still sorts rightmost and fills the FAB (DL-043). Proof:
-  [hub.utils.ts](../../../packages/shared/src/hooks/admin-ui/hub/hub.utils.ts),
-  where `buildHubViewActions` declares every action `secondary` and keeps Submit Work `primary`.
+  [review.utils.ts](../../../packages/shared/src/hooks/admin-ui/review/review.utils.ts),
+  where `buildReviewViewActions` declares every action `secondary` and keeps Submit Work `primary`.
 - **Tab-specific actions live in the tab's content**, end-aligned in the section they act on:
   a section-header trailing act, a right-rail quick-actions card, or a row's one trailing act.
   Never in the view header.
@@ -39,7 +39,7 @@ violated half of these. Validators check structure; this contract is what "desig
 - **Empty-state Create repeats a hidden header action only.** Review's Assessments and
   Hypercerts keep their Create button below 1024px, where the FAB carries the route actions,
   and hide it from 1024px, where the header trio is visible (DL-138). Proof:
-  [HubRecordLists.tsx](../../../packages/admin/src/views/Hub/components/HubRecordLists.tsx).
+  [ReviewRecordLists.tsx](../../../packages/admin/src/views/Review/components/ReviewRecordLists.tsx).
 - **The FAB always shows a plus.** Closed, every FAB shows "+" in the workspace tone it already
   wears, whether it fires one act or opens a dial: the tone says which tab this is, so the glyph
   stays one landmark across all of them. A dial swaps the plus for a close icon while open, and
@@ -85,7 +85,7 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   lands on the result (DL-080, § 3), replacing the dialog's history entry. Every shipped case
   follows this: Fund Cookie Jar, Add Member, Edit Garden, and Review's Submit Work, Create
   Assessment and Create Hypercert, whose old paths now redirect to their items. Proof:
-  `buildCommunityViewActions`, `buildGardenViewActions` and `buildHubViewActions` hand each press
+  `buildCommunityViewActions`, `buildGardenViewActions` and `buildReviewViewActions` hand each press
   the active tab; [useRouteItemClose](../../../packages/shared/src/hooks/navigation/useCanvasSearchParams.ts)
   owns the close; [CommunitySheetDescriptor.test.tsx](../../../packages/admin/src/views/Community/components/CommunitySheetDescriptor.test.tsx),
   [CommunityMembersDialogs.test.tsx](../../../packages/admin/src/views/Community/components/CommunityMembersDialogs.test.tsx)

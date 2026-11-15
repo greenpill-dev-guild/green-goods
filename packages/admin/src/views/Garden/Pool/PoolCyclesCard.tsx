@@ -47,7 +47,7 @@ export function PoolCyclesCard({
   const cycleMeta = (cycle: CommitmentCycleRecord) =>
     formatMessage(
       {
-        id: "cockpit.garden.pool.cycle.meta",
+        id: "hub.garden.pool.cycle.meta",
         defaultMessage:
           "{made, plural, one {# promise} other {# promises}} · {kept} kept · runs through {end}",
       },
@@ -69,7 +69,7 @@ export function PoolCyclesCard({
       <p className="type-meta text-text-soft">
         {formatMessage(
           {
-            id: "cockpit.garden.pool.cycle.endBlocked",
+            id: "hub.garden.pool.cycle.endBlocked",
             defaultMessage:
               "{count, plural, one {# promise is still live.} other {# promises are still live.}} It can end once each is kept, canceled or expired.",
           },
@@ -95,11 +95,11 @@ export function PoolCyclesCard({
         <span id={`pool-cycle-end-${cycle.cycleId.toString()}`}>
           {cycle.cycleType === "CAMPAIGN"
             ? formatMessage({
-                id: "cockpit.garden.pool.cycle.act.end",
+                id: "hub.garden.pool.cycle.act.end",
                 defaultMessage: "End Campaign…",
               })
             : formatMessage({
-                id: "cockpit.garden.pool.cycle.act.endSeason",
+                id: "hub.garden.pool.cycle.act.endSeason",
                 defaultMessage: "End Season…",
               })}
         </span>
@@ -128,7 +128,7 @@ export function PoolCyclesCard({
             </span>
             <StatusBadge variant="neutral" size="sm">
               {formatMessage({
-                id: "cockpit.garden.pool.cycle.campaign",
+                id: "hub.garden.pool.cycle.campaign",
                 defaultMessage: "Campaign",
               })}
             </StatusBadge>
@@ -150,7 +150,7 @@ export function PoolCyclesCard({
               disabled={actDisabled || model.status !== "open"}
             >
               {formatMessage({
-                id: "cockpit.garden.pool.cycle.act.open",
+                id: "hub.garden.pool.cycle.act.open",
                 defaultMessage: "Open Campaign",
               })}
             </Button>
@@ -164,7 +164,7 @@ export function PoolCyclesCard({
               disabled={actDisabled}
             >
               {formatMessage({
-                id: "cockpit.garden.pool.cycle.act.cancel",
+                id: "hub.garden.pool.cycle.act.cancel",
                 defaultMessage: "Cancel Campaign…",
               })}
             </Button>
@@ -188,7 +188,7 @@ export function PoolCyclesCard({
               </AdminCardTitle>
               <StatusBadge variant="neutral" size="sm">
                 {formatMessage({
-                  id: "cockpit.garden.pool.cycle.season",
+                  id: "hub.garden.pool.cycle.season",
                   defaultMessage: "Season",
                 })}
               </StatusBadge>
@@ -203,7 +203,7 @@ export function PoolCyclesCard({
               {season.state === "SEEDED"
                 ? formatMessage(
                     {
-                      id: "cockpit.garden.pool.cycle.seededMeta",
+                      id: "hub.garden.pool.cycle.seededMeta",
                       defaultMessage:
                         "Runs {start} – {end} · terms written · nobody can commit yet",
                     },
@@ -227,7 +227,7 @@ export function PoolCyclesCard({
                 disabled={actDisabled || !canOpenCycle}
               >
                 {formatMessage({
-                  id: "cockpit.garden.pool.cycle.act.openSeason",
+                  id: "hub.garden.pool.cycle.act.openSeason",
                   defaultMessage: "Open to the Garden",
                 })}
               </Button>
@@ -242,7 +242,7 @@ export function PoolCyclesCard({
                 disabled={actDisabled}
               >
                 {formatMessage({
-                  id: "cockpit.garden.pool.cycle.act.cancelSeason",
+                  id: "hub.garden.pool.cycle.act.cancelSeason",
                   defaultMessage: "Cancel Season…",
                 })}
               </Button>
@@ -255,20 +255,20 @@ export function PoolCyclesCard({
             <div className="flex flex-wrap items-center gap-2">
               <AdminCardTitle>
                 {formatMessage({
-                  id: "cockpit.garden.pool.cycle.noSeason",
+                  id: "hub.garden.pool.cycle.noSeason",
                   defaultMessage: "No season running",
                 })}
               </AdminCardTitle>
               <StatusBadge variant="neutral" size="sm">
                 {formatMessage({
-                  id: "cockpit.garden.pool.cycle.season",
+                  id: "hub.garden.pool.cycle.season",
                   defaultMessage: "Season",
                 })}
               </StatusBadge>
             </div>
             <p className="mt-1 type-meta text-text-soft">
               {formatMessage({
-                id: "cockpit.garden.pool.cycle.noSeasonMeta",
+                id: "hub.garden.pool.cycle.noSeasonMeta",
                 defaultMessage:
                   "A season is the pool's main rhythm: one at a time, with campaigns beside it.",
               })}
@@ -282,7 +282,7 @@ export function PoolCyclesCard({
             disabled={actDisabled || !model.canSeedSeason}
           >
             {formatMessage({
-              id: "cockpit.garden.pool.cycle.act.startSeason",
+              id: "hub.garden.pool.cycle.act.startSeason",
               defaultMessage: "Start Season",
             })}
           </Button>
@@ -292,7 +292,7 @@ export function PoolCyclesCard({
       {season?.state === "SEEDED" ? (
         <p className="type-meta text-text-soft">
           {formatMessage({
-            id: "cockpit.garden.pool.cycle.seededNote",
+            id: "hub.garden.pool.cycle.seededNote",
             defaultMessage:
               "Opening tells everyone the season has begun, and is the moment neighbors can start offering help and asking for it. Until then this season is only written down.",
           })}
@@ -304,12 +304,12 @@ export function PoolCyclesCard({
           <p className="type-label-sm text-text-soft">
             {model.campaigns.length === 0
               ? formatMessage({
-                  id: "cockpit.garden.pool.cycle.campaignsNone",
+                  id: "hub.garden.pool.cycle.campaignsNone",
                   defaultMessage: "Campaigns · none yet",
                 })
               : formatMessage(
                   {
-                    id: "cockpit.garden.pool.cycle.campaignsCount",
+                    id: "hub.garden.pool.cycle.campaignsCount",
                     defaultMessage: "Campaigns · {open} open · {waiting} waiting to open",
                   },
                   {
@@ -326,7 +326,7 @@ export function PoolCyclesCard({
             disabled={actDisabled || !model.canStartCampaign}
           >
             {formatMessage({
-              id: "cockpit.garden.pool.cycle.act.startCampaign",
+              id: "hub.garden.pool.cycle.act.startCampaign",
               defaultMessage: "Start Campaign",
             })}
           </Button>
@@ -336,7 +336,7 @@ export function PoolCyclesCard({
         ) : (
           <p className="mt-1 type-meta text-text-soft">
             {formatMessage({
-              id: "cockpit.garden.pool.cycle.campaignsNote",
+              id: "hub.garden.pool.cycle.campaignsNote",
               defaultMessage:
                 "Campaigns are shorter pushes that can run beside a season, or on their own.",
             })}
@@ -348,7 +348,7 @@ export function PoolCyclesCard({
         <div className="border-t border-stroke-soft pt-3">
           <p className="type-label-sm text-text-soft">
             {formatMessage({
-              id: "cockpit.garden.pool.cycle.finished",
+              id: "hub.garden.pool.cycle.finished",
               defaultMessage: "Finished",
             })}
           </p>
@@ -372,11 +372,11 @@ export function PoolCyclesCard({
                   <StatusBadge variant="neutral" size="sm">
                     {cycle.cycleType === "CAMPAIGN"
                       ? formatMessage({
-                          id: "cockpit.garden.pool.cycle.campaign",
+                          id: "hub.garden.pool.cycle.campaign",
                           defaultMessage: "Campaign",
                         })
                       : formatMessage({
-                          id: "cockpit.garden.pool.cycle.season",
+                          id: "hub.garden.pool.cycle.season",
                           defaultMessage: "Season",
                         })}
                   </StatusBadge>
@@ -395,7 +395,7 @@ export function PoolCyclesCard({
                     >
                       <span id={`pool-cycle-archive-${cycle.cycleId.toString()}`}>
                         {formatMessage({
-                          id: "cockpit.garden.pool.cycle.act.archive",
+                          id: "hub.garden.pool.cycle.act.archive",
                           defaultMessage: "Archive…",
                         })}
                       </span>

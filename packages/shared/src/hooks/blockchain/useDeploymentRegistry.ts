@@ -264,7 +264,7 @@ export function useGardenCreators(): GardenCreators {
         // The sender is still being set up, a passkey account initializing say: nothing can go.
         toastService.error({
           title: messages.errorMessage,
-          message: formatMessage({ id: "cockpit.community.gardenCreators.checkFailed" }),
+          message: formatMessage({ id: "hub.community.gardenCreators.checkFailed" }),
           context: "garden creators",
         });
         return false;
@@ -289,7 +289,7 @@ export function useGardenCreators(): GardenCreators {
             // could not run, and its parsed message would read as a refusal it never made.
             message: simulation.error?.reverted
               ? simulation.error.message
-              : formatMessage({ id: "cockpit.community.gardenCreators.checkFailed" }),
+              : formatMessage({ id: "hub.community.gardenCreators.checkFailed" }),
             context: "garden creators",
           });
           return false;
@@ -353,15 +353,15 @@ export function useGardenCreators(): GardenCreators {
     (creator: Address) =>
       writeAllowlist("addToAllowlist", creator, {
         loadingMessage: formatMessage({
-          id: "cockpit.community.gardenCreators.adding",
+          id: "hub.community.gardenCreators.adding",
           defaultMessage: "Adding garden creator...",
         }),
         successMessage: formatMessage({
-          id: "cockpit.community.gardenCreators.added",
+          id: "hub.community.gardenCreators.added",
           defaultMessage: "Garden creator added",
         }),
         errorMessage: formatMessage({
-          id: "cockpit.community.gardenCreators.addFailed",
+          id: "hub.community.gardenCreators.addFailed",
           defaultMessage: "Couldn't add garden creator",
         }),
       }),
@@ -372,15 +372,15 @@ export function useGardenCreators(): GardenCreators {
     (creator: Address) =>
       writeAllowlist("removeFromAllowlist", creator, {
         loadingMessage: formatMessage({
-          id: "cockpit.community.gardenCreators.removing",
+          id: "hub.community.gardenCreators.removing",
           defaultMessage: "Removing garden creator...",
         }),
         successMessage: formatMessage({
-          id: "cockpit.community.gardenCreators.removed",
+          id: "hub.community.gardenCreators.removed",
           defaultMessage: "Garden creator removed",
         }),
         errorMessage: formatMessage({
-          id: "cockpit.community.gardenCreators.removeFailed",
+          id: "hub.community.gardenCreators.removeFailed",
           defaultMessage: "Couldn't remove garden creator",
         }),
       }),

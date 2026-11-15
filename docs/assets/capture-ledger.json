@@ -15,7 +15,7 @@
     {
       "page": "docs/docs/builders/getting-started.mdx",
       "images": ["/img/builders/admin-hub-work.webp"],
-      "capture_note": "The admin cockpit's Hub, the first screen a steward lands on. Mock auth shows it for a test steward's garden.",
+      "capture_note": "Review, the first screen a steward lands on in the Hub. Mock auth shows it for a test steward's garden.",
       "status": "historical"
     },
     {
@@ -42,7 +42,7 @@
     {
       "page": "docs/docs/builders/integrations/hypercerts.mdx",
       "images": ["/img/builders/admin-hub-hypercerts.webp"],
-      "capture_note": "A steward's view: the Hub's Hypercerts tab, where a garden's certificates are minted and listed.",
+      "capture_note": "A steward's view: Review's Hypercerts tab, where a garden's certificates are minted and listed.",
       "status": "historical"
     },
     {
@@ -58,7 +58,7 @@
     {
       "page": "docs/docs/builders/integrations/passkey.mdx",
       "images": ["/img/builders/admin-sign-in.webp"],
-      "capture_note": "Sign-in in the cockpit: a passkey account first, a wallet second. The installed app opens the same way."
+      "capture_note": "Sign-in in the Hub: a passkey account first, a wallet second. The installed app opens the same way."
     },
     {
       "page": "docs/docs/builders/integrations/octant.mdx",
@@ -130,7 +130,7 @@
     {
       "page": "docs/docs/builders/architecture/design.mdx",
       "images": ["/img/design/design-system-admin-foundations-tokens.webp"],
-      "capture_note": "The cockpit's foundations: Material 3 roles, elevation, and type scale. Open in Storybook."
+      "capture_note": "The Hub's foundations: Material 3 roles, elevation, and type scale. Open in Storybook."
     },
     {
       "page": "docs/docs/builders/architecture/design.mdx",
@@ -140,13 +140,13 @@
     {
       "page": "docs/docs/builders/architecture/design.mdx",
       "images": ["/img/builders/admin-hub-work.webp"],
-      "capture_note": "The cockpit in use: the Hub's Work tab, with the translucent navigation dock and everything else solid on the canvas.",
+      "capture_note": "The Hub in use: Review's Work tab, with the translucent navigation dock and everything else solid on the canvas.",
       "status": "historical"
     },
     {
       "page": "docs/docs/builders/architecture/anatomy.mdx",
       "images": ["/img/builders/admin-hub-work.webp"],
-      "capture_note": "The Hub's Work tab, where submissions wait for a steward and approved ones stay on record.",
+      "capture_note": "Review's Work tab, where submissions wait for a steward and approved ones stay on record.",
       "status": "historical"
     },
     {

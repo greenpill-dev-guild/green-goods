@@ -30,7 +30,7 @@ export function AccountTabList({ activeTab, onTabChange, className }: AccountTab
   return (
     <AdminTabRail
       ariaLabel={formatMessage({
-        id: "cockpit.topBar.userProfile",
+        id: "hub.topBar.userProfile",
         defaultMessage: "User profile",
       })}
       activeId={activeTab}
@@ -42,8 +42,8 @@ export function AccountTabList({ activeTab, onTabChange, className }: AccountTab
         // it and of the desktop Profile sheet that holds the same content (D8).
         label:
           tab === "settings"
-            ? formatMessage({ id: "cockpit.settings.title", defaultMessage: "Settings" })
-            : formatMessage({ id: "cockpit.nav.profile", defaultMessage: "Profile" }),
+            ? formatMessage({ id: "hub.settings.title", defaultMessage: "Settings" })
+            : formatMessage({ id: "hub.nav.profile", defaultMessage: "Profile" }),
       }))}
       className={cn("w-full", className)}
     />

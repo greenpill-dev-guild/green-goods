@@ -171,7 +171,7 @@ to match the canonical catalog so the two sources cannot quietly drift.
 
 ### Regression and rollout scope
 
-The Public Website, PWA, Admin Dashboard, Docs, Agent Reporting, and QA Operations tabs define
+The Green Goods Website, Green Goods App, Green Goods Hub, Docs, Agent Reporting, and QA Operations tabs define
 regression checks. Confirm the deployment and prerequisites before running them; an `active` case
 means available to test, not deployed or passed.
 

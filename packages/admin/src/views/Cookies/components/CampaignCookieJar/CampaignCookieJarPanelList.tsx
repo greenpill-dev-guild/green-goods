@@ -38,14 +38,14 @@ export function CampaignCookieJarPanelList({
           <div className="min-w-0">
             <AdminCardTitle as="h2">
               {formatMessage({
-                id: "cockpit.community.cookies.listTitle",
+                id: "hub.community.cookies.listTitle",
                 defaultMessage: "Campaign Cookie Jars",
               })}
             </AdminCardTitle>
             <p className="mt-1 type-body text-text-sub">
               {formatMessage(
                 {
-                  id: "cockpit.community.cookies.listDescription",
+                  id: "hub.community.cookies.listDescription",
                   defaultMessage:
                     "{count, plural, one {# campaign jar on this network} other {# campaign jars on this network}}.",
                 },
@@ -59,13 +59,13 @@ export function CampaignCookieJarPanelList({
           id="campaign-cookie-jar-search"
           className="min-w-0 md:max-w-sm"
           label={formatMessage({
-            id: "cockpit.community.cookies.searchCampaigns",
+            id: "hub.community.cookies.searchCampaigns",
             defaultMessage: "Search cookie jars",
           })}
           value={campaignSearch}
           onChange={(event) => setCampaignSearch(event.target.value)}
           placeholder={formatMessage({
-            id: "cockpit.community.cookies.searchCampaignsPlaceholder",
+            id: "hub.community.cookies.searchCampaignsPlaceholder",
             defaultMessage: "Search by name, slug, or address",
           })}
         />
@@ -79,7 +79,7 @@ export function CampaignCookieJarPanelList({
         >
           <span className="sr-only">
             {formatMessage({
-              id: "cockpit.community.cookies.loadingCampaigns",
+              id: "hub.community.cookies.loadingCampaigns",
               defaultMessage: "Loading campaign cookie jars...",
             })}
           </span>
@@ -94,11 +94,11 @@ export function CampaignCookieJarPanelList({
           tone="error"
           icon={<RiErrorWarningLine />}
           title={formatMessage({
-            id: "cockpit.community.cookies.loadFailed.title",
+            id: "hub.community.cookies.loadFailed.title",
             defaultMessage: "Could not load campaign cookie jars",
           })}
           description={formatMessage({
-            id: "cockpit.community.cookies.loadFailed.description",
+            id: "hub.community.cookies.loadFailed.description",
             defaultMessage: "Direct jar links still work.",
           })}
         />
@@ -108,11 +108,11 @@ export function CampaignCookieJarPanelList({
           className="flex-1"
           icon={<RiCookieLine />}
           title={formatMessage({
-            id: "cockpit.community.cookies.emptyTitle",
+            id: "hub.community.cookies.emptyTitle",
             defaultMessage: "No campaign cookie jars yet",
           })}
           description={formatMessage({
-            id: "cockpit.community.cookies.emptyDescription",
+            id: "hub.community.cookies.emptyDescription",
             defaultMessage:
               "Create the first campaign jar, then it will appear here once the indexer sees it.",
           })}
@@ -126,7 +126,7 @@ export function CampaignCookieJarPanelList({
           className="flex-1"
           icon={<RiSearchLine />}
           title={formatMessage({
-            id: "cockpit.community.cookies.noCampaignMatches",
+            id: "hub.community.cookies.noCampaignMatches",
             defaultMessage: "No cookie jars match that search.",
           })}
         />

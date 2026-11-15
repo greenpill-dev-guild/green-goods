@@ -72,7 +72,7 @@ function parseSeenGardenIdsByScope(value: unknown): Record<string, string[]> {
 /**
  * The active garden, a device preference per chain and account (PWA Home decision 8). It is
  * keyed by `chainId:address`, so it stays when another account signs in and is never read for
- * one. The UI store and the cockpit keep their own keys; the cockpit's candidate set differs.
+ * one. The UI store and the Hub keep their own keys; the Hub's candidate set differs.
  * Nothing here forgets a garden: a choice the account can no longer hold simply stops winning,
  * and a garden seen once stays seen, so leaving it and coming back is not announced as new.
  */

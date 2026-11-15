@@ -6,7 +6,10 @@ import { describe, expect, it } from "vitest";
 
 const srcDir = resolve(__dirname, "../../");
 const routeViewsPath = resolve(srcDir, "routes/views.tsx");
-const hubSheetDescriptorPath = resolve(srcDir, "views/Hub/components/HubSheetDescriptor.tsx");
+const reviewSheetDescriptorPath = resolve(
+  srcDir,
+  "views/Review/components/ReviewSheetDescriptor.tsx"
+);
 const sheetRegistryPath = resolve(
   srcDir,
   "../../shared/src/hooks/admin-ui/navigation/sheetRegistry.ts"
@@ -32,7 +35,7 @@ describe("route folding", () => {
   });
 
   it.each([
-    ["hub", "?garden=0x1&view=queue", "/hub/work?garden=0x1"],
+    ["review", "?garden=0x1&view=queue", "/review/work?garden=0x1"],
     ["garden", "?garden=0x1&view=overview", "/garden/health?garden=0x1"],
     ["garden-overview", "?view=overview", "/garden/health"],
     ["community", "?garden=0x1&card=c1&pool=p1", "/community/members?garden=0x1"],
@@ -50,15 +53,15 @@ describe("route folding", () => {
     expect(routeViews).not.toMatch(/to=\{`\$\{adminRoutes\./);
   });
 
-  it("Hub sheet descriptor owns only the read/review inspectors", () => {
-    // Inspector panels are composed in the Hub sheet descriptor; Submit Work is
-    // a creation/commit flow with its own route, so it is no longer a Hub sheet.
-    const hubSheetDescriptor = readSource(hubSheetDescriptorPath);
+  it("Review sheet descriptor owns only the read/review inspectors", () => {
+    // Inspector panels are composed in the Review sheet descriptor; Submit Work is
+    // a creation/commit flow with its own route, so it is no longer a Review sheet.
+    const reviewSheetDescriptor = readSource(reviewSheetDescriptorPath);
     const sheetRegistry = readSource(sheetRegistryPath);
 
-    expect(hubSheetDescriptor).toContain("WorkDetailPanel");
-    expect(hubSheetDescriptor).not.toContain("SubmitWorkPanel");
-    expect(sheetRegistry).toContain("hub:work-detail:");
+    expect(reviewSheetDescriptor).toContain("WorkDetailPanel");
+    expect(reviewSheetDescriptor).not.toContain("SubmitWorkPanel");
+    expect(sheetRegistry).toContain("review:work-detail:");
     // The retired History stage keeps no registry entry — only the
     // stale-state guard that refuses to restore its persisted ids.
     expect(sheetRegistry).not.toContain("HISTORY_CONTENT_ID_PREFIX");
@@ -87,15 +90,15 @@ describe("route folding", () => {
     expect(canvasLayout).toContain("NotificationPanel");
   });
 
-  it("keeps the public Hub context narrow and retired route helpers absent", () => {
+  it("keeps the public Review context narrow and retired route helpers absent", () => {
     const source = readSource(sharedAdminRoutesPath);
     const context =
-      source.match(/export interface AdminHubRouteContext \{([\s\S]*?)\n\}/)?.[1] ?? "";
+      source.match(/export interface AdminReviewRouteContext \{([\s\S]*?)\n\}/)?.[1] ?? "";
     expect(context).toContain("gardenAddress?: Address | string;");
-    expect(context).toContain("sort?: AdminHubSort;");
-    expect(context).toContain("scope?: AdminHubWorkScope;");
+    expect(context).toContain("sort?: AdminReviewSort;");
+    expect(context).toContain("scope?: AdminReviewWorkScope;");
     expect(context).not.toContain("item?: string;");
-    expect(source).not.toContain("hubHistoryDetail");
-    expect(source).not.toContain("hubCertifyDetail");
+    expect(source).not.toContain("reviewHistoryDetail");
+    expect(source).not.toContain("reviewCertifyDetail");
   });
 });

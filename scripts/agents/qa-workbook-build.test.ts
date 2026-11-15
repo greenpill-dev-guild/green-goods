@@ -23,13 +23,13 @@ import {
 function makeCase(overrides: Partial<CatalogCase> = {}): CatalogCase {
   return {
     id: "ADM-001",
-    tab: "Admin Dashboard",
+    tab: "Green Goods Hub",
     platform: "Chromium Desktop",
     priority: "P0",
     area: "Shell",
     scenario: "Admin hub loads",
     preconditions: ["Admin URL available"],
-    steps: ["Open /hub", "Inspect shell"],
+    steps: ["Open /review", "Inspect shell"],
     expected: "Shell loads",
     evidence: "Screenshot",
     role: "steward",
@@ -77,7 +77,7 @@ describe("qa-test-catalog.json", () => {
 });
 
 describe("validateCatalog", () => {
-  const tabs = ["Public Website", "PWA", "Admin Dashboard", "Docs"];
+  const tabs = ["Green Goods Website", "Green Goods App", "Green Goods Hub", "Docs"];
 
   it("accepts a well-formed catalog", () => {
     const catalog: Catalog = { version: 2, tabs, kinds, statuses, cases: [makeCase()] };
@@ -107,11 +107,11 @@ describe("validateCatalog", () => {
     const rollout = makeCase({ id: "ROLL-001", tab: "Rollout Readiness", scenario: "In progress: check policy", tags: ["in-progress"], preconditions: ["Activation gate: reviewed staging deployment"] });
     const catalog = { version: 3, tabs: [...tabs, "Rollout Readiness"], kinds, statuses, cases: [rollout] };
     expect(validateCatalog(catalog)).toEqual([]);
-    for (const patch of [{ scenario: "Check policy" }, { tags: [] }, { preconditions: [] }, { tab: "Admin Dashboard" }]) {
+    for (const patch of [{ scenario: "Check policy" }, { tags: [] }, { preconditions: [] }, { tab: "Green Goods Hub" }]) {
       expect(validateCatalog({ ...catalog, cases: [{ ...rollout, ...patch }] })).not.toEqual([]);
     }
     expect(resolveSurfaceFilter("rollout", catalog.tabs)).toEqual(["Rollout Readiness"]);
-    expect(filterCases([rollout, makeCase()], { tabs: ["Admin Dashboard"] }).map((item) => item.id)).toEqual([makeCase().id]);
+    expect(filterCases([rollout, makeCase()], { tabs: ["Green Goods Hub"] }).map((item) => item.id)).toEqual([makeCase().id]);
   });
 
   it("rejects unlabeled rollout journeys and mixtures of regression and rollout cases", () => {
@@ -129,9 +129,9 @@ describe("validateCatalog", () => {
   });
 
   it("requires a capability flag on installed-device rows but not desktop PWA journeys", () => {
-    const unflagged = makeCase({ id: "PWA-IOS-099", tab: "PWA" });
-    const flagged = makeCase({ id: "PWA-IOS-098", tab: "PWA", requiresDevice: true });
-    const desktopJourney = makeCase({ id: "PWA-099", tab: "PWA" });
+    const unflagged = makeCase({ id: "PWA-IOS-099", tab: "Green Goods App" });
+    const flagged = makeCase({ id: "PWA-IOS-098", tab: "Green Goods App", requiresDevice: true });
+    const desktopJourney = makeCase({ id: "PWA-099", tab: "Green Goods App" });
     const problems = validateCatalog({
       version: 2,
       tabs,
@@ -144,8 +144,8 @@ describe("validateCatalog", () => {
   });
 
   it("binds prefixes to the merged tabs and frees retired rows from tab checks", () => {
-    const onPwa = makeCase({ id: "PWA-ROLE-001", tab: "PWA", requiresDevice: true });
-    const onAdmin = makeCase({ id: "PWA-ROLE-009", tab: "Admin Dashboard", requiresDevice: true });
+    const onPwa = makeCase({ id: "PWA-ROLE-001", tab: "Green Goods App", requiresDevice: true });
+    const onAdmin = makeCase({ id: "PWA-ROLE-009", tab: "Green Goods Hub", requiresDevice: true });
     const retiredLegacy = makeCase({
       id: "XPLAT-001",
       tab: "Cross Surface",
@@ -327,13 +327,13 @@ describe("howToCheck", () => {
   it("folds needs, numbered steps, and capture into one readable cell", () => {
     const cell = howToCheck(makeCase());
     expect(cell).toBe(
-      "Needs: steward account; Admin URL available\n1. Open /hub\n2. Inspect shell\nCapture: Screenshot",
+      "Needs: steward account; Admin URL available\n1. Open /review\n2. Inspect shell\nCapture: Screenshot",
     );
   });
 
   it("omits the needs line for role none/any with no preconditions", () => {
     const cell = howToCheck(makeCase({ role: "none", preconditions: [], evidence: "" }));
-    expect(cell).toBe("1. Open /hub\n2. Inspect shell");
+    expect(cell).toBe("1. Open /review\n2. Inspect shell");
   });
 
   it("keeps multi-word roles verbatim instead of appending 'account'", () => {
@@ -352,7 +352,7 @@ describe("projectRow", () => {
     expect(row[0]).toBe("ADM-001");
     expect(row[1]).toBe("P0");
     expect(row[2]).toBe("Admin hub loads");
-    expect(row[3]).toContain("1. Open /hub");
+    expect(row[3]).toContain("1. Open /review");
     expect(row[4]).toBe("Shell loads");
     expect(row[5]).toBe(""); // Result
     expect(row[6]).toBe(""); // Severity
@@ -464,12 +464,13 @@ describe("validateSelectors", () => {
 });
 
 describe("resolveSurfaceFilter", () => {
-  const tabs = ["Public Website", "PWA", "Admin Dashboard", "Docs"];
+  const tabs = ["Green Goods Website", "Green Goods App", "Green Goods Hub", "Docs"];
 
   it("resolves aliases and exact tab names", () => {
-    expect(resolveSurfaceFilter("pwa", tabs)).toEqual(["PWA"]);
-    expect(resolveSurfaceFilter("admin,docs", tabs)).toEqual(["Admin Dashboard", "Docs"]);
-    expect(resolveSurfaceFilter("Public Website", tabs)).toEqual(["Public Website"]);
+    expect(resolveSurfaceFilter("pwa", tabs)).toEqual(["Green Goods App"]);
+    expect(resolveSurfaceFilter("admin,docs", tabs)).toEqual(["Green Goods Hub", "Docs"]);
+    expect(resolveSurfaceFilter("hub,app", tabs)).toEqual(["Green Goods Hub", "Green Goods App"]);
+    expect(resolveSurfaceFilter("Green Goods Website", tabs)).toEqual(["Green Goods Website"]);
     expect(resolveSurfaceFilter("all", tabs)).toEqual(tabs);
   });
 

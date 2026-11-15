@@ -9,7 +9,7 @@ interface ConnectButtonProps {
   className?: string;
   children?: ReactNode;
   variant?: "primary" | "secondary";
-  /** The shared size, which the cockpit sets at 28 (compact), 32 (sm) and 40px (lg). */
+  /** The shared size, which the Hub sets at 28 (compact), 32 (sm) and 40px (lg). */
   size?: ButtonSize;
   disabled?: boolean;
 }

@@ -16,7 +16,7 @@
           "snippet": "setTimeout(() => setCopied(false), 1500);"
         },
         {
-          "file": "packages/admin/src/views/Hub/useCreateAssessmentController.ts",
+          "file": "packages/admin/src/views/Review/useCreateAssessmentController.ts",
           "line": 257,
           "snippet": "const timeoutId = setTimeout(() => {"
         },
@@ -1816,7 +1816,7 @@
       "count": 45,
       "entries": [
         {
-          "file": "packages/admin/src/views/Hub/components/HubWorkCard.tsx",
+          "file": "packages/admin/src/views/Review/components/ReviewWorkCard.tsx",
           "line": 74,
           "snippet": ": \"from-gray-100 to-gray-50\";"
         },

@@ -1,0 +1,258 @@
+import {
+  RiAddLine,
+  RiCheckLine,
+  RiFileList3Line,
+  RiMedalLine,
+  RiShakeHandsLine,
+} from "@remixicon/react";
+import type { MetaStripItem } from "../../../components/Canvas/MetaStrip";
+import type { ViewAction } from "../../../components/Canvas/viewActions.types";
+import {
+  type AdminReviewFlowItem,
+  type AdminReviewRouteContext,
+  type AdminReviewWorkScope,
+  adminRoutes,
+  CREATE_ASSESSMENT_ROUTE_ITEM,
+  CREATE_HYPERCERT_ROUTE_ITEM,
+  SUBMIT_WORK_ROUTE_ITEM,
+} from "../../../utils/navigation/admin-routes";
+import type { useGardenDerivedState } from "../../garden/useGardenDerivedState";
+import { pushRouteItem } from "../../navigation/useCanvasSearchParams";
+import { resolveAdminWorkspaceSectionRoute } from "../navigation/workspaceNavigation";
+
+// ============================================================================
+// Types
+// ============================================================================
+
+export type ReviewPipelineStage = "work" | "assess" | "certify" | "confirm";
+export type SortDirection = "newest" | "oldest";
+export type ReviewWorkScope = AdminReviewWorkScope;
+export type ActivityEvent = ReturnType<typeof useGardenDerivedState>["activityEvents"][number];
+export {
+  CERTIFICATION_CONTENT_ID_PREFIX,
+  isRouteSheetContentId,
+  parseCertificationContentId,
+  parseWorkDetailContentId,
+  SUBMIT_WORK_CONTENT_ID,
+  toCertificationContentId,
+  toWorkDetailContentId,
+  WORK_DETAIL_CONTENT_ID_PREFIX,
+} from "../navigation/sheetRegistry";
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+export const REVIEW_STAGE_RAIL_ID = "review-stage";
+
+// ============================================================================
+// Header Stats — Review
+// ============================================================================
+
+export interface ReviewHeaderStatsInput {
+  hasSelectedGarden: boolean;
+  /** Pending work submitted a week ago or earlier, before any search narrows the queue. */
+  waitingOverWeekCount: number;
+  formatMessage: (
+    descriptor: { id: string; defaultMessage?: string },
+    values?: Record<string, string | number | boolean | Date | null | undefined>
+  ) => string;
+}
+
+/**
+ * Inline MetaStrip items for the Review header. The stage tab rail already shows
+ * queue depth per stage, so the header adds how long work has waited: one
+ * plain-ink count of work waiting over a week. Age is metadata, never an alarm
+ * (DL-044), so the count takes no critical tone. Returns [] before a garden is
+ * selected so the slot stays clean on the selection gate.
+ */
+export function buildReviewHeaderStats({
+  hasSelectedGarden,
+  waitingOverWeekCount,
+  formatMessage,
+}: ReviewHeaderStatsInput): MetaStripItem[] {
+  if (!hasSelectedGarden) return [];
+
+  return [
+    {
+      id: "waiting-over-week",
+      value: String(waitingOverWeekCount),
+      label: formatMessage({
+        id: "hub.review.stats.waitingOverWeek",
+        defaultMessage: "waiting over a week",
+      }),
+    },
+  ];
+}
+
+// ============================================================================
+// Utility Functions
+// ============================================================================
+
+export function resolvePipelineStageFromPath(pathname: string): ReviewPipelineStage {
+  if (pathname.startsWith("/review/assess")) return "assess";
+  if (pathname.startsWith("/review/certify")) return "certify";
+  if (pathname.startsWith("/review/confirm")) return "confirm";
+  return "work";
+}
+
+export function parseSortDirection(value: string | null): SortDirection {
+  return value === "oldest" ? "oldest" : "newest";
+}
+
+export function parseWorkScope(value: string | null | undefined): ReviewWorkScope {
+  return value === "approved" ? "approved" : "pending";
+}
+
+// ============================================================================
+// Stage Config
+// ============================================================================
+
+// Two queues, then two kinds of record: work to review, promises to confirm,
+// then the garden's assessments and its hypercerts (DL-082). The stage ids and
+// their /review routes predate the Assessments and Hypercerts labels and keep
+// their names.
+export const PIPELINE_STAGE_CONFIG = [
+  {
+    id: "work" as const,
+    labelId: "hub.review.tab.work",
+    defaultMessage: "Work",
+    icon: RiCheckLine,
+  },
+  {
+    // Promises waiting on the steward's confirmation (uiux-spec §6.9), second
+    // on the rail (PRD-1045).
+    id: "confirm" as const,
+    labelId: "hub.review.tab.confirm",
+    defaultMessage: "Confirm",
+    icon: RiShakeHandsLine,
+  },
+  {
+    id: "assess" as const,
+    labelId: "hub.review.tab.assess",
+    defaultMessage: "Assessments",
+    icon: RiFileList3Line,
+  },
+  {
+    id: "certify" as const,
+    labelId: "hub.review.tab.certify",
+    defaultMessage: "Hypercerts",
+    icon: RiMedalLine,
+  },
+] as const;
+
+// ============================================================================
+// Stage Label Helpers
+// ============================================================================
+
+type FormatMessage = (
+  descriptor: { id: string; defaultMessage: string },
+  values?: Record<string, string>
+) => string;
+
+const STAGE_LABELS: Record<ReviewPipelineStage, { id: string; defaultMessage: string }> = {
+  work: { id: "hub.review.tab.work", defaultMessage: "Work" },
+  assess: { id: "hub.review.tab.assess", defaultMessage: "Assessments" },
+  certify: { id: "hub.review.tab.certify", defaultMessage: "Hypercerts" },
+  confirm: { id: "hub.review.tab.confirm", defaultMessage: "Confirm" },
+};
+
+const SEARCH_PLACEHOLDERS: Record<ReviewPipelineStage, { id: string; defaultMessage: string }> = {
+  work: { id: "hub.review.search.placeholder", defaultMessage: "Search submissions" },
+  assess: { id: "hub.review.search.assessPlaceholder", defaultMessage: "Search assessments" },
+  certify: {
+    id: "hub.review.search.certifyPlaceholder",
+    defaultMessage: "Search hypercerts",
+  },
+  confirm: {
+    id: "hub.review.search.confirmPlaceholder",
+    defaultMessage: "Search promises to confirm",
+  },
+};
+
+export function getStageTitle(stage: ReviewPipelineStage, formatMessage: FormatMessage): string {
+  return formatMessage(STAGE_LABELS[stage]);
+}
+
+export function getSearchPlaceholder(
+  stage: ReviewPipelineStage,
+  formatMessage: FormatMessage
+): string {
+  return formatMessage(SEARCH_PLACEHOLDERS[stage]);
+}
+
+// ============================================================================
+// Route Helpers
+// ============================================================================
+
+export function resolveOpenSectionRoute(
+  tab: "overview" | "impact" | "work" | "community",
+  section: string,
+  sortDirection: SortDirection,
+  itemId?: string,
+  reviewContext?: AdminReviewRouteContext
+): string {
+  return resolveAdminWorkspaceSectionRoute({
+    tab,
+    section,
+    itemId,
+    reviewSort: sortDirection,
+    gardenId: reviewContext?.gardenId,
+  });
+}
+
+// ============================================================================
+// View Actions — Review
+// ============================================================================
+//
+// Stable trio: the same creation actions render on every stage, in the same
+// order, so button positions never shift as the steward moves between tabs.
+// Review is a review surface, so all three render outlined and none
+// out-shouts the queue (DL-043). Submit Work stays the declared primary on
+// every stage (Create Assessment for evaluator-only viewers): it still sorts
+// rightmost and fills the FAB. Each one adds its flow's route item to the active
+// stage, so the flow opens over that stage with its sort and scope intact (DL-140).
+
+export function buildReviewViewActions(
+  stage: ReviewPipelineStage,
+  canManage: boolean,
+  canReview: boolean,
+  navigate: (path: string) => void,
+  reviewContext: AdminReviewRouteContext
+): ViewAction[] {
+  const openFlow = (item: AdminReviewFlowItem) => () =>
+    pushRouteItem(navigate, adminRoutes.reviewMode(stage, { ...reviewContext, item }));
+
+  return [
+    {
+      id: "submit-work",
+      label: "Submit work",
+      labelId: "hub.review.action.submitWork",
+      icon: RiAddLine,
+      onClick: openFlow(SUBMIT_WORK_ROUTE_ITEM),
+      variant: "secondary",
+      visible: canManage,
+      primary: true,
+    },
+    {
+      id: "create-assessment",
+      label: "Create assessment",
+      labelId: "hub.review.action.createAssessment",
+      icon: RiCheckLine,
+      onClick: openFlow(CREATE_ASSESSMENT_ROUTE_ITEM),
+      variant: "secondary",
+      visible: canReview,
+      primary: !canManage,
+    },
+    {
+      id: "create-hypercert",
+      label: "Create hypercert",
+      labelId: "hub.review.action.createHypercert",
+      icon: RiMedalLine,
+      onClick: openFlow(CREATE_HYPERCERT_ROUTE_ITEM),
+      variant: "secondary",
+      visible: canManage,
+      primary: false,
+    },
+  ];
+}

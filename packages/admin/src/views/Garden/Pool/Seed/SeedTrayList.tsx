@@ -27,7 +27,7 @@ export function SeedTrayList({ rows, busy, isLocked, onEdit, onRemove }: SeedTra
     <div className="space-y-1.5" data-testid="seed-tray">
       <p className="type-label-sm text-text-soft">
         {formatMessage({
-          id: "cockpit.garden.pool.seed.tray.added",
+          id: "hub.garden.pool.seed.tray.added",
           defaultMessage: "Added so far",
         })}
       </p>
@@ -38,29 +38,29 @@ export function SeedTrayList({ rows, busy, isLocked, onEdit, onRemove }: SeedTra
           const facts = [
             formatMessage(
               {
-                id: "cockpit.garden.pool.seed.tray.count",
+                id: "hub.garden.pool.seed.tray.count",
                 defaultMessage: "{count, plural, one {1 promise} other {# promises}}",
               },
               { count: values.count ?? 1 }
             ),
             formatMessage(
-              { id: "cockpit.garden.pool.seed.tray.each", defaultMessage: "{amount} {unit} each" },
+              { id: "hub.garden.pool.seed.tray.each", defaultMessage: "{amount} {unit} each" },
               { amount: values.targetUnits, unit: values.unitLabel }
             ),
             formatMessage(
               {
-                id: "cockpit.garden.pool.seed.tray.due",
+                id: "hub.garden.pool.seed.tray.due",
                 defaultMessage: "due in {days, plural, one {# day} other {# days}}",
               },
               { days: values.dueInDays }
             ),
             values.claimMode === "APPROVAL_GATED"
               ? formatMessage({
-                  id: "cockpit.garden.pool.seed.claimMode.gated",
+                  id: "hub.garden.pool.seed.claimMode.gated",
                   defaultMessage: "Steward-reviewed",
                 })
               : formatMessage({
-                  id: "cockpit.garden.pool.seed.claimMode.open",
+                  id: "hub.garden.pool.seed.claimMode.open",
                   defaultMessage: "Open",
                 }),
           ].join(" · ");
@@ -88,7 +88,7 @@ export function SeedTrayList({ rows, busy, isLocked, onEdit, onRemove }: SeedTra
                     disabled={busy}
                     aria-label={formatMessage(
                       {
-                        id: "cockpit.garden.pool.seed.tray.removeRow",
+                        id: "hub.garden.pool.seed.tray.removeRow",
                         defaultMessage: "Remove {title}",
                       },
                       { title: values.title }
@@ -104,7 +104,7 @@ export function SeedTrayList({ rows, busy, isLocked, onEdit, onRemove }: SeedTra
                     disabled={busy}
                     aria-label={formatMessage(
                       {
-                        id: "cockpit.garden.pool.seed.tray.editRow",
+                        id: "hub.garden.pool.seed.tray.editRow",
                         defaultMessage: "Edit {title}",
                       },
                       { title: values.title }

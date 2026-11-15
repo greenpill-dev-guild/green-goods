@@ -20,7 +20,7 @@ const meta: Meta<typeof EmptyState> = {
     docs: {
       description: {
         component:
-          "The state block (`EmptyState`) that stands in for a list, a tab, a panel or a screen that is empty, loading, failed or not ready. The block has one anatomy on both surfaces: a 56px round tile, the title, one description and the surface's own action. Its type comes from the roles, so it draws at the app's 16px density and the cockpit's 14px one; the calm tile is the app's green tint and the cockpit's neutral one.",
+          "The state block (`EmptyState`) that stands in for a list, a tab, a panel or a screen that is empty, loading, failed or not ready. The block has one anatomy on both surfaces: a 56px round tile, the title, one description and the surface's own action. Its type comes from the roles, so it draws at the app's 16px density and the Hub's 14px one; the calm tile is the app's green tint and the Hub's neutral one.",
       },
     },
   },
@@ -216,7 +216,7 @@ const STATES: Array<{ name: string; props: EmptyStateProps }> = [
 ];
 
 /**
- * The two sizes: each state at the app's density beside the cockpit's (the cockpit's token
+ * The two sizes: each state at the app's density beside the Hub's (the Hub's token
  * scope), so the title, description, button and calm tile follow each surface's own settings.
  */
 export const BothSizes: Story = {
@@ -225,7 +225,7 @@ export const BothSizes: Story = {
       <div className="grid grid-cols-[6rem_1fr_1fr] gap-4 type-label-sm text-text-sub-600">
         <span>State</span>
         <span>Installed app</span>
-        <span>Cockpit</span>
+        <span>Hub</span>
       </div>
       {STATES.map((state) => (
         <div key={state.name} className="grid grid-cols-[6rem_1fr_1fr] items-start gap-4">
@@ -242,11 +242,11 @@ export const BothSizes: Story = {
   ),
 };
 
-/** Every state on the cockpit's own root, as its views draw them. */
-export const CockpitStates: Story = {
+/** Every state on the Hub's own root, as its views draw them. */
+export const HubStates: Story = {
   parameters: { surface: "admin" },
   render: () => (
-    <div className="grid max-w-3xl gap-4 sm:grid-cols-2" data-tone="hub">
+    <div className="grid max-w-3xl gap-4 sm:grid-cols-2" data-tone="review">
       {STATES.map((state) => (
         <div key={state.name} className="rounded-[var(--radius-lg)] bg-bg-white-0">
           <EmptyState {...state.props} />

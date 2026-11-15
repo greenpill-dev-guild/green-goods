@@ -89,13 +89,13 @@ export function TxProgressList({
                 className="font-medium text-primary-dark underline"
                 aria-label={formatMessage(
                   {
-                    id: "cockpit.garden.pool.setup.viewTxFor",
+                    id: "hub.garden.pool.setup.viewTxFor",
                     defaultMessage: "View the transaction for “{step}”",
                   },
                   { step: row.title }
                 )}
               >
-                {formatMessage({ id: "cockpit.garden.pool.setup.viewTx", defaultMessage: "View" })}
+                {formatMessage({ id: "hub.garden.pool.setup.viewTx", defaultMessage: "View" })}
               </a>
             ) : null}
           </div>

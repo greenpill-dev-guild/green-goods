@@ -115,7 +115,7 @@ describe("PwaSheet layout contract", () => {
   });
 
   it("paints every bottom sheet from one material rule, the installed app's values as fallbacks", () => {
-    // The cockpit's phone dialogs carry the same rule and set only the two tokens.
+    // The Hub's phone dialogs carry the same rule and set only the two tokens.
     const material = utilitiesContent.match(/\[data-sheet-surface\]\s*\{([^}]*)\}/)?.[1] ?? "";
     expect(material).toMatch(/border-top-left-radius:\s*var\(--radius-lg\)/);
     expect(material).toMatch(/border-bottom:\s*0/);
@@ -243,7 +243,7 @@ describe("SheetHeader anatomy contract (DL-028)", () => {
   const declarations = (slot: string) => utilitiesContent.match(rule(slot))?.[1] ?? "";
 
   it("types the title at 18/600 on a 24px line and the description at 14/400 on 20px", () => {
-    // A surface may set its own title size (the cockpit keeps 22px); 18/24 is the fallback.
+    // A surface may set its own title size (the Hub keeps 22px); 18/24 is the fallback.
     expect(declarations("title")).toMatch(/font-size:\s*var\(--gg-sheet-title-size,\s*1\.125rem\)/);
     expect(declarations("title")).toMatch(/line-height:\s*var\(--gg-sheet-title-line,\s*1\.5rem\)/);
     expect(declarations("title")).toMatch(/font-weight:\s*600/);

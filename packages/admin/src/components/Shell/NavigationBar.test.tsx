@@ -13,17 +13,17 @@ import { NavigationBar } from "./NavigationBar";
 
 const slots: ToolbarSlot[] = [
   {
-    id: "hub",
+    id: "review",
     label: "Review",
-    labelId: "cockpit.nav.hub",
+    labelId: "hub.nav.review",
     icon: () => null,
-    path: "/hub",
+    path: "/review",
     visible: true,
   },
   {
     id: "garden",
     label: "Garden",
-    labelId: "cockpit.nav.garden",
+    labelId: "hub.nav.garden",
     icon: () => null,
     path: "/garden",
     visible: true,
@@ -31,7 +31,7 @@ const slots: ToolbarSlot[] = [
   {
     id: "community",
     label: "Community",
-    labelId: "cockpit.nav.community",
+    labelId: "hub.nav.community",
     icon: () => null,
     path: "/community",
     visible: true,
@@ -70,17 +70,17 @@ describe("NavigationBar", () => {
     expect(navigation).toHaveStyle({ width: "fit-content" });
   });
 
-  it("renders a usable desktop dock with only Hub and Garden", () => {
+  it("renders a usable desktop dock with only Review and Garden", () => {
     const onNavigate = vi.fn();
     render(
       <IntlProvider locale="pt" messages={ptMessages}>
-        <NavigationBar slots={slots.slice(0, 2)} activePath="/hub" onNavigate={onNavigate} />
+        <NavigationBar slots={slots.slice(0, 2)} activePath="/review" onNavigate={onNavigate} />
       </IntlProvider>
     );
 
     const nav = screen.getByRole("navigation");
     expect(nav).toHaveAttribute("data-item-count", "2");
-    expect(nav.querySelector('[data-item-id="hub"]')).toHaveAttribute("aria-current", "page");
+    expect(nav.querySelector('[data-item-id="review"]')).toHaveAttribute("aria-current", "page");
     fireEvent.click(nav.querySelector('[data-item-id="garden"]') as HTMLElement);
     expect(onNavigate).toHaveBeenCalledWith("/garden");
   });
@@ -115,7 +115,7 @@ describe("NavigationBar", () => {
       <IntlProvider locale="pt" messages={ptMessages}>
         <NavigationBar
           slots={slots}
-          activePath="/hub"
+          activePath="/review"
           onNavigate={vi.fn()}
           fab={{
             actions: [
@@ -123,7 +123,7 @@ describe("NavigationBar", () => {
                 id: "submit-work",
                 icon: () => null,
                 label: "Submit Work",
-                labelId: "cockpit.hub.action.submitWork",
+                labelId: "hub.review.action.submitWork",
               },
             ],
             onAction: vi.fn(),

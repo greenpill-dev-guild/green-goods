@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/Layout/PageHeader";
 
 describe("PageHeader", () => {
   it("keeps sticky canvas headers transparent and borderless", () => {
-    render(<PageHeader title="Hub" variant="canvas" sticky />);
+    render(<PageHeader title="Review" variant="canvas" sticky />);
 
     const header = screen.getByRole("banner");
 

@@ -7,17 +7,17 @@ import { ProfiledNavigationBar } from "./canvasChromeProbe";
 
 const slots: ToolbarSlot[] = [
   {
-    id: "hub",
+    id: "review",
     label: "Review",
-    labelId: "cockpit.nav.hub",
+    labelId: "hub.nav.review",
     icon: RiAppsLine,
-    path: "/hub",
+    path: "/review",
     visible: true,
   },
   {
     id: "garden",
     label: "Garden",
-    labelId: "cockpit.nav.garden",
+    labelId: "hub.nav.garden",
     icon: RiSeedlingLine,
     path: "/garden",
     visible: true,
@@ -25,7 +25,7 @@ const slots: ToolbarSlot[] = [
   {
     id: "community",
     label: "Community",
-    labelId: "cockpit.nav.community",
+    labelId: "hub.nav.community",
     icon: RiTeamLine,
     path: "/community",
     visible: true,
@@ -57,12 +57,12 @@ const meta = {
     withCanvasFrame({
       className: "relative",
       heightClassName: "min-h-[420px]",
-      workspace: "hub",
+      workspace: "review",
     }),
   ],
   args: {
     slots,
-    activePath: "/hub",
+    activePath: "/review",
     onNavigate: fn(),
   },
 } satisfies Meta<typeof ProfiledNavigationBar>;

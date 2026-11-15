@@ -37,7 +37,7 @@ export default function Root() {
       <Outlet />
       {/* The toasts sit beside the canvas, outside its [data-tone], so they carry
           the workspace's tone themselves, as a portaled dialog does: their
-          actions then draw the cockpit's focus ring (DL-098). */}
+          actions then draw the Hub's focus ring (DL-098). */}
       <div data-tone={getAdminWorkspaceForPath(pathname)} className="contents">
         <ToastViewport />
       </div>

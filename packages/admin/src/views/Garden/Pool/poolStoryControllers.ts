@@ -1,6 +1,6 @@
 /**
  * Controller-shaped builders over the pool fixtures: the pool console, the
- * commitment dialog and the Hub confirm queue, each returning the shape the
+ * commitment dialog and the Review confirm queue, each returning the shape the
  * real hook hands its view. Acts resolve without sending anything.
  */
 

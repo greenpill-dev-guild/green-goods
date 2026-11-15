@@ -12,7 +12,7 @@ import type { Catalog, CatalogCase } from "./qa-workbook-build";
 function makeCase(overrides: Partial<CatalogCase> = {}): CatalogCase {
   return {
     id: "PUB-001",
-    tab: "Public Website",
+    tab: "Green Goods Website",
     platform: "Desktop Browser",
     priority: "P0",
     area: "Home",
@@ -92,8 +92,8 @@ describe("QA report buckets", () => {
       makeCase(),
       makeCase({ id: "PUB-002", kind: "transaction" }),
       makeCase({ id: "PUB-003", priority: "P1", kind: "content" }),
-      makeCase({ id: "ADM-001", tab: "Admin Dashboard", priority: "P1", kind: "journey" }),
-      makeCase({ id: "ADM-002", tab: "Admin Dashboard", priority: "P2", kind: "resilience" }),
+      makeCase({ id: "ADM-001", tab: "Green Goods Hub", priority: "P1", kind: "journey" }),
+      makeCase({ id: "ADM-002", tab: "Green Goods Hub", priority: "P2", kind: "resilience" }),
     ];
     const merged = mergeShards([
       shard("Afo", {
@@ -119,7 +119,7 @@ describe("QA report buckets", () => {
     const priorityWalked = Object.values(model.byPriority).reduce((sum, bucket) => sum + bucket.walked, 0);
     expect(kindWalked).toBe(priorityWalked);
     expect(model.byKind.transaction).toMatchObject({ total: 1, walked: 1, blocked: 1 });
-    expect(model.byTab["Admin Dashboard"]).toMatchObject({ total: 2, walked: 1, na: 1 });
+    expect(model.byTab["Green Goods Hub"]).toMatchObject({ total: 2, walked: 1, na: 1 });
   });
 
   it("keeps a case touched only before the window out of the session and in standing state", () => {
@@ -554,7 +554,7 @@ describe("QA report CLI", () => {
     );
     const catalog: Catalog = {
       version: 2,
-      tabs: ["Public Website"],
+      tabs: ["Green Goods Website"],
       kinds: KINDS,
       statuses: [],
       cases: [makeCase(), makeCase({ id: "XPLAT-001", status: "retired" })],
@@ -574,7 +574,7 @@ describe("QA report CLI", () => {
 
   it("names qa pull when the session has not been pulled, and never echoes a malformed state file", async () => {
     const root = mkdtempSync(path.join(tmpdir(), "qa-report-"));
-    const catalog: Catalog = { version: 2, tabs: ["Public Website"], kinds: KINDS, statuses: [], cases: [makeCase()] };
+    const catalog: Catalog = { version: 2, tabs: ["Green Goods Website"], kinds: KINDS, statuses: [], cases: [makeCase()] };
 
     await expect(runReport(parseArgs(["--slug", "2026-09-03"]), { catalog, repoRoot: root })).rejects.toThrow(/qa pull --slug 2026-09-03/);
 
@@ -685,7 +685,7 @@ describe("QA report review hardening", () => {
       path.join(sessionDir, "previous", "qa-state.json"),
       JSON.stringify({ slug: "2026-09-08", pulledAt: PULLED_AT, run: RUN_2, entries: {} }),
     );
-    const catalog: Catalog = { version: 2, tabs: ["Public Website"], kinds: KINDS, statuses: [], cases: [makeCase()] };
+    const catalog: Catalog = { version: 2, tabs: ["Green Goods Website"], kinds: KINDS, statuses: [], cases: [makeCase()] };
     await expect(
       runReport(parseArgs(["--slug", SLUG, "--previous", `tmp/qa-session/${SLUG}/previous/qa-state.json`]), { catalog, repoRoot: root }),
     ).rejects.toThrow(/earlier run/);
@@ -704,7 +704,7 @@ describe("QA report review hardening", () => {
       path.join(sessionDir, "previous", "qa-state.json"),
       JSON.stringify({ slug: "2026-09-04", pulledAt: PULLED_AT, run: { ...RUN_1, closedAt: null }, entries: {} }),
     );
-    const catalog: Catalog = { version: 2, tabs: ["Public Website"], kinds: KINDS, statuses: [], cases: [makeCase()] };
+    const catalog: Catalog = { version: 2, tabs: ["Green Goods Website"], kinds: KINDS, statuses: [], cases: [makeCase()] };
     await expect(
       runReport(parseArgs(["--slug", SLUG, "--previous", `tmp/qa-session/${SLUG}/previous/qa-state.json`]), { catalog, repoRoot: root }),
     ).rejects.toThrow(/still open/);
@@ -713,7 +713,7 @@ describe("QA report review hardening", () => {
 
   it("refuses an output directory outside the gitignored tmp/ root", async () => {
     const root = mkdtempSync(path.join(tmpdir(), "qa-report-"));
-    const catalog: Catalog = { version: 2, tabs: ["Public Website"], kinds: KINDS, statuses: [], cases: [makeCase()] };
+    const catalog: Catalog = { version: 2, tabs: ["Green Goods Website"], kinds: KINDS, statuses: [], cases: [makeCase()] };
     await expect(runReport(parseArgs(["--slug", SLUG, "--out", "/elsewhere"]), { catalog, repoRoot: root })).rejects.toThrow(/tmp\//);
     await expect(runReport(parseArgs(["--slug", SLUG, "--out", "../outside"]), { catalog, repoRoot: root })).rejects.toThrow(/tmp\//);
   });
@@ -729,7 +729,7 @@ describe("QA report review hardening", () => {
       path.join(outside, "qa-state.json"),
       JSON.stringify({ slug: SLUG, pulledAt: PULLED_AT, entries: {} }),
     );
-    const catalog: Catalog = { version: 2, tabs: ["Public Website"], kinds: KINDS, statuses: [], cases: [makeCase()] };
+    const catalog: Catalog = { version: 2, tabs: ["Green Goods Website"], kinds: KINDS, statuses: [], cases: [makeCase()] };
 
     await expect(runReport(parseArgs(["--slug", SLUG]), { catalog, repoRoot: root })).rejects.toThrow(/must resolve under/);
     expect(existsSync(path.join(outside, "report.md"))).toBe(false);
@@ -746,7 +746,7 @@ describe("QA report review hardening", () => {
     );
     writeFileSync(outside, "do not overwrite");
     symlinkSync(outside, path.join(sessionDir, "report.md"));
-    const catalog: Catalog = { version: 2, tabs: ["Public Website"], kinds: KINDS, statuses: [], cases: [makeCase()] };
+    const catalog: Catalog = { version: 2, tabs: ["Green Goods Website"], kinds: KINDS, statuses: [], cases: [makeCase()] };
 
     const written = await runReport(parseArgs(["--slug", SLUG]), { catalog, repoRoot: root });
 
@@ -763,7 +763,7 @@ describe("QA report review hardening", () => {
       path.join(sessionDir, "qa-state.json"),
       JSON.stringify({ slug: "2026-09-01", pulledAt: PULLED_AT, entries: {} }),
     );
-    const catalog: Catalog = { version: 2, tabs: ["Public Website"], kinds: KINDS, statuses: [], cases: [makeCase()] };
+    const catalog: Catalog = { version: 2, tabs: ["Green Goods Website"], kinds: KINDS, statuses: [], cases: [makeCase()] };
 
     await expect(runReport(parseArgs(["--slug", SLUG]), { catalog, repoRoot: root })).rejects.toThrow(/different session slug/);
     expect(existsSync(path.join(sessionDir, "report.md"))).toBe(false);
@@ -781,7 +781,7 @@ describe("QA report review hardening", () => {
     writeFileSync(path.join(sessionDir, ".qa-pull-in-progress"), "generation\n");
     const catalog: Catalog = {
       version: 2,
-      tabs: ["Public Website"],
+      tabs: ["Green Goods Website"],
       kinds: KINDS,
       statuses: [],
       cases: [makeCase()],
@@ -807,7 +807,7 @@ describe("QA report review hardening", () => {
     writeFileSync(path.join(sessionDir, "results.csv"), oldResults);
     const catalog: Catalog = {
       version: 2,
-      tabs: ["Public Website"],
+      tabs: ["Green Goods Website"],
       kinds: KINDS,
       statuses: [],
       cases: [makeCase()],
@@ -873,7 +873,7 @@ describe("QA report review hardening", () => {
     );
     const catalog: Catalog = {
       version: 2,
-      tabs: ["Public Website"],
+      tabs: ["Green Goods Website"],
       kinds: KINDS,
       statuses: [],
       cases: [makeCase(), makeCase({ id: "PUB-002" }), makeCase({ id: "PUB-003" })],

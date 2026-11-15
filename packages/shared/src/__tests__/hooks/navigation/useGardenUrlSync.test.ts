@@ -105,7 +105,7 @@ describe("useGardenUrlSync", () => {
     });
     mockEligibleGardens.current = [garden];
 
-    const wrapper = createRouterWrapper(["/hub?gardenId=garden-123"]);
+    const wrapper = createRouterWrapper(["/review?gardenId=garden-123"]);
     const { result } = renderHook(() => useGardenUrlSync(), { wrapper });
 
     expect(result.current.gardenId).toBe("garden-123");
@@ -113,7 +113,7 @@ describe("useGardenUrlSync", () => {
   });
 
   it("reads tab from URL ?tab= param", () => {
-    const wrapper = createRouterWrapper(["/hub?tab=community"]);
+    const wrapper = createRouterWrapper(["/review?tab=community"]);
 
     const { result } = renderHook(() => useGardenUrlSync(), { wrapper });
 
@@ -121,7 +121,7 @@ describe("useGardenUrlSync", () => {
   });
 
   it("setTab updates URL search param", () => {
-    const wrapper = createRouterWrapper(["/hub"]);
+    const wrapper = createRouterWrapper(["/review"]);
 
     const { result } = renderHook(() => useGardenUrlSync(), { wrapper });
 
@@ -146,7 +146,7 @@ describe("useGardenUrlSync", () => {
     });
     mockEligibleGardens.current = [greenGarden, growGarden];
 
-    const wrapper = createRouterWrapper([`/hub/work?gardenId=${greenGarden.id}&sort=oldest`]);
+    const wrapper = createRouterWrapper([`/review/work?gardenId=${greenGarden.id}&sort=oldest`]);
     const { result } = renderHook(
       () => ({
         sync: useGardenUrlSync(),
@@ -177,7 +177,7 @@ describe("useGardenUrlSync", () => {
     });
   });
 
-  it("openItem adds ?item= param to URL for non-Hub canvas filters", () => {
+  it("openItem adds ?item= param to URL for non-Review canvas filters", () => {
     const wrapper = createRouterWrapper(["/garden/overview"]);
 
     const { result } = renderHook(() => useGardenUrlSync(), { wrapper });
@@ -189,7 +189,7 @@ describe("useGardenUrlSync", () => {
     expect(result.current.item).toBe("item-456");
   });
 
-  it("closeItem removes ?item= param for non-Hub canvas filters", () => {
+  it("closeItem removes ?item= param for non-Review canvas filters", () => {
     const wrapper = createRouterWrapper(["/garden/overview?item=item-789"]);
 
     const { result } = renderHook(() => useGardenUrlSync(), { wrapper });
@@ -211,7 +211,7 @@ describe("useGardenUrlSync", () => {
     mockEligibleGardens.current = [garden];
     mockIsLoaded.current = true;
 
-    const wrapper = createRouterWrapper(["/hub?gardenId=garden-sync"]);
+    const wrapper = createRouterWrapper(["/review?gardenId=garden-sync"]);
 
     renderHook(() => useGardenUrlSync(), { wrapper });
 
@@ -228,7 +228,7 @@ describe("useGardenUrlSync", () => {
     mockResolvedDefaultGarden.current = defaultGarden;
 
     const wrapper = createRouterWrapper([
-      "/hub?gardenAddress=0x7890000000000000000000000000000000000789",
+      "/review?gardenAddress=0x7890000000000000000000000000000000000789",
     ]);
 
     const { result } = renderHook(() => useGardenUrlSync(), { wrapper });
@@ -246,7 +246,7 @@ describe("useGardenUrlSync", () => {
     mockEligibleGardens.current = [defaultGarden];
     mockResolvedDefaultGarden.current = defaultGarden;
 
-    const wrapper = createRouterWrapper(["/hub"]);
+    const wrapper = createRouterWrapper(["/review"]);
 
     const { result } = renderHook(() => useGardenUrlSync(), { wrapper });
 
@@ -269,7 +269,7 @@ describe("useGardenUrlSync", () => {
     mockEligibleGardens.current = [defaultGarden];
     mockResolvedDefaultGarden.current = defaultGarden;
 
-    const wrapper = createRouterWrapper(["/hub?gardenId=garden-missing"]);
+    const wrapper = createRouterWrapper(["/review?gardenId=garden-missing"]);
 
     const { result } = renderHook(() => useGardenUrlSync(), { wrapper });
 

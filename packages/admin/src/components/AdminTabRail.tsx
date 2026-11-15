@@ -55,7 +55,7 @@ function railOverflow(rail: HTMLElement): RailOverflow {
 }
 
 /**
- * AdminTabRail — the installed app's equal-width tabs at the cockpit's 36px
+ * AdminTabRail — the installed app's equal-width tabs at the Hub's 36px
  * height (F8).
  *
  * Anatomy:
@@ -261,7 +261,7 @@ export function AdminTabRail({
                   className="pointer-events-none select-none"
                 />
                 <span className="sr-only">
-                  {formatMessage({ id: "cockpit.tabRail.waitingCount" }, { count: tab.count })}
+                  {formatMessage({ id: "hub.tabRail.waitingCount" }, { count: tab.count })}
                 </span>
               </>
             ) : null}

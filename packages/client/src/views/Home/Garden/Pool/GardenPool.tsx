@@ -94,7 +94,7 @@ export function GardenPool({ pool }: GardenPoolProps) {
     () => controller.rows.map(({ commitment }) => commitment),
     [controller.rows]
   );
-  // An untaken promise past its due date says so on its row, as the cockpit's rows do (DL-110),
+  // An untaken promise past its due date says so on its row, as the Hub's rows do (DL-110),
   // and so does a group's row: every copy in scope is read, folded or not.
   const pastDueIds = usePastDuePromises({
     chainId: controller.chainId,

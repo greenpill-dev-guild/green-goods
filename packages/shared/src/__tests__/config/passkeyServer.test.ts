@@ -270,6 +270,8 @@ describe("config/passkeyServer", () => {
         "https://www.greengoods.app",
         "https://beta.greengoods.app",
         "https://beta.admin.greengoods.app",
+        "https://hub.greengoods.app",
+        "https://beta.hub.greengoods.app",
       ]) {
         expect(
           classifyPasskeyCeremonyContext({

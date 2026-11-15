@@ -35,11 +35,11 @@ export function CampaignJarListRow({
     ? `${formatTokenAmount(jar.balance, jar.decimals, 4, undefined, true)} ${jar.symbol}`
     : isLoading
       ? formatMessage({
-          id: "cockpit.community.cookies.rowReading",
+          id: "hub.community.cookies.rowReading",
           defaultMessage: "Reading...",
         })
       : formatMessage({
-          id: "cockpit.community.cookies.rowUnavailable",
+          id: "hub.community.cookies.rowUnavailable",
           defaultMessage: "Unavailable",
         });
 
@@ -51,7 +51,7 @@ export function CampaignJarListRow({
         hasDetailReadFailure
           ? {
               label: formatMessage({
-                id: "cockpit.community.cookies.needsReview",
+                id: "hub.community.cookies.needsReview",
                 defaultMessage: "Needs review",
               }),
               tone: "error",
@@ -72,14 +72,14 @@ export function CampaignJarListRow({
       amount={{
         value: balanceLabel,
         caption: formatMessage({
-          id: "cockpit.community.cookies.rowBalance",
+          id: "hub.community.cookies.rowBalance",
           defaultMessage: "Jar balance",
         }),
       }}
       onOpen={() => onSelect(campaign)}
       openLabel={formatMessage(
         {
-          id: "cockpit.community.cookies.manageJarAria",
+          id: "hub.community.cookies.manageJarAria",
           defaultMessage: "Manage {title}",
         },
         { title }

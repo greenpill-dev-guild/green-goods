@@ -965,7 +965,7 @@
           "where": ["admin"],
           "term_refs": ["entity:assessment"],
           "guide": "/community/evaluator-guide/making-an-assessment",
-          "code": ["packages/admin/src/views/Hub/CreateAssessment.tsx"]
+          "code": ["packages/admin/src/views/Review/CreateAssessment.tsx"]
         },
         {
           "when": "As work comes in",
@@ -973,7 +973,10 @@
           "where": ["admin", "client"],
           "term_refs": ["entity:work-approval"],
           "guide": "/community/steward-guide/reviewing-work",
-          "code": ["packages/admin/src/views/Hub", "packages/client/src/views/Home/WorkDashboard"]
+          "code": [
+            "packages/admin/src/views/Review",
+            "packages/client/src/views/Home/WorkDashboard"
+          ]
         },
         {
           "when": "When messaging is easier",
@@ -1026,7 +1029,7 @@
           "where": ["admin"],
           "term_refs": ["entity:hypercert"],
           "guide": "/community/steward-guide/creating-impact-certificates",
-          "code": ["packages/admin/src/views/Hub/CreateHypercert.tsx"]
+          "code": ["packages/admin/src/views/Review/CreateHypercert.tsx"]
         }
       ]
     },
@@ -1040,7 +1043,7 @@
           "where": ["admin"],
           "term_refs": ["entity:assessment"],
           "guide": "/community/evaluator-guide/making-an-assessment",
-          "code": ["packages/admin/src/views/Hub/CreateAssessment.tsx"]
+          "code": ["packages/admin/src/views/Review/CreateAssessment.tsx"]
         },
         {
           "when": "As evidence builds",
@@ -1048,7 +1051,7 @@
           "where": ["admin", "public"],
           "term_refs": ["entity:work"],
           "code": [
-            "packages/admin/src/views/Hub",
+            "packages/admin/src/views/Review",
             "packages/client/src/views/Public/GardenDetail.tsx"
           ]
         }

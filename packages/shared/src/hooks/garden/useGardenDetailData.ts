@@ -216,7 +216,7 @@ export function useGardenDetailData(id: string | undefined) {
     isBaseListError: isError || eligibleGardenBaseListError,
     fetching,
     error,
-    // A failed garden list read fails every Hub tab, so their refresh rereads it.
+    // A failed garden list read fails every Review tab, so their refresh rereads it.
     refreshGardens,
     gardensFetching,
     gardenId,

@@ -1,9 +1,9 @@
 /**
  * @vitest-environment happy-dom
  *
- * Focus-ring role guard — Cockpit M3 1a (PRD-644 round 2).
+ * Focus-ring role guard — Hub M3 1a (PRD-644 round 2).
  *
- * `--tone-focus-ring` is the ONLY focus-indicator role in the cockpit
+ * `--tone-focus-ring` is the ONLY focus-indicator role in the Hub
  * (packages/admin/DESIGN.md § Workspace Tinting). The 2026-08-29 audit found
  * AdminCheckbox keyboard-invisible, the AdminSearchToolbar input stripped of
  * any indicator, and the two field primitives ringing with
@@ -23,7 +23,7 @@ import { fireEvent, render, screen } from "../test-utils";
 
 const TONE_FOCUS_RING = "--tone-focus-ring";
 
-/** Shared's control recipe, which the cockpit's fields render (DL-116). */
+/** Shared's control recipe, which the Hub's fields render (DL-116). */
 const theme = readFileSync(resolve(__dirname, "../../../../shared/src/styles/theme.css"), "utf-8");
 const takesSharedRing = (input: HTMLElement) => {
   expect(input).toHaveClass("gg-control");

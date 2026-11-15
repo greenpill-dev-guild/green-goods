@@ -191,7 +191,7 @@ One name for a garden's approved work records wherever the website labels or cou
 ## Typography
 
 - **Fraunces** (serif) is reserved for editorial route heroes, large stat numbers, and garden story headings. Local font faces are declared in `packages/client/index.html`, with WOFF2 files and licenses in `packages/client/public/fonts/`; resolved by Tailwind's `font-serif` utility through `--font-serif` in shared `theme.css`.
-- **Inter** carries body, nav, cards, buttons, and dialogs on the public website, including a public page opened inside the installed app. The installed app itself reads in Plus Jakarta Sans, the cockpit's face (DL-096; `DESIGN.pwa.md` § The Field Tool).
+- **Inter** carries body, nav, cards, buttons, and dialogs on the public website, including a public page opened inside the installed app. The installed app itself reads in Plus Jakarta Sans, the Hub's face (DL-096; `DESIGN.pwa.md` § The Field Tool).
 - Editorial headlines scale to magazine sizes (text-3xl → text-5xl); body stays restrained.
 - The home page and the four navigation pages (Gardens, Impact, Fund, Actions) open on a hero title of three lines at every width. Their English titles are written as three `<line>` segments in the catalog and rendered with `EditorialTitleLine`, because the card's measure alone lets a small copy edit change the count. Keep each line within the desktop card, 456px at 60px type. Spanish and Portuguese titles are longer and wrap on their own.
 

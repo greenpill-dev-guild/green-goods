@@ -20,11 +20,11 @@ export interface AdminFilterChipProps {
 // ============================================================================
 
 /**
- * AdminFilterChip — the cockpit's filter chip, Shared's `Chip` (DL-116)
+ * AdminFilterChip — the Hub's filter chip, Shared's `Chip` (DL-116)
  *
- * The installed app's chip at the cockpit's density (F4, DL-101):
+ * The installed app's chip at the Hub's density (F4, DL-101):
  * - Height: 32px with a 44px hit area, a capsule, the shared chip's own; the
- *   cockpit also reserves the 44px finger box in its layout (DL-011), as its
+ *   Hub also reserves the 44px finger box in its layout (DL-011), as its
  *   other 32px controls do, so a row of chips keeps its height
  * - Unselected: the shared chip's outline and fill
  * - Selected: the app's selected look in the workspace tone, a solid

@@ -16,7 +16,7 @@ export interface ActionChooserGridProps {
 
 /**
  * ActionChooserGrid — the Choose step of Submit Work: the shared action picker, the one the
- * installed app uses, laid out as a grid, with each canonical action titled in the cockpit's
+ * installed app uses, laid out as a grid, with each canonical action titled in the Hub's
  * own words. One listbox with one tab stop: the arrow keys and Home and End move, and
  * Space, Enter or a press chooses, because choosing resets the work's details.
  */

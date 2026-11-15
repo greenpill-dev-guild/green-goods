@@ -149,7 +149,7 @@ export function useCommitmentDialogController(input: {
   const jobs = useCommitmentJobs({ chainId, execution: "foreground" });
   // What this reader already signed: `confirmFulfillment` reverts
   // `AlreadyConfirmed` on a repeat, and a threshold above one keeps the record
-  // ready in between. Same key as the Hub queue's read, so both share one answer.
+  // ready in between. Same key as the Review queue's read, so both share one answer.
   const confirmed = useQuery({
     queryKey: commitmentPoolingKeys.activity(chainId, {
       actor: viewer,

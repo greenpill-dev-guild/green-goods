@@ -26,7 +26,7 @@ export function CampaignCookieJarCreatedState({ jarAddress }: { jarAddress: Addr
         <div>
           <p className="type-label-sm text-text-strong">
             {formatMessage({
-              id: "cockpit.community.cookies.jarAddress",
+              id: "hub.community.cookies.jarAddress",
               defaultMessage: "Jar address",
             })}
           </p>
@@ -46,7 +46,7 @@ export function CampaignCookieJarCreatedState({ jarAddress }: { jarAddress: Addr
         <Button type="button" emphasis="secondary" size="sm" asChild>
           <a href={publicUrl} target="_blank" rel="noreferrer">
             {formatMessage({
-              id: "cockpit.community.cookies.openPublicLink",
+              id: "hub.community.cookies.openPublicLink",
               defaultMessage: "Open Public Link",
             })}
           </a>
@@ -55,14 +55,14 @@ export function CampaignCookieJarCreatedState({ jarAddress }: { jarAddress: Addr
       <AdminCard variant="outlined" className="space-y-3">
         <AdminCardTitle>
           {formatMessage({
-            id: "cockpit.community.cookies.onchainReadTitle",
+            id: "hub.community.cookies.onchainReadTitle",
             defaultMessage: "Onchain read",
           })}
         </AdminCardTitle>
         {isLoading ? (
           <p className="type-meta text-text-sub">
             {formatMessage({
-              id: "cockpit.community.cookies.onchainReadLoading",
+              id: "hub.community.cookies.onchainReadLoading",
               defaultMessage: "Reading jar details...",
             })}
           </p>
@@ -70,21 +70,21 @@ export function CampaignCookieJarCreatedState({ jarAddress }: { jarAddress: Addr
           <FactList frame="inset">
             <FactRow
               label={formatMessage({
-                id: "cockpit.community.cookies.rowBalance",
+                id: "hub.community.cookies.rowBalance",
                 defaultMessage: "Jar balance",
               })}
               value={`${formatTokenAmount(jar.balance, jar.decimals, 4)} ${jar.symbol}`}
             />
             <FactRow
               label={formatMessage({
-                id: "cockpit.community.cookies.claimAmountPerSteward",
+                id: "hub.community.cookies.claimAmountPerSteward",
                 defaultMessage: "Claim amount per steward",
               })}
               value={`${formatTokenAmount(jar.fixedAmount, jar.decimals, 4)} ${jar.symbol}`}
             />
             <FactRow
               label={formatMessage({
-                id: "cockpit.community.cookies.generatedStewards",
+                id: "hub.community.cookies.generatedStewards",
                 defaultMessage: "Stewards who can claim",
               })}
               value={jar.allowlist.length}
@@ -93,7 +93,7 @@ export function CampaignCookieJarCreatedState({ jarAddress }: { jarAddress: Addr
         ) : (
           <p className="type-meta text-error-dark">
             {formatMessage({
-              id: "cockpit.community.cookies.onchainReadUnavailable",
+              id: "hub.community.cookies.onchainReadUnavailable",
               defaultMessage:
                 "The jar was created, but this browser could not read the jar details yet.",
             })}
@@ -102,7 +102,7 @@ export function CampaignCookieJarCreatedState({ jarAddress }: { jarAddress: Addr
         {hasDetailReadFailure ? (
           <p className="type-meta text-text-sub">
             {formatMessage({
-              id: "cockpit.community.cookies.onchainReadPartial",
+              id: "hub.community.cookies.onchainReadPartial",
               defaultMessage:
                 "Some optional metadata reads failed. The direct jar link still works.",
             })}
@@ -138,7 +138,7 @@ export function CampaignCookieJarSubmittedState({
       <div className="rounded-[var(--m3-shape-md)] border border-stroke-soft bg-bg-white-0 p-4">
         <p className="type-label-sm text-text-strong">
           {formatMessage({
-            id: "cockpit.community.cookies.submittedTransaction",
+            id: "hub.community.cookies.submittedTransaction",
             defaultMessage: "Submitted transaction",
           })}
         </p>
@@ -149,7 +149,7 @@ export function CampaignCookieJarSubmittedState({
           id="campaign-cookie-jar-created-address"
           className="min-w-0"
           label={formatMessage({
-            id: "cockpit.community.cookies.createdJarAddressInput",
+            id: "hub.community.cookies.createdJarAddressInput",
             defaultMessage: "Created jar address",
           })}
           value={manualInput}
@@ -157,7 +157,7 @@ export function CampaignCookieJarSubmittedState({
           error={
             manualInput && !manualAddress
               ? formatMessage({
-                  id: "cockpit.community.cookies.invalidAddress",
+                  id: "hub.community.cookies.invalidAddress",
                   defaultMessage: "Enter a valid Ethereum address.",
                 })
               : undefined
@@ -172,7 +172,7 @@ export function CampaignCookieJarSubmittedState({
           className="md:mb-9"
         >
           {formatMessage({
-            id: "cockpit.community.cookies.useCreatedJar",
+            id: "hub.community.cookies.useCreatedJar",
             defaultMessage: "Use jar address",
           })}
         </Button>

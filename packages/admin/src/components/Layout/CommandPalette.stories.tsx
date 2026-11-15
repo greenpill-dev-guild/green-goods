@@ -43,7 +43,7 @@ interface MockCommandPaletteProps {
 }
 
 const STATIC_ROUTES: Omit<SearchResult, "category">[] = [
-  { id: "page-hub", label: "Review", href: "/hub" },
+  { id: "page-review", label: "Review", href: "/review" },
   { id: "page-garden", label: "Garden", href: "/garden" },
   { id: "page-community", label: "Community", href: "/community" },
   { id: "page-actions", label: "Actions", href: "/actions" },
@@ -360,9 +360,9 @@ export const RealProviderOpen: Story = {
   decorators: [
     withAdminIdentityRole("deployer"),
     withSeededQueryClient(STORYBOOK_ADMIN_DEPLOYER_SEEDS),
-    withRouter(["/hub/work"]),
+    withRouter(["/review/work"]),
     withCanvasFrame({
-      workspace: "hub",
+      workspace: "review",
       className: "p-6",
       heightClassName: "min-h-[360px]",
     }),

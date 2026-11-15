@@ -16,7 +16,7 @@ import { withClientAppRuntime, withInstalledPwa } from "../../../shared/.storybo
  *
  * Hero moments NEVER appear on admin surfaces. See
  * `.claude/skills/design/prompt-contract.md § Hero Moments Live in the
- * Client, Not the Cockpit`.
+ * Client, Not the Hub`.
  */
 
 type Amplification = {

@@ -30,7 +30,7 @@ export function CommitmentFacts({
   return (
     <section
       aria-label={formatMessage({
-        id: "cockpit.garden.pool.commitment.facts",
+        id: "hub.garden.pool.commitment.facts",
         defaultMessage: "Facts",
       })}
     >
@@ -39,7 +39,7 @@ export function CommitmentFacts({
         {commitment.dueDate
           ? fact(
               formatMessage({
-                id: "cockpit.garden.pool.commitment.fact.due",
+                id: "hub.garden.pool.commitment.fact.due",
                 defaultMessage: "Due",
               }),
               <time dateTime={isoTime(Number(commitment.dueDate) * 1000)}>
@@ -49,37 +49,37 @@ export function CommitmentFacts({
           : null}
         {fact(
           formatMessage({
-            id: "cockpit.garden.pool.commitment.fact.kind",
+            id: "hub.garden.pool.commitment.fact.kind",
             defaultMessage: "Kind",
           }),
           commitment.commitmentType === "DOMAIN_IMPACT"
             ? formatMessage({
-                id: "cockpit.garden.pool.seed.kind.gardenWork",
+                id: "hub.garden.pool.seed.kind.gardenWork",
                 defaultMessage: "Garden work",
               })
             : commitment.commitmentType === "SEASON_CAMPAIGN"
               ? formatMessage({
-                  id: "cockpit.garden.pool.seed.kind.seasonCampaign",
+                  id: "hub.garden.pool.seed.kind.seasonCampaign",
                   defaultMessage: "Season / campaign promise",
                 })
               : commitment.commitmentType === "STEWARD_CAPTURED"
                 ? formatMessage({
-                    id: "cockpit.garden.pool.commitment.fact.captured",
+                    id: "hub.garden.pool.commitment.fact.captured",
                     defaultMessage: "Recorded for a member",
                   })
                 : formatMessage({
-                    id: "cockpit.garden.pool.seed.kind.service",
+                    id: "hub.garden.pool.seed.kind.service",
                     defaultMessage: "Support / service",
                   })
         )}
         {fact(
           formatMessage({
-            id: "cockpit.garden.pool.commitment.fact.proof",
+            id: "hub.garden.pool.commitment.fact.proof",
             defaultMessage: "Proof",
           }),
           formatMessage(
             {
-              id: "cockpit.garden.pool.commitment.fact.proofCount",
+              id: "hub.garden.pool.commitment.fact.proofCount",
               defaultMessage: "{count, plural, =0 {none yet} one {# item} other {# items}}",
             },
             { count: commitment.evidenceCount }
@@ -88,7 +88,7 @@ export function CommitmentFacts({
         {(detail?.requirements.length ?? 0) > 0
           ? fact(
               formatMessage({
-                id: "cockpit.garden.pool.commitment.fact.work",
+                id: "hub.garden.pool.commitment.fact.work",
                 defaultMessage: "Work",
               }),
               detail!.requirements
@@ -98,13 +98,13 @@ export function CommitmentFacts({
           : null}
         {fact(
           formatMessage({
-            id: "cockpit.garden.pool.commitment.fact.provider",
+            id: "hub.garden.pool.commitment.fact.provider",
             defaultMessage: "Provider",
           }),
           commitment.leadProvider ? (
             <span className="inline-flex max-w-full items-center gap-1">
               <FormattedMessage
-                id="cockpit.garden.pool.commitment.fact.providerCannotConfirm"
+                id="hub.garden.pool.commitment.fact.providerCannotConfirm"
                 defaultMessage="{who}, cannot confirm"
                 values={{
                   who: (
@@ -120,24 +120,24 @@ export function CommitmentFacts({
             </span>
           ) : (
             formatMessage({
-              id: "cockpit.garden.pool.commitment.fact.providerNone",
+              id: "hub.garden.pool.commitment.fact.providerNone",
               defaultMessage: "Nobody yet",
             })
           )
         )}
         {fact(
           formatMessage({
-            id: "cockpit.garden.pool.seed.confirmers",
+            id: "hub.garden.pool.seed.confirmers",
             defaultMessage: "Confirmers",
           }),
           commitment.confirmers.length === 0
             ? formatMessage({
-                id: "cockpit.garden.pool.seed.review.ordinary",
+                id: "hub.garden.pool.seed.review.ordinary",
                 defaultMessage: "Ordinary rule",
               })
             : formatMessage(
                 {
-                  id: "cockpit.garden.pool.seed.review.named",
+                  id: "hub.garden.pool.seed.review.named",
                   defaultMessage: "Named group · {threshold} of {count}",
                 },
                 {
@@ -148,49 +148,49 @@ export function CommitmentFacts({
         )}
         {fact(
           formatMessage({
-            id: "cockpit.garden.pool.seed.review.fallback",
+            id: "hub.garden.pool.seed.review.fallback",
             defaultMessage: "Green Goods team fallback",
           }),
           commitment.protocolFallbackEnabled
             ? formatMessage({
-                id: "cockpit.garden.pool.seed.review.fallbackOn",
+                id: "hub.garden.pool.seed.review.fallbackOn",
                 defaultMessage: "On · reason required if used",
               })
             : formatMessage({
-                id: "cockpit.garden.pool.seed.review.fallbackOff",
+                id: "hub.garden.pool.seed.review.fallbackOff",
                 defaultMessage: "Off",
               })
         )}
         {commitment.readyOverridden
           ? fact(
               formatMessage({
-                id: "cockpit.garden.pool.commitment.fact.override",
+                id: "hub.garden.pool.commitment.fact.override",
                 defaultMessage: "Ready by",
               }),
               formatMessage({
-                id: "cockpit.garden.pool.commitment.fact.overrideValue",
+                id: "hub.garden.pool.commitment.fact.overrideValue",
                 defaultMessage: "Steward override, reason recorded",
               })
             )
           : null}
         {fact(
-          formatMessage({ id: "cockpit.garden.pool.seed.rail", defaultMessage: "Reward rail" }),
+          formatMessage({ id: "hub.garden.pool.seed.rail", defaultMessage: "Reward rail" }),
           rail
         )}
         {commitment.onchainState === "FULFILLED" && commitment.confirmationPath
           ? fact(
               formatMessage({
-                id: "cockpit.garden.pool.commitment.fact.confirmedBy",
+                id: "hub.garden.pool.commitment.fact.confirmedBy",
                 defaultMessage: "Confirmed by",
               }),
               commitment.confirmationPath === "POOL_FALLBACK" ? (
                 formatMessage({
-                  id: "cockpit.garden.pool.commitment.path.garden",
+                  id: "hub.garden.pool.commitment.path.garden",
                   defaultMessage: "your garden steward (fallback)",
                 })
               ) : commitment.confirmationPath === "PROTOCOL_FALLBACK" ? (
                 formatMessage({
-                  id: "cockpit.garden.pool.commitment.path.protocol",
+                  id: "hub.garden.pool.commitment.path.protocol",
                   defaultMessage: "Green Goods team (fallback)",
                 })
               ) : commitment.fulfilledBy ? (
@@ -204,14 +204,14 @@ export function CommitmentFacts({
                   <span>
                     ·{" "}
                     {formatMessage({
-                      id: "cockpit.garden.pool.commitment.path.ordinary",
+                      id: "hub.garden.pool.commitment.path.ordinary",
                       defaultMessage: "ordinary",
                     })}
                   </span>
                 </span>
               ) : (
                 formatMessage({
-                  id: "cockpit.garden.pool.commitment.path.ordinary",
+                  id: "hub.garden.pool.commitment.path.ordinary",
                   defaultMessage: "ordinary",
                 })
               )
@@ -220,7 +220,7 @@ export function CommitmentFacts({
         {commitment.fallbackReason
           ? fact(
               formatMessage({
-                id: "cockpit.garden.pool.commitment.fact.fallbackReason",
+                id: "hub.garden.pool.commitment.fact.fallbackReason",
                 defaultMessage: "Fallback reason",
               }),
               commitment.fallbackReason

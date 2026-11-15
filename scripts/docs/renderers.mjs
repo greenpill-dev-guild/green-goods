@@ -817,7 +817,7 @@ const GLOSSARY_EVERYDAY = [
   { ref: "entity:work", guide: ["Submit Work", "/community/gardener-guide/uploading-your-work"] },
   { ref: "entity:work-approval", guide: ["Review Work", "/community/steward-guide/reviewing-work"] },
   { ref: "entity:assessment", guide: ["Make an Initial Assessment", "/community/evaluator-guide/making-an-assessment"] },
-  // The public site and the guides call it an impact certificate; the cockpit says Hypercert.
+  // The public site and the guides call it an impact certificate; the Hub says Hypercert.
   { ref: "entity:hypercert", heading: "Impact Certificate", guide: ["Mint Impact Certificate", "/community/steward-guide/creating-impact-certificates"] },
   { ref: "entity:vault", guide: ["Endow a Garden", "/community/funder-guide/funding-a-garden"] },
   { ref: "entity:cookie-jar", guide: ["Donate to a Garden", "/community/funder-guide/donating-to-a-garden"] },

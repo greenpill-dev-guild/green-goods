@@ -92,7 +92,7 @@ export function usePoolPromiseEntries<R extends { commitment: CommitmentReadMode
 /**
  * The listed promises that are past due on the chain's clock, by id, for the app's "Past due"
  * pill (DL-110 as amended): nobody took them up and the chain is past their due date, so anyone
- * may expire them, which stays the cockpit's act. A promise whose due date is still unread, a
+ * may expire them, which stays the Hub's act. A promise whose due date is still unread, a
  * cycle's end not yet read or the chain's time not yet known, is never called past due.
  */
 export function usePastDuePromises(input: {

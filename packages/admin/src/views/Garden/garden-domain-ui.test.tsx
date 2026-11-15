@@ -480,10 +480,10 @@ describe("garden domain recovery UI", () => {
 
     render(
       <TestProviders>
-        <MemoryRouter initialEntries={["/hub/work/submit"]}>
+        <MemoryRouter initialEntries={["/review/work/submit"]}>
           <Routes>
             <Route
-              path="/hub/work/submit"
+              path="/review/work/submit"
               element={
                 <SubmitWorkPanel
                   layout="page"

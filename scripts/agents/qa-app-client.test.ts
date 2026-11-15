@@ -19,7 +19,7 @@ async function clientRaceHarness() {
   const page = readFileSync(path.join(process.cwd(), "packages", "qa", "index.html"), "utf8");
   const testCase = {
     id: "PUB-001",
-    tab: "Public Website",
+    tab: "Green Goods Website",
     area: "Funding",
     pri: "P0",
     scenario: "Donate end to end",
@@ -175,7 +175,7 @@ async function outboxDurabilityHarness() {
   const page = readFileSync(path.join(process.cwd(), "packages", "qa", "index.html"), "utf8");
   const testCase = {
     id: "PUB-001",
-    tab: "Public Website",
+    tab: "Green Goods Website",
     area: "Funding",
     pri: "P0",
     scenario: "Donate end to end",
@@ -361,7 +361,7 @@ async function inFlightFieldHarness() {
   const page = readFileSync(path.join(process.cwd(), "packages", "qa", "index.html"), "utf8");
   const testCase = {
     id: "PUB-001",
-    tab: "Public Website",
+    tab: "Green Goods Website",
     area: "Funding",
     pri: "P0",
     scenario: "Donate end to end",
@@ -477,7 +477,7 @@ async function authRecoveryHarness() {
   const other = "0x22682c3d3848294ff9bcbf3f0ddf48a605446b56";
   const testCase = {
     id: "PUB-001",
-    tab: "Public Website",
+    tab: "Green Goods Website",
     area: "Funding",
     pri: "P0",
     scenario: "Donate end to end",
@@ -572,7 +572,7 @@ async function displayLabelHarness() {
   const page = readFileSync(path.join(process.cwd(), "packages", "qa", "index.html"), "utf8");
   const testCase = {
     id: "PUB-001",
-    tab: "Public Website",
+    tab: "Green Goods Website",
     area: "Funding",
     pri: "P0",
     scenario: "Donate end to end",
@@ -731,9 +731,9 @@ async function journeyModeHarness() {
 
   const page = readFileSync(path.join(process.cwd(), "packages", "qa", "index.html"), "utf8");
   const cases = [
-    { id: "ADM-002", tab: "Admin Dashboard", area: "Delivery", pri: "P0", scenario: "Third", preconditions: ["Third condition"], steps: ["Third step"], expected: "Third result", role: "steward", rp: false, rd: false, tx: true },
-    { id: "PWA-001", tab: "PWA", area: "Claim", pri: "P0", scenario: "Second", preconditions: ["Second condition"], steps: ["Second step"], expected: "Second result", role: "gardener", rp: false, rd: false, tx: true },
-    { id: "ADM-001", tab: "Admin Dashboard", area: "Prepare", pri: "P1", scenario: "First", preconditions: ["First condition", "Shared cycle visible"], steps: ["First step"], expected: "First result", role: "steward", rp: false, rd: false, tx: true },
+    { id: "ADM-002", tab: "Green Goods Hub", area: "Delivery", pri: "P0", scenario: "Third", preconditions: ["Third condition"], steps: ["Third step"], expected: "Third result", role: "steward", rp: false, rd: false, tx: true },
+    { id: "PWA-001", tab: "Green Goods App", area: "Claim", pri: "P0", scenario: "Second", preconditions: ["Second condition"], steps: ["Second step"], expected: "Second result", role: "gardener", rp: false, rd: false, tx: true },
+    { id: "ADM-001", tab: "Green Goods Hub", area: "Prepare", pri: "P1", scenario: "First", preconditions: ["First condition", "Shared cycle visible"], steps: ["First step"], expected: "First result", role: "steward", rp: false, rd: false, tx: true },
   ];
   const lanes = [
     { id: "review", label: "Protocol & review", role: "Protocol steward" },
@@ -899,7 +899,7 @@ async function journeyModeHarness() {
     beforeParse(window) {
       Object.defineProperty(window, "innerWidth", { value: 375, configurable: true });
       window.sessionStorage.setItem("qa-view", JSON.stringify({
-        tab: "Admin Dashboard",
+        tab: "Green Goods Hub",
         filter: "all",
         sort: "journey",
         scope: "overview",
@@ -920,7 +920,7 @@ async function journeyModeHarness() {
       window.fetch = async (input, init = {}) => {
         const target = String(input);
         if (target === "catalog.json") {
-          return response({ tabs: ["PWA", "Admin Dashboard"], journeys, locales, cases });
+          return response({ tabs: ["Green Goods App", "Green Goods Hub"], journeys, locales, cases });
         }
         if (target !== "/api/state") throw new Error(`unexpected fetch ${target}`);
         if (init.method === "POST") {
@@ -1067,7 +1067,7 @@ async function journeyModeHarness() {
     document.querySelector('[data-f="open"]')?.click();
     assert.deepEqual([...document.querySelectorAll(".rid b")].map((node) => node.textContent), ["ADM-001"]);
     document.querySelector('[data-f="all"]')?.click();
-    document.querySelector('[data-tab="Admin Dashboard"]')?.click();
+    document.querySelector('[data-tab="Green Goods Hub"]')?.click();
     assert.deepEqual([...document.querySelectorAll(".rid b")].map((node) => node.textContent), ["ADM-001"]);
     assert.equal([...timers.values()].filter((timer) => timer.delay === 900).length, 0);
     assert.equal(posts.length, 1, "filtering journey rows must remain read-only");
@@ -1105,10 +1105,10 @@ async function runsHarness() {
   const OWNER = "0x0000000000000000000000000000000000000001";
   const at = "2026-09-04T19:00:00.000Z";
   const cases = [
-    { id: "PWA-051", tab: "PWA", area: "Garden Join", pri: "P0", scenario: "Join an open garden", preconditions: [], steps: ["Join"], expected: "Joined", role: "gardener", rp: false, rd: false, tx: true, replaces: ["PWA-021"] },
-    { id: "PWA-052", tab: "PWA", area: "Garden Join", pri: "P0", scenario: "Request to join", preconditions: [], steps: ["Request"], expected: "Pending", role: "gardener", rp: false, rd: false, tx: true, replaces: ["PWA-021"] },
-    { id: "PUB-001", tab: "PWA", area: "Home", pri: "P1", scenario: "Home renders", preconditions: [], steps: ["Open /"], expected: "Usable", role: "none", rp: false, rd: false, tx: false },
-    { id: "ADM-001", tab: "Admin Dashboard", area: "Shell", pri: "P0", scenario: "Admin shell", preconditions: [], steps: ["Open /hub"], expected: "Usable", role: "steward", rp: false, rd: false, tx: false },
+    { id: "PWA-051", tab: "Green Goods App", area: "Garden Join", pri: "P0", scenario: "Join an open garden", preconditions: [], steps: ["Join"], expected: "Joined", role: "gardener", rp: false, rd: false, tx: true, replaces: ["PWA-021"] },
+    { id: "PWA-052", tab: "Green Goods App", area: "Garden Join", pri: "P0", scenario: "Request to join", preconditions: [], steps: ["Request"], expected: "Pending", role: "gardener", rp: false, rd: false, tx: true, replaces: ["PWA-021"] },
+    { id: "PUB-001", tab: "Green Goods App", area: "Home", pri: "P1", scenario: "Home renders", preconditions: [], steps: ["Open /"], expected: "Usable", role: "none", rp: false, rd: false, tx: false },
+    { id: "ADM-001", tab: "Green Goods Hub", area: "Shell", pri: "P0", scenario: "Admin shell", preconditions: [], steps: ["Open /review"], expected: "Usable", role: "steward", rp: false, rd: false, tx: false },
   ];
   const runs = [
     { id: "run-1", n: 1, label: "Baseline", legacy: true, openedAt: "2026-08-29T09:00:00.000Z", openedBy: null, openedByLabel: null, closedAt: "2026-09-08T14:00:00.000Z", closedBy: OWNER, closedByLabel: "Tester A", environment: "beta", catalog: null, builds: {}, window: { from: "2026-08-29T09:00:00.000Z", to: "2026-09-08T14:00:00.000Z" } },
@@ -1173,7 +1173,7 @@ async function runsHarness() {
     url: "http://localhost:4610/",
     virtualConsole,
     beforeParse(window) {
-      window.sessionStorage.setItem("qa-view", JSON.stringify({ tab: "PWA", filter: "all", sort: "walk", scope: "Tester A" }));
+      window.sessionStorage.setItem("qa-view", JSON.stringify({ tab: "Green Goods App", filter: "all", sort: "walk", scope: "Tester A" }));
       // A queue written by the page before it keyed queues by run.
       window.localStorage.setItem("qa-outbox:" + OWNER, JSON.stringify({ owner: OWNER, person: "Tester A", delta: { "ADM-001": { s: "blocked" } } }));
       window.setTimeout = (callback, delay = 0) => {
@@ -1187,7 +1187,7 @@ async function runsHarness() {
       window.fetch = async (input, init = {}) => {
         const target = String(input);
         if (target === "catalog.json") {
-          return response({ revision: "abc123def456", tabs: ["PWA", "Admin Dashboard"], journeys: [], locales: {}, cases });
+          return response({ revision: "abc123def456", tabs: ["Green Goods App", "Green Goods Hub"], journeys: [], locales: {}, cases });
         }
         if (target === "/api/runs") {
           const body = JSON.parse(String(init.body));
@@ -1365,7 +1365,7 @@ async function runsHarness() {
       window.setInterval = () => 1;
       window.fetch = async (input, init = {}) => {
         const target = String(input);
-        if (target === "catalog.json") return response({ tabs: ["PWA", "Admin Dashboard"], journeys: [], locales: {}, cases });
+        if (target === "catalog.json") return response({ tabs: ["Green Goods App", "Green Goods Hub"], journeys: [], locales: {}, cases });
         if (target !== "/api/state") throw new Error("unexpected fetch " + target);
         if (init.method === "POST") {
           legacyPosts.push(JSON.parse(String(init.body)));
@@ -1409,9 +1409,9 @@ async function carryPromptHarness() {
   const page = readFileSync(path.join(process.cwd(), "packages", "qa", "index.html"), "utf8");
   const OWNER = "0x0000000000000000000000000000000000000001";
   const cases = [
-    { id: "PWA-051", tab: "PWA", area: "Garden Join", pri: "P0", scenario: "Join an open garden", preconditions: [], steps: ["Join"], expected: "Joined", role: "gardener", rp: false, rd: false, tx: true },
-    { id: "PWA-052", tab: "PWA", area: "Garden Join", pri: "P0", scenario: "Request to join", preconditions: [], steps: ["Request"], expected: "Pending", role: "gardener", rp: false, rd: false, tx: true },
-    { id: "PWA-053", tab: "PWA", area: "Offline", pri: "P1", scenario: "Works offline", preconditions: [], steps: ["Go offline"], expected: "Usable", role: "gardener", rp: false, rd: false, tx: false },
+    { id: "PWA-051", tab: "Green Goods App", area: "Garden Join", pri: "P0", scenario: "Join an open garden", preconditions: [], steps: ["Join"], expected: "Joined", role: "gardener", rp: false, rd: false, tx: true },
+    { id: "PWA-052", tab: "Green Goods App", area: "Garden Join", pri: "P0", scenario: "Request to join", preconditions: [], steps: ["Request"], expected: "Pending", role: "gardener", rp: false, rd: false, tx: true },
+    { id: "PWA-053", tab: "Green Goods App", area: "Offline", pri: "P1", scenario: "Works offline", preconditions: [], steps: ["Go offline"], expected: "Usable", role: "gardener", rp: false, rd: false, tx: false },
   ];
   const response = (body, status = 200) => ({ ok: status < 400, status, json: async () => structuredClone(body) });
   const flush = async () => {
@@ -1452,7 +1452,7 @@ async function carryPromptHarness() {
         window.fetch = async (input, init = {}) => {
           const target = String(input);
           if (target === "catalog.json") {
-            return response({ revision: "abc123def456", tabs: ["PWA"], journeys: [], locales: {}, cases });
+            return response({ revision: "abc123def456", tabs: ["Green Goods App"], journeys: [], locales: {}, cases });
           }
           if (target === "/api/runs") {
             const requested = JSON.parse(String(init.body));

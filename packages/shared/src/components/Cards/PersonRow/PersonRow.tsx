@@ -1,5 +1,5 @@
 /**
- * PersonRow — one person in a list, the same on the installed app and the cockpit.
+ * PersonRow — one person in a list, the same on the installed app and the Hub.
  *
  * A person is an item row led by their avatar: their profile photo, or the surface's own picture
  * or a person glyph when they have none, which also holds the circle while the photo is looked

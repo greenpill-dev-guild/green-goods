@@ -18,7 +18,7 @@ const baseStyle: CSSProperties = {
 };
 
 // The host sheet may set `--gg-sheet-body-padding` so the body's inset matches
-// its header's: the cockpit's docked side sheet pads 24px from 640px.
+// its header's: the Hub's docked side sheet pads 24px from 640px.
 const paddedStyle: CSSProperties = {
   padding: "var(--gg-sheet-body-padding, 20px 16px)",
 };

@@ -47,11 +47,11 @@ export function PoolStatusCasts({
           tone="warning"
           icon={<RiLockLine />}
           title={formatMessage({
-            id: "cockpit.garden.pool.stewardOnly.title",
+            id: "hub.garden.pool.stewardOnly.title",
             defaultMessage: "The pool console is for this garden's stewards",
           })}
           description={formatMessage({
-            id: "cockpit.garden.pool.stewardOnly.body",
+            id: "hub.garden.pool.stewardOnly.body",
             defaultMessage:
               "Members read this garden's pool in the Green Goods App. Ask a steward if something here needs changing.",
           })}
@@ -66,7 +66,7 @@ export function PoolStatusCasts({
         className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]"
         role="status"
         aria-label={formatMessage({
-          id: "cockpit.garden.pool.loading",
+          id: "hub.garden.pool.loading",
           defaultMessage: "Loading the pool",
         })}
         data-component="GardenPoolTab"
@@ -88,11 +88,11 @@ export function PoolStatusCasts({
           tone="error"
           icon={<RiWifiOffLine />}
           title={formatMessage({
-            id: "cockpit.garden.pool.readError.title",
+            id: "hub.garden.pool.readError.title",
             defaultMessage: "Couldn’t load this pool",
           })}
           description={formatMessage({
-            id: "cockpit.garden.pool.readError.body",
+            id: "hub.garden.pool.readError.body",
             defaultMessage:
               "Something went wrong reaching the indexer. Nothing about the pool, its seasons, or its promises has changed.",
           })}
@@ -105,7 +105,7 @@ export function PoolStatusCasts({
               onClick={() => void pool.refetch()}
             >
               {formatMessage({
-                id: "cockpit.garden.pool.readError.retry",
+                id: "hub.garden.pool.readError.retry",
                 defaultMessage: "Try Again",
               })}
             </Button>
@@ -123,11 +123,11 @@ export function PoolStatusCasts({
         <EmptyState
           icon={<RiTimeLine />}
           title={formatMessage({
-            id: "cockpit.garden.pool.unavailable.title",
+            id: "hub.garden.pool.unavailable.title",
             defaultMessage: "Commitment pooling isn't switched on in the Hub yet",
           })}
           description={formatMessage({
-            id: "cockpit.garden.pool.unavailable.body",
+            id: "hub.garden.pool.unavailable.body",
             defaultMessage:
               "The pool console switches on with the release that serves pooling here.",
           })}
@@ -142,11 +142,11 @@ export function PoolStatusCasts({
         <EmptyState
           icon={<RiSeedlingLine />}
           title={formatMessage({
-            id: "cockpit.garden.pool.unregistered.title",
+            id: "hub.garden.pool.unregistered.title",
             defaultMessage: "This garden has no commitment pool",
           })}
           description={formatMessage({
-            id: "cockpit.garden.pool.unregistered.body",
+            id: "hub.garden.pool.unregistered.body",
             defaultMessage:
               "A pool is registered for a garden by the Green Goods team. Once it is, setting it up happens here.",
           })}

@@ -18,7 +18,7 @@ export interface AdminInputChipProps {
 }
 
 /**
- * AdminInputChip — the cockpit's input chip, for something the steward chose and
+ * AdminInputChip — the Hub's input chip, for something the steward chose and
  * can take back out, such as a person named as a confirmer.
  *
  * - Height: 32px, a capsule like every chip (DL-101), an outline over the low

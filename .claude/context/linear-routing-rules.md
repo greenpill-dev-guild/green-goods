@@ -169,7 +169,7 @@ Not this:
 ## Summary
 [tracking] Cancel is broken in the garden edit dialog.
 ## Surface
-Admin Dashboard (garden edit → image upload). `package:admin`.
+Green Goods Hub (garden edit → image upload). `package:admin`.
 ## Suggested fix
 Investigate the dialog dismiss path.
 ## Safe evidence

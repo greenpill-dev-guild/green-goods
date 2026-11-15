@@ -177,7 +177,8 @@ if [[ ${#RENAMED_TERMS[@]} -gt 0 ]]; then
     echo "$RENAMED_HITS"
     echo
     echo "The garden role is a Steward. The deployed contracts keep the Operator wire"
-    echo "name, but no string a person reads should. See:"
+    echo "name, but no string a person reads should. The steward surface is the"
+    echo "Green Goods Hub, never the cockpit, and no message key says cockpit. See:"
     echo "  scripts/data/banned-vocabulary.json (.renamed_terms)"
     echo "  packages/shared/src/ontology/green-goods-ontology.json § personas"
     exit 1

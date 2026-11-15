@@ -10,17 +10,17 @@ import { NavigationBar } from "./NavigationBar";
 
 const slots: ToolbarSlot[] = [
   {
-    id: "hub",
+    id: "review",
     label: "Review",
-    labelId: "cockpit.nav.hub",
+    labelId: "hub.nav.review",
     icon: RiAppsLine,
-    path: "/hub",
+    path: "/review",
     visible: true,
   },
   {
     id: "garden",
     label: "Garden",
-    labelId: "cockpit.nav.garden",
+    labelId: "hub.nav.garden",
     icon: RiSeedlingLine,
     path: "/garden",
     visible: true,
@@ -28,7 +28,7 @@ const slots: ToolbarSlot[] = [
   {
     id: "community",
     label: "Community",
-    labelId: "cockpit.nav.community",
+    labelId: "hub.nav.community",
     icon: RiTeamLine,
     path: "/community",
     visible: true,
@@ -52,7 +52,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Admin fork of the Canvas navigation dock (Cockpit M3, finished). Centered floating pill of 94px minimum wells that grow for localized labels; the active item carries the tone-primary-container icon pill and a weight-600 ink label — one of the three sanctioned workspace-tone uses. Material comes from the `.canvas-navigation-bar` chrome rules in admin-m3-tokens.css.",
+          "Admin fork of the Canvas navigation dock (Hub M3, finished). Centered floating pill of 94px minimum wells that grow for localized labels; the active item carries the tone-primary-container icon pill and a weight-600 ink label — one of the three sanctioned workspace-tone uses. Material comes from the `.canvas-navigation-bar` chrome rules in admin-m3-tokens.css.",
       },
     },
   },
@@ -60,12 +60,12 @@ const meta = {
     withCanvasFrame({
       className: "relative",
       heightClassName: "min-h-[420px]",
-      workspace: "hub",
+      workspace: "review",
     }),
   ],
   args: {
     slots,
-    activePath: "/hub",
+    activePath: "/review",
     onNavigate: fn(),
   },
 } satisfies Meta<typeof NavigationBar>;
@@ -106,7 +106,7 @@ const phoneSlots: ToolbarSlot[] = [
   {
     id: "profile",
     label: "Profile",
-    labelId: "cockpit.nav.profile",
+    labelId: "hub.nav.profile",
     icon: RiUserLine,
     path: "/profile",
     visible: true,
@@ -131,7 +131,7 @@ async function expectPhoneLabelsFit(canvasElement: HTMLElement) {
   }
 }
 
-/** At 360px, the narrowest phone the cockpit supports. */
+/** At 360px, the narrowest phone the Hub supports. */
 const phone = {
   globals: { viewport: { value: "mobileSmall" } },
   args: { slots: phoneSlots },

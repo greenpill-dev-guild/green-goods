@@ -58,7 +58,7 @@ export function VoucherReserveCard({
   const vouchers = (units: bigint) =>
     formatMessage(
       {
-        id: "cockpit.garden.pool.voucher.vouchers",
+        id: "hub.garden.pool.voucher.vouchers",
         defaultMessage: "{count, plural, one {# {issuer} voucher} other {# {issuer} vouchers}}",
       },
       { count: count(units), issuer: issuer.name }
@@ -77,19 +77,19 @@ export function VoucherReserveCard({
         <div className="min-w-0">
           <AdminCardTitle>
             {formatMessage({
-              id: "cockpit.garden.pool.voucher.reserve.title",
+              id: "hub.garden.pool.voucher.reserve.title",
               defaultMessage: "Your Reserve",
             })}
           </AdminCardTitle>
           <p className="mt-1 type-meta text-text-soft">
             {awardAvailable
               ? formatMessage({
-                  id: "cockpit.garden.pool.voucher.reserve.descriptionAwards",
+                  id: "hub.garden.pool.voucher.reserve.descriptionAwards",
                   defaultMessage:
                     "Vouchers you can send as rewards or award for past work, kept apart from bookings",
                 })
               : formatMessage({
-                  id: "cockpit.garden.pool.voucher.reserve.description",
+                  id: "hub.garden.pool.voucher.reserve.description",
                   defaultMessage: "Vouchers you can send as rewards, kept apart from bookings",
                 })}
           </p>
@@ -104,21 +104,21 @@ export function VoucherReserveCard({
             disabled={disabled}
             onClick={() => setAwarding(true)}
           >
-            {formatMessage({ id: "cockpit.voucherAward.title" })}
+            {formatMessage({ id: "hub.voucherAward.title" })}
           </Button>
         ) : null}
       </div>
       <FactList frame="inset">
         <FactRow
           label={formatMessage({
-            id: "cockpit.garden.pool.voucher.reserve.inReserve",
+            id: "hub.garden.pool.voucher.reserve.inReserve",
             defaultMessage: "In reserve",
           })}
           value={vouchers(reserve.inReserve)}
         />
         <FactRow
           label={formatMessage({
-            id: "cockpit.garden.pool.voucher.reserve.promised",
+            id: "hub.garden.pool.voucher.reserve.promised",
             defaultMessage: "Promised as rewards, not yet sent",
           })}
           value={
@@ -126,7 +126,7 @@ export function VoucherReserveCard({
               value={count(reserve.promised)}
               note={formatMessage(
                 {
-                  id: "cockpit.garden.pool.voucher.reserve.promisedTo",
+                  id: "hub.garden.pool.voucher.reserve.promisedTo",
                   defaultMessage: "{garden} members",
                 },
                 { garden: allowance.garden }
@@ -137,7 +137,7 @@ export function VoucherReserveCard({
         <FactRow
           label={formatMessage(
             {
-              id: "cockpit.garden.pool.voucher.reserve.allowance",
+              id: "hub.garden.pool.voucher.reserve.allowance",
               defaultMessage: "Allowance for {garden}",
             },
             { garden: allowance.garden }
@@ -146,13 +146,13 @@ export function VoucherReserveCard({
             <FactValue
               value={formatMessage(
                 {
-                  id: "cockpit.garden.pool.voucher.reserve.allowanceLeft",
+                  id: "hub.garden.pool.voucher.reserve.allowanceLeft",
                   defaultMessage: "{left} left of {of}",
                 },
                 { left: count(allowance.left), of: count(allowance.limit) }
               )}
               note={formatMessage({
-                id: "cockpit.garden.pool.voucher.reserve.allowanceNote",
+                id: "hub.garden.pool.voucher.reserve.allowanceNote",
                 defaultMessage: "What their promised rewards can draw",
               })}
             />
@@ -160,14 +160,14 @@ export function VoucherReserveCard({
         />
         <FactRow
           label={formatMessage({
-            id: "cockpit.garden.pool.voucher.reserve.openBookings",
+            id: "hub.garden.pool.voucher.reserve.openBookings",
             defaultMessage: "Open bookings",
           })}
           value={
             <FactValue
               value={reserve.openBookings}
               note={formatMessage({
-                id: "cockpit.garden.pool.voucher.reserve.openNote",
+                id: "hub.garden.pool.voucher.reserve.openNote",
                 defaultMessage: "Service you owe",
               })}
             />
@@ -175,27 +175,27 @@ export function VoucherReserveCard({
         />
         <FactRow
           label={formatMessage({
-            id: "cockpit.garden.pool.voucher.reserve.terms",
+            id: "hub.garden.pool.voucher.reserve.terms",
             defaultMessage: "Service terms",
           })}
           value={
             <FactValue
               value={formatMessage(
-                { id: "cockpit.garden.pool.voucher.version", defaultMessage: "Version {version}" },
+                { id: "hub.garden.pool.voucher.version", defaultMessage: "Version {version}" },
                 { version: terms.version.toString() }
               )}
               note={
                 terms.returns.kind === "usable-hours"
                   ? formatMessage(
                       {
-                        id: "cockpit.garden.pool.voucher.reserve.returnsByHours",
+                        id: "hub.garden.pool.voucher.reserve.returnsByHours",
                         defaultMessage: "Returns by usable time, out of {hours} hours",
                       },
                       { hours: terms.returns.of }
                     )
                   : formatMessage(
                       {
-                        id: "cockpit.garden.pool.voucher.reserve.returnsByDays",
+                        id: "hub.garden.pool.voucher.reserve.returnsByDays",
                         defaultMessage: "Returns by days of access, out of {days}",
                       },
                       { days: terms.returns.of }
@@ -206,27 +206,27 @@ export function VoucherReserveCard({
         />
         <FactRow
           label={formatMessage({
-            id: "cockpit.garden.pool.voucher.reserve.approvals",
+            id: "hub.garden.pool.voucher.reserve.approvals",
             defaultMessage: "Approvals",
           })}
           value={
             <FactValue
               value={formatMessage({
-                id: "cockpit.garden.pool.voucher.reserve.eachBooking",
+                id: "hub.garden.pool.voucher.reserve.eachBooking",
                 defaultMessage: "Each booking",
               })}
               note={
                 safe?.status === "observed" && safe.threshold !== null && safe.owners !== null
                   ? formatMessage(
                       {
-                        id: "cockpit.garden.pool.voucher.reserve.safeSigns",
+                        id: "hub.garden.pool.voucher.reserve.safeSigns",
                         defaultMessage:
                           "{threshold, plural, one {Your Safe signs each one, # signature} other {Your Safe signs each one, # of {owners} signatures}}",
                       },
                       { threshold: safe.threshold, owners: safe.owners }
                     )
                   : formatMessage({
-                      id: "cockpit.garden.pool.voucher.reserve.safeSignsUnread",
+                      id: "hub.garden.pool.voucher.reserve.safeSignsUnread",
                       defaultMessage: "Your Safe signs each one",
                     })
               }
@@ -235,20 +235,20 @@ export function VoucherReserveCard({
         />
         <FactRow
           label={formatMessage({
-            id: "cockpit.garden.pool.voucher.reserve.cap",
+            id: "hub.garden.pool.voucher.reserve.cap",
             defaultMessage: "Issuer cap",
           })}
           value={
             <FactValue
               value={formatMessage(
                 {
-                  id: "cockpit.garden.pool.voucher.reserve.capValue",
+                  id: "hub.garden.pool.voucher.reserve.capValue",
                   defaultMessage: "{issued} of {ceiling}",
                 },
                 { issued: count(cap.issued), ceiling: count(cap.ceiling) }
               )}
               note={formatMessage({
-                id: "cockpit.garden.pool.voucher.reserve.capNote",
+                id: "hub.garden.pool.voucher.reserve.capNote",
                 defaultMessage: "Published policy, monitored. Not enforced yet.",
               })}
             />
@@ -262,7 +262,7 @@ export function VoucherReserveCard({
               variant="warning"
               title={formatMessage(
                 {
-                  id: "cockpit.garden.pool.voucher.reserve.shortTitle",
+                  id: "hub.garden.pool.voucher.reserve.shortTitle",
                   defaultMessage:
                     "{name}’s reward of {count, plural, one {# voucher} other {# vouchers}} is waiting.",
                 },
@@ -278,7 +278,7 @@ export function VoucherReserveCard({
                   disabled={disabled}
                 >
                   {formatMessage({
-                    id: "cockpit.garden.pool.voucher.act.raise",
+                    id: "hub.garden.pool.voucher.act.raise",
                     defaultMessage: "Raise Allowance…",
                   })}
                 </Button>
@@ -287,7 +287,7 @@ export function VoucherReserveCard({
               {allowance.left === 0n
                 ? formatMessage(
                     {
-                      id: "cockpit.garden.pool.voucher.reserve.shortBody",
+                      id: "hub.garden.pool.voucher.reserve.shortBody",
                       defaultMessage:
                         "The allowance for {garden} is used up. Raise it so the reward can be sent. Promised rewards don’t set vouchers aside.",
                     },
@@ -295,7 +295,7 @@ export function VoucherReserveCard({
                   )
                 : formatMessage(
                     {
-                      id: "cockpit.garden.pool.voucher.reserve.shortBodyLeft",
+                      id: "hub.garden.pool.voucher.reserve.shortBodyLeft",
                       defaultMessage:
                         "The allowance for {garden} has {left} left, less than the reward needs. Raise it so the reward can be sent. Promised rewards don’t set vouchers aside.",
                     },

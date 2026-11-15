@@ -26,13 +26,13 @@ export function CanvasGardenAccessState({
         titleAs="h1"
         icon={<RiSeedlingLine />}
         title={formatMessage({
-          id: "cockpit.access.noGardenTitle",
+          id: "hub.access.noGardenTitle",
           defaultMessage: "No garden access yet",
         })}
         description={
           canCreateGarden
-            ? formatMessage({ id: "cockpit.access.noGardenDescriptionCanCreate" })
-            : formatMessage({ id: "cockpit.access.noGardenDescription" })
+            ? formatMessage({ id: "hub.access.noGardenDescriptionCanCreate" })
+            : formatMessage({ id: "hub.access.noGardenDescription" })
         }
         action={
           stewardAccess || canCreateGarden ? (
@@ -41,7 +41,7 @@ export function CanvasGardenAccessState({
               {canCreateGarden && (
                 <Button type="button" size="sm" onClick={onCreateGarden}>
                   {formatMessage({
-                    id: "cockpit.workspace.createGarden",
+                    id: "hub.workspace.createGarden",
                     defaultMessage: "Create Garden",
                   })}
                 </Button>

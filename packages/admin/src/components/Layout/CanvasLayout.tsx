@@ -55,8 +55,8 @@ export function AdminAccessHomeShell({
         <AdminSideSheet
           open={profileOpen}
           onOpenChange={setProfileOpen}
-          title={intl.formatMessage({ id: "cockpit.profile.title", defaultMessage: "Profile" })}
-          tone="hub"
+          title={intl.formatMessage({ id: "hub.profile.title", defaultMessage: "Profile" })}
+          tone="review"
         >
           <AccountProfilePanelContainer />
         </AdminSideSheet>
@@ -152,7 +152,7 @@ export function CanvasLayout() {
             data-tone={workspaceId}
             className="admin-m3 h-full min-h-0 workspace-canvas workspace-canvas-grid"
           >
-            {/* Skip to content. Keyboard focus draws the cockpit's focus ring (DL-098): one
+            {/* Skip to content. Keyboard focus draws the Hub's focus ring (DL-098): one
                 solid 2px ring in the workspace tone, 2px off the link's fill. */}
             <a
               href="#main-content"
@@ -229,7 +229,7 @@ export function CanvasLayout() {
                 desktop, full-width bottom sheet on mobile (where only the
                 notification bell can open it — Profile/Settings live in the
                 Profile tab there). The same orchestrator contentId drives
-                open/close. Tone is the neutral steward "hub" accent: this is
+                open/close. Tone is the neutral steward "review" accent: this is
                 global account chrome, not workspace content, so it should not
                 inherit the active garden's tint, and the sheet portals out of
                 CanvasLayout's [data-tone] scope. */}
@@ -239,7 +239,7 @@ export function CanvasLayout() {
                 if (!next) closeSheet();
               }}
               title={rightSheetDescriptor?.title ?? ""}
-              tone="hub"
+              tone="review"
             >
               {rightSheetDescriptor?.content}
             </AdminSideSheet>

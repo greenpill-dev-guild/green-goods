@@ -18,9 +18,9 @@ graph TD
     end
 
     subgraph Apps["Target Applications"]
-      AD[Admin Dashboard<br/>Auth: Dev mockAuth]
-      CP1[Client PWA<br/>Auth: Dev mockAuth]
-      CP2[Client PWA<br/>Auth: Wallet Storage]
+      AD[Green Goods Hub<br/>Auth: Dev mockAuth]
+      CP1[Green Goods App<br/>Auth: Dev mockAuth]
+      CP2[Green Goods App<br/>Auth: Wallet Storage]
     end
 
     CH --> AD
@@ -144,23 +144,23 @@ Test continues with authenticated context
 
 ### Admin Desktop - Dev Mock Auth
 
-Admin cockpit tests should use the app's dev-only auth seam instead of wallet storage injection:
+Hub tests should use the app's dev-only auth seam instead of wallet storage injection:
 
 ```typescript
 const helper = new AdminTestHelper(page);
 await helper.enableMockAuth("steward");
 await page.route("**/api/graphql", mockIndexerRoute);
 await page.route("**/v1/graphql", mockIndexerRoute);
-await page.goto("/hub");
+await page.goto("/review");
 
 // AuthGate switches to DevAuthProvider when mock auth is present.
-// Cockpit data is then supplied by deterministic GraphQL fixtures.
+// Hub data is then supplied by deterministic GraphQL fixtures.
 ```
 
 **Why this is better than wallet storage injection**
 - Uses the real admin auth seam (`AuthGate` + `DevAuthProvider`) instead of wagmi-localStorage internals
 - Survives reloads because mock role is persisted in `sessionStorage`
-- Verifies the actual cockpit routes (`/hub`, `/garden`, `/community`, `/actions`)
+- Verifies the actual Hub routes (`/review`, `/garden`, `/community`, `/actions`)
 - Avoids false negatives from wallet connector bootstrapping
 
 ## Test Execution Flow
@@ -223,8 +223,8 @@ class AdminTestHelper {
   async enableMockAuth(role?: "deployer" | "steward" | "user" | "disconnected"): Promise<void>
     → Seeds sessionStorage with dev mock auth before page load
 
-  async goToCockpit(path?: string, role?: "deployer" | "steward" | "user"): Promise<void>
-    → Navigates to current cockpit routes with mock auth enabled
+  async goToHub(path?: string, role?: "deployer" | "steward" | "user"): Promise<void>
+    → Navigates to current Hub routes with mock auth enabled
 
   async waitForPageLoad(): Promise<void>
 }

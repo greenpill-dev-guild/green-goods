@@ -1,6 +1,6 @@
 # design
 
-The keeper of the Warm Earth design language. Design holds the direction for shape, motion, color, and material tokens, the split between the admin cockpit and client PWA identities, and the review lenses for UI work. Reach for it before new views, polish passes, or prompts for AI design tools.
+The keeper of the Warm Earth design language. Design holds the direction for shape, motion, color, and material tokens, the split between the Hub and client PWA identities, and the review lenses for UI work. Reach for it before new views, polish passes, or prompts for AI design tools.
 
 **When to use it:** Before you build a new view or component, during a UI polish pass, or when you're preparing prompts for an AI design tool.
 

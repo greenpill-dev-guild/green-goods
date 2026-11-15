@@ -1,6 +1,6 @@
 # Green Goods E2E Tests
 
-The root Playwright suite covers the client PWA and admin cockpit. The source of truth is
+The root Playwright suite covers the client PWA and Hub. The source of truth is
 [`playwright.config.ts`](../playwright.config.ts); the root scripts in [`package.json`](../package.json)
 are the supported entrypoints. `scripts/dev/test-e2e.js` owns E2E preset dispatch and qualification.
 
@@ -134,7 +134,7 @@ cases do not prove browser-to-fork-to-indexer integration or authenticated-sessi
   connector restoration. The `passkey-mock` project owns real
   virtual-WebAuthn ceremonies against strict local substitutes. Mock logout proves the profile
   control and test-session transition, not a real wallet disconnect.
-- Admin cockpit specs use deterministic `sessionStorage` mock auth plus GraphQL route interception.
+- Hub specs use deterministic `sessionStorage` mock auth plus GraphQL route interception.
   Mock both `**/api/graphql` and `**/v1/graphql` when the test can traverse the Vite proxy.
 - Browser automation here is clean-room test evidence. Label it as such; root
   `AGENTS.md § Browser Evidence` names the wallet, passkey, session, and installed-PWA surfaces that

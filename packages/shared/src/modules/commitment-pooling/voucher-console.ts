@@ -11,7 +11,7 @@
  * steward accepts through `acceptServiceClaim`. Approving and accepting are
  * separate acts by separate parties, so they never share a word.
  * The acceptance checks are the ones the chain enforces
- * (`VoucherRedemptionModule.validateVoucherServiceAcceptance`), so the cockpit
+ * (`VoucherRedemptionModule.validateVoucherServiceAcceptance`), so the Hub
  * never offers an Accept the contract would refuse.
  *
  * Amounts are the voucher token's units, a voucher being 10^decimals of them;

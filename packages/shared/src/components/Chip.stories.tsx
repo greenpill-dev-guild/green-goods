@@ -36,7 +36,7 @@ export const Unselected: Story = {
 export const Selected: Story = {
   args: { selected: true },
   // The app sets no workspace tone, so a selected chip keeps the action fill and
-  // its white text; only the cockpit's tone scopes fill it in their tone (DL-116).
+  // its white text; only the Hub's tone scopes fill it in their tone (DL-116).
   play: async ({ canvasElement }) => {
     const chip = within(canvasElement).getByRole("button", { name: "Offers" });
     const actionPair = document.createElement("span");

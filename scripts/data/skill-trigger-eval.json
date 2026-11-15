@@ -269,7 +269,7 @@
     },
     {
       "id": "qasession-03",
-      "query": "Let's do a product experience QA pass on the admin cockpit. I'll drive and dictate issues, you fix them live so I can re-check",
+      "query": "Let's do a product experience QA pass on the Hub. I'll drive and dictate issues, you fix them live so I can re-check",
       "expect": "qa-session"
     },
     {

@@ -11,7 +11,7 @@ source_of_truth:
   - packages/admin/package.json
   - packages/shared/src/hooks/garden/useEligibleAdminGardens.ts
 keywords:
-  - cockpit
+  - Green Goods Hub
   - steward
   - canvas
 ---
@@ -40,7 +40,7 @@ The canonical shell is `CanvasLayout`: an admin-owned top `AppBar` (garden chip,
 actions), the `.workspace-canvas`, a `MainSheet`, and a bottom `NavigationBar` whose canonical
 items are Review, Garden, Community, and Actions; a slot can be hidden, so a garden may show three. Every workspace overlay is a centered `AdminDialog`;
 profile, settings, and notifications render in a right-docked `AdminSideSheet` (bottom sheet on
-mobile). The `/hub` route is the reference surface for new page composition.
+mobile). The `/review` route is the reference surface for new page composition.
 
 <div className="gg-figure-grid">
 
@@ -80,7 +80,7 @@ rendered proof; the package guide describes the authenticated browser QA path.
 The admin reads through the same [indexer](./indexer) read models and shared
 [EAS data layer](../integrations/eas) as the client, and writes approvals through the
 [contracts](./contracts). Its building blocks come from [shared](./shared); the admin package owns
-the forked cockpit shell and the `Admin*` wrapper components.
+the forked Hub shell and the `Admin*` wrapper components.
 
 The [steward promise guides](/community/steward-guide/#promises) cover pool setup, seeding,
 participation, work counting, confirmation and season close. Settlement and transfer procedures
@@ -108,4 +108,4 @@ data projections they share.
 - [`packages/admin/AGENTS.md`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/packages/admin/AGENTS.md)
   and `packages/admin/DESIGN.md` own the UI contract in full.
 - The live Storybook at [design.greengoods.app](https://design.greengoods.app) shows the shared
-  primitives the cockpit composes.
+  primitives the Hub composes.

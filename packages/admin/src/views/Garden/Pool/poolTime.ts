@@ -93,13 +93,13 @@ export function timelineTime(intl: TimeIntl, ms: number, nowMs: number): string 
   const time = clockTime(intl, ms);
   if (offset === 0) {
     return intl.formatMessage(
-      { id: "cockpit.garden.pool.time.today", defaultMessage: "Today, {time}" },
+      { id: "hub.garden.pool.time.today", defaultMessage: "Today, {time}" },
       { time }
     );
   }
   if (offset === -1) {
     return intl.formatMessage(
-      { id: "cockpit.garden.pool.time.yesterday", defaultMessage: "Yesterday, {time}" },
+      { id: "hub.garden.pool.time.yesterday", defaultMessage: "Yesterday, {time}" },
       { time }
     );
   }
@@ -124,13 +124,13 @@ export function dueDateText(intl: TimeIntl, ms: number, nowMs: number): string {
     const time = clockTime(intl, ms);
     if (offset === 0) {
       return intl.formatMessage(
-        { id: "cockpit.garden.pool.time.dueToday", defaultMessage: "today, {time}" },
+        { id: "hub.garden.pool.time.dueToday", defaultMessage: "today, {time}" },
         { time }
       );
     }
     if (offset === 1) {
       return intl.formatMessage(
-        { id: "cockpit.garden.pool.time.dueTomorrow", defaultMessage: "tomorrow, {time}" },
+        { id: "hub.garden.pool.time.dueTomorrow", defaultMessage: "tomorrow, {time}" },
         { time }
       );
     }
@@ -158,7 +158,7 @@ export function rowDueDetail(
   if (!Number.isFinite(ms) || ms <= 0) return null;
   return {
     text: intl.formatMessage(
-      { id: "cockpit.garden.pool.row.due", defaultMessage: "due {date}" },
+      { id: "hub.garden.pool.row.due", defaultMessage: "due {date}" },
       { date: dueDateText(intl, ms, nowMs) }
     ),
     dateTime: isoTime(ms),
