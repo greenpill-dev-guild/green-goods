@@ -138,10 +138,11 @@ export function useCeremonyAccount(): CeremonyAccount {
     () =>
       createAccountMessageSigner({
         authMode: auth.authMode,
+        walletRestore: auth.walletRestore,
         signMessage: signMessageAsync,
         account: smartAccount,
       }),
-    [auth.authMode, smartAccount, signMessageAsync]
+    [auth.authMode, auth.walletRestore, smartAccount, signMessageAsync]
   );
 
   const prove = useCallback(

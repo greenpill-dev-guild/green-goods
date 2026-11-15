@@ -174,10 +174,11 @@ export function useProfileAvatarEditor(chainIdOrOptions?: number | ProfileAvatar
     (message: string) =>
       createAccountMessageSigner({
         authMode: auth.authMode,
+        walletRestore: auth.walletRestore,
         signMessage: signMessageAsync,
         account: auth.smartAccountClient?.account,
       })(message),
-    [auth.authMode, auth.smartAccountClient, signMessageAsync]
+    [auth.authMode, auth.walletRestore, auth.smartAccountClient, signMessageAsync]
   );
 
   const getFactoryArgs = useCallback(async () => {

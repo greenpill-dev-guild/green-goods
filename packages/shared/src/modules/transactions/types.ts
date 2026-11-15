@@ -132,6 +132,15 @@ export interface TransactionSender {
   /** Sign an order with the same account and chain as its subsequent transaction. */
   signTypedData?(request: AccountTypedDataRequest, options?: TransactionSendOptions): Promise<Hex>;
   assertOwnership?: (address: Address, chainId: number) => void | Promise<void>;
+  /**
+   * Refuses, before anything starts, an act this sender cannot sign now: a
+   * wallet account whose wallet has not answered (PRD-1499). It asks the person
+   * to reconnect, so call it only where a person started the act. Absent where
+   * the sender can always sign.
+   */
+  assertReadyToSign?: () => void;
+  /** Whether this sender can sign now, asked of nobody. Absent where it always can. */
+  readyToSign?: () => boolean;
   reconcileBroadcast?: (reference: BroadcastReference) => Promise<BroadcastConfirmation>;
   /** Send a single contract call */
   sendContractCall(call: ContractCall, options?: TransactionSendOptions): Promise<TxResult>;

@@ -17,6 +17,9 @@ vi.mock("@green-goods/shared/hooks/analytics/useAnalyticsIdentity", () => ({
 vi.mock("@green-goods/shared/hooks/analytics/usePageView", () => ({
   usePageView: () => undefined,
 }));
+vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
+  useWalletReconnectPrompt: () => undefined,
+}));
 vi.mock("@green-goods/shared/providers/App", () => ({
   useApp: () => ({ locale: "en" }),
 }));
