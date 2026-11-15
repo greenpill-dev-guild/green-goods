@@ -1,6 +1,7 @@
 import { ToastViewport } from "@green-goods/shared/components/Toast/ToastViewport";
 import { useAnalyticsIdentity } from "@green-goods/shared/hooks/analytics/useAnalyticsIdentity";
 import { usePageView } from "@green-goods/shared/hooks/analytics/usePageView";
+import { useWalletReconnectPrompt } from "@green-goods/shared/hooks/auth/useAuth";
 import { useApp } from "@green-goods/shared/providers/App";
 import { getAdminWorkspaceForPath } from "@green-goods/shared/utils/navigation/admin-routes";
 import { Outlet, useLocation } from "react-router-dom";
@@ -8,7 +9,8 @@ import { Outlet, useLocation } from "react-router-dom";
 /**
  * Root layout component
  *
- * Sets up analytics tracking (identity + pageviews) and toast viewport.
+ * Sets up analytics tracking (identity + pageviews), the toast viewport, and
+ * the toast that asks a wallet account to reconnect a wallet that did not answer.
  */
 export default function Root() {
   const { locale } = useApp();
@@ -26,6 +28,9 @@ export default function Root() {
     app: "admin",
     trackInitial: true,
   });
+
+  // Asks a wallet account to reconnect when its wallet has not answered.
+  useWalletReconnectPrompt();
 
   return (
     <>

@@ -257,6 +257,25 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
         void queryClient.invalidateQueries({ queryKey: worksKeys.online(gardenId, chainId) });
     }
   );
+
+  // Background preparation and Upload all record what they found on a work's stored job and
+  // raise no queue event, so the events above left a work's page on "Preparing uploads…" after
+  // it was ready (PRD-1488). The store's live view answers after every write, whoever made it,
+  // in this tab or another, and each answer reads the queued work again.
+  useEffect(() => {
+    if (!offline || !gardenId || !primaryAddress) return;
+    const queryKey = worksKeys.offline(gardenId, chainId, primaryAddress);
+    const subscription = jobQueueDB
+      .observeJobs({ userAddress: primaryAddress, kind: "work", synced: false })
+      .subscribe({
+        next: () => void queryClient.invalidateQueries({ queryKey, exact: true }),
+        // The queue's own events still refresh the read; a page left on them can be stale.
+        error: (error: unknown) =>
+          logger.warn("[useWorks] The queue's live view stopped; queued work may lag", { error }),
+      });
+    return () => subscription.unsubscribe();
+  }, [offline, gardenId, chainId, primaryAddress, queryClient]);
+
   const hasRemote = remoteData !== undefined || (projection.data?.length ?? 0) > 0;
   const availability: WorkAvailability = hasRemote
     ? works.length === 0

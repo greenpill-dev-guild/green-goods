@@ -5,6 +5,7 @@ import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import messages from "@green-goods/shared/i18n/en.json";
+import esMessages from "@green-goods/shared/i18n/es.json";
 import { SheetActions } from "@green-goods/shared/components/Dialog/SheetActions";
 
 const GREENWILL_BADGE_IDS = {
@@ -123,8 +124,17 @@ vi.mock("@/components/Cards", () => ({
 
 import { ProfileBadges } from "../../views/Profile/Badges";
 
-const wrap = (el: React.ReactElement) =>
-  createElement(MemoryRouter, null, createElement(IntlProvider, { locale: "en", messages }, el));
+// Dates format in UTC, so a badge's calendar day is the same on every test machine.
+const wrap = (
+  el: React.ReactElement,
+  locale = "en",
+  localeMessages: Record<string, string> = messages
+) =>
+  createElement(
+    MemoryRouter,
+    null,
+    createElement(IntlProvider, { locale, messages: localeMessages, timeZone: "UTC" }, el)
+  );
 
 /** Genesis open to claim and not yet held, as the badge list reads it. */
 const genesisClaimable = () => ({
@@ -435,6 +445,69 @@ describe("ProfileBadges", () => {
     await user.click(screen.getByRole("button", { name: "Close" }));
 
     expect(screen.queryByRole("dialog", { name: "Genesis" })).not.toBeInTheDocument();
+  });
+
+  it("dates an earned badge in the person's language and leaves a badge to claim undated", async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(wrap(createElement(ProfileBadges)));
+
+    // Genesis was issued at 1710000000, block time in seconds: 9 March 2024, 16:00 UTC.
+    await user.click(screen.getByRole("button", { name: "View Genesis badge" }));
+    const earned = screen.getByRole("dialog", { name: "Genesis" });
+    const date = within(earned).getByText("March 9, 2024");
+    expect(date.tagName).toBe("TIME");
+    expect(date).toHaveAttribute("datetime", "2024-03-09T16:00:00.000Z");
+    expect(within(date.parentElement as HTMLElement).getByText("Earned")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Close" }));
+    await user.click(screen.getByRole("button", { name: "View First Work badge" }));
+    const claimable = screen.getByRole("dialog", { name: "First Work" });
+    expect(within(claimable).getByText("Ready to claim")).toBeInTheDocument();
+    expect(claimable.querySelector("time")).toBeNull();
+    unmount();
+
+    render(wrap(createElement(ProfileBadges), "es", esMessages));
+    await user.click(screen.getByRole("button", { name: "Ver insignia Génesis" }));
+    const spanish = within(screen.getByRole("dialog", { name: "Génesis" })).getByText(
+      "9 de marzo de 2024"
+    );
+    expect(within(spanish.parentElement as HTMLElement).getByText("Obtenida")).toBeInTheDocument();
+  });
+
+  it("shows the badge's artwork in its sheet, and its own glyph when the artwork fails or is missing", async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(wrap(createElement(ProfileBadges)));
+
+    await user.click(screen.getByRole("button", { name: "View Genesis badge" }));
+    const artwork = within(screen.getByRole("dialog", { name: "Genesis" })).getByTestId(
+      "badge-artwork"
+    );
+    const image = within(artwork).getByAltText("");
+    expect(image).toHaveAttribute(
+      "src",
+      "https://locksmith.unlock-protocol.com/42161/lock/0x0000000000000000000000000000000000000003/icon"
+    );
+    fireEvent.error(image);
+    expect(within(artwork).queryByAltText("")).toBeNull();
+    expect(within(artwork).getByTestId("icon-seedling")).toBeInTheDocument();
+    unmount();
+
+    // A badge with no Unlock collection never requests artwork.
+    const listing = genesisClaimable();
+    sharedMocks.useGreenWillBadges.mockReturnValue({
+      ...listing,
+      badges: listing.badges.map((badge) => ({
+        ...badge,
+        unlockLock: "0x0000000000000000000000000000000000000000",
+      })),
+    });
+    render(wrap(createElement(ProfileBadges)));
+    await user.click(screen.getByRole("button", { name: "View Genesis badge" }));
+    const placeholder = within(screen.getByRole("dialog", { name: "Genesis" })).getByTestId(
+      "badge-artwork"
+    );
+    expect(placeholder.querySelector("img")).toBeNull();
+    expect(within(placeholder).getByTestId("icon-seedling")).toBeInTheDocument();
   });
 
   it("allows claiming the genesis badge when eligible", async () => {

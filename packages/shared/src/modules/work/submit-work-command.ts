@@ -181,6 +181,15 @@ export async function submitWork(
     clientWorkId: command.clientWorkId ?? ports.newClientWorkId?.() ?? crypto.randomUUID(),
   });
   if ((resolved.allowOfflineQueue || resolved.retainSubmission) && ports.queue.admit) {
+    // A wallet that has not answered is asked to reconnect before the work is
+    // admitted (PRD-1499), once the connection is confirmed. On a connection that
+    // is not, the work is admitted to wait, as it would be with the wallet there.
+    if (
+      resolved.authMode === "wallet" &&
+      ports.sender?.readyToSign?.() === false &&
+      (await ports.connectivity.confirm())
+    )
+      ports.sender.assertReadyToSign?.();
     // Without the offline queue nothing is admitted that cannot be sent now: a
     // wallet signs its own send, and every other session needs the sender.
     if (!resolved.allowOfflineQueue) {
@@ -241,6 +250,7 @@ export async function submitWork(
       return queuedOutcome(await ports.queue.enqueue(resolved), ports.sender);
     }
 
+    ports.sender?.assertReadyToSign?.();
     try {
       const txHash = await ports.direct.submitWork(resolved, ports.onWalletStage);
       return { kind: "direct", txHash, sponsored: false, clientWorkId: resolved.clientWorkId };

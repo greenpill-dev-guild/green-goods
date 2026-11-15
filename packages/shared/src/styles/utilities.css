@@ -296,6 +296,15 @@
     }
   }
 
+  /* A browser without the Popover API (Chrome before 114, Safari before 17) draws a
+   * popover as ordinary content, in the flow and always there, and nothing can open
+   * it. Hide it as a closed popover is hidden. */
+  @supports not selector(:popover-open) {
+    [popover] {
+      display: none;
+    }
+  }
+
   /* ── Shimmer Skeleton ── */
   @keyframes shimmer {
     0% {

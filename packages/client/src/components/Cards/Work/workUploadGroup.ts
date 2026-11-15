@@ -34,14 +34,21 @@ export function workUploadGroup(submissionState: string | undefined): WorkUpload
  */
 export function canDiscardQueuedWork(
   submissionState: string | undefined,
-  { isOnline, pausedForDataSaver }: { isOnline: boolean; pausedForDataSaver: boolean }
+  {
+    isOnline,
+    preparationWaiting,
+  }: {
+    isOnline: boolean;
+    /** Preparation is not working on it now: it is paused, or waits to try again. */
+    preparationWaiting: boolean;
+  }
 ): boolean {
   switch (workUploadGroup(submissionState)) {
     case "waiting":
     case "attention":
       return true;
     case "preparing":
-      return !isOnline || pausedForDataSaver;
+      return !isOnline || preparationWaiting;
     case "failed":
       return submissionState !== "reverted";
     default:

@@ -113,6 +113,31 @@ export const StewardReviewed: Story = {
   },
 };
 
+/**
+ * A steward-reviewed group whose open copies all have a request waiting on a steward: the act is
+ * held, and the counts agree with it rather than saying one is available (PRD-1492).
+ */
+export const StewardReviewedEveryOneAskedFor: Story = {
+  args: page(
+    {
+      available: 0,
+      requested: 2,
+      inProgress: 3,
+      kept: 5,
+      overrides: { claimMode: "APPROVAL_GATED" },
+    },
+    { bar: { act: "askToTakeUp", hold: "none" } }
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("region", { name: "Right now" })).toHaveTextContent(
+      "None available · 2 waiting on a steward · 3 in progress · 5 kept"
+    );
+    await expect(canvas.getByRole("button", { name: "Request to Take Up One" })).toBeDisabled();
+    await expect(canvas.getByText("None are available right now")).toBeVisible();
+  },
+};
+
 /** At the pool's at-once limit (c9): the act is held and says finishing one frees a place. */
 export const AtTheLimit: Story = {
   args: page(

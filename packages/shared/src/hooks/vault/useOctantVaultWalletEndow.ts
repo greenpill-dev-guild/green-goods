@@ -54,6 +54,8 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
       if (authMode !== "wallet" || sender.authMode !== "wallet" || !primaryAddress) {
         throw new Error("Octant Wallet Endow requires a connected wallet");
       }
+      // Before the approval starts: a wallet that has not answered is asked to reconnect.
+      sender.assertReadyToSign?.();
 
       const receiver = transaction.receiver.receiverAddress;
       if (!addressesEqual(primaryAddress, receiver)) {

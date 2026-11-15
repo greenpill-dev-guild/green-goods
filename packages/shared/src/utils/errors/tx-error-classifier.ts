@@ -1,6 +1,9 @@
 import { extractErrorMessage } from "./extract-message";
 import { wrongWalletNetwork } from "./wallet-network-refusal";
 
+// An act refused because the wallet has not answered, already asked to reconnect (PRD-1499).
+export { wasAskedToReconnect } from "./unsent-failures";
+
 export type TxErrorKind =
   | "cancelled"
   | "unconfirmed"

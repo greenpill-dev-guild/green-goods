@@ -9,6 +9,7 @@ import {
   type ActiveGardenInputs,
   activeGardenScope,
   type GardenListScope,
+  gardensAddedSince,
   isInGardenListScope,
   resolveActiveGarden,
 } from "../../../modules/garden/active-garden";
@@ -62,9 +63,11 @@ describe("resolveActiveGarden", () => {
       { status: "choose", gardenId: null },
     ],
     [
-      "one garden replacing a remembered one they no longer hold",
+      // PRD-1492: a list that comes back without the remembered garden, even one that lags
+      // behind, must not replace the choice, so the next full list opens it again.
+      "one garden beside a remembered one missing from the list, which stays remembered",
       inputs([GARDEN_A], { [ALICE_SCOPE]: GARDEN_B }),
-      { status: "ready", gardenId: GARDEN_A, remember: true },
+      { status: "ready", gardenId: GARDEN_A, remember: false },
     ],
     [
       "no gardens left, with the remembered one kept in storage",
@@ -118,6 +121,21 @@ describe("resolveActiveGarden", () => {
       status: "loading",
       gardenId: null,
     });
+  });
+});
+
+describe("gardensAddedSince", () => {
+  it("names the account's gardens this device has not seen it hold, whatever the case", () => {
+    expect(gardensAddedSince([GARDEN_A.toLowerCase()], [GARDEN_A, GARDEN_B])).toEqual([GARDEN_B]);
+    expect(gardensAddedSince([GARDEN_A, GARDEN_B], [GARDEN_B, GARDEN_A])).toEqual([]);
+  });
+
+  it("announces nothing on the first list a device reads for an account", () => {
+    expect(gardensAddedSince(undefined, [GARDEN_A, GARDEN_B])).toEqual([]);
+  });
+
+  it("never reads a garden the account left as one it was added to", () => {
+    expect(gardensAddedSince([GARDEN_A, GARDEN_B], [GARDEN_A])).toEqual([]);
   });
 });
 

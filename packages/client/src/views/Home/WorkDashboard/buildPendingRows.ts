@@ -126,7 +126,7 @@ export function submissionRow(
   const state = readQueuedWorkState(work.metadata);
   const discardable = canDiscardQueuedWork(state.submissionState, {
     isOnline: context.isOnline,
-    pausedForDataSaver: context.pausedForDataSaver,
+    preparationWaiting: context.pausedForDataSaver,
   });
   const saved = { ...base, meta: formatSavedMeta(intl, at) };
   const toUpload = (status: string, locked = false): RowCard => ({

@@ -58,6 +58,30 @@ export const NoneAvailable: Story = {
   },
 };
 
+/**
+ * A steward-reviewed set whose open copies all have a request waiting on a steward: no second ask
+ * goes to them, so none is available, and the details say why (PRD-1492).
+ */
+export const EveryOpenOneAskedFor: Story = {
+  args: {
+    group: storyGroup({
+      available: 0,
+      requested: 2,
+      inProgress: 3,
+      kept: 5,
+      overrides: { claimMode: "APPROVAL_GATED" },
+    }).group,
+  },
+  play: async ({ canvasElement }) => {
+    const row = within(canvasElement).getByRole("button", {
+      name: /A group of 10 separate promises/,
+    });
+    await expect(row).toHaveTextContent(/None available.*2 waiting on a steward/);
+    await expect(row).not.toHaveTextContent(/\d+ available/);
+    await expectItemRowsFit(canvasElement);
+  },
+};
+
 /** The pool couldn't be read again: the counts say so, never 0 (c9). */
 export const AvailabilityUnknown: Story = {
   args: {

@@ -118,14 +118,18 @@ export const GardenWork: React.FC = () => {
     })
   );
 
-  // The gardener's own queued work: where it stands and what they can do about it.
+  // The gardener's own queued work: where it stands and what they can do about it. The notice
+  // and the bar read one answer for what preparation is doing with it, so they never disagree.
   const ownQueuedWork = isOfflineWork && isUserAddress(work.gardenerAddress, user?.id);
-  const retryNotice = ownQueuedWork ? <WorkStatusNotice work={work} isOnline={isOnline} /> : null;
+  const preparation = ownQueuedWork ? uploads.preparationOf(work.id) : "working";
+  const retryNotice = ownQueuedWork ? (
+    <WorkStatusNotice work={work} isOnline={isOnline} preparation={preparation} />
+  ) : null;
   const retryFooter = ownQueuedWork ? (
     <WorkUploadFooter
       work={work}
       isOnline={isOnline}
-      pausedForDataSaver={uploads.pausedForDataSaver}
+      preparation={preparation}
       onPrepareNow={uploads.prepareNow}
       onRetry={handleRetry}
       isRetrying={isRetrying}

@@ -21,7 +21,8 @@ export interface RecentActivityProps {
 
 /**
  * Recent Activity: the garden's three newest works as the Work tab's rows, with the Work tab's
- * status pills, the same for every role. A pending row opens the work, where a steward
+ * status pills, the same for every role. A line under the heading says they are everyone's work
+ * in this garden, not the member's own (PRD-1492). A pending row opens the work, where a steward
  * approves it; no row carries a Review control (decision 23). See All opens the garden's Work
  * as a sheet over Home (DL-128), so Home keeps its place.
  */
@@ -37,6 +38,7 @@ export function RecentActivity({ gardenId }: RecentActivityProps) {
     <JournalSection
       data-component="RecentActivity"
       title={formatMessage({ id: "app.home.journal.recentActivity" })}
+      description={formatMessage({ id: "app.home.journal.recentActivity.description" })}
       action={{
         label: formatMessage({ id: "app.home.journal.seeAll" }),
         onClick: () => openGardenSheet("work"),

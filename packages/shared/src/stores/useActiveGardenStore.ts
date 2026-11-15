@@ -8,8 +8,15 @@ export const ACTIVE_GARDEN_STORAGE_KEY = "green-goods:active-garden";
 interface ActiveGardenState {
   /** The garden picked last on this device, one per chain and account (`activeGardenScope`). */
   gardenIdsByScope: Record<string, string>;
+  /**
+   * The gardens this device has seen each chain and account hold, lowercased, so a garden the
+   * account is added to later can be announced once (`gardensAddedSince`).
+   */
+  seenGardenIdsByScope: Record<string, string[]>;
   /** Remember a garden for one chain and account; the next open starts there. */
   rememberGarden: (scope: string, gardenId: string) => void;
+  /** Note gardens the account holds as seen on this device. Seen gardens are never forgotten. */
+  markGardensSeen: (scope: string, gardenIds: readonly string[]) => void;
 }
 
 /**
@@ -50,33 +57,68 @@ function parseGardenIdsByScope(value: unknown): Record<string, string> {
   );
 }
 
+/** Saved gardens are untrusted input too: only a list of garden id strings per scope survives. */
+function parseSeenGardenIdsByScope(value: unknown): Record<string, string[]> {
+  if (!value || typeof value !== "object") return {};
+  return Object.fromEntries(
+    Object.entries(value).flatMap(([scope, gardenIds]) =>
+      Array.isArray(gardenIds)
+        ? [[scope, gardenIds.filter((id): id is string => typeof id === "string" && id.length > 0)]]
+        : []
+    )
+  );
+}
+
 /**
  * The active garden, a device preference per chain and account (PWA Home decision 8). It is
  * keyed by `chainId:address`, so it stays when another account signs in and is never read for
  * one. The UI store and the Hub keep their own keys; the Hub's candidate set differs.
- * Nothing here forgets a garden: a choice the account can no longer hold simply stops winning.
+ * Nothing here forgets a garden: a choice the account can no longer hold simply stops winning,
+ * and a garden seen once stays seen, so leaving it and coming back is not announced as new.
  */
 export const useActiveGardenStore = create<ActiveGardenState>()(
   persist(
     (set) => ({
       gardenIdsByScope: {},
+      seenGardenIdsByScope: {},
       rememberGarden: (scope, gardenId) =>
         set((state) =>
           state.gardenIdsByScope[scope] === gardenId
             ? state
             : { gardenIdsByScope: { ...state.gardenIdsByScope, [scope]: gardenId } }
         ),
+      markGardensSeen: (scope, gardenIds) =>
+        set((state) => {
+          const seen = state.seenGardenIdsByScope[scope];
+          const known = new Set((seen ?? []).map((id) => id.toLowerCase()));
+          const unseen = gardenIds.map((id) => id.toLowerCase()).filter((id) => !known.has(id));
+          // A first read is recorded even when it holds no garden, so later gardens are new.
+          if (seen && unseen.length === 0) return state;
+          return {
+            seenGardenIdsByScope: {
+              ...state.seenGardenIdsByScope,
+              [scope]: [...(seen ?? []), ...new Set(unseen)],
+            },
+          };
+        }),
     }),
     {
       name: ACTIVE_GARDEN_STORAGE_KEY,
       storage: createJSONStorage(() => deviceStorage),
-      partialize: (state) => ({ gardenIdsByScope: state.gardenIdsByScope }),
-      merge: (persisted, current) => ({
-        ...current,
-        gardenIdsByScope: parseGardenIdsByScope(
-          (persisted as { gardenIdsByScope?: unknown } | undefined)?.gardenIdsByScope
-        ),
+      partialize: (state) => ({
+        gardenIdsByScope: state.gardenIdsByScope,
+        seenGardenIdsByScope: state.seenGardenIdsByScope,
       }),
+      merge: (persisted, current) => {
+        const stored = persisted as
+          | { gardenIdsByScope?: unknown; seenGardenIdsByScope?: unknown }
+          | undefined;
+        return {
+          ...current,
+          gardenIdsByScope: parseGardenIdsByScope(stored?.gardenIdsByScope),
+          seenGardenIdsByScope: parseSeenGardenIdsByScope(stored?.seenGardenIdsByScope),
+        };
+      },
     }
   )
 );

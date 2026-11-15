@@ -181,6 +181,8 @@ export function TakePartRows({
             <PromiseGroupRow
               group={entry.group}
               title={titleOf(entry.copy.metadataCID)}
+              // A reviewed group whose requests can't be read says so, as its page does.
+              availabilityUnknown={!entry.availabilityKnown}
               onOpen={() => onOpen(entry)}
             />
           </li>
