@@ -22,10 +22,6 @@ function vaultId() {
   return `${CHAIN_ID}-${GARDEN.toLowerCase()}-${ASSET.toLowerCase()}`;
 }
 
-// ============================================================================
-// VAULT CREATION
-// ============================================================================
-
 describe("OctantModule.VaultCreated", () => {
   it("registers the created OctantVault for dynamic discovery", async () => {
     const mockDb = await seedVault(createTestIndexer());
@@ -111,10 +107,6 @@ describe("OctantModule.VaultCreated", () => {
     assert.equal(index.assets.length, 2);
   });
 });
-
-// ============================================================================
-// DEPOSITS
-// ============================================================================
 
 describe("OctantVault.Deposit", () => {
   it("creates deposit record and updates vault totals", async () => {
@@ -283,15 +275,10 @@ describe("OctantVault.Deposit", () => {
   });
 });
 
-// ============================================================================
-// WITHDRAWALS
-// ============================================================================
-
 describe("OctantVault.Withdraw", () => {
   it("tracks withdrawals and updates vault totals", async () => {
     let mockDb = await seedVault(createTestIndexer());
 
-    // Deposit first
     const deposit = OctantVault.Deposit.createMockEvent({
       sender: addr(30),
       owner: addr(31),
@@ -303,7 +290,6 @@ describe("OctantVault.Withdraw", () => {
         logIndex: 1,
       }),
     });
-    // Withdraw
     const withdraw = OctantVault.Withdraw.createMockEvent({
       sender: addr(30),
       receiver: addr(31),
@@ -332,7 +318,6 @@ describe("OctantVault.Withdraw", () => {
   it("clamps shares to zero when over-withdrawing", async () => {
     let mockDb = await seedVault(createTestIndexer());
 
-    // Deposit 50
     const deposit = OctantVault.Deposit.createMockEvent({
       sender: addr(30),
       owner: addr(31),
@@ -369,7 +354,6 @@ describe("OctantVault.Withdraw", () => {
     let mockDb = await seedVault(createTestIndexer());
     const tx = txHash(300);
 
-    // Deposit first
     const deposit = OctantVault.Deposit.createMockEvent({
       sender: addr(30),
       owner: addr(31),
@@ -402,9 +386,7 @@ describe("OctantVault.Withdraw", () => {
   });
 });
 
-// ============================================================================
 // HARVEST + EMERGENCY PAUSE
-// ============================================================================
 
 describe("OctantModule.HarvestTriggered", () => {
   it("increments harvest count", async () => {
@@ -513,10 +495,6 @@ describe("OctantModule.EmergencyPaused", () => {
   });
 });
 
-// ============================================================================
-// DONATION ADDRESS UPDATED
-// ============================================================================
-
 describe("OctantModule.DonationAddressUpdated", () => {
   it("updates donationAddress on all vaults for the garden", async () => {
     let mockDb = await seedVault(createTestIndexer());
@@ -561,7 +539,6 @@ describe("OctantModule.DonationAddressUpdated", () => {
       asset: secondAsset,
       mockEventData: mockEvent(CHAIN_ID, 1500, { txHash: txHash(150), logIndex: 1 }),
     });
-    // Update donation address
     const updateEvent = OctantModule.DonationAddressUpdated.createMockEvent({
       garden: GARDEN,
       oldAddress: addr(26),

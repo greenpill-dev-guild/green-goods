@@ -22,7 +22,6 @@ Read `.claude/skills/design/implementation.md` before frontend work.
 - Do not use the client/PWA `AppBar` pattern for admin. Keep admin workspace navigation on `NavigationBar`.
 - `ConnectShell` is the disconnected full-screen state with a centered connect prompt and no navigation.
 - Shared owns `GardenChip`, `NotificationPanel`, and `SheetErrorBoundary`. Admin owns the forked shell — `AppBar`, `NavigationBar`, `MainSheet`, and `FabButton` in `components/Shell/` (styling in JSX, per the Tailwind gotcha below) — plus `CanvasLayout`, `CanvasRouteFrame`, `CanvasRouteHeader`, `AdminDialog`, `AdminSideSheet`, the left-inspector channel (`components/Layout/leftSheetChannel.tsx`), `AccountProfilePanel`, `AccountSettingsPanel`, `AccountSurface`, `ConnectShell`, `CommandPalette`, and `PageHeader`. The shared `Canvas/NavigationBar` still exists for non-admin surfaces; a behavior or accessibility fix to one shell has to be applied to both.
-- Treat `DashboardLayout`, `Sidebar`, and `Header` as legacy migration code for new admin work.
 - Prefer the primitives below before composing raw `rounded border bg shadow` layouts.
 - Treat `packages/admin/src/components/Admin*.tsx` as the admin wrapper inventory; use those wrappers before local control styling.
 - Use `.surface-section`, `.surface-inset`, `.surface-card`, and `.workspace-canvas` before inventing one-off shell or page surface wrappers.

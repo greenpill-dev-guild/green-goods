@@ -72,10 +72,6 @@ import {
 } from "./services/passkey-directory-adapters";
 import { PASSKEY_RP_ID, PASSKEY_RP_NAME } from "@green-goods/shared/public-contracts";
 
-// ============================================================================
-// INITIALIZATION
-// ============================================================================
-
 async function main(): Promise<void> {
   const config = getConfig();
   initAgentSentry({
@@ -107,7 +103,6 @@ async function main(): Promise<void> {
     nodeEnv: config.nodeEnv,
   });
 
-  // Initialize services
   initDB(config.dbPath);
   const agentRpc = resolveAgentRpc(config.chainId);
   const hostedPasskeys = config.passkeyHostedDirectoryUrl
@@ -189,10 +184,6 @@ async function main(): Promise<void> {
       logger.warn({ err }, "Failed to register slash commands; continuing");
     });
   }
-
-  // ============================================================================
-  // LAUNCH
-  // ============================================================================
 
   // Start HTTP server in both modes (health + API endpoints always available)
   const server = createServer({
@@ -346,10 +337,6 @@ async function main(): Promise<void> {
     },
     "✅ Agent running"
   );
-
-  // ============================================================================
-  // GRACEFUL SHUTDOWN
-  // ============================================================================
 
   const shutdown = createShutdownHandler({
     bot,

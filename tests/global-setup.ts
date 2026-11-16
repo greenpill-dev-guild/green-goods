@@ -95,7 +95,6 @@ async function globalSetup() {
     return;
   }
 
-  // Run health checks
   const browser = await chromium.launch({
     channel: process.env.PLAYWRIGHT_QUALIFIED === "true" ? "chromium" : undefined,
   });

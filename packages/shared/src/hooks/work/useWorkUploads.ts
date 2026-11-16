@@ -7,6 +7,11 @@ import { logger } from "../../modules/app/logger";
 import { appCodeRecovery } from "../../modules/app/cache-recovery";
 import { jobQueueDB } from "../../modules/job-queue/db";
 import { jobQueue } from "../../modules/job-queue/default-instance";
+import {
+  recordBestEffort,
+  trackQueuedUploadFinished,
+  trackQueuedUploadStarted,
+} from "../../modules/job-queue/job-analytics";
 import { takeUpOf } from "../../modules/job-queue/take-up-hold";
 import { uploadOutcomeToast } from "../../modules/work/upload-outcome-toast";
 import {
@@ -181,6 +186,42 @@ export function useWorkUploads(options: { inScope?: GardenScopeFilter } = {}): W
       return uploadQueuedWork(
         { userAddress, chainId, sender, jobIds },
         await createDefaultUploadQueuedWorkPorts()
+      );
+    },
+    // Each tap leaves its start before anything is signed, and its end, even one that sent
+    // nothing: a page suspended mid-prompt still shows that someone tried (PRD-1495).
+    // A record never decides the upload: both callbacks run inside the mutation.
+    onMutate: (jobIds) => {
+      const tap = {
+        scope: jobIds ? ("selected" as const) : ("all" as const),
+        authMode: sender?.authMode,
+        startedAt: Date.now(),
+      };
+      recordBestEffort(() =>
+        trackQueuedUploadStarted({
+          scope: tap.scope,
+          itemCount: jobIds?.length ?? summary.readyCount,
+          authMode: tap.authMode,
+        })
+      );
+      return tap;
+    },
+    onSettled: (outcome, error, _jobIds, tap) => {
+      if (!tap) return;
+      recordBestEffort(() =>
+        trackQueuedUploadFinished({
+          scope: tap.scope,
+          authMode: tap.authMode,
+          durationMs: Date.now() - tap.startedAt,
+          status: error
+            ? wasAskedToReconnect(error)
+              ? "wallet-reconnect-required"
+              : "stopped"
+            : (outcome?.status ?? "not-signed-in"),
+          sent: outcome && "sent" in outcome ? outcome.sent : 0,
+          flagged: outcome && "flagged" in outcome ? outcome.flagged : 0,
+          error: error ?? (outcome?.status === "failed" ? outcome.error : undefined),
+        })
       );
     },
     onSuccess: (outcome) => {

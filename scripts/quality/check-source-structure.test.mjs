@@ -68,6 +68,20 @@ test("rejects a component whose client filename is not PascalCase", () => {
   }
 });
 
+test("checks first-party lib folders like other source, and leaves vendored code out", () => {
+  const lib = "packages/admin/src/lib/feature.ts";
+  const vendored = "packages/admin/src/vendor/feature.ts";
+  const source = "export function useFeature() { return true; }\n";
+  const root = fixture({ [lib]: source, [vendored]: source });
+  try {
+    const found = ids(audit(root, [lib, vendored]));
+    assert(found.includes(`hook-location:${lib}:useFeature`));
+    assert(!found.some((id) => id.includes(vendored)));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("rejects hook definitions outside shared", () => {
   const path = "packages/admin/src/components/feature.ts";
   const root = fixture({ [path]: "export function useFeature() { return true; }\n" });

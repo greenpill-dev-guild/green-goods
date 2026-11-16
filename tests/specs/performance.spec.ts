@@ -112,7 +112,6 @@ test.describe("Performance Tests", () => {
 
       const bundles: { url: string; size: number }[] = [];
 
-      // Check script sizes
       for (const match of scriptMatches) {
         const url = new URL(match[1], TEST_URLS.client).toString();
         try {
@@ -124,7 +123,6 @@ test.describe("Performance Tests", () => {
         }
       }
 
-      // Check style sizes
       for (const match of styleMatches) {
         const url = new URL(match[1], TEST_URLS.client).toString();
         try {
@@ -136,7 +134,6 @@ test.describe("Performance Tests", () => {
         }
       }
 
-      // Check bundle sizes
       const totalSize = bundles.reduce((sum, b) => sum + b.size, 0);
       const largestBundle = Math.max(...bundles.map((b) => b.size));
 

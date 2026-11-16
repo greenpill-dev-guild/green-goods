@@ -19,12 +19,9 @@ function loadAbi(relativePath: string): Abi {
 const GardenAccountABI = loadAbi("../../packages/contracts/abis/GardenAccount.json");
 const GardenTokenABI = loadAbi("../../packages/contracts/abis/GardenToken.json");
 
-// Type helper for log with topics
 type LogWithTopics = Log & { topics: readonly `0x${string}`[] };
 
-// ============================================================================
 // ABI DEFINITIONS (Minimal ABIs for testing)
-// ============================================================================
 
 /**
  * Minimal ActionRegistry ABI for registering actions
@@ -127,10 +124,6 @@ const EASABI = [
     ],
   },
 ] as const;
-
-// ============================================================================
-// TYPES
-// ============================================================================
 
 /**
  * Capital types matching the Solidity enum
@@ -236,14 +229,6 @@ export interface ApprovalResult {
   approved: boolean;
   txHash: `0x${string}`;
 }
-
-// ============================================================================
-// CONTRACT GETTERS
-// ============================================================================
-
-// ============================================================================
-// HIGH-LEVEL OPERATIONS
-// ============================================================================
 
 /**
  * Create a new garden
@@ -544,13 +529,6 @@ export async function approveWork(
   };
 }
 
-// ============================================================================
-// UTILITY FUNCTIONS
-// ============================================================================
-
-/**
- * Get the current block timestamp
- */
 async function getBlockTimestamp(context: AnvilForkContext): Promise<bigint> {
   const block = await context.publicClient.getBlock();
   return block.timestamp;

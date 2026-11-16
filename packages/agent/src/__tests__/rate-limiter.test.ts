@@ -33,7 +33,6 @@ describe("RateLimiter", () => {
     it("blocks requests after limit is exceeded", () => {
       const userId = 123;
 
-      // Exhaust the limit
       for (let i = 0; i < RATE_LIMITS.message.maxRequests; i++) {
         limiter.check(userId, "message");
       }
@@ -49,7 +48,6 @@ describe("RateLimiter", () => {
       const user1 = 123;
       const user2 = 456;
 
-      // Exhaust user1's limit
       for (let i = 0; i < RATE_LIMITS.message.maxRequests; i++) {
         limiter.check(user1, "message");
       }
@@ -62,7 +60,6 @@ describe("RateLimiter", () => {
     it("tracks different limit types separately", () => {
       const userId = 123;
 
-      // Exhaust message limit
       for (let i = 0; i < RATE_LIMITS.message.maxRequests; i++) {
         limiter.check(userId, "message");
       }
@@ -96,7 +93,6 @@ describe("RateLimiter", () => {
     it("reflects current usage after check()", () => {
       const userId = 123;
 
-      // Use some tokens
       limiter.check(userId, "message");
       limiter.check(userId, "message");
 
@@ -110,15 +106,12 @@ describe("RateLimiter", () => {
     it("resets limit for specific user and type", () => {
       const userId = 123;
 
-      // Exhaust limit
       for (let i = 0; i < RATE_LIMITS.message.maxRequests; i++) {
         limiter.check(userId, "message");
       }
 
-      // Verify blocked
       expect(limiter.check(userId, "message").allowed).toBe(false);
 
-      // Reset
       limiter.reset(userId, "message");
 
       // Should be allowed again
@@ -153,7 +146,6 @@ describe("RateLimiter", () => {
       limiter.check(userId, "voice");
       limiter.check(userId, "submission");
 
-      // Reset all
       limiter.resetAll(userId);
 
       // All should be at full capacity
@@ -169,7 +161,6 @@ describe("RateLimiter", () => {
       expect(stats1.totalEntries).toBe(0);
       expect(stats1.totalTimestamps).toBe(0);
 
-      // Add some usage
       limiter.check(123, "message");
       limiter.check(123, "message");
       limiter.check(456, "voice");

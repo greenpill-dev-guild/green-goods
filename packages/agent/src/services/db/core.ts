@@ -58,10 +58,6 @@ class DB {
     initSchema(this.db);
   }
 
-  // ===========================================================================
-  // USERS
-  // ===========================================================================
-
   async getUser(platform: Platform, platformId: string) {
     return users.getUser(this.db, platform, platformId);
   }
@@ -82,10 +78,6 @@ class DB {
     return users.getOperatorForGarden(this.db, gardenAddress);
   }
 
-  // ===========================================================================
-  // SESSIONS
-  // ===========================================================================
-
   async getSession(platform: Platform, platformId: string) {
     return sessions.getSession(this.db, platform, platformId);
   }
@@ -97,10 +89,6 @@ class DB {
   async clearSession(platform: Platform, platformId: string) {
     return sessions.clearSession(this.db, platform, platformId);
   }
-
-  // ===========================================================================
-  // PENDING WORK
-  // ===========================================================================
 
   async addPendingWork(work: Omit<PendingWork, "createdAt">) {
     return pendingWork.addPendingWork(this.db, work);
@@ -118,10 +106,6 @@ class DB {
     return pendingWork.removePendingWork(this.db, id);
   }
 
-  // ===========================================================================
-  // IDEMPOTENCY
-  // ===========================================================================
-
   async getIdempotencyRecord(key: string): Promise<IdempotencyRecord | undefined> {
     return idempotency.getIdempotencyRecord(this.db, key);
   }
@@ -134,9 +118,7 @@ class DB {
     return idempotency.completeIdempotencyKey(this.db, key, response);
   }
 
-  // ===========================================================================
   // CHAT MESSAGES (silent topic capture)
-  // ===========================================================================
 
   async addChatMessage(
     input: NewChatMessageInput,
@@ -168,10 +150,6 @@ class DB {
   async sweepStaleChatMessages(cutoffMs: number) {
     return chatMessages.sweepStaleChatMessages(this.db, cutoffMs);
   }
-
-  // ===========================================================================
-  // FUNDING INTENTS
-  // ===========================================================================
 
   async createFundingIntent(record: FundingIntentRecord) {
     return fundingIntents.createFundingIntent(this.db, record);
@@ -210,10 +188,6 @@ class DB {
 
   passkeyDirectory = () => passkeyDirectoryQueries(this.db);
 
-  // ===========================================================================
-  // PROFILE AVATARS
-  // ===========================================================================
-
   async getProfileAvatar(
     chainId: number,
     address: Address
@@ -230,10 +204,6 @@ class DB {
   }) {
     return profileAvatars.compareAndSwapProfileAvatar(this.db, input);
   }
-
-  // ===========================================================================
-  // SAVED OFFERS
-  // ===========================================================================
 
   async listSavedOffers(cipher: SavedOfferCipher, chainId: number, owner: Address) {
     return savedOffers.listSavedOffers(this.db, cipher, chainId, owner);
@@ -373,7 +343,6 @@ export function getDB(): DB {
   return _db;
 }
 
-// Re-export convenience functions
 export const getUser = (platform: Platform, platformId: string) =>
   getDB().getUser(platform, platformId);
 export const createUser = (input: CreateUserInput) => getDB().createUser(input);

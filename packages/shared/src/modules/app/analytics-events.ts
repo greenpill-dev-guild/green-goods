@@ -251,12 +251,10 @@ export const trackWorkSubmissionStarted = createTracker<{
   submissionPhase?: WorkSubmissionPhase;
 }>(ANALYTICS_EVENTS.WORK_SUBMISSION_STARTED, workSubmissionTrackerOptions);
 
-export const trackWorkSubmissionQueued = createTracker<{
-  gardenAddress: string;
-  actionUID: number;
-  jobId: string;
-  isOnline: boolean;
-}>(ANALYTICS_EVENTS.WORK_SUBMISSION_QUEUED);
+/** A Submit whose send is on record but not confirmed yet: no success or failure (PRD-1495). */
+export const trackWorkSubmissionQueued = createTracker<
+  WorkTrackingSafeMetadata & { status: "awaiting-confirmation"; reason?: "connection-unconfirmed" }
+>(ANALYTICS_EVENTS.WORK_SUBMISSION_QUEUED, workSubmissionTrackerOptions);
 
 export const trackWorkSubmissionSuccess = createTracker<{
   gardenAddress?: string;
@@ -296,11 +294,10 @@ export const trackWorkWalletRequestFailed = createTracker<WorkTrackingSafeMetada
   workSubmissionTrackerOptions
 );
 
-export const trackWorkSubmissionOffline = createTracker<{
-  gardenAddress: string;
-  actionUID: number;
-  jobId: string;
-}>(ANALYTICS_EVENTS.WORK_SUBMISSION_OFFLINE);
+/** A Submit the queue keeps to send later: saved, not sent, so not a success (PRD-1495). */
+export const trackWorkSubmissionOffline = createTracker<
+  WorkTrackingSafeMetadata & { reason: "offline" | "connection-unconfirmed" | "not-sent" }
+>(ANALYTICS_EVENTS.WORK_SUBMISSION_OFFLINE, workSubmissionTrackerOptions);
 
 // WORK APPROVAL TRACKING
 

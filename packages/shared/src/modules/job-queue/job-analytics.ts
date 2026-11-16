@@ -129,6 +129,99 @@ export function trackUploadPreparation(event: UploadPreparationEvent): void {
 }
 
 /**
+ * A reason in the queue's code form, such as `awaiting-confirmation`, and `other` for anything
+ * else: a reason can come from an error, and a message may carry an address or an id.
+ */
+function queueReasonCode(reason: string): string {
+  if (reason.startsWith("backoff_")) return "backoff";
+  return reason.length <= 48 && /^[a-z]+(?:[-_][a-z]+)*$/.test(reason) ? reason : "other";
+}
+
+/**
+ * Track a try starting, before any prompt: a send the page never finishes, such as one whose
+ * page was suspended while a wallet signed, still leaves its start (PRD-1495).
+ */
+export function trackJobStarted(
+  kind: string,
+  attempt: number,
+  context: { explicit: boolean; confirming: boolean }
+): void {
+  addBreadcrumb("job_processing_started", { job_kind: kind, attempt });
+  trackPrivateQueueEvent("offline_job_started", {
+    job_kind: kind,
+    attempt,
+    explicit: context.explicit,
+    confirming: context.confirming,
+  });
+}
+
+/** Track a try that ended with nothing sent and no answer, or a tap the queue could not act on. */
+export function trackJobSkipped(
+  kind: string,
+  reason: string,
+  context: { explicit: boolean; started: boolean }
+): void {
+  trackPrivateQueueEvent("offline_job_skipped", {
+    job_kind: kind,
+    reason: queueReasonCode(reason),
+    explicit: context.explicit,
+    started: context.started,
+  });
+}
+
+/**
+ * Makes a record without letting it change what the person's action did. A mutation callback
+ * that throws stops a send before it starts or turns a finished one into a failure, so a record
+ * that fails is logged and dropped, as `track` does when its transport throws.
+ */
+export function recordBestEffort(record: () => void): void {
+  try {
+    record();
+  } catch (error) {
+    logger.warn("[Telemetry] A record could not be made", { error: String(error) });
+  }
+}
+
+type QueuedUploadScope = "all" | "selected";
+
+/** Track an Upload all or Upload now tap, before anything is signed. */
+export function trackQueuedUploadStarted(event: {
+  scope: QueuedUploadScope;
+  itemCount: number;
+  authMode?: string;
+}): void {
+  trackPrivateQueueEvent("queued_upload_started", {
+    scope: event.scope,
+    item_count: event.itemCount,
+    auth_mode: event.authMode,
+  });
+}
+
+/** Track how that tap ended, including every ending that sends nothing. */
+export function trackQueuedUploadFinished(event: {
+  scope: QueuedUploadScope;
+  status: string;
+  sent: number;
+  flagged: number;
+  durationMs: number;
+  authMode?: string;
+  error?: unknown;
+}): void {
+  trackPrivateQueueEvent("queued_upload_finished", {
+    scope: event.scope,
+    status: event.status,
+    sent: event.sent,
+    flagged: event.flagged,
+    duration_ms: event.durationMs,
+    auth_mode: event.authMode,
+    // A fixed family name, never the raw message: messages can carry addresses.
+    ...(event.error === undefined
+      ? {}
+      : { parsed_error_family: parseContractError(event.error).name }),
+  });
+}
+
+/**
  * Track a successfully processed job.
  */
 export function trackJobProcessed(kind: string, processingTimeMs: number, attempts: number): void {

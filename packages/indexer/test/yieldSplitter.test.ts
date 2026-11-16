@@ -4,10 +4,6 @@ import { addr, CHAINS, mockEvent, txHash } from "./helpers/events";
 
 const CHAIN_ID = CHAINS.arbitrum;
 
-// ============================================================================
-// YIELD SPLIT
-// ============================================================================
-
 describe("YieldSplitter.YieldSplit", () => {
   it("creates YieldAllocation with all fields", async () => {
     const mockDb = createTestIndexer();
