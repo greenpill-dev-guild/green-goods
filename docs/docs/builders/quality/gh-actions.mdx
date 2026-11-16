@@ -28,7 +28,7 @@ generated_from:
   - package.json
   - scripts/data/validation-policy.json
   - scripts/data/workflow-catalog.json
-source_digest: "sha256:a2b6b823bc33c4f6b3538f6f9cad74e594520edb10df4f39fb9b3c1d24f1f259"
+source_digest: "sha256:bb5499350573d1114e4a1b4e70e2fa240a1d2b9f21a09745ba4c489a438d307e"
 source_of_truth:
   - .github/workflows/admin.yml
   - .github/workflows/agent.yml
@@ -272,5 +272,5 @@ The workflows call these root scripts, so running one locally reproduces that st
 | <CopyCommand command="bun run build" /> | `bun run --cwd packages/contracts build && bun run --cwd packages/shared build && bun run --cwd packages/indexer build && bun run --cwd packages/client build && bun run --cwd packages/admin build` |
 | <CopyCommand command="bun run check" /> | `node scripts/dev/ci-local.js` |
 | <CopyCommand command="bun run format" /> | `node scripts/dev/package-commands.mjs root format` |
-| <CopyCommand command="bun run lint" /> | `node scripts/quality/check-react-patterns.js && bun --bun run oxlint packages/client/src packages/admin/src packages/shared/src packages/indexer/src packages/agent/src packages/contracts/script --deny-warnings && bun run --cwd packages/contracts lint --check` |
+| <CopyCommand command="bun run lint" /> | `node scripts/quality/check-react-patterns.js && bun --bun run oxlint packages/client/src packages/admin/src packages/shared/src packages/indexer/src packages/agent/src packages/contracts/script tests --deny-warnings && bun run --cwd packages/contracts lint --check` |
 | <CopyCommand command="bun run test" /> | `node scripts/dev/test.js` |
