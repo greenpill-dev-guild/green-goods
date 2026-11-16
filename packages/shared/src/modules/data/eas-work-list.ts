@@ -27,7 +27,12 @@ export const WORK_LIST_PAGE_SIZE = 50;
  */
 export const getWorkListPage = async (
   gardenAddress: string,
-  options: { chainId?: number | string; take?: number; skip?: number } = {},
+  options: {
+    chainId?: number | string;
+    take?: number;
+    skip?: number;
+    excludedWorkUIDs?: readonly string[];
+  } = {},
   reader: GraphQLReader = createEasClient(options.chainId)
 ): Promise<EASWork[]> => {
   const { chainId, take = WORK_LIST_PAGE_SIZE, skip = 0 } = options;
@@ -56,6 +61,9 @@ export const getWorkListPage = async (
         schemaId: { equals: easConfig.WORK.uid },
         revoked: { equals: false },
         recipient: { equals: easStoredAddress(gardenAddress) },
+        ...(options.excludedWorkUIDs?.length
+          ? { id: { notIn: [...options.excludedWorkUIDs] } }
+          : {}),
       },
       take,
       skip,
@@ -95,7 +103,13 @@ export interface GardenActivityPage {
  */
 export const getGardenActivitySince = async (
   gardenAddress: string,
-  options: { chainId?: number | string; since: number; take?: number },
+  options: {
+    chainId?: number | string;
+    since: number;
+    take?: number;
+    excludedWorkUIDs?: readonly string[];
+    excludedApprovalUIDs?: readonly string[];
+  },
   reader: GraphQLReader = createEasClient(options.chainId)
 ): Promise<GardenActivityPage> => {
   const { chainId, since, take = GARDEN_ACTIVITY_LIMIT } = options;
@@ -135,8 +149,20 @@ export const getGardenActivitySince = async (
   const { data, error } = await reader.query(
     QUERY,
     {
-      works: { schemaId: { equals: easConfig.WORK.uid }, ...inWindow },
-      decisions: { schemaId: { equals: easConfig.WORK_APPROVAL.uid }, ...inWindow },
+      works: {
+        schemaId: { equals: easConfig.WORK.uid },
+        ...inWindow,
+        ...(options.excludedWorkUIDs?.length
+          ? { id: { notIn: [...options.excludedWorkUIDs] } }
+          : {}),
+      },
+      decisions: {
+        schemaId: { equals: easConfig.WORK_APPROVAL.uid },
+        ...inWindow,
+        ...(options.excludedApprovalUIDs?.length
+          ? { id: { notIn: [...options.excludedApprovalUIDs] } }
+          : {}),
+      },
       // The extra row says the window holds more than one read lists.
       take: take + 1,
     },

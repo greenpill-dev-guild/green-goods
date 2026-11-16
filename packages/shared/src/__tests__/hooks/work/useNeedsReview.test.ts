@@ -70,6 +70,11 @@ describe("hooks/work/useNeedsReview", () => {
   beforeEach(() => {
     mockReadWorkList.mockReset();
     queryClient = createTestQueryClient();
+    queryClient.setQueryData(worksKeys.visibility(CHAIN_ID), {
+      chainId: CHAIN_ID,
+      excludedWorkUIDs: [],
+      excludedApprovalUIDs: [],
+    });
   });
 
   afterEach(() => {

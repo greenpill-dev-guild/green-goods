@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useResolvedWorkDetail } from "../../../hooks/admin-ui/garden/useResolvedWorkDetail";
 
 const {
+  mockVisibility,
   mockSelectGarden,
   mockUseActions,
   mockUseAdminGardenContext,
@@ -12,6 +13,7 @@ const {
   mockUseWorkMetadata,
   mockUseWorks,
 } = vi.hoisted(() => ({
+  mockVisibility: vi.fn(),
   mockSelectGarden: vi.fn(),
   mockUseActions: vi.fn(),
   mockUseAdminGardenContext: vi.fn(),
@@ -34,6 +36,9 @@ vi.mock("../../../hooks/garden/useGardenPermissions", () => ({
   useGardenPermissions: () => mockUseGardenPermissions(),
 }));
 
+vi.mock("../../../hooks/work/useWorkVisibility", () => ({
+  useWorkVisibility: () => mockVisibility(),
+}));
 vi.mock("../../../hooks/work/useWorks", () => ({
   useWorks: () => mockUseWorks(),
 }));
@@ -49,6 +54,12 @@ const garden = createMockGarden({ id: gardenAddress, works: [work] });
 describe("useResolvedWorkDetail", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockVisibility.mockReturnValue({
+      isReady: true,
+      isVisible: () => true,
+      isLoading: false,
+      isError: false,
+    });
     mockUseAdminGardenContext.mockReturnValue({
       activeGarden: garden,
       activeGardenId: garden.id,
@@ -81,6 +92,32 @@ describe("useResolvedWorkDetail", () => {
       error: null,
       retryFetch: vi.fn(),
     });
+  });
+
+  it("does not reopen excluded work from garden metadata or a retained detail", () => {
+    const { result, rerender } = renderHook(() => useResolvedWorkDetail(work.id));
+    expect(result.current.work?.id).toBe(work.id);
+    mockVisibility.mockReturnValue({
+      isReady: true,
+      isVisible: () => false,
+      isLoading: false,
+      isError: false,
+    });
+    rerender();
+    expect(result.current.work).toBeUndefined();
+    expect(result.current.isNotFound).toBe(true);
+  });
+
+  it("shows unavailable instead of not-found when an offline cache cannot yet be classified", () => {
+    mockVisibility.mockReturnValue({
+      isReady: false,
+      isVisible: () => false,
+      isLoading: false,
+      isError: false,
+    });
+    const { result } = renderHook(() => useResolvedWorkDetail(work.id));
+    expect(result.current.isError).toBe(true);
+    expect(result.current.isNotFound).toBe(false);
   });
 
   it("reads voice notes and documents through the metadata reader, which resolves a CID", () => {

@@ -1,3 +1,11 @@
+vi.mock("../../../modules/work/work-visibility", async (original) => ({
+  ...(await original<typeof import("../../../modules/work/work-visibility")>()),
+  readWorkVisibility: async (chainId: number) => ({
+    chainId,
+    excludedWorkUIDs: [],
+    excludedApprovalUIDs: [],
+  }),
+}));
 /**
  * useGardenNotifications tests: the bell's read model for the signed-in account in one garden.
  * The account's roles come from the membership owner, the steward events from the predicates

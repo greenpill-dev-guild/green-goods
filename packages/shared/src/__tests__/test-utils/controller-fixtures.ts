@@ -92,6 +92,7 @@ export function gardenCommitmentControllerFixture(
     metadata: { version: 1, title: "Repair tool handles" },
     pool,
     works: [],
+    workVisibility: { isReady: true, isLoading: false, isVisible: () => true },
     actions: [],
     roles: {
       isSteward: false,

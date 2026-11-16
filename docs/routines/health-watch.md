@@ -210,7 +210,7 @@ For **client errors**:
 - If today's count is below the 🟡 floor (App <10, Admin <5) AND the prior 2 daily checks were also below it → transition to `Done` with `Client errors recovered: 3 consecutive checks under threshold. Closing.` Otherwise append a dated comment.
 
 For **scheduled lanes**:
-- A pull request fixes a red lane, and under the routing rules green CI never makes an issue `Done`, so the routine never changes this Issue's status. The first time the lane's latest scheduled run succeeds, add one comment, `Scheduled lane recovered: <run date> passed (<run link>).`, and leave the status to a person; after that, a green lane adds nothing. While the lane is red, append a dated comment with the latest run's date, link and failed jobs, and set the package label to the latest failed job's package when it differs.
+- A pull request fixes a red lane, and under the routing rules green CI never makes an issue `Done`, so the routine never changes this Issue's status. The first time the lane's latest scheduled run succeeds, add one comment, `Scheduled lane recovered: <run date> passed (<run link>).`, and leave the status to a person; after that, a green lane adds nothing. While the lane is red, append a dated comment with the latest run's date, link and failed jobs, and, when it differs, set the package label from that run's failed jobs by the same rule as a new Issue (see "Scheduled CI lane red" in the label table): `package:contracts` when the contracts job failed, else the first failed job's package in the workflow's job order.
 - For this category the lookup also matches `In Review`, so a lane that is red again while its fix waits for review gets a comment, not a second Issue.
 
 ## Dedupe logic (Linear)
@@ -334,7 +334,7 @@ health-watch: indexer={status}, vercel={status}, contracts={status_or_deferred},
 
 - **No false positives.** When in doubt, do NOT open an Issue. The cost of a missed alert is one day; the cost of a false alert is your trust in this routine.
 - **Indexer-gates-everything.** If indexer is 🔴, contracts checks are deferred. Period.
-- **Auto-close stale recoveries.** Don't let recovered conditions sit as open Issues: transition them to `Done` with evidence. Scheduled lanes are the exception: a person sets their status (see Auto-close on recovery).
+- **Auto-close stale recoveries.** Don't let recovered conditions sit as open Issues: transition them to `Done` with evidence, by each category's rule in Auto-close on recovery. Contracts drift and scheduled lanes are the exceptions: a person closes a contracts Issue, and a person sets a scheduled lane's status.
 - **Linear is the only Issue surface.** No GitHub Issue writes, no GitHub Project items, no `Sprints` / iteration field updates. The retired `health:*` GitHub label set is not used.
 - **Scheduled lanes only, read without a token.** The CI signal is the latest scheduled run of each scheduled workflow on `develop`, read from GitHub's public REST API with no token, no `gh` and no connector; pull-request and push CI stay with GitHub's notifications and the PR author. Never write to GitHub, and never store a GitHub token for this check.
 - **Project routing discipline.** Every Issue follows [Project routing](README.md#project-routing): a bounded active project that clearly owns the work, otherwise the active release project, or unprojected when none is started. Never route into the retired `Green Goods`, `Coop`, `Network Website`, `Cookie Jar`, or `Story Board` projects.

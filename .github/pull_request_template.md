@@ -25,6 +25,10 @@ maintainer adds the line.
 
 The numbers or observations that show the problem, and what changed.
 
+- Agent: <agent>, model <model>, effort <effort>
+
+<!-- An agent fills the line above with what `~/.agents/evals/bin/agent-model --pr` prints, read from its own session log; `dev evals scoreboard` reads it. Leave it out for work no agent made. -->
+
 ## Verification
 
 The checks that ran after the last commit, with their commands and results, as the check selector

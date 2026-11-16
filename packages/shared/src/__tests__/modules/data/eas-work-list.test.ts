@@ -12,6 +12,7 @@ vi.mock("../../../modules/data/graphql", () => ({ easGraphQL: vi.fn((query) => q
 
 import {
   getGardenActivitySince,
+  getWorkListPage,
   readWorkApprovalsForWorks,
 } from "../../../modules/data/eas-work-list";
 import type { GraphQLReader } from "../../../modules/data/graphql-client";
@@ -39,6 +40,52 @@ const decisionRow = (n: number, workNumber: number, timeCreated: number) => ({
     { name: "approved", value: { value: false } },
     { name: "feedback", value: { value: "Show the whole bed." } },
   ]),
+});
+
+describe("work presentation exclusions", () => {
+  it("excludes selected work before the page and lookahead are counted", async () => {
+    const records = [workRow(1, 500), workRow(2, 400), workRow(3, 300), workRow(4, 200)];
+    const query = vi.fn(async (_document, variables) => ({
+      data: {
+        attestations: records
+          .filter((row) => !variables.where.id?.notIn.includes(row.id))
+          .slice(variables.skip, variables.skip + variables.take),
+      },
+    }));
+    const options = { chainId: 42161, take: 2, skip: 0, excludedWorkUIDs: [uid(1)] };
+
+    const page = await getWorkListPage(GARDEN, options, { query } as GraphQLReader);
+    const older = await getWorkListPage(GARDEN, { ...options, skip: 2 }, {
+      query,
+    } as GraphQLReader);
+
+    expect(page.map((row) => row.id)).toEqual([uid(2), uid(3)]);
+    expect(older.map((row) => row.id)).toEqual([uid(4)]);
+  });
+
+  it("keeps hidden work and its decisions out of the activity window before its limit", async () => {
+    const works = [workRow(1, 300), workRow(2, 200)];
+    const decisions = [decisionRow(101, 1, 400), decisionRow(102, 2, 250)];
+    const query = vi.fn(async (_document, variables) => ({
+      data: {
+        works: works.filter((row) => !variables.works.id?.notIn.includes(row.id)),
+        decisions: decisions.filter((row) => !variables.decisions.id?.notIn.includes(row.id)),
+      },
+    }));
+    const options = {
+      chainId: 42161,
+      since: 100,
+      take: 1,
+      excludedWorkUIDs: [uid(1)],
+      excludedApprovalUIDs: [uid(101)],
+    };
+
+    const result = await getGardenActivitySince(GARDEN, options, { query } as GraphQLReader);
+
+    expect(result.works.map((row) => row.id)).toEqual([uid(2)]);
+    expect(result.decisions.map((row) => row.workUID)).toEqual([uid(2)]);
+    expect(result.truncated).toBe(false);
+  });
 });
 
 describe("readWorkApprovalsForWorks", () => {
