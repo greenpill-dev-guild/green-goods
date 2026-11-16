@@ -445,6 +445,79 @@ describe("owner publication", () => {
     expect(sentTexts().filter((text) => text === CHECK_STOPPED)).toHaveLength(2);
   });
 
+  it("says the check stopped only once every check on the report has run out", async () => {
+    await confirmLinkAndPublish(harness);
+    const { browser, view, envelope } = await openSigningPage(harness);
+    const attempt = await reserve(browser, view, envelope);
+    harness.clock.advance(harness.core.settings.walletResponseWindowMs);
+    await harness.drain();
+    // A minute into the first check, the page's late report starts a second one beside it.
+    for (let pass = 0; pass < 2; pass += 1) {
+      harness.clock.advance(30_000);
+      await harness.drain();
+    }
+    const hash = harness.chain.submit({
+      attester: adaAccount.address,
+      to: envelope.call.to,
+      data: envelope.call.data,
+    });
+    harness.chain.hidden.add(hash);
+    const late = await reportOutcome(browser, view, envelope, attempt.body.attemptId, {
+      kind: "broadcast",
+      transactionHash: hash,
+    });
+    expect(late.status).toBe(200);
+    const checks = () =>
+      harness.core.db
+        .query(
+          "SELECT state FROM processing_jobs WHERE kind = 'reconcile_operation' ORDER BY created_at"
+        )
+        .all() as Array<{ state: string }>;
+    for (let pass = 0; pass < 60 && checks()[0]?.state !== "failed"; pass += 1) {
+      harness.clock.advance(30_000);
+      await harness.drain();
+    }
+    // The first check has run out, but the second is still looking: nothing is said yet.
+    expect(checks()).toEqual([{ state: "failed" }, { state: "pending" }]);
+    expect(sentTexts()).not.toContain(CHECK_STOPPED);
+    expect(await harness.say(ADA, "STATUS")).not.toEqual([CHECK_STOPPED]);
+
+    await exhaustChainCheck();
+    expect(checks()).toEqual([{ state: "failed" }, { state: "failed" }]);
+    expect(sentTexts().filter((text) => text === CHECK_STOPPED)).toHaveLength(1);
+  });
+
+  it("lets chain evidence that a replayed check finds override its earlier stop", async () => {
+    await confirmLinkAndPublish(harness);
+    const { browser, view, envelope } = await openSigningPage(harness);
+    const attempt = await reserve(browser, view, envelope);
+    const hash = harness.chain.submit({
+      attester: adaAccount.address,
+      to: envelope.call.to,
+      data: envelope.call.data,
+    });
+    harness.chain.hidden.add(hash);
+    await reportOutcome(browser, view, envelope, attempt.body.attemptId, {
+      kind: "broadcast",
+      transactionHash: hash,
+    });
+    await harness.drain();
+    await exhaustChainCheck();
+    expect(await harness.say(ADA, "STATUS")).toEqual([CHECK_STOPPED]);
+
+    // An operator replays the check: the transaction is mined now, its attestation not read yet.
+    harness.chain.hidden.delete(hash);
+    harness.chain.attestationsUnread = true;
+    const job = row<{ id: string }>(
+      "SELECT id FROM processing_jobs WHERE kind = 'reconcile_operation'"
+    );
+    expect(replayFailedJob(harness.core, job.id)).toBe(true);
+    await harness.drain();
+    expect(sentTexts().at(-1)).toContain("The transaction is confirmed.");
+    // STATUS agrees with the chat: the report was found, so it no longer says the check stopped.
+    expect(await harness.say(ADA, "STATUS")).not.toEqual([CHECK_STOPPED]);
+  });
+
   it("waits for a reported hash that is not mined yet instead of calling it a conflict", async () => {
     await confirmLinkAndPublish(harness);
     const { browser, view, envelope } = await openSigningPage(harness);

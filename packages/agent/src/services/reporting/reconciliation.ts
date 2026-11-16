@@ -291,6 +291,26 @@ function revert(deps: ReconciliationDeps, operation: OperationRecord): void {
 
 /** The audit record of a chain check that ended without finding what it looked for. */
 const CHECK_STOPPED = "reconciliation_stopped";
+/** The audit record of chain evidence a later check found for an attempt whose check had stopped. */
+const FOUND_AFTER_STOP = "reconciliation_found_after_stop";
+
+/** Whether the latest record for the operation's current attempt says its check stopped. */
+function attemptCheckStopped(core: ReportingCore, operation: OperationRecord): boolean {
+  const latest = core.db
+    .query(
+      `SELECT kind FROM audit_events
+       WHERE subject_kind = 'operation' AND subject_id = $id AND kind IN ($stopped, $found)
+         AND json_extract(detail_json, '$.attemptVersion') = $attemptVersion
+       ORDER BY created_at DESC, rowid DESC LIMIT 1`
+    )
+    .get({
+      id: operation.id,
+      stopped: CHECK_STOPPED,
+      found: FOUND_AFTER_STOP,
+      attemptVersion: operation.attemptVersion,
+    }) as { kind: string } | null;
+  return latest?.kind === CHECK_STOPPED;
+}
 
 /**
  * The check's last attempt found nothing it can stand behind. Nothing is sent again and the
@@ -302,6 +322,14 @@ const CHECK_STOPPED = "reconciliation_stopped";
 function stopChecking(core: ReportingCore, operationId: string, reason: string): void {
   const operation = operationById(core, operationId);
   if (operation?.state !== "reconciling") return;
+  // A late wallet report starts a second check beside the first: the last one to run out speaks.
+  const stillChecking = core.db
+    .query(
+      `SELECT 1 FROM processing_jobs WHERE kind = 'reconcile_operation' AND subject_id = $id
+         AND state IN ('pending', 'leased') LIMIT 1`
+    )
+    .get({ id: operation.id });
+  if (stillChecking) return;
   const { attemptVersion } = operation;
   audit(core, CHECK_STOPPED, { kind: "operation", id: operation.id }, { reason, attemptVersion });
   const subject = operationSubject(core, operation);
@@ -314,6 +342,21 @@ function stopChecking(core: ReportingCore, operationId: string, reason: string):
 }
 
 /**
+ * A replayed check that finds the transaction mined, or matching attestations, overrides the
+ * attempt's earlier stop, so replies agree with what the chat has just said about it.
+ */
+function foundAfterStop(core: ReportingCore, operation: OperationRecord, evidence: string): void {
+  if (!attemptCheckStopped(core, operation)) return;
+  const { attemptVersion } = operation;
+  audit(
+    core,
+    FOUND_AFTER_STOP,
+    { kind: "operation", id: operation.id },
+    { evidence, attemptVersion }
+  );
+}
+
+/**
  * Whether the chain check for the current attempt at a report or a decision ended without finding
  * it, so replies say that rather than that it is being published or recorded.
  */
@@ -322,17 +365,7 @@ export function chainCheckStopped(
   subject: { draftId: string } | { reviewIntentId: string }
 ): boolean {
   const operation = operationForSubject(core, subject);
-  if (operation?.state !== "reconciling") return false;
-  return (
-    core.db
-      .query(
-        `SELECT 1 FROM audit_events
-         WHERE kind = $kind AND subject_kind = 'operation' AND subject_id = $id
-           AND json_extract(detail_json, '$.attemptVersion') = $attemptVersion LIMIT 1`
-      )
-      .get({ kind: CHECK_STOPPED, id: operation.id, attemptVersion: operation.attemptVersion }) !==
-    null
-  );
+  return operation?.state === "reconciling" && attemptCheckStopped(core, operation);
 }
 
 export async function reconcileOperation(
@@ -366,6 +399,7 @@ export async function reconcileOperation(
       case "confirmed":
         // The person already has the transaction's link; only its attestation is still unread.
         announceConfirmed(core, current, envelope, resolution.transactionHash);
+        foundAfterStop(core, current, "transaction_mined");
         return { status: "retry", errorCode: "attestation_pending", delayMs: 30_000 };
       case "reverted":
         revert(deps, current);
@@ -378,6 +412,8 @@ export async function reconcileOperation(
           { kind: "operation", id: current.id },
           { reason: resolution.reason }
         );
+        if (resolution.reason === "multiple_matches")
+          foundAfterStop(core, current, "multiple_matches");
         return {
           status: "retry",
           errorCode: resolution.reason,
