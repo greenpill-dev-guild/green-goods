@@ -337,7 +337,7 @@ describe("commitment pooling query hooks", () => {
   ];
 
   it.each(listAndDetailCases)("returns $name data through the shared hook", async (testCase) => {
-    const { result } = renderHookWithProviders(testCase.useHook);
+    const { result } = renderHookWithProviders(() => testCase.useHook());
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(testCase.select(result.current as unknown as Record<string, unknown>)).toEqual(
       testCase.expected
