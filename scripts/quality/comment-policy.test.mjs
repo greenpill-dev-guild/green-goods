@@ -364,3 +364,114 @@ test("a note after another comment on its line is still a heading, so one pass i
     assert.doesNotMatch(once, /Helpers|\/\/ b/);
   }
 });
+
+test("every line terminator ends a line: a CR-only Solidity comment never swallows the file", () => {
+  assert.equal(purgeSource("// x = 1;\rcontract C {}\r", "C.sol").code, "contract C {}\r");
+  assert.equal(purgeSource("// Setup\r\nconst x = 1;\r\n", "example.ts").code, "const x = 1;\r\n");
+  const separated = "export const id = 1; // Sepolia export const next = 2;\n";
+  assert.equal(purgeSource(separated, "example.ts").code, separated);
+});
+
+test("a comment stays where a value or statement would go, however many comments fill the place", () => {
+  const swallow = "export function stop(close) {\n  try {\n    close();\n  } catch { /* expected */ /* noop */ }\n}\n";
+  assert.equal(purgeSource(swallow, "example.ts").code, swallow);
+  const tuple = "export function read(pair) {\n  const [\n    , // first\n    // second\n  ] = pair;\n  return pair;\n}\n";
+  assert.equal(purgeSource(tuple, "example.ts").code, tuple);
+});
+
+test("a trailing note never shields the lines under it, and JSX containers still go", () => {
+  const code = "export const live = 1; // units\n// const legacy = readLegacy();\nexport const next = 2;\n";
+  assert.equal(purgeSource(code, "example.ts").code, "export const live = 1; // units\nexport const next = 2;\n");
+  assert.equal(purgeSource("export const V = () => <div>{// header\n}</div>;\n", "example.tsx").code, "export const V = () => <div></div>;\n");
+});
+
+test("a declaration CommonJS exports keeps its documentation", () => {
+  assert.deepEqual(kinds("/** Create client */\nfunction createClient() {}\nmodule.exports = { createClient };\n", "example.cjs"), ["documentation"]);
+  assert.deepEqual(kinds("/** Create client */\nfunction createClient() {}\nexports.createClient = createClient;\n", "example.cjs"), ["documentation"]);
+  // At the end of a chain of assignments too.
+  assert.deepEqual(kinds("/** Create client */\nfunction client() {}\nmodule.exports = exports.client = client;\n", "example.cjs"), ["documentation"]);
+  assert.deepEqual(kinds("/** Create client */\nfunction client() {}\nconst api = module.exports = { client };\n", "example.cjs"), ["documentation"]);
+  // A chain that starts at a target that is not an export still exports what it ends in.
+  assert.deepEqual(kinds("/** Create client */\nfunction client() {}\nexports = module.exports = client;\n", "example.cjs"), ["documentation"]);
+});
+
+test("a run of line comments joins across every line break, CRLF and CR included", () => {
+  for (const eol of ["\n", "\r\n", "\r"]) {
+    const code = `// Scores are basis points because the oracle${eol}// rounds down${eol}uint256 constant SCALE = 10_000;${eol}`;
+    assert.equal(purgeSource(code, "Lib.sol").code, code, JSON.stringify(eol));
+  }
+});
+
+test("a note that ends a line keeps the lines that continue it, never commented-out code", () => {
+  const ts = "export const DELAY_MS = 300; // Debounce the search box by\n                             // three hundred ms\n";
+  assert.equal(purgeSource(ts, "example.ts").code, ts);
+  const sol = "contract C {\n    uint256 constant FEE_BPS = 30; // Thirty basis points, the\n    // protocol fee\n}\n";
+  assert.equal(purgeSource(sol, "C.sol").code, sol);
+  const code = "contract C {\n    uint256 constant FEE_BPS = 30; // basis points\n    // uint256 constant OLD_FEE_BPS = 50;\n}\n";
+  assert.equal(purgeSource(code, "C.sol").code, "contract C {\n    uint256 constant FEE_BPS = 30; // basis points\n}\n");
+});
+
+test("trailing spaces on a comment do not hide the place it fills", () => {
+  const tuple = "contract C {\n    function f() external {\n        (\n            , // hypercerts \n            // greenWill\n        ) = registry.networks(1);\n    }\n}\n";
+  assert.equal(purgeSource(tuple, "C.sol").code, tuple);
+  const swallow = "export function stop(close) {\n  try {\n    close();\n  } catch {\n    // Expected when closed \n\n    // Ignore\n  }\n}\n";
+  assert.equal(purgeSource(swallow, "example.ts").code, swallow);
+});
+
+test("in JavaScript a trailing comma opens no place, but an array hole does", () => {
+  const handlers = "export const handlers = {\n  onOpen: () => setOpen(true),\n  // onClose: () => setOpen(false),\n};\n";
+  assert.equal(purgeSource(handlers, "example.ts").code, "export const handlers = {\n  onOpen: () => setOpen(true),\n};\n");
+  const hole = "export function second(pair) {\n  const [\n    ,\n    // skipped\n  ] = pair;\n  return pair;\n}\n";
+  assert.equal(purgeSource(hole, "example.ts").code, hole);
+});
+
+test("one pass removes a banner and the commented-out code after it on its line", () => {
+  const once = purgeSource("/* ---- */ // if (ready) {\n// }\nexport const x = 1;\n", "example.ts").code;
+  assert.equal(once, "export const x = 1;\n");
+});
+
+test("documentation on an `exports` assignment, or inside the object it assigns, stays", () => {
+  assert.deepEqual(kinds("/** Builds it */\nexports.build = function build() {};\n", "example.cjs"), ["documentation"]);
+  assert.deepEqual(kinds("module.exports = {\n  /** Builds it */\n  build() {},\n};\n", "example.cjs"), ["documentation"]);
+});
+
+test("a removal keeps the file's own line breaks", () => {
+  assert.equal(purgeSource("const a = 1;\r\n\r\n// Setup\r\n\r\nconst b = 2;\r\n", "example.ts").code, "const a = 1;\r\n\r\nconst b = 2;\r\n");
+  assert.equal(purgeSource("export function f() {\r\n  return/* ----\r\n---- */1;\r\n}\r\n", "example.ts").code, "export function f() {\r\n  return\r\n1;\r\n}\r\n");
+});
+
+test("a negation states something, so it is never a label", () => {
+  const code = "export function setup(mock) {\n  mock({\n    userAgent: \"Macintosh\",\n    // maxTouchPoints not set\n  });\n}\n";
+  assert.equal(purgeSource(code, "example.ts").code, code);
+  assert.deepEqual(kinds("// No user connected\nexport const user = null;\n"), ["narration"]);
+  // A contraction negates too, so the purge keeps it.
+  for (const note of ["Wallet isn't connected", "Didn't load"]) {
+    const source = `// ${note}\nexport const user = null;\n`;
+    assert.equal(purgeSource(source, "example.ts").code, source, note);
+  }
+});
+
+test("a comment between two separators fills a slot, in Solidity and JavaScript alike", () => {
+  const tuple = "contract C {\n    function f() external {\n        (uint256 a, /* unused */ , uint256 c) = g();\n    }\n}\n";
+  assert.equal(purgeSource(tuple, "C.sol").code, tuple);
+  const hole = "export function pick(list) {\n  const [first, /* skipped */ , third] = list;\n  return [first, third];\n}\n";
+  assert.equal(purgeSource(hole, "example.ts").code, hole);
+});
+
+test("a CommonJS export inside a declaration keeps its documentation, and reports count every line break", () => {
+  assert.deepEqual(kinds("/** Client API */\nconst client = module.exports = createClient();\n", "example.cjs"), ["documentation"]);
+  const root = mkdtempSync(join(tmpdir(), "gg-comment-policy-lines-"));
+  const out = [];
+  const { log } = console;
+  console.log = (line) => out.push(line);
+  try {
+    const env = fixtureGitEnvironment();
+    execFileSync("git", ["init", "-q"], { cwd: root, env, stdio: "ignore" });
+    writeFileSync(join(root, "cr.ts"), "export const a = 1;\rexport const b = 2;\r// Read the garden before the pool loads.\rexport const c = 3;\r");
+    assert.equal(main(["--report", "triage", root], { root, env }), 0);
+    assert.deepEqual(JSON.parse(out.at(-1)).triage.map((entry) => entry.line), [3]);
+  } finally {
+    console.log = log;
+    rmSync(root, { recursive: true, force: true });
+  }
+});

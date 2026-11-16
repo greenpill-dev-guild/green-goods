@@ -30,6 +30,7 @@ export interface CommitmentWorkProps {
   commitment: CommitmentReadModel;
   requirements: CommitmentRequirementRecord[];
   attributions: CommitmentWorkAttributionRecord[];
+  visibility: { isReady: boolean; isLoading: boolean; isVisible: (uid: string) => boolean };
   workDecisions?: {
     byWorkUID: WorkDecisionMap;
     isLoading: boolean;
@@ -73,6 +74,7 @@ export function CommitmentWork({
   commitment,
   requirements,
   attributions,
+  visibility,
   workDecisions,
   works,
   actions,
@@ -97,7 +99,9 @@ export function CommitmentWork({
           : "app.commitment.work.statusOther",
     });
 
-  const linked = attributions.filter((entry) => entry.linked);
+  const linked = attributions.filter(
+    (entry) => entry.linked && visibility.isVisible(entry.workUID)
+  );
   const linkedUIDs = new Set(linked.map((entry) => entry.workUID.toLowerCase()));
   const rowsByAction = new Map<string, CommitmentRequirementRecord[]>();
   for (const requirement of requirements) {
@@ -109,6 +113,7 @@ export function CommitmentWork({
   const notYetLinked = viewer
     ? works.filter(
         (work) =>
+          visibility.isVisible(work.id) &&
           work.status === "approved" &&
           work.gardenerAddress.toLowerCase() === viewer.toLowerCase() &&
           !linkedUIDs.has(work.id.toLowerCase()) &&
@@ -125,7 +130,16 @@ export function CommitmentWork({
         {formatMessage({ id: "app.commitment.work.title" })}
       </h3>
 
-      {linked.length === 0 && notYetLinked.length === 0 ? (
+      {!visibility.isReady && (
+        <p role="status" className="mt-1 text-sm text-text-sub-600">
+          {formatMessage({
+            id: visibility.isLoading
+              ? "app.garden.work.loading"
+              : "app.garden.work.errorLoadingWorks",
+          })}
+        </p>
+      )}
+      {visibility.isReady && linked.length === 0 && notYetLinked.length === 0 ? (
         <p className="mt-1 text-sm text-text-sub-600">
           {formatMessage({ id: "app.commitment.work.none" })}
         </p>

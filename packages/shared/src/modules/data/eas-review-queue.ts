@@ -102,7 +102,17 @@ function floorOf(works: number | undefined, decisions: number | undefined): numb
  */
 export async function readGardenReviewQueue(
   gardenAddress: string,
-  { chainId, now = Date.now() }: { chainId?: number | string; now?: number } = {},
+  {
+    chainId,
+    now = Date.now(),
+    excludedWorkUIDs,
+    excludedApprovalUIDs,
+  }: {
+    chainId?: number | string;
+    now?: number;
+    excludedWorkUIDs?: readonly string[];
+    excludedApprovalUIDs?: readonly string[];
+  } = {},
   reader: GraphQLReader = createEasClient(chainId)
 ): Promise<GardenReviewQueue> {
   const easConfig = getEASConfig(chainId);
@@ -112,6 +122,7 @@ export async function readGardenReviewQueue(
     schemaId: { equals: easConfig.WORK.uid },
     recipient: toGarden,
     revoked: { equals: false },
+    ...(excludedWorkUIDs?.length ? { id: { notIn: [...excludedWorkUIDs] } } : {}),
   };
   const weekAgo = Math.floor((now - REVIEW_STALL_WINDOW_MS) / 1000);
   const { data, error } = await reader.query(
@@ -123,6 +134,7 @@ export async function readGardenReviewQueue(
         schemaId: { equals: easConfig.WORK_APPROVAL.uid },
         recipient: toGarden,
         revoked: { equals: false },
+        ...(excludedApprovalUIDs?.length ? { id: { notIn: [...excludedApprovalUIDs] } } : {}),
       },
       // The extra row says the history is longer than one read lists.
       take: REVIEW_HISTORY_LIMIT + 1,

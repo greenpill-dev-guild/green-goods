@@ -40,6 +40,36 @@ afterEach(() => {
 });
 
 describe("effective protocol Hat membership", () => {
+  it("keeps a failed read settled when another role consumer mounts, and permits explicit retry", async () => {
+    mocks.read.mockRejectedValue(new Error("Protocol role getter reverted"));
+    const first = renderHookWithQueryClient(useProtocolRoles, { queryClient: client });
+    await waitFor(() => expect(first.result.current.isError).toBe(true));
+    const callsAfterFailure = mocks.read.mock.calls.length;
+
+    const next = renderHookWithQueryClient(useProtocolRoles, { queryClient: client });
+    await waitFor(() => expect(next.result.current.isError).toBe(true));
+    expect(mocks.read).toHaveBeenCalledTimes(callsAfterFailure);
+    expect(first.result.current.isLoading).toBe(false);
+    expect(next.result.current).toMatchObject({
+      team: false,
+      productLead: false,
+      agents: false,
+      deployer: false,
+    });
+
+    mocks.read.mockImplementation(async (_config, call) => {
+      if (call.functionName === "protocolRoleHats") return [1n, 2n, 3n, 4n];
+      if (call.functionName === "hats") return "0x3333333333333333333333333333333333333333";
+      return call.args[1] === 1n;
+    });
+    await act(async () => {
+      await client.invalidateQueries({
+        queryKey: roleKeys.protocolRoles(mocks.account, mocks.chain),
+      });
+    });
+    await waitFor(() => expect(next.result.current.team).toBe(true));
+  });
+
   it("reads each role independently for the signing account on the selected chain", async () => {
     const { result } = renderHookWithQueryClient(useProtocolRoles, { queryClient: client });
     await waitFor(() => expect(result.current.team).toBe(true));
