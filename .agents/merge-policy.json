@@ -10,7 +10,7 @@
   },
   "tiers": {
     "critical": {
-      "about": "AGENTS.md Change Criticality: contract source and release tooling, and Shared code that signs, sends a transaction, moves funds, or changes auth, session or queue state. The check selector's risk (`bun run check --plan`) decides a change's tier: it also escalates every file in scripts/data/validation-policy.json criticalOverrides and any Shared file that reaches a sharedMutationPrimitives call, so these paths are only its prefixes. It merges into develop without the owner's approval once three things hold on the current head: the selector's critical override has passed, CI Gate is green, and a fresh agent's adversarial review is addressed. Until the Merge Gate status is required, an agent merges by hand, so the merge lands on the head the review saw; auto-merge would also merge a later push. The owner's approval sits at the release boundary instead (see release). Code-owner review cannot gate this tier, because GitHub refuses approval of one's own pull request.",
+      "about": "AGENTS.md Change Criticality: contract source and release tooling, and Shared code that signs, sends a transaction, moves funds, or changes auth, session or queue state. The check selector's risk (`bun run check --plan`) decides a change's tier: it also escalates every file in scripts/data/validation-policy.json criticalOverrides and any Shared file that reaches a sharedMutationPrimitives call, so these paths are only its prefixes. It merges into develop without the owner's approval once three things hold on the current head: the selector's critical override has passed, CI Gate is green, and a fresh agent's adversarial review is addressed. Until the Merge Gate status is required, an agent merges by hand with the reviewed head SHA as the expected head (gh pr merge --match-head-commit), and stops if the head has moved; auto-merge would also merge a later push. The owner's approval sits at the release boundary instead (see release). Code-owner review cannot gate this tier, because GitHub refuses approval of one's own pull request.",
       "paths": [
         ".github/release.yml",
         ".github/workflows/release.yml",
@@ -192,7 +192,7 @@
       "autoMerge": false
     },
     "sensitive": {
-      "about": "AGENTS.md Change Criticality and Essential rules: agent runtime, indexer lifecycle, plan evidence, validation and migration tooling, admin workflow state, client journeys, read-only Shared hooks, and manifests, lockfiles, CI, agent instructions and harness configuration. The selector's risk decides the tier here too. It merges once CI Gate is green and a fresh agent's adversarial review is addressed, both on the current head. Until the Merge Gate status is required, an agent merges by hand, so the merge lands on the head the review saw.",
+      "about": "AGENTS.md Change Criticality and Essential rules: agent runtime, indexer lifecycle, plan evidence, validation and migration tooling, admin workflow state, client journeys, read-only Shared hooks, and manifests, lockfiles, CI, agent instructions and harness configuration. The selector's risk decides the tier here too. It merges once CI Gate is green and a fresh agent's adversarial review is addressed, both on the current head. Until the Merge Gate status is required, an agent merges by hand with the reviewed head SHA as the expected head (gh pr merge --match-head-commit), and stops if the head has moved.",
       "paths": [
         ".github/**",
         ".agents/**",

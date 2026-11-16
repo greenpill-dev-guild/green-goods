@@ -20,7 +20,7 @@ Both modes use live Arbitrum; transaction confirmations can affect production.
 
 Green Goods runs a **staging → production** flow:
 
-- **`develop`** is the integration/staging branch. Open your PRs here. A merge to `develop` deploys the website, app and admin to staging for validation, and the Agent and the QA app straight to production.
+- **`develop`** is the integration/staging branch. Open your PRs here. A merge to `develop` deploys the website, app and admin to staging for validation when it changes their inputs, and always deploys the Agent and the QA app straight to production.
 - **`main`** is production for the website, app and admin. Maintainers promote `develop → main` once changes are validated on staging.
 
 Branch from `develop` and PR into `develop`. Don't target `main` directly except for a documented hotfix.
