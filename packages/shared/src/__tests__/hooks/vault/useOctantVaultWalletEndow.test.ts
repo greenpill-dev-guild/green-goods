@@ -59,7 +59,8 @@ vi.mock("../../../hooks/auth/useUser", () => ({ useUser: () => mockUser }));
 vi.mock("../../../hooks/blockchain/useTransactionSender", () => ({
   useTransactionSender: () => mockTransactionSender,
 }));
-vi.mock("@wagmi/core", () => ({
+vi.mock("@wagmi/core", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@wagmi/core")>()),
   readContract: (...args: unknown[]) => mockReadContract(...args),
 }));
 vi.mock("../../../config/appkit", () => ({ getWagmiConfig: () => ({}) }));

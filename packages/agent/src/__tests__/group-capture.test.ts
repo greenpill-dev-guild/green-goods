@@ -5,7 +5,7 @@
 import fs from "fs";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createGroupCaptureHandler } from "../handlers/group-capture";
-import { closeDB, getDB, getNewChatMessages, initDB } from "../services/db";
+import { closeDB, getNewChatMessages, initDB } from "../services/db";
 import type { InboundMessage, TopicAllowlistEntry } from "../types";
 
 const TEST_DB_DIR = "data/test";

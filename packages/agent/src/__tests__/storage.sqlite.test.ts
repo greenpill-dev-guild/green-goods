@@ -15,8 +15,7 @@ import {
   createSqliteGardenJoinRequestStore,
   type EncryptedGardenJoinRequest,
 } from "../services/garden-join-requests";
-import type { SavedOfferCipher } from "../services/saved-offers";
-import { createSavedOfferCipher } from "../services/saved-offers";
+import { type SavedOfferCipher, createSavedOfferCipher } from "../services/saved-offers";
 import { createSqlitePasskeyDirectoryStore } from "../services/passkey-directory-adapters";
 import { gardenJoinRequestStoreContract } from "./test-utils/garden-join-request-contract";
 import { passkeyDirectoryStoreContract } from "./test-utils/passkey-directory-store-contract";

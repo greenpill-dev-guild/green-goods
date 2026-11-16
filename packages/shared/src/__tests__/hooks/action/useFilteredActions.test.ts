@@ -10,8 +10,7 @@ import {
   type ActionFiltersState,
   useFilteredActions,
 } from "../../../hooks/action/useFilteredActions";
-import type { Action } from "../../../types";
-import { Domain } from "../../../types";
+import { type Action, Domain } from "../../../types";
 
 // ============================================
 // Test Helpers

@@ -23,8 +23,9 @@ vi.mock("react-intl", () => ({
   }),
 }));
 
-import type { FabConfig, CanvasMobilePrimaryAction } from "../../components";
 import {
+  type FabConfig,
+  type CanvasMobilePrimaryAction,
   EmptyStateShell,
   WorkbenchCard,
   FabProvider,

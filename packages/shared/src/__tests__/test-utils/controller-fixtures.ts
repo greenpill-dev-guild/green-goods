@@ -28,7 +28,11 @@ import {
   selectCommitmentSeat,
   selectConfirmationEligibility,
 } from "../../modules/commitment-pooling/selectors";
-import type { CommitmentPoolRecord, HexString } from "../../modules/commitment-pooling/types";
+import type {
+  CommitmentPoolRecord,
+  HexString,
+  CommitmentReadModel,
+} from "../../modules/commitment-pooling/types";
 import {
   UNAVAILABLE_VOUCHER_CONSOLE,
   type VoucherConsoleSnapshot,
@@ -552,7 +556,6 @@ import type {
   SettlementOperationsController,
 } from "../../hooks/admin-ui/pool/controller.types";
 import type { CommitmentSettlementChainState } from "../../modules/commitment-pooling/data-settlement-chain";
-import type { CommitmentReadModel } from "../../modules/commitment-pooling/types";
 import {
   selectSettlementEligibility,
   selectSettlementWorkflow,

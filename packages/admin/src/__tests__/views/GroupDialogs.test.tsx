@@ -18,8 +18,7 @@ import type { GoodDollarPriceState } from "@green-goods/shared/modules/wallet/go
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { addToGroupRefusal } from "@/views/Garden/Pool/Group/addToGroupStatus";
 import { createIntl } from "react-intl";
-import { editRewardSummary } from "@/views/Garden/Pool/Group/editRewardStatus";
-import { editRewardStatus } from "@/views/Garden/Pool/Group/editRewardStatus";
+import { editRewardSummary, editRewardStatus } from "@/views/Garden/Pool/Group/editRewardStatus";
 import { fireEvent, renderWithProviders, screen, waitFor, within } from "../test-utils";
 
 const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
@@ -49,7 +48,7 @@ vi.mock("@green-goods/shared/hooks/admin-ui/pool/useEditReward", async () => {
       mode: "bundle",
       isSending: false,
       copies,
-      reset: react.useCallback(() => setCopies(null), []),
+      reset: react.useCallback(() => setCopies(null), [setCopies]),
       change: async (ids, amount) => {
         mocks.changes.push({ ids: [...ids], amount });
         const ended = ids.map((commitmentId) =>

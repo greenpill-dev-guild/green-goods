@@ -69,6 +69,7 @@ function Fixture() {
     <>
       <GardenMembershipCard
         garden={garden}
+        // eslint-disable-next-line jsx-a11y/aria-role -- the member's garden role, not an ARIA role
         role="gardener"
         onHome
         recovering={fakes.pending}

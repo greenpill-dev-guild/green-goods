@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Action, ActionInstructionConfig } from "../../types/domain";
-import { Domain } from "../../types/domain";
+import { type Action, type ActionInstructionConfig, Domain } from "../../types/domain";
 import {
   ACTION_INSTRUCTIONS_SCHEMA_VERSION,
   buildActionInstructionsV2,
