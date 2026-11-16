@@ -1,5 +1,4 @@
 import { useGardenMemberContributions } from "@green-goods/shared/hooks/garden/useGardenMemberContributions";
-import { mocked } from "storybook/test";
 import { resetHookMocks } from "../../../../shared/.storybook/moduleMocks";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
@@ -12,7 +11,7 @@ import type { Address } from "@green-goods/shared/types/domain";
 import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
 import type { Decorator, Meta, StoryObj } from "@storybook/react";
 import { IntlProvider } from "react-intl";
-import { expect, fn, userEvent, waitFor, within } from "storybook/test";
+import { expect, fn, mocked, userEvent, waitFor, within } from "storybook/test";
 import {
   withAdminIdentity,
   withDataRouter,
