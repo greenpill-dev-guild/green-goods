@@ -21,6 +21,7 @@ interface GardenWorkProps {
   actions: Action[];
   works: Work[];
   gardenId?: string;
+  domainMask?: number;
   chainId?: number;
   readState?: {
     isError: boolean;
@@ -130,6 +131,7 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
       availability: availabilityProp,
       lastSuccessfulRefresh: updatedProp,
       gardenId,
+      domainMask,
       readState,
       onRefresh,
       handleScroll,
@@ -170,7 +172,7 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
       : null;
 
     // Type and Sort narrow and order the list (D31); Pending is today's order.
-    const view = useGardenWorkListView(works, actions);
+    const view = useGardenWorkListView(works, actions, domainMask);
     const typeAllLabel = intl.formatMessage({ id: "app.garden.work.type.all" });
     const sortLabel = (sort: GardenWorkSort) => intl.formatMessage({ id: SORT_LABEL_IDS[sort] });
     // Oldest first needs the garden's whole history, since its oldest work is on
@@ -220,7 +222,7 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
       );
     }
 
-    // Type appears only when the work here spans two or more actions.
+    // Type appears only when the work here spans two or more supported actions.
     const filters = hasRows ? (
       <>
         {view.typeOptions.length > 0 ? (

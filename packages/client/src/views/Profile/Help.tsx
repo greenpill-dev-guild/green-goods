@@ -1,8 +1,5 @@
-import { useActiveGarden } from "@green-goods/shared/hooks/garden/useActiveGarden";
-import { useGardenPermissions } from "@green-goods/shared/hooks/garden/useGardenPermissions";
 import {
   RiArrowDropRightLine,
-  RiDashboardLine,
   RiExternalLinkLine,
   RiFileList3Line,
   RiFlagLine,
@@ -30,11 +27,6 @@ interface FaqCategory {
   id: string;
   topics: string[];
 }
-
-type ProfileHelpProps = {
-  /** The Green Goods Hub's address for this build (`VITE_ADMIN_APP_URL`); a story passes its own. */
-  hubUrl?: string;
-};
 
 const GARDENER_GUIDE_URL = "https://docs.greengoods.app/community/gardener-guide";
 
@@ -192,27 +184,15 @@ function FaqGuideLink({ href }: { href: string }) {
   );
 }
 
-export const ProfileHelp: React.FC<ProfileHelpProps> = ({
-  hubUrl = import.meta.env.VITE_ADMIN_APP_URL,
-}) => {
+export const ProfileHelp: React.FC = () => {
   const intl = useIntl();
-  const { myGardens } = useActiveGarden();
-  const { canManageGarden } = useGardenPermissions();
-  // A steward's way from the App to the Hub leads Learn and Connect (PRD-1492): for an account
-  // the App's steward check passes in one of its gardens (a steward or an owner), wherever this
-  // build knows the Hub's address. Each environment sets its own, so beta opens the beta Hub.
-  const hub = hubUrl?.trim();
-  const learnAndConnect =
-    hub && myGardens.gardens.some(({ garden }) => canManageGarden(garden))
-      ? [{ messageKey: "hub", url: hub, icon: <RiDashboardLine /> }, ...LEARN_AND_CONNECT]
-      : LEARN_AND_CONNECT;
 
   return (
     <>
       <HelpSectionHeading>
         {intl.formatMessage({ id: "app.profile.help.getInTouch" })}
       </HelpSectionHeading>
-      {learnAndConnect.map((link) => (
+      {LEARN_AND_CONNECT.map((link) => (
         <HelpLinkCard key={link.messageKey} link={link} />
       ))}
       <HelpSectionHeading>
