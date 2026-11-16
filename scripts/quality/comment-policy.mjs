@@ -287,15 +287,16 @@ export function classifyComment(comment, { exported, name = null, marksIntent = 
 }
 
 /**
- * A comment the narrow pass keeps whatever it says, since its place carries the meaning: the whole
- * content of a block (`catch { // Ignore errors }` says the swallow is deliberate; without it the
- * empty block reads as a mistake), or the end of a line whose code ends in a number, where it
- * names the value (`chainId: 11155111, // Sepolia`). JSX comment containers are not blocks.
+ * A comment the narrow pass keeps whatever it says, since its place carries the meaning: the end of
+ * a line of code, where it annotates that line (`chainId: 11155111, // Sepolia`, a test case's
+ * `// Missing 0x`), not a heading; or the whole content of a block (`catch { // Ignore errors }`
+ * says the swallow is deliberate; without it the empty block reads as a mistake). JSX comment
+ * containers are not blocks.
  */
 function marksIntent(code, comment, { inJsxContainer = false } = {}) {
   const before = code.slice(lineStart(code, comment.start), comment.start);
   const afterOnLine = code.slice(comment.end, lineEnd(code, comment.end));
-  if (!afterOnLine.trim() && /(\b0x[\da-f]+|\b\d[\d_.]*(e\d+)?n?)\s*[,;)\]]*\s*$/i.test(before)) return true;
+  if (before.trim() && !afterOnLine.trim()) return true;
   if (inJsxContainer) return false;
   return /[{[]$/.test(code.slice(0, comment.start).trimEnd()) && /^[}\]]/.test(code.slice(comment.end).trimStart());
 }
