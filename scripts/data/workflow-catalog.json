@@ -11,6 +11,11 @@
       "useCase": "Bot, webhook, or public API changes.",
       "required": false
     },
+    ".github/workflows/agents-doctor.yml": {
+      "purpose": "Checks that the agent guidance and harness files follow the shared agent kit, through the guild reusable workflow pinned to one commit for both the workflow and its script. Its checks include AGENTS.md as the guide, the CLAUDE.md import, one skills folder, valid .agents policy files, hooks that read stdin, the PR template sections, CODEOWNERS and the skill adapter. Advisory: findings never fail the job, though a crash or a runner fault shows red, and CI Gate does not wait for it.",
+      "useCase": "Changes to AGENTS.md, CLAUDE.md, .agents, .claude, .codex, CODEOWNERS or the PR template.",
+      "required": false
+    },
     ".github/workflows/ci-gate.yml": {
       "purpose": "The one required status. It derives the workflows a pull request's changed files should trigger, waits for each to register and report, and fails as soon as one fails or never shows up, so path-filtered workflows cannot silently weaken branch protection.",
       "useCase": "Every pull request on any base branch. Branch protection points here instead of at the per-package workflows.",
