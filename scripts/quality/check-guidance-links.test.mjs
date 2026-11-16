@@ -467,3 +467,34 @@ test("comments vouch for nothing in Solidity, CSS, JSONC, YAML, shell or HTML ei
   assert.deepEqual(live.filter((name) => !names.has(name)), []);
   assert.deepEqual(gone.filter((name) => names.has(name)), []);
 });
+
+test("in active voice the name before the verb is the replacement, and a quoted fence ends with its quote", () => {
+  const text = [
+    "`newMissingHelper()` replaced `oldHelper()`.",
+    "`goneHelper()` was replaced in 2.0.",
+    "`retiredThing` replaced; see the changelog.",
+    "> ```ts",
+    "> const quoted = `insideQuote()`;",
+    "Call `afterQuoteMissing()` here.",
+  ].join("\n");
+  assert.deepEqual(findUnknownCodeNames(text, "guide.md", new Set()), [
+    "guide.md:1: no tracked source names `newMissingHelper`",
+    "guide.md:6: no tracked source names `afterQuoteMissing`",
+  ]);
+});
+
+test("each language's own rule decides where a hash comment starts, and an HTML page's scripts and styles lose theirs", () => {
+  const files = {
+    "config.toml": "x = 1#tomlCommentName\nliveTomlKey = \"#notTomlComment\"\n",
+    "packages/a/schema.graphql": "type LiveGqlType { field: Int }#gqlCommentName\n",
+    "scripts/b.sh": "echo ok;#shellCommentName\necho ${#items[@]} liveShellWord\n",
+    ".github/workflows/c.yml": "url: http://host/#liveAnchorName\n",
+    "packages/a/page.html":
+      "<script>const liveScriptName = `//notScriptComment`; // scriptCommentName\n/* blockScriptComment */ const re = /a\\/\\/b/;</script>\n<style>.liveStyleName { color: red } /* styleCommentName */</style>\n",
+  };
+  const names = codeNamesFrom(Object.keys(files), (file) => files[file]);
+  const live = ["liveTomlKey", "notTomlComment", "LiveGqlType", "liveShellWord", "liveAnchorName", "liveScriptName", "notScriptComment", "liveStyleName"];
+  const gone = ["tomlCommentName", "gqlCommentName", "shellCommentName", "scriptCommentName", "blockScriptComment", "styleCommentName"];
+  assert.deepEqual(live.filter((name) => !names.has(name)), []);
+  assert.deepEqual(gone.filter((name) => names.has(name)), []);
+});

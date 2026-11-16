@@ -199,16 +199,19 @@ function codeNamesIn(fragment) {
 
 /**
  * Code names in a guidance file's inline code that `knownNames` lacks. Fenced examples are
- * skipped, blockquoted ones included; a fence closes only on its own character, at least as long.
+ * skipped, blockquoted ones included, and a fence opened in a blockquote ends with the quote; a fence
+ * closes only on its own character, at least as long.
  */
 export function findUnknownCodeNames(text, relativePath, knownNames, allowed = UNTRACKED_CODE_NAMES) {
   const failures = [];
   let openFence;
   for (const [index, line] of text.split(/\r?\n/).entries()) {
+    const quoted = /^\s*>/.test(line);
+    if (openFence?.quoted && !quoted) openFence = undefined;
     const fence = line.match(/^\s*(?:>\s*)*(`{3,}|~{3,})/);
     if (fence) {
-      if (!openFence) openFence = fence[1];
-      else if (fence[1][0] === openFence[0] && fence[1].length >= openFence.length) openFence = undefined;
+      if (!openFence) openFence = { marker: fence[1], quoted };
+      else if (fence[1][0] === openFence.marker[0] && fence[1].length >= openFence.marker.length) openFence = undefined;
       continue;
     }
     if (openFence) continue;
@@ -229,14 +232,23 @@ const REPLACEMENT_LEAD =
   String.raw`\b(?:by|(?<!\b(?:along|together)\s)with|into|to|use|prefer|in\s+favou?r\s+of)\b` +
   String.raw`(?:(?!${RETIREMENT_NOTICE_RE.source})[^\x60]){0,20}\x60[^\x60]*?`;
 
+// Active voice names the replacement first: in "`newHelper()` replaced `oldHelper()`" the name
+// before the verb must exist. The passive ("was replaced", "replaced by") and a verb with no code
+// object after it ("`oldX` replaced; see ...") leave the name before the verb retired.
+const ACTIVE_REPLACEMENT_VERB =
+  String.raw`(?:(?!\b(?:was|were|is|are|been|be|being|got|gets)\b)[^\x60.;]){0,20}\b(?:replaced|superseded)\b` +
+  String.raw`(?!\s+by\b)\s+(?:[A-Za-z]+\s+){0,3}\x60`;
+
 /**
  * A retirement notice covers the name it retires, never the replacement it introduces:
- * "`oldHelper()` was replaced by `newHelper()`" exempts `oldHelper` only, so guidance cannot
- * recommend a replacement that does not exist.
+ * "`oldHelper()` was replaced by `newHelper()`" and "`newHelper()` replaced `oldHelper()`"
+ * exempt `oldHelper` only, so guidance cannot recommend a replacement that does not exist.
  */
 function isRetiredCodeName(line, token) {
   if (!isExplicitRetirementNotice(line, token)) return false;
-  return !new RegExp(`${REPLACEMENT_LEAD}\\b${escapeRegex(token)}\\b`, "i").test(line);
+  const name = String.raw`\b${escapeRegex(token)}\b`;
+  if (new RegExp(`${REPLACEMENT_LEAD}${name}`, "i").test(line)) return false;
+  return !new RegExp(String.raw`\x60[^\x60]*?${name}[^\x60]*\x60${ACTIVE_REPLACEMENT_VERB}`, "i").test(line);
 }
 
 /**
@@ -276,12 +288,24 @@ function withoutComments(file, text, parse) {
   if (SCRIPT_FILE_RE.test(file)) return parse ? withoutScriptComments(file, text, parse) : text;
   if (SLASH_COMMENT_FILE_RE.test(file)) return blankSlashComments(text, { lineComments: true });
   if (file.endsWith(".css")) return blankSlashComments(text, { lineComments: false });
-  if (HASH_COMMENT_FILE_RE.test(file)) return blankHashComments(text);
-  if (file.endsWith(".html")) return text.replace(/<!--[\s\S]*?-->/g, " ");
+  if (HASH_COMMENT_FILE_RE.test(file)) return blankHashComments(text, HASH_COMMENT_STARTS[file.split(".").pop()]);
+  if (file.endsWith(".html")) return withoutHtmlComments(text);
   return text;
 }
 
-/** Blank block comments, and `//` ones where the language has them, outside quoted strings. */
+/** An HTML page with its own comments blanked, and those inside its scripts and styles. */
+function withoutHtmlComments(text) {
+  return text
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(/(<script\b[^>]*>)([\s\S]*?)(<\/script\s*>)/gi, (_, open, body, close) => `${open}${blankSlashComments(body, { lineComments: true })}${close}`)
+    .replace(/(<style\b[^>]*>)([\s\S]*?)(<\/style\s*>)/gi, (_, open, body, close) => `${open}${blankSlashComments(body, { lineComments: false })}${close}`);
+}
+
+/**
+ * Blank block comments, and `//` ones where the language has them, outside quoted strings. A
+ * backtick quote may span lines (a template literal). A `//` starts a comment only at a token
+ * boundary, so a URL or an escaped slash in a regular expression stays.
+ */
 function blankSlashComments(text, { lineComments }) {
   let kept = "";
   let quote = null;
@@ -290,7 +314,7 @@ function blankSlashComments(text, { lineComments }) {
     if (quote) {
       kept += char;
       if (char === "\\") kept += text[++at] ?? "";
-      else if (char === quote || char === "\n") quote = null;
+      else if (char === quote || (char === "\n" && quote !== "`")) quote = null;
       continue;
     }
     if (char === "/" && text[at + 1] === "*") {
@@ -300,25 +324,35 @@ function blankSlashComments(text, { lineComments }) {
       at = end + 1;
       continue;
     }
-    if (lineComments && char === "/" && text[at + 1] === "/") {
+    if (lineComments && char === "/" && text[at + 1] === "/" && (at === 0 || /[\s;{}(),]/.test(text[at - 1]))) {
       const end = text.indexOf("\n", at);
       if (end === -1) return `${kept} `;
       kept += " ";
       at = end - 1;
       continue;
     }
-    if (char === '"' || char === "'") quote = char;
+    if (char === '"' || char === "'" || char === "`") quote = char;
     kept += char;
   }
   return kept;
 }
 
+// Where `#` begins a comment: anywhere outside quotes in TOML and GraphQL, at the start of a word in
+// shell, and after a space in YAML (`url: http://host/#anchor` is a value).
+const HASH_COMMENT_STARTS = {
+  toml: () => true,
+  graphql: () => true,
+  sh: (line, at) => at === 0 || /[\s;&|()<>]/.test(line[at - 1]),
+  yml: (line, at) => at === 0 || /\s/.test(line[at - 1]),
+  yaml: (line, at) => at === 0 || /\s/.test(line[at - 1]),
+};
+
 /**
- * Blank `#` comments in shell, YAML, TOML and GraphQL: from a `#` that starts a line or follows
- * a space, outside quotes, to the line's end. An apostrophe in plain text reads as a quote and
- * keeps the rest of its line, the safe direction.
+ * Blank `#` comments in shell, YAML, TOML and GraphQL: from a `#` that `startsComment` accepts,
+ * outside quotes, to the line's end. An apostrophe in plain text reads as a quote and keeps the rest
+ * of its line, the safe direction.
  */
-function blankHashComments(text) {
+function blankHashComments(text, startsComment) {
   return text.split("\n").map((line) => {
     let quote = null;
     for (let at = 0; at < line.length; at++) {
@@ -328,7 +362,7 @@ function blankHashComments(text) {
         else if (char === quote) quote = null;
       } else if (char === '"' || char === "'") {
         quote = char;
-      } else if (char === "#" && (at === 0 || /\s/.test(line[at - 1]))) {
+      } else if (char === "#" && startsComment(line, at)) {
         return line.slice(0, at);
       }
     }
