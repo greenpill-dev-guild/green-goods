@@ -3,26 +3,18 @@
  *
  * Minimal tests for the client PWA:
  * - Unauthenticated redirect to login
- * - Passkey authentication (Android Chrome)
- * - Wallet authentication (iOS Safari)
+ * - Disconnected mock session with legacy wallet storage
  * - View gardens data
  *
  * Authentication strategy:
- * - Android/Chromium: Virtual WebAuthn authenticator for passkey testing
- * - iOS Safari: Storage injection for wallet authentication (WebAuthn not supported)
+ * - Authenticated UI: supported dev mock-auth seam and mocked backend
+ * - Legacy wallet storage: disconnected mock-session check on every browser
  */
 import { expect, test } from "@playwright/test";
 import { MOCK_CLIENT_GARDEN } from "../helpers/mock-backend";
 import { ClientTestHelper, setupAuthenticatedClient, TEST_URLS } from "../helpers/test-utils";
 
 const CLIENT_URL = TEST_URLS.client;
-
-/**
- * Detect if current browser is iOS Safari
- */
-function isIOS(projectName: string | undefined): boolean {
-  return projectName === "mobile-safari";
-}
 
 test.describe("Client PWA", () => {
   test.use({ baseURL: CLIENT_URL });
@@ -61,63 +53,21 @@ test.describe("Client PWA", () => {
       await expect(page.getByTestId("login-button")).toBeVisible();
     });
 
-    test("passkey flow - create account and authenticate", async ({ page }, testInfo) => {
-      // Skip passkey e2e tests - virtual authenticator credentials are rejected by real Pimlico server
-      // Passkey flow is tested in unit tests with mocked Pimlico responses
-      // See: packages/shared/src/__tests__/workflows/authServices.test.ts
-      // SKIP: #338 owner:afo expiry:2026-10-16 — virtual authenticator creds rejected by Pimlico
-      test.skip(
-        true,
-        "Passkey e2e tests skipped: virtual authenticator credentials rejected by Pimlico server. " +
-          "Use unit tests for passkey flow validation."
-      );
-
+    test("keeps a disconnected mock session signed out despite legacy wallet storage", async ({
+      page,
+    }) => {
       const helper = new ClientTestHelper(page);
-
-      // Setup virtual authenticator for passkey testing
-      await helper.setupPasskeyAuth();
-
-      try {
-        // Create new account
-        const username = `e2e_${Date.now()}`;
-        await helper.createPasskeyAccount(username);
-
-        // Should be on home page after auth
-        expect(page.url()).toContain("/home");
-
-        // Should see authenticated UI (no login redirect)
-        await helper.waitForPageLoad();
-        await expect(page.locator("body")).toBeVisible();
-      } finally {
-        await helper.cleanup();
-      }
-    });
-
-    test("wallet flow - inject auth and navigate (iOS Safari)", async ({ page }, testInfo) => {
-      // Only run on iOS Safari - passkey tests cover Android/Chromium
-      // SKIP: #338 owner:afo expiry:2026-10-16 — platform-conditional, only iOS Safari
-      test.skip(!isIOS(testInfo.project.name), "Wallet injection only needed for iOS Safari");
-
-      const helper = new ClientTestHelper(page);
-
-      // Inject wallet state before navigating
       await helper.injectWalletAuth();
-
-      // Navigate to home (should not redirect to login)
-      await page.goto("/home");
+      await helper.enableMockAuth("disconnected");
+      await page.goto("/home?presentation=pwa");
       await helper.waitForPageLoad();
 
-      const url = page.url();
-
-      if (url.includes("/home")) {
-        // Auth worked - verify we're on home page
-        await expect(page.locator("body")).toBeVisible();
-      } else {
-        // Auth injection didn't persist - this is expected in some cases
-        // iOS Safari has stricter localStorage rules
-        console.log("Auth injection not persisted on iOS - wallet flow would be needed");
-        expect(url).toContain("/home/login");
-      }
+      // The supported dev-auth seam explicitly selects a disconnected session.
+      // Legacy wallet storage must not override that test-session state.
+      // Real connector restoration is covered by separate auth/device QA.
+      await expect(page).toHaveURL(/\/home\/login/);
+      await expect(page.getByTestId("login-button")).toBeVisible();
+      await expect(page.getByTestId("authenticated-nav")).toHaveCount(0);
     });
   });
 
