@@ -28,6 +28,9 @@ permissions:
 
 jobs:
   agents-doctor:
-    uses: greenpill-dev-guild/.github/.github/workflows/agents-doctor.yml@main
+    # Pinned like every action here; doctor-ref matches, so the workflow and the doctor script it
+    # runs come from the same guild commit.
+    uses: greenpill-dev-guild/.github/.github/workflows/agents-doctor.yml@d5bab15ee152be8fe289257826b28655090e4d05
     with:
       mode: advisory
+      doctor-ref: d5bab15ee152be8fe289257826b28655090e4d05
