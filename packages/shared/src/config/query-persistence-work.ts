@@ -19,7 +19,7 @@ const READ_MODEL_GROUPS = new Set([
   "profile-avatars",
   "ens",
 ]);
-const READ_MODEL_WORK_SOURCES = new Set(["online", "metadata", "merged", "mine"]);
+const READ_MODEL_WORK_SOURCES = new Set(["online", "metadata", "merged", "mine", "visibility"]);
 
 /**
  * The offline read model: the reads screens need to open without a connection.

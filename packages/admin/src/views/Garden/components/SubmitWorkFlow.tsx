@@ -170,7 +170,7 @@ export function SubmitWorkFlow({
       title: formatMessage({ id: "app.admin.work.submit.step.media", defaultMessage: "Media" }),
       description: formatMessage({
         id: "app.admin.work.submit.step.media.hint",
-        defaultMessage: "Add photos of the work",
+        defaultMessage: "Add media of the work",
       }),
     },
     {

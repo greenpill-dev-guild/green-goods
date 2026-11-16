@@ -35,7 +35,8 @@ vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
 }));
 
-vi.mock("@green-goods/shared/modules/work/media-processing", () => ({
+vi.mock("@green-goods/shared/modules/work/media-processing", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/modules/work/media-processing")>()),
   // Mirrors the real rule: a HEIC photo is refused unless the caller keeps it waiting.
   validateWorkAttachments: (
     media: File[],
@@ -209,13 +210,15 @@ import { track } from "@green-goods/shared/modules/app/posthog";
 import { getWorkMediaId } from "@green-goods/shared/modules/work/media-processing";
 import { prepareWorkSubmission } from "@green-goods/shared/modules/work/submission-flow";
 import { WorkMedia } from "../../views/Garden/Media";
+import enMessages from "@green-goods/shared/i18n/en.json";
 
 const messages = {
+  ...enMessages,
   "app.garden.upload.title": "Upload Media",
   "app.garden.submit.tab.media.instruction": "Please take a clear photo",
   "app.garden.upload.progress": "{current} of {required} photos uploaded",
   "app.garden.upload.mediaRule.needed":
-    "{current} of {required, plural, one {# photo} other {# photos}}",
+    "{current} of {required, plural, one {# media item} other {# media items}}",
   "app.garden.upload.maxAllowed": "max {max}",
   "app.garden.upload.cta": "Add Photos",
   "app.garden.upload.remove": "Remove",
@@ -334,6 +337,8 @@ describe("WorkMedia", () => {
     expect(galleryInput).toBeTruthy();
     expect(galleryInput.type).toBe("file");
     expect(galleryInput.accept).toContain("image/");
+    expect(galleryInput.accept).toContain("video/mp4");
+    expect(galleryInput.accept).toContain("video/webm");
     // Documents have a picker of their own, so the photo picker keeps the phone's photo grid.
     expect(galleryInput.accept).not.toContain("pdf");
     const documentInput = document.getElementById("work-document-upload") as HTMLInputElement;
@@ -397,7 +402,25 @@ describe("WorkMedia", () => {
     );
 
     // The rule pill says how far the photos are from what the action asks.
-    expect(screen.getByText("0 of 2 photos")).toHaveAttribute("role", "status");
+    expect(screen.getByText("0 of 2 media items")).toHaveAttribute("role", "status");
+  });
+
+  it("counts supported photos and videos together without counting documents or audio", () => {
+    const file = (name: string, type: string) => new File(["evidence"], name, { type });
+    renderWithIntl(
+      <WorkMedia
+        images={[
+          file("before.jpg", "image/jpeg"),
+          file("after.mp4", "video/mp4"),
+          file("notes.pdf", "application/pdf"),
+        ]}
+        setImages={vi.fn()}
+        audioNotes={[file("note.webm", "audio/webm")]}
+        setAudioNotes={mockSetAudioNotes}
+        minRequired={3}
+      />
+    );
+    expect(screen.getByText("2 of 3 media items")).toHaveAttribute("role", "status");
   });
 
   it("exposes the photo and document pickers via refs, each opening its own input", () => {

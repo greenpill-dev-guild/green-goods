@@ -110,6 +110,9 @@ const TITLED_RULE = new RegExp(`^[${RULE_CHARS}]{2,}\\s+\\S.{0,60}?\\s+[${RULE_C
 /** A heading of one to three words with no sentence punctuation: `// Helpers`, `// Public API:`. */
 function isLabel(text) {
   const line = text.trim();
+  // A negation states something about the code (`maxTouchPoints not set` marks a deliberate
+  // omission, as does `Wallet isn't connected`); a label only names.
+  if (/\b(?:not|no|never|none|nothing|without)\b|n't\b/i.test(line)) return false;
   return /^[A-Za-z][\w &/'()-]*:?$/.test(line) && line.split(/\s+/).length <= 3;
 }
 
@@ -225,6 +228,28 @@ function declaredNames(statement) {
   return statement.id?.name ? [statement.id.name] : [];
 }
 
+// Whether an assignment, or any assignment it chains into, writes `module.exports` or an export
+// (`const client = module.exports = createClient()`).
+function assignsCommonJsExport(node) {
+  for (let at = node; at?.type === "AssignmentExpression"; at = at.right) if (isCommonJsExport(at.left)) return true;
+  return false;
+}
+
+// The value a chain of assignments ends in: `module.exports = exports.client = client` assigns `client`.
+function chainedValue(node) {
+  let at = node;
+  while (at?.type === "AssignmentExpression") at = at.right;
+  return at;
+}
+
+// `module.exports`, `module.exports.name` or `exports.name`.
+function isCommonJsExport(node) {
+  const isModuleExports = (target) =>
+    target?.type === "MemberExpression" && target.object?.name === "module" && target.property?.name === "exports";
+  return isModuleExports(node) ||
+    (node?.type === "MemberExpression" && (isModuleExports(node.object) || node.object?.name === "exports"));
+}
+
 function exportedSpans(program) {
   // Names a later `export { a, b }` or `export default a` makes public: their declarations are API too.
   const exportedLater = new Set();
@@ -236,12 +261,27 @@ function exportedSpans(program) {
       exportedLater.add(statement.declaration.name);
     }
     if (statement.type === "TSExportAssignment" && statement.expression?.type === "Identifier") exportedLater.add(statement.expression.name);
+    // CommonJS: `module.exports = name`, `module.exports = { a, b }`, `exports.a = a`, and the same
+    // at the end of a chain (`module.exports = exports.a = a`, `const api = module.exports = a`).
+    const assignments = statement.type === "ExpressionStatement" ? [statement.expression]
+      : statement.type === "VariableDeclaration" ? statement.declarations.map((declaration) => declaration.init) : [];
+    for (const assignment of assignments.filter(assignsCommonJsExport)) {
+      const value = chainedValue(assignment);
+      if (value?.type === "Identifier") exportedLater.add(value.name);
+      for (const property of value?.type === "ObjectExpression" ? value.properties : []) {
+        if (property.value?.type === "Identifier") exportedLater.add(property.value.name);
+      }
+    }
   }
   const spans = [];
   let previousEnd = 0;
   for (const statement of program.body) {
+    // An assignment to `exports.name` or `module.exports` exports what it assigns, so documentation
+    // above it, or inside the object it assigns, is API documentation too.
+    const commonJs = (statement.type === "ExpressionStatement" && assignsCommonJsExport(statement.expression)) ||
+      (statement.type === "VariableDeclaration" && statement.declarations.some((declaration) => assignsCommonJsExport(declaration.init)));
     const exported = /^Export(Named|Default|All)Declaration$/.test(statement.type) || statement.type === "TSExportAssignment" ||
-      declaredNames(statement).some((name) => exportedLater.has(name));
+      commonJs || declaredNames(statement).some((name) => exportedLater.has(name));
     if (exported) spans.push([previousEnd, statement.end]);
     previousEnd = statement.end;
   }
@@ -296,7 +336,27 @@ export function classifyComment(comment, { exported, name = null, marksIntent = 
  * containers are not blocks. Other comments on the line are not code: a note after a banner
  * (`/* ---- *\/ // Helpers`) is still a heading, so one pass removes both.
  */
-function marksIntent(code, comment, { comments = [], inJsxContainer = false } = {}) {
+function marksIntent(code, comment, { comments = [], inJsxContainer = false, solidity = false } = {}) {
+  if (inJsxContainer) return false;
+  const afterOnLine = code.slice(comment.end, lineEnd(code, comment.end));
+  if (codeBefore(code, comment, comments).trim() && !afterOnLine.trim()) return true;
+  // Where a statement or value would go, with only comments and space between it and the
+  // delimiters around it: a block's content, an empty argument list, a tuple's unnamed slot.
+  const back = pastSpaceAndComments(code, comment.start, comments, -1);
+  const ahead = pastSpaceAndComments(code, comment.end, comments, 1);
+  const opener = code[back - 1] ?? "";
+  const closer = code[ahead] ?? "";
+  // Between two separators is a slot in any language: an omitted tuple position, an array hole.
+  if (closer === ",") return /[[(,]/.test(opener);
+  if (!/[}\])]/.test(closer)) return false;
+  // Before a closer, a comma opens a slot in a Solidity tuple. In JavaScript it is only a
+  // trailing comma there, unless it follows `[`, `(` or another comma: a leading array hole.
+  if (opener === ",") return solidity || /[[(,]/.test(code[pastSpaceAndComments(code, back - 1, comments, -1) - 1] ?? "");
+  return /[{[(]/.test(opener);
+}
+
+/** A comment's line up to the comment, other comments blanked: a comment is not code. */
+function codeBefore(code, comment, comments) {
   const start = lineStart(code, comment.start);
   let before = code.slice(start, comment.start);
   for (const other of comments) {
@@ -305,26 +365,50 @@ function marksIntent(code, comment, { comments = [], inJsxContainer = false } = 
     const to = Math.min(other.end, comment.start) - start;
     before = before.slice(0, from) + " ".repeat(to - from) + before.slice(to);
   }
-  const afterOnLine = code.slice(comment.end, lineEnd(code, comment.end));
-  if (before.trim() && !afterOnLine.trim()) return true;
-  if (inJsxContainer) return false;
-  return /[{[]$/.test(code.slice(0, comment.start).trimEnd()) && /^[}\]]/.test(code.slice(comment.end).trimStart());
+  return before;
+}
+
+/**
+ * Where the code resumes from `index`, past space and whole comments, backwards (-1) or forwards
+ * (1). A line comment's span can end in trailing spaces the backward walk has already passed.
+ */
+function pastSpaceAndComments(code, index, comments, direction) {
+  let at = index;
+  for (;;) {
+    const from = at;
+    if (direction < 0) {
+      while (at > 0 && /\s/.test(code[at - 1])) at--;
+      const earlier = comments.find((other) => other.start < at && other.end >= at && other.end <= from);
+      if (!earlier) return at;
+      at = earlier.start;
+    } else {
+      while (at < code.length && /\s/.test(code[at])) at++;
+      const later = comments.find((other) => other.start === at);
+      if (!later) return at;
+      at = later.end;
+    }
+  }
 }
 
 // A directive or licence line applies on its own, so it never joins a run.
 const scriptStandalone = (value) => LICENCE.test(value) || DIRECTIVES.some((pattern) => pattern.test(value)) || isRuleLine(value);
+// Space around exactly one line break, in any of the four terminators, CRLF as one.
+const ONE_LINE_BREAK = /^[ \t]*(?:\r\n|[\n\r\u2028\u2029])[ \t]*$/;
 
 /**
  * Comments as readers see them: a run of line comments on consecutive lines is one comment, unless
- * a line stands alone or `joins` keeps two kinds apart.
+ * a line stands alone or `joins` keeps two kinds apart. A note that ends a line of code takes the
+ * lines under it as its continuation, but never commented-out code, which `isCode` recognises and
+ * which goes on its own.
  */
-export function groupComments(code, comments, { standalone = scriptStandalone, joins = () => true } = {}) {
+export function groupComments(code, comments, { standalone = scriptStandalone, joins = () => true, isCode = isCommentedOutCode } = {}) {
   const groups = [];
   for (const comment of comments) {
     const last = groups.at(-1);
     const between = last ? code.slice(last.end, comment.start) : null;
-    if (last && last.type === "Line" && comment.type === "Line" && /^[ \t]*\n[ \t]*$/.test(between) &&
-      !code.slice(lineStart(code, comment.start), comment.start).trim() &&
+    if (last && last.type === "Line" && comment.type === "Line" && ONE_LINE_BREAK.test(between) &&
+      !codeBefore(code, comment, comments).trim() &&
+      !(codeBefore(code, last, comments).trim() && isCode(comment.value)) &&
       !standalone(comment.value) && !standalone(last.lastValue) && joins(last.lastValue, comment.value)) {
       last.end = comment.end;
       last.value += `\n${comment.value}`;
@@ -374,9 +458,12 @@ function classifySoliditySource(code) {
   // A NatSpec line (`///`) and a plain line (`//`) never join: they are different kinds of comment.
   const joins = (previous, next) => previous.startsWith("/") === next.startsWith("/");
   const comments = solidityComments(code);
-  return groupComments(code, comments, { standalone, joins }).map((comment) => ({
+  return groupComments(code, comments, { standalone, joins, isCode: isSolidityCode }).map((comment) => ({
     ...comment,
-    kind: classifySolidityComment(comment, { name: subjectName(code, comment), marksIntent: marksIntent(code, comment, { comments }) }),
+    kind: classifySolidityComment(comment, {
+      name: subjectName(code, comment),
+      marksIntent: marksIntent(code, comment, { comments, solidity: true }),
+    }),
   }));
 }
 
@@ -460,13 +547,42 @@ function jsxChildren(program) {
   return elements.join("\n");
 }
 
+// Every JavaScript line terminator, which Solidity's carriage return is among: a scan that knew only
+// the line feed read a CR-only file as one line, so its first `//` comment swallowed the file.
+const TERMINATOR = /[\n\r\u2028\u2029]/;
+
 function lineStart(code, index) {
-  return code.lastIndexOf("\n", index - 1) + 1;
+  for (let at = index - 1; at >= 0; at--) if (TERMINATOR.test(code[at])) return at + 1;
+  return 0;
 }
 
 function lineEnd(code, index) {
-  const end = code.indexOf("\n", index);
-  return end < 0 ? code.length : end;
+  for (let at = index; at < code.length; at++) if (TERMINATOR.test(code[at])) return at;
+  return code.length;
+}
+
+/** The length of the line break at `index`: 2 for CRLF, 1 for another terminator, 0 for none. */
+function breakAt(code, index) {
+  if (code[index] === "\r" && code[index + 1] === "\n") return 2;
+  return TERMINATOR.test(code[index] ?? "") ? 1 : 0;
+}
+
+/** The length of the line break that ends just before `index`, CRLF as one. */
+function breakBefore(code, index) {
+  if (code[index - 1] === "\n" && code[index - 2] === "\r") return 2;
+  return TERMINATOR.test(code[index - 1] ?? "") ? 1 : 0;
+}
+
+/** Whether a blank line ends at `index`: two line breaks in a row just before it. */
+function blankLineEndsAt(code, index) {
+  const last = breakBefore(code, index);
+  return last > 0 && breakBefore(code, index - last) > 0;
+}
+
+/** Where the next line begins after a line that ends at `end`: past its terminator, CRLF as one. */
+function nextLineStart(code, end) {
+  if (end >= code.length) return code.length;
+  return code[end] === "\r" && code[end + 1] === "\n" ? end + 2 : end + 1;
 }
 
 // What a removal takes and leaves: a whole line when the comment is alone on it, the JSX container
@@ -476,20 +592,24 @@ function removal(code, comment) {
   if (comment.container) {
     const [open, close] = comment.container;
     if (!code.slice(lineStart(code, open), open).trim() && !code.slice(close, lineEnd(code, close)).trim()) {
-      return { from: lineStart(code, open), to: Math.min(lineEnd(code, close) + 1, code.length), text: "" };
+      return { from: lineStart(code, open), to: nextLineStart(code, lineEnd(code, close)), text: "" };
     }
     return { from: open, to: close, text: "" };
   }
   const start = lineStart(code, comment.start);
   const end = lineEnd(code, comment.end);
   if (!code.slice(start, comment.start).trim() && !code.slice(comment.end, end).trim()) {
-    return { from: start, to: Math.min(end + 1, code.length), text: "" };
+    return { from: start, to: nextLineStart(code, end), text: "" };
   }
   let from = comment.start;
   while (from > start && /[ \t]/.test(code[from - 1])) from--;
   // A line terminator inside the comment can end a statement (`return/* x\n*/value` returns nothing),
-  // so one stays. JavaScript has four: line feed, carriage return, and U+2028 and U+2029.
-  if (/[\n\r\u2028\u2029]/.test(code.slice(comment.start, comment.end))) return { from, to: comment.end, text: "\n" };
+  // so one stays: the break that ends the comment's line, so the file keeps its own kind. JavaScript
+  // has four terminators: line feed, carriage return, and U+2028 and U+2029.
+  if (/[\n\r\u2028\u2029]/.test(code.slice(comment.start, comment.end))) {
+    const end = lineEnd(code, comment.end);
+    return { from, to: comment.end, text: code.slice(end, nextLineStart(code, end)) || "\n" };
+  }
   const joins = from > 0 && /\S/.test(code[from - 1]) && /\S/.test(code[comment.end] ?? "");
   return { from, to: comment.end, text: joins ? " " : "" };
 }
@@ -524,8 +644,8 @@ function removeComments(code, comments, keepContainers) {
     output = output.slice(0, from) + text + output.slice(to);
     // Close the gap a removed line leaves, at that point only: blank lines elsewhere (a template
     // literal's included) are not the codemod's to change.
-    while (output[from] === "\n" && (from === 0 || (output[from - 1] === "\n" && output[from - 2] === "\n"))) {
-      output = output.slice(0, from) + output.slice(from + 1);
+    for (let size = breakAt(output, from); size && (from === 0 || blankLineEndsAt(output, from)); size = breakAt(output, from)) {
+      output = output.slice(0, from) + output.slice(from + size);
     }
   }
   return { code: output, removed, kept: comments.filter((comment) => !removable(comment)) };
@@ -537,8 +657,9 @@ export function sourceFiles(paths, { root = repoRoot, env = process.env } = {}) 
   return [...new Set(listed)].filter((file) => SOURCE.test(file) && !/\.d\.[cm]?ts$/.test(file) && !/(^|\/)(generated|vendor|dist|node_modules)\//.test(file));
 }
 
+// Lines as the scanner counts them: every JavaScript line terminator, CRLF as one.
 function lineOf(code, index) {
-  return code.slice(0, index).split("\n").length;
+  return code.slice(0, index).split(/\r\n|[\n\r\u2028\u2029]/).length;
 }
 
 // The kinds the triage pass reads: what no tool needs and the narrow pass leaves.

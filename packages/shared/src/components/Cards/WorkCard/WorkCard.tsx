@@ -171,8 +171,8 @@ export const WorkCard: React.FC<WorkCardProps> = ({
         <span className="sr-only">
           {formatMessage(
             {
-              id: "app.proof.contents.photos",
-              defaultMessage: "{count, plural, one {# photo} other {# photos}}",
+              id: "app.work.mediaCount",
+              defaultMessage: "{count, plural, one {# media item} other {# media items}}",
             },
             { count: mediaCount }
           )}

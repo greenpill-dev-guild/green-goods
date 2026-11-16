@@ -63,6 +63,10 @@ const canonicalAction: Action = {
 
 const panelSeeds: Parameters<typeof withSeededQueryClient>[0] = [
   ...STORYBOOK_ADMIN_SHELL_SEEDS,
+  [
+    queryKeys.works.visibility(DEFAULT_CHAIN_ID),
+    { chainId: DEFAULT_CHAIN_ID, excludedWorkUIDs: [], excludedApprovalUIDs: [] },
+  ],
   [queryKeys.actions.byUIDs(DEFAULT_CHAIN_ID, [1]), [canonicalAction]],
   [queryKeys.works.merged(STORYBOOK_PRIMARY_ADMIN_GARDEN.id, DEFAULT_CHAIN_ID), [WAITING_WORK]],
   [queryKeys.works.online(STORYBOOK_PRIMARY_ADMIN_GARDEN.id, DEFAULT_CHAIN_ID), WAITING_WORK_READ],
