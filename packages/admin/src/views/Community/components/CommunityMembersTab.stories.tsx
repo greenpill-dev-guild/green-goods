@@ -1,3 +1,6 @@
+import { useGardenMemberContributions } from "@green-goods/shared/hooks/garden/useGardenMemberContributions";
+import { mocked } from "storybook/test";
+import { resetHookMocks } from "../../../../../shared/.storybook/moduleMocks";
 import type { Decorator, Meta, StoryObj } from "@storybook/react";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import esMessages from "@green-goods/shared/i18n/es.json";
@@ -110,4 +113,20 @@ export const RosterSpanish: Story = {
 export const RosterPortuguese: Story = {
   ...Roster,
   decorators: [inLocale("pt", ptMessages), withRosterIdentity],
+};
+
+/** Public contribution fixtures use only synthetic accounts from the garden roster. */
+export const Contributions: Story = {
+  beforeEach: () => {
+    mocked(useGardenMemberContributions).mockReturnValue({
+      canView: true,
+      byAccount: Object.fromEntries(
+        storyDirectory.map((entry, index) => [
+          entry.address.toLowerCase(),
+          index === 0 ? { status: "recorded", at: Date.UTC(2026, 10, 15, 12) } : { status: "none" },
+        ])
+      ),
+    });
+    return resetHookMocks(useGardenMemberContributions);
+  },
 };

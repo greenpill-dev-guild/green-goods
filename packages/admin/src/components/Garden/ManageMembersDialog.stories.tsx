@@ -1,3 +1,6 @@
+import { useGardenMemberContributions } from "@green-goods/shared/hooks/garden/useGardenMemberContributions";
+import { mocked } from "storybook/test";
+import { resetHookMocks } from "../../../../shared/.storybook/moduleMocks";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import type {
@@ -347,5 +350,42 @@ export const MembershipDates: Story = {
     await waitFor(() =>
       expect(within(document.body).getByText("Joined this garden")).toBeVisible()
     );
+  },
+};
+
+export const ContributionDetails: Story = {
+  decorators: [
+    withSeededQueryClient([
+      ...identity,
+      [
+        queryKeys.gardens.memberHistory(
+          "0x7777777777777777777777777777777777777777",
+          undefined,
+          DEFAULT_CHAIN_ID
+        ),
+        [
+          {
+            garden: "0x7777777777777777777777777777777777777777",
+            account: RIOLAB,
+            joinedAt: Date.UTC(2026, 5, 12, 12),
+            memberSince: Date.UTC(2026, 5, 12, 12),
+            roleSince: {
+              owner: Date.UTC(2026, 5, 12, 12),
+              steward: Date.UTC(2026, 5, 12, 12),
+              evaluator: Date.UTC(2026, 5, 12, 12),
+              gardener: Date.UTC(2026, 5, 12, 12),
+            },
+          },
+        ],
+      ],
+    ]),
+  ],
+  args: { initialMember: RIOLAB },
+  beforeEach: () => {
+    mocked(useGardenMemberContributions).mockReturnValue({
+      canView: true,
+      byAccount: { [RIOLAB.toLowerCase()]: { status: "recorded", at: Date.UTC(2026, 10, 15, 12) } },
+    });
+    return resetHookMocks(useGardenMemberContributions);
   },
 };

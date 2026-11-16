@@ -9021,5 +9021,12 @@
   "app.garden.membership.joinedOn": "Entrou em {date}",
   "app.garden.membership.loading": "Carregando datas de participação…",
   "app.garden.membership.unavailable": "Datas de participação indisponíveis",
-  "app.garden.membership.dateUnknown": "Data desconhecida"
+  "app.garden.membership.dateUnknown": "Data desconhecida",
+  "app.garden.contribution.label": "Última contribuição registrada",
+  "app.garden.contribution.loading": "Carregando contribuições…",
+  "app.garden.contribution.none": "Nenhuma contribuição registrada",
+  "app.garden.contribution.unavailable": "Data da contribuição indisponível",
+  "app.garden.contribution.lastOn": "Contribuiu em {date}",
+  "app.garden.contribution.rowUnavailable": "Contribuição indisponível",
+  "app.garden.contribution.rowNone": "Contribuição: nenhuma"
 }

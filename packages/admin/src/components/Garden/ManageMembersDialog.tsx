@@ -1,3 +1,4 @@
+import { useGardenMemberContributions } from "@green-goods/shared/hooks/garden/useGardenMemberContributions";
 import { useGardenMemberHistory } from "@green-goods/shared/hooks/garden/useGardenMemberHistory";
 import { Button } from "@green-goods/shared/components/Button";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
@@ -102,6 +103,13 @@ export function ManageMembersDialog({
 }: ManageMembersDialogProps) {
   const { formatMessage } = useIntl();
   const history = useGardenMemberHistory({ garden: open ? gardenAddress : undefined, chainId });
+  const contributions = useGardenMemberContributions({
+    garden: gardenAddress
+      ? { id: gardenAddress, chainId, owners: roleMembers.owner, stewards: roleMembers.steward }
+      : undefined,
+    accounts: Object.values(roleMembers).flat(),
+    enabled: open,
+  });
   const historyByAccount = useMemo(
     () => new Map(history.members.map((member) => [member.account.toLowerCase(), member])),
     [history.members]
@@ -460,6 +468,9 @@ export function ManageMembersDialog({
                       history={historyByAccount.get(key)}
                       historyLoading={history.isLoading}
                       historyError={history.isError}
+                      contribution={
+                        contributions.canView ? contributions.byAccount[key] : undefined
+                      }
                       onAddRole={onAddRole ? () => onAddRole(person.address) : undefined}
                       addRoleDisabled={picks.length > 0}
                       disabled={busy}

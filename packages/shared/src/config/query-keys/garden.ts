@@ -10,6 +10,19 @@ export const gardensKeys = {
       garden?.toLowerCase(),
       account?.toLowerCase(),
     ] as const,
+  memberContributions: (
+    garden: string | undefined,
+    accounts: readonly string[],
+    chainId: number | undefined
+  ) =>
+    [
+      "greengoods",
+      "gardens",
+      chainId,
+      "memberContributions",
+      garden?.toLowerCase(),
+      [...accounts].map((account) => account.toLowerCase()).sort(),
+    ] as const,
   detail: (gardenId: string, chainId: number) =>
     ["greengoods", "gardens", "detail", gardenId, chainId] as const,
   profileMemberships: (account: string | undefined, chainId: number) =>
