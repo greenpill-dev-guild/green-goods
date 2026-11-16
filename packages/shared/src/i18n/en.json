@@ -3575,6 +3575,7 @@
   "app.profile.badges.genesis.description": "Awarded to founding Green Goods community members.",
   "app.profile.badges.genesis.title": "Genesis",
   "app.profile.badges.identity": "Badge identity",
+  "app.profile.badges.issuedOn": "Issued on {date}",
   "app.profile.badges.issuedTo": "Issued to {identity}",
   "app.profile.badges.loading": "Loading badges",
   "app.profile.badges.loadingDescription": "Checking your Green Goods badge record.",
