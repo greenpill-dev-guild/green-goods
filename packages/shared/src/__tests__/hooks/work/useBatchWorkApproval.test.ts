@@ -59,7 +59,8 @@ vi.mock("../../../modules/data/eas", () => ({
     chainState.decided.has(workUID) ? [{ id: "earlier" }] : []
   ),
 }));
-vi.mock("@wagmi/core", () => ({
+vi.mock("@wagmi/core", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@wagmi/core")>()),
   // Every work here was made after the resolver began counting decisions, so it counts each one.
   readContract: vi.fn(
     async (_config, { functionName, args = [""] }: { functionName: string; args?: [string] }) => {
