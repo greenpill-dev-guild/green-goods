@@ -144,9 +144,10 @@ export function buildMakerAsk(
  */
 export async function signMakerAsk(
   makerAsk: MakerAskOrder,
-  sender: Pick<TransactionSender, "signTypedData" | "assertOwnership">,
+  sender: Pick<TransactionSender, "signTypedData" | "assertOwnership" | "assertReadyToSign">,
   chainId: number
 ): Promise<Hex> {
+  sender.assertReadyToSign?.();
   const readiness = assertMarketplaceReady(chainId);
 
   const domain = {

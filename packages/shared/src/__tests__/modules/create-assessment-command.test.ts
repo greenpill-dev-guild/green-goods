@@ -1,6 +1,7 @@
 /** @vitest-environment happy-dom */
 
 import { describe, expect, it, vi } from "vitest";
+import { onWalletReconnectAsk, refuseWithoutWallet } from "../../modules/auth/wallet-reconnect";
 import { decodeFunctionData, encodeAbiParameters, encodeEventTopics, zeroHash } from "viem";
 import { sepolia } from "viem/chains";
 import { createFakeSmartAccountClient } from "../test-utils/transaction-fakes";
@@ -112,6 +113,45 @@ function command(
 }
 
 describe("createAssessment", () => {
+  it("asks to reconnect before assessment preparation or evidence uploads", async () => {
+    const asked = vi.fn();
+    const stop = onWalletReconnectAsk(asked);
+    const sender: TransactionSender = {
+      authMode: "wallet",
+      supportsBatching: false,
+      supportsSponsorship: false,
+      assertReadyToSign: refuseWithoutWallet,
+      assertOwnership: vi.fn(async () => {
+        throw new Error("quiet ownership check reached");
+      }),
+      sendContractCall: vi.fn(),
+    };
+    const dependencies = ports();
+    dependencies.sender = createDefaultCreateAssessmentPorts({
+      account: gardenId,
+      transactionSender: sender,
+      reportEvidenceFailures: vi.fn(),
+      reportMetricsFailure: vi.fn(),
+    }).sender;
+    const onReady = vi.fn();
+    try {
+      await expect(
+        createAssessment(
+          command(params({ evidenceMedia: [new File(["evidence"], "evidence.png")] }), onReady),
+          dependencies
+        )
+      ).rejects.toMatchObject({ name: "WalletReconnectRequiredError", asked: true });
+      expect(asked).toHaveBeenCalledOnce();
+      expect(sender.assertOwnership).not.toHaveBeenCalled();
+      expect(onReady).not.toHaveBeenCalled();
+      expect(dependencies.documents.uploadFile).not.toHaveBeenCalled();
+      expect(dependencies.documents.uploadJson).not.toHaveBeenCalled();
+      expect(sender.sendContractCall).not.toHaveBeenCalled();
+    } finally {
+      stop();
+    }
+  });
+
   it("uploads normalized documents and attests through explicit ports", async () => {
     const events: string[] = [];
     const dependencies = ports(events);

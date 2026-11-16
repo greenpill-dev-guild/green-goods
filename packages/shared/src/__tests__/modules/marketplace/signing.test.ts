@@ -7,6 +7,7 @@
  */
 
 import type { Address, Hex } from "viem";
+import { onWalletReconnectAsk, refuseWithoutWallet } from "../../../modules/auth/wallet-reconnect";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { buildMakerAsk, signMakerAsk, validateOrder } from "../../../modules/marketplace/signing";
 import { type CreateListingParams, LISTING_DEFAULTS } from "../../../types/hypercerts";
@@ -193,6 +194,28 @@ describe("marketplace/signing", () => {
   });
 
   describe("signMakerAsk", () => {
+    it("asks to reconnect before ownership checks or signing an order", async () => {
+      const order = buildMakerAsk(makeTestParams(), TEST_SIGNER, CHAIN_ID);
+      const sender = {
+        assertReadyToSign: refuseWithoutWallet,
+        assertOwnership: vi.fn(),
+        signTypedData: vi.fn(),
+      };
+      const asked = vi.fn();
+      const stop = onWalletReconnectAsk(asked);
+      try {
+        await expect(signMakerAsk(order, sender, CHAIN_ID)).rejects.toMatchObject({
+          name: "WalletReconnectRequiredError",
+          asked: true,
+        });
+        expect(asked).toHaveBeenCalledOnce();
+        expect(sender.assertOwnership).not.toHaveBeenCalled();
+        expect(sender.signTypedData).not.toHaveBeenCalled();
+      } finally {
+        stop();
+      }
+    });
+
     it("calls walletClient.signTypedData with correct domain and types", async () => {
       const params = makeTestParams();
       const order = buildMakerAsk(params, TEST_SIGNER, CHAIN_ID);

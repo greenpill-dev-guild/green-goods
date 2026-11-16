@@ -19,6 +19,7 @@ import {
   getProfileAvatarStageMessage,
 } from "@green-goods/shared/modules/profile-avatar/editor-messages";
 import { cn } from "@green-goods/shared/utils/styles/cn";
+import { wasAskedToReconnect } from "@green-goods/shared/utils/errors/tx-error-classifier";
 import { RiCameraLine, RiDeleteBinLine, RiImageAddLine, RiRefreshLine } from "@remixicon/react";
 import { useEffect, useId, useRef, useState } from "react";
 import { useIntl } from "react-intl";
@@ -112,6 +113,7 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
       setOpen(false);
       setRemoveConfirmOpen(false);
     } catch (caught) {
+      if (wasAskedToReconnect(caught)) return;
       if (caught instanceof UploadPolicyCancelledError) return;
       setError(getProfileAvatarFailureMessage("save", formatMessage, caught));
     } finally {
@@ -128,6 +130,7 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
       setOpen(false);
       setRemoveConfirmOpen(false);
     } catch (caught) {
+      if (wasAskedToReconnect(caught)) return;
       setRemoveConfirmOpen(false);
       setError(getProfileAvatarFailureMessage("remove", formatMessage, caught));
     } finally {
@@ -144,6 +147,7 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
       setOpen(false);
       setRemoveConfirmOpen(false);
     } catch (caught) {
+      if (wasAskedToReconnect(caught)) return;
       if (caught instanceof UploadPolicyCancelledError) return;
       setError(getProfileAvatarFailureMessage("continue", formatMessage, caught));
     } finally {

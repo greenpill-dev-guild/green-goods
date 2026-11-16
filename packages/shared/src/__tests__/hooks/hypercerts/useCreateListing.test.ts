@@ -11,6 +11,7 @@
  */
 
 import { type QueryClient } from "@tanstack/react-query";
+import { onWalletReconnectAsk, refuseWithoutWallet } from "../../../modules/auth/wallet-reconnect";
 import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createTestQueryClient } from "../../test-utils/query-client";
@@ -57,11 +58,13 @@ const mockGetReceipt = vi.fn();
 const mockReconcileBroadcast = vi.fn();
 let authMode: "wallet" | "passkey" = "wallet";
 const mockOwnership = vi.fn();
+const mockReadyToSign = vi.fn();
 const mockSender = () => ({
   authMode,
   sendContractCall: mockSendTransaction,
   signTypedData: vi.fn(),
   assertOwnership: mockOwnership,
+  assertReadyToSign: mockReadyToSign,
   reconcileBroadcast: mockReconcileBroadcast,
 });
 vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({ usePrimaryAddress: () => TEST_SIGNER }));
@@ -140,6 +143,7 @@ describe.each(["wallet", "passkey"] as const)("useCreateListing with %s", (mode)
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockReadyToSign.mockReset();
     useListingSubmissionStore.setState({ pending: {} });
     authMode = mode;
     mockReadContract.mockReset().mockResolvedValue(0n);
@@ -175,6 +179,43 @@ describe.each(["wallet", "passkey"] as const)("useCreateListing with %s", (mode)
     mockValidateOrder.mockReturnValue({ valid: true, errors: [] });
     mockSignMakerAsk.mockResolvedValue("0xsignature");
     mockSendTransaction.mockResolvedValue({ hash: "0xtxhash", sponsored: false });
+  });
+
+  it("asks to reconnect before preparing a listing or checking quiet ownership", async () => {
+    mockReadyToSign.mockImplementation(refuseWithoutWallet);
+    const asked = vi.fn();
+    const stop = onWalletReconnectAsk(asked);
+    const params = {
+      hypercertId: 1n,
+      fractionId: 1n,
+      currency: TEST_MODULE,
+      pricePerUnit: 1000n,
+      minUnitAmount: 1n,
+      maxUnitAmount: 1000n,
+      minUnitsToKeep: 0n,
+      sellLeftover: false,
+      durationDays: 30,
+    };
+    try {
+      const { result } = renderHookWithQueryClient(() => useCreateListing(TEST_GARDEN, 1n), {
+        queryClient,
+      });
+      await act(async () => {
+        await expect(result.current.createListing(params)).rejects.toMatchObject({
+          name: "WalletReconnectRequiredError",
+          asked: true,
+        });
+      });
+      expect(asked).toHaveBeenCalledOnce();
+      expect(mockOwnership).not.toHaveBeenCalled();
+      expect(mockGetOrderNonces).not.toHaveBeenCalled();
+      expect(mockBuildMakerAsk).not.toHaveBeenCalled();
+      expect(mockSignMakerAsk).not.toHaveBeenCalled();
+      expect(mockSendTransaction).not.toHaveBeenCalled();
+      expect(toastService.error).not.toHaveBeenCalled();
+    } finally {
+      stop();
+    }
   });
 
   describe("initial state", () => {

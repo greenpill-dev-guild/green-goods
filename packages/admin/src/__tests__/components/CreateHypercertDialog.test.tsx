@@ -13,7 +13,13 @@ import { RouterProvider, createMemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
-import { AuthContext } from "@green-goods/shared/providers/Auth";
+import {
+  AuthContext,
+  AuthStateContext,
+  AuthActionsContext,
+} from "@green-goods/shared/providers/Auth";
+import { useWalletReconnectPrompt } from "@green-goods/shared/hooks/auth/useAuth";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { useAdminStore } from "@green-goods/shared/stores/useAdminStore";
 import { useHypercertWizardStore } from "@green-goods/shared/stores/useHypercertWizardStore";
 import type { Garden } from "@green-goods/shared/types/domain";
@@ -105,6 +111,11 @@ const authContextValue: AuthContextValue = {
 const FLOW_SEARCH = `?gardenId=${SELECTED_GARDEN.id}&item=create-hypercert`;
 const FLOW_URL = `/review/certify${FLOW_SEARCH}`;
 
+function ReconnectPrompt() {
+  useWalletReconnectPrompt();
+  return null;
+}
+
 function renderCreateHypercert({
   seedGarden = true,
   entry = FLOW_URL,
@@ -145,7 +156,12 @@ function renderCreateHypercert({
     <QueryClientProvider client={queryClient}>
       <IntlProvider locale="en" messages={{}} onError={() => {}}>
         <AuthContext.Provider value={authContextValue}>
-          <RouterProvider router={router} />
+          <AuthStateContext.Provider value={authContextValue}>
+            <AuthActionsContext.Provider value={authContextValue}>
+              <ReconnectPrompt />
+              <RouterProvider router={router} />
+            </AuthActionsContext.Provider>
+          </AuthStateContext.Provider>
         </AuthContext.Provider>
       </IntlProvider>
     </QueryClientProvider>
@@ -156,6 +172,7 @@ function renderCreateHypercert({
 
 describe("CreateHypercert dialog", () => {
   beforeEach(async () => {
+    vi.spyOn(toastService, "dismiss").mockImplementation(() => {});
     // Real autosave must not restore a previous test case's draft.
     await clearDraftStorage();
     Object.assign(attestationsState, { isLoading: false, hasError: false, attestations: [] });
@@ -183,6 +200,7 @@ describe("CreateHypercert dialog", () => {
     useHypercertWizardStore.getState().reset();
     useAdminStore.setState({ selectedGarden: null, lastGardenIdsByScope: {} });
     cleanup();
+    vi.restoreAllMocks();
   });
 
   it("opens the wizard from the route garden id without a Zustand selected garden", async () => {
@@ -533,6 +551,46 @@ describe("CreateHypercert dialog", () => {
       ).toBeInTheDocument();
       expect(screen.queryByText("Hypercert minted")).not.toBeInTheDocument();
       expect(router?.state.location.search).toBe(FLOW_SEARCH);
+    });
+
+    it.each([
+      "idle",
+      "failed",
+    ] as const)("offers Reconnect without another generic failure from %s", async (status) => {
+      authContextValue.walletRestore = "restoring";
+      const info = vi.spyOn(toastService, "info").mockReturnValue("wallet-reconnect");
+      try {
+        await onReview();
+        if (status === "failed") {
+          act(() =>
+            useHypercertWizardStore
+              .getState()
+              .setMintingState({ status, error: "Upload unavailable" })
+          );
+        }
+        await act(async () => {
+          fireEvent.click(
+            screen.getByRole("button", {
+              name: status === "failed" ? "Try Again" : "app.hypercerts.mint.submit",
+            })
+          );
+          await Promise.resolve();
+        });
+        await waitFor(() =>
+          expect(info).toHaveBeenCalledWith(
+            expect.objectContaining({
+              id: "wallet-reconnect",
+              title: "app.wallet.reconnect.needed.title",
+            })
+          )
+        );
+        expect(
+          screen.queryByText("app.hypercerts.mint.error.generic.title")
+        ).not.toBeInTheDocument();
+      } finally {
+        authContextValue.walletRestore = null;
+        info.mockRestore();
+      }
     });
 
     it("keeps a mint refused before the wallet on the Review with its error and Try Again", async () => {

@@ -37,6 +37,7 @@ import {
 } from "../../utils/errors/tx-error-classifier";
 import { type MintHypercertInput, mintHypercertMachine } from "../../workflows/mintHypercert";
 import { useAuth } from "../auth/useAuth";
+import { refuseWithoutWallet } from "../../modules/auth/wallet-reconnect";
 import { resolveHypercertContracts } from "./hypercert-contracts";
 import {
   createUploadMetadataActor,
@@ -102,7 +103,8 @@ function shouldShowErrorToast(mode: TxErrorMode = "auto"): boolean {
 }
 
 export function useMintHypercert(options: UseMintHypercertOptions = {}): UseMintHypercertResult {
-  const { smartAccountClient, authMode, smartAccountAddress, eoaAddress } = useAuth();
+  const { smartAccountClient, authMode, smartAccountAddress, eoaAddress, walletRestore } =
+    useAuth();
   const chainId = useAdminStore((state: AdminState) => state.selectedChainId) || DEFAULT_CHAIN_ID;
   const setMintingState = useHypercertWizardStore((state) => state.setMintingState);
   const { formatMessage } = useIntl();
@@ -224,6 +226,10 @@ export function useMintHypercert(options: UseMintHypercertOptions = {}): UseMint
     }
   }, [formatMessage, setMintingState, showErrorToast, state]);
 
+  const assertReadyToMint = useCallback(() => {
+    if (authMode === "wallet" && walletRestore) refuseWithoutWallet();
+  }, [authMode, walletRestore]);
+
   const mint = useCallback(
     async (params: {
       draft: HypercertDraft;
@@ -231,6 +237,7 @@ export function useMintHypercert(options: UseMintHypercertOptions = {}): UseMint
       allowlist: AllowlistEntry[];
       metadata: HypercertMetadata;
     }) => {
+      assertReadyToMint();
       logger.debug("[useMintHypercert] mint() called", {
         gardenId: params.draft.gardenId,
         attestationCount: params.attestations.length,
@@ -312,7 +319,7 @@ export function useMintHypercert(options: UseMintHypercertOptions = {}): UseMint
         throw err;
       }
     },
-    [send, smartAccountAddress]
+    [assertReadyToMint, send, smartAccountAddress]
   );
 
   return {
@@ -327,7 +334,10 @@ export function useMintHypercert(options: UseMintHypercertOptions = {}): UseMint
     poolRegistered: state.context.poolRegistered,
     signalPoolAddress: state.context.signalPoolAddress,
     mint,
-    retry: () => send({ type: "RETRY" }),
+    retry: () => {
+      assertReadyToMint();
+      send({ type: "RETRY" });
+    },
     cancel: () => send({ type: "CANCEL" }),
   };
 }
