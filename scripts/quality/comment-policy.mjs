@@ -276,14 +276,28 @@ function commentLines(text) {
 const isDirective = (text, patterns = DIRECTIVES) =>
   [text, ...commentLines(text)].some((line) => patterns.some((pattern) => pattern.test(line)));
 
-export function classifyComment(comment, { exported, name = null }) {
+export function classifyComment(comment, { exported, name = null, marksIntent = false }) {
   const text = comment.value;
   const doc = comment.type === "Block" && text.startsWith("*");
   if (LICENCE.test(text) || (comment.type === "Block" && text.startsWith("!"))) return "licence";
   if (isDirective(text)) return "directive";
   if (doc && (exported || JSDOC_TYPES.test(text))) return "documentation";
-  if (isCommentedOutCode(text)) return "code";
-  return narrowKind(text, name);
+  const kind = isCommentedOutCode(text) ? "code" : narrowKind(text, name);
+  return marksIntent && REMOVED_KINDS.has(kind) ? "narration" : kind;
+}
+
+/**
+ * A comment the narrow pass keeps whatever it says, since its place carries the meaning: the whole
+ * content of a block (`catch { // Ignore errors }` says the swallow is deliberate; without it the
+ * empty block reads as a mistake), or the end of a line whose code ends in a number, where it
+ * names the value (`chainId: 11155111, // Sepolia`). JSX comment containers are not blocks.
+ */
+function marksIntent(code, comment, { inJsxContainer = false } = {}) {
+  const before = code.slice(lineStart(code, comment.start), comment.start);
+  const afterOnLine = code.slice(comment.end, lineEnd(code, comment.end));
+  if (!afterOnLine.trim() && /(\b0x[\da-f]+|\b\d[\d_.]*(e\d+)?n?)\s*[,;)\]]*\s*$/i.test(before)) return true;
+  if (inJsxContainer) return false;
+  return /[{[]$/.test(code.slice(0, comment.start).trimEnd()) && /^[}\]]/.test(code.slice(comment.end).trimStart());
 }
 
 // A directive or licence line applies on its own, so it never joins a run.
@@ -334,14 +348,14 @@ export function solidityComments(code) {
 
 const isNatSpec = (comment) => (comment.type === "Line" ? comment.value.startsWith("/") : comment.value.startsWith("*"));
 
-export function classifySolidityComment(comment, { name = null } = {}) {
+export function classifySolidityComment(comment, { name = null, marksIntent = false } = {}) {
   const text = comment.value;
   if (LICENCE.test(text)) return "licence";
   if (isDirective(text, SOLIDITY_DIRECTIVES)) return "directive";
   // NatSpec documents the contract surface and carries tooling tags such as @custom:oz-upgrades.
   if (isNatSpec(comment)) return "documentation";
-  if (isSolidityCode(text)) return "code";
-  return narrowKind(text, name);
+  const kind = isSolidityCode(text) ? "code" : narrowKind(text, name);
+  return marksIntent && REMOVED_KINDS.has(kind) ? "narration" : kind;
 }
 
 function classifySoliditySource(code) {
@@ -350,7 +364,7 @@ function classifySoliditySource(code) {
   const joins = (previous, next) => previous.startsWith("/") === next.startsWith("/");
   return groupComments(code, solidityComments(code), { standalone, joins }).map((comment) => ({
     ...comment,
-    kind: classifySolidityComment(comment, { name: subjectName(code, comment) }),
+    kind: classifySolidityComment(comment, { name: subjectName(code, comment), marksIntent: marksIntent(code, comment) }),
   }));
 }
 
@@ -387,6 +401,7 @@ export function classifySource(code, file) {
       kind: classifyComment(comment, {
         exported: spans.some(([start, end]) => comment.start >= start && comment.end <= end),
         name: subjectName(code, comment),
+        marksIntent: marksIntent(code, comment, { inJsxContainer: Boolean(holder) }),
       }),
     };
   });

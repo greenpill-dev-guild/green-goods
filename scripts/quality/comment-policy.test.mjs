@@ -180,11 +180,11 @@ test("a hashbang is never read as a comment", () => {
   assert.equal(purgeSource(code, "tool.mjs").code, "#!/usr/bin/env node\nconst x = 1;\n");
 });
 
-test("only a JSX container that holds just comments goes with them; object and function braces stay", () => {
+test("only a JSX container that holds just comments goes with them; a comment that is a block's whole content stays", () => {
   const code = "const options = { /* defaults */ };\nfunction noop() { /* nothing */ }\nexport const View = () => <div>{/* a */ /* b */}</div>;\n";
   assert.equal(
     purgeSource(code, "example.tsx").code,
-    "const options = { };\nfunction noop() { }\nexport const View = () => <div></div>;\n",
+    "const options = { /* defaults */ };\nfunction noop() { /* nothing */ }\nexport const View = () => <div></div>;\n",
   );
 });
 
@@ -342,4 +342,12 @@ test("notation in a comment is prose, and an ordering note is a claim", () => {
   assert.deepEqual(kinds("// isWearerOfHat => false\nconst read = vi.fn();\n"), ["narration"]);
   assert.deepEqual(kinds("// `${hash(text)}_${sourceLang}_${targetLang}`\nconst key = make();\n"), ["narration"]);
   assert.deepEqual(kinds('// Import after mocks\nimport { Login } from "./Login";\n'), ["constraint"]);
+});
+
+test("a comment that marks a deliberate empty block, or names a number, stays", () => {
+  const swallow = "export function stop(close) {\n  try {\n    close();\n  } catch {\n    // Ignore errors\n  }\n}\n";
+  assert.equal(purgeSource(swallow, "example.ts").code, swallow);
+  const chain = "export const config = {\n  chainId: 11155111, // Sepolia\n  owner: owner(), // the owner\n};\n";
+  assert.equal(purgeSource(chain, "example.ts").code, "export const config = {\n  chainId: 11155111, // Sepolia\n  owner: owner(),\n};\n");
+  assert.deepEqual(kinds("uint256 constant WINDOW = 3600; // one hour\n", "Lib.sol"), ["narration"]);
 });
