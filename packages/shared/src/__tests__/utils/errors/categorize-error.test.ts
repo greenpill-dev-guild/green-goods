@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { categorizeError, type ErrorCategory } from "../../../utils/errors/categorize-error";
+import { categorizeError } from "../../../utils/errors/categorize-error";
 
 // ============================================
 // Network errors

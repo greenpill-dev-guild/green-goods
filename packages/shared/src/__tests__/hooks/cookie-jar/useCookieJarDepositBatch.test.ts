@@ -12,8 +12,10 @@ import { batchKeys } from "../../../config/query-keys/garden";
 import { useCookieJarDeposit } from "../../../hooks/cookie-jar/useCookieJarDeposit";
 import { useDepositPlan } from "../../../hooks/vault/useDepositPlan";
 import type { DepositTarget } from "../../../modules/garden/deposit-batch";
-import type { BatchExecution } from "../../../modules/transactions/batch-types";
-import { BatchNotSubmittedError } from "../../../modules/transactions/batch-types";
+import {
+  type BatchExecution,
+  BatchNotSubmittedError,
+} from "../../../modules/transactions/batch-types";
 import type { Address } from "../../../types/domain";
 import { classifyTxError, isUnconfirmedTxError } from "../../../utils/errors/tx-error-classifier";
 import { createTestQueryClient } from "../../test-utils/query-client";

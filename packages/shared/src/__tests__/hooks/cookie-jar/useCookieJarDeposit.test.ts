@@ -26,7 +26,8 @@ const mocks = vi.hoisted(() => ({
   followUp: undefined as (() => void) | undefined,
 }));
 
-vi.mock("@wagmi/core", () => ({
+vi.mock("@wagmi/core", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@wagmi/core")>()),
   readContract: mocks.readContract,
   waitForTransactionReceipt: vi.fn(),
 }));

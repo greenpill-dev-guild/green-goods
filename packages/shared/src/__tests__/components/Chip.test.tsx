@@ -28,6 +28,7 @@ describe("Chip", () => {
   it("uses aria-checked inside a radio group and aria-selected as a tab", () => {
     render(
       <>
+        {/* eslint-disable-next-line jsx-a11y/role-has-required-aria-props -- Chip sets aria-checked from selected, which this test checks */}
         <Chip role="radio" selected>
           DAI
         </Chip>

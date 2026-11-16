@@ -1,7 +1,11 @@
 import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { RenderHookOptions } from "@testing-library/react";
+import {
+  type RenderHookOptions,
+  act,
+  renderHook as baseRenderHook,
+  waitFor,
+} from "@testing-library/react";
 import type { ReactNode } from "react";
-import { act, renderHook as baseRenderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type {
   GardenJoinRequestQueueResponse,
