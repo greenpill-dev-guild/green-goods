@@ -6,8 +6,7 @@
 
 import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { type RenderHookOptions, renderHook } from "@testing-library/react";
-import type React from "react";
-import { createElement, type ReactNode } from "react";
+import { createElement, type ReactElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
 import enMessages from "../../i18n/en.json";
 import { createTestQueryClient, getTestQueryClient } from "./query-client";
@@ -162,7 +161,7 @@ export function QueryTestWrapper({ children }: WrapperProps) {
  * Standard render for component tests that may use react-intl
  */
 export function renderWithQuery(
-  ui: React.ReactElement,
+  ui: ReactElement,
   options?: Omit<import("@testing-library/react").RenderOptions, "wrapper">
 ) {
   const { render } = require("@testing-library/react");

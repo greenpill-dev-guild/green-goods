@@ -74,9 +74,7 @@ async function setPendingAccessAggregate(
   });
 }
 
-// ============================================================================
 // HATS MODULE EVENT HANDLERS
-// ============================================================================
 
 indexer.onEvent(
   { contract: "HatsModule", event: "ProtocolRoleHatsUpdated" },

@@ -60,10 +60,6 @@ afterEach(() => {
   rateLimiter.resetAll("operator-123");
 });
 
-// ============================================================================
-// MOCK FACTORIES
-// ============================================================================
-
 function createMockMessage(overrides: Partial<InboundMessage> = {}): InboundMessage {
   return {
     id: "msg-123",
@@ -140,10 +136,6 @@ function createSubmissionSession(gardenAddress = "0x" + "3".repeat(40)): Session
     updatedAt: Date.now(),
   };
 }
-
-// ============================================================================
-// START HANDLER
-// ============================================================================
 
 describe("handleStart", () => {
   it("creates a new wallet for first-time users", async () => {
@@ -233,10 +225,6 @@ describe("handleStart", () => {
   });
 });
 
-// ============================================================================
-// JOIN HANDLER
-// ============================================================================
-
 describe("handleJoin", () => {
   it("shows usage when no address provided", async () => {
     const message = createMockMessage({
@@ -316,10 +304,6 @@ describe("handleJoin", () => {
     expect(updateUser).not.toHaveBeenCalled();
   });
 });
-
-// ============================================================================
-// SUBMIT HANDLER
-// ============================================================================
 
 describe("handleTextSubmission", () => {
   it("parses work from text and shows confirmation", async () => {
@@ -594,10 +578,6 @@ describe("handleCancelSubmission", () => {
   });
 });
 
-// ============================================================================
-// APPROVE HANDLER
-// ============================================================================
-
 describe("handleApprove", () => {
   it("preserves older pending work and asks for resubmission before any publication", async () => {
     const pendingWork = createPendingWork();
@@ -833,9 +813,7 @@ describe("handleApprove", () => {
   });
 });
 
-// ============================================================================
 // REJECT HANDLER
-// ============================================================================
 
 describe("handleReject", () => {
   it("blocks non-operator accounts before rejection side effects", async () => {
@@ -951,10 +929,6 @@ describe("handleReject", () => {
     expect(removePendingWork).not.toHaveBeenCalled();
   });
 });
-
-// ============================================================================
-// ROUTER RATE-LIMIT BOUNDARIES
-// ============================================================================
 
 describe("handleMessage rate-limit boundaries", () => {
   it("stores the latest inbound locale for existing users before routing", async () => {

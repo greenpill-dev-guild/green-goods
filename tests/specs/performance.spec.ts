@@ -5,7 +5,6 @@
  */
 
 import { expect, test } from "@playwright/test";
-import { TIMEOUTS } from "../helpers/test-config";
 import { TEST_URLS } from "../helpers/test-utils";
 
 test.describe("Performance Tests", () => {
@@ -25,7 +24,7 @@ test.describe("Performance Tests", () => {
       const metrics = await page.evaluate(() => {
         return new Promise((resolve) => {
           let lcp = 0;
-          let fid = 0;
+          const fid = 0;
           let cls = 0;
 
           // LCP (Largest Contentful Paint)
@@ -102,7 +101,7 @@ test.describe("Performance Tests", () => {
       expect(criticalFailures).toHaveLength(0);
     });
 
-    test("bundles are appropriately sized", async ({ page, request }) => {
+    test("bundles are appropriately sized", async ({ request }) => {
       // Get the main page
       const response = await request.get(TEST_URLS.client);
       const html = await response.text();
@@ -113,7 +112,6 @@ test.describe("Performance Tests", () => {
 
       const bundles: { url: string; size: number }[] = [];
 
-      // Check script sizes
       for (const match of scriptMatches) {
         const url = new URL(match[1], TEST_URLS.client).toString();
         try {
@@ -125,7 +123,6 @@ test.describe("Performance Tests", () => {
         }
       }
 
-      // Check style sizes
       for (const match of styleMatches) {
         const url = new URL(match[1], TEST_URLS.client).toString();
         try {
@@ -137,7 +134,6 @@ test.describe("Performance Tests", () => {
         }
       }
 
-      // Check bundle sizes
       const totalSize = bundles.reduce((sum, b) => sum + b.size, 0);
       const largestBundle = Math.max(...bundles.map((b) => b.size));
 

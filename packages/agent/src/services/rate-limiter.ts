@@ -11,10 +11,6 @@
  * - Support for different limit tiers (commands, messages, etc.)
  */
 
-// ============================================================================
-// TYPES
-// ============================================================================
-
 export interface RateLimitConfig {
   /** Maximum requests allowed in the window */
   maxRequests: number;
@@ -41,10 +37,6 @@ interface RateLimitEntry {
   timestamps: number[];
   lastCleanup: number;
 }
-
-// ============================================================================
-// DEFAULT CONFIGURATIONS
-// ============================================================================
 
 /**
  * Default rate limit configurations by action type.
@@ -101,10 +93,6 @@ export const RATE_LIMITS = {
 } as const satisfies Record<string, RateLimitConfig>;
 
 export type RateLimitType = keyof typeof RATE_LIMITS;
-
-// ============================================================================
-// RATE LIMITER CLASS
-// ============================================================================
 
 /**
  * Rate limiter using sliding window algorithm.
@@ -253,12 +241,10 @@ export class RateLimiter {
         continue;
       }
 
-      // Clean old timestamps
       const cutoff = now - maxWindow;
       entry.timestamps = entry.timestamps.filter((t) => t > cutoff);
       entry.lastCleanup = now;
 
-      // Remove empty entries
       if (entry.timestamps.length === 0) {
         this.limits.delete(key);
       }

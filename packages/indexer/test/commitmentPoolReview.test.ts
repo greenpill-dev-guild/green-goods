@@ -7,8 +7,7 @@ import {
 } from "../src/handlers/commitment-pool-creation";
 import { handleContributorEvent } from "../src/handlers/commitment-pool-contributors";
 import { handleLifecycle } from "../src/handlers/commitment-pool-lifecycle";
-import { sortedUnique } from "../src/handlers/commitment-pool-projections";
-import { commitmentState } from "../src/handlers/commitment-pool-projections";
+import { commitmentState, sortedUnique } from "../src/handlers/commitment-pool-projections";
 import {
   eventType,
   firstExplicitActor,
@@ -1105,7 +1104,7 @@ describe("Commitment Pooling review regressions", () => {
   });
 
   it("reverses transient fulfilled-member history when the frozen roster converges", async () => {
-    let db = await processEvents(createTestIndexer(), [
+    const db = await processEvents(createTestIndexer(), [
       poolRegistered(START_BLOCK),
       cycleSeeded(START_BLOCK + 1),
       commitmentCreated(34n, START_BLOCK + 2),
@@ -1252,7 +1251,7 @@ describe("Commitment Pooling review regressions", () => {
   });
 
   it("lets a cursor-winning decline land after a newer acceptance was delivered first", async () => {
-    let db = await processEvents(createTestIndexer(), [
+    const db = await processEvents(createTestIndexer(), [
       poolRegistered(START_BLOCK),
       cycleSeeded(START_BLOCK + 1),
       commitmentCreated(53n, START_BLOCK + 2, 1n),
@@ -1284,7 +1283,7 @@ describe("Commitment Pooling review regressions", () => {
   });
 
   it("lets a cursor-winning decline land after a newer terminal event was delivered first", async () => {
-    let db = await processEvents(createTestIndexer(), [
+    const db = await processEvents(createTestIndexer(), [
       poolRegistered(START_BLOCK),
       cycleSeeded(START_BLOCK + 1),
       commitmentCreated(54n, START_BLOCK + 2, 1n),

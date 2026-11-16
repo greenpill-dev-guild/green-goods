@@ -65,7 +65,7 @@ src/
 
 ### DRY (Don't Repeat Yourself)
 
-- Shared libraries in `src/lib/` (EAS.sol, StringUtils.sol, TBA.sol)
+- Shared libraries in `src/lib/` (for example StringUtils.sol and TBA.sol)
 - Common patterns extracted to base contracts
 - Reuse OpenZeppelin implementations
 
@@ -236,18 +236,9 @@ function invariant_totalSupplyMatchesBalance() public {
 }
 ```
 
-### Static Analysis (CI/CD)
+### Static Analysis
 
-**Integrate Slither in CI pipeline:**
-
-```yaml
-# .github/workflows/security.yml
-- name: Run Slither
-  uses: crytic/slither-action@v0.3.0
-  with:
-    target: 'packages/contracts/'
-    fail-on: medium
-```
+No CI job runs Slither (there is no `security.yml`); run it by hand when a change warrants it.
 
 ### Open/Closed (SOLID)
 

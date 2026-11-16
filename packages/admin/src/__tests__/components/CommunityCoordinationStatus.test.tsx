@@ -5,8 +5,10 @@ import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, renderWithProviders, screen } from "@/__tests__/test-utils";
-import { CommunityCoordinationTab } from "@/views/Community/components/CommunityCoordinationTab";
-import type { CommunityCoordinationTabProps } from "@/views/Community/components/CommunityCoordinationTab";
+import {
+  CommunityCoordinationTab,
+  type CommunityCoordinationTabProps,
+} from "@/views/Community/components/CommunityCoordinationTab";
 
 vi.mock("@green-goods/shared/hooks/yield/useGardenYieldWiringState", () => ({
   useGardenYieldWiringState: vi.fn(),

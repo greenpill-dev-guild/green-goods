@@ -8,8 +8,11 @@
 import { renderHook } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { describe, expect, it } from "vitest";
-import type { CarouselContextProps } from "../../../hooks/app/useCarousel";
-import { CarouselContext, useCarousel } from "../../../hooks/app/useCarousel";
+import {
+  type CarouselContextProps,
+  CarouselContext,
+  useCarousel,
+} from "../../../hooks/app/useCarousel";
 
 describe("hooks/app/useCarousel", () => {
   it("throws when used outside CarouselContext provider", () => {

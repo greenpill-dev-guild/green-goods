@@ -3,11 +3,10 @@ import {
   calculateDistribution,
   sumUnits,
   validateAllowlist,
-  type DistributionMode,
+  type ContributorWeight,
 } from "../../../lib/hypercerts/distribution";
 import { TOTAL_UNITS } from "../../../lib/hypercerts/constants";
 import type { AllowlistEntry } from "../../../types/hypercerts";
-import type { ContributorWeight } from "../../../lib/hypercerts/distribution";
 
 // ============================================
 // Test Helpers
