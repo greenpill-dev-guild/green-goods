@@ -112,7 +112,7 @@ function isLabel(text) {
   const line = text.trim();
   // A negation states something about the code (`maxTouchPoints not set` marks a deliberate
   // omission, as does `Wallet isn't connected`); a label only names.
-  if (/\b(?:not|no|never|none|nothing|without|cannot)\b|n['\u2019]t\b/i.test(line)) return false;
+  if (/\b(?:not|no|never|none|nothing|without)\b|n't\b/i.test(line)) return false;
   return /^[A-Za-z][\w &/'()-]*:?$/.test(line) && line.split(/\s+/).length <= 3;
 }
 

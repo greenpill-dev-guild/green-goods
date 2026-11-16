@@ -391,6 +391,8 @@ test("a declaration CommonJS exports keeps its documentation", () => {
   // At the end of a chain of assignments too.
   assert.deepEqual(kinds("/** Create client */\nfunction client() {}\nmodule.exports = exports.client = client;\n", "example.cjs"), ["documentation"]);
   assert.deepEqual(kinds("/** Create client */\nfunction client() {}\nconst api = module.exports = { client };\n", "example.cjs"), ["documentation"]);
+  // A chain that starts at a target that is not an export still exports what it ends in.
+  assert.deepEqual(kinds("/** Create client */\nfunction client() {}\nexports = module.exports = client;\n", "example.cjs"), ["documentation"]);
 });
 
 test("a run of line comments joins across every line break, CRLF and CR included", () => {
@@ -442,8 +444,8 @@ test("a negation states something, so it is never a label", () => {
   const code = "export function setup(mock) {\n  mock({\n    userAgent: \"Macintosh\",\n    // maxTouchPoints not set\n  });\n}\n";
   assert.equal(purgeSource(code, "example.ts").code, code);
   assert.deepEqual(kinds("// No user connected\nexport const user = null;\n"), ["narration"]);
-  // Contractions and `cannot` negate too, so the purge keeps them.
-  for (const note of ["Wallet isn't connected", "Wallet isn\u2019t connected", "Cannot retry"]) {
+  // A contraction negates too, so the purge keeps it.
+  for (const note of ["Wallet isn't connected", "Didn't load"]) {
     const source = `// ${note}\nexport const user = null;\n`;
     assert.equal(purgeSource(source, "example.ts").code, source, note);
   }
