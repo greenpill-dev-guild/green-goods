@@ -369,19 +369,99 @@ test("names inside member paths and calls count, and arguments do not", () => {
   ]);
 });
 
-test("root manifests are sources; plans and settings in folders are not", () => {
+test("a retirement notice covers the retired name, never the replacement it introduces", () => {
+  const text = [
+    "`oldHelper()` was replaced by `newMissingHelper()`.",
+    "`oldName` was renamed to `newName`, and `goneName` was removed.",
+    "`oldFirst` was removed along with `oldSecond`.",
+    "`retiredHook` was retired; use `useLiveHook`.",
+    "Migrating to 2.0 removed `formerHelper`.",
+    // A preposition leads only after its own verb, a negated or nominal "use" leads nowhere, and
+    // the name matches in its own case.
+    "Renamed `oldLabel` to `newMissingLabel`.",
+    "With 2.0, `openerRetired` was removed, and references to `referenceRetired` were deleted.",
+    "Do not use `negatedRetired`; it was removed.",
+    "Any use of `nominalRetired` was removed.",
+    "`withRemoved` was removed with `alsoRemoved`.",
+    "The `JobQueue` class was removed; use the `jobQueue` instance.",
+    // A comma ends the clause, and every lead introduces a replacement: folded into, in favour of, prefer.
+    "`oldThing` was renamed to `useLiveHook`, and references to `oldOther` were removed.",
+    "`oldModule` was folded into `newMissingModule`.",
+    "`oldApi` was removed in favour of `newMissingApi`.",
+    "`oldUtil` was deleted; prefer `newMissingUtil`.",
+    "`oldA1` was replaced along with `oldA2`.",
+  ].join("\n");
+  assert.deepEqual(findUnknownCodeNames(text, "guide.md", new Set(["useLiveHook", "jobQueue"])), [
+    "guide.md:1: no tracked source names `newMissingHelper`",
+    "guide.md:2: no tracked source names `newName`",
+    "guide.md:6: no tracked source names `newMissingLabel`",
+    "guide.md:13: no tracked source names `newMissingModule`",
+    "guide.md:14: no tracked source names `newMissingApi`",
+    "guide.md:15: no tracked source names `newMissingUtil`",
+  ]);
+  // A line may hold separators `.` does not match; the check reads it rather than failing.
+  assert.deepEqual(findUnknownCodeNames("Call `liveMissing()`\u2028 then\r`afterCr()` and\u2029 more.", "guide.md", new Set(["liveMissing", "afterCr"])), []);
+});
+
+test("blockquoted fences are examples too, and a fence closes only on its own kind", () => {
+  const text = [
+    "> ```md",
+    "> Call `quotedExample()` here.",
+    "> ```",
+    "Call `liveMissing()` here.",
+    "~~~~md",
+    "```",
+    "Still inside: `innerExample()`.",
+    "~~~~",
+    "After: `afterMissing()`.",
+    // A fence line at another quote depth, with an info string, or shorter is the example's text.
+    "```md",
+    "> ```ts",
+    "> `quotedInsideExample()`",
+    "> ```",
+    "```",
+    "Then `afterOuterMissing()`.",
+    "````md",
+    "````ts",
+    "`infoInsideExample()`",
+    "```",
+    "````",
+    // A quote's fence ends when its quote does.
+    ">> ```ts",
+    ">> `deepExample()`",
+    "> Back out: `outerQuoteMissing()`.",
+  ].join("\n");
+  assert.deepEqual(findUnknownCodeNames(text, "guide.md", new Set()), [
+    "guide.md:4: no tracked source names `liveMissing`",
+    "guide.md:9: no tracked source names `afterMissing`",
+    "guide.md:15: no tracked source names `afterOuterMissing`",
+    "guide.md:23: no tracked source names `outerQuoteMissing`",
+  ]);
+});
+
+test("the root, the docs site and app pages are sources; plans, settings and generated locks are not", () => {
   const root = mkdtempSync(path.join(tmpdir(), "gg-guidance-names-"));
   try {
     const env = fixtureGitEnvironment();
     const git = (...args) => execFileSync("git", args, { cwd: root, env, encoding: "utf8" });
     git("init", "-q");
-    const files = ["package.json", "packages/a/src/b.ts", ".plans/a/status.json", ".claude/settings.json"];
-    for (const file of files) {
+    const sources = [
+      "docs/docusaurus.config.ts",
+      "docs/plugins/a.mjs",
+      "docs/tina/config.ts",
+      "ecosystem.config.cjs",
+      "knip.ts",
+      "package.json",
+      "packages/a/src/b.ts",
+      "packages/qa/index.html",
+    ];
+    const others = [".plans/a/status.json", ".plans/a/x.ts", ".claude/settings.json", "docs/docs/page.ts", "docs/tina/tina-lock.json"];
+    for (const file of [...sources, ...others]) {
       mkdirSync(path.dirname(path.join(root, file)), { recursive: true });
       writeFileSync(path.join(root, file), "{}\n");
     }
-    git("add", "--", ...files);
-    assert.deepEqual(git("ls-files", "--", ...CODE_NAME_SOURCES).trim().split("\n").sort(), ["package.json", "packages/a/src/b.ts"]);
+    git("add", "--", ...sources, ...others);
+    assert.deepEqual(git("ls-files", "--", ...CODE_NAME_SOURCES).trim().split("\n").sort(), sources);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -407,4 +487,74 @@ test("a name only a comment mentions vouches for nothing, and a JSX tag names it
   assert.deepEqual(findUnknownCodeNames("Wrap it in `<DashboardLayout />`.", "guide.md", new Set()), [
     "guide.md:1: no tracked source names `DashboardLayout`",
   ]);
+});
+
+test("comments vouch for nothing in Solidity, CSS, JSONC, YAML, shell or HTML either", () => {
+  const files = {
+    "packages/contracts/src/A.sol":
+      '// legacySolName\n/** @notice natSpecName */\ncontract A { string s = "// keptInString"; bool enabled = true// solTailComment\n; function liveSolName() external {} }\n',
+    "packages/a/styles.css": "/* cssCommentName */\n.liveClassName { background: url(//cdn/x.png); }\n",
+    "tsconfig.json": '{ // jsoncCommentName\n  "compilerOptions": { "liveJsonName": true// jsonTailComment\n } }\n',
+    ".github/workflows/a.yml": '# yamlCommentName\nrun: echo "#quotedHashName" liveYamlName # trailingYamlName\n',
+    "scripts/a.sh": "#!/bin/sh\n# shellCommentName\necho ${#items[@]} liveShellName\n",
+    "packages/a/index.html": '<!-- htmlCommentName -->\n<div id="liveHtmlName"></div>\n',
+  };
+  const names = codeNamesFrom(Object.keys(files), (file) => files[file]);
+  const live = ["liveSolName", "keptInString", "liveClassName", "liveJsonName", "quotedHashName", "liveYamlName", "liveShellName", "liveHtmlName"];
+  const gone = ["legacySolName", "natSpecName", "cssCommentName", "jsoncCommentName", "yamlCommentName", "trailingYamlName", "shellCommentName", "htmlCommentName", "solTailComment", "jsonTailComment"];
+  assert.deepEqual(live.filter((name) => !names.has(name)), []);
+  assert.deepEqual(gone.filter((name) => names.has(name)), []);
+});
+
+test("in active voice the name before the verb is the replacement, and a quoted fence ends with its quote", () => {
+  const text = [
+    "`newMissingHelper()` replaced `oldHelper()`.",
+    "`goneHelper()` was replaced in 2.0.",
+    "`retiredThing` replaced; see the changelog.",
+    "> ```ts",
+    "> const quoted = `insideQuote()`;",
+    "Call `afterQuoteMissing()` here.",
+    // Every name of a list before the verb is a replacement; a short passive leaves its subject retired.
+    "`newListA` and `newListB` replaced `oldListA` and `oldListB`.",
+    "`shortPassive` replaced with `newMissingSuccessor`.",
+    "`adverbPassive`, now replaced entirely by `liveSuccessor`.",
+  ].join("\n");
+  assert.deepEqual(findUnknownCodeNames(text, "guide.md", new Set(["liveSuccessor"])), [
+    "guide.md:1: no tracked source names `newMissingHelper`",
+    "guide.md:6: no tracked source names `afterQuoteMissing`",
+    "guide.md:7: no tracked source names `newListA`",
+    "guide.md:7: no tracked source names `newListB`",
+    "guide.md:8: no tracked source names `newMissingSuccessor`",
+  ]);
+});
+
+test("each language's own rule decides where a hash comment starts, and an HTML page's scripts and styles lose theirs", async () => {
+  const { parseSync } = await import("vite");
+  const files = {
+    "config.toml": "x = 1#tomlCommentName\nliveTomlKey = \"#notTomlComment\"\n",
+    "packages/a/schema.graphql": "type LiveGqlType { field: Int }#gqlCommentName\n",
+    "scripts/b.sh": "echo ok;#shellCommentName\necho ${#items[@]} liveShellWord\n",
+    ".github/workflows/c.yml": "url: http://host/#liveAnchorName\n",
+    "packages/a/page.html":
+      "<script>const liveScriptName = `//notScriptComment`; // scriptCommentName\n/* blockScriptComment */ const re = /a\\/\\/b/;</script>\n<style>.liveStyleName { color: red } /* styleCommentName */</style>\n" +
+      // A comment in a template's interpolation goes; a "<!--" or "/*" in a string or pattern is code.
+      '<script>const t = `${liveValue // templateCommentName\n}`; const m = "<!--"; const p = s.replace(/\\/*$/, ""); const liveAfterMarker = 1;</script>\n' +
+      // One pass in page order: the "<!--" string above does not open a comment that this one closes,
+      // and an abrupt `<!-->` is a whole comment.
+      "<!-- tail -->\n<!--><script>const liveAfterEmptyComment = 1;</script>\n<!-- end -->\n",
+  };
+  const names = codeNamesFrom(Object.keys(files), (file) => files[file], parseSync);
+  const live = ["liveTomlKey", "notTomlComment", "LiveGqlType", "liveShellWord", "liveAnchorName", "liveScriptName", "notScriptComment", "liveStyleName", "liveValue", "liveAfterMarker", "liveAfterEmptyComment"];
+  const gone = ["tomlCommentName", "gqlCommentName", "shellCommentName", "scriptCommentName", "blockScriptComment", "styleCommentName", "templateCommentName"];
+  assert.deepEqual(live.filter((name) => !names.has(name)), []);
+  assert.deepEqual(gone.filter((name) => names.has(name)), []);
+});
+
+test("an HTML end tag with anything before its bracket still ends the script", async () => {
+  const { parseSync } = await import("vite");
+  // A name that runs on past "script" (`</script-x>`) is not an end tag.
+  const files = { "packages/a/page.html": "<script>const liveName = \"</script-x>\"; // goneScriptComment\n</script\t\n bar><!-- goneHtmlComment --!>\n<p>afterPageName</p>\n" };
+  const names = codeNamesFrom(Object.keys(files), (file) => files[file], parseSync);
+  assert.ok(names.has("liveName") && names.has("afterPageName"));
+  assert.ok(!names.has("goneScriptComment") && !names.has("goneHtmlComment"));
 });
