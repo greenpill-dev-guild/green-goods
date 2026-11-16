@@ -351,9 +351,6 @@ function validateGuideReferences() {
       requiredTerms: [
         "packages/admin/DESIGN.md",
         "CanvasLayout",
-        "DashboardLayout",
-        "Sidebar",
-        "Header",
         "AppBar",
         "NavigationBar",
         "GardenChip",

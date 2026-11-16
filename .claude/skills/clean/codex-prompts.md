@@ -27,7 +27,7 @@ Honor these invariants from AGENTS.md — flag if any agent broke them:
 - Hook boundary (all hooks live in @green-goods/shared)
 - Shared imports use only declared package export paths; no `shared/src` internals
 - Address type for Ethereum addresses
-- parseContractError() + USER_FRIENDLY_ERRORS for contract errors
+- parseContractError() for contract errors
 - Offline-first fallbacks are intentional, not legacy
 - Single root .env (no per-package .env)
 ```

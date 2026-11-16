@@ -202,7 +202,7 @@ explicitly reopens it.
 
 When auditing `packages/contracts/`, apply the contract-security guidance in `.claude/context/contracts.md` (its Upgrade Safety Checklist and Access Control sections):
 1. Solidity security patterns against modified `.sol` files
-2. Access control against files with `onlyHatWearer`, `_authorizeUpgrade`, role-check modifiers
+2. Access control against files with `onlyOwner`, `onlyGardenToken`, `Guard.requireSteward`, `_requireRoleManager`, `_authorizeUpgrade` or other role checks
 3. UUPS upgrade safety (storage gaps, `_authorizeUpgrade`) if proxy/upgradeable contracts modified
 4. Prefix security findings with `SEC-`
 
