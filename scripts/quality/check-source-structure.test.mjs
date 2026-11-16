@@ -10,6 +10,7 @@ import {
   collectStructureViolations,
   findStructureBaselineGrowth,
   reconcileStructureBaseline,
+  FROZEN_ALLOWLIST,
 } from "./check-source-structure.js";
 
 const STAGED_MARKER = "/** Staged — not yet wired into the live checkout. */\n";
@@ -330,14 +331,15 @@ test("main promotion retains the existing cap only for unchanged accepted develo
   writeFileSync(join(root, path), lines(501));
   const frozenPath = "packages/agent/src/platforms/telegram.ts";
   mkdirSync(dirname(join(root, frozenPath)), { recursive: true });
-  writeFileSync(join(root, frozenPath), lines(553));
+  const ceiling = FROZEN_ALLOWLIST[frozenPath];
+  writeFileSync(join(root, frozenPath), lines(ceiling + 1));
   git("add", path, frozenPath);
   git("commit", "-m", "oversized accepted source");
   git("update-ref", "refs/remotes/origin/develop", "HEAD");
   const oversized = run();
   assert.equal(oversized.status, 1);
   assert.match(oversized.stderr, /sample\.ts: modified file at 501 lines/);
-  assert.match(oversized.stderr, /telegram\.ts: 553 lines, above frozen ceiling 552/);
+  assert.match(oversized.stderr, new RegExp(`telegram\\.ts: ${ceiling + 1} lines, above frozen ceiling ${ceiling}`));
 });
 
 test("enforces capability direction across relative paths, aliases and import syntax", () => {
