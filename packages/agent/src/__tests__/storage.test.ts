@@ -19,10 +19,6 @@ afterAll(async () => {
   await closeDB();
 });
 
-// ============================================================================
-// USER TESTS
-// ============================================================================
-
 describe("User Management", () => {
   it("adds locale to legacy users without changing stored rows and is safe to rerun", () => {
     const database = new Database(":memory:");
@@ -126,10 +122,6 @@ describe("User Management", () => {
   });
 });
 
-// ============================================================================
-// SESSION TESTS
-// ============================================================================
-
 describe("Session Management", () => {
   it("sets and retrieves a session", async () => {
     const db = getDB();
@@ -169,10 +161,6 @@ describe("Session Management", () => {
   });
 });
 
-// ============================================================================
-// PENDING WORK TESTS
-// ============================================================================
-
 describe("Pending Work Management", () => {
   it("adds and retrieves pending work", async () => {
     const db = getDB();
@@ -209,7 +197,6 @@ describe("Pending Work Management", () => {
     const db = getDB();
     const gardenAddress = "0x" + "7".repeat(40);
 
-    // Add multiple works
     for (let i = 0; i < 3; i++) {
       await db.addPendingWork({
         id: `garden-work-${Date.now()}-${i}`,
@@ -260,10 +247,6 @@ describe("Pending Work Management", () => {
     expect(removed).toBeUndefined();
   });
 });
-
-// ============================================================================
-// CHAT MESSAGE TESTS
-// ============================================================================
 
 describe("Chat Message Capture", () => {
   function buildChatMessageInput(

@@ -34,7 +34,7 @@ describe("why an attempt on the account step failed", () => {
     ],
     ["the sign-in prompt closed", promptClosed(), false, "prompt_closed", "cancelled"],
     [
-      "the creation prompt closed inside a library\'s own error",
+      "the creation prompt closed inside a library's own error",
       named(
         "WebAuthnP256.CredentialCreationFailedError",
         "Failed to create credential.",
@@ -52,7 +52,7 @@ describe("why an attempt on the account step failed", () => {
       "credential_not_found",
     ],
     [
-      "the name chosen is already an account\'s",
+      "the name chosen is already an account's",
       new Error("That recovery name is already registered. Try recovery or choose another name."),
       true,
       "name_taken",
@@ -73,7 +73,7 @@ describe("why an attempt on the account step failed", () => {
       "server_unavailable",
     ],
     [
-      "the device\'s passkey does not match the account\'s",
+      "the device's passkey does not match the account's",
       new Error("Passkey server authentication failed"),
       false,
       "other",

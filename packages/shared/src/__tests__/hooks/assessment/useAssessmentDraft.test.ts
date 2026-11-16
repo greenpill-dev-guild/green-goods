@@ -12,8 +12,8 @@
  */
 
 import { act, renderHook } from "@testing-library/react";
-import { clear as idbClear, del as idbDel, get as idbGet, set as idbSet } from "idb-keyval";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { clear as idbClear, get as idbGet, set as idbSet } from "idb-keyval";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { useAssessmentDraft } from "../../../hooks/assessment/useAssessmentDraft";
 import type { AssessmentWorkflowParams } from "../../../types/domain";

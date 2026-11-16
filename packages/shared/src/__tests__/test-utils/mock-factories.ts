@@ -7,8 +7,16 @@
 
 import { vi } from "vitest";
 import { TOTAL_UNITS } from "../../lib/hypercerts/constants";
-import type { Action, Garden, Work, WorkApprovalDraft, WorkDraft } from "../../types/domain";
-import { Confidence, Domain, VerificationMethod } from "../../types/domain";
+import {
+  type Action,
+  type Garden,
+  type Work,
+  type WorkApprovalDraft,
+  type WorkDraft,
+  Confidence,
+  Domain,
+  VerificationMethod,
+} from "../../types/domain";
 import type { EASWorkApproval } from "../../types/eas-responses";
 import type { HypercertAttestation, HypercertDraft, HypercertRecord } from "../../types/hypercerts";
 

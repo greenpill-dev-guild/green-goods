@@ -1,13 +1,14 @@
 /** @vitest-environment happy-dom */
 
-import { QueryClient } from "@tanstack/react-query";
 import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { queryKeys } from "../config/query-keys";
 import { useCommitmentDialogController } from "../hooks/admin-ui/pool/useCommitmentDialogController";
-import type { CommitmentMutationInput } from "../hooks/commitment-pooling/useCommitmentMutations";
-import { useCommitmentMutation } from "../hooks/commitment-pooling/useCommitmentMutations";
+import {
+  type CommitmentMutationInput,
+  useCommitmentMutation,
+} from "../hooks/commitment-pooling/useCommitmentMutations";
 import {
   useCommitment,
   useCommitmentActivity,
@@ -250,62 +251,62 @@ describe("commitment pooling query hooks", () => {
   const listAndDetailCases = [
     {
       name: "pool detail",
-      render: () => useCommitmentPool({ chainId: 42161, poolId: 9n }),
+      useHook: () => useCommitmentPool({ chainId: 42161, poolId: 9n }),
       select: (value: Record<string, unknown>) => value.pool,
       expected: pool,
     },
     {
       name: "cycles",
-      render: () => useCommitmentCycles({ chainId: 42161, poolId: 9n, state: "OPEN" }),
+      useHook: () => useCommitmentCycles({ chainId: 42161, poolId: 9n, state: "OPEN" }),
       select: (value: Record<string, unknown>) => value.cycles,
       expected: [{ id: "cycle" }],
     },
     {
       name: "cycle detail",
-      render: () => useCommitmentCycle({ chainId: 42161, cycleId: 10n }),
+      useHook: () => useCommitmentCycle({ chainId: 42161, cycleId: 10n }),
       select: (value: Record<string, unknown>) => value.cycle,
       expected: { id: "cycle" },
     },
     {
       name: "commitments",
-      render: () => useCommitments({ chainId: 42161, account: ACCOUNT }),
+      useHook: () => useCommitments({ chainId: 42161, account: ACCOUNT }),
       select: (value: Record<string, unknown>) => value.commitments,
       expected: [{ id: "commitment" }],
     },
     {
       name: "commitment detail",
-      render: () => useCommitment({ chainId: 42161, commitmentId: 11n }),
+      useHook: () => useCommitment({ chainId: 42161, commitmentId: 11n }),
       select: (value: Record<string, unknown>) => value.commitment,
       expected: { id: "commitment" },
     },
     {
       name: "claim requests",
-      render: () =>
+      useHook: () =>
         useCommitmentClaimRequests({ chainId: 42161, commitmentId: 11n, state: "PENDING" }),
       select: (value: Record<string, unknown>) => value.claimRequests,
       expected: [{ id: "claim" }],
     },
     {
       name: "series list",
-      render: () => useCommitmentSeries({ chainId: 42161, holder: ACCOUNT }),
+      useHook: () => useCommitmentSeries({ chainId: 42161, holder: ACCOUNT }),
       select: (value: Record<string, unknown>) => value.series,
       expected: [{ id: "series" }],
     },
     {
       name: "series detail",
-      render: () => useCommitmentSeriesDetail({ chainId: 42161, seriesId: 12n }),
+      useHook: () => useCommitmentSeriesDetail({ chainId: 42161, seriesId: 12n }),
       select: (value: Record<string, unknown>) => value.series,
       expected: { id: "series" },
     },
     {
       name: "need lineage",
-      render: () => useNeedCommitments({ chainId: 42161, needUID: "0xneed" }),
+      useHook: () => useNeedCommitments({ chainId: 42161, needUID: "0xneed" }),
       select: (value: Record<string, unknown>) => value.lineage,
       expected: { needUID: "0xneed" },
     },
     {
       name: "exchange",
-      render: () =>
+      useHook: () =>
         useCommitmentExchange({
           chainId: 42161,
           poolId: 9n,
@@ -317,26 +318,26 @@ describe("commitment pooling query hooks", () => {
     },
     {
       name: "Hypercert bundle",
-      render: () => useCommitmentHypercertBundle({ chainId: 42161, hypercertId: 13n }),
+      useHook: () => useCommitmentHypercertBundle({ chainId: 42161, hypercertId: 13n }),
       select: (value: Record<string, unknown>) => value.bundle,
       expected: { id: "bundle" },
     },
     {
       name: "funding",
-      render: () => useCommitmentFunding({ chainId: 42161, commitmentId: 11n, funder: ACCOUNT }),
+      useHook: () => useCommitmentFunding({ chainId: 42161, commitmentId: 11n, funder: ACCOUNT }),
       select: (value: Record<string, unknown>) => value.funding,
       expected: [{ id: "funding" }],
     },
     {
       name: "activity",
-      render: () => useCommitmentActivity({ chainId: 42161, poolId: 9n, limit: 20 }),
+      useHook: () => useCommitmentActivity({ chainId: 42161, poolId: 9n, limit: 20 }),
       select: (value: Record<string, unknown>) => value.events,
       expected: [{ id: "event" }],
     },
   ];
 
   it.each(listAndDetailCases)("returns $name data through the shared hook", async (testCase) => {
-    const { result } = renderHookWithProviders(() => testCase.render());
+    const { result } = renderHookWithProviders(() => testCase.useHook());
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(testCase.select(result.current as unknown as Record<string, unknown>)).toEqual(
       testCase.expected

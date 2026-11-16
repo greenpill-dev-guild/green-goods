@@ -14,10 +14,6 @@ import {
   ZERO_ADDRESS,
 } from "./shared";
 
-// ============================================================================
-// HYPERCERT EVENT HANDLERS
-// ============================================================================
-
 // Handler for HypercertMinter TransferSingle event (detects mints)
 // Fetch only mints; ordinary transfers and burns do not change these projections.
 indexer.onEvent(

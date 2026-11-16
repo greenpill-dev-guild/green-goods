@@ -6,8 +6,10 @@ import {
   selectClosedActionUIDs,
   selectUncheckedActionUIDs,
 } from "../../../hooks/client-ui/commitment/composerBeats";
-import { COMMITMENT_COMPOSER_DEFAULTS } from "../../../hooks/commitment-pooling/useCommitmentComposerForm";
-import type { CommitmentComposerValues } from "../../../hooks/commitment-pooling/useCommitmentComposerForm";
+import {
+  COMMITMENT_COMPOSER_DEFAULTS,
+  type CommitmentComposerValues,
+} from "../../../hooks/commitment-pooling/useCommitmentComposerForm";
 import { createMockAction } from "../../test-utils/mock-factories";
 
 const valid = {

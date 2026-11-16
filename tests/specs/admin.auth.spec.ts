@@ -147,7 +147,6 @@ test.describe("Admin Authentication", () => {
       await waitForSignedInBoot(page2, helper2);
       await expect(page2.getByText("Connect to continue")).toHaveCount(0);
 
-      // Close tabs
       await page1.close();
       await page2.close();
     });

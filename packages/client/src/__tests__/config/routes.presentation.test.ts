@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { RouteObject } from "react-router-dom";
-import { matchRoutes } from "react-router-dom";
+import { type RouteObject, matchRoutes } from "react-router-dom";
 import { CLIENT_ROUTE_IDS, publicAppRoutes, pwaAppRoutes } from "../../config/routes";
 
 function collectRouteIds(routes: RouteObject[]): string[] {

@@ -5,10 +5,6 @@
  * Uses Anvil default accounts which are consistent across all runs.
  */
 
-// ============================================================================
-// FORK CONFIGURATION
-// ============================================================================
-
 export const FORK_CONFIG = {
   /** RPC URL for forking (Sepolia by default) */
   rpcUrl: process.env.SEPOLIA_RPC_URL || "https://ethereum-sepolia-rpc.publicnode.com",
@@ -28,9 +24,7 @@ export const FORK_CONFIG = {
   },
 } as const;
 
-// ============================================================================
 // TEST ACCOUNTS (Anvil Defaults)
-// ============================================================================
 
 /**
  * Anvil's deterministic test accounts.
@@ -76,14 +70,6 @@ export const TEST_ACCOUNTS = {
   },
 } as const;
 
-// ============================================================================
-// CONTRACT ADDRESSES (Sepolia)
-// ============================================================================
-
-// ============================================================================
-// TIMEOUTS
-// ============================================================================
-
 /**
  * Timeouts for various operations in milliseconds.
  */
@@ -100,10 +86,6 @@ export const ANVIL_TIMEOUTS = {
   /** Polling interval when waiting for Anvil */
   pollInterval: 500,
 } as const;
-
-// ============================================================================
-// TYPE EXPORTS
-// ============================================================================
 
 export type TestAccountName = keyof typeof TEST_ACCOUNTS;
 export type TestAccount = (typeof TEST_ACCOUNTS)[TestAccountName];
