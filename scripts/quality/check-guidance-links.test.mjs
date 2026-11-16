@@ -1,21 +1,27 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 import {
+  CODE_NAME_SOURCES,
+  codeNamesFrom,
   addedLineNumbersFromDiff,
   checkDecisionLogCitations,
   filterPresentPaths,
   findBrokenRootCodePaths,
   findMissingInstructionSections,
   findStaleLockedDecisions,
+  findUnknownCodeNames,
   findUntaggedFenceOpenings,
   parseNameStatus,
   scanDeletedSurfaceReferences,
   scanPersistentRetiredReferences,
 } from "./check-guidance-links.mjs";
+import { fixtureGitEnvironment } from "../lib/dev-shared.js";
 
 const script = path.join(path.dirname(fileURLToPath(import.meta.url)), "check-guidance-links.mjs");
 
@@ -334,4 +340,71 @@ test("rejects unknown CLI arguments", () => {
   const result = spawnSync(process.execPath, [script, "--unknown"], { encoding: "utf8" });
   assert.equal(result.status, 2);
   assert.match(result.stderr, /unknown argument/);
+});
+
+test("guidance may name only code that tracked source contains, outside examples and retirements", () => {
+  const known = new Set(["useQueueStats", "parseContractError", "DEFAULT_CHAIN_ID"]);
+  const text = [
+    "Use `useQueueStats()` and `parseContractError` with `DEFAULT_CHAIN_ID`.",
+    "Prefer `useQueueStatistics` for counts and `USER_FRIENDLY_ERRORS` for copy.",
+    "`AdminSettingRow` was retired for the shared row.",
+    "Plain words like `Address`, `jobs` or `bun run test` are not code names.",
+    "```ts",
+    "const value = useExampleOnly();",
+    "```",
+    "Name a hook like `useXxxForm`.",
+  ].join("\n");
+  assert.deepEqual(findUnknownCodeNames(text, "guide.md", known), [
+    "guide.md:2: no tracked source names `useQueueStatistics`",
+    "guide.md:2: no tracked source names `USER_FRIENDLY_ERRORS`",
+  ]);
+  assert.deepEqual(findUnknownCodeNames("Call `newHelper()` here.", "guide.md", known, new Map([["newHelper", "reason"]])), []);
+});
+
+test("names inside member paths and calls count, and arguments do not", () => {
+  const known = new Set(["jobQueueDB"]);
+  assert.deepEqual(findUnknownCodeNames("Use `jobQueueDB.deletedMethod()` and `isStepValid(stepId)`.", "guide.md", known), [
+    "guide.md:1: no tracked source names `deletedMethod`",
+    "guide.md:1: no tracked source names `isStepValid`",
+  ]);
+});
+
+test("root manifests are sources; plans and settings in folders are not", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "gg-guidance-names-"));
+  try {
+    const env = fixtureGitEnvironment();
+    const git = (...args) => execFileSync("git", args, { cwd: root, env, encoding: "utf8" });
+    git("init", "-q");
+    const files = ["package.json", "packages/a/src/b.ts", ".plans/a/status.json", ".claude/settings.json"];
+    for (const file of files) {
+      mkdirSync(path.dirname(path.join(root, file)), { recursive: true });
+      writeFileSync(path.join(root, file), "{}\n");
+    }
+    git("add", "--", ...files);
+    assert.deepEqual(git("ls-files", "--", ...CODE_NAME_SOURCES).trim().split("\n").sort(), ["package.json", "packages/a/src/b.ts"]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("a file's own name vouches for it, and settings and this checker's fixtures never do", () => {
+  const files = {
+    "packages/admin/src/__tests__/AdminDialogStandard.guard.test.ts": "",
+    "packages/a/src/b.ts": "const realName = 1;",
+    ".claude/settings.json": "Use `staleHelper()`.",
+    "scripts/quality/check-guidance-links.test.mjs": "fixtureOnlyName",
+  };
+  const names = codeNamesFrom(Object.keys(files), (file) => files[file]);
+  assert.ok(names.has("AdminDialogStandard") && names.has("realName"));
+  assert.ok(!names.has("staleHelper") && !names.has("fixtureOnlyName"));
+});
+
+test("a name only a comment mentions vouches for nothing, and a JSX tag names its component", async () => {
+  const { parseSync } = await import("vite");
+  const files = { "packages/a/src/errors.ts": "// The legacy USER_FRIENDLY_ERRORS lookup is gone.\nexport const parseError = () => {};\n" };
+  const names = codeNamesFrom(Object.keys(files), (file) => files[file], parseSync);
+  assert.ok(names.has("parseError") && !names.has("USER_FRIENDLY_ERRORS"));
+  assert.deepEqual(findUnknownCodeNames("Wrap it in `<DashboardLayout />`.", "guide.md", new Set()), [
+    "guide.md:1: no tracked source names `DashboardLayout`",
+  ]);
 });

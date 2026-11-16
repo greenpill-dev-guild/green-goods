@@ -6,7 +6,7 @@ applyTo: "packages/admin/**,docs/docs/builders/packages/admin.mdx"
   relevant guard tests before changing admin routes, layouts, or page structure. The public
   Builder page explains the surface; it does not own the implementation contract.
 - `CanvasLayout` is the canonical shell. Treat `/review` as the reference canvas surface.
-- The default shell is `AppBar + .workspace-canvas + MainSheet + NavigationBar`. Do not start new work from `DashboardLayout`, `Sidebar`, or `Header`.
+- The default shell is `AppBar + .workspace-canvas + MainSheet + NavigationBar`.
 - Prefer shared/admin primitives such as `AppBar`, `NavigationBar`, `MainSheet`, `GardenChip`, `AdminDialog`, `AdminConfirmDialog`, `AdminSideSheet` (three global AppBar surfaces only), `AdminSearchToolbar`, `AdminSortSelect`, `PageHeader`, and `AccountSurface` before inventing one-off wrappers. The old `LeftSheet`/`RightSheet`/`BottomSheet` renderers are deleted; workspace overlays are centered `AdminDialog`s.
 - The Hub is a steward workspace, not a marketing surface. Favor utility copy, one dominant workspace surface, and explicit task hierarchy over card mosaics or promo treatments.
 - Every privileged action must keep permission checks such as `useRole` or `useGardenPermissions`, and user-visible write actions should stay inside the shared toast workflow.
