@@ -203,6 +203,7 @@ export async function sendReviewBatch(
     rail: BatchRail;
     decisions: readonly ReviewDecision[];
     onLanded?: (sent: readonly SentReview[]) => void;
+    onSending?: () => void;
     /** Fewer than the most one signature carries, once a list has been too big to send together. */
     perSignature?: number;
   }
@@ -304,6 +305,7 @@ export async function sendReviewBatch(
           if (reason) throw new Error(reason);
         },
         verify: verifyReviews(prepared, input, attestationUIDs),
+        onBroadcasting: input.onSending,
       });
       if (record.status === "confirmed") {
         const transactionHash = record.receipts[0].transactionHash;

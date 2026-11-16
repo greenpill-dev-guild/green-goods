@@ -7,6 +7,7 @@
  */
 
 import { type QueryClient } from "@tanstack/react-query";
+import { onWalletReconnectAsk, refuseWithoutWallet } from "../../../modules/auth/wallet-reconnect";
 import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createTestQueryClient } from "../../test-utils/query-client";
@@ -30,11 +31,13 @@ const mockReadContract = vi.fn();
 const mockGetReceipt = vi.fn();
 let authMode: "wallet" | "passkey" = "wallet";
 const mockOwnership = vi.fn();
+const mockReadyToSign = vi.fn();
 const mockSender = () => ({
   authMode,
   sendContractCall: mockSendTransaction,
   signTypedData: vi.fn(),
   assertOwnership: mockOwnership,
+  assertReadyToSign: mockReadyToSign,
 });
 vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({ usePrimaryAddress: () => TEST_SIGNER }));
 vi.mock("../../../hooks/blockchain/useTransactionSender", () => ({
@@ -120,6 +123,7 @@ describe.each(["wallet", "passkey"] as const)("useBatchListForYield with %s", (m
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockReadyToSign.mockReset();
     useMarketplacePendingStore.setState({ pending: {}, active: {} });
     mockReadContract.mockResolvedValue(0n);
     mockGetReceipt.mockRejectedValue(new Error("not mined"));
@@ -155,6 +159,42 @@ describe.each(["wallet", "passkey"] as const)("useBatchListForYield with %s", (m
     mockSignMakerAsk.mockResolvedValue("0xsignature");
     mockValidateOrder.mockReturnValue({ valid: true, errors: [] });
     mockSendTransaction.mockResolvedValue({ hash: "0xtxhash", sponsored: false });
+  });
+
+  it("asks to reconnect before preparing a listing or checking quiet ownership", async () => {
+    mockReadyToSign.mockImplementation(refuseWithoutWallet);
+    const asked = vi.fn();
+    const stop = onWalletReconnectAsk(asked);
+    const params = {
+      hypercertId: 1n,
+      fractionId: 1n,
+      currency: TEST_MODULE,
+      pricePerUnit: 1000n,
+      minUnitAmount: 1n,
+      maxUnitAmount: 1000n,
+      minUnitsToKeep: 0n,
+      sellLeftover: false,
+      durationDays: 30,
+    };
+    try {
+      const { result } = renderHookWithQueryClient(() => useBatchListForYield(TEST_GARDEN), {
+        queryClient,
+      });
+      await act(async () => {
+        await expect(result.current.batchList([params])).rejects.toMatchObject({
+          name: "WalletReconnectRequiredError",
+          asked: true,
+        });
+      });
+      expect(asked).toHaveBeenCalledOnce();
+      expect(mockOwnership).not.toHaveBeenCalled();
+      expect(mockGetOrderNonces).not.toHaveBeenCalled();
+      expect(mockBuildMakerAsk).not.toHaveBeenCalled();
+      expect(mockSignMakerAsk).not.toHaveBeenCalled();
+      expect(mockSendTransaction).not.toHaveBeenCalled();
+    } finally {
+      stop();
+    }
   });
 
   describe("initial state", () => {

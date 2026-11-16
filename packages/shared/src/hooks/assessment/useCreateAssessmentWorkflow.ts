@@ -1,11 +1,11 @@
-import { reconcileAssessmentRecovery } from "./assessmentRecovery";
-import { confirmCancelledSubmission } from "../../modules/transactions/cancelled-submission";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMachine } from "@xstate/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
 import { fromPromise } from "xstate";
 import { toastService } from "../../components/toast";
+import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
+import { queryInvalidation } from "../../config/query-keys/invalidation";
 import {
   trackAdminAssessmentCreateFailed,
   trackAdminAssessmentCreateStarted,
@@ -13,34 +13,35 @@ import {
 } from "../../modules/app/analytics-events";
 import { logger } from "../../modules/app/logger";
 import {
-  createAssessment,
-  createDefaultCreateAssessmentPorts,
   AssessmentConfirmationUnavailableError,
   AssessmentReceiptMismatchError,
   AssessmentSubmissionPendingError,
+  createAssessment,
+  createDefaultCreateAssessmentPorts,
 } from "../../modules/assessment/create-assessment-command";
 import { getIpfsInitStatus } from "../../modules/data/ipfs/client";
-import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
-import type { Address } from "../../types/domain";
-import {
-  type AssessmentWorkflowParams,
-  createAssessmentMachine,
-} from "../../workflows/createAssessment";
-import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
-import { queryInvalidation } from "../../config/query-keys/invalidation";
-import { useProgressiveInvalidation } from "../utils/useTimeout";
-import { useAssessmentDraft } from "./useAssessmentDraft";
-import { usePrimaryAddress } from "../auth/usePrimaryAddress";
-import { useTransactionSender } from "../blockchain/useTransactionSender";
+import { confirmCancelledSubmission } from "../../modules/transactions/cancelled-submission";
 import {
   getTransactionScopeKey,
   TransactionConfirmationPendingError,
 } from "../../modules/transactions/types";
-import { withoutQuotedRequest } from "../../utils/errors/extract-message";
+import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import {
   assessmentSubmissionKey,
   useAssessmentSubmissionStore,
 } from "../../stores/useAssessmentSubmissionStore";
+import type { Address } from "../../types/domain";
+import { withoutQuotedRequest } from "../../utils/errors/extract-message";
+import { wasAskedToReconnect } from "../../utils/errors/unsent-failures";
+import {
+  type AssessmentWorkflowParams,
+  createAssessmentMachine,
+} from "../../workflows/createAssessment";
+import { usePrimaryAddress } from "../auth/usePrimaryAddress";
+import { useTransactionSender } from "../blockchain/useTransactionSender";
+import { useProgressiveInvalidation } from "../utils/useTimeout";
+import { reconcileAssessmentRecovery } from "./assessmentRecovery";
+import { useAssessmentDraft } from "./useAssessmentDraft";
 
 export type { AssessmentWorkflowParams, CreateAssessmentForm } from "../../types/domain";
 export type { AssessmentDraftRecord } from "./useAssessmentDraft";
@@ -249,6 +250,7 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
                   completionRef.current = { key: submissionKey, uid: newAttestationUID };
                 return newAttestationUID;
               } catch (error) {
+                if (wasAskedToReconnect(error)) throw error;
                 if (
                   error instanceof AssessmentConfirmationUnavailableError ||
                   error instanceof AssessmentSubmissionPendingError

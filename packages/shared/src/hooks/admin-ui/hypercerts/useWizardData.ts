@@ -10,6 +10,7 @@ import {
   useHypercertWizardStore,
 } from "../../../stores/useHypercertWizardStore";
 import type { HypercertAttestation } from "../../../types/hypercerts";
+import { wasAskedToReconnect } from "../../../utils/errors/unsent-failures";
 import { categorizeError } from "../../../utils/errors/categorize-error";
 import { useGardenAssessments } from "../../assessment/useGardenAssessments";
 import { useAuth } from "../../auth/useAuth";
@@ -322,23 +323,23 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
       return;
     }
 
-    if (mintingState.status === "failed") {
-      if (await authorizeUpload()) retry();
-      return;
-    }
-
-    if (!previewMetadata) {
-      toastService.error({
-        title: formatMessage({ id: "app.hypercerts.mint.error.metadata.title" }),
-        message: formatMessage({ id: "app.hypercerts.mint.error.metadata.message" }),
-        context: "hypercert minting",
-        suppressLogging: true,
-      });
-      return;
-    }
-
     setPreflightError(null);
     try {
+      if (mintingState.status === "failed") {
+        if (await authorizeUpload()) retry();
+        return;
+      }
+
+      if (!previewMetadata) {
+        toastService.error({
+          title: formatMessage({ id: "app.hypercerts.mint.error.metadata.title" }),
+          message: formatMessage({ id: "app.hypercerts.mint.error.metadata.message" }),
+          context: "hypercert minting",
+          suppressLogging: true,
+        });
+        return;
+      }
+
       if (!(await authorizeUpload())) return;
       await mint({
         draft,
@@ -347,6 +348,7 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
         metadata: previewMetadata,
       });
     } catch (error) {
+      if (wasAskedToReconnect(error)) return;
       const categorized = categorizeError(error);
       logger.error("[HypercertWizard] Failed to mint hypercert", {
         message: categorized.message,

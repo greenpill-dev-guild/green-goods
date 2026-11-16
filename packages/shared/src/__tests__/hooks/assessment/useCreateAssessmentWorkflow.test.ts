@@ -4,18 +4,18 @@
 
 import type { QueryClient } from "@tanstack/react-query";
 import { act, waitFor } from "@testing-library/react";
-import { createTestQueryClient } from "../../test-utils/query-client";
-import { renderHookWithProviders } from "../../test-utils/render-helpers";
+import { encodeAbiParameters, encodeEventTopics } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-
-import type { AssessmentWorkflowParams } from "../../../types/domain";
+import { onWalletReconnectAsk, refuseWithoutWallet } from "../../../modules/auth/wallet-reconnect";
 import type {
   TransactionSender,
   TransactionSendOptions,
 } from "../../../modules/transactions/types";
 import { useAssessmentSubmissionStore } from "../../../stores/useAssessmentSubmissionStore";
-import { encodeAbiParameters, encodeEventTopics } from "viem";
+import type { AssessmentWorkflowParams } from "../../../types/domain";
 import { EASABI } from "../../../utils/blockchain/contracts";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithProviders } from "../../test-utils/render-helpers";
 
 const GARDEN_ID = "0x1111111111111111111111111111111111111111" as const;
 const OPERATOR_ADDRESS = "0x2222222222222222222222222222222222222222" as const;
@@ -325,6 +325,36 @@ describe("useCreateAssessmentWorkflow", () => {
     mocks.schemaEncode.mockReturnValue("0xencoded-assessment");
     mocks.waitForAttestation.mockResolvedValue(ATTESTATION_UID);
     mocks.easAttest.mockResolvedValue({ wait: mocks.waitForAttestation });
+  });
+
+  it("keeps a refused assessment ready without failure analytics and submits after reconnect", async () => {
+    const assertReadyToSign = vi.fn().mockImplementationOnce(refuseWithoutWallet);
+    mocks.sender = { ...mocks.sender!, assertReadyToSign };
+    const asked = vi.fn();
+    const stop = onWalletReconnectAsk(asked);
+    try {
+      const { result } = renderWorkflow(createTestQueryClient());
+      const params = createParams();
+      await startReady(result, params);
+      act(() => result.current.submitCreation());
+      await waitFor(() => expect(asked).toHaveBeenCalledOnce());
+      await waitFor(() => expect(result.current.state.matches("ready")).toBe(true));
+      expect(result.current.state.context.error).toBeUndefined();
+      expect(result.current.state.context.retryCount).toBe(0);
+      expect(result.current.state.context.assessmentParams).toEqual(params);
+      expect(mocks.uploadJson).not.toHaveBeenCalled();
+      expect(mocks.send).not.toHaveBeenCalled();
+      expect(mocks.trackStarted).not.toHaveBeenCalled();
+      expect(mocks.trackFailed).not.toHaveBeenCalled();
+      expect(mocks.clearDraft).not.toHaveBeenCalled();
+
+      await submitAndWaitFor(result, "success");
+      expect(mocks.send).toHaveBeenCalledOnce();
+      expect(mocks.trackSuccess).toHaveBeenCalledOnce();
+      expect(mocks.trackFailed).not.toHaveBeenCalled();
+    } finally {
+      stop();
+    }
   });
 
   it.each([
