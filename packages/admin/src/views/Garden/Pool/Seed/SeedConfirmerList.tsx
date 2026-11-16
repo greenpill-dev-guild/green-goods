@@ -168,7 +168,7 @@ export function SeedConfirmerList({
                 })
               : formatMessage({
                   id: "hub.garden.pool.seed.confirmerHint",
-                  defaultMessage: "Names like lina.eth resolve to their account.",
+                  defaultMessage: "Names resolve to their account.",
                 })
           }
           error={entry.error ?? errorOf("confirmers")}
