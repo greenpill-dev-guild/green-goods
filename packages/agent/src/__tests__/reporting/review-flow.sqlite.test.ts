@@ -283,4 +283,29 @@ describe("steward review", () => {
         .get()
     ).toEqual({ n: 0 });
   });
+
+  it("answers a steward's follow-ups with the stopped check once a decision's check gives up", async () => {
+    await publishedWork();
+    await linkedSteward();
+    const summary = await decide("Approve", "Looks right");
+    const token = /CONFIRM (\d{4})/.exec(summary[0] ?? "")?.[1];
+    await harness.say(BOLA, `CONFIRM ${token}`);
+    const { browser, view } = await openDecisionPage();
+    const envelope = view.operation?.envelope;
+    if (!envelope) throw new Error("Expected an envelope");
+    expect((await reserve(browser, view, envelope)).status).toBe(200);
+    // The page is closed before it reports, and the decision never lands.
+    harness.clock.advance(harness.core.settings.walletResponseWindowMs);
+    await harness.drain();
+    for (let pass = 0; pass < 45; pass += 1) {
+      harness.clock.advance(30_000);
+      await harness.drain();
+    }
+    const stopped =
+      "I've checked the chain and still can't find your review, so I've stopped checking. I won't send it again. If it doesn't show on the work, write to contact@greengoods.app.";
+    expect(sentTexts().filter((text) => text === stopped)).toHaveLength(1);
+    expect(await harness.say(BOLA, "STATUS")).toEqual([stopped]);
+    expect(await harness.say(BOLA, "EDIT")).toEqual([stopped]);
+    expect(await harness.say(BOLA, "CANCEL")).toEqual([stopped]);
+  });
 });

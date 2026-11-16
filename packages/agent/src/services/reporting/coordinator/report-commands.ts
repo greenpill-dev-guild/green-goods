@@ -14,7 +14,7 @@ import { operationForSubject } from "../operations";
 import { setParticipantLocale } from "../participants";
 import { retryPreparation } from "../preparation";
 import { closeConversationPrompt, resolvePrompt } from "../prompts";
-import { publicationCheckStopped } from "../reconciliation";
+import { chainCheckStopped } from "../reconciliation";
 import type { ReportingCore } from "../runtime";
 import type { ChatCommand } from "./commands";
 import {
@@ -165,7 +165,7 @@ function askLanguage(writer: TurnWriter): void {
  * check ended without finding it, that the check stopped and where to turn.
  */
 export function frozenReply(core: ReportingCore, draft: DraftRecord): ReportingCopyKey {
-  return publicationCheckStopped(core, draft.id) ? "publish.unconfirmed" : "report.frozen";
+  return chainCheckStopped(core, { draftId: draft.id }) ? "publish.unconfirmed" : "report.frozen";
 }
 
 function cancelDraft(writer: TurnWriter): void {
@@ -239,7 +239,7 @@ export function handleReportCommand(
       return writer.say(draft ? "report.resumeFirst" : "report.newStarted");
     case "status": {
       if (!draft) return writer.say("report.noStatus");
-      if (publicationCheckStopped(core, draft.id)) return writer.say("publish.unconfirmed");
+      if (chainCheckStopped(core, { draftId: draft.id })) return writer.say("publish.unconfirmed");
       const state = STATE_COPY[lifecycleState(draft)] ?? "state.publishing";
       return writer.say("report.status", {
         garden: gardenLabel(core.gardens, draft.content.garden?.address),

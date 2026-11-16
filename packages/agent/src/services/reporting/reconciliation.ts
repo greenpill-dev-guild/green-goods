@@ -295,33 +295,43 @@ const CHECK_STOPPED = "reconciliation_stopped";
 /**
  * The check's last attempt found nothing it can stand behind. Nothing is sent again and the
  * reservation stays, so an operator replay can still find a late publication; what changes is that
- * the person hears it ended, once, instead of waiting on a promise that nothing will keep.
+ * the person hears it ended, once, instead of waiting on a promise that nothing will keep. It runs
+ * as the worker parks the job. The record and the notice belong to the operation's current
+ * attempt: an operation is reused for its next attempt, which gets a check and a notice of its own.
  */
-function stopChecking(core: ReportingCore, operation: OperationRecord, reason: string): void {
-  audit(core, CHECK_STOPPED, { kind: "operation", id: operation.id }, { reason });
+function stopChecking(core: ReportingCore, operationId: string, reason: string): void {
+  const operation = operationById(core, operationId);
+  if (operation?.state !== "reconciling") return;
+  const { attemptVersion } = operation;
+  audit(core, CHECK_STOPPED, { kind: "operation", id: operation.id }, { reason, attemptVersion });
   const subject = operationSubject(core, operation);
   if (!subject) return;
   participantWriter(core, {
     participantId: subject.participantId,
     conversationId: subject.conversationId,
-    dedupePrefix: `unconfirmed:${operation.id}`,
+    dedupePrefix: `unconfirmed:${operation.id}:${attemptVersion}`,
   })?.say(subject.kind === "review" ? "review.unconfirmed" : "publish.unconfirmed");
 }
 
 /**
- * Whether the chain check for a report's publication ended without finding it, so replies say
- * that rather than that the report is being published.
+ * Whether the chain check for the current attempt at a report or a decision ended without finding
+ * it, so replies say that rather than that it is being published or recorded.
  */
-export function publicationCheckStopped(core: ReportingCore, draftId: string): boolean {
-  const operation = operationForSubject(core, { draftId });
+export function chainCheckStopped(
+  core: ReportingCore,
+  subject: { draftId: string } | { reviewIntentId: string }
+): boolean {
+  const operation = operationForSubject(core, subject);
   if (operation?.state !== "reconciling") return false;
   return (
     core.db
       .query(
         `SELECT 1 FROM audit_events
-         WHERE kind = $kind AND subject_kind = 'operation' AND subject_id = $id LIMIT 1`
+         WHERE kind = $kind AND subject_kind = 'operation' AND subject_id = $id
+           AND json_extract(detail_json, '$.attemptVersion') = $attemptVersion LIMIT 1`
       )
-      .get({ kind: CHECK_STOPPED, id: operation.id }) !== null
+      .get({ kind: CHECK_STOPPED, id: operation.id, attemptVersion: operation.attemptVersion }) !==
+    null
   );
 }
 
@@ -333,15 +343,18 @@ export async function reconcileOperation(
   const operation = operationById(core, job.subjectId);
   const envelope = operation?.envelope;
   if (!operation || !envelope || operation.state !== "reconciling") return { status: "done" };
-  // The worker parks a job that spends its last attempt; this pass is the check's last word.
-  const lastAttempt = job.attempts >= job.maxAttempts;
+  // If a retry spends the job's last attempt, the worker parks it and the check stops there.
+  const stopped = (reason: string) => () => stopChecking(core, operation.id, reason);
   let resolution: Resolution;
   try {
     resolution = await resolve(deps, operation, envelope);
   } catch {
-    if (lastAttempt)
-      inTransaction(core.db, () => stopChecking(core, operation, "dependency_unavailable"));
-    return { status: "retry", errorCode: "dependency_unavailable", delayMs: 30_000 };
+    return {
+      status: "retry",
+      errorCode: "dependency_unavailable",
+      delayMs: 30_000,
+      onParked: stopped("dependency_unavailable"),
+    };
   }
   return inTransaction(core.db, (): JobOutcome => {
     const current = operationById(core, operation.id);
@@ -365,13 +378,22 @@ export async function reconcileOperation(
           { kind: "operation", id: current.id },
           { reason: resolution.reason }
         );
-        // Two matching attestations mean it was published; that one is for an operator to settle.
-        if (lastAttempt && resolution.reason !== "multiple_matches")
-          stopChecking(core, current, resolution.reason);
-        return { status: "retry", errorCode: resolution.reason, delayMs: 5 * 60_000 };
+        return {
+          status: "retry",
+          errorCode: resolution.reason,
+          delayMs: 5 * 60_000,
+          // Two matching attestations mean it was published; that one is for an operator to settle.
+          ...(resolution.reason === "multiple_matches"
+            ? {}
+            : { onParked: stopped(resolution.reason) }),
+        };
       case "pending":
-        if (lastAttempt) stopChecking(core, current, "receipt_pending");
-        return { status: "retry", errorCode: "receipt_pending", delayMs: 30_000 };
+        return {
+          status: "retry",
+          errorCode: "receipt_pending",
+          delayMs: 30_000,
+          onParked: stopped("receipt_pending"),
+        };
     }
   });
 }
