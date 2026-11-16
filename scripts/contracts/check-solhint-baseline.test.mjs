@@ -127,6 +127,10 @@ test("a change's sources come from git: both sides of a rename, edits, deletions
     assert.deepEqual([...context.changed].sort(), [...changed].sort());
     assert.deepEqual([...context.renames], [...renames]);
     assert.deepEqual(context.previous, { "no-empty-blocks": { [src("Vault.sol")]: 2 } });
+    // A change to solhint's configuration touches every source.
+    writeFileSync(path.join(root, "packages/contracts/.solhint.json"), "{}\n");
+    git("add", "--", "packages/contracts/.solhint.json");
+    assert.equal(sourceChanges(root, base).changed, null);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

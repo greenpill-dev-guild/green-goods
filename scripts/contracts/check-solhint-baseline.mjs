@@ -19,6 +19,8 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../
 const contractsRoot = path.join(repoRoot, "packages/contracts");
 export const BASELINE_PATH = "scripts/data/solhint-baseline.json";
 const SOURCES = "packages/contracts/src";
+// What else decides solhint's report: its configuration, ignore file and version.
+const LINT_INPUTS = ["packages/contracts/.solhint.json", "packages/contracts/.solhintignore", "packages/contracts/package.json", "bun.lock"];
 // The lint step's own arguments, so this check sees what `lint` reports. `--disc` skips the update
 // check, whose notice would land on stdout ahead of the JSON.
 const SOLHINT_ARGS = ["--config", "./.solhint.json", "src/**/*.sol", "--ignore-path", ".solhintignore", "-f", "json", "--disc"];
@@ -198,11 +200,14 @@ function runSolhint() {
 /**
  * The sources a change touches since `ref`, as `git diff -M` sees them in `cwd`: `changed` holds
  * every path, both sides of a rename and untracked files included, and `renames` maps a new path
- * to its old one. A git failure throws: an empty set would turn every stale entry into a note.
+ * to its old one. A change to solhint's configuration, ignore file or version touches every source:
+ * `changed` is then null, so a count it lowers anywhere fails until it is recorded. A git failure
+ * throws: an empty set would turn every stale entry into a note.
  */
 export function sourceChanges(cwd, ref) {
   const changed = new Set();
   const renames = new Map();
+  const inputs = runGit(cwd, ["diff", "--name-only", "-z", ref, "--", ...LINT_INPUTS]).stdout.split("\0").filter(Boolean);
   const fields = runGit(cwd, ["diff", "-M", "--name-status", "-z", ref, "--", SOURCES]).stdout.split("\0");
   for (let at = 0; at < fields.length && fields[at]; ) {
     const status = fields[at];
@@ -218,7 +223,7 @@ export function sourceChanges(cwd, ref) {
   for (const file of runGit(cwd, ["ls-files", "--others", "--exclude-standard", "-z", "--", SOURCES]).stdout.split("\0")) {
     if (file) changed.add(file);
   }
-  return { changed, renames };
+  return { changed: inputs.length ? null : changed, renames };
 }
 
 /**
