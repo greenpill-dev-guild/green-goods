@@ -242,11 +242,11 @@ describe("ProofComposer", () => {
 
     expect(forward("Review Proof")).toBeDisabled();
     expect(
-      screen.getByText("Add a photo, a voice note, a link or a few words first.")
+      screen.getByText("Add media, a voice note, a link or a few words first.")
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Needed if you add nothing else. Or add a link below, or go back for a photo."
+        "Needed if you add nothing else. Or add a link below, or go back to add media."
       )
     ).toBeInTheDocument();
   });
@@ -309,7 +309,7 @@ describe("ProofComposer", () => {
     render();
     await reachReview(user);
 
-    expect(screen.getByText(/It waits on this phone, photos and all/)).toBeInTheDocument();
+    expect(screen.getByText(/Your media and notes stay on this phone/)).toBeInTheDocument();
     await user.click(forward("Add This Proof"));
     expect(controller.submit).toHaveBeenCalledTimes(1);
   });

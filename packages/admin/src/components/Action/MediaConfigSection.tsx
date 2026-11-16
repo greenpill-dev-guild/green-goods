@@ -102,7 +102,7 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
           type="number"
           label={formatMessage({
             id: "app.admin.actions.mediaConfig.minImages",
-            defaultMessage: "Min images",
+            defaultMessage: "Min media items",
           })}
           value={String(config.minImageCount)}
           onChange={(e) => onChange({ ...config, minImageCount: parseInt(e.target.value) || 0 })}
@@ -113,7 +113,7 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
           type="number"
           label={formatMessage({
             id: "app.admin.actions.mediaConfig.maxImages",
-            defaultMessage: "Max images",
+            defaultMessage: "Max media items",
           })}
           value={String(config.maxImageCount)}
           onChange={(e) => onChange({ ...config, maxImageCount: parseInt(e.target.value) || 1 })}
@@ -141,7 +141,7 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
         })}
         hint={formatMessage({
           id: "app.admin.actions.mediaConfig.requiredShotsDescription",
-          defaultMessage: "Specify what types of photos users must capture",
+          defaultMessage: "Specify what the required media should show",
         })}
         contentClassName="space-y-2"
       >
@@ -214,7 +214,7 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
         })}
         hint={formatMessage({
           id: "app.admin.actions.mediaConfig.optionalShotsDescription",
-          defaultMessage: "Suggest additional photos users can optionally include",
+          defaultMessage: "Suggest additional media people can include",
         })}
         contentClassName="space-y-2"
       >

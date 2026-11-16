@@ -2,9 +2,13 @@ import type { SubmitWorkController } from "@green-goods/shared/hooks/admin-ui/ga
 import { type Action, Capital, Domain } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
+import { useIntl } from "react-intl";
 import { expect, fn, userEvent, within } from "storybook/test";
 import { withAdminPrimitiveFrame, withI18n } from "../../../../../shared/.storybook/decorators";
-import { stagedWorkPhotos } from "../../../../../shared/.storybook/workPhotoFixtures";
+import {
+  stagedWorkPhotos,
+  stagedWorkVideo,
+} from "../../../../../shared/.storybook/workPhotoFixtures";
 import type { FlowSendStatus } from "../../../components/Layout/FlowSendFooter";
 import { SubmitWorkStepContent } from "./SubmitWorkStepContent";
 
@@ -64,7 +68,7 @@ const meta = {
   decorators: [withI18n, withAdminPrimitiveFrame],
   args: {
     controller: ACTION_STEP_CONTROLLER,
-    photoRequirementText: "1 photo required",
+    photoRequirementText: "1 media item required",
     reviewStatus: REVIEW_STATUS,
   },
 } satisfies Meta<typeof SubmitWorkStepContent>;
@@ -76,7 +80,7 @@ export const ChooseAction: Story = {};
 
 const TWO_PHOTO_ACTION: Action = {
   ...ACTION,
-  mediaInfo: { title: "Field photos", required: true, minImageCount: 2, maxImageCount: 6 },
+  mediaInfo: { title: "", required: true, minImageCount: 2, maxImageCount: 6 },
 };
 
 /**
@@ -84,6 +88,7 @@ const TWO_PHOTO_ACTION: Action = {
  * photos moves the count as it does in the flow.
  */
 function MediaStep({ staged }: { staged: File[] }) {
+  const { formatMessage } = useIntl();
   const [images, setImages] = useState(staged);
   const controller = {
     ...ACTION_STEP_CONTROLLER,
@@ -99,7 +104,10 @@ function MediaStep({ staged }: { staged: File[] }) {
   return (
     <SubmitWorkStepContent
       controller={controller}
-      photoRequirementText="2 photos required"
+      photoRequirementText={formatMessage(
+        { id: "app.admin.work.submit.photosRequired" },
+        { count: 2 }
+      )}
       reviewStatus={REVIEW_STATUS}
     />
   );
@@ -134,6 +142,11 @@ export const MediaBelowRequirement: Story = {
 /** Three against two: the count turns green and the tiles fill the row. */
 export const MediaRequirementMet: Story = {
   render: () => <MediaStep staged={stagedWorkPhotos(3)} />,
+};
+
+/** The same minimum met by one photo and one supported video. */
+export const MediaWithVideo: Story = {
+  render: () => <MediaStep staged={[...stagedWorkPhotos(1), stagedWorkVideo("walkthrough.mp4")]} />,
 };
 
 /** A tile opened in the shared image preview, on the photo that was pressed. */

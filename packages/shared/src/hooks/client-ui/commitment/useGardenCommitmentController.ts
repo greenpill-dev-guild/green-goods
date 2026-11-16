@@ -39,6 +39,7 @@ import { useCommitmentQueueState } from "../../commitment-pooling/useCommitmentQ
 import { useCommitmentViewerRoles } from "../../commitment-pooling/useCommitmentViewerRoles";
 import { useCommitmentWorkDecisions } from "../../commitment-pooling/useCommitmentWorkDecisions";
 import { useDueClock } from "../../commitment-pooling/useDueClock";
+import { useWorkVisibility } from "../../work/useWorkVisibility";
 import { useWorks } from "../../work/useWorks";
 import type {
   GardenCommitmentActs,
@@ -72,6 +73,7 @@ export function useGardenCommitmentController(input: {
   const metadata = useCommitmentMetadataFor(commitmentQuery.detail?.commitment);
   const mutation = useCommitmentMutation({ chainId });
   const workGarden = commitmentQuery.detail?.commitment.providerGarden ?? null;
+  const workVisibility = useWorkVisibility(chainId);
   const { works } = useWorks(workGarden ?? "", { offline: true });
   const poolQuery = useCommitmentPool(
     { chainId, poolId: commitmentQuery.detail?.commitment.poolId ?? 0n },
@@ -343,6 +345,7 @@ export function useGardenCommitmentController(input: {
     metadata,
     pool: poolQuery.pool,
     works,
+    workVisibility,
     actions,
     roles,
     seat,

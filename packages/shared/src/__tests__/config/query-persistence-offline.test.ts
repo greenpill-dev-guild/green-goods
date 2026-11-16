@@ -36,6 +36,7 @@ describe("durable offline reads", () => {
     ["gardens", gardensKeys.byChain(11155111)],
     ["actions", actionsKeys.byChain(11155111)],
     ["work", worksKeys.online("garden", 11155111)],
+    ["work visibility", worksKeys.visibility(11155111)],
   ])("restores %s after a failed or paused refetch", async (_name, key) => {
     const source = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     source.setQueryData(key, [{ id: "last-known" }]);
@@ -158,17 +159,26 @@ describe("reading cache entries", () => {
     for (const query of source.getQueryCache().getAll()) {
       await persistence.persistQuery(source, query.queryKey);
     }
-    expect(storage.length).toBe(4);
+    const visibilityKey = worksKeys.visibility(11155111);
+    const visibility = {
+      chainId: 11155111,
+      excludedWorkUIDs: ["hidden-work"],
+      excludedApprovalUIDs: [],
+    };
+    source.setQueryData(visibilityKey, visibility, { updatedAt: expiredAt });
+    await persistence.persistQuery(source, visibilityKey);
+    expect(storage.length).toBe(5);
 
     const restored = new QueryClient();
     await persistence.restore(restored);
 
+    expect(restored.getQueryData(visibilityKey)).toEqual(visibility);
     expect(restored.getQueryData(workRead)).toEqual([{ id: "kept" }]);
     expect(restored.getQueryData(worksKeys.metadata("bafy-details"))).toEqual({ details: "kept" });
     expect(restored.getQueryData(["greengoods", "platform", "expired"])).toBeUndefined();
     expect(restored.getQueryData(["greengoods", "platform", "fresh"])).toEqual({ ordinary: true });
     // The expired entry left storage during the restore, so nothing is left to collect.
-    expect(storage.length).toBe(3);
+    expect(storage.length).toBe(4);
     await expect(persistence.gc()).resolves.toBe(0);
     source.clear();
     restored.clear();

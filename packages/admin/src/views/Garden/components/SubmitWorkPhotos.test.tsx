@@ -38,10 +38,10 @@ afterEach(() => {
 
 describe("SubmitWorkPhotos", () => {
   it.each([
-    { stagedCount: 0, state: "needed", text: "0 of 2 photos" },
-    { stagedCount: 1, state: "needed", text: "1 of 2 photos" },
-    { stagedCount: 2, state: "met", text: "2 photos added" },
-    { stagedCount: 3, state: "met", text: "3 photos added" },
+    { stagedCount: 0, state: "needed", text: "0 of 2 media items" },
+    { stagedCount: 1, state: "needed", text: "1 of 2 media items" },
+    { stagedCount: 2, state: "met", text: "2 media items added" },
+    { stagedCount: 3, state: "met", text: "3 media items added" },
   ])("reads $state with $stagedCount staged against two required", ({
     stagedCount,
     state,
@@ -64,7 +64,7 @@ describe("SubmitWorkPhotos", () => {
 
     rerender(<SubmitWorkPhotos images={staged(1)} minRequired={0} onRemove={vi.fn()} />);
 
-    expect(screen.getByRole("status")).toHaveTextContent("1 photo added");
+    expect(screen.getByRole("status")).toHaveTextContent("1 media item added");
     expect(screen.getByRole("status")).toHaveAttribute("data-state", "met");
   });
 
@@ -126,7 +126,7 @@ describe("SubmitWorkPhotos", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("keeps a video or an unconverted HEIC as a file that neither opens nor counts", async () => {
+  it("counts a supported video without offering it the photo preview", async () => {
     const user = userEvent.setup();
     renderWithProviders(
       <SubmitWorkPhotos
@@ -141,7 +141,7 @@ describe("SubmitWorkPhotos", () => {
       />
     );
 
-    expect(screen.getByRole("status")).toHaveTextContent("2 of 3 photos");
+    expect(screen.getByRole("status")).toHaveTextContent("3 media items added");
     for (const name of ["walkthrough.mp4", "IMG_0042.HEIC"]) {
       expect(screen.getByText(name)).toBeInTheDocument();
       expect(screen.getByRole("button", { name: `Remove ${name}` })).toBeInTheDocument();

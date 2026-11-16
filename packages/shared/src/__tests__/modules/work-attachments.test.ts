@@ -81,10 +81,28 @@ describe("work attachment boundaries", () => {
     };
     expect(await captured.text()).toBe("photo");
   });
-  it("accepts videos but does not count them as required photos", () => {
-    const video = new File(["clip"], "clip.mp4", { type: "video/mp4" });
-    expect(validateWorkAttachments([video], [], 0)).toEqual([]);
-    expect(validateWorkAttachments([video], [], 1)).toContain("photos-required");
+  it.each([
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "video/mp4",
+    "video/webm",
+  ])("counts supported %s toward the required media minimum", (type) => {
+    const media = new File(["evidence"], "evidence", { type });
+    expect(validateWorkAttachments([media], [], 1)).toEqual([]);
+    expect(validateWorkAttachments([media], [], 2)).toContain("photos-required");
+  });
+  it("counts a photo and a video together, but excludes documents, audio and unsupported files", () => {
+    const photo = new File(["photo"], "before.jpg", { type: "image/jpeg" });
+    const video = new File(["clip"], "after.mp4", { type: "video/mp4" });
+    const audio = new File(["note"], "note.webm", { type: "audio/webm" });
+    expect(validateWorkAttachments([photo, video], [audio], 2)).toEqual([]);
+    expect(validateWorkAttachments([], [audio], 1)).toContain("photos-required");
+    for (const type of ["application/pdf", "audio/webm", "video/quicktime", "image/gif"]) {
+      expect(
+        validateWorkAttachments([photo, new File(["extra"], "extra", { type })], [], 2)
+      ).toContain("photos-required");
+    }
   });
   it("counts a JPEG, PNG or WebP as a photo, and a waiting HEIC only where one is kept", () => {
     const file = (name: string, type: string) => new File(["x"], name, { type });
