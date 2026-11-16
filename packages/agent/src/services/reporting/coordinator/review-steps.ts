@@ -8,8 +8,10 @@ import {
 } from "@green-goods/shared/modules/agent-reporting";
 import type { Confidence } from "@green-goods/shared/types/domain";
 import { invalidateConfirmation, recordConfirmation } from "../confirmations";
+import type { ReportingCopyKey } from "../copy";
 import { enqueueJob } from "../jobs";
 import { closeConversationPrompt, resolvePrompt } from "../prompts";
+import { chainCheckStopped } from "../reconciliation";
 import { commitReview, type ReviewRecord, reviewState } from "../reviews";
 import { accountLink } from "./account-link";
 import type { ChatCommand } from "./commands";
@@ -33,6 +35,13 @@ const EDITABLE = new Set([
 
 /** The states in which a steward still answers a decision's questions, before confirming it. */
 const ANSWERING = new Set(["discussing", "needsClarification", "decisionPrepared"]);
+
+/** A decision that can't change is being recorded, unless its chain check stopped without it. */
+function frozenReviewReply(writer: TurnWriter, review: ReviewRecord): ReportingCopyKey {
+  return chainCheckStopped(writer.core, { reviewIntentId: review.id })
+    ? "review.unconfirmed"
+    : "review.frozen";
+}
 
 /** `REVIEW` lists pending work (after linking an account); `REVIEW n` picks from the open list. */
 export function requestReview(writer: TurnWriter, index: number | null): void {
@@ -132,7 +141,8 @@ function applyReviewContent(
       ? [{ type: "READY_FOR_REVIEW" as const, revision: review.revision + 1 }]
       : [];
   const { review: next, refused } = commitReview(writer.core, review, events, content);
-  if (refused.some((event) => event.type === "REVISED")) return writer.say("review.frozen");
+  if (refused.some((event) => event.type === "REVISED"))
+    return writer.say(frozenReviewReply(writer, review));
   supersedeReviewOperation(writer, review.id);
   if (writer.ctx.prompt) resolvePrompt(writer.core, writer.ctx.prompt.id);
   nextReviewStep(writer, next, account);
@@ -169,6 +179,14 @@ export function handleReviewCommand(
     // story goes to the review and not to a report beside it.
     case "new":
     case "status":
+      // STATUS for a decision whose chain check stopped says so, not that no report is open.
+      if (
+        command.kind === "status" &&
+        chainCheckStopped(writer.core, { reviewIntentId: review.id })
+      ) {
+        writer.say("review.unconfirmed");
+        return true;
+      }
       if (!account || !ANSWERING.has(reviewState(review))) return false;
       if (command.kind === "new") writer.say("review.resumeFirst");
       if (command.kind === "status" || !isReviewPrompt(writer.ctx.prompt?.kind))
@@ -235,14 +253,15 @@ function confirmReview(
 
 function editReview(writer: TurnWriter, review: ReviewRecord): void {
   const account = writer.ctx.account;
-  if (!EDITABLE.has(reviewState(review)) || !account) return writer.say("review.frozen");
+  if (!EDITABLE.has(reviewState(review)) || !account)
+    return writer.say(frozenReviewReply(writer, review));
   const cleared = { ...review.content, decision: null, confidence: null, feedback: null };
   applyReviewContent(writer, review, cleared, account.address);
 }
 
 function cancelReview(writer: TurnWriter, review: ReviewRecord): void {
   const { refused } = commitReview(writer.core, review, [{ type: "CANCEL" }]);
-  if (refused.length > 0) return writer.say("review.frozen");
+  if (refused.length > 0) return writer.say(frozenReviewReply(writer, review));
   supersedeReviewOperation(writer, review.id);
   closeConversationPrompt(writer.core, writer.ctx.conversationId);
   writer.say("review.cancelled");
