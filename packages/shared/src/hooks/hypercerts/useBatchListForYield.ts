@@ -86,6 +86,7 @@ export function useBatchListForYield(gardenAddress?: Address): UseBatchListForYi
             id: !signer ? "app.account.signInRequired" : "app.account.signerNotReady",
           })
         );
+      sender.assertReadyToSign?.();
       if (!scope || !store().begin(scope)) return;
       try {
         await sender.assertOwnership?.(signer, chainId);

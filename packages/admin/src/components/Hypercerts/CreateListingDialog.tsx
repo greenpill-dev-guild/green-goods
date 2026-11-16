@@ -8,6 +8,7 @@ import {
 import { logger } from "@green-goods/shared/modules/app/logger";
 import type { Address } from "@green-goods/shared/types/domain";
 import { type CreateListingParams, LISTING_DEFAULTS } from "@green-goods/shared/types/hypercerts";
+import { wasAskedToReconnect } from "@green-goods/shared/utils/errors/tx-error-classifier";
 import { RiCheckLine, RiExchangeDollarLine, RiLoader4Line } from "@remixicon/react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -113,6 +114,10 @@ export function CreateListingDialog({
     try {
       await createListing(params);
     } catch (error) {
+      if (wasAskedToReconnect(error)) {
+        setPhase("configure");
+        return;
+      }
       logger.error("Failed to create listing", { error });
       setSubmissionError(
         error instanceof Error

@@ -17,6 +17,7 @@ const ADDRESS_A = "0x1111111111111111111111111111111111111111";
 const ADDRESS_B = "0x2222222222222222222222222222222222222222";
 
 const avatarEditorMocks = vi.hoisted(() => ({
+  reconnectRequested: new Error("Reconnect was requested"),
   clear: vi.fn(),
   continueAfterReconnect: vi.fn(),
   discardDraft: vi.fn(),
@@ -49,6 +50,13 @@ avatarEditorMocks.editor.clear = avatarEditorMocks.clear;
 avatarEditorMocks.editor.continueAfterReconnect = avatarEditorMocks.continueAfterReconnect;
 avatarEditorMocks.editor.discardDraft = avatarEditorMocks.discardDraft;
 avatarEditorMocks.editor.save = avatarEditorMocks.save;
+
+vi.mock("@green-goods/shared/utils/errors/tx-error-classifier", async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import("@green-goods/shared/utils/errors/tx-error-classifier")
+  >()),
+  wasAskedToReconnect: (error: unknown) => error === avatarEditorMocks.reconnectRequested,
+}));
 
 vi.mock("@green-goods/shared/components/Dialog/PwaSheet", () => ({
   PWA_SHEET_MEDIA_QUERY: "(max-width: 639px)",
@@ -240,6 +248,83 @@ describe("ProfileAvatarEditor", () => {
     await waitFor(() =>
       expect(screen.queryByRole("dialog", { name: "Profile Photo" })).not.toBeInTheDocument()
     );
+  });
+
+  it("retries the same selected photo after reconnect without opening the picker again", async () => {
+    avatarEditorMocks.save.mockRejectedValueOnce(avatarEditorMocks.reconnectRequested);
+    avatarEditorMocks.save.mockResolvedValueOnce(undefined);
+    renderEditor();
+    const user = await openEditor();
+    const file = new File(["image"], "profile.webp", { type: "image/webp" });
+
+    await user.upload(screen.getByTestId("profile-photo-input"), file);
+
+    expect(avatarEditorMocks.save).toHaveBeenCalledWith(file);
+    expect(screen.getByRole("dialog", { name: "Profile Photo" })).toBeVisible();
+    expect(
+      await screen.findByRole("img", { name: "Unpublished profile photo draft" })
+    ).toBeVisible();
+    expect(screen.getByRole("button", { name: "Try Again" })).toBeEnabled();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Try Again" }));
+    expect(avatarEditorMocks.save).toHaveBeenNthCalledWith(2, file);
+    expect(avatarEditorMocks.continueAfterReconnect).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Profile Photo" })).not.toBeInTheDocument()
+    );
+  });
+
+  it("keeps the draft preview after retry asks to reconnect", async () => {
+    const draft = {
+      action: "set" as const,
+      file: new File(["draft"], "draft.webp", { type: "image/webp" }),
+    };
+    avatarEditorMocks.editor.draft = draft;
+    avatarEditorMocks.continueAfterReconnect.mockRejectedValueOnce(
+      avatarEditorMocks.reconnectRequested
+    );
+    renderEditor();
+    const user = await openEditor();
+    await user.click(screen.getByRole("button", { name: "Try Again" }));
+
+    expect(avatarEditorMocks.editor.draft).toBe(draft);
+    expect(screen.getByRole("img", { name: "Unpublished profile photo draft" })).toBeVisible();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("renders a refused local selection exactly like the existing saved draft surface", async () => {
+    const file = new File(["image"], "profile.webp", { type: "image/webp" });
+    avatarEditorMocks.save.mockRejectedValueOnce(avatarEditorMocks.reconnectRequested);
+    const local = renderEditor();
+    const user = await openEditor();
+    await user.upload(screen.getByTestId("profile-photo-input"), file);
+    await screen.findByRole("img", { name: "Unpublished profile photo draft" });
+    const sheetMarkup = () =>
+      screen
+        .getByRole("dialog", { name: "Profile Photo" })
+        .outerHTML.split(screen.getByTestId("profile-photo-input").id)
+        .join("profile-photo-input");
+    const refusedMarkup = sheetMarkup();
+    local.unmount();
+
+    avatarEditorMocks.editor.draft = { action: "set", file };
+    renderEditor();
+    await openEditor();
+    await screen.findByRole("img", { name: "Unpublished profile photo draft" });
+    expect(sheetMarkup()).toBe(refusedMarkup);
+  });
+
+  it("keeps removal available without a second failure after asking to reconnect", async () => {
+    avatarEditorMocks.clear.mockRejectedValueOnce(avatarEditorMocks.reconnectRequested);
+    renderEditor();
+    const user = await openEditor();
+    await user.click(screen.getByRole("button", { name: "Remove Photo" }));
+    const confirm = screen.getByRole("alertdialog", { name: "Remove profile photo?" });
+    await user.click(within(confirm).getByRole("button", { name: "Remove Photo" }));
+
+    expect(avatarEditorMocks.clear).toHaveBeenCalledOnce();
+    expect(screen.getByRole("dialog", { name: "Profile Photo" })).toBeVisible();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("keeps the sheet open and blocks every dismissal path while saving", async () => {
@@ -457,8 +542,13 @@ describe("ProfileAvatarEditor", () => {
   });
 
   it("closes and resets transient sheet state when the active account changes", async () => {
+    avatarEditorMocks.save.mockRejectedValueOnce(avatarEditorMocks.reconnectRequested);
     const rendered = renderEditor();
-    await openEditor();
+    const user = await openEditor();
+    await user.upload(
+      screen.getByTestId("profile-photo-input"),
+      new File(["image"], "refused.webp", { type: "image/webp" })
+    );
     avatarEditorMocks.editor.address = ADDRESS_B;
 
     rendered.rerender(
@@ -470,5 +560,9 @@ describe("ProfileAvatarEditor", () => {
     await waitFor(() =>
       expect(screen.queryByRole("dialog", { name: "Profile Photo" })).not.toBeInTheDocument()
     );
+    await openEditor();
+    expect(screen.queryByRole("button", { name: "Try Again" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Replace Photo" })).toBeEnabled();
+    expect(avatarEditorMocks.save).toHaveBeenCalledTimes(1);
   });
 });

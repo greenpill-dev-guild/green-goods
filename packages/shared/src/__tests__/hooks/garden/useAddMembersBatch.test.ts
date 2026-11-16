@@ -18,6 +18,7 @@ import { type Address, type Garden } from "../../../types/domain";
 import { createTestQueryClient } from "../../test-utils/query-client";
 import { renderHookWithProviders } from "../../test-utils/render-helpers";
 import { createFakeBatchingSender } from "../../test-utils/transaction-fakes";
+import { onWalletReconnectAsk, refuseWithoutWallet } from "../../../modules/auth/wallet-reconnect";
 
 const {
   auth,
@@ -105,6 +106,27 @@ describe("useAddMembersBatch", () => {
     wearing.clear();
     mockIsBatchEnabled.mockReturnValue(true);
     mockRefusal.mockResolvedValue(null);
+  });
+
+  it("retains refused rows without counting an unanswered wallet as a started or failed add", async () => {
+    const { result, sender } = renderBatch(CONFIRMED);
+    sender.assertReadyToSign = vi.fn(refuseWithoutWallet);
+    const asked = vi.fn();
+    const stop = onWalletReconnectAsk(asked);
+    try {
+      const list = rows();
+      let outcome: unknown;
+      await act(async () => {
+        outcome = await result.current.add(list);
+      });
+      expect(asked).toHaveBeenCalledOnce();
+      expect(outcome).toMatchObject({ notSent: list, added: [] });
+      expect(sender.sendContractCall).not.toHaveBeenCalled();
+      expect(tracking.started).not.toHaveBeenCalled();
+      expect(tracking.failed).not.toHaveBeenCalled();
+    } finally {
+      stop();
+    }
   });
 
   it("is available only once its rail is listed, and needs no wallet capability", async () => {

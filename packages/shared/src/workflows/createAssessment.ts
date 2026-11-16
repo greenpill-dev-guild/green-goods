@@ -1,5 +1,6 @@
 import { assign, fromPromise, setup } from "xstate";
 import type { Address, AssessmentWorkflowParams } from "../types/domain";
+import { wasAskedToReconnect } from "../utils/errors/unsent-failures";
 
 // Re-export from canonical location for backwards compatibility
 export type { AssessmentWorkflowParams, CreateAssessmentForm } from "../types/domain";
@@ -110,6 +111,7 @@ const createAssessmentSetup = setup({
     },
     canRetry: ({ context }) => context.retryCount < 3,
     isPending: () => false,
+    reconnectAsked: ({ event }) => wasAskedToReconnect((event as { error?: unknown }).error),
     hasConfirmedUid: ({ event }) => Boolean((event as { output?: string }).output),
   },
 });
@@ -188,6 +190,7 @@ export const createAssessmentMachine = createAssessmentSetup.createMachine({
         },
         onError: [
           { target: "pending", guard: "isPending", actions: "storeFailure" },
+          { target: "ready", guard: "reconnectAsked" },
           {
             target: "error",
             actions: ["storeFailure", "incrementRetry"],

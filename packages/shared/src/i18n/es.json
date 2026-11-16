@@ -9025,6 +9025,13 @@
   "app.garden.membership.loading": "Cargando fechas de membresía…",
   "app.garden.membership.unavailable": "Fechas de membresía no disponibles",
   "app.garden.membership.dateUnknown": "Fecha desconocida",
+  "app.garden.contribution.label": "Última contribución registrada",
+  "app.garden.contribution.loading": "Cargando contribuciones…",
+  "app.garden.contribution.none": "Sin contribuciones registradas",
+  "app.garden.contribution.unavailable": "Fecha de contribución no disponible",
+  "app.garden.contribution.lastOn": "Contribuyó el {date}",
+  "app.garden.contribution.rowUnavailable": "Contribución no disponible",
+  "app.garden.contribution.rowNone": "Sin contribución registrada",
   "app.admin.work.submit.videoInvalid": "Usa videos MP4 o WebM de hasta 20 MB y 30 segundos.",
   "app.work.mediaCount": "{count, plural, one {# archivo multimedia} other {# archivos multimedia}}"
 }

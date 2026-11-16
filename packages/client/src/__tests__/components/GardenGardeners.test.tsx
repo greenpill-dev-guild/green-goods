@@ -1,3 +1,4 @@
+import { useGardenMemberContributions } from "@green-goods/shared/hooks/garden/useGardenMemberContributions";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
 import { useGardenMemberHistory } from "@green-goods/shared/hooks/garden/useGardenMemberHistory";
@@ -43,6 +44,10 @@ vi.mock("@green-goods/shared/hooks/garden/useGardenMemberHistory", () => ({
     isError: false,
     refetch: vi.fn(),
   })),
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useGardenMemberContributions", () => ({
+  useGardenMemberContributions: vi.fn(() => ({ canView: false, byAccount: {} })),
 }));
 
 vi.mock("@/components/Inputs", () => ({
@@ -103,6 +108,7 @@ afterEach(() => {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(useGardenMemberContributions).mockReturnValue({ canView: false, byAccount: {} });
   vi.mocked(useGardenMemberHistory).mockReturnValue({
     members: [],
     isLoading: false,
@@ -122,6 +128,42 @@ beforeEach(() => {
 });
 
 describe("GardenGardeners", () => {
+  it("shows the selected garden's contribution in details and masks cached facts for other roles", async () => {
+    const user = userEvent.setup();
+    const state = {
+      canView: true,
+      byAccount: {
+        [members[0].account.toLowerCase()]: {
+          status: "recorded" as const,
+          at: Date.UTC(2026, 10, 15, 12),
+        },
+      },
+    };
+    vi.mocked(useGardenMemberContributions).mockReturnValue(state);
+    const view = renderWithProviders(
+      <TestIntl>
+        <GardenGardeners members={members.slice(0, 2)} garden={garden} />
+      </TestIntl>
+    );
+    expect(screen.getByText("Contributed 11/15/2026")).toBeInTheDocument();
+    await user.click(screen.getAllByRole("button", { name: /Member 0/ })[0]);
+    expect(
+      within(screen.getByRole("dialog")).getByText("Last recorded contribution")
+    ).toBeInTheDocument();
+    expect(useGardenMemberContributions).toHaveBeenCalledWith({
+      garden,
+      accounts: members.slice(0, 2).map((member) => member.account),
+    });
+    vi.mocked(useGardenMemberContributions).mockReturnValue({ ...state, canView: false });
+    view.rerender(
+      <TestIntl>
+        <GardenGardeners members={members.slice(0, 2)} garden={garden} />
+      </TestIntl>
+    );
+    expect(screen.queryByText("Last recorded contribution")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Contributed/)).not.toBeInTheDocument();
+  });
+
   it("virtualizes large member lists while preserving selection and list semantics", async () => {
     const user = userEvent.setup();
     const ref = createRef<HTMLUListElement>();
