@@ -352,3 +352,15 @@ test("a comment that marks a deliberate empty block, or annotates the end of a l
   assert.equal(purgeSource(chain, "example.ts").code, chain);
   assert.deepEqual(kinds("uint256 constant WINDOW = 3600; // one hour\n", "Lib.sol"), ["narration"]);
 });
+
+test("a note after another comment on its line is still a heading, so one pass is enough", () => {
+  for (const [code, file] of [
+    ["/* ---- */ // Helpers\nconst x = 1;\n", "example.ts"],
+    ["let x = 1 /* a\n */ // b\nx++;\n", "example.ts"],
+    ["/* ---- */ // Helpers\nuint256 constant X = 1;\n", "Lib.sol"],
+  ]) {
+    const once = purgeSource(code, file).code;
+    assert.equal(purgeSource(once, file).code, once, JSON.stringify(code));
+    assert.doesNotMatch(once, /Helpers|\/\/ b/);
+  }
+});

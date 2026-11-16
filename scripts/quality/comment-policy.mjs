@@ -5,7 +5,9 @@
 // comments with a scanner that skips string literals.
 //
 // The narrow pass removes four kinds: banners, commented-out code, labels (a heading of a few
-// words) and notes that only restate the name they sit on. Everything else stays for a triage
+// words) and notes that only restate the name they sit on, except where a comment's place
+// carries its meaning: one that ends a line of code, or is a block's whole content, always stays.
+// Everything else stays too, for a triage
 // pass that moves each comment into a type, test or lint, or the docs, or keeps or deletes it:
 // licence headers, directives (compiler, linter, bundler, analyzer and repository markers),
 // documentation on exported declarations and JSDoc types, all NatSpec, claimed constraints,
@@ -291,10 +293,18 @@ export function classifyComment(comment, { exported, name = null, marksIntent = 
  * a line of code, where it annotates that line (`chainId: 11155111, // Sepolia`, a test case's
  * `// Missing 0x`), not a heading; or the whole content of a block (`catch { // Ignore errors }`
  * says the swallow is deliberate; without it the empty block reads as a mistake). JSX comment
- * containers are not blocks.
+ * containers are not blocks. Other comments on the line are not code: a note after a banner
+ * (`/* ---- *\/ // Helpers`) is still a heading, so one pass removes both.
  */
-function marksIntent(code, comment, { inJsxContainer = false } = {}) {
-  const before = code.slice(lineStart(code, comment.start), comment.start);
+function marksIntent(code, comment, { comments = [], inJsxContainer = false } = {}) {
+  const start = lineStart(code, comment.start);
+  let before = code.slice(start, comment.start);
+  for (const other of comments) {
+    if (other.end <= start || other.start >= comment.start) continue;
+    const from = Math.max(other.start, start) - start;
+    const to = Math.min(other.end, comment.start) - start;
+    before = before.slice(0, from) + " ".repeat(to - from) + before.slice(to);
+  }
   const afterOnLine = code.slice(comment.end, lineEnd(code, comment.end));
   if (before.trim() && !afterOnLine.trim()) return true;
   if (inJsxContainer) return false;
@@ -363,9 +373,10 @@ function classifySoliditySource(code) {
   const standalone = (value) => LICENCE.test(value) || isDirective(value, SOLIDITY_DIRECTIVES) || isRuleLine(value);
   // A NatSpec line (`///`) and a plain line (`//`) never join: they are different kinds of comment.
   const joins = (previous, next) => previous.startsWith("/") === next.startsWith("/");
-  return groupComments(code, solidityComments(code), { standalone, joins }).map((comment) => ({
+  const comments = solidityComments(code);
+  return groupComments(code, comments, { standalone, joins }).map((comment) => ({
     ...comment,
-    kind: classifySolidityComment(comment, { name: subjectName(code, comment), marksIntent: marksIntent(code, comment) }),
+    kind: classifySolidityComment(comment, { name: subjectName(code, comment), marksIntent: marksIntent(code, comment, { comments }) }),
   }));
 }
 
@@ -402,7 +413,7 @@ export function classifySource(code, file) {
       kind: classifyComment(comment, {
         exported: spans.some(([start, end]) => comment.start >= start && comment.end <= end),
         name: subjectName(code, comment),
-        marksIntent: marksIntent(code, comment, { inJsxContainer: Boolean(holder) }),
+        marksIntent: marksIntent(code, comment, { comments: real, inJsxContainer: Boolean(holder) }),
       }),
     };
   });
