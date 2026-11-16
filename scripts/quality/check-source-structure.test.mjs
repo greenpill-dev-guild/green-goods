@@ -328,16 +328,16 @@ test("main promotion retains the existing cap only for unchanged accepted develo
 
   // Existing and frozen ceilings remain binding even when the blob matches develop.
   writeFileSync(join(root, path), lines(501));
-  const frozenPath = "packages/agent/src/handlers/index.ts";
+  const frozenPath = "packages/agent/src/platforms/telegram.ts";
   mkdirSync(dirname(join(root, frozenPath)), { recursive: true });
-  writeFileSync(join(root, frozenPath), lines(509));
+  writeFileSync(join(root, frozenPath), lines(553));
   git("add", path, frozenPath);
   git("commit", "-m", "oversized accepted source");
   git("update-ref", "refs/remotes/origin/develop", "HEAD");
   const oversized = run();
   assert.equal(oversized.status, 1);
   assert.match(oversized.stderr, /sample\.ts: modified file at 501 lines/);
-  assert.match(oversized.stderr, /handlers\/index\.ts: 509 lines, above frozen ceiling 508/);
+  assert.match(oversized.stderr, /telegram\.ts: 553 lines, above frozen ceiling 552/);
 });
 
 test("enforces capability direction across relative paths, aliases and import syntax", () => {

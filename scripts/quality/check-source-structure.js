@@ -120,9 +120,8 @@ function isDeclarationOnlySolidityInterface(filePath) {
 export const FROZEN_ALLOWLIST = {
   "packages/admin/src/components/Action/ActionTranslationEditor.tsx": 746,
   "packages/admin/src/components/Garden/GardenSettingsEditor.tsx": 626,
-  "packages/agent/src/handlers/index.ts": 508,
-  "packages/agent/src/platforms/telegram.ts": 590,
-  "packages/agent/src/services/blockchain.ts": 627,
+  "packages/agent/src/platforms/telegram.ts": 552,
+  "packages/agent/src/services/blockchain.ts": 604,
   "packages/client/src/components/Sheets/ConvictionSheet.tsx": 569,
   "packages/client/src/components/Public/PublicCookieJarCard.tsx": 756,
   "packages/client/src/components/Public/PublicEndowmentPanel.tsx": 719,
