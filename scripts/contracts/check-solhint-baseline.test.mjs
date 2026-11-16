@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 import { fixtureGitEnvironment } from "../lib/dev-shared.js";
 import {
   BASELINE_PATH,
+  baseContext,
   countWarnings,
   formatBaseline,
   judge,
@@ -61,7 +62,7 @@ test("a count below the baseline fails in a file the change touches until it is 
   const baseline = { "no-empty-blocks": { [VAULT]: 2 } };
   const lower = { "no-empty-blocks": { [VAULT]: 1 } };
   assert.deepEqual(judge({ errors: [], counts: lower, baseline }).lines, [
-    `stale baseline for ${VAULT}: no-empty-blocks 1 left of 2; record it with \`${SHRINK}\``,
+    `stale baseline for ${VAULT}: no-empty-blocks 1 left of 2; record it with \`${SHRINK}\` from the repository root`,
   ]);
   // In a file the change does not touch, a stale count is a note, not a failure.
   const elsewhere = judge({ errors: [], counts: lower, baseline, changed: new Set([POOL]) });
@@ -82,7 +83,7 @@ test("a renamed source keeps its count, and its old path leaves the baseline bef
   const counts = { "no-empty-blocks": { [POOL]: 2 } };
   // The rename grows nothing, but an entry for a path that is gone is stale until shrink moves it.
   assert.deepEqual(judge({ errors: [], counts, baseline, previous: baseline, renames, changed }).lines, [
-    `stale baseline for ${VAULT}: no-empty-blocks 0 left of 2; record it with \`${SHRINK}\``,
+    `stale baseline for ${VAULT}: no-empty-blocks 0 left of 2; record it with \`${SHRINK}\` from the repository root`,
   ]);
   const moved = shrinkBaseline(baseline, counts, renames);
   assert.deepEqual(moved, { "no-empty-blocks": { [POOL]: 2 } });
@@ -108,7 +109,9 @@ test("a change's sources come from git: both sides of a rename, edits, deletions
     source("Edit.sol", "contract Edit {}\n");
     source("Gone.sol", "contract Gone {}\n");
     source("Same.sol", "contract Same {}\n");
-    git("add", "--", "packages");
+    mkdirSync(path.join(root, "scripts/data"), { recursive: true });
+    writeFileSync(path.join(root, BASELINE_PATH), formatBaseline({ "no-empty-blocks": { "packages/contracts/src/Vault.sol": 2 } }));
+    git("add", "--", "packages", "scripts");
     git("commit", "-q", "-m", "base");
     const base = git("rev-parse", "HEAD");
     git("mv", "packages/contracts/src/Vault.sol", "packages/contracts/src/Pool.sol");
@@ -119,6 +122,11 @@ test("a change's sources come from git: both sides of a rename, edits, deletions
     const src = (name) => `packages/contracts/src/${name}`;
     assert.deepEqual([...renames], [[src("Pool.sol"), src("Vault.sol")]]);
     assert.deepEqual([...changed].sort(), ["Edit.sol", "Gone.sol", "New.sol", "Pool.sol", "Vault.sol"].map(src));
+    // The check's own context reads the same change, and the base's baseline, from its base.
+    const context = baseContext(["--base", base], { root });
+    assert.deepEqual([...context.changed].sort(), [...changed].sort());
+    assert.deepEqual([...context.renames], [...renames]);
+    assert.deepEqual(context.previous, { "no-empty-blocks": { [src("Vault.sol")]: 2 } });
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

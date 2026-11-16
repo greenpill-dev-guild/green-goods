@@ -4,8 +4,9 @@
 // below its baseline fails in a file the change touches until `--baseline-shrink` records it, and
 // the baseline itself may not grow over the base branch's copy, the same rules as the React-pattern
 // baseline. The deployed sources stay as they are: the baseline stops new warnings without asking
-// anyone to edit them. Growth needs the owner: a solhint upgrade that adds warnings, or a move git
-// does not see as a rename, fails the growth check until an admin merges a reviewed baseline.
+// anyone to edit them. Growth needs the owner: a solhint upgrade that adds warnings, a revert of a
+// fix, or a move git does not see as a rename fails the growth check until an admin merges a
+// reviewed baseline.
 import { spawnSync } from "node:child_process";
 import { closeSync, existsSync, mkdtempSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -22,6 +23,7 @@ const SOURCES = "packages/contracts/src";
 // check, whose notice would land on stdout ahead of the JSON.
 const SOLHINT_ARGS = ["--config", "./.solhint.json", "src/**/*.sol", "--ignore-path", ".solhintignore", "-f", "json", "--disc"];
 const SHRINK_FLAG = "--baseline-shrink";
+// The lint step runs in packages/contracts, so the advice says where the command runs.
 const SHRINK_COMMAND = `node scripts/contracts/check-solhint-baseline.mjs ${SHRINK_FLAG}`;
 const NOTE =
   "Shrink-only: per rule and file, the solhint warnings the contract sources still carry. Counts may go down, never up; record a lower count with `node scripts/contracts/check-solhint-baseline.mjs --baseline-shrink`.";
@@ -147,8 +149,9 @@ export function formatBaseline(counts) {
 /**
  * What fails, the lines that say so, and notes that do not fail. A stale count fails only in a file
  * the change touches (`changed`; every file when the base is unknown), so two shrinks that merge
- * together block the next change to that file rather than every change. Pure, so every case can
- * be tested.
+ * together do not block every change. The trade-off: until someone records the lower count, that
+ * file has room for as many new warnings as the stale entry allows, and only develop's own run
+ * shows the stale entry. Pure, so every case can be tested.
  */
 export function judge({ errors, counts, baseline, previous = null, renames = new Map(), changed = null, places = new Map() }) {
   const lines = errors.map((error) => `error ${error.filePath}:${error.line} ${error.ruleId ?? "parse"}: ${error.message}`);
@@ -159,8 +162,8 @@ export function judge({ errors, counts, baseline, previous = null, renames = new
     lines.push(`new warning in ${file}: ${rule} ${now}, the baseline allows ${was}${where ? ` (lines ${where.join(", ")})` : ""}`);
   }
   for (const { rule, file, was, now } of stale) {
-    if (changed === null || changed.has(file)) lines.push(`stale baseline for ${file}: ${rule} ${now} left of ${was}; record it with \`${SHRINK_COMMAND}\``);
-    else notes.push(`stale baseline for ${file}: ${rule} ${now} left of ${was}, in a file this change does not touch; \`${SHRINK_COMMAND}\` records it`);
+    if (changed === null || changed.has(file)) lines.push(`stale baseline for ${file}: ${rule} ${now} left of ${was}; record it with \`${SHRINK_COMMAND}\` from the repository root`);
+    else notes.push(`stale baseline for ${file}: ${rule} ${now} left of ${was}, in a file this change does not touch; \`${SHRINK_COMMAND}\` from the repository root records it`);
   }
   for (const { rule, file, was, now } of baselineGrowth(baseline, previous, renames)) {
     lines.push(`baseline grew for ${file}: ${rule} ${was} on the base, ${now} here`);
@@ -195,12 +198,12 @@ function runSolhint() {
 /**
  * The sources a change touches since `ref`, as `git diff -M` sees them in `cwd`: `changed` holds
  * every path, both sides of a rename and untracked files included, and `renames` maps a new path
- * to its old one.
+ * to its old one. A git failure throws: an empty set would turn every stale entry into a note.
  */
 export function sourceChanges(cwd, ref) {
   const changed = new Set();
   const renames = new Map();
-  const fields = runGit(cwd, ["diff", "-M", "--name-status", "-z", ref, "--", SOURCES], { allowFailure: true }).stdout.split("\0");
+  const fields = runGit(cwd, ["diff", "-M", "--name-status", "-z", ref, "--", SOURCES]).stdout.split("\0");
   for (let at = 0; at < fields.length && fields[at]; ) {
     const status = fields[at];
     if (/^[RC]/.test(status)) {
@@ -212,7 +215,7 @@ export function sourceChanges(cwd, ref) {
       at += 2;
     }
   }
-  for (const file of runGit(cwd, ["ls-files", "--others", "--exclude-standard", "-z", "--", SOURCES], { allowFailure: true }).stdout.split("\0")) {
+  for (const file of runGit(cwd, ["ls-files", "--others", "--exclude-standard", "-z", "--", SOURCES]).stdout.split("\0")) {
     if (file) changed.add(file);
   }
   return { changed, renames };
@@ -222,18 +225,18 @@ export function sourceChanges(cwd, ref) {
  * The base to compare the baseline with, its copy of the baseline, and the sources changed and
  * renamed since. CI names the base it fetched in SOLHINT_BASELINE_BASE_REF; when that does not
  * resolve, the growth check cannot run, so the check fails rather than pass without it. A base
- * given with `--base` takes the place of CI's.
+ * given with `--base` takes the place of CI's. `root` is the repository to read.
  */
-function baseContext(argv) {
+export function baseContext(argv, { root = repoRoot } = {}) {
   const explicitBase = parseBaseArgs(argv).base;
-  const base = resolveGitBase({ repoRoot, explicitBase, environmentVariables: ["SOLHINT_BASELINE_BASE_REF"] });
+  const base = resolveGitBase({ repoRoot: root, explicitBase, environmentVariables: ["SOLHINT_BASELINE_BASE_REF"] });
   const required = explicitBase ?? process.env.SOLHINT_BASELINE_BASE_REF;
   if (required && base !== required) throw new Error(`the base ${required} is not available, so the baseline cannot be compared with it`);
   if (!base) return { base: null, previous: null, renames: new Map(), changed: null };
-  const ref = runGit(repoRoot, ["merge-base", "HEAD", base], { allowFailure: true }).stdout.trim() || base;
-  const shown = runGit(repoRoot, ["show", `${ref}:${BASELINE_PATH}`], { allowFailure: true });
+  const ref = runGit(root, ["merge-base", "HEAD", base], { allowFailure: true }).stdout.trim() || base;
+  const shown = runGit(root, ["show", `${ref}:${BASELINE_PATH}`], { allowFailure: true });
   const previous = shown.status === 0 ? parseBaseline(shown.stdout) : null;
-  return { base, previous, ...sourceChanges(repoRoot, ref) };
+  return { base, previous, ...sourceChanges(root, ref) };
 }
 
 function main(argv = process.argv.slice(2)) {
@@ -249,7 +252,7 @@ function main(argv = process.argv.slice(2)) {
   const baseline = existsSync(baselineFile) ? parseBaseline(readFileSync(baselineFile, "utf8")) : null;
   if (shrink) {
     if (errors.length) {
-      for (const error of errors) console.error(`solhint: error ${error.filePath}:${error.line} ${error.ruleId}: ${error.message}`);
+      for (const error of errors) console.error(`solhint: error ${error.filePath}:${error.line} ${error.ruleId ?? "parse"}: ${error.message}`);
       return 1;
     }
     const next = baseline ? shrinkBaseline(baseline, counts, context.renames) : counts;
