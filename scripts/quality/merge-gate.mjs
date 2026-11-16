@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Merge Gate: the "Merge Gate" commit status, which holds a pull request into develop to the proof
 // its tier in .agents/merge-policy.json asks for. Routine needs nothing beyond CI Gate. Sensitive
-// needs a marker that a fresh agent's adversarial review was addressed at the exact head. Critical
-// needs that marker and one that the selector's full critical gate passed at the same head.
+// needs a marker that a fresh agent's adversarial review was addressed at the head. Critical needs
+// that marker and one that the selector's critical gate passed at the same head.
 //
 // Agents write the markers as pull request comments, so the gate is a process check: it makes a
 // skipped proof visible and blocking, but it does not stop an agent set on bypassing it. The
@@ -25,32 +25,52 @@ export const STATUS_CONTEXT = "Merge Gate";
 // GitHub lists at most 3,000 files for a pull request; past that the change cannot be classified.
 const GITHUB_FILE_LIMIT = 3000;
 const TIERS = ["routine", "sensitive", "critical"];
-// The gate, the policies and selector it reads, and the workflows that gate or release: a change to
-// any of them changes what every later merge must prove, whatever the policies say about it.
+// The gate, the code it loads, the policies and selector it reads, CI Gate (the routine tier's
+// whole proof), and the release workflow: a change to any of them changes what every later merge
+// must prove, whatever the policies say about it.
 export const GATE_CRITICAL_PATHS = [
   ".agents/merge-policy.json",
   ".github/workflows/ci-gate.yml",
   ".github/workflows/merge-gate.yml",
   ".github/workflows/release.yml",
   "scripts/data/validation-policy.json",
+  "scripts/lib/dev-shared.js",
+  "scripts/quality/ci-gate.mjs",
   "scripts/quality/merge-gate.mjs",
   "scripts/quality/select-validation.mjs",
   "scripts/quality/shared-mutation-surface.mjs",
 ];
 const SYMLINK_MODE = "120000";
 const SUBMODULE_MODE = "160000";
-// Anyone may comment on a public repository; only the owner and collaborators write markers.
-const MARKER_AUTHORS = new Set(["OWNER", "MEMBER", "COLLABORATOR"]);
-const MARKER_RE = /^merge-gate:\s+(reviewed|full-gate)\s+([0-9a-f]{40})\b/gim;
+// Only accounts that can push write proof. An organization's read-only members comment as MEMBER
+// too, so the comment's author association cannot tell them apart.
+const WRITE_ROLES = new Set(["admin", "maintain", "write"]);
+// A marker names the head by its full SHA or by a prefix of at least nine characters, the length
+// the status prints.
+const MIN_SHA_PREFIX = 9;
+const MARKER_RE = /^merge-gate:\s+(reviewed|full-gate)\s+([0-9a-f]{9,40})\b/gim;
+const MARKER_LINE = new RegExp(MARKER_RE.source, "im");
 
 export function loadMergePolicy(root = repoRoot) {
   return JSON.parse(readFileSync(resolve(root, ".agents/merge-policy.json"), "utf8"));
 }
 
-/** The merge-settings tool's globs: `**` spans folders, `*` and `?` stay inside one. */
+// Globs as the check selector reads them: a double star before a slash spans zero or more folders
+// (so a root package.json matches the policy's manifest glob), a lone double star spans any text,
+// and a single star or question mark stays inside one folder.
 export function globRegex(glob) {
-  const pattern = glob.replace(/\*\*|\*|\?|[.+^${}()|[\]\\]/g, (token) => ({ "**": ".*", "*": "[^/]*", "?": "[^/]" })[token] ?? `\\${token}`);
-  return new RegExp(`^${pattern}$`);
+  let source = "";
+  for (let at = 0; at < glob.length; at++) {
+    const char = glob[at];
+    if (char === "*" && glob[at + 1] === "*") {
+      const folders = glob[at + 2] === "/";
+      source += folders ? "(?:.*/)?" : ".*";
+      at += folders ? 2 : 1;
+    } else if (char === "*") source += "[^/]*";
+    else if (char === "?") source += "[^/]";
+    else source += char.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+  }
+  return new RegExp(`^${source}$`);
 }
 
 /** The highest of the tiers given; a tier the gate does not know counts as critical. */
@@ -70,9 +90,10 @@ export function policyTier(path, policy) {
 /**
  * A change's tier and the reasons that set it: the highest of the selector's risk, the merge
  * policy's globs and the gate's own list. A symlink, a submodule, a fork, a file list GitHub cut
- * short, or a changed Shared file the gate could not read is critical.
+ * short, a changed Shared file the gate could not read, or a deleted Shared file whose code
+ * reached a signing, sending, queue or session primitive is critical.
  */
-export function classifyChange({ paths, modes, selectorRisk, policy, fork = false, truncated = false, unreadable = [] }) {
+export function classifyChange({ paths, modes, selectorRisk, policy, fork = false, truncated = false, unreadable = [], deletedMutation = [] }) {
   const critical = [];
   const sensitive = [];
   if (fork) critical.push("a fork's pull request");
@@ -86,6 +107,7 @@ export function classifyChange({ paths, modes, selectorRisk, policy, fork = fals
     if (tier === "sensitive") sensitive.push(`sensitive path ${path}`);
   }
   for (const path of unreadable) critical.push(`unreadable Shared file ${path}`);
+  for (const path of deletedMutation) critical.push(`deleted mutation path ${path}`);
   const risk = highestTier(selectorRisk);
   if (risk !== "routine") (risk === "critical" ? critical : sensitive).unshift(`selector risk ${selectorRisk}`);
   if (critical.length) return { tier: "critical", reasons: critical };
@@ -93,13 +115,39 @@ export function classifyChange({ paths, modes, selectorRisk, policy, fork = fals
   return { tier: "routine", reasons: [] };
 }
 
-/** The proofs the comments record for this head: only collaborators' markers naming its full SHA count. */
-export function markersFor(comments, headSha) {
+/** A comment as a reader sees it: fenced code blocks and HTML comments hide what they hold. */
+function visibleText(body) {
+  const lines = [];
+  let fence = null;
+  for (const line of String(body ?? "").replace(/<!--[\s\S]*?-->/g, " ").split(/\r?\n/)) {
+    const marker = line.match(/^\s*(`{3,}|~{3,})/)?.[1];
+    if (marker) {
+      if (!fence) fence = marker;
+      else if (marker[0] === fence[0] && marker.length >= fence.length) fence = null;
+      continue;
+    }
+    if (!fence) lines.push(line);
+  }
+  return lines.join("\n");
+}
+
+/** Whether a comment holds a marker-shaped line at all, before anyone's access is looked up. */
+export function hasMarker(comment) {
+  return MARKER_LINE.test(visibleText(comment.body));
+}
+
+/**
+ * The proofs the comments record for this head. A marker counts from an account `canWrite` accepts,
+ * outside code blocks and HTML comments, when it names the head by its full SHA or a prefix of at
+ * least nine characters. A quoted line starts with `>`, so a quoted marker never counts.
+ */
+export function markersFor(comments, headSha, canWrite) {
   const found = { reviewed: false, fullGate: false };
+  const head = headSha.toLowerCase();
   for (const comment of comments) {
-    if (!MARKER_AUTHORS.has(comment.author_association)) continue;
-    for (const [, kind, sha] of String(comment.body ?? "").matchAll(MARKER_RE)) {
-      if (sha.toLowerCase() !== headSha.toLowerCase()) continue;
+    if (!canWrite(comment.user?.login)) continue;
+    for (const [, kind, sha] of visibleText(comment.body).matchAll(MARKER_RE)) {
+      if (sha.length < MIN_SHA_PREFIX || !head.startsWith(sha.toLowerCase())) continue;
       if (kind.toLowerCase() === "reviewed") found.reviewed = true;
       else found.fullGate = true;
     }
@@ -107,9 +155,25 @@ export function markersFor(comments, headSha) {
   return found;
 }
 
+/**
+ * The commenters who may write proof: those whose repository role is admin, maintain or write.
+ * `roleOf` looks one up; an account it cannot confirm writes nothing.
+ */
+export async function writersAmong(comments, roleOf) {
+  const writers = new Set();
+  for (const login of new Set(comments.filter(hasMarker).map((comment) => comment.user?.login).filter(Boolean))) {
+    try {
+      if (WRITE_ROLES.has(await roleOf(login))) writers.add(login);
+    } catch {
+      // Unconfirmed access counts as none.
+    }
+  }
+  return writers;
+}
+
 /** The status for one head: success once its tier's proof is recorded, pending until then. */
 export function decide({ tier, reasons, markers, headSha }) {
-  const head = headSha.slice(0, 9);
+  const head = headSha.slice(0, MIN_SHA_PREFIX);
   const label = `${tier[0].toUpperCase()}${tier.slice(1)}`;
   if (tier === "routine") return { state: "success", description: "Routine: CI Gate is the proof." };
   const missing = [];
@@ -161,7 +225,7 @@ function readBlobs(oids, { cwd, env }) {
 }
 
 /**
- * The head's Shared package as files in a scratch folder, for the selector to read as text. Blobs
+ * A tree's Shared package as files in a scratch folder, for the selector to read as text. Blobs
  * come from the object store, so `.gitattributes` cannot hide a file; links and submodules stay
  * out, and the caller holds them critical.
  */
@@ -179,9 +243,9 @@ export function materializeShared(entries, { cwd = repoRoot, env = process.env }
 }
 
 /**
- * The head commit's objects, fetched only when missing. A depth limit would turn a full clone
- * shallow and hide history from every worktree that shares it, so only a clone that is already
- * shallow, as the workflow's checkout is, fetches with one.
+ * A commit's objects, fetched only when missing. A depth limit would turn a full clone shallow and
+ * hide history from every worktree that shares it, so only a clone that is already shallow, as the
+ * workflow's checkout is, fetches with one.
  */
 export function fetchCommit(sha, { cwd = repoRoot, env = process.env } = {}) {
   if (spawnSync("git", ["cat-file", "-e", `${sha}^{commit}`], { cwd, env }).status === 0) return;
@@ -214,6 +278,22 @@ async function paginate(path, options, limit = Number.POSITIVE_INFINITY) {
   return items;
 }
 
+/** Deleted Shared files whose code, as the base has it, reached a mutation primitive; unreadable ones too. */
+function deletedMutationPaths(pull, deletedPaths) {
+  const deleted = deletedPaths.filter((path) => /^packages\/shared\/src\/.+\.[cm]?[jt]sx?$/.test(path));
+  if (!deleted.length) return { deletedMutation: [], unreadable: [] };
+  fetchCommit(pull.base.sha);
+  const baseRoot = materializeShared(treeEntries(pull.base.sha));
+  try {
+    return {
+      deletedMutation: resolveMutationPaths(deleted, { cwd: baseRoot }),
+      unreadable: deleted.filter((path) => !existsSync(join(baseRoot, path))),
+    };
+  } finally {
+    rmSync(baseRoot, { recursive: true, force: true });
+  }
+}
+
 /** The status for one pull request's head, every read pinned to that commit. */
 async function evaluate(pull, headSha, options) {
   const files = await paginate(`pulls/${pull.number}/files`, options, GITHUB_FILE_LIMIT);
@@ -226,6 +306,7 @@ async function evaluate(pull, headSha, options) {
     const unreadable = paths.filter(
       (path) => path.startsWith("packages/shared/") && entries.get(path)?.type === "blob" && entries.get(path).mode !== SYMLINK_MODE && !existsSync(join(sharedRoot, path)),
     );
+    const deleted = deletedMutationPaths(pull, deletedPaths);
     const mutationPaths = resolveMutationPaths(paths, { cwd: sharedRoot });
     const selectorRisk = selectValidation({ changedPaths: paths, deletedPaths, mutationPaths, intent: "merge", ci: true }).risk;
     const change = classifyChange({
@@ -235,10 +316,16 @@ async function evaluate(pull, headSha, options) {
       policy: loadMergePolicy(),
       fork: pull.head.repo?.full_name !== pull.base.repo.full_name,
       truncated: files.length >= GITHUB_FILE_LIMIT,
-      unreadable,
+      unreadable: [...unreadable, ...deleted.unreadable],
+      deletedMutation: deleted.deletedMutation,
     });
     const comments = await paginate(`issues/${pull.number}/comments`, options);
-    return decide({ ...change, markers: markersFor(comments, headSha), headSha });
+    const roleOf = async (login) => {
+      const access = await github(`collaborators/${encodeURIComponent(login)}/permission`, options);
+      return access.role_name ?? access.permission;
+    };
+    const writers = await writersAmong(comments, roleOf);
+    return decide({ ...change, markers: markersFor(comments, headSha, (login) => writers.has(login)), headSha });
   } finally {
     rmSync(sharedRoot, { recursive: true, force: true });
   }
@@ -274,6 +361,13 @@ async function main(argv = process.argv.slice(2)) {
       failed = true;
       decision = { state: "error", description: `Could not decide, so nothing passes: ${error.message}`.slice(0, 140) };
     }
+    // A push while the run read the pull request leaves a mixed snapshot; the run for the new head
+    // decides instead.
+    const current = await github(`pulls/${number}`, options);
+    if (current.head.sha !== headSha) {
+      console.log(`#${number}: the head moved to ${current.head.sha.slice(0, MIN_SHA_PREFIX)} while ${headSha.slice(0, MIN_SHA_PREFIX)} was read; nothing posted.`);
+      continue;
+    }
     if (!dryRun) {
       await github(`statuses/${headSha}`, {
         ...options,
@@ -281,7 +375,7 @@ async function main(argv = process.argv.slice(2)) {
         body: { state: decision.state, context: STATUS_CONTEXT, description: decision.description, target_url: runUrl },
       });
     }
-    const line = `#${number} at ${headSha.slice(0, 9)}: ${decision.state}. ${decision.description}`;
+    const line = `#${number} at ${headSha.slice(0, MIN_SHA_PREFIX)}: ${decision.state}. ${decision.description}`;
     console.log(line);
     if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${line}\n`);
   }

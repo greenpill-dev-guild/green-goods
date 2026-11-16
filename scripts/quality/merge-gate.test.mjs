@@ -14,6 +14,7 @@ import {
   loadMergePolicy,
   fetchCommit,
   markersFor,
+  writersAmong,
   materializeShared,
   policyTier,
   pullNumbers,
@@ -31,9 +32,11 @@ const policy = {
 };
 const change = (overrides) => classifyChange({ paths: [], modes: new Map(), selectorRisk: "routine", policy, ...overrides });
 
-test("policy globs read as the merge-settings tool reads them", () => {
+test("policy globs read as the check selector reads them", () => {
   assert.ok(globRegex("packages/contracts/src/**").test("packages/contracts/src/a/B.sol"));
   assert.ok(!globRegex("scripts/*.mjs").test("scripts/quality/a.mjs"));
+  // A double star before a slash spans zero folders too, so the root manifest is a manifest.
+  assert.ok(globRegex("**/package.json").test("package.json") && globRegex("**/package.json").test("packages/a/package.json"));
   assert.equal(policyTier(".github/workflows/release.yml", policy), "critical");
   assert.equal(policyTier(".github/workflows/admin.yml", policy), "sensitive");
   assert.equal(policyTier("docs/a.md", policy), "routine");
@@ -60,17 +63,39 @@ test("whatever the gate cannot classify is critical", () => {
     [{ fork: true }, "a fork's pull request"],
     [{ truncated: true }, "more than 3000 files"],
     [{ unreadable: ["packages/shared/src/a.ts"] }, "unreadable Shared file packages/shared/src/a.ts"],
+    [{ deletedMutation: ["packages/shared/src/send.ts"] }, "deleted mutation path packages/shared/src/send.ts"],
   ];
   for (const [input, reason] of cases) assert.deepEqual(change(input), { tier: "critical", reasons: [reason] });
 });
 
-test("only collaborators' markers naming the exact head count", () => {
-  const comment = (body, author_association = "OWNER") => ({ body, author_association });
-  assert.deepEqual(markersFor([comment(`Review addressed.\nmerge-gate: reviewed ${HEAD}`)], HEAD), { reviewed: true, fullGate: false });
-  assert.deepEqual(markersFor([comment(`merge-gate: full-gate ${HEAD.toUpperCase()} receipts 5/5`)], HEAD), { reviewed: false, fullGate: true });
-  assert.deepEqual(markersFor([comment(`merge-gate: reviewed ${OTHER}`)], HEAD), { reviewed: false, fullGate: false });
-  assert.deepEqual(markersFor([comment(`merge-gate: reviewed ${HEAD}`, "NONE")], HEAD), { reviewed: false, fullGate: false });
-  assert.deepEqual(markersFor([comment(`See merge-gate: reviewed ${HEAD}`), comment("merge-gate: reviewed")], HEAD), { reviewed: false, fullGate: false });
+test("only writers' visible markers naming the head count, by full SHA or a nine-character prefix", () => {
+  const comment = (body, login = "writer") => ({ body, user: { login } });
+  const canWrite = (login) => login === "writer";
+  const none = { reviewed: false, fullGate: false };
+  assert.deepEqual(markersFor([comment(`Review addressed.\nmerge-gate: reviewed ${HEAD}`)], HEAD, canWrite), { reviewed: true, fullGate: false });
+  assert.deepEqual(markersFor([comment(`merge-gate: full-gate ${HEAD.slice(0, 9).toUpperCase()} receipts 5/5`)], HEAD, canWrite), { reviewed: false, fullGate: true });
+  assert.deepEqual(markersFor([comment(`merge-gate: reviewed ${HEAD.slice(0, 8)}`)], HEAD, canWrite), none);
+  assert.deepEqual(markersFor([comment(`merge-gate: reviewed ${OTHER}`)], HEAD, canWrite), none);
+  assert.deepEqual(markersFor([comment(`merge-gate: reviewed ${HEAD}`, "reader")], HEAD, canWrite), none);
+  const hidden = [`See merge-gate: reviewed ${HEAD}`, `> merge-gate: reviewed ${HEAD}`, `\`\`\`\nmerge-gate: reviewed ${HEAD}\n\`\`\``, `<!--\nmerge-gate: reviewed ${HEAD}\n-->`, "merge-gate: reviewed"];
+  for (const body of hidden) assert.deepEqual(markersFor([comment(body)], HEAD, canWrite), none, body);
+});
+
+test("only accounts that can push write proof, and an unconfirmed account writes none", async () => {
+  const comments = [
+    { body: `merge-gate: reviewed ${HEAD}`, user: { login: "maintainer" } },
+    { body: `merge-gate: reviewed ${HEAD}`, user: { login: "member-reads" } },
+    { body: `merge-gate: reviewed ${HEAD}`, user: { login: "lookup-fails" } },
+    { body: "Thanks!", user: { login: "chatty" } },
+  ];
+  const asked = [];
+  const roleOf = async (login) => {
+    asked.push(login);
+    if (login === "lookup-fails") throw new Error("HTTP 403");
+    return { maintainer: "maintain", "member-reads": "read" }[login];
+  };
+  assert.deepEqual([...(await writersAmong(comments, roleOf))], ["maintainer"]);
+  assert.deepEqual(asked, ["maintainer", "member-reads", "lookup-fails"]);
 });
 
 test("each tier waits for its own proof at the head", () => {
@@ -128,10 +153,12 @@ test("the head's files come from the object store: export-ignore hides nothing, 
   }
 });
 
-test("the repository's merge policy holds the gate's own files critical", () => {
+test("the repository's merge policy reads as intended: release workflows critical, every manifest sensitive", () => {
   const repositoryPolicy = loadMergePolicy();
-  for (const tier of ["critical", "sensitive", "routine"]) assert.ok(Array.isArray(repositoryPolicy.tiers[tier]?.paths), tier);
-  for (const gateFile of GATE_CRITICAL_PATHS) assert.equal(change({ paths: [gateFile], policy: repositoryPolicy }).tier, "critical", gateFile);
+  assert.equal(policyTier(".github/workflows/release.yml", repositoryPolicy), "critical");
+  assert.equal(policyTier("package.json", repositoryPolicy), "sensitive");
+  assert.equal(policyTier("packages/admin/package.json", repositoryPolicy), "sensitive");
+  assert.equal(policyTier("docs/docs/index.mdx", repositoryPolicy), "routine");
 });
 
 test("fetching a head never turns a full clone shallow", () => {
