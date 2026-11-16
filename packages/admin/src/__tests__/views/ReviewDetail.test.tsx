@@ -1,4 +1,5 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, screen } from "@testing-library/react";
+import { render } from "../test-utils";
 import React from "react";
 import { IntlProvider } from "react-intl";
 import ptMessages from "@green-goods/shared/i18n/pt.json";

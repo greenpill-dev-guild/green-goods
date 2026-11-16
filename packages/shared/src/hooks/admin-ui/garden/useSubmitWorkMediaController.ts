@@ -2,7 +2,13 @@ import { useCallback, useRef, useState } from "react";
 import type { IntlShape } from "react-intl";
 import { toastService } from "../../../components/toast";
 import { logger } from "../../../modules/app/logger";
-import { isWorkDocument, normalizeWorkMediaFiles } from "../../../modules/work/media-processing";
+import {
+  isVideoFile,
+  isWorkDocument,
+  normalizeWorkMediaFiles,
+  validateWorkVideo,
+} from "../../../modules/work/media-processing";
+import { WORK_VIDEO_MAX_BYTES } from "../../../modules/work/work-attachments";
 import { imageCompressor } from "../../../utils/work/image-compression";
 
 export type SubmitWorkMediaFeedback = {
@@ -60,6 +66,7 @@ export function useSubmitWorkMediaController(
 
       try {
         const normalized = await normalizeWorkMediaFiles(newFiles, {
+          maxVideoBytes: WORK_VIDEO_MAX_BYTES,
           onHeicConversionStarted: () =>
             setProgressMessage(formatMessage({ id: "app.garden.upload.convertingHeic" })),
         });
@@ -67,10 +74,21 @@ export function useSubmitWorkMediaController(
 
         // A steward's Submit Work takes photos and videos only, so a document picked
         // through the file dialog's "all files" choice is refused like any other file.
-        const acceptedFiles = normalized.accepted
-          .map((item) => item.file)
-          .filter((file) => !isWorkDocument(file));
-        const refusedDocuments = normalized.accepted.length - acceptedFiles.length;
+        const acceptedFiles: File[] = [];
+        let refusedDocuments = 0;
+        let invalidVideo = normalized.rejected.some(
+          (item) => item.reason === "too_large" && isVideoFile(item.file)
+        );
+        for (const { file } of normalized.accepted) {
+          if (isWorkDocument(file)) {
+            refusedDocuments += 1;
+          } else if (isVideoFile(file) && !(await validateWorkVideo(file))) {
+            invalidVideo = true;
+          } else {
+            acceptedFiles.push(file);
+          }
+        }
+        if (!isCurrentAction()) return;
         if (acceptedFiles.length > 0) {
           const preparedFiles = await compressMedia(acceptedFiles, (progress) => {
             setProgressMessage(
@@ -85,12 +103,16 @@ export function useSubmitWorkMediaController(
         }
 
         const unsupportedCount =
-          normalized.rejected.filter((item) => item.reason === "unsupported").length +
-          refusedDocuments;
+          normalized.rejected.filter(
+            (item) => item.reason === "unsupported" || isWorkDocument(item.file)
+          ).length + refusedDocuments;
         const conversionFailureCount = normalized.rejected.filter(
           (item) => item.reason === "heic_conversion_failed"
         ).length;
         const messages: string[] = [];
+        if (invalidVideo) {
+          messages.push(formatMessage({ id: "app.admin.work.submit.videoInvalid" }));
+        }
         if (unsupportedCount > 0) {
           const message = formatMessage(
             {
@@ -131,7 +153,7 @@ export function useSubmitWorkMediaController(
         }
         if (messages.length > 0) {
           setMediaFeedback({
-            variant: conversionFailureCount > 0 ? "error" : "warning",
+            variant: conversionFailureCount > 0 || invalidVideo ? "error" : "warning",
             message: messages.join(" "),
           });
         }
@@ -139,13 +161,13 @@ export function useSubmitWorkMediaController(
         logger.error("Admin media processing failed", { error });
         const message = formatMessage({
           id: "app.garden.upload.compressionFailedMessage",
-          defaultMessage: "Try fewer or smaller images, or check your connection.",
+          defaultMessage: "Try fewer or smaller files, or check your connection.",
         });
         setMediaFeedback({ variant: "error", message });
         toastService.error({
           title: formatMessage({
             id: "app.garden.upload.compressionFailedTitle",
-            defaultMessage: "Couldn't process those images",
+            defaultMessage: "Couldn't prepare those files",
           }),
           message,
           context: "admin media upload",

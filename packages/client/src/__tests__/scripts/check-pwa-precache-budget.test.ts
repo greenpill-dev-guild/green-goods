@@ -1,8 +1,8 @@
 import { execFileSync } from "node:child_process";
-import { gzipSync } from "node:zlib";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
+import { gzipSync } from "node:zlib";
 import { afterEach, describe, expect, it } from "vitest";
 
 interface FixtureOptions {
@@ -262,6 +262,27 @@ afterEach(() => {
 });
 
 describe("PWA build budgets", () => {
+  it("uses the Node gzip ceiling when invoked through Bun", () => {
+    const contents = Array.from({ length: 10000 }, (_, index) =>
+      JSON.stringify({ id: index, title: `work-${index % 79}`, value: (index * 2654435761) >>> 0 })
+    ).join("\n");
+    const fixture = createFixture({
+      shellAssets: ["/assets/compressible.js"],
+      files: { "assets/compressible.js": contents },
+    });
+    const output = execFileSync("bun", [checkerPath], {
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        ...relaxedLimits,
+        PWA_DIST_DIR: fixture,
+        PWA_SHELL_GZIP_MAX: String(gzipSync(contents).byteLength),
+      },
+      stdio: "pipe",
+    });
+    expect(output).toContain("PWA budgets OK");
+  });
+
   it.each([
     [
       "precache entry count",

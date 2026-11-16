@@ -132,9 +132,8 @@ export function GardenCommitment() {
   const act = workIsPrimary
     ? { kind: "linkWork" as const, labelId: "app.commitment.act.linkWork" }
     : selectedAct;
-  // A signed-in reader who does not belong to the garden gets no act; the card
-  // under the status band says how to join instead. Nothing shows while
-  // membership is still being read, or while an act is already on its way.
+  // Nonmembers see joining guidance instead of an act. Wait while membership
+  // is being read or an act is already on its way.
   const untaken = commitment.derivedState === "OFFERED" || commitment.derivedState === "REQUESTED";
   const noActToOffer = ordinary && !act && !controller.queue.hasPendingJob && untaken;
   const showJoinToAct = noActToOffer && controller.membership.isMember === false;
@@ -386,6 +385,7 @@ export function GardenCommitment() {
           commitment={commitment}
           requirements={requirements}
           attributions={detail.workAttributions}
+          visibility={controller.workVisibility}
           workDecisions={controller.workDecisions}
           works={controller.works}
           actions={controller.actions}

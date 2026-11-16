@@ -1,3 +1,4 @@
+import { HypercertEvidence } from "@/views/Garden/HypercertEvidence";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { HypercertRecord } from "@green-goods/shared/types/hypercerts";
 import type { Meta, StoryObj } from "@storybook/react";
@@ -82,4 +83,25 @@ export const WithManageAccess: Story = {
     isLoading: false,
     canManage: true,
   },
+};
+
+/** The detail's evidence section beside unchanged certificate issuance facts. */
+export const EvidenceUnavailable: Story = {
+  args: { hypercerts: HYPERCERTS.slice(1, 2), isLoading: false, canManage: false },
+  render: (args) => (
+    <div className="space-y-6">
+      <GardenHypercertsPanel {...args} />
+      <HypercertEvidence attestations={[]} isLoading={false} hasError />
+    </div>
+  ),
+};
+
+export const EvidenceLoading: Story = {
+  args: { hypercerts: HYPERCERTS.slice(1, 2), isLoading: false, canManage: false },
+  render: (args) => (
+    <div className="space-y-6">
+      <GardenHypercertsPanel {...args} />
+      <HypercertEvidence attestations={[]} isLoading hasError={false} />
+    </div>
+  ),
 };

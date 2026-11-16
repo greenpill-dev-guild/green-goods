@@ -54,6 +54,8 @@ const mocks = vi.hoisted(() => ({
   askAgain: vi.fn(),
   resumeWork: null as unknown,
   formFeedback: "",
+  images: [] as File[],
+  minRequired: 0,
   activeDraftId: null as string | null,
   activeTab: "Intro" as "Intro" | "Media" | "Details" | "Review",
   gardens: [] as Array<{ id: string; name: string; domainMask?: number }>,
@@ -254,7 +256,7 @@ vi.mock("../../../stores/useWorkFlowStore", () => ({
 vi.mock("../../../providers/Work", () => ({
   useWorkFormContext: () => ({
     state: { isValid: true, isSubmitting: false },
-    images: [],
+    images: mocks.images,
     setImages: mocks.setImages,
     register: vi.fn(),
     control: {},
@@ -307,7 +309,7 @@ vi.mock("../../../hooks/client-ui/work/useWorkSubmissionPresentationModel", () =
     detailInputs: [],
     detailsConfig: {},
     mediaConfig: { required: false },
-    minRequired: 0,
+    minRequired: mocks.minRequired,
     reviewConfig: {},
     reviewData: {},
   }),
@@ -452,6 +454,8 @@ describe("useWorkSubmissionFlowController", () => {
     mocks.isResumingFromUrl = false;
     mocks.linkCleared = false;
     mocks.formFeedback = "";
+    mocks.images = [];
+    mocks.minRequired = 0;
     mocks.activeDraftId = null;
     mocks.activeTab = "Intro";
     mocks.gardens = [];
@@ -539,6 +543,33 @@ describe("useWorkSubmissionFlowController", () => {
     mocks.gardenAddress = "garden-2";
     view.rerender();
     expect(view.result.current.submissionGardenSettled).toBe(false);
+    expect(view.result.current.canProceed).toBe(false);
+  });
+
+  it("advances Media for a photo and video, while documents and audio cannot meet the minimum", () => {
+    mocks.activeTab = "Media";
+    mocks.minRequired = 2;
+    mocks.images = [
+      new File(["photo"], "before.jpg", { type: "image/jpeg" }),
+      new File(["clip"], "after.mp4", { type: "video/mp4" }),
+    ];
+    const view = renderHook(
+      () =>
+        useWorkSubmissionFlowController({
+          homeRoute: "/home",
+          profileRoute: "/home/profile",
+          trackMediaJourneyEvent: vi.fn(),
+        }),
+      { wrapper: Wrapper }
+    );
+    expect(view.result.current.canProceed).toBe(true);
+
+    mocks.images = [
+      mocks.images[0],
+      new File(["document"], "notes.pdf", { type: "application/pdf" }),
+      new File(["note"], "note.webm", { type: "audio/webm" }),
+    ];
+    view.rerender();
     expect(view.result.current.canProceed).toBe(false);
   });
 

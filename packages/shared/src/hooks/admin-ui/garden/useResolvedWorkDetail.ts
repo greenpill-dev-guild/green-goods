@@ -7,6 +7,7 @@ import { useAdminGardenContext } from "../../garden/useAdminGardenContext";
 import { useGardenPermissions } from "../../garden/useGardenPermissions";
 import { useWorkMetadata } from "../../work/useWorkMetadata";
 import { useWorks } from "../../work/useWorks";
+import { useWorkVisibility } from "../../work/useWorkVisibility";
 import { replaceEqualDeep } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 
@@ -29,6 +30,7 @@ function isSameRecord<T>(known: T, next: T): boolean {
 }
 
 export function useResolvedWorkDetail(workId: string | undefined) {
+  const visibility = useWorkVisibility(DEFAULT_CHAIN_ID);
   const gardenPermissions = useGardenPermissions();
   const {
     activeGarden,
@@ -66,9 +68,11 @@ export function useResolvedWorkDetail(workId: string | undefined) {
     isLoading: worksLoading,
     works,
   } = useWorks(gardenId ?? "");
-  const liveWork =
+  const candidateWork =
     works.find((candidateWork) => candidateWork.id === workId) ??
     matchedGarden?.works?.find((candidateWork) => candidateWork.id === workId);
+  const liveWork =
+    candidateWork && visibility.isVisible(candidateWork.id) ? candidateWork : undefined;
 
   const [lastResolved, setLastResolved] = useState<ResolvedWorkSnapshot | null>(null);
   useEffect(() => {
@@ -89,13 +93,23 @@ export function useResolvedWorkDetail(workId: string | undefined) {
     );
   }, [liveGarden, liveWork, workId]);
 
-  const retained = lastResolved?.workId === workId ? lastResolved : null;
+  const retained =
+    lastResolved && lastResolved.workId === workId && visibility.isVisible(lastResolved.work.id)
+      ? lastResolved
+      : null;
   const hasLiveRecord = Boolean(liveGarden && liveWork);
   const garden = hasLiveRecord ? liveGarden : (retained?.garden ?? null);
   const work = hasLiveRecord ? liveWork : retained?.work;
-  const hasQueryError = gardenContextError || gardensQueryError || worksQueryError;
+  const hasQueryError =
+    gardenContextError ||
+    gardensQueryError ||
+    worksQueryError ||
+    (!visibility.isReady && !visibility.isLoading);
   const isSettling =
-    gardensLoading || gardensFetching || (gardenId ? worksLoading || worksFetching : false);
+    gardensLoading ||
+    gardensFetching ||
+    (gardenId ? worksLoading || worksFetching : false) ||
+    (!visibility.isReady && visibility.isLoading);
   const resolutionStatus: WorkDetailResolutionStatus = hasLiveRecord
     ? "resolved"
     : retained
@@ -152,6 +166,6 @@ export function useResolvedWorkDetail(workId: string | undefined) {
     isTemporarilyAbsent: resolutionStatus === "temporarily-absent",
     isNotFound: resolutionStatus === "not-found",
     isError: resolutionStatus === "error",
-    error: gardensError ?? worksError ?? null,
+    error: visibility.error ?? gardensError ?? worksError ?? null,
   };
 }

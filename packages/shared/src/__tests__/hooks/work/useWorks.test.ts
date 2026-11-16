@@ -95,6 +95,7 @@ vi.mock("../../../modules/app/logger", () => ({
 
 vi.mock("../../../config/query-keys/work", () => ({
   worksKeys: {
+    visibility: (chainId: number) => ["works", "visibility", chainId],
     online: (gardenId: string, chainId: number) => ["works", "online", gardenId, chainId],
     window: (gardenId: string, chainId: number) => ["works", "window", gardenId, chainId],
     offline: (gardenId: string, chainId?: number, account?: string) => [
@@ -177,6 +178,8 @@ describe("hooks/work/useWorks", () => {
     expect(mockGetWorkListPage).toHaveBeenCalledWith(TEST_GARDEN, {
       chainId: TEST_CHAIN_ID,
       take: 51,
+      excludedWorkUIDs: [],
+      excludedApprovalUIDs: [],
     });
   });
 
@@ -280,6 +283,8 @@ describe("hooks/work/useWorks", () => {
     expect(mockGetWorkListPage).toHaveBeenLastCalledWith(TEST_GARDEN, {
       chainId: TEST_CHAIN_ID,
       take: 101,
+      excludedWorkUIDs: [],
+      excludedApprovalUIDs: [],
     });
     // A page short of the window means the garden has nothing older left.
     expect(result.current.hasOlderWork).toBe(false);
@@ -308,7 +313,41 @@ describe("hooks/work/useWorks", () => {
     expect(mockGetWorkListPage).toHaveBeenCalledWith(TEST_GARDEN, {
       chainId: TEST_CHAIN_ID,
       take: 51,
+      excludedWorkUIDs: [],
+      excludedApprovalUIDs: [],
     });
+  });
+
+  it("fills a visible page without deleting a newer excluded cached work", async () => {
+    const visible = Array.from({ length: 50 }, (_, index) => ({
+      id: `work-${index}`,
+      title: `Work ${index}`,
+      actionUID: 1,
+      gardenerAddress: TEST_PRIMARY_ADDRESS,
+      gardenAddress: TEST_GARDEN,
+      feedback: "",
+      metadata: JSON.stringify({ clientWorkId: `client-${index}` }),
+      media: [],
+      createdAt: 2_000 - index,
+      status: "pending" as const,
+    }));
+    const hidden = { ...visible[0], id: `0x${"a".repeat(64)}`, createdAt: 3_000 };
+    const mergedKey = ["works", "merged", TEST_GARDEN, TEST_CHAIN_ID];
+    queryClient.setQueryData(mergedKey, [hidden]);
+    queryClient.setQueryData(["works", "visibility", TEST_CHAIN_ID], {
+      chainId: TEST_CHAIN_ID,
+      excludedWorkUIDs: [hidden.id],
+      excludedApprovalUIDs: [],
+    });
+    mockGetWorkListPage.mockResolvedValue(visible);
+
+    const { result } = renderHookWithProviders(() => useWorks(TEST_GARDEN), { queryClient });
+
+    await waitFor(() => expect(mockGetWorkListPage).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
+    expect(result.current.works.map((work) => work.id)).toEqual(visible.map((work) => work.id));
+    expect(result.current.hasOlderWork).toBe(false);
+    expect(queryClient.getQueryData(mergedKey)).toEqual(expect.arrayContaining([hidden]));
   });
 
   it("does not let a second consumer shrink a widened garden window", async () => {
@@ -343,6 +382,8 @@ describe("hooks/work/useWorks", () => {
       expect(mockGetWorkListPage).toHaveBeenLastCalledWith(TEST_GARDEN, {
         chainId: TEST_CHAIN_ID,
         take: 101,
+        excludedWorkUIDs: [],
+        excludedApprovalUIDs: [],
       })
     );
     expect(result.current.first.works).toHaveLength(70);
