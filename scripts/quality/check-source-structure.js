@@ -31,6 +31,7 @@ const ALLOWED_TOP_LEVEL_DIRECTORIES = {
   contracts: new Set([
     "accounts",
     "interfaces",
+    "lib",
     "libraries",
     "markets",
     "mocks",
@@ -135,6 +136,8 @@ export const FROZEN_ALLOWLIST = {
   "packages/client/src/views/Garden/Media.tsx": 720,
   "packages/client/src/views/Public/Fund.tsx": 775,
   "packages/client/src/views/Public/Impact.tsx": 627,
+  "packages/contracts/src/lib/Settlement/LifecycleLib.sol": 699,
+  "packages/contracts/src/lib/Settlement/PlanLib.sol": 908,
   "packages/contracts/src/modules/Gardens.sol": 914,
   "packages/contracts/src/modules/Hats.sol": 851,
   "packages/contracts/src/modules/Octant.sol": 769,
@@ -253,8 +256,10 @@ function isPackageSourcePath(filePath) {
   return /^packages\/[^/]+\/src\//.test(filePath);
 }
 
+// Only generated and third-party code is out of scope; first-party `lib` folders (the contracts
+// libraries, Shared's lib) are ordinary source.
 function isGeneratedOrVendoredPath(filePath) {
-  return /(^|\/)(node_modules|generated|lib|vendor)(\/|$)/.test(filePath);
+  return /(^|\/)(node_modules|generated|vendor)(\/|$)/.test(filePath);
 }
 
 function isTestOrStoryPath(filePath) {
