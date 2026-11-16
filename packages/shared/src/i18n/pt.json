@@ -3575,6 +3575,7 @@
   "app.profile.badges.genesis.description": "Concedida aos membros fundadores da comunidade Green Goods.",
   "app.profile.badges.genesis.title": "Gênese",
   "app.profile.badges.identity": "Identidade da insígnia",
+  "app.profile.badges.issuedOn": "Emitida em {date}",
   "app.profile.badges.issuedTo": "Emitidas para {identity}",
   "app.profile.badges.loading": "Carregando insígnias",
   "app.profile.badges.loadingDescription": "Verificando seu registro de insígnias do Green Goods.",

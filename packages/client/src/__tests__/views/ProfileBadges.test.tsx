@@ -6,6 +6,7 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import messages from "@green-goods/shared/i18n/en.json";
 import esMessages from "@green-goods/shared/i18n/es.json";
+import ptMessages from "@green-goods/shared/i18n/pt.json";
 import { SheetActions } from "@green-goods/shared/components/Dialog/SheetActions";
 
 const GREENWILL_BADGE_IDS = {
@@ -385,6 +386,9 @@ describe("ProfileBadges", () => {
       "https://locksmith.unlock-protocol.com/42161/lock/0x0000000000000000000000000000000000000005/icon"
     );
 
+    expect(genesisImage).toHaveAttribute("width", "80");
+    expect(genesisImage).toHaveAttribute("height", "80");
+
     fireEvent.error(genesisImage);
     expect(within(genesis).queryByAltText("")).toBeNull();
     expect(within(genesis).getByTestId("icon-seedling")).toBeInTheDocument();
@@ -447,31 +451,62 @@ describe("ProfileBadges", () => {
     expect(screen.queryByRole("dialog", { name: "Genesis" })).not.toBeInTheDocument();
   });
 
-  it("dates an earned badge in the person's language and leaves a badge to claim undated", async () => {
+  it.each([
+    ["en", messages, "View Genesis badge", "Genesis", "Issued on March 9, 2024"],
+    ["es", esMessages, "Ver insignia Génesis", "Génesis", "Emitida el 9 de marzo de 2024"],
+    ["pt", ptMessages, "Ver insígnia Gênese", "Gênese", "Emitida em 9 de março de 2024"],
+  ])("labels the ownership issue date on the card and sheet in %s", async (locale, localeMessages, buttonName, title, issuedOn) => {
     const user = userEvent.setup();
-    const { unmount } = render(wrap(createElement(ProfileBadges)));
+    render(wrap(createElement(ProfileBadges), locale, localeMessages));
 
-    // Genesis was issued at 1710000000, block time in seconds: 9 March 2024, 16:00 UTC.
-    await user.click(screen.getByRole("button", { name: "View Genesis badge" }));
-    const earned = screen.getByRole("dialog", { name: "Genesis" });
-    const date = within(earned).getByText("March 9, 2024");
-    expect(date.tagName).toBe("TIME");
-    expect(date).toHaveAttribute("datetime", "2024-03-09T16:00:00.000Z");
-    expect(within(date.parentElement as HTMLElement).getByText("Earned")).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Close" }));
-    await user.click(screen.getByRole("button", { name: "View First Work badge" }));
-    const claimable = screen.getByRole("dialog", { name: "First Work" });
-    expect(within(claimable).getByText("Ready to claim")).toBeInTheDocument();
-    expect(claimable.querySelector("time")).toBeNull();
-    unmount();
-
-    render(wrap(createElement(ProfileBadges), "es", esMessages));
-    await user.click(screen.getByRole("button", { name: "Ver insignia Génesis" }));
-    const spanish = within(screen.getByRole("dialog", { name: "Génesis" })).getByText(
-      "9 de marzo de 2024"
+    // The date comes from the ownership issue block, in seconds, rather than a qualifying action.
+    const card = screen.getByRole("button", { name: buttonName });
+    const cardDate = within(card).getByText(issuedOn);
+    expect(cardDate.tagName).toBe("TIME");
+    expect(card).toHaveAccessibleDescription(
+      `${localeMessages["app.profile.badges.earnedStatus"]} ${issuedOn}`
     );
-    expect(within(spanish.parentElement as HTMLElement).getByText("Obtenida")).toBeInTheDocument();
+    expect(cardDate).toHaveAttribute("datetime", "2024-03-09T16:00:00.000Z");
+    expect(card.querySelector('[data-testid="badge-artwork"]')).toBeInTheDocument();
+
+    await user.click(card);
+    const sheet = screen.getByRole("dialog", { name: title });
+    expect(within(sheet).getByText(issuedOn)).toHaveAttribute(
+      "datetime",
+      "2024-03-09T16:00:00.000Z"
+    );
+  });
+
+  it.each([
+    null,
+    0,
+    -1,
+    Number.NaN,
+    Number.POSITIVE_INFINITY,
+  ])("leaves earned cards and sheets undated when ownership time is %s", async (issuedAt) => {
+    const listing = sharedMocks.useGreenWillBadges();
+    const earned = listing.earnedBadges.map((badge: any) => ({
+      ...badge,
+      ownership: issuedAt === null ? null : { ...badge.ownership, issuedAt },
+    }));
+    sharedMocks.useGreenWillBadges.mockReturnValue({ ...listing, earnedBadges: earned });
+    const user = userEvent.setup();
+    render(wrap(createElement(ProfileBadges)));
+    const card = screen.getByRole("button", { name: "View Genesis badge" });
+    expect(card.querySelector("time")).toBeNull();
+    await user.click(card);
+    expect(screen.getByRole("dialog", { name: "Genesis" }).querySelector("time")).toBeNull();
+  });
+
+  it("leaves a ready-to-claim badge undated on its card and sheet", async () => {
+    const user = userEvent.setup();
+    render(wrap(createElement(ProfileBadges)));
+    const card = screen.getByRole("button", { name: "View First Work badge" });
+    expect(card.querySelector("time")).toBeNull();
+    await user.click(card);
+    const sheet = screen.getByRole("dialog", { name: "First Work" });
+    expect(within(sheet).getByText("Ready to claim")).toBeInTheDocument();
+    expect(sheet.querySelector("time")).toBeNull();
   });
 
   it("shows the badge's artwork in its sheet, and its own glyph when the artwork fails or is missing", async () => {
@@ -483,6 +518,8 @@ describe("ProfileBadges", () => {
       "badge-artwork"
     );
     const image = within(artwork).getByAltText("");
+    expect(image).toHaveAttribute("width", "144");
+    expect(image).toHaveAttribute("height", "144");
     expect(image).toHaveAttribute(
       "src",
       "https://locksmith.unlock-protocol.com/42161/lock/0x0000000000000000000000000000000000000003/icon"
@@ -570,6 +607,7 @@ describe("ProfileBadges", () => {
       within(screen.getByRole("dialog", { name: "Genesis" })).getByText("Earned")
     ).toBeVisible();
     expect(screen.queryByRole("button", { name: "Claim Genesis" })).not.toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Genesis" }).querySelector("time")).toBeNull();
   });
 
   it("trusts an Earned badge over a claim whose wait failed", async () => {

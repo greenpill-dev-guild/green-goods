@@ -3,6 +3,7 @@ import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import { useId } from "react";
 import { useIntl } from "react-intl";
 import { BadgeArtwork } from "./BadgeArtwork";
+import { BadgeIssuedDate } from "./BadgeIssuedDate";
 
 interface BadgeTileProps {
   slug: string;
@@ -10,13 +11,14 @@ interface BadgeTileProps {
   unlockLock: Address;
   title: string;
   earned: boolean;
+  issuedAt?: number;
   statusLabel: string;
   onOpen: () => void;
 }
 
 /**
- * One badge in the Profile's grid (DL-159). The tile shows the artwork, title, and status.
- * The button takes its accessible name from the title and its description from the status.
+ * One badge in the Profile's grid (DL-186): artwork, title, status, and known issue date.
+ * The button's description includes its standing and date.
  */
 export function BadgeTile({
   slug,
@@ -24,6 +26,7 @@ export function BadgeTile({
   unlockLock,
   title,
   earned,
+  issuedAt,
   statusLabel,
   onOpen,
 }: BadgeTileProps) {
@@ -35,7 +38,7 @@ export function BadgeTile({
       type="button"
       data-pressable="card"
       onClick={onOpen}
-      className="gg-card flex min-h-[11rem] flex-col items-center justify-center gap-3 p-4 text-center"
+      className="gg-card flex min-h-56 min-w-0 flex-col items-center justify-center gap-3 p-4 text-center"
       aria-describedby={statusId}
       aria-label={intl.formatMessage(
         {
@@ -46,18 +49,20 @@ export function BadgeTile({
       )}
     >
       <BadgeArtwork slug={slug} chainId={chainId} unlockLock={unlockLock} size="tile" />
-      <span className="flex min-w-0 flex-col items-center gap-2">
+      <span className="flex w-full min-w-0 flex-col items-center gap-2">
         <span className="line-clamp-2 type-card-title text-text-strong-950">{title}</span>
-        {/* A badge's standing describes its tile, so it is not one of the page's statuses. */}
-        <StatusBadge
-          id={statusId}
-          role="none"
-          size="xs"
-          variant={earned ? "success" : "warning"}
-          showIcon={false}
-        >
-          {statusLabel}
-        </StatusBadge>
+        <span id={statusId} className="flex flex-col items-center gap-2">
+          {/* A badge's standing describes its tile, so it is not one of the page's statuses. */}
+          <StatusBadge
+            role="none"
+            size="xs"
+            variant={earned ? "success" : "warning"}
+            showIcon={false}
+          >
+            {statusLabel}
+          </StatusBadge>
+          <BadgeIssuedDate issuedAt={earned ? issuedAt : undefined} />
+        </span>
       </span>
     </button>
   );
