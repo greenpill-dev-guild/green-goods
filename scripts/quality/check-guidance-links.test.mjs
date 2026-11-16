@@ -1,10 +1,14 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 import {
+  CODE_NAME_SOURCES,
+  codeNamesFrom,
   addedLineNumbersFromDiff,
   checkDecisionLogCitations,
   filterPresentPaths,
@@ -17,6 +21,7 @@ import {
   scanDeletedSurfaceReferences,
   scanPersistentRetiredReferences,
 } from "./check-guidance-links.mjs";
+import { fixtureGitEnvironment } from "../lib/dev-shared.js";
 
 const script = path.join(path.dirname(fileURLToPath(import.meta.url)), "check-guidance-links.mjs");
 
@@ -354,4 +359,42 @@ test("guidance may name only code that tracked source contains, outside examples
     "guide.md:2: no tracked source names `USER_FRIENDLY_ERRORS`",
   ]);
   assert.deepEqual(findUnknownCodeNames("Call `newHelper()` here.", "guide.md", known, new Map([["newHelper", "reason"]])), []);
+});
+
+test("names inside member paths and calls count, and arguments do not", () => {
+  const known = new Set(["jobQueueDB"]);
+  assert.deepEqual(findUnknownCodeNames("Use `jobQueueDB.deletedMethod()` and `isStepValid(stepId)`.", "guide.md", known), [
+    "guide.md:1: no tracked source names `deletedMethod`",
+    "guide.md:1: no tracked source names `isStepValid`",
+  ]);
+});
+
+test("root manifests are sources; plans and settings in folders are not", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "gg-guidance-names-"));
+  try {
+    const env = fixtureGitEnvironment();
+    const git = (...args) => execFileSync("git", args, { cwd: root, env, encoding: "utf8" });
+    git("init", "-q");
+    const files = ["package.json", "packages/a/src/b.ts", ".plans/a/status.json", ".claude/settings.json"];
+    for (const file of files) {
+      mkdirSync(path.dirname(path.join(root, file)), { recursive: true });
+      writeFileSync(path.join(root, file), "{}\n");
+    }
+    git("add", "--", ...files);
+    assert.deepEqual(git("ls-files", "--", ...CODE_NAME_SOURCES).trim().split("\n").sort(), ["package.json", "packages/a/src/b.ts"]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("a file's own name vouches for it, and settings and this checker's fixtures never do", () => {
+  const files = {
+    "packages/admin/src/__tests__/AdminDialogStandard.guard.test.ts": "",
+    "packages/a/src/b.ts": "const realName = 1;",
+    ".claude/settings.json": "Use `staleHelper()`.",
+    "scripts/quality/check-guidance-links.test.mjs": "fixtureOnlyName",
+  };
+  const names = codeNamesFrom(Object.keys(files), (file) => files[file]);
+  assert.ok(names.has("AdminDialogStandard") && names.has("realName"));
+  assert.ok(!names.has("staleHelper") && !names.has("fixtureOnlyName"));
 });

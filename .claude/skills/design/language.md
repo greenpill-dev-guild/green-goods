@@ -170,7 +170,7 @@ Interactive elements shift shape on engagement. This creates physical, tactile f
 From Apple's Liquid Glass talk, watch for these as you build:
 
 1. **Pinched corners**: Inner element radius too small relative to outer. Fix: make it concentric.
-2. **Flared corners**: Inner radius larger than outer minus padding. Fix: use `concentricShape(fallback)`.
+2. **Flared corners**: Inner radius larger than outer minus padding. Fix: set the inner radius to the outer radius minus the padding (the rule below).
 3. **Near device edges**: On phone, use capsule + extra margin near screen edge. On tablet/desktop, use concentric shape aligned to window edge.
 4. **Mixing shape types**: Don't put a capsule (a chip or pill) inside a fixed-radius container if the radii clash. The capsule's geometry naturally supports concentricity.
 

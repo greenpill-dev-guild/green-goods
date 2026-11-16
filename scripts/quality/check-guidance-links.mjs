@@ -150,13 +150,27 @@ export const UNTRACKED_CODE_NAMES = new Map([
 ]);
 // Records of past decisions and sample inputs, where a name may be one that has since gone.
 const CODE_NAME_SCAN_EXEMPT = [/^\.claude\/skills\/design\/decision-log\.md$/, /^\.claude\/skills\/qa-triage\/fixtures\//];
-const CODE_NAME_SOURCES = ["packages", "scripts", "tests", ".github", ".claude/hooks", ".claude/scripts", ".codex", "docs/src", "docs/scripts"];
+// Root manifests and configuration count too, matched at the top level only: a plain `*.json`
+// pathspec matches at every depth, which let plans and guidance-bearing settings vouch for names.
+export const CODE_NAME_SOURCES = ["packages", "scripts", "tests", ".github", ".claude/hooks", ".claude/scripts", ".codex", "docs/src", "docs/scripts", ":(glob)*.json", ":(glob)*.toml"];
 const CODE_FILE_RE = /\.(ts|tsx|js|jsx|mjs|cjs|mts|cts|sol|json|ya?ml|sh|toml|graphql|css)$/;
+// Configuration whose strings are guidance an agent reads: scanned like guidance, never a source.
+export const CONFIGURATION_GUIDANCE = [".claude/settings.json"];
 
 /** A backticked name that reads as code: camelCase, PascalCase with a second capital, or UPPER_SNAKE. */
 function isCodeName(token) {
   return /^[A-Za-z_][\w]*$/.test(token) && token.length >= 4 &&
     (/[a-z][A-Z]/.test(token) || /^[A-Z][A-Z0-9]*_[A-Z0-9_]+$/.test(token) || /^[a-z]+[A-Z]/.test(token));
+}
+
+/**
+ * The code names an inline code span refers to: a bare name, or each name in a member path or
+ * call such as `jobQueueDB.flush()` or `isStepValid(stepId)`. Arguments are left out: they are
+ * often placeholders.
+ */
+function codeNamesIn(fragment) {
+  const reference = fragment.trim().match(/^[@$]?([A-Za-z_][\w$]*(?:\.[A-Za-z_][\w$]*)*)(?:\(.*\))?$/);
+  return reference ? reference[1].split(".").filter(isCodeName) : [];
 }
 
 /** Code names in a guidance file's inline code that `knownNames` lacks; fenced examples are skipped. */
@@ -170,32 +184,41 @@ export function findUnknownCodeNames(text, relativePath, knownNames, allowed = U
     }
     if (fenced) continue;
     for (const match of line.matchAll(/`([^`\n]+)`/g)) {
-      const token = match[1].trim().replace(/\(\)$/, "").replace(/^[@$]/, "");
-      if (!isCodeName(token) || knownNames.has(token) || allowed.has(token)) continue;
-      if (isExplicitRetirementNotice(line, token)) continue;
-      failures.push(`${relativePath}:${index + 1}: no tracked source names \`${token}\``);
+      for (const token of codeNamesIn(match[1])) {
+        if (knownNames.has(token) || allowed.has(token) || isExplicitRetirementNotice(line, token)) continue;
+        failures.push(`${relativePath}:${index + 1}: no tracked source names \`${token}\``);
+      }
     }
   }
   return failures;
 }
 
-/** Every identifier in tracked source, scripts, tests, workflows and hooks. */
-function collectCodeNames() {
-  const files = runGit(repoRoot, ["ls-files", "--", ...CODE_NAME_SOURCES, "*.json", "*.toml"]).stdout.split(/\r?\n/)
-    .filter((file) => CODE_FILE_RE.test(file));
+/**
+ * Every identifier the files contain or are named by, since guidance names files as well as code.
+ * Guidance-bearing configuration and this checker's own test, which holds stale names as
+ * fixtures, never vouch for one.
+ */
+export function codeNamesFrom(files, read) {
   const names = new Set();
   for (const file of files) {
-    // This checker's test holds stale names as fixtures, so it never vouches for one.
-    if (file === "scripts/quality/check-guidance-links.test.mjs") continue;
+    if (file === "scripts/quality/check-guidance-links.test.mjs" || CONFIGURATION_GUIDANCE.includes(file)) continue;
+    for (const match of file.matchAll(/[A-Za-z_][\w]*/g)) names.add(match[0]);
     let text;
     try {
-      text = fs.readFileSync(path.join(repoRoot, file), "utf8");
+      text = read(file);
     } catch {
       continue;
     }
     for (const match of text.matchAll(/[A-Za-z_][\w]*/g)) names.add(match[0]);
   }
   return names;
+}
+
+/** Every identifier in tracked source, scripts, tests, workflows, hooks and root configuration. */
+function collectCodeNames() {
+  const files = runGit(repoRoot, ["ls-files", "--", ...CODE_NAME_SOURCES]).stdout.split(/\r?\n/)
+    .filter((file) => CODE_FILE_RE.test(file));
+  return codeNamesFrom(files, (file) => fs.readFileSync(path.join(repoRoot, file), "utf8"));
 }
 
 const LINK_RE = /\]\(([^)#\s]+?\.mdx?)(#[^)]*)?\)/g;
@@ -659,6 +682,10 @@ function main() {
     if (!CODE_NAME_SCAN_EXEMPT.some((pattern) => pattern.test(relativePath))) {
       failures.push(...findUnknownCodeNames(text, relativePath, knownCodeNames));
     }
+  }
+  for (const file of CONFIGURATION_GUIDANCE) {
+    const absolute = path.join(repoRoot, file);
+    if (fs.existsSync(absolute)) failures.push(...findUnknownCodeNames(fs.readFileSync(absolute, "utf8"), file, knownCodeNames));
   }
 
   try {
