@@ -1,0 +1,51 @@
+name: Merge Gate
+
+# Posts the "Merge Gate" commit status, which holds a pull request into develop to its tier's proof
+# (scripts/quality/merge-gate.mjs): routine needs CI Gate alone, sensitive a fresh agent review
+# recorded for the exact head, critical that review and the full critical gate. It runs from
+# develop, when CI Gate finishes on a pull request and when a comment records a marker, so a pull
+# request cannot rewrite its own gate. The job reads the pull request through the API and fetched
+# objects; nothing from the pull request is checked out or run.
+on:
+  workflow_run:
+    workflows: ["CI Gate"]
+    types: [completed]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+  statuses: write
+
+# One queue per pull request, whichever event started the run: each run reads the head and its
+# comments when it starts and posts only to that commit, so a later run always sees a later state.
+# A fork's run names no pull request and queues by its head instead.
+concurrency:
+  group: merge-gate-${{ github.event.issue.number || github.event.workflow_run.pull_requests[0].number || github.event.workflow_run.head_sha }}
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    name: Merge Gate
+    if: >-
+      (github.event_name == 'workflow_run' && github.event.workflow_run.event == 'pull_request') ||
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(github.event.comment.body, 'merge-gate:'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout develop
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: "22.23.4"
+
+      - name: Hold the pull request to its tier's proof
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/quality/merge-gate.mjs

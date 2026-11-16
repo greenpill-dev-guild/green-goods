@@ -21,6 +21,7 @@ generated_from:
   - .github/workflows/design.yml
   - .github/workflows/docs.yml
   - .github/workflows/indexer.yml
+  - .github/workflows/merge-gate.yml
   - .github/workflows/ontology.yml
   - .github/workflows/release.yml
   - .github/workflows/shared.yml
@@ -28,7 +29,7 @@ generated_from:
   - package.json
   - scripts/data/validation-policy.json
   - scripts/data/workflow-catalog.json
-source_digest: "sha256:e2ce704ca6c3bce72defbf46ba99d9e5c832072a011f74cc1bfd7fd9ddee37df"
+source_digest: "sha256:3d5c83977e6388d09f2f3ae8db0d116857232ef517ad2fed0137c20020b24734"
 source_of_truth:
   - .github/workflows/admin.yml
   - .github/workflows/agent.yml
@@ -44,6 +45,7 @@ source_of_truth:
   - .github/workflows/design.yml
   - .github/workflows/docs.yml
   - .github/workflows/indexer.yml
+  - .github/workflows/merge-gate.yml
   - .github/workflows/ontology.yml
   - .github/workflows/release.yml
   - .github/workflows/shared.yml
@@ -58,7 +60,7 @@ import {CopyCommand} from "@site/src/components/docs";
 
 # CI & GitHub Actions
 
-18 workflows run the repository's continuous integration. Only CI Gate is a required status: the per-package workflows are path-filtered, so each runs only when its files change and the gate waits for exactly the set a pull request should trigger. Scheduled and manual workflows cover the slow or operator-driven checks that do not belong on every pull request. Purpose and use case come from `scripts/data/workflow-catalog.json`; triggers and jobs are read from the workflow files, and this page says nothing about whether a run is currently passing.
+19 workflows run the repository's continuous integration. Only CI Gate is a required status: the per-package workflows are path-filtered, so each runs only when its files change and the gate waits for exactly the set a pull request should trigger. Scheduled and manual workflows cover the slow or operator-driven checks that do not belong on every pull request. Purpose and use case come from `scripts/data/workflow-catalog.json`; triggers and jobs are read from the workflow files, and this page says nothing about whether a run is currently passing.
 
 ## Workflows
 
@@ -78,6 +80,7 @@ import {CopyCommand} from "@site/src/components/docs";
 | [Design](#design) | Checks the design system and its voice: Storybook, story coverage, DesignMD token parity, banned vocabulary, em dashes, and brand voice parity, with optional Chromatic publishing. | pull requests that touch its paths (55 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
 | [Docs](#docs) | Tests the docs generators, audits documentation authority, checks that generated projections and ontology pages are current, and builds the docs site. | pull requests that touch its paths (102 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
 | [Indexer](#indexer) | Builds and tests the Envio indexer handlers against the contract ABIs and deployment artifacts. | pull requests that touch its paths (10 path filters); pushes to `main` and `develop` that touch its paths | No |
+| [Merge Gate](#merge-gate) | Posts the Merge Gate status, which holds a pull request into develop to its tier's proof from .agents/merge-policy.json: routine needs CI Gate alone, sensitive a marker that a fresh agent's adversarial review was addressed at the exact head, critical that marker and one for the selector's full critical gate. The tier is the highest of the selector's risk, the policy's globs and the gate's own list, and anything the gate cannot classify is critical. | completion of another workflow | No |
 | [Ontology](#ontology) | Validates the ontology sidecar against the code it anchors and keeps its generated reference pages current. | pull requests that touch its paths (113 path filters); pushes to `main` and `develop` that touch its paths | No |
 | [Release](#release) | Builds and publishes a tagged release. | pushed tags matching `v*.*.*` | No |
 | [Shared](#shared) | Typechecks and tests the shared package: hooks, providers, protocol modules, and UI foundations. | pull requests that touch its paths (12 path filters); pushes to `main` and `develop` that touch its paths; a schedule (`19 7 * * 1` UTC) | No |
@@ -222,6 +225,16 @@ Builds and tests the Envio indexer handlers against the contract ABIs and deploy
 - **Jobs:** `lint-build`, `test`.
 - **Required status:** no, but the CI Gate waits for it on a pull request that touches its paths.
 - **File:** [.github/workflows/indexer.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/indexer.yml)
+
+### Merge Gate {#merge-gate}
+
+Posts the Merge Gate status, which holds a pull request into develop to its tier's proof from .agents/merge-policy.json: routine needs CI Gate alone, sensitive a marker that a fresh agent's adversarial review was addressed at the exact head, critical that marker and one for the selector's full critical gate. The tier is the highest of the selector's risk, the policy's globs and the gate's own list, and anything the gate cannot classify is critical.
+
+- **Use it when:** Every pull request into develop, when CI Gate finishes and when a comment records a merge-gate marker. It blocks nothing until the develop ruleset requires the status, which is the owner's step.
+- **Runs on:** completion of another workflow.
+- **Jobs:** `gate`.
+- **Required status:** no, and the CI Gate never waits for it: it has no pull request path rule.
+- **File:** [.github/workflows/merge-gate.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/merge-gate.yml)
 
 ### Ontology {#ontology}
 
