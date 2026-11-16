@@ -201,15 +201,12 @@ An owner or steward can assign or remove ordinary gardener and community roles. 
 
 These changes require confirmation from the authorized account and use gas. With a connected wallet, that wallet funds the network fee; a passkey flow depends on available sponsorship. Check the confirmation before signing and wait for the change to be confirmed.
 
-<details>
-<summary>Contract rules behind this guidance</summary>
+### Contract rules behind this guidance
 
 - [WorkResolver.onAttest](https://github.com/greenpill-dev-guild/green-goods/blob/develop/packages/contracts/src/resolvers/Work.sol) checks gardener or steward authority before accepting work.
 - [GardenAccount.setOpenJoining](https://github.com/greenpill-dev-guild/green-goods/blob/develop/packages/contracts/src/accounts/Garden.sol) changes self-joining without revoking roles. [HatsModule.grantRole, revokeRole, and _requireRoleManager](https://github.com/greenpill-dev-guild/green-goods/blob/develop/packages/contracts/src/modules/Hats.sol) enforce role-change authority.
 - [GuardLib.isGardenMember](https://github.com/greenpill-dev-guild/green-goods/blob/develop/packages/contracts/src/lib/CommitmentPooling/GuardLib.sol) includes community membership. [ServiceOffersLib.requestClaim and acceptClaim](https://github.com/greenpill-dev-guild/green-goods/blob/develop/packages/contracts/src/lib/CommitmentPooling/ServiceOffersLib.sol) both call `_requireBuyer`.
 - [AcceptanceLib.acceptCommitment and addContributor](https://github.com/greenpill-dev-guild/green-goods/blob/develop/packages/contracts/src/lib/CommitmentPooling/AcceptanceLib.sol) check provider-garden membership. [ProofLib.linkWork](https://github.com/greenpill-dev-guild/green-goods/blob/develop/packages/contracts/src/lib/CommitmentPooling/ProofLib.sol) checks the work's garden and active contributor.
-
-</details>
 
 ## What is not here yet
 
