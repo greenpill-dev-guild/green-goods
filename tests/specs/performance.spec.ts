@@ -130,7 +130,9 @@ test.describe("Performance Tests", () => {
           const response = await request.get(url);
           const size = (await response.body()).length;
           bundles.push({ url: match[1], size });
-        } catch {}
+        } catch {
+          // Ignore errors
+        }
       }
 
       const totalSize = bundles.reduce((sum, b) => sum + b.size, 0);

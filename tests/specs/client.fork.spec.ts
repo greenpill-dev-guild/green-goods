@@ -122,7 +122,7 @@ test.describe("Fork Integration Tests", () => {
       // Send some ETH (modifying state)
       await anvilContext.testClient.setBalance({
         address: anvilContext.accounts.gardener1.address,
-        value: BigInt(0),
+        value: BigInt(0), // Set to 0
       });
 
       const zeroBalance = await anvilContext.publicClient.getBalance({

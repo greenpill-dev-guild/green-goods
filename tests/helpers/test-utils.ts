@@ -91,7 +91,7 @@ export class ClientTestHelper {
                   "mock",
                   {
                     accounts: [address],
-                    chainId: 11155111,
+                    chainId: 11155111, // Sepolia
                   },
                 ],
               ],
