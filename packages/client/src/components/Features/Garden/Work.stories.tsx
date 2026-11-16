@@ -1,4 +1,5 @@
-import type { Action, Work } from "@green-goods/shared/types/domain";
+import { type Action, Domain, type Work } from "@green-goods/shared/types/domain";
+import { domainMaskOf } from "@green-goods/shared/utils/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, userEvent, within } from "storybook/test";
 import { withAppPage, withRouter } from "../../../../../shared/.storybook/decorators";
@@ -91,6 +92,7 @@ const meta: Meta<typeof GardenWork> = {
   args: {
     works: WORKS,
     actions: ACTIONS,
+    domainMask: 15,
     readState: { isError: false, isLoading: false, isPaused: false, availability: "available" },
   },
 };
@@ -130,6 +132,33 @@ export const OneType: Story = {
     await userEvent.selectOptions(canvas.getByRole("combobox", { name: "Type of work" }), "1");
     const status = canvas.getByText("2 submissions").closest<HTMLElement>('[role="status"]');
     await expect(status).toHaveTextContent(/^2 submissions$/);
+  },
+};
+
+export const SupportedDomains: Story = {
+  tags: ["storybook-ci"],
+  args: {
+    domainMask: domainMaskOf([Domain.AGRO]),
+    actions: ACTIONS.map((entry, index) => ({
+      ...entry,
+      domain: index === 1 ? Domain.EDU : Domain.AGRO,
+    })),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const type = canvas.getAllByRole("combobox")[0] as HTMLSelectElement;
+    await expect([...type.options].map((option) => option.value)).toEqual([
+      "all",
+      "1",
+      "5",
+      "4",
+      "3",
+    ]);
+    await expect(canvas.getByText("Seed Library Count")).toBeVisible();
+    await userEvent.selectOptions(type, "1");
+    await expect(canvas.queryByText("Seed Library Count")).toBeNull();
+    await userEvent.selectOptions(type, "all");
+    await expect(canvas.getByText("Seed Library Count")).toBeVisible();
   },
 };
 
