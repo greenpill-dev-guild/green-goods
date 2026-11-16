@@ -9,6 +9,7 @@ generator: scripts/docs/generate.mjs
 generated_from:
   - .github/workflows/admin.yml
   - .github/workflows/agent.yml
+  - .github/workflows/agents-doctor.yml
   - .github/workflows/ci-gate.yml
   - .github/workflows/client.yml
   - .github/workflows/codeql-cache-prune.yml
@@ -29,10 +30,11 @@ generated_from:
   - package.json
   - scripts/data/validation-policy.json
   - scripts/data/workflow-catalog.json
-source_digest: "sha256:39c916a1e7e16bb955221ac8a57135c5bfb7f6cacd9cef446ac99d4697ae7ab2"
+source_digest: "sha256:6a34673022c22368ea83d6329fe8697c9ae652c8052e5e5e5ca313f8a531e5e6"
 source_of_truth:
   - .github/workflows/admin.yml
   - .github/workflows/agent.yml
+  - .github/workflows/agents-doctor.yml
   - .github/workflows/ci-gate.yml
   - .github/workflows/client.yml
   - .github/workflows/codeql-cache-prune.yml
@@ -60,7 +62,7 @@ import {CopyCommand} from "@site/src/components/docs";
 
 # CI & GitHub Actions
 
-19 workflows run the repository's continuous integration. Only CI Gate is a required status: the per-package workflows are path-filtered, so each runs only when its files change and the gate waits for exactly the set a pull request should trigger. Scheduled and manual workflows cover the slow or operator-driven checks that do not belong on every pull request. Purpose and use case come from `scripts/data/workflow-catalog.json`; triggers and jobs are read from the workflow files, and this page says nothing about whether a run is currently passing.
+20 workflows run the repository's continuous integration. Only CI Gate is a required status: the per-package workflows are path-filtered, so each runs only when its files change and the gate waits for exactly the set a pull request should trigger. Scheduled and manual workflows cover the slow or operator-driven checks that do not belong on every pull request. Purpose and use case come from `scripts/data/workflow-catalog.json`; triggers and jobs are read from the workflow files, and this page says nothing about whether a run is currently passing.
 
 ## Workflows
 
@@ -68,6 +70,7 @@ import {CopyCommand} from "@site/src/components/docs";
 |---|---|---|---|
 | [Admin](#admin) | Builds and tests the Green Goods Hub when admin code, the shared code it imports, or the shared test support changes. | pull requests that touch its paths (29 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
 | [Agent](#agent) | Typechecks and tests the messaging agent and its public HTTP API when agent or shared code changes. | pull requests that touch its paths (16 path filters); pushes to `main` and `develop` that touch its paths | No |
+| [Agents Doctor](#agents-doctor) | Checks that the agent guidance and harness files follow the shared agent kit, through the guild reusable workflow pinned to one commit for both the workflow and its script. Its checks include AGENTS.md as the guide, the CLAUDE.md import, one skills folder, valid .agents policy files, hooks that read stdin, the PR template sections, CODEOWNERS and the skill adapter. Advisory: findings never fail the job, though a crash or a runner fault shows red, and CI Gate does not wait for it. | pull requests that touch its paths (8 path filters); pushes to `main` and `develop` that touch its paths | No |
 | [CI Gate](#ci-gate) | The one required status. It derives the workflows a pull request's changed files should trigger, waits for each to register and report, and fails as soon as one fails or never shows up, so path-filtered workflows cannot silently weaken branch protection. | every pull request | Yes |
 | [Client](#client) | Builds, tests, and runs the client Playwright project for the Green Goods Website and App. | pull requests that touch its paths (37 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
 | [CodeQL Cache Prune](#codeql-cache-prune) | Deletes stale CodeQL overlay databases from the Actions cache so they cannot evict the Foundry caches the contracts jobs rely on. | pushes to `develop`; a schedule (`37 * * * *` UTC); manual dispatch | No |
@@ -105,6 +108,16 @@ Typechecks and tests the messaging agent and its public HTTP API when agent or s
 - **Jobs:** `lint-typecheck-build`, `test`.
 - **Required status:** no, but the CI Gate waits for it on a pull request that touches its paths.
 - **File:** [.github/workflows/agent.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/agent.yml)
+
+### Agents Doctor {#agents-doctor}
+
+Checks that the agent guidance and harness files follow the shared agent kit, through the guild reusable workflow pinned to one commit for both the workflow and its script. Its checks include AGENTS.md as the guide, the CLAUDE.md import, one skills folder, valid .agents policy files, hooks that read stdin, the PR template sections, CODEOWNERS and the skill adapter. Advisory: findings never fail the job, though a crash or a runner fault shows red, and CI Gate does not wait for it.
+
+- **Use it when:** Changes to AGENTS.md, CLAUDE.md, .agents, .claude, .codex, CODEOWNERS or the PR template.
+- **Runs on:** pull requests that touch its paths (8 path filters); pushes to `main` and `develop` that touch its paths.
+- **Jobs:** `agents-doctor`.
+- **Required status:** no, and the CI Gate never waits for it: it has no pull request path rule.
+- **File:** [.github/workflows/agents-doctor.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/agents-doctor.yml)
 
 ### CI Gate {#ci-gate}
 

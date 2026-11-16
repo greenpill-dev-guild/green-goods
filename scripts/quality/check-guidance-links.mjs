@@ -149,10 +149,32 @@ export const UNTRACKED_CODE_NAMES = new Map([
 ]);
 // Records of past decisions and sample inputs, where a name may be one that has since gone.
 const CODE_NAME_SCAN_EXEMPT = [/^\.claude\/skills\/design\/decision-log\.md$/, /^\.claude\/skills\/qa-triage\/fixtures\//];
-// Root manifests and configuration count too, matched at the top level only: a plain `*.json`
-// pathspec matches at every depth, which let plans and guidance-bearing settings vouch for names.
-export const CODE_NAME_SOURCES = ["packages", "scripts", "tests", ".github", ".claude/hooks", ".claude/scripts", ".codex", "docs/src", "docs/scripts", ":(glob)*.json", ":(glob)*.toml"];
-const CODE_FILE_RE = /\.(ts|tsx|js|jsx|mjs|cjs|mts|cts|sol|json|ya?ml|sh|toml|graphql|css)$/;
+// Root manifests, configuration and scripts count too, matched at the top level only: a plain
+// `*.json` pathspec matches at every depth, which let plans and guidance-bearing settings vouch
+// for names. The docs site's own code counts; its pages, static brand exports and Tina's
+// generated lock do not.
+export const CODE_NAME_SOURCES = [
+  "packages",
+  "scripts",
+  "tests",
+  ".github",
+  ".claude/hooks",
+  ".claude/scripts",
+  ".codex",
+  "docs/src",
+  "docs/scripts",
+  "docs/plugins",
+  "docs/tina",
+  ":(exclude)docs/tina/tina-lock.json",
+  ":(glob)docs/*.ts",
+  ":(glob)*.json",
+  ":(glob)*.toml",
+  ":(glob)*.ts",
+  ":(glob)*.js",
+  ":(glob)*.mjs",
+  ":(glob)*.cjs",
+];
+const CODE_FILE_RE = /\.(ts|tsx|js|jsx|mjs|cjs|mts|cts|sol|json|ya?ml|sh|toml|graphql|css|html)$/;
 // Configuration whose strings are guidance an agent reads: scanned like guidance, never a source.
 export const CONFIGURATION_GUIDANCE = [".claude/settings.json"];
 
@@ -175,24 +197,78 @@ function codeNamesIn(fragment) {
   return reference ? reference[1].split(".").filter(isCodeName) : [];
 }
 
-/** Code names in a guidance file's inline code that `knownNames` lacks; fenced examples are skipped. */
+/**
+ * Code names in a guidance file's inline code that `knownNames` lacks. Fenced examples are
+ * skipped, blockquoted ones included, as CommonMark reads them: a fence opened in a blockquote
+ * ends when its quote does, and only a bare fence of the opener's character, at least as long and
+ * at the opener's quote depth, closes it. Any other line inside a fence is the example's text.
+ */
 export function findUnknownCodeNames(text, relativePath, knownNames, allowed = UNTRACKED_CODE_NAMES) {
   const failures = [];
-  let fenced = false;
+  let openFence;
   for (const [index, line] of text.split(/\r?\n/).entries()) {
-    if (/^\s*(```|~~~)/.test(line)) {
-      fenced = !fenced;
+    const [, quotes, marker, info] = line.match(/^\s*((?:>\s*)*)(`{3,}|~{3,})?([\s\S]*)$/);
+    const depth = quotes.split(">").length - 1;
+    if (openFence && depth < openFence.depth) openFence = undefined;
+    if (openFence) {
+      const closes = depth === openFence.depth && marker?.[0] === openFence.marker[0] &&
+        marker.length >= openFence.marker.length && !info.trim();
+      if (closes) openFence = undefined;
       continue;
     }
-    if (fenced) continue;
+    if (marker) {
+      openFence = { marker, depth };
+      continue;
+    }
     for (const match of line.matchAll(/`([^`\n]+)`/g)) {
       for (const token of codeNamesIn(match[1])) {
-        if (knownNames.has(token) || allowed.has(token) || isExplicitRetirementNotice(line, token)) continue;
+        if (knownNames.has(token) || allowed.has(token) || isRetiredCodeName(line, token)) continue;
         failures.push(`${relativePath}:${index + 1}: no tracked source names \`${token}\``);
       }
     }
   }
   return failures;
+}
+
+// Up to a clause break (a full stop, semicolon or comma), words and code spans: "renamed `oldX` to"
+// reaches its preposition, and "renamed to `newX`, and references to `oldY`" does not reach `oldY`.
+const SAME_CLAUSE = String.raw`(?:[^\x60.;,]|\x60[^\x60]*\x60)`;
+
+// The words that introduce a replacement. A preposition counts only after its own verb in the
+// same clause: "replaced by" or "with", "superseded by", "renamed to", "folded into". So does
+// "in favour of", and "use" or "prefer" unless negated or a noun ("Do not use `oldX`", "any use
+// of `oldX`" retire it). A sentence that opens "With 2.0," or "References to" introduces nothing.
+// A few words may stand between the lead and the name, never a retirement word ("migrating to
+// 2.0 removed `oldX`" retires `oldX`). "Along with" and "together with" join more retired names.
+const REPLACEMENT_LEAD =
+  String.raw`(?:\b(?:replaced|superseded)\b${SAME_CLAUSE}{0,40}?\b(?:by|(?<!\b(?:along|together)\s)with)` +
+  String.raw`|\brenamed\b${SAME_CLAUSE}{0,40}?\bto|\bfolded\b${SAME_CLAUSE}{0,40}?\binto|\bin\s+favou?r\s+of` +
+  String.raw`|(?<!(?:\b(?:not|never|cannot)|n't|\bno\s+longer)\s+)\b(?:use|prefer)(?!\s+of\b))\b` +
+  String.raw`(?:(?!${RETIREMENT_NOTICE_RE.source})[^\x60]){0,20}\x60[^\x60]*?`;
+
+// Active voice names the replacements first: in "`newHelper()` replaced `oldHelper()`" the names
+// before the verb must exist, every one of a list ("`newA` and `newB` replaced `oldA`"). The
+// passive ("was replaced", "replaced by", "now replaced with", "replaced entirely by",
+// "superseded in favour of") and a verb with no code object after it ("`oldX` replaced; see ...")
+// leave the names before the verb retired.
+const ACTIVE_REPLACEMENT_VERB =
+  String.raw`(?:(?!\b(?:was|were|is|are|been|be|being|get|gets|got)\b)${SAME_CLAUSE}){0,40}\b(?:replaced|superseded)\b` +
+  String.raw`(?!(?:\s+[A-Za-z]+){0,2}\s+(?:by|with|in\s+favou?r\s+of)\b)\s+(?:[A-Za-z]+\s+){0,3}\x60`;
+
+// Stands in for the name under test, so the patterns read every other word in either case while
+// the name matches exactly: "use the `jobQueue` instance" introduces nothing called `JobQueue`.
+const NAME_MARK = "\u0001";
+
+/**
+ * A retirement notice covers the name it retires, never the replacement it introduces:
+ * "`oldHelper()` was replaced by `newHelper()`" and "`newHelper()` replaced `oldHelper()`"
+ * exempt `oldHelper` only, so guidance cannot recommend a replacement that does not exist.
+ */
+function isRetiredCodeName(line, token) {
+  if (!isExplicitRetirementNotice(line, token)) return false;
+  const marked = line.replace(new RegExp(String.raw`\b${escapeRegex(token)}\b`, "g"), NAME_MARK);
+  if (new RegExp(`${REPLACEMENT_LEAD}${NAME_MARK}`, "i").test(marked)) return false;
+  return !new RegExp(String.raw`\x60[^\x60]*?${NAME_MARK}[^\x60]*\x60${ACTIVE_REPLACEMENT_VERB}`, "i").test(marked);
 }
 
 /**
@@ -218,14 +294,117 @@ export function codeNamesFrom(files, read, parse) {
 }
 
 const SCRIPT_FILE_RE = /\.(ts|tsx|js|jsx|mjs|cjs|mts|cts)$/;
+// `.json` covers JSONC files such as tsconfig, whose comments run from `//` or `/*`.
+const SLASH_COMMENT_FILE_RE = /\.(sol|json)$/;
+const HASH_COMMENT_FILE_RE = /\.(sh|ya?ml|toml|graphql)$/;
 
 /**
- * A script's text with its comments blanked: a name a comment mentions ("the legacy
- * USER_FRIENDLY_ERRORS lookup") is a memory of code, not code. A file that does not parse keeps
- * its comments, so a parser gap never turns a live name stale.
+ * A source's text with its comments blanked: a name a comment mentions ("the legacy
+ * USER_FRIENDLY_ERRORS lookup") is a memory of code, not code. Scripts, inline ones in HTML pages
+ * included, need the parser, and a script that does not parse keeps its comments. Other languages
+ * are scanned by hand, a line at a time where the language allows, and a scan can misread rare
+ * shapes. It can take text for a comment: a `#` line inside a YAML block scalar or a shell
+ * heredoc, or a `#` inside a TOML or GraphQL multi-line string. That hides a live name, so
+ * guidance naming it fails the check. It can also keep a comment after an apostrophe in a YAML
+ * plain scalar, so a name in that comment vouches, as every comment did before these scans.
  */
 function withoutComments(file, text, parse) {
-  if (!parse || !SCRIPT_FILE_RE.test(file)) return text;
+  if (SCRIPT_FILE_RE.test(file)) return parse ? withoutScriptComments(file, text, parse) : text;
+  if (SLASH_COMMENT_FILE_RE.test(file)) return blankSlashComments(text, { lineComments: true });
+  if (file.endsWith(".css")) return blankSlashComments(text, { lineComments: false });
+  if (HASH_COMMENT_FILE_RE.test(file)) return blankHashComments(text, HASH_COMMENT_STARTS[file.split(".").pop()]);
+  if (file.endsWith(".html")) return withoutHtmlComments(text, parse);
+  return text;
+}
+
+/**
+ * An HTML page with its own comments blanked, and those inside its scripts and styles. One pass
+ * reads the page in order, so a "<!--" inside a script is script text and a "<script" inside a
+ * comment is comment text. A tag's name ends at a space, `/` or `>` (`</script-x>` is script
+ * text), and it may carry anything after that up to its `>` (`</script\t\n bar>` still ends the
+ * script). A comment may close with `--!>`, and `<!-->` is a whole one. Browsers read all of these
+ * this way. A script body goes
+ * through the parser, as a script file does.
+ */
+function withoutHtmlComments(text, parse) {
+  const page = /<!--(?:-?>|[\s\S]*?--!?>)|(<script(?=[\s/>])[^>]*>)([\s\S]*?)(<\/script(?=[\s/>])[^>]*>)|(<style(?=[\s/>])[^>]*>)([\s\S]*?)(<\/style(?=[\s/>])[^>]*>)/gi;
+  return text.replace(page, (_, scriptOpen, script, scriptClose, styleOpen, style, styleClose) => {
+    if (scriptOpen) return `${scriptOpen}${parse ? withoutScriptComments("inline.js", script, parse) : script}${scriptClose}`;
+    if (styleOpen) return `${styleOpen}${blankSlashComments(style, { lineComments: false })}${styleClose}`;
+    return " ";
+  });
+}
+
+/**
+ * Blank block comments, and `//` ones where the language has them, outside quoted strings. It
+ * reads Solidity, JSONC and CSS, which have neither template literals nor regular expressions, so
+ * a `//` outside a string always starts a comment (`"enabled": true// note`).
+ */
+function blankSlashComments(text, { lineComments }) {
+  let kept = "";
+  let quote = null;
+  for (let at = 0; at < text.length; at++) {
+    const char = text[at];
+    if (quote) {
+      kept += char;
+      if (char === "\\") kept += text[++at] ?? "";
+      else if (char === quote || char === "\n") quote = null;
+      continue;
+    }
+    if (char === "/" && text[at + 1] === "*") {
+      const end = text.indexOf("*/", at + 2);
+      if (end === -1) return kept + text.slice(at);
+      kept += " ";
+      at = end + 1;
+      continue;
+    }
+    if (lineComments && char === "/" && text[at + 1] === "/") {
+      const end = text.indexOf("\n", at);
+      if (end === -1) return `${kept} `;
+      kept += " ";
+      at = end - 1;
+      continue;
+    }
+    if (char === '"' || char === "'") quote = char;
+    kept += char;
+  }
+  return kept;
+}
+
+// Where `#` begins a comment: anywhere outside quotes in TOML and GraphQL, at the start of a word in
+// shell, and after a space in YAML (`url: http://host/#anchor` is a value).
+const HASH_COMMENT_STARTS = {
+  toml: () => true,
+  graphql: () => true,
+  sh: (line, at) => at === 0 || /[\s;&|()<>]/.test(line[at - 1]),
+  yml: (line, at) => at === 0 || /\s/.test(line[at - 1]),
+  yaml: (line, at) => at === 0 || /\s/.test(line[at - 1]),
+};
+
+/**
+ * Blank `#` comments in shell, YAML, TOML and GraphQL: from a `#` that `startsComment` accepts,
+ * outside quotes, to the line's end. An apostrophe in plain text reads as a quote and keeps the rest
+ * of its line, the safe direction.
+ */
+function blankHashComments(text, startsComment) {
+  return text.split("\n").map((line) => {
+    let quote = null;
+    for (let at = 0; at < line.length; at++) {
+      const char = line[at];
+      if (quote) {
+        if (char === "\\" && quote === '"') at++;
+        else if (char === quote) quote = null;
+      } else if (char === '"' || char === "'") {
+        quote = char;
+      } else if (char === "#" && startsComment(line, at)) {
+        return line.slice(0, at);
+      }
+    }
+    return line;
+  }).join("\n");
+}
+
+function withoutScriptComments(file, text, parse) {
   const lang = file.endsWith(".tsx") ? "tsx" : file.endsWith(".jsx") ? "jsx" : /\.[cm]?ts$/.test(file) ? "ts" : "js";
   const { comments, errors } = parse(file, text, { lang, sourceType: "module" });
   if (errors.length) return text;
