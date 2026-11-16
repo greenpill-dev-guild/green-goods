@@ -80,10 +80,12 @@ describe("ActionPicker", () => {
     expect(screen.getByRole("listbox", { name: "Action" })).toBeInTheDocument();
     const cards = screen.getAllByRole("option");
     expect(cards).toHaveLength(3);
-    expect(cards[0]).toHaveAccessibleName(/Agroforestry.*Plant native trees.*2 photos required/);
-    expect(cards[1]).toHaveAccessibleName(/Solar.*Clean the panels.*Photos optional/);
+    expect(cards[0]).toHaveAccessibleName(
+      /Agroforestry.*Plant native trees.*2 media items required/
+    );
+    expect(cards[1]).toHaveAccessibleName(/Solar.*Clean the panels.*Media optional/);
     // A required action without a count asks for one photo, as Submit Work does.
-    expect(cards[2]).toHaveAccessibleName(/Waste.*Sort the waste.*1 photo required/);
+    expect(cards[2]).toHaveAccessibleName(/Waste.*Sort the waste.*1 media item required/);
     expect(cards.map((card) => card.getAttribute("aria-selected"))).toEqual([
       "false",
       "true",

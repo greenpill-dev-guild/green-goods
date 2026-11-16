@@ -75,6 +75,14 @@ function coverageGlobFloors(packageName) {
   return Object.fromEntries(entries);
 }
 
+test("the Agents Doctor caller runs the doctor script from the guild commit it pins the workflow to", () => {
+  const workflow = read(".github/workflows/agents-doctor.yml");
+  const pinned = workflow.match(/uses: greenpill-dev-guild\/\.github\/\.github\/workflows\/agents-doctor\.yml@([0-9a-f]{40})\b/)?.[1];
+  assert.ok(pinned, "the caller pins the guild workflow to a full SHA");
+  // Without doctor-ref the script floats on the guild's main; with another SHA it drifts from the workflow.
+  assert.equal(workflow.match(/^\s*doctor-ref: ([0-9a-f]{40})\s*$/m)?.[1], pinned);
+});
+
 test("shared JS setup pins the toolchain and installs from the frozen lockfile", () => {
   const action = read(".github/actions/setup-js/action.yml");
 

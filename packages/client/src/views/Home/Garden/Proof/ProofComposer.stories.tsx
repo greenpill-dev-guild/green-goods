@@ -171,12 +171,7 @@ export const Media: Story = {
     await expect(
       heading.compareDocumentPosition(pinned) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
-    const tools = [
-      "Choose from Your Photos",
-      "Take a Photo",
-      "Record a voice note",
-      "Choose Documents",
-    ];
+    const tools = ["Choose Media", "Take a Photo", "Record a voice note", "Choose Documents"];
     for (const tool of tools) {
       await expect(canvas.getByRole("button", { name: tool })).toBeVisible();
     }
@@ -227,7 +222,7 @@ export const DetailsEmpty: Story = {
     const review = canvas.getByRole("button", { name: "Review Proof" });
     await expect(review).toBeDisabled();
     await expect(review).toHaveAccessibleDescription(
-      "Add a photo, a voice note, a link or a few words first."
+      "Add media, a voice note, a link or a few words first."
     );
   },
 };

@@ -31,6 +31,7 @@ import { useGardenPermissions } from "../../garden/useGardenPermissions";
 import { useWorkApprovalActions } from "../../work/useWorkApprovalActions";
 import { useWorkMetadata } from "../../work/useWorkMetadata";
 import { useWorks } from "../../work/useWorks";
+import { useWorkVisibility } from "../../work/useWorkVisibility";
 import { queuedUploadStatus } from "../../../modules/work/upload-state";
 import { isCancelledTxError } from "../../../utils/errors/tx-error-classifier";
 import type { Work, WorkDisplayStatus } from "../../../types/domain";
@@ -66,6 +67,7 @@ export function useWorkDetailController() {
   const queryClient = useQueryClient();
   const isOnline = useOnlineStatus();
   const chainId = DEFAULT_CHAIN_ID;
+  const visibility = useWorkVisibility(chainId);
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
   const gardenId = (gardenIdFromContext || gardenIdParam) as string;
   const garden = gardens.find((candidate) => candidate.id === gardenId);
@@ -88,8 +90,9 @@ export function useWorkDetailController() {
   const routeWork = carriedRouteWork(routeState?.work, workId, gardenId);
   const workByUID = useQuery({
     queryKey: worksKeys.byUID(workId ?? "", chainId),
-    queryFn: () => readWorkByUID(workId!, chainId),
-    enabled: !listedWork && !!workId && isValidAttestationId(workId) && isOnline,
+    queryFn: () => readWorkByUID(workId!, chainId, visibility.snapshot),
+    enabled:
+      visibility.isReady && !listedWork && !!workId && isValidAttestationId(workId) && isOnline,
   });
   // A direct read of older work may be stale too. Use the same saved decision
   // as the garden list while the indexer catches up.
@@ -112,7 +115,8 @@ export function useWorkDetailController() {
   }, [workByUID.data, gardenId, routeStatus, decisionOverlay]);
   // Online, the direct read decides: a carried row may be stale (another steward decided the work),
   // so it never stands in, and never offers a decision, before that read answers.
-  const work = listedWork ?? fetchedWork ?? (isOnline ? undefined : routeWork);
+  const candidate = listedWork ?? fetchedWork ?? (isOnline ? undefined : routeWork);
+  const work = candidate && visibility.isVisible(candidate.id) ? candidate : undefined;
   const metadata = useWorkMetadata(work?.metadata);
   const matchedAction = useMemo(() => {
     if (!work) return null;
@@ -338,9 +342,13 @@ export function useWorkDetailController() {
     garden,
     gardenId,
     gardensLoading,
-    workLoading: !listedWork && (workByUID.isLoading || worksLoading || queuedLoading),
-    workLoadError: !listedWork && workByUID.isError,
-    retryWorkLoad: workByUID.refetch,
+    workLoading:
+      !work && (workByUID.isLoading || worksLoading || queuedLoading || visibility.isLoading),
+    workLoadError: !work && (workByUID.isError || (!visibility.isReady && !visibility.isLoading)),
+    retryWorkLoad: async () => {
+      await visibility.refetch();
+      return workByUID.refetch();
+    },
     isActionExpired: matchedAction ? matchedAction.endTime <= Date.now() : false,
     isOfflineWork,
     isOnline,
