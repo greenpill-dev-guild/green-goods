@@ -293,12 +293,16 @@ function withoutComments(file, text, parse) {
   return text;
 }
 
-/** An HTML page with its own comments blanked, and those inside its scripts and styles. */
+/**
+ * An HTML page with its own comments blanked, and those inside its scripts and styles. An end tag
+ * may carry anything up to its `>` (`</script\t\n bar>` still ends the script), and a comment
+ * may close with `--!>`, as browsers read both.
+ */
 function withoutHtmlComments(text) {
   return text
-    .replace(/<!--[\s\S]*?-->/g, " ")
-    .replace(/(<script\b[^>]*>)([\s\S]*?)(<\/script\s*>)/gi, (_, open, body, close) => `${open}${blankSlashComments(body, { lineComments: true })}${close}`)
-    .replace(/(<style\b[^>]*>)([\s\S]*?)(<\/style\s*>)/gi, (_, open, body, close) => `${open}${blankSlashComments(body, { lineComments: false })}${close}`);
+    .replace(/<!--[\s\S]*?--!?>/g, " ")
+    .replace(/(<script\b[^>]*>)([\s\S]*?)(<\/script\b[^>]*>)/gi, (_, open, body, close) => `${open}${blankSlashComments(body, { lineComments: true })}${close}`)
+    .replace(/(<style\b[^>]*>)([\s\S]*?)(<\/style\b[^>]*>)/gi, (_, open, body, close) => `${open}${blankSlashComments(body, { lineComments: false })}${close}`);
 }
 
 /**

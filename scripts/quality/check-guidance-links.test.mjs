@@ -498,3 +498,10 @@ test("each language's own rule decides where a hash comment starts, and an HTML 
   assert.deepEqual(live.filter((name) => !names.has(name)), []);
   assert.deepEqual(gone.filter((name) => names.has(name)), []);
 });
+
+test("an HTML end tag with anything before its bracket still ends the script", () => {
+  const files = { "packages/a/page.html": "<script>const liveName = 1; // goneScriptComment\n</script\t\n bar><!-- goneHtmlComment --!>\n<p>afterPageName</p>\n" };
+  const names = codeNamesFrom(Object.keys(files), (file) => files[file]);
+  assert.ok(names.has("liveName") && names.has("afterPageName"));
+  assert.ok(!names.has("goneScriptComment") && !names.has("goneHtmlComment"));
+});
