@@ -43,8 +43,10 @@ export const GATE_CRITICAL_PATHS = [
 const SYMLINK_MODE = "120000";
 const SUBMODULE_MODE = "160000";
 // Only accounts that can push write proof. An organization's read-only members comment as MEMBER
-// too, so the comment's author association cannot tell them apart.
+// too, so the comment's author association cannot tell them apart. A custom role names itself in
+// `role_name` and carries its base access in `permission`, where maintain reads as write.
 const WRITE_ROLES = new Set(["admin", "maintain", "write"]);
+const WRITE_PERMISSIONS = new Set(["admin", "write"]);
 // A marker names the head by its full SHA or by a prefix of at least nine characters, the length
 // the status prints.
 const MIN_SHA_PREFIX = 9;
@@ -89,23 +91,36 @@ export function policyTier(path, policy) {
 
 /**
  * A change's tier and the reasons that set it: the highest of the selector's risk, the merge
- * policy's globs and the gate's own list. A symlink, a submodule, a fork, a file list GitHub cut
- * short, a changed Shared file the gate could not read, or a deleted Shared file whose code
+ * policy's globs and the gate's own list. A symlink or submodule in the head or the base (so
+ * removing or replacing one counts), a changed path in neither tree, a fork, a file list GitHub
+ * cut short, a changed Shared file the gate could not read, or a deleted Shared file whose code
  * reached a signing, sending, queue or session primitive is critical.
  */
-export function classifyChange({ paths, modes, selectorRisk, policy, fork = false, truncated = false, unreadable = [], deletedMutation = [] }) {
+export function classifyChange({
+  paths,
+  modes,
+  baseModes = new Map(),
+  selectorRisk,
+  policy,
+  fork = false,
+  truncated = false,
+  untraced = [],
+  unreadable = [],
+  deletedMutation = [],
+}) {
   const critical = [];
   const sensitive = [];
   if (fork) critical.push("a fork's pull request");
   if (truncated) critical.push(`more than ${GITHUB_FILE_LIMIT} files`);
   for (const path of paths) {
-    const mode = modes.get(path);
-    if (mode === SYMLINK_MODE) critical.push(`symlink ${path}`);
-    if (mode === SUBMODULE_MODE) critical.push(`submodule ${path}`);
+    const sides = [modes.get(path), baseModes.get(path)];
+    if (sides.includes(SYMLINK_MODE)) critical.push(`symlink ${path}`);
+    if (sides.includes(SUBMODULE_MODE)) critical.push(`submodule ${path}`);
     const tier = GATE_CRITICAL_PATHS.includes(path) ? "critical" : policyTier(path, policy);
     if (tier === "critical") critical.push(`critical path ${path}`);
     if (tier === "sensitive") sensitive.push(`sensitive path ${path}`);
   }
+  for (const path of untraced) critical.push(`path in neither tree ${path}`);
   for (const path of unreadable) critical.push(`unreadable Shared file ${path}`);
   for (const path of deletedMutation) critical.push(`deleted mutation path ${path}`);
   const risk = highestTier(selectorRisk);
@@ -156,14 +171,16 @@ export function markersFor(comments, headSha, canWrite) {
 }
 
 /**
- * The commenters who may write proof: those whose repository role is admin, maintain or write.
- * `roleOf` looks one up; an account it cannot confirm writes nothing.
+ * The commenters who may write proof: those whose repository role is admin, maintain or write, or
+ * a custom role built on write or maintain. `accessOf` looks one up as GitHub's
+ * collaborator-permission response; an account it cannot confirm writes nothing.
  */
-export async function writersAmong(comments, roleOf) {
+export async function writersAmong(comments, accessOf) {
   const writers = new Set();
   for (const login of new Set(comments.filter(hasMarker).map((comment) => comment.user?.login).filter(Boolean))) {
     try {
-      if (WRITE_ROLES.has(await roleOf(login))) writers.add(login);
+      const access = await accessOf(login);
+      if (WRITE_ROLES.has(access?.role_name) || WRITE_PERMISSIONS.has(access?.permission)) writers.add(login);
     } catch {
       // Unconfirmed access counts as none.
     }
@@ -279,11 +296,10 @@ async function paginate(path, options, limit = Number.POSITIVE_INFINITY) {
 }
 
 /** Deleted Shared files whose code, as the base has it, reached a mutation primitive; unreadable ones too. */
-function deletedMutationPaths(pull, deletedPaths) {
+function deletedMutationPaths(baseEntries, deletedPaths) {
   const deleted = deletedPaths.filter((path) => /^packages\/shared\/src\/.+\.[cm]?[jt]sx?$/.test(path));
   if (!deleted.length) return { deletedMutation: [], unreadable: [] };
-  fetchCommit(pull.base.sha);
-  const baseRoot = materializeShared(treeEntries(pull.base.sha));
+  const baseRoot = materializeShared(baseEntries);
   try {
     return {
       deletedMutation: resolveMutationPaths(deleted, { cwd: baseRoot }),
@@ -300,31 +316,34 @@ async function evaluate(pull, headSha, options) {
   const paths = [...new Set(files.flatMap((file) => (file.previous_filename ? [file.filename, file.previous_filename] : [file.filename])))];
   const deletedPaths = [...new Set(files.flatMap((file) => (file.status === "removed" ? [file.filename] : file.previous_filename ? [file.previous_filename] : [])))];
   fetchCommit(headSha);
+  fetchCommit(pull.base.sha);
   const entries = treeEntries(headSha);
+  // A removed or renamed path is only in the base, so its mode is read there.
+  const baseEntries = treeEntries(pull.base.sha);
+  const modesOf = (tree) => new Map([...tree].map(([path, entry]) => [path, entry.mode]));
   const sharedRoot = materializeShared(entries);
   try {
     const unreadable = paths.filter(
       (path) => path.startsWith("packages/shared/") && entries.get(path)?.type === "blob" && entries.get(path).mode !== SYMLINK_MODE && !existsSync(join(sharedRoot, path)),
     );
-    const deleted = deletedMutationPaths(pull, deletedPaths);
+    const deleted = deletedMutationPaths(baseEntries, deletedPaths);
     const mutationPaths = resolveMutationPaths(paths, { cwd: sharedRoot });
     const selectorRisk = selectValidation({ changedPaths: paths, deletedPaths, mutationPaths, intent: "merge", ci: true }).risk;
     const change = classifyChange({
       paths,
-      modes: new Map([...entries].map(([path, entry]) => [path, entry.mode])),
+      modes: modesOf(entries),
+      baseModes: modesOf(baseEntries),
       selectorRisk,
       policy: loadMergePolicy(),
       fork: pull.head.repo?.full_name !== pull.base.repo.full_name,
       truncated: files.length >= GITHUB_FILE_LIMIT,
+      untraced: paths.filter((path) => !entries.has(path) && !baseEntries.has(path)),
       unreadable: [...unreadable, ...deleted.unreadable],
       deletedMutation: deleted.deletedMutation,
     });
     const comments = await paginate(`issues/${pull.number}/comments`, options);
-    const roleOf = async (login) => {
-      const access = await github(`collaborators/${encodeURIComponent(login)}/permission`, options);
-      return access.role_name ?? access.permission;
-    };
-    const writers = await writersAmong(comments, roleOf);
+    const accessOf = (login) => github(`collaborators/${encodeURIComponent(login)}/permission`, options);
+    const writers = await writersAmong(comments, accessOf);
     return decide({ ...change, markers: markersFor(comments, headSha, (login) => writers.has(login)), headSha });
   } finally {
     rmSync(sharedRoot, { recursive: true, force: true });

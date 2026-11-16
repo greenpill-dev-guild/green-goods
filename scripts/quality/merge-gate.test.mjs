@@ -60,6 +60,10 @@ test("whatever the gate cannot classify is critical", () => {
   const cases = [
     [{ paths: ["docs/a.md"], modes: new Map([["docs/a.md", "120000"]]) }, "symlink docs/a.md"],
     [{ paths: ["vendor/lib"], modes: new Map([["vendor/lib", "160000"]]) }, "submodule vendor/lib"],
+    // Removing a link or submodule, or replacing one with a file, leaves it only in the base.
+    [{ paths: ["docs/a.md"], baseModes: new Map([["docs/a.md", "120000"]]) }, "symlink docs/a.md"],
+    [{ paths: ["vendor/lib"], baseModes: new Map([["vendor/lib", "160000"]]) }, "submodule vendor/lib"],
+    [{ untraced: ["docs/gone.md"] }, "path in neither tree docs/gone.md"],
     [{ fork: true }, "a fork's pull request"],
     [{ truncated: true }, "more than 3000 files"],
     [{ unreadable: ["packages/shared/src/a.ts"] }, "unreadable Shared file packages/shared/src/a.ts"],
@@ -82,20 +86,23 @@ test("only writers' visible markers naming the head count, by full SHA or a nine
 });
 
 test("only accounts that can push write proof, and an unconfirmed account writes none", async () => {
-  const comments = [
-    { body: `merge-gate: reviewed ${HEAD}`, user: { login: "maintainer" } },
-    { body: `merge-gate: reviewed ${HEAD}`, user: { login: "member-reads" } },
-    { body: `merge-gate: reviewed ${HEAD}`, user: { login: "lookup-fails" } },
-    { body: "Thanks!", user: { login: "chatty" } },
-  ];
+  const marker = (login) => ({ body: `merge-gate: reviewed ${HEAD}`, user: { login } });
+  const comments = [marker("maintainer"), marker("custom-writer"), marker("member-reads"), marker("custom-reader"), marker("lookup-fails"), { body: "Thanks!", user: { login: "chatty" } }];
+  // GitHub's collaborator-permission response: a custom role keeps its base access in `permission`.
+  const access = {
+    maintainer: { role_name: "maintain", permission: "write" },
+    "custom-writer": { role_name: "release-steward", permission: "write" },
+    "member-reads": { role_name: "read", permission: "read" },
+    "custom-reader": { role_name: "auditor", permission: "read" },
+  };
   const asked = [];
-  const roleOf = async (login) => {
+  const accessOf = async (login) => {
     asked.push(login);
     if (login === "lookup-fails") throw new Error("HTTP 403");
-    return { maintainer: "maintain", "member-reads": "read" }[login];
+    return access[login];
   };
-  assert.deepEqual([...(await writersAmong(comments, roleOf))], ["maintainer"]);
-  assert.deepEqual(asked, ["maintainer", "member-reads", "lookup-fails"]);
+  assert.deepEqual([...(await writersAmong(comments, accessOf))], ["maintainer", "custom-writer"]);
+  assert.deepEqual(asked, ["maintainer", "custom-writer", "member-reads", "custom-reader", "lookup-fails"]);
 });
 
 test("each tier waits for its own proof at the head", () => {
