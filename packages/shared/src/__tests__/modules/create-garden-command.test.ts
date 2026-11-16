@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import {
   createDefaultCreateGardenPorts,
   createGarden,
@@ -6,7 +6,6 @@ import {
   type CreateGardenCommand,
   type CreateGardenPorts,
 } from "../../modules/garden/create-garden-command";
-import { beforeEach } from "vitest";
 import { withGasHeadroom } from "../../modules/transactions/gas-headroom";
 import type { TransactionSender, TxResult } from "../../modules/transactions/types";
 import { WalletCannotFundTransactionError } from "../../modules/transactions/wallet-funding";

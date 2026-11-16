@@ -1678,7 +1678,7 @@
     },
     {
       "id": "static-lint",
-      "command": "bun --bun run oxlint packages/client/src packages/admin/src packages/shared/src packages/indexer/src packages/agent/src packages/contracts/script --deny-warnings && bun run --cwd packages/contracts lint --check",
+      "command": "bun --bun run oxlint packages/client/src packages/admin/src packages/shared/src packages/indexer/src packages/indexer/test packages/agent/src packages/contracts/script tests --deny-warnings && bun run --cwd packages/contracts lint --check",
       "risk": "Independently selectable repository verification must retain its behavior.",
       "expectedSignal": "static-lint completes successfully",
       "freshness": "exact-inputs-and-toolchain",

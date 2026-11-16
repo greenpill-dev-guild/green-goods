@@ -126,8 +126,7 @@ vi.mock("@/components/Features/Work", () => ({
 }));
 
 // Import after mocks
-import type { Action, Address, Garden } from "@green-goods/shared/types/domain";
-import { Domain } from "@green-goods/shared/types/domain";
+import { type Action, type Address, type Garden, Domain } from "@green-goods/shared/types/domain";
 import { getWorkMediaId } from "@green-goods/shared/modules/work/media-processing";
 import { WorkReview } from "../../views/Garden/Review";
 

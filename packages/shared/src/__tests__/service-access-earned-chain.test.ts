@@ -4,8 +4,10 @@ import { type Abi, type AbiParameter, decodeFunctionResult, encodeFunctionResult
 import { describe, expect, it, vi } from "vitest";
 import { createServiceRehearsalSnapshot } from "../modules/commitment-pooling/demo/demo-service-access-fixtures";
 import { assertEarnedRewardAgreed } from "../modules/commitment-pooling/earned-agreement";
-import type { ServiceChainRead } from "../modules/commitment-pooling/service-access-chain";
-import { readServiceAccess } from "../modules/commitment-pooling/service-access-chain";
+import {
+  type ServiceChainRead,
+  readServiceAccess,
+} from "../modules/commitment-pooling/service-access-chain";
 import { readEarnedAcceptance } from "../modules/commitment-pooling/service-access-earned-chain";
 import type { NetworkContracts } from "../types/contracts";
 import { parseContractError } from "../utils/errors/contract-errors";

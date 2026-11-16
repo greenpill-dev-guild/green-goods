@@ -87,8 +87,7 @@ vi.mock("../../modules/app/error-tracking", () => ({
   trackUploadError: vi.fn(),
 }));
 
-import type { WorkApprovalDraft } from "../../types/domain";
-import { Confidence, VerificationMethod } from "../../types/domain";
+import { type WorkApprovalDraft, Confidence, VerificationMethod } from "../../types/domain";
 import { decodeWorkApprovalData, encodeWorkApprovalData } from "../../utils/eas/encoders";
 
 const ABI_PARAMETERS = [

@@ -14,8 +14,12 @@ import { useBatchWorkApproval } from "../../../hooks/work/useBatchWorkApproval";
 import type { BatchExecution } from "../../../modules/transactions/batch-types";
 import type { OverlayWork } from "../../../modules/work/local-status-overlay";
 import type { ReviewDecision } from "../../../modules/work/review-batch";
-import type { Address, WorkApprovalDraft } from "../../../types/domain";
-import { Confidence, VerificationMethod } from "../../../types/domain";
+import {
+  type Address,
+  type WorkApprovalDraft,
+  Confidence,
+  VerificationMethod,
+} from "../../../types/domain";
 import { encodeWorkApprovalData } from "../../../utils/eas/encoders";
 import { createTestQueryClient } from "../../test-utils/query-client";
 import { renderHookWithProviders } from "../../test-utils/render-helpers";
@@ -55,7 +59,8 @@ vi.mock("../../../modules/data/eas", () => ({
     chainState.decided.has(workUID) ? [{ id: "earlier" }] : []
   ),
 }));
-vi.mock("@wagmi/core", () => ({
+vi.mock("@wagmi/core", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@wagmi/core")>()),
   // Every work here was made after the resolver began counting decisions, so it counts each one.
   readContract: vi.fn(
     async (_config, { functionName, args = [""] }: { functionName: string; args?: [string] }) => {

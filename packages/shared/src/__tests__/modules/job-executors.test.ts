@@ -5,11 +5,9 @@ import type { Config } from "@wagmi/core";
 import { encodeAbiParameters, encodeEventTopics } from "viem";
 import { describe, expect, it, vi } from "vitest";
 import type { EASConfig } from "../../config/blockchain";
-import type {
-  CommitmentCreationPayload,
-  CommitmentJobExecutionDependencies,
-} from "../../modules/commitment-pooling/jobs";
 import {
+  type CommitmentCreationPayload,
+  type CommitmentJobExecutionDependencies,
   hashCommitmentCreationPayload,
   hashSeriesCreationPayload,
   hashWorkLinkPayload,

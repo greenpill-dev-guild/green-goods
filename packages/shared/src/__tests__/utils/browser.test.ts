@@ -5,7 +5,7 @@
  * These utilities help guide users to the right browser for optimal PWA installation.
  */
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   type BrowserInfo,
   canTriggerInstallPrompt,

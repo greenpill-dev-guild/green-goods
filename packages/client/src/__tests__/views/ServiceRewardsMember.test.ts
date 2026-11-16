@@ -4,13 +4,15 @@
  * Teo to approve more; a short reserve waits for a top-up; either way the reward is unchanged.
  */
 
-import type { RewardStoryState } from "../../../../shared/.storybook/voucherBookingFixtures";
+import {
+  type RewardStoryState,
+  rewardStoryCoreState,
+} from "../../../../shared/.storybook/voucherBookingFixtures";
 import es from "@green-goods/shared/i18n/es";
 import pt from "@green-goods/shared/i18n/pt";
 import en from "@green-goods/shared/i18n/en";
 import { createIntl } from "react-intl";
 import { describe, expect, it } from "vitest";
-import { rewardStoryCoreState } from "../../../../shared/.storybook/voucherBookingFixtures";
 import {
   requestRewardDeliveries,
   type RequestRewardDelivery,
