@@ -54,6 +54,8 @@ export async function startIsolatedFork(
       upstream,
       "--fork-block-number",
       String(forkBlock),
+      // Synthetic upstreams can reuse a chain and block with different state.
+      "--no-storage-caching",
       "--chain-id",
       String(chainId),
       "--host",
