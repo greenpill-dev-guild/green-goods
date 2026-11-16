@@ -318,6 +318,38 @@ describe("hooks/work/useWorks", () => {
     });
   });
 
+  it("fills a visible page without deleting a newer excluded cached work", async () => {
+    const visible = Array.from({ length: 50 }, (_, index) => ({
+      id: `work-${index}`,
+      title: `Work ${index}`,
+      actionUID: 1,
+      gardenerAddress: TEST_PRIMARY_ADDRESS,
+      gardenAddress: TEST_GARDEN,
+      feedback: "",
+      metadata: JSON.stringify({ clientWorkId: `client-${index}` }),
+      media: [],
+      createdAt: 2_000 - index,
+      status: "pending" as const,
+    }));
+    const hidden = { ...visible[0], id: `0x${"a".repeat(64)}`, createdAt: 3_000 };
+    const mergedKey = ["works", "merged", TEST_GARDEN, TEST_CHAIN_ID];
+    queryClient.setQueryData(mergedKey, [hidden]);
+    queryClient.setQueryData(["works", "visibility", TEST_CHAIN_ID], {
+      chainId: TEST_CHAIN_ID,
+      excludedWorkUIDs: [hidden.id],
+      excludedApprovalUIDs: [],
+    });
+    mockGetWorkListPage.mockResolvedValue(visible);
+
+    const { result } = renderHookWithProviders(() => useWorks(TEST_GARDEN), { queryClient });
+
+    await waitFor(() => expect(mockGetWorkListPage).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
+    expect(result.current.works.map((work) => work.id)).toEqual(visible.map((work) => work.id));
+    expect(result.current.hasOlderWork).toBe(false);
+    expect(queryClient.getQueryData(mergedKey)).toEqual(expect.arrayContaining([hidden]));
+  });
+
   it("does not let a second consumer shrink a widened garden window", async () => {
     const page = (count: number) =>
       Array.from({ length: count }, (_, index) => ({

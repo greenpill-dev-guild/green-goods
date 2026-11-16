@@ -152,8 +152,13 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
       overlay: overlay.data,
     });
     // Confirmed previews and cached history share the indexed pagination window.
+    // Excluded records stay cached without taking a visible row's page slot.
     // Pending queue jobs are appended below and stay visible independently.
-    const rows: Work[] = sortByCreatedAt(resolved.rows).slice(0, take);
+    const sortedRows = sortByCreatedAt(resolved.rows);
+    const rows: Work[] = [
+      ...sortedRows.filter((work) => isVisible(work.id)).slice(0, take),
+      ...sortedRows.filter((work) => !isVisible(work.id)),
+    ];
     // Identity must agree on submitter and clientWorkId. A CID whose metadata
     // has not been downloaded cannot prove a match, so retain the local work.
     const identities = new Set(
@@ -205,6 +210,7 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
     metadataByWork,
     sendingJobs,
     isOnline,
+    isVisible,
   ]);
 
   useEffect(() => {
