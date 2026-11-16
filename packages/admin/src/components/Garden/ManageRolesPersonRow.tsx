@@ -1,3 +1,4 @@
+import { GardenContributionDate } from "@green-goods/shared/components/GardenContributionDate";
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageWithFallback";
 import { useResolvedProfileAvatar } from "@green-goods/shared/hooks/profile/useProfileAvatar";
@@ -90,6 +91,7 @@ interface ManageRolesPersonRowProps {
   readOnly: boolean;
   disabled?: boolean;
   history?: GardenMemberHistory;
+  contribution?: Parameters<typeof GardenContributionDate>[0]["contribution"];
   historyLoading?: boolean;
   historyError?: boolean;
   onAddRole?: () => void;
@@ -113,6 +115,7 @@ export function ManageRolesPersonRow({
   history,
   historyLoading = false,
   historyError = false,
+  contribution,
   onAddRole,
   addRoleDisabled = false,
 }: ManageRolesPersonRowProps) {
@@ -172,6 +175,7 @@ export function ManageRolesPersonRow({
               isLoading={historyLoading}
               isError={historyError}
             />
+            <GardenContributionDate contribution={contribution} />
             {!readOnly && onAddRole ? (
               <div className="flex justify-end">
                 <Button
