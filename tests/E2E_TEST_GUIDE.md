@@ -39,11 +39,10 @@ tests/
 │   ├── admin.smoke.spec.ts   # Admin basic functionality
 │   ├── admin.auth.spec.ts    # Admin authentication flows
 │   ├── client.smoke.spec.ts  # Client basic functionality  
-│   ├── client.auth.spec.ts   # Client authentication flows
-│   ├── client.offline-sync.spec.ts  # Offline functionality
-│   ├── client.work-submission.spec.ts  # Work submission
-│   ├── client.work-approval.spec.ts    # Work approval
-│   ├── client.navigation.spec.ts  # Navigation and routing
+│   ├── client.session-navigation.ci.spec.ts # Deterministic navigation, session and sign-out
+│   ├── client.offline-sync.ci.spec.ts # Deterministic offline behavior
+│   ├── client.work-submission.ci.spec.ts # Work form validation
+│   ├── client.work-approval.ci.spec.ts # Queued review and retry
 │   └── performance.spec.ts   # Performance metrics
 ├── helpers/
 │   ├── test-utils.ts        # Test helpers and utilities
@@ -60,7 +59,7 @@ tests/
 bun run browser e2e --preset all
 
 # Run specific test file
-bun exec playwright test client.auth.spec.ts
+PLAYWRIGHT_APP=client APP_ENV=test bun exec playwright test --project=client-ci client.session-navigation.ci.spec.ts
 
 # Run in headed mode for debugging
 bun exec playwright test --headed

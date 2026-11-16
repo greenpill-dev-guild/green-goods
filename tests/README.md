@@ -60,7 +60,7 @@ Use Bun to launch the checked-in Playwright CLI:
 ```bash
 bun x playwright test --project=client-ci
 bun x playwright test --project=admin-ci
-bun x playwright test tests/specs/client.navigation.spec.ts
+bun x playwright test tests/specs/client.session-navigation.ci.spec.ts
 
 bun run browser e2e --preset fork
 bun run browser e2e --preset passkey

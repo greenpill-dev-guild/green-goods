@@ -26,12 +26,14 @@ bun run browser e2e --preset ui
 
 | File | Tests | Coverage |
 |------|-------|----------|
-| `client.smoke.spec.ts` | 8 | Auth, gardens, health |
+| `client.smoke.spec.ts` | 7 | Auth, gardens, health |
 | `admin.smoke.spec.ts` | 9 | Auth, dashboard, pages |
-| `client.auth.spec.ts` | 11 | Complete auth flows |
-| `client.offline-sync.spec.ts` | 13 | Offline functionality |
-| `client.work-approval.spec.ts` | 9 | Steward flows |
-| `client.work-submission.spec.ts` | 11 | Work submission |
+| `client.session-navigation.ci.spec.ts` | 6 | Protected routes, navigation, session reload and sign-out |
+| `client.offline-sync.ci.spec.ts` | 4 | Offline indicators, service-worker activation and dashboard access |
+| `client.work-approval.ci.spec.ts` | 4 | Access, queued approval and retry |
+| `client.work-submission.ci.spec.ts` | 3 | Authenticated home, sign-in redirect and form validation |
+| `client.offline-work-submission.ci.spec.ts` | 1 | Offline wizard and explicit upload |
+| `client.passkey.spec.ts` | 1 | Rejected registration and retry |
 
 ## Passkey Testing (Android/Chromium)
 
