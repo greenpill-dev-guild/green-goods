@@ -5,6 +5,8 @@
  */
 
 import en from "@green-goods/shared/i18n/en";
+import es from "@green-goods/shared/i18n/es";
+import pt from "@green-goods/shared/i18n/pt";
 import { type Action, Domain, type Garden } from "@green-goods/shared/types/domain";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { useState } from "react";
@@ -116,10 +118,12 @@ function Harness(props: Partial<WorkStartProps> & { onDomain?: (domain: Domain |
 }
 
 function renderStart(
-  props: Partial<WorkStartProps> & { onDomain?: (domain: Domain | null) => void }
+  props: Partial<WorkStartProps> & { onDomain?: (domain: Domain | null) => void },
+  locale = "en",
+  messages = en
 ) {
   return render(
-    <IntlProvider locale="en" messages={en}>
+    <IntlProvider locale={locale} messages={messages}>
       <Harness {...props} />
     </IntlProvider>
   );
@@ -133,6 +137,40 @@ const tiles = () =>
 afterEach(cleanup);
 
 describe("WorkStart", () => {
+  const guidance = [
+    ["en", en, "What type of work did you do?", "Which promise is this work for?"],
+    ["es", es, "¿Qué tipo de trabajo hiciste?", "¿Para qué promesa es este trabajo?"],
+    ["pt", pt, "Que tipo de trabalho você fez?", "Para qual promessa é este trabalho?"],
+  ] as const;
+
+  it.each(guidance)("shows the full action guidance card in %s", (locale, messages, info) => {
+    const { container } = renderStart({}, locale, messages);
+    const card = container.querySelector('[data-component="FormInfo"]') as HTMLElement;
+
+    expect(card).toBeVisible();
+    expect(
+      within(card).getByRole("heading", { name: messages["app.garden.selectYourAction"] })
+    ).toBeVisible();
+    expect(within(card).getByText(info)).toBeVisible();
+  });
+
+  it.each(
+    guidance
+  )("shows the full promise guidance card in %s", (locale, messages, _info, info) => {
+    const { container } = renderStart(
+      { start: startStep({ screen: { kind: "promises" }, promises: [promise([1], false)] }) },
+      locale,
+      messages
+    );
+    const card = container.querySelector('[data-component="FormInfo"]') as HTMLElement;
+
+    expect(card).toBeVisible();
+    expect(
+      within(card).getByRole("heading", { name: messages["app.garden.start.promises.title"] })
+    ).toBeVisible();
+    expect(within(card).getByText(info)).toBeVisible();
+  });
+
   it("filters the tiles with the domain chips, which choose nothing and move nothing", () => {
     const onDomain = vi.fn();
     const start = startStep();
