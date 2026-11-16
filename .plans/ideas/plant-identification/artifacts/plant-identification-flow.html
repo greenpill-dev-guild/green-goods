@@ -60,12 +60,12 @@
   --spring-effects: cubic-bezier(0.2, 0, 0, 1) 250ms;
   --spring-effects-fast: cubic-bezier(0.2, 0, 0, 1) 150ms;
   --spring-effects-slow: cubic-bezier(0.2, 0, 0, 1) 500ms;
-  /* Type: Inter in the PWA, Plus Jakarta Sans in the cockpit, system fallbacks (no CDN) */
+  /* Type: Inter in the PWA, Plus Jakarta Sans in the Hub, system fallbacks (no CDN) */
   --font-app: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-admin: "Plus Jakarta Sans", Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-  /* Admin cockpit tokens (garden workspace tone) */
+  /* Green Goods Hub tokens (garden workspace tone) */
   --m3-surface-container-low: 250 248 245; --m3-surface-container: 247 244 239; --m3-surface-container-high: 236 233 226; --m3-surface-container-highest: 226 222 213;
   --m3-outline: var(--neutral-500); --m3-outline-variant: var(--stroke-soft-200);
   --m3-elevation-1: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px 1px rgba(0, 0, 0, 0.15);
@@ -460,7 +460,7 @@ details.ref p { padding-bottom: 12px; font-size: 13px; line-height: 18px; color:
 .rev-note b { font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; font-size: 10px; color: rgb(var(--neutral-600)); margin-right: 6px; }
 
 /* ------------------------------------------------------------
-   Steward preview: restrained cockpit, solid surfaces, Plus Jakarta Sans
+   Steward preview: restrained Hub, solid surfaces, Plus Jakarta Sans
    ------------------------------------------------------------ */
 .admin { position: absolute; inset: 0; z-index: 12; font-family: var(--font-admin); font-size: 14px; color: rgb(var(--text-strong-950)); background: rgb(var(--m3-surface-container-low)); }
 .admin-canvas { position: absolute; inset: 0; padding: 24px; background: linear-gradient(to bottom, rgb(var(--green-500) / 0.05), transparent 320px); }
@@ -1738,7 +1738,7 @@ function renderSaved() {
   </div></div>`;
 }
 
-/* ---------- Steward preview (admin cockpit) ---------- */
+/* ---------- Steward preview (Green Goods Hub) ---------- */
 function adminBadge(status) { return `<span class="admin-badge" data-tone="${status}">${icon(status === 'approved' ? 'check' : status === 'rejected' ? 'close' : 'clock')} ${status === 'approved' ? 'Approved' : status === 'rejected' ? 'Rejected' : 'Pending'}</span>`; }
 function adminPlant(row, work, sec) {
   const idents = row.supports.map((id) => work.identSnapshot.find((i) => i.id === id) || S.idents[id]).filter(Boolean);
