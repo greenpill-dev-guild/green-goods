@@ -15,19 +15,11 @@ import { loggers } from "./logger";
 
 const log = loggers.crypto;
 
-// ============================================================================
-// CONFIGURATION
-// ============================================================================
-
 const ALGORITHM = "aes-256-gcm";
 const IV_LENGTH = 16; // 128 bits for GCM
 const SALT_LENGTH = 32; // 256 bits
 const KEY_LENGTH = 32; // 256 bits for AES-256
 const PBKDF2_ITERATIONS = 100000; // OWASP recommended minimum
-
-// ============================================================================
-// TYPES
-// ============================================================================
 
 export interface EncryptedData {
   /** Encrypted data as hex string */
@@ -41,10 +33,6 @@ export interface EncryptedData {
   /** Version for future migration support */
   version: 1;
 }
-
-// ============================================================================
-// KEY DERIVATION
-// ============================================================================
 
 function deriveKey(secret: string, salt: Buffer): Buffer {
   return crypto.pbkdf2Sync(secret, salt, PBKDF2_ITERATIONS, KEY_LENGTH, "sha256");
@@ -91,10 +79,6 @@ function getEncryptionSecret(): string {
 
   return secret;
 }
-
-// ============================================================================
-// ENCRYPTION / DECRYPTION
-// ============================================================================
 
 /**
  * Encrypts a private key or other sensitive data.
@@ -155,7 +139,6 @@ export function decryptPrivateKey(encrypted: EncryptedData): string {
   const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
   decipher.setAuthTag(authTag);
 
-  // Decrypt
   try {
     let plaintext = decipher.update(encrypted.ciphertext, "hex", "utf8");
     plaintext += decipher.final("utf8");
@@ -225,10 +208,6 @@ export function prepareKeyForStorage(privateKey: string): string {
   return JSON.stringify(encrypted);
 }
 
-// ============================================================================
-// SECURE RANDOM GENERATION
-// ============================================================================
-
 /**
  * Generates a cryptographically secure private key.
  *
@@ -248,10 +227,6 @@ export function generateSecurePrivateKey(): `0x${string}` {
 export function generateSecureId(length: number = 8): string {
   return crypto.randomBytes(length).toString("hex");
 }
-
-// ============================================================================
-// VALIDATION
-// ============================================================================
 
 export function isValidPrivateKey(key: string): boolean {
   return /^0x[a-fA-F0-9]{64}$/.test(key);

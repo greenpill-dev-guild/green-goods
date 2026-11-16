@@ -18,10 +18,6 @@ const log = loggers.ai;
 
 type TranscriberPipeline = (audio: string | Float32Array) => Promise<{ text: string }>;
 
-// ============================================================================
-// AI CLASS
-// ============================================================================
-
 class AI {
   private transcriber: TranscriberPipeline | null = null;
   private modelLoading: Promise<TranscriberPipeline> | null = null;
@@ -83,7 +79,6 @@ class AI {
     const lower = text.toLowerCase();
     const tasks: ParsedTask[] = [];
 
-    // Tree planting patterns
     const treePatterns = [
       /planted?\s*(\d+)\s*trees?/i,
       /(\d+)\s*trees?\s*planted/i,
@@ -104,7 +99,6 @@ class AI {
       }
     }
 
-    // Weeding patterns
     const weedPatterns = [
       /(\d+)\s*(kg|lbs?|pounds?)?\s*(?:of\s*)?weeds?/i,
       /weeded?\s*(\d+)\s*(kg|lbs?|pounds?)?/i,
@@ -126,7 +120,6 @@ class AI {
       }
     }
 
-    // General plant patterns
     const plantMatch =
       lower.match(/planted?\s*(\d+)\s*(\w+)/i) ??
       lower.match(/plant(?:é|e|ei|ou|ado|ada|ados|adas)?\s*(\d+)\s*([\p{L}\p{M}-]+)/iu);
@@ -182,10 +175,6 @@ class AI {
   }
 }
 
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
 let _ai: AI | null = null;
 
 export function initAI(): AI {
@@ -202,7 +191,6 @@ function getAI(): AI {
   return _ai;
 }
 
-// Re-export convenience functions
 export const transcribe = (audioPath: string) => getAI().transcribe(audioPath);
 export const parseWorkText = (text: string, locale?: string) => getAI().parseWorkText(text, locale);
 export const isAIModelLoaded = () => _ai?.isModelLoaded() ?? false;

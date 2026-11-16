@@ -43,7 +43,6 @@ import { getExistingIdempotencyResponse } from "./idempotency";
 import { handleJoin } from "./join";
 import { handlePending } from "./pending";
 import { handleReject } from "./reject";
-// Import individual handlers
 import { handleStart } from "./start";
 import { handleStatus } from "./status";
 import {
@@ -52,10 +51,6 @@ import {
   handleTextSubmission,
   handleVoiceSubmission,
 } from "./submit";
-
-// ============================================================================
-// TYPES
-// ============================================================================
 
 export interface HandlerContext {
   voiceProcessor?: {
@@ -68,10 +63,6 @@ export interface HandlerContext {
     notify: (platform: string, platformId: string, message: string) => Promise<void>;
   };
 }
-
-// ============================================================================
-// MESSAGE ROUTER
-// ============================================================================
 
 let _context: HandlerContext = {};
 
@@ -152,10 +143,6 @@ function validateOutboundContent(response: OutboundResponse): void {
   }
 }
 
-// ============================================================================
-// COMMAND HANDLER
-// ============================================================================
-
 async function handleCommand(
   message: InboundMessage,
   user: User | undefined
@@ -229,10 +216,6 @@ async function handleCommand(
   }
 }
 
-// ============================================================================
-// CALLBACK HANDLER
-// ============================================================================
-
 async function handleCallback(
   message: InboundMessage,
   user: User | undefined
@@ -287,10 +270,6 @@ async function handleCallback(
   }
 }
 
-// ============================================================================
-// VOICE HANDLER
-// ============================================================================
-
 async function handleVoice(
   message: InboundMessage,
   user: User | undefined
@@ -331,10 +310,6 @@ async function handleVoice(
   }
 }
 
-// ============================================================================
-// TEXT HANDLER
-// ============================================================================
-
 async function handleText(
   message: InboundMessage,
   user: User | undefined
@@ -363,10 +338,6 @@ async function handleText(
     return textResponse(`❌ ${userMessage}`);
   }
 }
-
-// ============================================================================
-// PHOTO HANDLER
-// ============================================================================
 
 async function handlePhoto(
   message: InboundMessage,
@@ -447,10 +418,6 @@ async function handlePhoto(
   }
 }
 
-// ============================================================================
-// UTILITIES
-// ============================================================================
-
 function checkRateLimit(
   platformId: string,
   type: RateLimitType,
@@ -486,10 +453,6 @@ async function applySessionUpdates(
     });
   }
 }
-
-// ============================================================================
-// RE-EXPORTS
-// ============================================================================
 
 export { handleApprove } from "./approve";
 export { createGroupCaptureHandler } from "./group-capture";
