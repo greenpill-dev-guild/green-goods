@@ -62,7 +62,7 @@ Each category maps to a Linear label combination — old `health:*` GitHub label
 | Contracts state drift | `package:contracts` |
 | Agent service down/unreachable | `package:agent` |
 | Client-side error spike | `package:client` or `package:admin` (whichever PostHog project surged) |
-| Scheduled CI lane red | the failed job's package: `package:contracts` for Contracts Nightly and Coverage Nightly's contracts job, `package:shared`, `package:client` or `package:admin` for its other coverage jobs, `package:shared` for Shared's weekly run, and none for any other lane |
+| Scheduled CI lane red | one package, from the failed jobs: `package:contracts` when Contracts Nightly or Coverage Nightly's contracts job failed; else the first failed job's package in the workflow's job order (`package:shared`, `package:client` or `package:admin` for Coverage Nightly's other jobs, `package:shared` for Shared's weekly run); none for any other lane. The Issue body names every failed job |
 
 **Codex hand-off:** most health anomalies are operational (indexer/agent/contract state) and stay `ai:routine` for a human. Only when an accepted health Issue is a **code fix that clears the Codex-ready bar** (clear surface + concrete suggested fix + validation; never `package:contracts` or shared auth — see [`README.md` § Codex hand-off](README.md)) swap `ai:routine`→`ai:codex`, and delegate to Codex when it also clears the autonomous-confident bar.
 
@@ -334,7 +334,7 @@ health-watch: indexer={status}, vercel={status}, contracts={status_or_deferred},
 
 - **No false positives.** When in doubt, do NOT open an Issue. The cost of a missed alert is one day; the cost of a false alert is your trust in this routine.
 - **Indexer-gates-everything.** If indexer is 🔴, contracts checks are deferred. Period.
-- **Auto-close stale recoveries.** Don't let recovered conditions sit as open Issues — transition them to `Done` with evidence.
+- **Auto-close stale recoveries.** Don't let recovered conditions sit as open Issues: transition them to `Done` with evidence. Scheduled lanes are the exception: a person sets their status (see Auto-close on recovery).
 - **Linear is the only Issue surface.** No GitHub Issue writes, no GitHub Project items, no `Sprints` / iteration field updates. The retired `health:*` GitHub label set is not used.
 - **Scheduled lanes only, read without a token.** The CI signal is the latest scheduled run of each scheduled workflow on `develop`, read from GitHub's public REST API with no token, no `gh` and no connector; pull-request and push CI stay with GitHub's notifications and the PR author. Never write to GitHub, and never store a GitHub token for this check.
 - **Project routing discipline.** Every Issue follows [Project routing](README.md#project-routing): a bounded active project that clearly owns the work, otherwise the active release project, or unprojected when none is started. Never route into the retired `Green Goods`, `Coop`, `Network Website`, `Cookie Jar`, or `Story Board` projects.
