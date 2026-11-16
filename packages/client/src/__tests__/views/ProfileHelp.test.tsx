@@ -38,21 +38,17 @@ describe("ProfileHelp", () => {
     access.manages = false;
   });
 
-  // PRD-1492: a new steward found no way from the App to the Hub.
-  it("leads Learn and Connect with the Green Goods Hub for a steward, at this build's Hub", () => {
+  it("keeps the Hub entry out of Help even for a steward with a configured Hub", () => {
     vi.stubEnv("VITE_ADMIN_APP_URL", HUB);
     access.gardens = [{ garden: { id: "0x0000000000000000000000000000000000000ga1" } }];
     access.manages = true;
     render(wrap(createElement(ProfileHelp)));
 
-    expect(pageOrder().slice(0, 3)).toEqual([
+    expect(pageOrder().slice(0, 2)).toEqual([
       "# Learn & Connect",
-      HUB,
       "https://docs.greengoods.app/community/gardener-guide",
     ]);
-    const hub = screen.getByRole("link", { name: /Green Goods Hub/ });
-    expect(hub).toHaveAttribute("target", "_blank");
-    expect(hub).not.toHaveTextContent(/dashboard/i);
+    expect(screen.queryByRole("link", { name: /Green Goods Hub/ })).toBeNull();
   });
 
   it("shows no Hub row to an account that stewards no garden, or where the build names no Hub", () => {

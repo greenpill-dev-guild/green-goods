@@ -93,6 +93,7 @@ export function GardenSection({
           isFetching={workRead.isFetching}
           readState={workRead}
           gardenId={garden.id}
+          domainMask={garden.domainMask}
           chainId={chainId}
           onRefresh={workRead.refetch}
           returnTo={workReturnTo}
