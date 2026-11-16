@@ -67,6 +67,8 @@ export function useProtocolRoles() {
     staleTime: 0,
     refetchOnWindowFocus: "always",
     retry: false,
+    // A failed read must not restart when the access gate mounts its children.
+    retryOnMount: false,
   });
   // Retained data after a failed refresh never grants an operational capability.
   return {
