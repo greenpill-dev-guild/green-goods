@@ -20,7 +20,7 @@ Both modes use live Arbitrum; transaction confirmations can affect production.
 
 Green Goods runs a **staging → production** flow:
 
-- **`develop`** is the integration/staging branch. Open your PRs here. A merge to `develop` deploys the website, app and admin to staging for validation when it changes their inputs, and always deploys the Agent and the QA app straight to production.
+- **`develop`** is the integration/staging branch. Open your PRs here. A merge to `develop` deploys the Agent straight to production. It also deploys the QA app to production and the website, app and admin to staging for validation, unless Vercel's ignore step finds that nothing a site is built from changed since its last deployment.
 - **`main`** is production for the website, app and admin. Maintainers promote `develop → main` once changes are validated on staging.
 
 Branch from `develop` and PR into `develop`. Don't target `main` directly except for a documented hotfix.
