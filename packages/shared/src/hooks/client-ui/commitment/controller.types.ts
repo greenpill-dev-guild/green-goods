@@ -55,6 +55,8 @@ export interface GardenCommitmentController {
   metadata: CommitmentMetadataV1 | null;
   pool: CommitmentPoolRecord | null;
   works: Work[];
+  /** Presentation classification only; detail and decision reads retain their raw authority. */
+  workVisibility: { isReady: boolean; isLoading: boolean; isVisible: (uid: string) => boolean };
   actions: Action[];
   roles: CommitmentViewerRoles;
   seat: CommitmentSeat | null;

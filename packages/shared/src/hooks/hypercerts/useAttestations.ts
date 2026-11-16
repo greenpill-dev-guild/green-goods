@@ -1,3 +1,5 @@
+import { isWorkVisible } from "../../modules/work/work-visibility";
+import { useWorkVisibility } from "../work/useWorkVisibility";
 import { useQuery } from "@tanstack/react-query";
 
 import type { Address } from "viem";
@@ -35,6 +37,7 @@ export function useAttestations(
   filters?: AttestationFilters
 ): UseAttestationsResult {
   const chainId = DEFAULT_CHAIN_ID;
+  const visibility = useWorkVisibility(chainId);
 
   const query = useQuery({
     queryKey: hypercertsKeys.attestations(gardenId, filters),
@@ -94,14 +97,21 @@ export function useAttestations(
   });
 
   return {
-    attestations: query.data ?? [],
-    isLoading: query.isLoading,
-    error: (query.error as Error) ?? null,
-    hasError: Boolean(query.error),
+    attestations: (query.data ?? []).filter((attestation) =>
+      visibility.isVisible(attestation.workUid)
+    ),
+    isLoading: query.isLoading || (!visibility.isReady && visibility.isLoading),
+    error: visibility.error ?? (query.error as Error) ?? null,
+    hasError: Boolean(query.error) || (!visibility.isReady && !visibility.isLoading),
     refetch: async () => {
       try {
+        const refreshed = await visibility.refetch();
+        const snapshot = refreshed.data ?? visibility.snapshot;
+        if (!snapshot) throw refreshed.error ?? new Error("Work visibility could not be read");
         const result = await query.refetch();
-        return result.data ?? [];
+        return (result.data ?? []).filter((attestation) =>
+          isWorkVisible(attestation.workUid, snapshot)
+        );
       } catch (error) {
         logger.error("[useAttestations] Refetch failed", {
           gardenId,

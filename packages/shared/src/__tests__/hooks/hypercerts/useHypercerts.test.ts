@@ -12,6 +12,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createTestQueryClient } from "../../test-utils/query-client";
 import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
+const classification = vi.hoisted(() => ({ required: false, read: vi.fn() }));
+vi.mock("../../../modules/work/work-visibility", async (original) => ({
+  ...(await original<typeof import("../../../modules/work/work-visibility")>()),
+  hasWorkVisibilityExclusions: () => classification.required,
+  readWorkVisibility: classification.read,
+}));
+
 // ============================================
 // Mocks
 // ============================================
@@ -55,7 +62,11 @@ import {
   useHypercerts,
 } from "../../../hooks/hypercerts/useHypercerts";
 import type { HypercertRecord } from "../../../types/hypercerts";
-import { createMockHypercertRecord, MOCK_ADDRESSES } from "../../test-utils/mock-factories";
+import {
+  createMockHypercertAttestation,
+  createMockHypercertRecord,
+  MOCK_ADDRESSES,
+} from "../../test-utils/mock-factories";
 
 // ============================================
 // Test Suite
@@ -66,12 +77,74 @@ describe("useHypercerts", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    classification.required = false;
+    classification.read.mockResolvedValue({
+      chainId: TEST_CHAIN_ID,
+      excludedWorkUIDs: [],
+      excludedApprovalUIDs: [],
+    });
     queryClient = createTestQueryClient();
     mockGetGardenHypercerts.mockResolvedValue([]);
     mockGetHypercertById.mockResolvedValue(null);
     mockGetHypercertFromSdkApi.mockResolvedValue(null);
     mockHydrateHypercertMetadata.mockResolvedValue({});
     mockHydrateHypercertRecords.mockResolvedValue({});
+  });
+
+  it("keeps certificate facts while waiting for linked-work classification, then hides only selected evidence", async () => {
+    classification.required = true;
+    let finish!: (value: {
+      chainId: number;
+      excludedWorkUIDs: string[];
+      excludedApprovalUIDs: string[];
+    }) => void;
+    classification.read.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        })
+    );
+    const hidden = `0x${"a".repeat(64)}`;
+    const visible = `0x${"b".repeat(64)}`;
+    mockGetHypercertById.mockResolvedValue(
+      createMockHypercertRecord({
+        id: "certificate",
+        attestationCount: 2,
+        attestations: [
+          createMockHypercertAttestation({ workUid: hidden }),
+          createMockHypercertAttestation({ workUid: visible }),
+        ],
+      })
+    );
+    const { result } = renderHookWithQueryClient(
+      () => useHypercerts({ hypercertId: "certificate" }),
+      { queryClient }
+    );
+    await waitFor(() => expect(result.current.hypercert?.attestationCount).toBe(2));
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.evidenceLoading).toBe(true);
+    expect(result.current.hypercert?.attestations).toEqual([]);
+    await act(async () =>
+      finish({ chainId: TEST_CHAIN_ID, excludedWorkUIDs: [hidden], excludedApprovalUIDs: [] })
+    );
+    await waitFor(() => expect(result.current.evidenceLoading).toBe(false));
+    expect(result.current.hypercert?.attestations?.map((row) => row.workUid)).toEqual([visible]);
+    expect(result.current.hypercert?.attestationCount).toBe(2);
+  });
+
+  it("reports unavailable linked evidence while retaining the certificate after classification fails", async () => {
+    classification.required = true;
+    classification.read.mockRejectedValue(new Error("classification unavailable"));
+    mockGetHypercertById.mockResolvedValue(
+      createMockHypercertRecord({ id: "certificate", attestationCount: 2 })
+    );
+    const { result } = renderHookWithQueryClient(
+      () => useHypercerts({ hypercertId: "certificate" }),
+      { queryClient }
+    );
+    await waitFor(() => expect(result.current.hasError).toBe(true));
+    expect(result.current.hypercert?.attestationCount).toBe(2);
+    expect(result.current.isLoading).toBe(false);
   });
 
   // ============================================
