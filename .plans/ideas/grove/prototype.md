@@ -29,7 +29,7 @@ The four core parts and their one job each:
 ```mermaid
 flowchart LR
   subgraph Pages["Web pages"]
-    GG["Green Goods Green Goods Hub, selected garden<br/>WebMCP tool: garden snapshot, read-only"]
+    GG["Green Goods Hub, selected garden<br/>WebMCP tool: garden snapshot, read-only"]
     SRC["Any research page<br/>Save to Grove"]
   end
   subgraph Ext["Grove extension, one browser profile"]
@@ -85,7 +85,7 @@ Step 1 needs the Hub open on the garden, and step 2 the page being saved. Steps 
 
 Keep each piece small enough to replace.
 
-### Green Goods Green Goods Hub and Shared
+### Green Goods Hub and Shared
 
 | File | Change |
 |---|---|

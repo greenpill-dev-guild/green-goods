@@ -72,7 +72,7 @@ flowchart TB
     CAP["capture content script"] --> BG
     EXTAPI["externally_connectable"] --> BG
   end
-  PAGE["Green Goods Green Goods Hub, selected garden"] -->|"WebMCP tool"| GGCS
+  PAGE["Green Goods Hub, selected garden"] -->|"WebMCP tool"| GGCS
   NET["indexer, EAS, RPC"] -->|"direct adapter"| Tab
   PEER["community node"] <-->|"poll, broadcast, fetch"| KO
   HF["model host"] -->|"one download"| W
