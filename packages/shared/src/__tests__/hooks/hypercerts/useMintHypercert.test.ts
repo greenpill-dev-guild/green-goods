@@ -1,13 +1,13 @@
 /** @vitest-environment happy-dom */
 import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  createMockHypercertDraft,
-  createMockHypercertAttestation,
-} from "../../test-utils/mock-factories";
-import { renderHookWithProviders } from "../../test-utils/render-helpers";
 import { formatHypercertMetadata, TOTAL_UNITS } from "../../../lib/hypercerts";
 import { onWalletReconnectAsk } from "../../../modules/auth/wallet-reconnect";
+import {
+  createMockHypercertAttestation,
+  createMockHypercertDraft,
+} from "../../test-utils/mock-factories";
+import { renderHookWithProviders } from "../../test-utils/render-helpers";
 
 const mocks = vi.hoisted(() => ({
   walletRestore: null as "restoring" | "failed" | null,
@@ -15,6 +15,8 @@ const mocks = vi.hoisted(() => ({
   upload: vi.fn(),
   resolveContracts: vi.fn(),
   mintState: vi.fn(),
+  buildAndSign: vi.fn(),
+  pollForReceipt: vi.fn(),
 }));
 vi.mock("../../../hooks/auth/useAuth", () => ({
   useAuth: () => ({
@@ -41,6 +43,19 @@ vi.mock("../../../modules/data/ipfs/upload", () => ({
 vi.mock("../../../hooks/hypercerts/hypercert-contracts", () => ({
   resolveHypercertContracts: (...args: unknown[]) => mocks.resolveContracts(...args),
 }));
+vi.mock("../../../utils/blockchain/contracts", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../utils/blockchain/contracts")>()),
+  getNetworkContracts: () => ({}),
+}));
+vi.mock("../../../hooks/hypercerts/services/build-and-sign", async () => {
+  const { fromPromise } = await import("xstate");
+  return { createBuildAndSignActor: () => fromPromise(mocks.buildAndSign) };
+});
+vi.mock("../../../hooks/hypercerts/services/poll-for-receipt", async () => {
+  const { fromPromise } = await import("xstate");
+  return { createPollForReceiptActor: () => fromPromise(mocks.pollForReceipt) };
+});
+
 import { useMintHypercert } from "../../../hooks/hypercerts/useMintHypercert";
 
 function input() {
@@ -115,6 +130,41 @@ describe("hypercert wallet readiness", () => {
       expect(() => result.current.retry()).toThrow("wallet");
       expect(asked).toHaveBeenCalledOnce();
       expect(mocks.upload).toHaveBeenCalledOnce();
+    } finally {
+      stop();
+    }
+  });
+
+  it("polls an existing mint after reconnect is lost without another upload or signature", async () => {
+    const hash = `0x${"ab".repeat(32)}`;
+    const txHash = `0x${"cd".repeat(32)}`;
+    mocks.upload.mockResolvedValue({ cid: "bafy-mint" });
+    mocks.buildAndSign.mockResolvedValue({ hash });
+    mocks.pollForReceipt
+      .mockRejectedValueOnce(new Error("Receipt polling timed out"))
+      .mockResolvedValueOnce({ txHash, hypercertId: "123" });
+    const { result, rerender } = renderHookWithProviders(() =>
+      useMintHypercert({ errorMode: "inline" })
+    );
+    await act(() => result.current.mint(input()));
+    await waitFor(() => expect(result.current.status).toBe("failed"));
+    expect(result.current.userOpHash).toBe(hash);
+    expect(mocks.upload).toHaveBeenCalledTimes(2);
+    mocks.walletRestore = "failed";
+    rerender();
+    const asked = vi.fn();
+    const stop = onWalletReconnectAsk(asked);
+    try {
+      act(() => result.current.retry());
+      await waitFor(() => expect(result.current.status).toBe("confirmed"));
+      expect(result.current.userOpHash).toBe(hash);
+      expect(result.current.txHash).toBe(txHash);
+      expect(result.current.hypercertId).toBe("123");
+      expect(mocks.pollForReceipt).toHaveBeenCalledTimes(2);
+      expect(mocks.pollForReceipt.mock.calls[1][0].input).toEqual({ hash });
+      expect(mocks.upload).toHaveBeenCalledTimes(2);
+      expect(mocks.buildAndSign).toHaveBeenCalledOnce();
+      expect(asked).not.toHaveBeenCalled();
     } finally {
       stop();
     }

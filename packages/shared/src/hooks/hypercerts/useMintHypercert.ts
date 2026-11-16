@@ -19,8 +19,9 @@ import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { createPublicClientForChain } from "../../config/pimlico";
 import { TOTAL_UNITS, validateAllowlist as validateAllowlistEntries } from "../../lib/hypercerts";
-import { getIpfsInitStatus } from "../../modules/data/ipfs/client";
 import { logger } from "../../modules/app/logger";
+import { refuseWithoutWallet } from "../../modules/auth/wallet-reconnect";
+import { getIpfsInitStatus } from "../../modules/data/ipfs/client";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import { useHypercertWizardStore } from "../../stores/useHypercertWizardStore";
 import type { Address } from "../../types/domain";
@@ -37,14 +38,13 @@ import {
 } from "../../utils/errors/tx-error-classifier";
 import { type MintHypercertInput, mintHypercertMachine } from "../../workflows/mintHypercert";
 import { useAuth } from "../auth/useAuth";
-import { refuseWithoutWallet } from "../../modules/auth/wallet-reconnect";
 import { resolveHypercertContracts } from "./hypercert-contracts";
 import {
-  createUploadMetadataActor,
-  createUploadAllowlistActor,
   createBuildAndSignActor,
   createPollForReceiptActor,
   createRegisterInSignalPoolActor,
+  createUploadAllowlistActor,
+  createUploadMetadataActor,
 } from "./services";
 
 /** Maps XState machine states to public status values */
@@ -335,7 +335,7 @@ export function useMintHypercert(options: UseMintHypercertOptions = {}): UseMint
     signalPoolAddress: state.context.signalPoolAddress,
     mint,
     retry: () => {
-      assertReadyToMint();
+      if (!state.context.userOpHash) assertReadyToMint();
       send({ type: "RETRY" });
     },
     cancel: () => send({ type: "CANCEL" }),
