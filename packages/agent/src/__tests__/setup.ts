@@ -1,9 +1,7 @@
 import { afterAll, vi } from "vitest";
 import { mockLogger } from "./utils/mocks";
 
-// ============================================================================
 // Browser Globals Mock (MUST be before any imports that use @green-goods/shared)
-// ============================================================================
 // The shared package has browser-only code that references `window` and `localStorage`.
 // We mock these globally for Node.js test environment.
 
@@ -42,9 +40,7 @@ globalThis.window = {
 
 globalThis.localStorage = mockLocalStorage as unknown as Storage;
 
-// ============================================================================
 // Exported Mock Instances for PostHog and Telegram
-// ============================================================================
 
 /**
  * Exported PostHog mock instance for per-test customization.
@@ -79,10 +75,6 @@ export const mockTelegram = {
   sendMessage: vi.fn().mockResolvedValue({ message_id: 123 }),
   sendPhoto: vi.fn().mockResolvedValue({ message_id: 124 }),
 };
-
-// ============================================================================
-// Environment Setup
-// ============================================================================
 
 // IMPORTANT: Set environment variables at MODULE LEVEL, not in beforeAll.
 // This ensures they're available when modules are first imported.
