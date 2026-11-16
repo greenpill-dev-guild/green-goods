@@ -25,6 +25,8 @@ maintainer adds the line.
 
 The numbers or observations that show the problem, and what changed.
 
+- Agent: <agent>, model <model>, effort <effort>
+
 ## Verification
 
 The checks that ran after the last commit, with their commands and results, as the check selector
