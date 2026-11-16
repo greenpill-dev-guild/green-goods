@@ -4,10 +4,6 @@ type Capital = Enum<"Capital">;
 type Domain = Enum<"Domain">;
 type WeightScheme = Enum<"WeightScheme">;
 
-// ============================================================================
-// CONSTANTS
-// ============================================================================
-
 /**
  * Maps numeric capital type values from the smart contract to Capital enum values.
  * These values correspond to the Capital enum in the ActionRegistry contract.

@@ -23,10 +23,6 @@ async function seedAction(mockDb: any, actionUID: bigint = 100n) {
   return ActionRegistry.ActionRegistered.processEvent({ event, mockDb });
 }
 
-// ============================================================================
-// ACTION REGISTERED
-// ============================================================================
-
 describe("ActionRegistry.ActionRegistered", () => {
   it("creates action entity with all fields", async () => {
     const mockDb = await seedAction(createTestIndexer());
@@ -130,10 +126,6 @@ describe("ActionRegistry.ActionRegistered", () => {
   });
 });
 
-// ============================================================================
-// ACTION UPDATE HANDLERS
-// ============================================================================
-
 describe("ActionRegistry.ActionStartTimeUpdated", () => {
   it("updates start time on existing action", async () => {
     let mockDb = await seedAction(createTestIndexer());
@@ -150,7 +142,6 @@ describe("ActionRegistry.ActionStartTimeUpdated", () => {
 
     assert.ok(action);
     assert.equal(action.startTime, 5000n);
-    // Other fields preserved
     assert.equal(action.title, "Test Action");
   });
 
@@ -219,7 +210,7 @@ describe("ActionRegistry.ActionTitleUpdated", () => {
     assert.ok(action);
     assert.equal(action.title, "New Title");
     assert.equal(action.domain, "WASTE");
-    assert.equal(action.instructions, "Do the work"); // preserved
+    assert.equal(action.instructions, "Do the work");
   });
 
   it("does nothing when action not found", async () => {
@@ -302,10 +293,6 @@ describe("ActionRegistry.ActionMediaUpdated", () => {
     assert.equal(await result.Action.get(`${CHAIN_ID}-999`), undefined);
   });
 });
-
-// ============================================================================
-// GARDEN DOMAINS
-// ============================================================================
 
 describe("ActionRegistry.GardenDomainsUpdated", () => {
   it("creates GardenDomains entity with expanded bitmask", async () => {
