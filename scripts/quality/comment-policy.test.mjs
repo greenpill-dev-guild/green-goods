@@ -447,3 +447,21 @@ test("a comment between two separators fills a slot, in Solidity and JavaScript 
   const hole = "export function pick(list) {\n  const [first, /* skipped */ , third] = list;\n  return [first, third];\n}\n";
   assert.equal(purgeSource(hole, "example.ts").code, hole);
 });
+
+test("a CommonJS export inside a declaration keeps its documentation, and reports count every line break", () => {
+  assert.deepEqual(kinds("/** Client API */\nconst client = module.exports = createClient();\n", "example.cjs"), ["documentation"]);
+  const root = mkdtempSync(join(tmpdir(), "gg-comment-policy-lines-"));
+  const out = [];
+  const { log } = console;
+  console.log = (line) => out.push(line);
+  try {
+    const env = fixtureGitEnvironment();
+    execFileSync("git", ["init", "-q"], { cwd: root, env, stdio: "ignore" });
+    writeFileSync(join(root, "cr.ts"), "export const a = 1;\rexport const b = 2;\r// Read the garden before the pool loads.\rexport const c = 3;\r");
+    assert.equal(main(["--report", "triage", root], { root, env }), 0);
+    assert.deepEqual(JSON.parse(out.at(-1)).triage.map((entry) => entry.line), [3]);
+  } finally {
+    console.log = log;
+    rmSync(root, { recursive: true, force: true });
+  }
+});

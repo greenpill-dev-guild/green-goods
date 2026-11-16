@@ -228,6 +228,13 @@ function declaredNames(statement) {
   return statement.id?.name ? [statement.id.name] : [];
 }
 
+// Whether an assignment, or any assignment it chains into, writes `module.exports` or an export
+// (`const client = module.exports = createClient()`).
+function assignsCommonJsExport(node) {
+  for (let at = node; at?.type === "AssignmentExpression"; at = at.right) if (isCommonJsExport(at.left)) return true;
+  return false;
+}
+
 // `module.exports`, `module.exports.name` or `exports.name`.
 function isCommonJsExport(node) {
   const isModuleExports = (target) =>
@@ -261,8 +268,8 @@ function exportedSpans(program) {
   for (const statement of program.body) {
     // An assignment to `exports.name` or `module.exports` exports what it assigns, so documentation
     // above it, or inside the object it assigns, is API documentation too.
-    const commonJs = statement.type === "ExpressionStatement" && statement.expression?.type === "AssignmentExpression" &&
-      isCommonJsExport(statement.expression.left);
+    const commonJs = (statement.type === "ExpressionStatement" && assignsCommonJsExport(statement.expression)) ||
+      (statement.type === "VariableDeclaration" && statement.declarations.some((declaration) => assignsCommonJsExport(declaration.init)));
     const exported = /^Export(Named|Default|All)Declaration$/.test(statement.type) || statement.type === "TSExportAssignment" ||
       commonJs || declaredNames(statement).some((name) => exportedLater.has(name));
     if (exported) spans.push([previousEnd, statement.end]);
@@ -640,8 +647,9 @@ export function sourceFiles(paths, { root = repoRoot, env = process.env } = {}) 
   return [...new Set(listed)].filter((file) => SOURCE.test(file) && !/\.d\.[cm]?ts$/.test(file) && !/(^|\/)(generated|vendor|dist|node_modules)\//.test(file));
 }
 
+// Lines as the scanner counts them: every JavaScript line terminator, CRLF as one.
 function lineOf(code, index) {
-  return code.slice(0, index).split("\n").length;
+  return code.slice(0, index).split(/\r\n|[\n\r\u2028\u2029]/).length;
 }
 
 // The kinds the triage pass reads: what no tool needs and the narrow pass leaves.
