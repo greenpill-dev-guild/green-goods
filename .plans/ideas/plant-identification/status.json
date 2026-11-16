@@ -1,0 +1,168 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "plant-identification",
+    "title": "Plant Identification for Work Submissions",
+    "kind": "feature",
+    "stage": "ideas"
+  },
+  "workflow": {
+    "overall_status": "idea",
+    "priority": "p2",
+    "created_at": "2026-09-30T05:15:51.236Z",
+    "updated_at": "2026-09-30T06:28:22Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md",
+    "claude_design_prompt": "handoffs/claude-design-exploration.md",
+    "claude_design_results": "handoffs/claude-design-results.md",
+    "design_artifact": "artifacts/plant-identification-flow.html"
+  },
+  "linear": {
+    "parentIssue": null,
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": null,
+    "lanes": {},
+    "laneSyncMode": "parent_only"
+  },
+  "taxonomy": {
+    "initiative": "environmental-data",
+    "tracks": ["client-pwa", "shared", "admin", "agent"],
+    "work_types": ["research"],
+    "surfaces": ["packages/client", "packages/shared", "packages/admin", "packages/agent"],
+    "depends_on_features": []
+  },
+  "notes": [
+    "User authorized the idea hub and a Claude design prompt; production implementation is not authorized.",
+    "Confirmed: five field actions; health only on Survival Check and Maintenance initially; per-species quantities/per-crop weights; offline identification queue; labeled late results with deliberate separate updates.",
+    "All six asked product questions are answered. Credit caps, confidence thresholds, vendor terms, category mappings and technical late-update design remain for mock/pilot review.",
+    "Claude built the interactive artifact and ran the mock evaluation on 2026-09-29: 84 scripted checks and an axe pass over 12 screens passed in headless Chromium; layout A+ is recommended; eight selection questions are in handoffs/claude-design-results.md. No credits spent, no external tracker writes.",
+    "Canonical lanes are not applicable during discovery; reactivate applicable lanes with required proof after design acceptance."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/claude-design-exploration.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "Idea-stage documentation and mock exploration only; no production runtime behavior is being implemented."
+      },
+      "skill_tags": ["ui", "frontend-design", "react"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "Idea-stage documentation and mock exploration only; no production runtime behavior is being implemented."
+      },
+      "skill_tags": ["react", "tanstack-query", "data-layer"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "Idea-stage documentation and mock exploration only; no production runtime behavior is being implemented."
+      },
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "n/a",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"],
+      "handoff_note": "No production QA lane is active during idea-stage design exploration."
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "n/a",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"],
+      "handoff_note": "No production QA lane is active during idea-stage design exploration."
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-09-30T05:15:51.239Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in ideas"
+    },
+    {
+      "timestamp": "2026-09-30T05:31:18Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "discovery_documented",
+      "branch": null,
+      "note": "Created the requested idea hub and design prompt; recorded four user answers and asked dependent design questions. No implementation or paid requests."
+    },
+    {
+      "timestamp": "2026-09-30T05:36:36Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "product_questions_resolved",
+      "branch": null,
+      "note": "Recorded user answers: late analysis is a labeled separate result with an optional attached update; health starts on Survival Check and Maintenance. All six asked product choices are settled."
+    },
+    {
+      "timestamp": "2026-09-30T06:28:22Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "design_explored",
+      "branch": null,
+      "note": "Built artifacts/plant-identification-flow.html (layouts A, A+, B; all six screens), walked eval.md headless with screenshots and axe, and wrote the results handoff. Lanes stay n/a; no production code changed."
+    }
+  ]
+}
