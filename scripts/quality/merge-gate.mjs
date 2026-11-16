@@ -332,14 +332,12 @@ function deletedMutationPaths(baseEntries, deletedPaths, git) {
 }
 
 // The commit GitHub diffs the pull request against, so a file develop changed or removed after the
-// branch point reads as the pull request found it. Without the comparison the base tip stands in,
-// which can only make a removed path look absent, and so critical.
+// branch point reads as the pull request found it. Without it the run fails: the base tip could
+// hold another version of a deleted file, one that no longer reaches a mutation primitive.
 async function mergeBaseOf(github, pull, headSha) {
-  try {
-    return (await github(`compare/${pull.base.sha}...${headSha}?per_page=1`)).merge_base_commit?.sha ?? pull.base.sha;
-  } catch {
-    return pull.base.sha;
-  }
+  const sha = (await github(`compare/${pull.base.sha}...${headSha}?per_page=1`)).merge_base_commit?.sha;
+  if (!sha) throw new Error(`no merge base for ${headSha.slice(0, SHORT_SHA)}`);
+  return sha;
 }
 
 // The selector refuses some paths outright (a test path with brackets, say). The gate needs only its
@@ -440,21 +438,36 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
     }
     const { decision } = outcome;
     // A push or a marker comment written while the run read the pull request leaves a mixed
-    // snapshot; the run for the newer state decides instead.
-    const current = await github(`pulls/${number}`);
-    if (current.head.sha !== headSha) {
-      log(`#${number}: the head moved to ${current.head.sha.slice(0, SHORT_SHA)} while ${head} was read; nothing posted.`);
-      continue;
+    // snapshot; the run for the newer state decides instead. A re-read that fails confirms nothing:
+    // pending or error still posts, since holding a merge is always safe, but success does not.
+    let confirmed = true;
+    try {
+      const current = await github(`pulls/${number}`);
+      if (current.head.sha !== headSha) {
+        log(`#${number}: the head moved to ${current.head.sha.slice(0, SHORT_SHA)} while ${head} was read; nothing posted.`);
+        continue;
+      }
+      if (outcome.commentsKey !== null && markerCommentsKey(await paginate(github, `issues/${number}/comments`)) !== outcome.commentsKey) {
+        log(`#${number}: a marker comment changed while ${head} was read; nothing posted.`);
+        continue;
+      }
+    } catch (error) {
+      confirmed = false;
+      log(`#${number}: could not re-read the pull request (${printable(error.message)}).`);
     }
-    if (outcome.commentsKey !== null && markerCommentsKey(await paginate(github, `issues/${number}/comments`)) !== outcome.commentsKey) {
-      log(`#${number}: a marker comment changed while ${head} was read; nothing posted.`);
+    if (decision.state === "success" && !confirmed) {
+      failed = true;
+      log(`#${number} at ${head}: success not posted, since the snapshot could not be confirmed.`);
       continue;
     }
     const line = `#${number} at ${head}: ${decision.state}. ${decision.description}`;
     if (!dryRun) {
       // GitHub keeps at most 1,000 statuses for a head and context, so an unchanged decision is not
-      // posted again.
-      const latest = (await github(`commits/${headSha}/statuses?per_page=100`)).find((status) => status.context === STATUS_CONTEXT);
+      // posted again. A failed lookup posts anyway, so an older success never outlives its proof.
+      const latest = await github(`commits/${headSha}/statuses?per_page=100`).then(
+        (statuses) => statuses.find((status) => status.context === STATUS_CONTEXT),
+        () => undefined,
+      );
       if (latest?.state === decision.state && latest?.description === decision.description) {
         log(`${line} Unchanged, so not posted again.`);
         continue;

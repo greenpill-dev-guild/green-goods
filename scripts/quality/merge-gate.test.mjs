@@ -259,17 +259,18 @@ test("a pull request is decided from the API and its commits: a removed link, a 
 
 test("a run posts once for an open pull request into develop, unless its head or marker comments moved or nothing changed", async () => {
   const open = { number: 7, state: "open", base: { ref: "develop" }, head: { sha: HEAD } };
-  const decision = { state: "pending", description: "Sensitive (x). Waits.", needed: [] };
-  const run = async ({ pulls, markerComments = [], statuses = [] }) => {
+  const run = async ({ pulls, markerComments = [], statuses = [], state = "pending", exit = 0 }) => {
     const posted = [];
     let reads = 0;
+    const answer = (value) => (value instanceof Error ? Promise.reject(value) : value);
     const github = async (route, request = {}) => {
       if (request.method === "POST") return void posted.push([route, request.body.state, request.body.context]);
-      if (route === "pulls/7") return pulls[Math.min(reads++, pulls.length - 1)];
-      if (route.startsWith("issues/7/comments")) return markerComments;
-      if (route.startsWith(`commits/${HEAD}/statuses`)) return statuses;
+      if (route === "pulls/7") return answer(pulls[Math.min(reads++, pulls.length - 1)]);
+      if (route.startsWith("issues/7/comments")) return answer(markerComments);
+      if (route.startsWith(`commits/${HEAD}/statuses`)) return answer(statuses);
       throw new Error(`unexpected ${route}`);
     };
+    const decision = { state, description: `${state} for x.`, needed: [] };
     const deps = {
       env: { GITHUB_EVENT_NAME: "issue_comment" },
       event: { issue: { number: 7, pull_request: {} } },
@@ -278,7 +279,7 @@ test("a run posts once for an open pull request into develop, unless its head or
       log: () => {},
       summary: () => {},
     };
-    assert.equal(await main([], deps), 0);
+    assert.equal(await main([], deps), exit);
     return posted;
   };
   assert.deepEqual(await run({ pulls: [open] }), [[`statuses/${HEAD}`, "pending", "Merge Gate"]]);
@@ -286,5 +287,11 @@ test("a run posts once for an open pull request into develop, unless its head or
   assert.deepEqual(await run({ pulls: [{ ...open, state: "closed" }] }), []);
   assert.deepEqual(await run({ pulls: [open, { ...open, head: { sha: OTHER } }] }), []);
   assert.deepEqual(await run({ pulls: [open], markerComments: [{ id: 9, updated_at: "t", user: { login: "w" }, body: `merge-gate: reviewed ${HEAD}` }] }), []);
-  assert.deepEqual(await run({ pulls: [open], statuses: [{ context: "Merge Gate", state: "pending", description: decision.description }] }), []);
+  assert.deepEqual(await run({ pulls: [open], statuses: [{ context: "Merge Gate", state: "pending", description: "pending for x." }] }), []);
+  // A failed lookup confirms nothing: a hold still posts, so an older success cannot outlive its
+  // proof, and a success is not posted.
+  const lost = new Error("HTTP 502");
+  assert.deepEqual(await run({ pulls: [open], statuses: lost }), [[`statuses/${HEAD}`, "pending", "Merge Gate"]]);
+  assert.deepEqual(await run({ pulls: [open, lost] }), [[`statuses/${HEAD}`, "pending", "Merge Gate"]]);
+  assert.deepEqual(await run({ pulls: [open], markerComments: lost, state: "success", exit: 2 }), []);
 });
