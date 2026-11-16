@@ -9,7 +9,9 @@
 
 import { Button } from "@green-goods/shared/components/Button";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
+import { getWorkMediaId, isWorkPhoto } from "@green-goods/shared/modules/work/media-processing";
 import type { Action, WorkInput } from "@green-goods/shared/types/domain";
+import { RiFilmLine } from "@remixicon/react";
 import { type ReactNode, useEffect, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { AdminCard } from "@/components/AdminCard";
@@ -106,12 +108,15 @@ export function SubmitWorkReview({
   const edit = formatMessage({ id: "app.common.edit", defaultMessage: "Edit" });
 
   const previews = useMemo(
-    () => images.map((file) => ({ name: file.name, url: URL.createObjectURL(file) })),
+    () =>
+      images.map((file) => ({ file, url: isWorkPhoto(file) ? URL.createObjectURL(file) : null })),
     [images]
   );
   useEffect(
     () => () => {
-      for (const preview of previews) URL.revokeObjectURL(preview.url);
+      for (const preview of previews) {
+        if (preview.url) URL.revokeObjectURL(preview.url);
+      }
     },
     [previews]
   );
@@ -206,14 +211,23 @@ export function SubmitWorkReview({
       >
         {previews.length > 0 ? (
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-            {previews.map((preview) => (
-              <img
-                key={preview.url}
-                src={preview.url}
-                alt={preview.name}
-                className="aspect-square w-full rounded-lg border border-stroke-soft object-cover"
-              />
-            ))}
+            {previews.map((preview) =>
+              preview.url ? (
+                <img
+                  key={getWorkMediaId(preview.file)}
+                  src={preview.url}
+                  alt={preview.file.name}
+                  className="aspect-square w-full rounded-lg border border-stroke-soft object-cover"
+                />
+              ) : (
+                <div key={getWorkMediaId(preview.file)} className="min-w-0 space-y-1.5">
+                  <div className="flex aspect-square items-center justify-center rounded-lg border border-stroke-soft bg-bg-weak text-text-soft">
+                    <RiFilmLine className="h-6 w-6" aria-hidden="true" />
+                  </div>
+                  <p className="type-meta break-words text-text-sub">{preview.file.name}</p>
+                </div>
+              )
+            )}
           </div>
         ) : (
           <p className="type-body text-text-sub">
