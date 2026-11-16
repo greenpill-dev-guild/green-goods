@@ -358,7 +358,7 @@ export const ProfileBadges: React.FC = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3" data-testid="profile-badge-grid">
+      <div className="grid auto-rows-fr grid-cols-2 gap-3" data-testid="profile-badge-grid">
         {displayBadges.map((badge) => {
           const title = badgeTitle(intl, badge.slug);
           const statusLabel = badgeStatusLabel(intl, badge.profileStatus);
@@ -371,6 +371,7 @@ export const ProfileBadges: React.FC = () => {
               unlockLock={badge.unlockLock}
               title={title}
               earned={badge.profileStatus === "earned"}
+              issuedAt={badge.ownership?.issuedAt}
               statusLabel={statusLabel}
               onOpen={() => setOpenedBadge(badge)}
             />
