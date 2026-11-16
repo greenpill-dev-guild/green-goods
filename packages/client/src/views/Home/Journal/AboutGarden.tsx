@@ -8,6 +8,7 @@ import type { Garden } from "@green-goods/shared/types/domain";
 import {
   RiBankLine,
   RiBarChartBoxLine,
+  RiDashboardLine,
   RiGovernmentLine,
   RiGroupLine,
   RiShareLine,
@@ -30,6 +31,8 @@ const GardenSheets = lazy(() =>
 export interface AboutGardenProps {
   /** The active garden's record. */
   garden: Garden;
+  /** This build's Hub address; stories can provide a fictional destination. */
+  hubUrl?: string;
 }
 
 /**
@@ -40,16 +43,21 @@ export interface AboutGardenProps {
  * depositors of a garden with a vault, and Governance only while its flag is on and the garden
  * is configured, each under the garden page's own predicate (`useGardenAccess`). The garden's name is not repeated here: the chip in Home's header
  * declares it. Where this section sits is reviewed with the first rendered slice.
+ * The Hub link uses the selected garden's owner/steward access and this build's Hub URL.
  *
  * The sheets mount here, because About is always on Home: Recent Activity's See All and a
  * steward's work-to-review row open the Work sheet through the same store flag. Endowment and
  * Governance open from this section's own state, never from the app-wide Endowment flag the
  * garden's page reads, so neither can follow the member onto a garden's page.
  */
-export function AboutGarden({ garden }: AboutGardenProps) {
+export function AboutGarden({
+  garden,
+  hubUrl = import.meta.env.VITE_ADMIN_APP_URL,
+}: AboutGardenProps) {
   const intl = useIntl();
   const { formatMessage } = intl;
   const access = useGardenAccess(garden);
+  const hub = hubUrl?.trim();
   const gardenSheet = useUIStore((state) => state.gardenSheet);
   const openGardenSheet = useUIStore((state) => state.openGardenSheet);
   const [ownSheet, setOwnSheet] = useState<"endowment" | "governance" | null>(null);
@@ -103,6 +111,25 @@ export function AboutGarden({ garden }: AboutGardenProps) {
             onOpen={() => openGardenSheet("gardeners")}
           />
         </li>
+        {access.canManageRequests && hub ? (
+          <li>
+            <a
+              href={hub}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block rounded-[var(--gg-card-radius)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgb(var(--gg-focus-ring))]"
+            >
+              <ItemRow
+                lead={{ kind: "icon", icon: <RiDashboardLine aria-hidden="true" /> }}
+                title={formatMessage({ id: "app.profile.help.hub.title" })}
+                details={[formatMessage({ id: "app.profile.help.hub.description" })]}
+              />
+              <span className="sr-only">
+                {formatMessage({ id: "app.profile.help.faq.guideNewTab" })}
+              </span>
+            </a>
+          </li>
+        ) : null}
         <li>
           <ItemRow
             lead={{ kind: "icon", icon: <RiShareLine aria-hidden="true" /> }}
