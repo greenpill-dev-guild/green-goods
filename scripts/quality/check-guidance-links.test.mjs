@@ -538,7 +538,8 @@ test("each language's own rule decides where a hash comment starts, and an HTML 
 
 test("an HTML end tag with anything before its bracket still ends the script", async () => {
   const { parseSync } = await import("vite");
-  const files = { "packages/a/page.html": "<script>const liveName = 1; // goneScriptComment\n</script\t\n bar><!-- goneHtmlComment --!>\n<p>afterPageName</p>\n" };
+  // A name that runs on past "script" (`</script-x>`) is not an end tag.
+  const files = { "packages/a/page.html": "<script>const liveName = \"</script-x>\"; // goneScriptComment\n</script\t\n bar><!-- goneHtmlComment --!>\n<p>afterPageName</p>\n" };
   const names = codeNamesFrom(Object.keys(files), (file) => files[file], parseSync);
   assert.ok(names.has("liveName") && names.has("afterPageName"));
   assert.ok(!names.has("goneScriptComment") && !names.has("goneHtmlComment"));

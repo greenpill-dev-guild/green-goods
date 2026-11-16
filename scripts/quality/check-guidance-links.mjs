@@ -301,10 +301,11 @@ const HASH_COMMENT_FILE_RE = /\.(sh|ya?ml|toml|graphql)$/;
  * A source's text with its comments blanked: a name a comment mentions ("the legacy
  * USER_FRIENDLY_ERRORS lookup") is a memory of code, not code. Scripts, inline ones in HTML pages
  * included, need the parser, and a script that does not parse keeps its comments. Other languages
- * are scanned by hand, and a scan can take text for a comment in rare shapes (a `#` line inside a
- * YAML block scalar, a `#` inside a TOML or GraphQL multi-line string). None occur in today's
- * sources, and a misread only hides a name: guidance that names it then fails the check, never
- * passes it.
+ * are scanned by hand, a line at a time where the language allows, and a scan can misread rare
+ * shapes. It can take text for a comment: a `#` line inside a YAML block scalar or a shell
+ * heredoc, or a `#` inside a TOML or GraphQL multi-line string. That hides a live name, so
+ * guidance naming it fails the check. It can also keep a comment after an apostrophe in a YAML
+ * plain scalar, so a name in that comment vouches, as every comment did before these scans.
  */
 function withoutComments(file, text, parse) {
   if (SCRIPT_FILE_RE.test(file)) return parse ? withoutScriptComments(file, text, parse) : text;
@@ -318,12 +319,13 @@ function withoutComments(file, text, parse) {
 /**
  * An HTML page with its own comments blanked, and those inside its scripts and styles. One pass
  * reads the page in order, so a "<!--" inside a script is script text and a "<script" inside a
- * comment is comment text. An end tag may carry anything up to its `>` (`</script\t\n bar>` still
- * ends the script), and a comment may close with `--!>`, as browsers read both. A script body
- * goes through the parser, as a script file does.
+ * comment is comment text. A tag's name ends at a space, `/` or `>` (`</script-x>` is script
+ * text), and it may carry anything after that up to its `>` (`</script\t\n bar>` still ends the
+ * script). A comment may close with `--!>`. Browsers read all three this way. A script body goes
+ * through the parser, as a script file does.
  */
 function withoutHtmlComments(text, parse) {
-  const page = /<!--[\s\S]*?--!?>|(<script\b[^>]*>)([\s\S]*?)(<\/script\b[^>]*>)|(<style\b[^>]*>)([\s\S]*?)(<\/style\b[^>]*>)/gi;
+  const page = /<!--[\s\S]*?--!?>|(<script(?=[\s/>])[^>]*>)([\s\S]*?)(<\/script(?=[\s/>])[^>]*>)|(<style(?=[\s/>])[^>]*>)([\s\S]*?)(<\/style(?=[\s/>])[^>]*>)/gi;
   return text.replace(page, (_, scriptOpen, script, scriptClose, styleOpen, style, styleClose) => {
     if (scriptOpen) return `${scriptOpen}${parse ? withoutScriptComments("inline.js", script, parse) : script}${scriptClose}`;
     if (styleOpen) return `${styleOpen}${blankSlashComments(style, { lineComments: false })}${styleClose}`;
