@@ -376,10 +376,19 @@ test("a retirement notice covers the retired name, never the replacement it intr
     "`oldFirst` was removed along with `oldSecond`.",
     "`retiredHook` was retired; use `useLiveHook`.",
     "Migrating to 2.0 removed `formerHelper`.",
+    // A preposition leads only after its own verb, a negated or nominal "use" leads nowhere, and
+    // the name matches in its own case.
+    "Renamed `oldLabel` to `newMissingLabel`.",
+    "With 2.0, `openerRetired` was removed, and references to `referenceRetired` were deleted.",
+    "Do not use `negatedRetired`; it was removed.",
+    "Any use of `nominalRetired` was removed.",
+    "`withRemoved` was removed with `alsoRemoved`.",
+    "The `JobQueue` class was removed; use the `jobQueue` instance.",
   ].join("\n");
-  assert.deepEqual(findUnknownCodeNames(text, "guide.md", new Set(["useLiveHook"])), [
+  assert.deepEqual(findUnknownCodeNames(text, "guide.md", new Set(["useLiveHook", "jobQueue"])), [
     "guide.md:1: no tracked source names `newMissingHelper`",
     "guide.md:2: no tracked source names `newName`",
+    "guide.md:6: no tracked source names `newMissingLabel`",
   ]);
 });
 
@@ -394,10 +403,28 @@ test("blockquoted fences are examples too, and a fence closes only on its own ki
     "Still inside: `innerExample()`.",
     "~~~~",
     "After: `afterMissing()`.",
+    // A fence line at another quote depth, with an info string, or shorter is the example's text.
+    "```md",
+    "> ```ts",
+    "> `quotedInsideExample()`",
+    "> ```",
+    "```",
+    "Then `afterOuterMissing()`.",
+    "````md",
+    "````ts",
+    "`infoInsideExample()`",
+    "```",
+    "````",
+    // A quote's fence ends when its quote does.
+    ">> ```ts",
+    ">> `deepExample()`",
+    "> Back out: `outerQuoteMissing()`.",
   ].join("\n");
   assert.deepEqual(findUnknownCodeNames(text, "guide.md", new Set()), [
     "guide.md:4: no tracked source names `liveMissing`",
     "guide.md:9: no tracked source names `afterMissing`",
+    "guide.md:15: no tracked source names `afterOuterMissing`",
+    "guide.md:23: no tracked source names `outerQuoteMissing`",
   ]);
 });
 
@@ -454,16 +481,16 @@ test("a name only a comment mentions vouches for nothing, and a JSX tag names it
 test("comments vouch for nothing in Solidity, CSS, JSONC, YAML, shell or HTML either", () => {
   const files = {
     "packages/contracts/src/A.sol":
-      '// legacySolName\n/** @notice natSpecName */\ncontract A { string s = "// keptInString"; function liveSolName() external {} }\n',
+      '// legacySolName\n/** @notice natSpecName */\ncontract A { string s = "// keptInString"; bool enabled = true// solTailComment\n; function liveSolName() external {} }\n',
     "packages/a/styles.css": "/* cssCommentName */\n.liveClassName { background: url(//cdn/x.png); }\n",
-    "tsconfig.json": '{ // jsoncCommentName\n  "compilerOptions": { "liveJsonName": true } }\n',
+    "tsconfig.json": '{ // jsoncCommentName\n  "compilerOptions": { "liveJsonName": true// jsonTailComment\n } }\n',
     ".github/workflows/a.yml": '# yamlCommentName\nrun: echo "#quotedHashName" liveYamlName # trailingYamlName\n',
     "scripts/a.sh": "#!/bin/sh\n# shellCommentName\necho ${#items[@]} liveShellName\n",
     "packages/a/index.html": '<!-- htmlCommentName -->\n<div id="liveHtmlName"></div>\n',
   };
   const names = codeNamesFrom(Object.keys(files), (file) => files[file]);
   const live = ["liveSolName", "keptInString", "liveClassName", "liveJsonName", "quotedHashName", "liveYamlName", "liveShellName", "liveHtmlName"];
-  const gone = ["legacySolName", "natSpecName", "cssCommentName", "jsoncCommentName", "yamlCommentName", "trailingYamlName", "shellCommentName", "htmlCommentName"];
+  const gone = ["legacySolName", "natSpecName", "cssCommentName", "jsoncCommentName", "yamlCommentName", "trailingYamlName", "shellCommentName", "htmlCommentName", "solTailComment", "jsonTailComment"];
   assert.deepEqual(live.filter((name) => !names.has(name)), []);
   assert.deepEqual(gone.filter((name) => names.has(name)), []);
 });
@@ -476,32 +503,43 @@ test("in active voice the name before the verb is the replacement, and a quoted 
     "> ```ts",
     "> const quoted = `insideQuote()`;",
     "Call `afterQuoteMissing()` here.",
+    // Every name of a list before the verb is a replacement; a short passive leaves its subject retired.
+    "`newListA` and `newListB` replaced `oldListA` and `oldListB`.",
+    "`shortPassive` replaced with `newMissingSuccessor`.",
+    "`adverbPassive`, now replaced entirely by `liveSuccessor`.",
   ].join("\n");
-  assert.deepEqual(findUnknownCodeNames(text, "guide.md", new Set()), [
+  assert.deepEqual(findUnknownCodeNames(text, "guide.md", new Set(["liveSuccessor"])), [
     "guide.md:1: no tracked source names `newMissingHelper`",
     "guide.md:6: no tracked source names `afterQuoteMissing`",
+    "guide.md:7: no tracked source names `newListA`",
+    "guide.md:7: no tracked source names `newListB`",
+    "guide.md:8: no tracked source names `newMissingSuccessor`",
   ]);
 });
 
-test("each language's own rule decides where a hash comment starts, and an HTML page's scripts and styles lose theirs", () => {
+test("each language's own rule decides where a hash comment starts, and an HTML page's scripts and styles lose theirs", async () => {
+  const { parseSync } = await import("vite");
   const files = {
     "config.toml": "x = 1#tomlCommentName\nliveTomlKey = \"#notTomlComment\"\n",
     "packages/a/schema.graphql": "type LiveGqlType { field: Int }#gqlCommentName\n",
     "scripts/b.sh": "echo ok;#shellCommentName\necho ${#items[@]} liveShellWord\n",
     ".github/workflows/c.yml": "url: http://host/#liveAnchorName\n",
     "packages/a/page.html":
-      "<script>const liveScriptName = `//notScriptComment`; // scriptCommentName\n/* blockScriptComment */ const re = /a\\/\\/b/;</script>\n<style>.liveStyleName { color: red } /* styleCommentName */</style>\n",
+      "<script>const liveScriptName = `//notScriptComment`; // scriptCommentName\n/* blockScriptComment */ const re = /a\\/\\/b/;</script>\n<style>.liveStyleName { color: red } /* styleCommentName */</style>\n" +
+      // A comment in a template's interpolation goes; a "<!--" or "/*" in a string or pattern is code.
+      '<script>const t = `${liveValue // templateCommentName\n}`; const m = "<!--"; const p = s.replace(/\\/*$/, ""); const liveAfterMarker = 1;</script>\n',
   };
-  const names = codeNamesFrom(Object.keys(files), (file) => files[file]);
-  const live = ["liveTomlKey", "notTomlComment", "LiveGqlType", "liveShellWord", "liveAnchorName", "liveScriptName", "notScriptComment", "liveStyleName"];
-  const gone = ["tomlCommentName", "gqlCommentName", "shellCommentName", "scriptCommentName", "blockScriptComment", "styleCommentName"];
+  const names = codeNamesFrom(Object.keys(files), (file) => files[file], parseSync);
+  const live = ["liveTomlKey", "notTomlComment", "LiveGqlType", "liveShellWord", "liveAnchorName", "liveScriptName", "notScriptComment", "liveStyleName", "liveValue", "liveAfterMarker"];
+  const gone = ["tomlCommentName", "gqlCommentName", "shellCommentName", "scriptCommentName", "blockScriptComment", "styleCommentName", "templateCommentName"];
   assert.deepEqual(live.filter((name) => !names.has(name)), []);
   assert.deepEqual(gone.filter((name) => names.has(name)), []);
 });
 
-test("an HTML end tag with anything before its bracket still ends the script", () => {
+test("an HTML end tag with anything before its bracket still ends the script", async () => {
+  const { parseSync } = await import("vite");
   const files = { "packages/a/page.html": "<script>const liveName = 1; // goneScriptComment\n</script\t\n bar><!-- goneHtmlComment --!>\n<p>afterPageName</p>\n" };
-  const names = codeNamesFrom(Object.keys(files), (file) => files[file]);
+  const names = codeNamesFrom(Object.keys(files), (file) => files[file], parseSync);
   assert.ok(names.has("liveName") && names.has("afterPageName"));
   assert.ok(!names.has("goneScriptComment") && !names.has("goneHtmlComment"));
 });

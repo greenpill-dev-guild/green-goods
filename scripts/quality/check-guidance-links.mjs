@@ -199,22 +199,27 @@ function codeNamesIn(fragment) {
 
 /**
  * Code names in a guidance file's inline code that `knownNames` lacks. Fenced examples are
- * skipped, blockquoted ones included, and a fence opened in a blockquote ends with the quote; a fence
- * closes only on its own character, at least as long.
+ * skipped, blockquoted ones included, as CommonMark reads them: a fence opened in a blockquote
+ * ends when its quote does, and only a bare fence of the opener's character, at least as long and
+ * at the opener's quote depth, closes it. Any other line inside a fence is the example's text.
  */
 export function findUnknownCodeNames(text, relativePath, knownNames, allowed = UNTRACKED_CODE_NAMES) {
   const failures = [];
   let openFence;
   for (const [index, line] of text.split(/\r?\n/).entries()) {
-    const quoted = /^\s*>/.test(line);
-    if (openFence?.quoted && !quoted) openFence = undefined;
-    const fence = line.match(/^\s*(?:>\s*)*(`{3,}|~{3,})/);
-    if (fence) {
-      if (!openFence) openFence = { marker: fence[1], quoted };
-      else if (fence[1][0] === openFence.marker[0] && fence[1].length >= openFence.marker.length) openFence = undefined;
+    const [, quotes, marker, info] = line.match(/^\s*((?:>\s*)*)(`{3,}|~{3,})?(.*)$/);
+    const depth = quotes.split(">").length - 1;
+    if (openFence && depth < openFence.depth) openFence = undefined;
+    if (openFence) {
+      const closes = depth === openFence.depth && marker?.[0] === openFence.marker[0] &&
+        marker.length >= openFence.marker.length && !info.trim();
+      if (closes) openFence = undefined;
       continue;
     }
-    if (openFence) continue;
+    if (marker) {
+      openFence = { marker, depth };
+      continue;
+    }
     for (const match of line.matchAll(/`([^`\n]+)`/g)) {
       for (const token of codeNamesIn(match[1])) {
         if (knownNames.has(token) || allowed.has(token) || isRetiredCodeName(line, token)) continue;
@@ -225,19 +230,33 @@ export function findUnknownCodeNames(text, relativePath, knownNames, allowed = U
   return failures;
 }
 
-// The words that introduce a replacement: "replaced by", "renamed to", "folded into", "use". A
-// few words may stand between the lead and the name, never a retirement word ("migrating to 2.0
-// removed `oldX`" retires `oldX`). "Along with" and "together with" join more retired names.
+// Up to a clause break, words and code spans: "renamed `oldX` to" reaches its preposition.
+const SAME_CLAUSE = String.raw`(?:[^\x60.;]|\x60[^\x60]*\x60)`;
+
+// The words that introduce a replacement. A preposition counts only after its own verb in the
+// same clause: "replaced by" or "with", "superseded by", "renamed to", "folded into". So does
+// "in favour of", and "use" or "prefer" unless negated or a noun ("Do not use `oldX`", "any use
+// of `oldX`" retire it). A sentence that opens "With 2.0," or "References to" introduces nothing.
+// A few words may stand between the lead and the name, never a retirement word ("migrating to
+// 2.0 removed `oldX`" retires `oldX`). "Along with" and "together with" join more retired names.
 const REPLACEMENT_LEAD =
-  String.raw`\b(?:by|(?<!\b(?:along|together)\s)with|into|to|use|prefer|in\s+favou?r\s+of)\b` +
+  String.raw`(?:\b(?:replaced|superseded)\b${SAME_CLAUSE}{0,40}?\b(?:by|(?<!\b(?:along|together)\s)with)` +
+  String.raw`|\brenamed\b${SAME_CLAUSE}{0,40}?\bto|\bfolded\b${SAME_CLAUSE}{0,40}?\binto|\bin\s+favou?r\s+of` +
+  String.raw`|(?<!(?:\b(?:not|never|cannot)|n't|\bno\s+longer)\s+)\b(?:use|prefer)(?!\s+of\b))\b` +
   String.raw`(?:(?!${RETIREMENT_NOTICE_RE.source})[^\x60]){0,20}\x60[^\x60]*?`;
 
-// Active voice names the replacement first: in "`newHelper()` replaced `oldHelper()`" the name
-// before the verb must exist. The passive ("was replaced", "replaced by") and a verb with no code
-// object after it ("`oldX` replaced; see ...") leave the name before the verb retired.
+// Active voice names the replacements first: in "`newHelper()` replaced `oldHelper()`" the names
+// before the verb must exist, every one of a list ("`newA` and `newB` replaced `oldA`"). The
+// passive ("was replaced", "replaced by", "now replaced with", "replaced entirely by",
+// "superseded in favour of") and a verb with no code object after it ("`oldX` replaced; see ...")
+// leave the names before the verb retired.
 const ACTIVE_REPLACEMENT_VERB =
-  String.raw`(?:(?!\b(?:was|were|is|are|been|be|being|got|gets)\b)[^\x60.;]){0,20}\b(?:replaced|superseded)\b` +
-  String.raw`(?!\s+by\b)\s+(?:[A-Za-z]+\s+){0,3}\x60`;
+  String.raw`(?:(?!\b(?:was|were|is|are|been|be|being|get|gets|got)\b)${SAME_CLAUSE}){0,40}\b(?:replaced|superseded)\b` +
+  String.raw`(?!(?:\s+[A-Za-z]+){0,2}\s+(?:by|with|in\s+favou?r\s+of)\b)\s+(?:[A-Za-z]+\s+){0,3}\x60`;
+
+// Stands in for the name under test, so the patterns read every other word in either case while
+// the name matches exactly: "use the `jobQueue` instance" introduces nothing called `JobQueue`.
+const NAME_MARK = "\u0001";
 
 /**
  * A retirement notice covers the name it retires, never the replacement it introduces:
@@ -246,9 +265,9 @@ const ACTIVE_REPLACEMENT_VERB =
  */
 function isRetiredCodeName(line, token) {
   if (!isExplicitRetirementNotice(line, token)) return false;
-  const name = String.raw`\b${escapeRegex(token)}\b`;
-  if (new RegExp(`${REPLACEMENT_LEAD}${name}`, "i").test(line)) return false;
-  return !new RegExp(String.raw`\x60[^\x60]*?${name}[^\x60]*\x60${ACTIVE_REPLACEMENT_VERB}`, "i").test(line);
+  const marked = line.replace(new RegExp(String.raw`\b${escapeRegex(token)}\b`, "g"), NAME_MARK);
+  if (new RegExp(`${REPLACEMENT_LEAD}${NAME_MARK}`, "i").test(marked)) return false;
+  return !new RegExp(String.raw`\x60[^\x60]*?${NAME_MARK}[^\x60]*\x60${ACTIVE_REPLACEMENT_VERB}`, "i").test(marked);
 }
 
 /**
@@ -280,35 +299,42 @@ const HASH_COMMENT_FILE_RE = /\.(sh|ya?ml|toml|graphql)$/;
 
 /**
  * A source's text with its comments blanked: a name a comment mentions ("the legacy
- * USER_FRIENDLY_ERRORS lookup") is a memory of code, not code. Scripts need the parser, and a
- * script that does not parse keeps its comments, so a parser gap never turns a live name stale.
- * Other languages are scanned; a comment the scan cannot place stays.
+ * USER_FRIENDLY_ERRORS lookup") is a memory of code, not code. Scripts, inline ones in HTML pages
+ * included, need the parser, and a script that does not parse keeps its comments. Other languages
+ * are scanned by hand, and a scan can take text for a comment in rare shapes (a `#` line inside a
+ * YAML block scalar, a `#` inside a TOML or GraphQL multi-line string). None occur in today's
+ * sources, and a misread only hides a name: guidance that names it then fails the check, never
+ * passes it.
  */
 function withoutComments(file, text, parse) {
   if (SCRIPT_FILE_RE.test(file)) return parse ? withoutScriptComments(file, text, parse) : text;
   if (SLASH_COMMENT_FILE_RE.test(file)) return blankSlashComments(text, { lineComments: true });
   if (file.endsWith(".css")) return blankSlashComments(text, { lineComments: false });
   if (HASH_COMMENT_FILE_RE.test(file)) return blankHashComments(text, HASH_COMMENT_STARTS[file.split(".").pop()]);
-  if (file.endsWith(".html")) return withoutHtmlComments(text);
+  if (file.endsWith(".html")) return withoutHtmlComments(text, parse);
   return text;
 }
 
 /**
- * An HTML page with its own comments blanked, and those inside its scripts and styles. An end tag
- * may carry anything up to its `>` (`</script\t\n bar>` still ends the script), and a comment
- * may close with `--!>`, as browsers read both.
+ * An HTML page with its own comments blanked, and those inside its scripts and styles. One pass
+ * reads the page in order, so a "<!--" inside a script is script text and a "<script" inside a
+ * comment is comment text. An end tag may carry anything up to its `>` (`</script\t\n bar>` still
+ * ends the script), and a comment may close with `--!>`, as browsers read both. A script body
+ * goes through the parser, as a script file does.
  */
-function withoutHtmlComments(text) {
-  return text
-    .replace(/<!--[\s\S]*?--!?>/g, " ")
-    .replace(/(<script\b[^>]*>)([\s\S]*?)(<\/script\b[^>]*>)/gi, (_, open, body, close) => `${open}${blankSlashComments(body, { lineComments: true })}${close}`)
-    .replace(/(<style\b[^>]*>)([\s\S]*?)(<\/style\b[^>]*>)/gi, (_, open, body, close) => `${open}${blankSlashComments(body, { lineComments: false })}${close}`);
+function withoutHtmlComments(text, parse) {
+  const page = /<!--[\s\S]*?--!?>|(<script\b[^>]*>)([\s\S]*?)(<\/script\b[^>]*>)|(<style\b[^>]*>)([\s\S]*?)(<\/style\b[^>]*>)/gi;
+  return text.replace(page, (_, scriptOpen, script, scriptClose, styleOpen, style, styleClose) => {
+    if (scriptOpen) return `${scriptOpen}${parse ? withoutScriptComments("inline.js", script, parse) : script}${scriptClose}`;
+    if (styleOpen) return `${styleOpen}${blankSlashComments(style, { lineComments: false })}${styleClose}`;
+    return " ";
+  });
 }
 
 /**
- * Blank block comments, and `//` ones where the language has them, outside quoted strings. A
- * backtick quote may span lines (a template literal). A `//` starts a comment only at a token
- * boundary, so a URL or an escaped slash in a regular expression stays.
+ * Blank block comments, and `//` ones where the language has them, outside quoted strings. It
+ * reads Solidity, JSONC and CSS, which have neither template literals nor regular expressions, so
+ * a `//` outside a string always starts a comment (`"enabled": true// note`).
  */
 function blankSlashComments(text, { lineComments }) {
   let kept = "";
@@ -318,7 +344,7 @@ function blankSlashComments(text, { lineComments }) {
     if (quote) {
       kept += char;
       if (char === "\\") kept += text[++at] ?? "";
-      else if (char === quote || (char === "\n" && quote !== "`")) quote = null;
+      else if (char === quote || char === "\n") quote = null;
       continue;
     }
     if (char === "/" && text[at + 1] === "*") {
@@ -328,14 +354,14 @@ function blankSlashComments(text, { lineComments }) {
       at = end + 1;
       continue;
     }
-    if (lineComments && char === "/" && text[at + 1] === "/" && (at === 0 || /[\s;{}(),]/.test(text[at - 1]))) {
+    if (lineComments && char === "/" && text[at + 1] === "/") {
       const end = text.indexOf("\n", at);
       if (end === -1) return `${kept} `;
       kept += " ";
       at = end - 1;
       continue;
     }
-    if (char === '"' || char === "'" || char === "`") quote = char;
+    if (char === '"' || char === "'") quote = char;
     kept += char;
   }
   return kept;
