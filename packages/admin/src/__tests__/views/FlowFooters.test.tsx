@@ -146,16 +146,16 @@ describe("the flow footers", () => {
       splitValid: true,
     };
     expect(stepBlockedReason("how", { ...ready, purpose: " " })?.id).toBe(
-      "cockpit.garden.pool.setup.blocked.purpose"
+      "hub.garden.pool.setup.blocked.purpose"
     );
     expect(stepBlockedReason("how", { ...ready, capValue: 0n })?.id).toBe(
-      "cockpit.garden.pool.setup.blocked.cap"
+      "hub.garden.pool.setup.blocked.cap"
     );
     expect(stepBlockedReason("cycle", { ...ready, datesValid: false })?.id).toBe(
-      "cockpit.garden.pool.setup.blocked.dates"
+      "hub.garden.pool.setup.blocked.dates"
     );
     expect(stepBlockedReason("split", { ...ready, splitValid: false })?.id).toBe(
-      "cockpit.garden.pool.setup.blocked.split"
+      "hub.garden.pool.setup.blocked.split"
     );
     expect(stepBlockedReason("how", ready)).toBeNull();
   });

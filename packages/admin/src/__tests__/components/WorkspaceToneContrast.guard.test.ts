@@ -107,7 +107,7 @@ const STATES = ["--m3-state-hover", "--m3-state-focus", "--m3-state-pressed"].ma
   opacity: Number(declared(state, [blocks(tokens, ":root")])),
 }));
 
-const TONES = ["hub", "garden", "community", "actions", "home"];
+const TONES = ["review", "garden", "community", "actions", "home"];
 
 /** The class lists of the cockpit's filled controls that lay the ink layer. */
 const FILLED_CONTROLS: Record<string, string> = {

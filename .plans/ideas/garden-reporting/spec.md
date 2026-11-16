@@ -1,9 +1,9 @@
-# Garden Reporting in the Steward Cockpit Spec
+# Garden Reporting in the Green Goods Hub Spec
 
 ## Summary
 
-Eight steward reports, each placed in the shipped cockpit tab whose components it improves. A
-Storybook-only prototype builds them from the cockpit's own components with deterministic sample
+Eight steward reports, each placed in the shipped Hub tab whose components it improves. A
+Storybook-only prototype builds them from the Hub's own components with deterministic sample
 data for two gardens, fixed at Jan 16, 2026: Riverbend Compost Collective, with frequent waste
 work in UTC+3, and Hilltop Learning Garden, with occasional sessions and attendance in UTC−3. A
 clickable walkthrough (`artifacts/`) takes a steward through them in six chapters. Nothing here is
@@ -19,7 +19,7 @@ accepted for production yet.
 
 Placement was decided in review on 2026-11-13: each report goes into the tab it improves.
 
-1. **Hub › Work, waiting time.** Chips beside Pending and Approved count pending work by age (under
+1. **Review › Work, waiting time.** Chips beside Pending and Approved count pending work by age (under
    2 days, 2 to 7 days, 1 to 2 weeks, over 2 weeks), and each chip filters the queue. Plain ink,
    no warning tone (DL-044).
 2. **Garden › Activity, calendar.** The month grid above the Activity Feed: counts by status per
@@ -31,7 +31,7 @@ Placement was decided in review on 2026-11-13: each report goes into the tab it 
    with work that shared no location kept in its own row.
 4. **Garden › Health, Review Health.** A new card under the unchanged Garden Health card: the
    shipped stall rule's verdict (`summarizeReviewQueue`), waiting work by age, and submitted
-   against reviewed each week. Its age bands hand off to the Hub's chips.
+   against reviewed each week. Its age bands hand off to Review's chips.
 5. **Garden › Promises, season timeline.** The season card becomes a drawn timeline (windows,
    promise deadlines, milestones, planned against recorded work, today) over an accessible list.
    A promise opens the work it links.
@@ -47,11 +47,11 @@ Placement was decided in review on 2026-11-13: each report goes into the tab it 
 
 ## Research Evidence
 
-- Existing pattern references: Hub (`packages/admin/src/views/Hub/index.tsx`), Garden
+- Existing pattern references: Review (`packages/admin/src/views/Review/index.tsx`), Garden
   (`views/Garden/index.tsx`, `components/OverviewTab.tsx`, `ImpactTab.tsx`, `Pool/`), Community
   (`views/Community/index.tsx` and its tabs). Records open through the left-sheet channel as an
   `AdminDialog` (`components/Layout/leftSheetChannel.tsx`), not a side sheet.
-- Source reviewed: the shared header and action builders (`hub.utils`, `garden.utils`,
+- Source reviewed: the shared header and action builders (`review.utils`, `garden.utils`,
   `community.utils`), `useGardenDerivedState` (alert copy and severities), `summarizeReviewQueue`
   (DL-044), and en strings in `packages/shared/src/i18n/en.json`.
 - Evidence confirmed: the prototype lives in `packages/admin/src/views/ReportingLab/` (stories
@@ -82,7 +82,7 @@ Placement was decided in review on 2026-11-13: each report goes into the tab it 
   - Who records later observations.
   - The PRD-1485 name, still undecided.
 - Protected or high-risk surfaces: none in the prototype. A production slice touches the work read
-  (shared) and the Hub's review surface.
+  (shared) and the Review workspace.
 - Tradeoffs to keep visible during review: placing reports in existing tabs keeps one place per
   question but spreads them across workspaces.
 
@@ -101,7 +101,7 @@ Placement was decided in review on 2026-11-13: each report goes into the tab it 
 
 | Area | Lane | Notes |
 |---|---|---|
-| UI | `ui` | Admin tabs: Hub › Work, Garden tabs, Community tabs |
+| UI | `ui` | Hub workspaces: Review › Work, Garden tabs, Community tabs |
 | State / API | `state_api` | Month-range work read with counts; review timestamps |
 | Contracts | `contracts` | `n/a`: no contract change |
 | QA | `qa_pass_1`, `qa_pass_2` | Sequential, when a slice is accepted |

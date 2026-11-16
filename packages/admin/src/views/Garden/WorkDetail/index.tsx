@@ -21,7 +21,7 @@ import {
   CanvasRouteHeader,
 } from "@/components/Layout/CanvasRouteFrame";
 import { CanvasRouteErrorState } from "@/components/Layout/CanvasRouteState";
-import { MediaEvidence } from "@/views/Hub/components/MediaEvidence";
+import { MediaEvidence } from "@/views/Review/components/MediaEvidence";
 import { ReviewForm } from "./ReviewForm";
 import { SubmissionDetails } from "./SubmissionDetails";
 import {
@@ -31,7 +31,7 @@ import {
 
 type WorkDetailLayout = "page" | "sheet";
 
-function parseHubContext(search: string) {
+function parseReviewContext(search: string) {
   const params = new URLSearchParams(search);
   const view = params.get("view");
   const sort = params.get("sort");
@@ -309,15 +309,15 @@ export default function WorkDetail() {
   const localizedWorkTitle = workTitle
     ? localizeCanonicalActionTitle(workTitle, formatMessage)
     : undefined;
-  // The Hub's filters come from the router, which says when they change. Read from
+  // Review's filters come from the router, which says when they change. Read from
   // window.location while rendering they name no reactive value, so the compiled app would keep
   // the first work's filters for as long as this view stays mounted.
-  const hubContext = parseHubContext(search);
+  const reviewContext = parseReviewContext(search);
 
   const baseHeaderProps = {
     backLink: {
-      to: adminRoutes.hub(hubContext),
-      label: formatMessage({ id: "cockpit.nav.hub", defaultMessage: "Hub" }),
+      to: adminRoutes.review(reviewContext),
+      label: formatMessage({ id: "hub.nav.review", defaultMessage: "Review" }),
     },
     sticky: true,
   } as const;

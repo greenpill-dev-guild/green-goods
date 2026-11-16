@@ -160,7 +160,7 @@ export function GroupDialogs({
             done(
               formatMessage(
                 {
-                  id: "cockpit.garden.pool.group.added",
+                  id: "hub.garden.pool.group.added",
                   defaultMessage:
                     "{count, plural, one {Added # promise to this group} other {Added # promises to this group}}",
                 },
@@ -194,7 +194,7 @@ export function GroupDialogs({
             done(
               formatMessage(
                 {
-                  id: "cockpit.garden.pool.group.rewardChangedToast",
+                  id: "hub.garden.pool.group.rewardChangedToast",
                   defaultMessage:
                     "{count, plural, one {Reward changed for # promise} other {Reward changed for # promises}}",
                 },

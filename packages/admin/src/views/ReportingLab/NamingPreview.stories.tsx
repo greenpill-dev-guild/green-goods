@@ -11,23 +11,15 @@ const meta = {
     docs: {
       description: {
         component:
-          "PRD-1485 exploration, nothing decided: each dashboard-name candidate in the places a steward meets it, and the workspace names it repeats. Renaming the Hub workspace to Review is shown only to compare.",
+          "The chosen Green Goods Hub and Review names, in the places a steward meets them (DL-182, DL-184). Reporting remains a prototype.",
       },
     },
   },
   decorators: [withCanvasFrame({ workspace: "garden", className: "p-4" })],
-  args: { nameId: "steward-hub", hubLabel: "hub" },
 } satisfies Meta<typeof NamingPreview>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** "Steward Hub" beside a workspace that is also called Hub. */
-export const StewardHub: Story = {};
-
-/** Both words of "Garden Hub" are already workspace names. */
-export const GardenHub: Story = { args: { nameId: "garden-hub" } };
-
-export const StewardHubWithReviewWorkspace: Story = { args: { hubLabel: "review" } };
-
-export const CurrentName: Story = { args: { nameId: "current" } };
+/** The chosen product name and its Review workspace. */
+export const ChosenNames: Story = {};

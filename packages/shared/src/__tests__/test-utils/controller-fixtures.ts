@@ -1,8 +1,8 @@
 import type {
   CommitmentDialogActs,
   CommitmentDialogController,
-  HubConfirmQueueActs,
-  HubConfirmQueueController,
+  ReviewConfirmQueueActs,
+  ReviewConfirmQueueController,
   PoolConsoleActs,
   PoolConsoleController,
   VoucherConsoleView,
@@ -353,21 +353,21 @@ export function voucherConsoleViewFixture(
   };
 }
 
-const confirmQueueActs: HubConfirmQueueActs = {
+const confirmQueueActs: ReviewConfirmQueueActs = {
   confirm: successfulJob,
   notYet: successfulTransaction,
 };
 
-type HubConfirmQueueFixtureOverrides = Partial<HubConfirmQueueController> & {
+type ReviewConfirmQueueFixtureOverrides = Partial<ReviewConfirmQueueController> & {
   toConfirm?: CommitmentsToConfirm;
 };
 
-export function hubConfirmQueueControllerFixture(
-  overrides: HubConfirmQueueFixtureOverrides = {}
-): HubConfirmQueueController {
+export function reviewConfirmQueueControllerFixture(
+  overrides: ReviewConfirmQueueFixtureOverrides = {}
+): ReviewConfirmQueueController {
   const { toConfirm = toConfirmFixture(), ...controllerOverrides } = overrides;
-  type Row = HubConfirmQueueController["rows"][number];
-  const rows: HubConfirmQueueController["rows"] = [
+  type Row = ReviewConfirmQueueController["rows"][number];
+  const rows: ReviewConfirmQueueController["rows"] = [
     ...toConfirm.groups.flatMap((group) =>
       group.rows.map(
         (row): Row => ({

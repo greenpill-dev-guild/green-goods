@@ -290,7 +290,7 @@ export const PaletteVariant: Story = {
         </div>
         <div className="p-2">
           <button className="flex w-full rounded-sm px-3 py-2 text-left type-body text-text-sub">
-            Hub
+            Review
           </button>
           <button className="flex w-full rounded-sm px-3 py-2 text-left type-body text-text-sub">
             Garden
@@ -869,7 +869,7 @@ export const ReducedMotionContract: Story = {
 export const ToneMatrix: Story = {
   render: () => (
     <div className="grid gap-4 md:grid-cols-2">
-      {(["hub", "garden", "community", "actions"] as const).map((tone) => (
+      {(["review", "garden", "community", "actions"] as const).map((tone) => (
         <div key={tone} data-tone={tone}>
           <div className="mb-2 type-label-sm font-semibold uppercase tracking-[0.06em] text-text-soft">
             {`[data-tone="${tone}"]`}

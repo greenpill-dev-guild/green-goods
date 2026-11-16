@@ -1,6 +1,6 @@
 /**
  * Garden reporting lab: the reviewer's controls, kept apart from the product preview
- * below them. Scenario, interface, viewer role and naming candidate are lab controls;
+ * below them. Scenario, interface and viewer role are lab controls;
  * the garden, month and filters stay in the product's own chrome. The notes and the
  * naming preview open right under the controls that change them.
  */
@@ -10,7 +10,6 @@ import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminSortSelect } from "@/components/AdminSortSelect";
 import { REPORT_ORDER, VIEW_COPY } from "./labCopy";
 import type { ViewerRole } from "./model";
-import { type HubLabel, NAME_CANDIDATES, type NameId } from "./naming";
 import { NamingPreview } from "./NamingPreview";
 import { REPORT_NOTES } from "./reportNotes";
 import { SCENARIOS, type ScenarioId } from "./scenarios";
@@ -22,8 +21,6 @@ export interface LabControls {
   scenario: ScenarioId;
   view: ReportView;
   role: ViewerRole;
-  nameId: NameId;
-  hubLabel: HubLabel;
   panel: LabPanel;
 }
 
@@ -106,29 +103,9 @@ export function ReviewerBar({ controls, onChange }: ReviewerBarProps) {
             onChange={(value) => onChange({ role: value as ViewerRole })}
             options={ROLES}
           />
-          <AdminSortSelect
-            label="Name"
-            value={controls.nameId}
-            onChange={(value) => onChange({ nameId: value as NameId, panel: "naming" })}
-            options={NAME_CANDIDATES.map((candidate) => ({
-              value: candidate.id,
-              label: candidate.name,
-            }))}
-          />
-          <AdminSortSelect
-            label="Review workspace"
-            value={controls.hubLabel}
-            onChange={(value) => onChange({ hubLabel: value as HubLabel, panel: "naming" })}
-            options={[
-              { value: "hub", label: "Hub (today)" },
-              { value: "review", label: "Review (exploration)" },
-            ]}
-          />
         </div>
         {controls.panel === "notes" ? <Notes view={controls.view} /> : null}
-        {controls.panel === "naming" ? (
-          <NamingPreview nameId={controls.nameId} hubLabel={controls.hubLabel} />
-        ) : null}
+        {controls.panel === "naming" ? <NamingPreview /> : null}
       </div>
     </aside>
   );

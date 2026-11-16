@@ -905,7 +905,7 @@ describe("membership preflight covers every membership-gated act", () => {
     expect(send).toHaveBeenCalledTimes(1);
   });
 
-  // The app's Confirm, the admin promise dialog's ordinary Confirm and the Hub's own
+  // The app's Confirm, the admin promise dialog's ordinary Confirm and Review's own
   // rows all queue the flag isConfirmerByAccount gives. A confirmation the chain takes
   // by account (CreditLib.isOrdinaryConfirmer) must not wait on a role lost after it
   // was queued; one it takes through the garden's Hat keeps the gated wait above.

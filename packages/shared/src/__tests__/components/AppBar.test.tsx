@@ -17,9 +17,9 @@ vi.mock("react-intl", () => ({
   useIntl: () => ({
     formatMessage: ({ id }: { id: string }) => {
       const messages: Record<string, string> = {
-        "cockpit.topBar.back": "Back",
-        "cockpit.topBar.openSearch": "Open Search",
-        "cockpit.topBar.openSettings": "Open Settings",
+        "hub.topBar.back": "Back",
+        "hub.topBar.openSearch": "Open Search",
+        "hub.topBar.openSettings": "Open Settings",
       };
       return messages[id] ?? id;
     },
@@ -167,21 +167,21 @@ describe("AppBar", () => {
   it("renders profile button when onOpenProfile is provided", () => {
     render(<AppBar gardenChip={<span>Chip</span>} onOpenProfile={() => {}} />);
 
-    const profileBtn = screen.getByRole("button", { name: "cockpit.topBar.openProfile" });
+    const profileBtn = screen.getByRole("button", { name: "hub.topBar.openProfile" });
     expect(profileBtn).toBeTruthy();
   });
 
   it("does not render profile button when onOpenProfile is not provided", () => {
     render(<AppBar gardenChip={<span>Chip</span>} />);
 
-    expect(screen.queryByRole("button", { name: "cockpit.topBar.openProfile" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "hub.topBar.openProfile" })).toBeNull();
   });
 
   it("calls onOpenProfile when profile button is clicked", async () => {
     const onOpenProfile = vi.fn();
     render(<AppBar gardenChip={<span>Chip</span>} onOpenProfile={onOpenProfile} />);
 
-    await user.click(screen.getByRole("button", { name: "cockpit.topBar.openProfile" }));
+    await user.click(screen.getByRole("button", { name: "hub.topBar.openProfile" }));
     expect(onOpenProfile).toHaveBeenCalledOnce();
   });
 

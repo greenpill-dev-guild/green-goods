@@ -83,7 +83,7 @@ export function CommunityScene({ dataset, media, view }: CommunitySceneProps) {
                   <AdminCardHeader className="flex-wrap gap-3">
                     <div>
                       <AdminCardTitle>
-                        {formatMessage({ id: "cockpit.community.members.directory" })}
+                        {formatMessage({ id: "hub.community.members.directory" })}
                       </AdminCardTitle>
                       <p className="mt-1 type-body text-text-sub">{`${people.length} members`}</p>
                     </div>
@@ -91,7 +91,7 @@ export function CommunityScene({ dataset, media, view }: CommunitySceneProps) {
                   <AdminCardBody className="space-y-3">
                     <div className="flex flex-wrap gap-1.5">
                       <AdminFilterChip
-                        label={formatMessage({ id: "cockpit.community.members.filterAll" })}
+                        label={formatMessage({ id: "hub.community.members.filterAll" })}
                         selected
                         onToggle={() => undefined}
                       />
@@ -146,7 +146,7 @@ export function CommunityScene({ dataset, media, view }: CommunitySceneProps) {
               <AdminCard density="none">
                 <AdminCardHeader>
                   <AdminCardTitle>
-                    {formatMessage({ id: "cockpit.community.endowment.status" })}
+                    {formatMessage({ id: "hub.community.endowment.status" })}
                   </AdminCardTitle>
                 </AdminCardHeader>
                 <AdminCardBody className="space-y-3">

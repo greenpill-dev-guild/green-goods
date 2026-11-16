@@ -104,7 +104,7 @@ export function AccountProfilePanel({
                   className="inline-flex shrink-0 items-center gap-1 type-label-sm text-text-sub transition-colors hover:text-text-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
                 >
                   {formatMessage({
-                    id: "cockpit.account.viewOnExplorer",
+                    id: "hub.account.viewOnExplorer",
                     defaultMessage: "View on Explorer",
                   })}
                   <RiExternalLinkLine className="h-3.5 w-3.5" aria-hidden="true" />
@@ -120,19 +120,19 @@ export function AccountProfilePanel({
         <section className="space-y-2">
           <div>
             <h2 className="type-body font-semibold text-text-strong">
-              {formatMessage({ id: "cockpit.account.gardens", defaultMessage: "Your Gardens" })}
+              {formatMessage({ id: "hub.account.gardens", defaultMessage: "Your Gardens" })}
             </h2>
             <p className="mt-1 type-body text-text-sub">
               {formatMessage({
-                id: "cockpit.account.gardensDescription",
-                defaultMessage: "Switch the garden this canvas is scoped to.",
+                id: "hub.account.gardensDescription",
+                defaultMessage: "Switch the garden the Hub is scoped to.",
               })}
             </p>
           </div>
           {eligibleGardens.length > 0 ? (
             <AdminChoiceGroup
               ariaLabel={formatMessage({
-                id: "cockpit.account.gardens",
+                id: "hub.account.gardens",
                 defaultMessage: "Your Gardens",
               })}
               value={selectedGardenChoiceId}
@@ -146,7 +146,7 @@ export function AccountProfilePanel({
           ) : (
             <p className="type-body text-text-sub">
               {formatMessage({
-                id: "cockpit.account.gardensEmpty",
+                id: "hub.account.gardensEmpty",
                 defaultMessage: "No gardens yet.",
               })}
             </p>
@@ -157,10 +157,10 @@ export function AccountProfilePanel({
             <SheetDivider />
             <section className="space-y-2">
               <h2 className="type-body font-semibold text-text-strong">
-                {formatMessage({ id: "cockpit.account.stewardAccess.title" })}
+                {formatMessage({ id: "hub.account.stewardAccess.title" })}
               </h2>
               <p className="type-body text-text-sub">
-                {formatMessage({ id: "cockpit.account.stewardAccess.description" })}
+                {formatMessage({ id: "hub.account.stewardAccess.description" })}
               </p>
               {stewardAccess}
             </section>
@@ -179,7 +179,7 @@ export function AccountProfilePanel({
           )}
         >
           <span>
-            {formatMessage({ id: "cockpit.settings.disconnect", defaultMessage: "Disconnect" })}
+            {formatMessage({ id: "hub.settings.disconnect", defaultMessage: "Disconnect" })}
           </span>
           <RiLogoutBoxLine className="h-4 w-4" />
         </button>

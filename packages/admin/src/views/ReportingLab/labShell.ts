@@ -1,6 +1,6 @@
 /**
- * Garden reporting lab: what the cockpit's chrome shows around a prototype screen. A
- * steward's NavigationBar holds Hub, Garden and Community (Actions needs the operator's
+ * Garden reporting lab: what the Hub's chrome shows around a prototype screen. A
+ * steward's NavigationBar holds Review, Garden and Community (Actions needs the operator's
  * `showActions` permission), and the GardenChip lists the lab's three sample gardens.
  */
 import type { ToolbarSlot } from "@green-goods/shared/components/Canvas/NavigationBar";
@@ -10,17 +10,17 @@ import type { ScenarioId } from "./scenarios";
 
 export const LAB_NAV_SLOTS: ToolbarSlot[] = [
   {
-    id: "hub",
-    label: "Hub",
-    labelId: "cockpit.nav.hub",
+    id: "review",
+    label: "Review",
+    labelId: "hub.nav.review",
     icon: RiAppsLine,
-    path: "/hub",
+    path: "/review",
     visible: true,
   },
   {
     id: "garden",
     label: "Garden",
-    labelId: "cockpit.nav.garden",
+    labelId: "hub.nav.garden",
     icon: RiSeedlingLine,
     path: "/garden",
     visible: true,
@@ -28,7 +28,7 @@ export const LAB_NAV_SLOTS: ToolbarSlot[] = [
   {
     id: "community",
     label: "Community",
-    labelId: "cockpit.nav.community",
+    labelId: "hub.nav.community",
     icon: RiTeamLine,
     path: "/community",
     visible: true,

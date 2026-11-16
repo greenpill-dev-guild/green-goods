@@ -1,8 +1,8 @@
 /**
  * Garden reporting lab: the one drill-down for every report. A day, a week, an age band
- * or a site opens its records here, in the cockpit's AdminDialog, and a record opens its
+ * or a site opens its records here, in the Hub's AdminDialog, and a record opens its
  * evidence inside the same dialog so the way back keeps the list. Read-only: review
- * itself stays in Hub.
+ * itself stays in Review.
  */
 import { Button } from "@green-goods/shared/components/Button";
 import { ItemRow } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
@@ -39,9 +39,9 @@ interface RecordsDialogProps {
   media: MediaSet;
   role: ViewerRole;
   /** The workspace the dialog opens over, for its accent. */
-  tone?: "garden" | "hub" | "community";
-  /** Opened over the Hub's queue, where the app's dialog holds the review form. */
-  inHub?: boolean;
+  tone?: "garden" | "review" | "community";
+  /** Opened over Review's queue, where the app's dialog holds the review form. */
+  inReview?: boolean;
 }
 
 const PAGE = 12;
@@ -51,7 +51,7 @@ function RecordsBody({
   dataset,
   media,
   role,
-  inHub,
+  inReview,
 }: Omit<RecordsDialogProps, "onClose"> & { request: RecordsRequest }) {
   const { locale } = useIntl();
   const [openId, setOpenId] = useState<string | null>(request.openId ?? null);
@@ -83,7 +83,7 @@ function RecordsBody({
           media={media}
           role={role}
           at={request.at}
-          inHub={inHub}
+          inReview={inReview}
         />
       </div>
     );
@@ -150,7 +150,7 @@ export function RecordsDialog({
   media,
   role,
   tone = "garden",
-  inHub = false,
+  inReview = false,
 }: RecordsDialogProps) {
   const { locale } = useIntl();
   const counts = request ? countStatuses(request.records, request.at) : null;
@@ -176,7 +176,7 @@ export function RecordsDialog({
           dataset={dataset}
           media={media}
           role={role}
-          inHub={inHub}
+          inReview={inReview}
         />
       ) : null}
     </AdminDialog>

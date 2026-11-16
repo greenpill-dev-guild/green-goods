@@ -43,7 +43,7 @@ export function CommitmentRecovery({
       className="space-y-2"
       data-testid="commitment-accepted-acts"
       aria-label={formatMessage({
-        id: "cockpit.garden.pool.commitment.accepted.label",
+        id: "hub.garden.pool.commitment.accepted.label",
         defaultMessage: "Recovery",
       })}
     >
@@ -54,14 +54,14 @@ export function CommitmentRecovery({
             <span>
               <span className="font-medium text-text-strong">
                 {formatMessage({
-                  id: "cockpit.garden.pool.commitment.reconciliation.title",
+                  id: "hub.garden.pool.commitment.reconciliation.title",
                   defaultMessage: "Count Approved Linked Work",
                 })}
               </span>{" "}
               <span className="text-text-soft">
                 {formatMessage(
                   {
-                    id: "cockpit.garden.pool.commitment.reconciliation.body",
+                    id: "hub.garden.pool.commitment.reconciliation.body",
                     defaultMessage:
                       "{count, plural, one {# approved link is} other {# approved links are}} waiting to count.",
                   },
@@ -80,7 +80,7 @@ export function CommitmentRecovery({
             }
           >
             {formatMessage({
-              id: "cockpit.garden.pool.commitment.reconciliation.confirm",
+              id: "hub.garden.pool.commitment.reconciliation.confirm",
               defaultMessage: "Count Linked Work",
             })}
           </Button>
@@ -98,7 +98,7 @@ export function CommitmentRecovery({
         >
           <RiTimeLine className="h-4 w-4 shrink-0" aria-hidden />
           {formatMessage({
-            id: "cockpit.garden.pool.commitment.reconciliation.pending",
+            id: "hub.garden.pool.commitment.reconciliation.pending",
             defaultMessage: "Waiting for indexed confirmation…",
           })}
         </p>
@@ -112,7 +112,7 @@ export function CommitmentRecovery({
         >
           <RiCheckboxCircleLine className="h-4 w-4 shrink-0" aria-hidden />
           {formatMessage({
-            id: "cockpit.garden.pool.commitment.reconciliation.success",
+            id: "hub.garden.pool.commitment.reconciliation.success",
             defaultMessage: "Approved linked work counted.",
           })}
         </p>
@@ -126,7 +126,7 @@ export function CommitmentRecovery({
           <RiErrorWarningLine className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
           <span>
             {formatMessage({
-              id: "cockpit.garden.pool.commitment.reconciliation.needsFreshReview",
+              id: "hub.garden.pool.commitment.reconciliation.needsFreshReview",
               defaultMessage:
                 "A newer work decision needs review before this linked work can count.",
             })}
@@ -143,7 +143,7 @@ export function CommitmentRecovery({
           <RiErrorWarningLine className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
           <span>
             {formatMessage({
-              id: "cockpit.garden.pool.commitment.reconciliation.unavailable",
+              id: "hub.garden.pool.commitment.reconciliation.unavailable",
               defaultMessage: "Work decision readback is unavailable.",
             })}
           </span>
@@ -165,22 +165,22 @@ export function CommitmentRecovery({
               <span className="font-medium text-text-strong">
                 {evidenceOnly
                   ? formatMessage({
-                      id: "cockpit.garden.pool.commitment.accepted.cannotConfirm",
+                      id: "hub.garden.pool.commitment.accepted.cannotConfirm",
                       defaultMessage: "Recipient can’t confirm?",
                     })
                   : formatMessage({
-                      id: "cockpit.garden.pool.commitment.accepted.workStalled",
+                      id: "hub.garden.pool.commitment.accepted.workStalled",
                       defaultMessage: "Work still outstanding?",
                     })}
               </span>{" "}
               <span className="text-text-soft">
                 {evidenceOnly
                   ? formatMessage({
-                      id: "cockpit.garden.pool.commitment.accepted.cannotConfirmHint",
+                      id: "hub.garden.pool.commitment.accepted.cannotConfirmHint",
                       defaultMessage: "A steward can mark it ready with a recorded reason.",
                     })
                   : formatMessage({
-                      id: "cockpit.garden.pool.commitment.accepted.workStalledHint",
+                      id: "hub.garden.pool.commitment.accepted.workStalledHint",
                       defaultMessage:
                         "A steward can mark it ready with a recorded reason. The credit already verified still counts.",
                     })}
@@ -194,7 +194,7 @@ export function CommitmentRecovery({
               disabled={actDisabled || !can.markReady}
             >
               {formatMessage({
-                id: "cockpit.garden.pool.commitment.act.markReady",
+                id: "hub.garden.pool.commitment.act.markReady",
                 defaultMessage: "Mark Ready…",
               })}
             </Button>
@@ -204,13 +204,13 @@ export function CommitmentRecovery({
               <p className="min-w-0 type-body">
                 <span className="font-medium text-text-strong">
                   {formatMessage({
-                    id: "cockpit.garden.pool.commitment.accepted.assessment",
+                    id: "hub.garden.pool.commitment.accepted.assessment",
                     defaultMessage: "Assessment required",
                   })}
                 </span>{" "}
                 <span className="text-text-soft">
                   {formatMessage({
-                    id: "cockpit.garden.pool.commitment.accepted.assessmentHint",
+                    id: "hub.garden.pool.commitment.accepted.assessmentHint",
                     defaultMessage:
                       "Only assessments recorded for the provider garden can be attached.",
                   })}
@@ -224,7 +224,7 @@ export function CommitmentRecovery({
                 disabled={actDisabled}
               >
                 {formatMessage({
-                  id: "cockpit.garden.pool.commitment.act.attachAssessment",
+                  id: "hub.garden.pool.commitment.act.attachAssessment",
                   defaultMessage: "Attach Assessment…",
                 })}
               </Button>
@@ -234,13 +234,13 @@ export function CommitmentRecovery({
             <p className="min-w-0 type-body">
               <span className="font-medium text-text-strong">
                 {formatMessage({
-                  id: "cockpit.garden.pool.commitment.accepted.calledOff",
+                  id: "hub.garden.pool.commitment.accepted.calledOff",
                   defaultMessage: "Called off?",
                 })}
               </span>{" "}
               <span className="text-text-soft">
                 {formatMessage({
-                  id: "cockpit.garden.pool.commitment.accepted.calledOffHint",
+                  id: "hub.garden.pool.commitment.accepted.calledOffHint",
                   defaultMessage: "Canceling releases the committed units and records why.",
                 })}
               </span>
@@ -254,7 +254,7 @@ export function CommitmentRecovery({
               disabled={actDisabled || !can.cancel}
             >
               {formatMessage({
-                id: "cockpit.garden.pool.commitment.act.cancel",
+                id: "hub.garden.pool.commitment.act.cancel",
                 defaultMessage: "Cancel Promise…",
               })}
             </Button>

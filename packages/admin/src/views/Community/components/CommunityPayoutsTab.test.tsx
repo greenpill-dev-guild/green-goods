@@ -23,7 +23,7 @@ vi.mock("@green-goods/shared/hooks/commitment-pooling/useProtocolPool", () => ({
 }));
 
 // The panel reads its jars from the chain; this suite covers the tab.
-vi.mock("@/views/Hub/components/CookieJarPayoutPanel", () => ({
+vi.mock("@/views/Review/components/CookieJarPayoutPanel", () => ({
   CookieJarPayoutPanel: (props: { allocationCount: number; allocationCountAtLeast?: boolean }) => (
     <div
       data-testid="payout-panel"

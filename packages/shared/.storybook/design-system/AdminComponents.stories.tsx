@@ -47,7 +47,7 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <div className="admin-m3" data-tone="hub" data-workspace="hub">
+      <div className="admin-m3" data-tone="review" data-workspace="review">
         <Story />
       </div>
     ),
@@ -488,7 +488,7 @@ function Chrome() {
           ]}
           wide
         >
-          <div className="storybook-canvas-frame" data-workspace="hub" style={{ width: "100%" }}>
+          <div className="storybook-canvas-frame" data-workspace="review" style={{ width: "100%" }}>
             <AppBar
               gardenChip={
                 <GardenChip
@@ -543,7 +543,7 @@ export const DialogCloseButton: Story = {
         onOpenChange={() => undefined}
         title="Close button"
         description="The close affordance is the 40px circle on the title's line."
-        tone="hub"
+        tone="review"
         actions={<Button type="button" size="sm">Done</Button>}
       >
         <Specimen
@@ -580,7 +580,7 @@ export const DialogCloseButton: Story = {
 export const SideSheetCloseButton: Story = {
   render: () => (
     <div style={{ minHeight: 480 }}>
-      <AdminSideSheet open onOpenChange={() => undefined} title="Notifications" tone="hub">
+      <AdminSideSheet open onOpenChange={() => undefined} title="Notifications" tone="review">
         <Specimen
           title="close"
           targets={[

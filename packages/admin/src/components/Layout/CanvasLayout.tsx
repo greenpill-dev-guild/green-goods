@@ -43,7 +43,7 @@ export function AdminAccessHomeShell({
           gardenChip={
             <span className="inline-flex items-center gap-1.5 type-body font-semibold text-text-strong">
               <SeedlingIllustration className="h-5 w-5" />
-              {intl.formatMessage({ id: "app.admin.brand", defaultMessage: "Green Goods" })}
+              {intl.formatMessage({ id: "app.admin.brand", defaultMessage: "Green Goods Hub" })}
             </span>
           }
           onOpenProfile={showProfile ? () => setProfileOpen(true) : undefined}
@@ -55,8 +55,8 @@ export function AdminAccessHomeShell({
         <AdminSideSheet
           open={profileOpen}
           onOpenChange={setProfileOpen}
-          title={intl.formatMessage({ id: "cockpit.profile.title", defaultMessage: "Profile" })}
-          tone="hub"
+          title={intl.formatMessage({ id: "hub.profile.title", defaultMessage: "Profile" })}
+          tone="review"
         >
           <AccountProfilePanelContainer />
         </AdminSideSheet>
@@ -229,7 +229,7 @@ export function CanvasLayout() {
                 desktop, full-width bottom sheet on mobile (where only the
                 notification bell can open it — Profile/Settings live in the
                 Profile tab there). The same orchestrator contentId drives
-                open/close. Tone is the neutral steward "hub" accent: this is
+                open/close. Tone is the neutral steward "review" accent: this is
                 global account chrome, not workspace content, so it should not
                 inherit the active garden's tint, and the sheet portals out of
                 CanvasLayout's [data-tone] scope. */}
@@ -239,7 +239,7 @@ export function CanvasLayout() {
                 if (!next) closeSheet();
               }}
               title={rightSheetDescriptor?.title ?? ""}
-              tone="hub"
+              tone="review"
             >
               {rightSheetDescriptor?.content}
             </AdminSideSheet>

@@ -320,9 +320,9 @@ export function useGardenSetup(garden: Address | undefined, canManage: boolean):
       setFinishing(step);
       try {
         await executeWithToast(() => sendContractTx(call as never), {
-          loadingMessage: formatMessage({ id: "cockpit.garden.setup.working" }),
-          successMessage: formatMessage({ id: "cockpit.garden.setup.done" }),
-          errorMessage: formatMessage({ id: "cockpit.garden.setup.failed" }),
+          loadingMessage: formatMessage({ id: "hub.garden.setup.working" }),
+          successMessage: formatMessage({ id: "hub.garden.setup.done" }),
+          errorMessage: formatMessage({ id: "hub.garden.setup.failed" }),
           context: "garden setup",
         });
         await queryClient.invalidateQueries({ queryKey });

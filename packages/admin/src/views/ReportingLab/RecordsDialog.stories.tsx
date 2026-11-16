@@ -28,7 +28,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "The one drill-down every report opens, in the cockpit's AdminDialog: the matching records as item rows, and a record's evidence and dated facts inside the same dialog. Synthetic sample data.",
+          "The one drill-down every report opens, in the Hub's AdminDialog: the matching records as item rows, and a record's evidence and dated facts inside the same dialog. Synthetic sample data.",
       },
     },
   },

@@ -47,33 +47,33 @@ export function CommitmentReasonDialogs({
         target={target}
         variant="danger"
         title={formatMessage({
-          id: "cockpit.garden.pool.commitment.cancel.title",
+          id: "hub.garden.pool.commitment.cancel.title",
           defaultMessage: "Cancel This Promise",
         })}
         description={formatMessage({
-          id: "cockpit.garden.pool.commitment.cancel.description",
+          id: "hub.garden.pool.commitment.cancel.description",
           defaultMessage:
             "Accepted becomes Canceled with a recorded reason. Committed units release; the member sees the reason, never “canceled” alone.",
         })}
         confirmLabel={formatMessage({
-          id: "cockpit.garden.pool.commitment.cancel.confirm",
+          id: "hub.garden.pool.commitment.cancel.confirm",
           defaultMessage: "Cancel Promise",
         })}
         cancelLabel={formatMessage({
-          id: "cockpit.garden.pool.commitment.cancel.keep",
+          id: "hub.garden.pool.commitment.cancel.keep",
           defaultMessage: "Keep It Live",
         })}
         suggestions={[
           formatMessage({
-            id: "cockpit.garden.pool.commitment.cancel.suggestion.agreement",
+            id: "hub.garden.pool.commitment.cancel.suggestion.agreement",
             defaultMessage: "Withdrawn by agreement",
           }),
           formatMessage({
-            id: "cockpit.garden.pool.commitment.cancel.suggestion.notNeeded",
+            id: "hub.garden.pool.commitment.cancel.suggestion.notNeeded",
             defaultMessage: "No longer needed",
           }),
           formatMessage({
-            id: "cockpit.garden.pool.commitment.cancel.suggestion.duplicate",
+            id: "hub.garden.pool.commitment.cancel.suggestion.duplicate",
             defaultMessage: "Duplicate promise",
           }),
         ]}
@@ -89,29 +89,29 @@ export function CommitmentReasonDialogs({
         tone={tone}
         target={target}
         title={formatMessage({
-          id: "cockpit.garden.pool.commitment.markReady.title",
+          id: "hub.garden.pool.commitment.markReady.title",
           defaultMessage: "Mark Ready with Override",
         })}
         description={formatMessage({
-          id: "cockpit.garden.pool.commitment.markReady.description",
+          id: "hub.garden.pool.commitment.markReady.description",
           defaultMessage:
             "A steward override, separate from sending for confirmation. Moves the promise to Ready without the recipient’s send; the reason is stored and shows in the member timeline.",
         })}
         confirmLabel={formatMessage({
-          id: "cockpit.garden.pool.commitment.markReady.confirm",
+          id: "hub.garden.pool.commitment.markReady.confirm",
           defaultMessage: "Mark Ready",
         })}
         suggestions={[
           formatMessage({
-            id: "cockpit.garden.pool.commitment.markReady.suggestion.field",
+            id: "hub.garden.pool.commitment.markReady.suggestion.field",
             defaultMessage: "Checked in the field",
           }),
           formatMessage({
-            id: "cockpit.garden.pool.commitment.markReady.suggestion.device",
+            id: "hub.garden.pool.commitment.markReady.suggestion.device",
             defaultMessage: "Recipient has no device",
           }),
           formatMessage({
-            id: "cockpit.garden.pool.commitment.markReady.suggestion.gathering",
+            id: "hub.garden.pool.commitment.markReady.suggestion.gathering",
             defaultMessage: "Agreed at the gathering",
           }),
         ]}
@@ -127,29 +127,29 @@ export function CommitmentReasonDialogs({
         tone={tone}
         target={target}
         title={formatMessage({
-          id: "cockpit.garden.pool.commitment.dispute.title",
+          id: "hub.garden.pool.commitment.dispute.title",
           defaultMessage: "Raise a Dispute",
         })}
         description={formatMessage({
-          id: "cockpit.garden.pool.commitment.dispute.description",
+          id: "hub.garden.pool.commitment.dispute.description",
           defaultMessage:
             "Freezes the promise for review. Members see “under review by stewards”, never dispute language.",
         })}
         confirmLabel={formatMessage({
-          id: "cockpit.garden.pool.commitment.dispute.confirm",
+          id: "hub.garden.pool.commitment.dispute.confirm",
           defaultMessage: "Raise Dispute",
         })}
         suggestions={[
           formatMessage({
-            id: "cockpit.garden.pool.commitment.dispute.suggestion.contested",
+            id: "hub.garden.pool.commitment.dispute.suggestion.contested",
             defaultMessage: "Delivery contested",
           }),
           formatMessage({
-            id: "cockpit.garden.pool.commitment.dispute.suggestion.details",
+            id: "hub.garden.pool.commitment.dispute.suggestion.details",
             defaultMessage: "Details look wrong",
           }),
           formatMessage({
-            id: "cockpit.garden.pool.commitment.dispute.suggestion.secondLook",
+            id: "hub.garden.pool.commitment.dispute.suggestion.secondLook",
             defaultMessage: "Needs a second look",
           }),
         ]}
@@ -188,23 +188,23 @@ export function CommitmentFallbackDialog({
       title={
         fallbackPath === "PROTOCOL_FALLBACK"
           ? formatMessage({
-              id: "cockpit.garden.pool.commitment.fallback.protocolTitle",
+              id: "hub.garden.pool.commitment.fallback.protocolTitle",
               defaultMessage: "Confirm for the Green Goods Team",
             })
           : formatMessage({
-              id: "cockpit.garden.pool.commitment.fallback.gardenTitle",
+              id: "hub.garden.pool.commitment.fallback.gardenTitle",
               defaultMessage: "Confirm as Garden Fallback",
             })
       }
       description={
         fallbackPath === "PROTOCOL_FALLBACK"
           ? formatMessage({
-              id: "cockpit.garden.pool.commitment.fallback.protocolDescription",
+              id: "hub.garden.pool.commitment.fallback.protocolDescription",
               defaultMessage:
                 "Uses the Green Goods protocol garden’s authority, checked at signing. Every contributor is blocked, and module ownership alone grants nothing. The member timeline will say “confirmed by Green Goods team, fallback” with this reason.",
             })
           : formatMessage({
-              id: "cockpit.garden.pool.commitment.fallback.gardenDescription",
+              id: "hub.garden.pool.commitment.fallback.gardenDescription",
               defaultMessage:
                 "Uses this garden’s steward authority. Every frozen team address is blocked. The member timeline will say “confirmed by garden steward, fallback” with this reason.",
             })
@@ -212,11 +212,11 @@ export function CommitmentFallbackDialog({
       confirmLabel={
         fallbackPath === "PROTOCOL_FALLBACK"
           ? formatMessage({
-              id: "cockpit.garden.pool.commitment.act.confirmProtocolConfirm",
+              id: "hub.garden.pool.commitment.act.confirmProtocolConfirm",
               defaultMessage: "Confirm for Green Goods Team",
             })
           : formatMessage({
-              id: "cockpit.garden.pool.commitment.act.confirmGardenConfirm",
+              id: "hub.garden.pool.commitment.act.confirmGardenConfirm",
               defaultMessage: "Confirm as Garden Fallback",
             })
       }
@@ -224,29 +224,29 @@ export function CommitmentFallbackDialog({
         fallbackPath === "PROTOCOL_FALLBACK"
           ? [
               formatMessage({
-                id: "cockpit.garden.pool.commitment.fallback.suggestion.noLocal",
+                id: "hub.garden.pool.commitment.fallback.suggestion.noLocal",
                 defaultMessage: "No eligible local confirmer",
               }),
               formatMessage({
-                id: "cockpit.garden.pool.commitment.fallback.suggestion.unreachable",
+                id: "hub.garden.pool.commitment.fallback.suggestion.unreachable",
                 defaultMessage: "Named group unreachable",
               }),
               formatMessage({
-                id: "cockpit.garden.pool.commitment.fallback.suggestion.leftGarden",
+                id: "hub.garden.pool.commitment.fallback.suggestion.leftGarden",
                 defaultMessage: "Recipient left the garden",
               }),
             ]
           : [
               formatMessage({
-                id: "cockpit.garden.pool.commitment.fallback.suggestion.siteVisit",
+                id: "hub.garden.pool.commitment.fallback.suggestion.siteVisit",
                 defaultMessage: "Confirmed on a site visit",
               }),
               formatMessage({
-                id: "cockpit.garden.pool.commitment.markReady.suggestion.device",
+                id: "hub.garden.pool.commitment.markReady.suggestion.device",
                 defaultMessage: "Recipient has no device",
               }),
               formatMessage({
-                id: "cockpit.garden.pool.commitment.markReady.suggestion.gathering",
+                id: "hub.garden.pool.commitment.markReady.suggestion.gathering",
                 defaultMessage: "Agreed at the gathering",
               }),
             ]
@@ -292,7 +292,7 @@ export function CommitmentDeclineClaimDialog({
             record={record}
             party={{
               label: formatMessage({
-                id: "cockpit.garden.pool.target.requestFrom",
+                id: "hub.garden.pool.target.requestFrom",
                 defaultMessage: "Request from",
               }),
               value: <AddressDisplay address={open.claimant} interactive={false} />,
@@ -301,20 +301,20 @@ export function CommitmentDeclineClaimDialog({
         ) : null
       }
       title={formatMessage({
-        id: "cockpit.garden.pool.declineClaim.title",
+        id: "hub.garden.pool.declineClaim.title",
         defaultMessage: "Decline This Request",
       })}
       description={formatMessage({
-        id: "cockpit.garden.pool.declineClaim.description",
+        id: "hub.garden.pool.declineClaim.description",
         defaultMessage:
           "Only this request is declined; others stay pending and the promise stays claimable. The person sees your reason and may ask again.",
       })}
       confirmLabel={formatMessage({
-        id: "cockpit.garden.pool.declineClaim.confirm",
+        id: "hub.garden.pool.declineClaim.confirm",
         defaultMessage: "Decline Request",
       })}
       cancelLabel={formatMessage({
-        id: "cockpit.garden.pool.declineClaim.keep",
+        id: "hub.garden.pool.declineClaim.keep",
         defaultMessage: "Keep Pending",
       })}
       blockedReason={blockedReason}

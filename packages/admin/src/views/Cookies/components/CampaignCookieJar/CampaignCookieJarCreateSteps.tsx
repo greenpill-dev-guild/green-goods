@@ -17,41 +17,41 @@ export function campaignCreateSteps(formatMessage: IntlShape["formatMessage"]): 
     {
       id: "campaign",
       title: formatMessage({
-        id: "cockpit.community.cookies.createCampaignSection",
+        id: "hub.community.cookies.createCampaignSection",
         defaultMessage: "Campaign",
       }),
       description: formatMessage({
-        id: "cockpit.community.cookies.createStep.campaignHint",
+        id: "hub.community.cookies.createStep.campaignHint",
         defaultMessage: "Name, story, and image",
       }),
     },
     {
       id: "payout",
       title: formatMessage({
-        id: "cockpit.community.cookies.createPayoutSection",
+        id: "hub.community.cookies.createPayoutSection",
         defaultMessage: "Payout",
       }),
       description: formatMessage({
-        id: "cockpit.community.cookies.createStep.payoutHint",
+        id: "hub.community.cookies.createStep.payoutHint",
         defaultMessage: "What each steward can claim",
       }),
     },
     {
       id: "gardens",
       title: formatMessage({
-        id: "cockpit.community.cookies.createGardensSection",
+        id: "hub.community.cookies.createGardensSection",
         defaultMessage: "Eligible gardens",
       }),
       description: formatMessage({
-        id: "cockpit.community.cookies.createStep.gardensHint",
+        id: "hub.community.cookies.createStep.gardensHint",
         defaultMessage: "Whose stewards can claim",
       }),
     },
     {
       id: "review",
-      title: formatMessage({ id: "cockpit.community.cookies.review", defaultMessage: "Review" }),
+      title: formatMessage({ id: "hub.community.cookies.review", defaultMessage: "Review" }),
       description: formatMessage({
-        id: "cockpit.community.cookies.createStep.reviewHint",
+        id: "hub.community.cookies.createStep.reviewHint",
         defaultMessage: "Check it, then create",
       }),
     },
@@ -66,7 +66,7 @@ function CampaignCreateNotices({ form }: { form: CampaignCookieJarCreateFormProp
       {!moduleConfigured ? (
         <p>
           {formatMessage({
-            id: "cockpit.community.cookies.factoryMissing",
+            id: "hub.community.cookies.factoryMissing",
             defaultMessage: "Cookie Jar factory discovery is not configured on this network yet.",
           })}
         </p>
@@ -74,7 +74,7 @@ function CampaignCreateNotices({ form }: { form: CampaignCookieJarCreateFormProp
       {!isProtocolTeam && !roleLoading ? (
         <p>
           {formatMessage({
-            id: "cockpit.community.cookies.deployerOnly",
+            id: "hub.community.cookies.deployerOnly",
             defaultMessage:
               "This surface is for the Green Goods team. Connect a team account to create jars, or the jar owner to sync an existing jar.",
           })}

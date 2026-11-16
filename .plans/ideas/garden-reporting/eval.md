@@ -1,4 +1,4 @@
-# Garden Reporting in the Steward Cockpit Evaluation Plan
+# Garden Reporting in the Green Goods Hub Evaluation Plan
 
 ## Release Gates
 
@@ -6,7 +6,7 @@
    own zone, and every report counts the same records.
 2. Usability: a steward finds each answer in the tab they already use, and a day, week or band
    opens the records behind its number.
-3. Regression safety: the Hub's review flow, the Garden Health card and the Activity Feed behave as
+3. Regression safety: Review's review flow, the Garden Health card and the Activity Feed behave as
    they ship.
 4. Evidence quality: research evidence and open assumptions are recorded before implementation.
 5. Human judgment: protected surfaces and maintainer-call decisions are called out before merge.
@@ -19,7 +19,7 @@
 | AC-2 | Calendar | Day counts sum to the month; zero, before-records, not-loaded and future days differ; a day opens its records and focus returns to it | `ui` | |
 | AC-3 | Review Health | Verdict matches `summarizeReviewQueue`; bands sum to the waiting count | `ui` | |
 | AC-4 | QA review | The walkthrough's story holds against the shipped tabs | `qa_pass_1` | |
-| AC-5 | Regression review | Hub review, Garden Health and the Activity Feed unchanged | `qa_pass_2` | |
+| AC-5 | Regression review | Review review, Garden Health and the Activity Feed unchanged | `qa_pass_2` | |
 
 ## Test Strategy
 

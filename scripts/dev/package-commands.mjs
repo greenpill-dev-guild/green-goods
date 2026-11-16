@@ -33,10 +33,10 @@ export const ADMIN_HUB_TESTS = [
   "src/__tests__/components/CanvasLayout.test.tsx",
   "src/__tests__/components/mobile-nav.test.tsx",
   "src/__tests__/routes/IndexRoute.test.tsx",
-  "src/__tests__/views/HubDetail.test.tsx",
+  "src/__tests__/views/ReviewDetail.test.tsx",
   "src/components/Layout/commandPalette.results.test.ts",
   "src/views/Actions/actions.workspaceModel.test.ts",
-  "src/views/Hub/hub.workbenchModel.test.ts",
+  "src/views/Review/review.workbenchModel.test.ts",
 ];
 export const SHARED_LIVE_TESTS = [
   "src/__tests__/integration/arbitrum-yield-data.test.ts",

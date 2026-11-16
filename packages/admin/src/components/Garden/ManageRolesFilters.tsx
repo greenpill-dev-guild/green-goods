@@ -47,9 +47,9 @@ export function ManageRolesFilters({
   onShowPicked,
 }: ManageRolesFiltersProps) {
   const { formatMessage } = useIntl();
-  const label = formatMessage({ id: "cockpit.community.members.filterAria" });
+  const label = formatMessage({ id: "hub.community.members.filterAria" });
   const options: { value: RoleFilter; label: string }[] = [
-    { value: "all", label: formatMessage({ id: "cockpit.community.members.filterAll" }) },
+    { value: "all", label: formatMessage({ id: "hub.community.members.filterAll" }) },
     ...roles.map((role) => ({ value: role, label: getRoleLabel(role, formatMessage).plural })),
   ];
   if (hasPicks) {

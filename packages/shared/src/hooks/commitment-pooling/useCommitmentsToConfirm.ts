@@ -19,7 +19,7 @@
  *    offers the garden a `confirm`, the same question the detail screen asks.
  * 2. **Nothing duplicates Live.** A commitment the reader is personally a
  *    party to already sits in their own inbox, so it is left out here even
- *    when the garden could also confirm it. The Hub has no Live, so it asks
+ *    when the garden could also confirm it. Review has no Live, so it asks
  *    for the reader's own confirmations as a group of their own (`includeOwn`).
  *
  * The roster is not loaded at list scope, so team membership is read from the
@@ -127,7 +127,7 @@ export function useCommitmentsToConfirm({
    * protocol pool console, because those rows come from other gardens.
    */
   includeProtocolFallback?: boolean;
-  /** Also list the reader's own confirmations in their stewarded pools: the Hub has no Live. */
+  /** Also list the reader's own confirmations in their stewarded pools: Review has no Live. */
   includeOwn?: boolean;
   /** Keep the steward's visible review queue current across other sessions. */
   refreshWhileOpen?: boolean;
@@ -398,7 +398,7 @@ export function useCommitmentsToConfirm({
       Number(right.commitment.commitmentId - left.commitment.commitmentId)
     );
 
-    // The reader's own confirmations in the same pools, which only the Hub asks for.
+    // The reader's own confirmations in the same pools, which only Review asks for.
     const ownRows: ToConfirmOwnRow[] = !includeOwn
       ? []
       : stewarded.flatMap((garden, index) =>

@@ -149,8 +149,8 @@ vi.mock("react-router-dom", async (importOriginal) => {
 });
 
 // The confirm queue is tested on its own; here it only needs to prove what it was handed.
-vi.mock("@/views/Hub/components/HubConfirmQueue", () => ({
-  HubConfirmQueue: ({ toConfirm }: { toConfirm: CommitmentsToConfirm }) => {
+vi.mock("@/views/Review/components/ReviewConfirmQueue", () => ({
+  ReviewConfirmQueue: ({ toConfirm }: { toConfirm: CommitmentsToConfirm }) => {
     mocks.confirmQueueProps.push(toConfirm);
     return <div data-testid="protocol-confirm-queue" />;
   },

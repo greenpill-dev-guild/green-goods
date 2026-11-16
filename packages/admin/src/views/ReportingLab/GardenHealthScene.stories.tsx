@@ -15,7 +15,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Proposed, Storybook only: Garden's Health tab with Review Health under the shipped Garden Health card. The card, its stats, Key Metrics and the alerts rail follow the shipped tab; Review Health shows the shipped stall rule's verdict, waiting work by age and submitted against reviewed each week, and its age bands hand off to the Hub's Work chips. Sample data fixed at Jan 16, 2026.",
+          "Proposed, Storybook only: Garden's Health tab with Review Health under the shipped Garden Health card. The card, its stats, Key Metrics and the alerts rail follow the shipped tab; Review Health shows the shipped stall rule's verdict, waiting work by age and submitted against reviewed each week, and its age bands hand off to Review's Work chips. Sample data fixed at Jan 16, 2026.",
       },
     },
   },

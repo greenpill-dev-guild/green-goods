@@ -1,0 +1,469 @@
+import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
+import { Button } from "@green-goods/shared/components/Button";
+import { EmptyStateShell } from "@green-goods/shared/components/Canvas/EmptyStateShell";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
+import type {
+  ConfirmQueueEligibility,
+  ConfirmQueueRow,
+} from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import { useReviewConfirmQueueController } from "@green-goods/shared/hooks/admin-ui/pool/useReviewConfirmQueueController";
+import type { CommitmentsToConfirm } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentsToConfirm";
+import type { Address } from "@green-goods/shared/types/domain";
+import { RiCheckLine, RiErrorWarningLine, RiShakeHandsLine } from "@remixicon/react";
+import { type ReactNode, useState } from "react";
+import { useIntl } from "react-intl";
+import { AdminDialog } from "@/components/AdminDialog";
+import { AdminLinearProgress } from "@/components/AdminLinearProgress";
+import { AdminReasonDialog } from "@/components/AdminReasonDialog";
+import { CommitmentDialogPanel } from "@/views/Garden/Pool/CommitmentDialog";
+import { ConfirmKeptDialog } from "@/views/Garden/Pool/CommitmentDialog/ConfirmKeptDialog";
+import { GardenPoolTarget } from "@/views/Garden/Pool/PoolTarget";
+import { confirmEligibilityChip, otherPoolGardenLabel } from "@/views/Garden/Pool/poolPresentation";
+import { clockTime, exactTime, isoTime } from "@/views/Garden/Pool/poolTime";
+import { ReviewWorkbenchSkeletonRows } from "./ReviewWorkbenchSkeletonRows";
+
+export interface ReviewConfirmQueueProps {
+  toConfirm: CommitmentsToConfirm;
+  chainId: number;
+  viewer?: Address;
+  normalizedSearch: string;
+  selectedCommitmentId: string | undefined;
+  onOpenCommitment: (commitmentId: string) => void;
+  onCloseCommitment?: () => void;
+}
+
+/**
+ * W13, Review's Confirm stage (uiux-spec §6.9, C.48): commitments waiting on
+ * the steward, for the garden or as themselves (Yours to confirm), each with
+ * who committed, the title, the pool it lives in when that is not the acting
+ * garden's own, N-of-group progress, a visible eligibility badge and the
+ * decision row. Confirm on an ordinary or own row opens the
+ * Confirm Kept review, which enqueues the confirmation; on a fallback row it
+ * opens the commitment dialog, where the reasoned fallback lives; Not yet opens the
+ * reasoned dispute dialog, and appears only where the pool's own steward
+ * authority makes it legal; a disputed row carries Resolve instead. Loading
+ * and read-error casts never render as an empty queue, and the error cast
+ * retries the confirmation reads rather than sending the steward elsewhere.
+ */
+export function ReviewConfirmQueue({
+  toConfirm,
+  chainId,
+  normalizedSearch,
+  selectedCommitmentId,
+  onOpenCommitment,
+  onCloseCommitment,
+}: ReviewConfirmQueueProps) {
+  const intl = useIntl();
+  const { formatMessage } = intl;
+  const queue = useReviewConfirmQueueController({ chainId, toConfirm, search: normalizedSearch });
+  const [notYet, setNotYet] = useState<ConfirmQueueRow | null>(null);
+  const [confirming, setConfirming] = useState<ConfirmQueueRow | null>(null);
+  const selected = selectedCommitmentId
+    ? queue.rows.find((row) => row.commitment.commitmentId.toString() === selectedCommitmentId)
+    : undefined;
+  const actDisabled = !queue.isOnline || queue.isDisputing;
+
+  const titleOf = (row: ConfirmQueueRow) =>
+    row.title ??
+    formatMessage(
+      { id: "hub.garden.pool.row.untitled", defaultMessage: "Promise {id}" },
+      { id: row.commitment.commitmentId.toString() }
+    );
+
+  const badge = (eligibility: ConfirmQueueEligibility) =>
+    confirmEligibilityChip(eligibility, formatMessage);
+
+  let body: ReactNode;
+  if (queue.isError) {
+    body = (
+      <EmptyStateShell>
+        <EmptyState
+          tone="error"
+          icon={<RiErrorWarningLine />}
+          title={formatMessage({
+            id: "hub.review.confirm.readError.title",
+            defaultMessage: "The confirmation queue could not be read",
+          })}
+          description={formatMessage({
+            id: "hub.review.confirm.readError.description",
+            defaultMessage:
+              "Nothing was confirmed or disputed while it was unreachable; refresh and try again.",
+          })}
+          action={
+            <Button
+              type="button"
+              emphasis="primary"
+              size="sm"
+              onClick={() => void toConfirm.refetch()}
+            >
+              {formatMessage({
+                id: "hub.garden.pool.readError.retry",
+                defaultMessage: "Try Again",
+              })}
+            </Button>
+          }
+        />
+      </EmptyStateShell>
+    );
+  } else if (queue.isLoading) {
+    body = <ReviewWorkbenchSkeletonRows count={3} variant="card" />;
+  } else if (queue.rows.length === 0) {
+    body = (
+      <EmptyStateShell>
+        <EmptyState
+          icon={<RiShakeHandsLine className="h-6 w-6" />}
+          title={formatMessage({
+            id: "hub.review.confirm.empty.title",
+            defaultMessage: "Nothing to confirm",
+          })}
+          description={
+            normalizedSearch.trim()
+              ? formatMessage({
+                  id: "hub.review.confirm.empty.search",
+                  defaultMessage: "Nothing waiting on you matches that search.",
+                })
+              : formatMessage({
+                  id: "hub.review.confirm.empty.description",
+                  defaultMessage:
+                    "Promises kept and sent for this garden's confirmation, or yours, will wait here.",
+                })
+          }
+        />
+      </EmptyStateShell>
+    );
+  } else {
+    body = (
+      <ul className="space-y-2" data-testid="review-confirm-queue">
+        {queue.rows.map((row) => {
+          const { commitment } = row;
+          const title = titleOf(row);
+          const threshold = Math.max(commitment.confirmationThreshold ?? 1, 1);
+          const count = commitment.confirmationCount ?? 0;
+          const disputed = commitment.onchainState === "DISPUTED";
+          const eligibility = disputed ? null : badge(row.eligibility);
+          const otherPool = otherPoolGardenLabel(row);
+          const committedBy = commitment.leadProvider ?? commitment.creator;
+          const id = commitment.commitmentId.toString();
+          const selectedRow = selectedCommitmentId === id;
+          const progressLabel = formatMessage(
+            {
+              id: "hub.review.confirm.progress",
+              defaultMessage: "{count} of {threshold} confirmed",
+            },
+            { count, threshold }
+          );
+          return (
+            <li
+              key={`${row.garden}-${commitment.id}`}
+              className={`rounded-[var(--m3-shape-md)] bg-[rgb(var(--admin-surface-0))] p-3 shadow-[var(--m3-elevation-1)] ${selectedRow ? "ring-2 ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]" : ""}`}
+              data-testid={`review-confirm-${id}`}
+            >
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <button
+                  type="button"
+                  className="m3-state-layer min-w-0 flex-1 rounded-[var(--m3-shape-sm)] text-left [--state-layer-color:var(--m3-on-surface)]"
+                  onClick={() => onOpenCommitment(id)}
+                >
+                  <span
+                    className="block truncate type-body font-medium text-text-strong"
+                    title={title}
+                  >
+                    {title}
+                  </span>
+                  {/* Who committed, by name, then where and how much. */}
+                  <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 type-meta text-text-soft">
+                    {committedBy ? (
+                      <AddressDisplay
+                        address={committedBy}
+                        interactive={false}
+                        className="type-meta"
+                      />
+                    ) : null}
+                    {/* The acting garden is the one in the header; a commitment that
+                        lives in another garden's pool says whose. */}
+                    {otherPool ? (
+                      <span>
+                        ·{" "}
+                        {formatMessage(
+                          {
+                            id: "hub.review.confirm.inPool",
+                            defaultMessage: "in {garden}’s pool",
+                          },
+                          { garden: otherPool }
+                        )}
+                      </span>
+                    ) : null}
+                    <span>
+                      ·{" "}
+                      {`${commitment.targetUnits.toString()} ${commitment.unitLabel ?? ""}`.trim()}
+                    </span>
+                    {/* A copy from a group is confirmed on its own; the group only names it. */}
+                    {row.groupSize ? (
+                      <span>
+                        ·{" "}
+                        {formatMessage(
+                          {
+                            id: "hub.review.confirm.fromGroup",
+                            defaultMessage: "from a group of {count}",
+                          },
+                          { count: row.groupSize }
+                        )}
+                      </span>
+                    ) : null}
+                  </span>
+                </button>
+                <StatusBadge variant={eligibility?.variant ?? "warning"} size="sm">
+                  {eligibility?.label ??
+                    formatMessage({
+                      id: "hub.review.confirm.disputed",
+                      defaultMessage: "Under review",
+                    })}
+                </StatusBadge>
+              </div>
+              <div className="mt-2 flex items-center gap-2">
+                <AdminLinearProgress
+                  value={Math.min(100, Math.round((count / threshold) * 100))}
+                  ariaLabel={progressLabel}
+                  className="flex-1"
+                />
+                <span className="type-meta text-text-soft">{progressLabel}</span>
+              </div>
+              {/* One height through every state: the outcome takes the buttons' place. */}
+              <div className="mt-2 flex min-h-8 flex-wrap items-center justify-end gap-2">
+                {row.state.status !== "waiting" ? (
+                  <ConfirmOutcome state={row.state} />
+                ) : disputed ? (
+                  <Button
+                    type="button"
+                    emphasis="primary"
+                    size="compact"
+                    onClick={() => onOpenCommitment(id)}
+                  >
+                    {formatMessage({
+                      id: "hub.review.confirm.act.resolve",
+                      defaultMessage: "Resolve…",
+                    })}
+                  </Button>
+                ) : (
+                  <>
+                    {/* Only the pool garden's own steward may raise a dispute
+                        (TerminalLib.raiseDispute), so a protocol steward
+                        reaching into another garden's pool is not offered one. */}
+                    {row.canDispute === false ? null : (
+                      <Button
+                        type="button"
+                        emphasis="secondary"
+                        size="compact"
+                        onClick={() => setNotYet(row)}
+                        disabled={actDisabled}
+                      >
+                        {formatMessage({
+                          id: "hub.review.confirm.act.notYet",
+                          defaultMessage: "Not yet…",
+                        })}
+                      </Button>
+                    )}
+                    {/* Both send the one ordinary confirmation from the reader's account. */}
+                    {row.eligibility === "ORDINARY" || row.eligibility === "OWN" ? (
+                      <Button
+                        type="button"
+                        emphasis="primary"
+                        size="compact"
+                        onClick={() => setConfirming(row)}
+                        disabled={queue.isConfirming}
+                      >
+                        {formatMessage({
+                          id: "hub.review.confirm.act.confirm",
+                          defaultMessage: "Confirm Kept…",
+                        })}
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        emphasis="primary"
+                        size="compact"
+                        onClick={() => onOpenCommitment(id)}
+                      >
+                        {formatMessage({
+                          id: "hub.review.confirm.act.confirm",
+                          defaultMessage: "Confirm Kept…",
+                        })}
+                      </Button>
+                    )}
+                  </>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    );
+  }
+
+  return (
+    <div data-component="ReviewConfirmQueue" data-region="review-confirm">
+      {!queue.isOnline && queue.rows.length > 0 ? (
+        <p className="mb-2 type-meta text-warning-dark" role="status">
+          {formatMessage({
+            id: "hub.review.confirm.offline",
+            defaultMessage:
+              "Confirmations queue on this device; disputes and fallbacks need a connection.",
+          })}
+        </p>
+      ) : null}
+      {body}
+
+      <AdminReasonDialog
+        isOpen={notYet !== null}
+        onClose={() => setNotYet(null)}
+        tone="review"
+        target={
+          notYet ? (
+            <GardenPoolTarget
+              chainId={chainId}
+              garden={notYet.poolGarden ?? notYet.garden}
+              record={titleOf(notYet)}
+            />
+          ) : null
+        }
+        title={formatMessage({
+          id: "hub.review.confirm.notYet.title",
+          defaultMessage: "Not Yet: Raise a Dispute",
+        })}
+        description={formatMessage({
+          id: "hub.review.confirm.notYet.description",
+          defaultMessage:
+            "Freezes the promise for review instead of confirming it. Members see “under review by stewards”, never dispute language.",
+        })}
+        confirmLabel={formatMessage({
+          id: "hub.garden.pool.commitment.dispute.confirm",
+          defaultMessage: "Raise Dispute",
+        })}
+        suggestions={[
+          formatMessage({
+            id: "hub.garden.pool.commitment.dispute.suggestion.contested",
+            defaultMessage: "Delivery contested",
+          }),
+          formatMessage({
+            id: "hub.garden.pool.commitment.dispute.suggestion.details",
+            defaultMessage: "Details look wrong",
+          }),
+          formatMessage({
+            id: "hub.garden.pool.commitment.dispute.suggestion.secondLook",
+            defaultMessage: "Needs a second look",
+          }),
+        ]}
+        blockedReason={
+          queue.isOnline
+            ? undefined
+            : formatMessage({
+                id: "hub.garden.pool.offline",
+                defaultMessage: "Needs a connection. Pool changes are sent right away, not queued.",
+              })
+        }
+        onConfirm={async (reason) => {
+          if (!notYet) return;
+          await queue.acts.notYet(notYet, reason);
+          setNotYet(null);
+        }}
+      />
+
+      {confirming ? (
+        <ConfirmKeptDialog
+          open
+          onClose={() => setConfirming(null)}
+          onConfirm={() => queue.acts.confirm(confirming)}
+          tone="review"
+          chainId={chainId}
+          poolGarden={confirming.poolGarden ?? confirming.garden}
+          title={titleOf(confirming)}
+          keptBy={confirming.commitment.leadProvider ?? confirming.commitment.creator ?? null}
+          confirmationCount={confirming.commitment.confirmationCount ?? 0}
+          confirmationThreshold={confirming.commitment.confirmationThreshold ?? 1}
+          isLoading={queue.isConfirming}
+        />
+      ) : null}
+
+      <AdminDialog
+        open={Boolean(selectedCommitmentId)}
+        onOpenChange={(next) => {
+          if (!next) onCloseCommitment?.();
+        }}
+        size="lg"
+        tone="review"
+        title={formatMessage({
+          id: "hub.garden.pool.commitment.title",
+          defaultMessage: "Promise",
+        })}
+        bodyClassName="p-0"
+      >
+        {selectedCommitmentId ? (
+          selected ? (
+            <CommitmentDialogPanel
+              chainId={chainId}
+              // The pool's garden, not the one whose authority confirms: the
+              // inspector reads that pool's state and seats the reader there.
+              garden={selected.poolGarden ?? selected.garden}
+              commitmentId={selectedCommitmentId}
+              tone="review"
+            />
+          ) : (
+            <p className="p-4 type-body text-text-soft">
+              {formatMessage({
+                id: "hub.review.confirm.notInQueue",
+                defaultMessage: "This promise is not in your confirmation queue any more.",
+              })}
+            </p>
+          )
+        ) : null}
+      </AdminDialog>
+    </div>
+  );
+}
+
+/**
+ * A row's outcome this visit, in place of its buttons, the way Waiting for
+ * approval keeps its decisions: confirmed here with its time, queued on this
+ * device, or settled elsewhere.
+ */
+function ConfirmOutcome({
+  state,
+}: {
+  state: Exclude<ConfirmQueueRow["state"], { status: "waiting" }>;
+}) {
+  const intl = useIntl();
+  const { formatMessage } = intl;
+  if (state.status === "confirmed") {
+    return (
+      <span className="flex items-center gap-2" role="status">
+        <time
+          dateTime={isoTime(state.at)}
+          title={exactTime(intl, state.at)}
+          className="type-meta text-text-soft"
+        >
+          {clockTime(intl, state.at)}
+        </time>
+        <StatusBadge variant="success" size="sm" icon={<RiCheckLine className="h-3 w-3" />}>
+          {formatMessage({
+            id: "hub.review.confirm.outcome.confirmed",
+            defaultMessage: "Confirmed",
+          })}
+        </StatusBadge>
+      </span>
+    );
+  }
+  return (
+    <StatusBadge variant="neutral" size="sm" showIcon={false}>
+      {state.status === "queued"
+        ? formatMessage({
+            id: "hub.review.confirm.outcome.queued",
+            defaultMessage: "Queued on this device",
+          })
+        : formatMessage({
+            id: "hub.garden.pool.approvals.gone",
+            defaultMessage: "No longer waiting",
+          })}
+    </StatusBadge>
+  );
+}

@@ -31,7 +31,7 @@ function GardenSelectorCheckbox({
       label={garden.name}
       description={formatMessage(
         {
-          id: "cockpit.community.cookies.stewardCount",
+          id: "hub.community.cookies.stewardCount",
           defaultMessage: "{count, plural, one {# steward} other {# stewards}} · {address}",
         },
         { count: garden.stewards.length, address: addressLabel }
@@ -83,13 +83,13 @@ export function GardenSelector({
           id="campaign-cookie-jar-garden-search"
           className="min-w-0"
           label={formatMessage({
-            id: "cockpit.community.cookies.searchGardens",
+            id: "hub.community.cookies.searchGardens",
             defaultMessage: "Search gardens",
           })}
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder={formatMessage({
-            id: "cockpit.community.cookies.searchGardensPlaceholder",
+            id: "hub.community.cookies.searchGardensPlaceholder",
             defaultMessage: "Search by name, slug, or address",
           })}
         />
@@ -103,7 +103,7 @@ export function GardenSelector({
             disabled={!onSelectMany || filteredGardens.length === 0 || allVisibleSelected}
           >
             {formatMessage({
-              id: "cockpit.community.cookies.selectVisibleGardens",
+              id: "hub.community.cookies.selectVisibleGardens",
               defaultMessage: "Select Visible",
             })}
           </Button>
@@ -115,7 +115,7 @@ export function GardenSelector({
             disabled={!onClear || selectedGardenIds.length === 0}
           >
             {formatMessage({
-              id: "cockpit.community.cookies.clearGardens",
+              id: "hub.community.cookies.clearGardens",
               defaultMessage: "Clear",
             })}
           </Button>
@@ -124,7 +124,7 @@ export function GardenSelector({
       <p className="type-meta text-text-sub">
         {formatMessage(
           {
-            id: "cockpit.community.cookies.gardenSelectorSummary",
+            id: "hub.community.cookies.gardenSelectorSummary",
             defaultMessage:
               "{selected, plural, one {# selected garden} other {# selected gardens}} - {visible, plural, one {# visible garden} other {# visible gardens}}",
           },
@@ -135,7 +135,7 @@ export function GardenSelector({
         {visibleGardens.length === 0 ? (
           <p className="p-4 type-meta text-text-sub">
             {formatMessage({
-              id: "cockpit.community.cookies.noGardenMatches",
+              id: "hub.community.cookies.noGardenMatches",
               defaultMessage: "No gardens match that search.",
             })}
           </p>

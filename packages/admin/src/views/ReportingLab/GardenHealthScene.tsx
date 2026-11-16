@@ -4,7 +4,7 @@
  * and Key Metrics) and the rail's alerts follow `OverviewTab` in health mode; the rail's
  * setup and Karma panels read live data and are left out. New here is Review Health: the
  * shipped stall rule's verdict, waiting work by age and submitted against reviewed each
- * week. Its age bands hand off to the Hub's Work chips rather than opening a list here.
+ * week. Its age bands hand off to Review's Work chips rather than opening a list here.
  */
 import { StatTile } from "@green-goods/shared/components/Cards/StatTile";
 import { useLocalizedRelativeTime } from "@green-goods/shared/hooks/app/useLocalizedRelativeTime";
@@ -141,7 +141,7 @@ export function GardenHealthScene({ dataset, media }: GardenHealthSceneProps) {
                 />
                 {band ? (
                   <p className="type-meta text-text-sub" role="status">
-                    {`In the app, this opens Hub › Work with “${band.label}” chosen.`}
+                    {`In the app, this opens Review › Work with “${band.label}” chosen.`}
                   </p>
                 ) : null}
               </>

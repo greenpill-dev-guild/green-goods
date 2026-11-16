@@ -13,7 +13,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Garden reporting review lab: a Storybook-only prototype, not routed and not part of the app. The reviewer bar picks the scenario, the interface, the viewer's role and the naming candidate; the product preview below renders the cockpit's real AppBar, GardenChip, MainSheet and NavigationBar around the proposed Reports page. Every figure is synthetic sample data fixed at Jan 16, 2026, the Storybook clock.",
+          "Garden reporting review lab: a Storybook-only prototype, not routed and not part of the app. The reviewer bar picks the scenario, the interface and the viewer's role; the product preview below renders the Hub's real AppBar, GardenChip, MainSheet and NavigationBar around the proposed Reports page. Every figure is synthetic sample data fixed at Jan 16, 2026, the Storybook clock.",
       },
     },
   },
@@ -50,8 +50,8 @@ export const Loading: Story = { args: { initial: { scenario: "loading" } } };
 
 export const ReadFailed: Story = { args: { initial: { scenario: "error" } } };
 
-export const NamingCandidates: Story = {
-  args: { initial: { panel: "naming", nameId: "steward-hub", hubLabel: "review" } },
+export const ChosenNames: Story = {
+  args: { initial: { panel: "naming" } },
 };
 
 export const Interface1Calendar: Story = {

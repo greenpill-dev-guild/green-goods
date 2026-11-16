@@ -19,8 +19,8 @@ import { useHypercertWizardStore } from "@green-goods/shared/stores/useHypercert
 import type { Garden } from "@green-goods/shared/types/domain";
 import { createTestQueryClient } from "@green-goods/shared/__tests__/test-utils/query-client";
 // Loaded up front, so the flow's lazy boundary resolves at once.
-import "@/views/Hub/CreateHypercert";
-import { HubFlowHarness } from "../hubFlowHarness";
+import "@/views/Review/CreateHypercert";
+import { ReviewFlowHarness } from "../reviewFlowHarness";
 
 const OPERATOR = "0x9999999999999999999999999999999999999999";
 type AuthContextValue = NonNullable<ComponentProps<typeof AuthContext.Provider>["value"]>;
@@ -103,7 +103,7 @@ const authContextValue: AuthContextValue = {
 };
 
 const FLOW_SEARCH = `?gardenId=${SELECTED_GARDEN.id}&item=create-hypercert`;
-const FLOW_URL = `/hub/certify${FLOW_SEARCH}`;
+const FLOW_URL = `/review/certify${FLOW_SEARCH}`;
 
 function renderCreateHypercert({
   seedGarden = true,
@@ -133,7 +133,7 @@ function renderCreateHypercert({
   );
   const router = createMemoryRouter(
     [
-      { path: "/hub/*", element: <HubFlowHarness /> },
+      { path: "/review/*", element: <ReviewFlowHarness /> },
       { path: "/garden/*", element: <div /> },
     ],
     {
@@ -274,7 +274,7 @@ describe("CreateHypercert dialog", () => {
     ).toBeInTheDocument();
   });
 
-  it("closes straight back to the Hub while the hypercert wizard is pristine", async () => {
+  it("closes straight back to Review while the hypercert wizard is pristine", async () => {
     let router: ReturnType<typeof renderCreateHypercert> | undefined;
     await act(async () => {
       router = renderCreateHypercert();
@@ -293,7 +293,7 @@ describe("CreateHypercert dialog", () => {
 
   it("opens over the stage it was pressed from and returns there on close (DL-140)", async () => {
     const user = userEvent.setup();
-    const stageUrl = `/hub/work?gardenId=${SELECTED_GARDEN.id}`;
+    const stageUrl = `/review/work?gardenId=${SELECTED_GARDEN.id}`;
     let router: ReturnType<typeof renderCreateHypercert> | undefined;
     await act(async () => {
       router = renderCreateHypercert({ entry: stageUrl });
@@ -357,7 +357,7 @@ describe("CreateHypercert dialog", () => {
     });
 
     await act(async () => {
-      void router?.navigate("/hub/work");
+      void router?.navigate("/review/work");
       await Promise.resolve();
     });
 
@@ -409,7 +409,7 @@ describe("CreateHypercert dialog", () => {
     expect(dialog).toBeInTheDocument();
 
     await act(async () => {
-      void router?.navigate("/hub/work");
+      void router?.navigate("/review/work");
       await Promise.resolve();
     });
 

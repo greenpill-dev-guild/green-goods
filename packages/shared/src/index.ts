@@ -236,12 +236,12 @@ export * from "./hooks/admin-ui/garden";
 export * from "./modules/wallet/barcode-scanner";
 export * from "./modules/wallet/send-flow";
 export * from "./modules/work/submission-flow";
-export * from "./hooks/admin-ui/hub/hub.filters";
-export * from "./hooks/admin-ui/hub/hub.utils";
-export * from "./hooks/admin-ui/hub/hub.workbenchModel";
-export * from "./hooks/admin-ui/hub/useCreateAssessmentController";
-export * from "./hooks/admin-ui/hub/useCreateHypercertController";
-export * from "./hooks/admin-ui/hub/useHubWorkbenchController";
+export * from "./hooks/admin-ui/review/review.filters";
+export * from "./hooks/admin-ui/review/review.utils";
+export * from "./hooks/admin-ui/review/review.workbenchModel";
+export * from "./hooks/admin-ui/review/useCreateAssessmentController";
+export * from "./hooks/admin-ui/review/useCreateHypercertController";
+export * from "./hooks/admin-ui/review/useReviewWorkbenchController";
 export * from "./hooks/admin-ui/pool";
 export * from "./hooks/admin-ui/hypercerts";
 export * from "./hooks/admin-ui/layout";
@@ -1133,7 +1133,7 @@ export type {
 export type {
   AdminCommunityRouteContext,
   AdminGardenRouteContext,
-  AdminHubRouteContext,
+  AdminReviewRouteContext,
   CategorizedError,
   CategorizedErrorCategory,
   ClassValue,

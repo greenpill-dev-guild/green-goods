@@ -67,7 +67,7 @@ export function CommitmentActions({
             onClick={onEditReward}
           >
             {formatMessage({
-              id: "cockpit.garden.pool.reward.title",
+              id: "hub.garden.pool.reward.title",
               defaultMessage: "Edit Reward",
             })}
           </Button>
@@ -81,7 +81,7 @@ export function CommitmentActions({
             onClick={onSeedAnother}
           >
             {formatMessage({
-              id: "cockpit.garden.pool.commitment.act.seedAnother",
+              id: "hub.garden.pool.commitment.act.seedAnother",
               defaultMessage: "Seed Another Like This",
             })}
           </Button>
@@ -95,7 +95,7 @@ export function CommitmentActions({
             disabled={actDisabled}
           >
             {formatMessage({
-              id: "cockpit.garden.pool.commitment.act.raiseDispute",
+              id: "hub.garden.pool.commitment.act.raiseDispute",
               defaultMessage: "Raise Dispute…",
             })}
           </Button>
@@ -109,7 +109,7 @@ export function CommitmentActions({
             disabled={actDisabled}
           >
             {formatMessage({
-              id: "cockpit.garden.pool.commitment.act.resolve",
+              id: "hub.garden.pool.commitment.act.resolve",
               defaultMessage: "Resolve…",
             })}
           </Button>
@@ -124,11 +124,11 @@ export function CommitmentActions({
           >
             {fallbackPath === "PROTOCOL_FALLBACK"
               ? formatMessage({
-                  id: "cockpit.garden.pool.commitment.act.confirmProtocol",
+                  id: "hub.garden.pool.commitment.act.confirmProtocol",
                   defaultMessage: "Confirm for Green Goods Team…",
                 })
               : formatMessage({
-                  id: "cockpit.garden.pool.commitment.act.confirmGarden",
+                  id: "hub.garden.pool.commitment.act.confirmGarden",
                   defaultMessage: "Confirm as Garden Fallback…",
                 })}
           </Button>
@@ -142,7 +142,7 @@ export function CommitmentActions({
             disabled={isActing}
           >
             {formatMessage({
-              id: "cockpit.garden.pool.commitment.act.confirm",
+              id: "hub.garden.pool.commitment.act.confirm",
               defaultMessage: "Confirm Kept…",
             })}
           </Button>
@@ -156,7 +156,7 @@ export function CommitmentActions({
             disabled={isActing || sendHeld}
           >
             {formatMessage({
-              id: "cockpit.garden.pool.commitment.act.send",
+              id: "hub.garden.pool.commitment.act.send",
               defaultMessage: "Send for Confirmation",
             })}
           </Button>
@@ -167,7 +167,7 @@ export function CommitmentActions({
           phase={sendPhase}
           chainId={chainId}
           confirmed={formatMessage({
-            id: "cockpit.garden.pool.commitment.act.sent",
+            id: "hub.garden.pool.commitment.act.sent",
             defaultMessage: "Sent for confirmation. Its confirmers see it once the index shows it.",
           })}
         />
@@ -186,7 +186,7 @@ export function CommitmentActions({
             disabled={actDisabled}
           >
             {formatMessage({
-              id: "cockpit.garden.pool.row.act.expire",
+              id: "hub.garden.pool.row.act.expire",
               defaultMessage: "Expire Now…",
             })}
           </Button>

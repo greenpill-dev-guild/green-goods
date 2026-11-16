@@ -75,7 +75,7 @@ export function VoucherActDialog({
       confirmLabel={
         failed
           ? formatMessage({
-              id: "cockpit.garden.pool.approvals.retry",
+              id: "hub.garden.pool.approvals.retry",
               defaultMessage: "Try Again",
             })
           : confirmLabel

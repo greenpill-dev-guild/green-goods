@@ -1,6 +1,6 @@
 /**
  * Garden reporting lab: the walkthrough's data in the shapes the shipped components take.
- * A lab record becomes the Hub's `Work` for HubWorkCard, and the review queue becomes the
+ * A lab record becomes the Review's `Work` for ReviewWorkCard, and the review queue becomes the
  * Garden alerts the shipped rule raises (`useGardenDerivedState`): critical when review has
  * stalled, a warning when work has waited over a week.
  */
@@ -18,20 +18,20 @@ const DOMAIN_OF: Record<MediaKey, Domain | undefined> = {
   banner: undefined,
 };
 
-/** The garden's domain, for the Hub card's badge. */
+/** The garden's domain, for the Review card's badge. */
 export function gardenDomain(dataset: ReportDataset): Domain | undefined {
   return DOMAIN_OF[dataset.garden.media];
 }
 
-/** A stable stand-in address, so the Hub's types hold. The lab never shows it. */
+/** A stable stand-in address, so the Review's types hold. The lab never shows it. */
 function standInAddress(seed: string): Address {
   let hash = 0x811c9dc5;
   for (const char of seed) hash = Math.imul(hash ^ char.charCodeAt(0), 0x01000193) >>> 0;
   return `0x${hash.toString(16).padStart(8, "0").repeat(5)}`;
 }
 
-/** A lab record as the Hub's Work, its status read at `at`. */
-export function toHubWork(
+/** A lab record as the Review's Work, its status read at `at`. */
+export function toReviewWork(
   record: WorkRecord,
   dataset: ReportDataset,
   media: MediaSet,

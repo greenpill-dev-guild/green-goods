@@ -42,34 +42,34 @@ export function VoucherAcceptanceChecks({
       title: member
         ? formatMessage(
             {
-              id: "cockpit.garden.pool.voucher.check.consentMember",
+              id: "hub.garden.pool.voucher.check.consentMember",
               defaultMessage: "{name} agreed to {issuer}’s current terms",
             },
             { name, issuer: member }
           )
         : formatMessage(
             {
-              id: "cockpit.garden.pool.voucher.check.consent",
+              id: "hub.garden.pool.voucher.check.consent",
               defaultMessage: "{name} agreed to the current terms",
             },
             { name }
           ),
       note: checks.consent
         ? formatMessage(
-            { id: "cockpit.garden.pool.voucher.version", defaultMessage: "Version {version}" },
+            { id: "hub.garden.pool.voucher.version", defaultMessage: "Version {version}" },
             { version: ask.agreed.revision.toString() }
           )
         : stage === "terms-changed"
           ? formatMessage(
               {
-                id: "cockpit.garden.pool.voucher.check.consentFailed",
+                id: "hub.garden.pool.voucher.check.consentFailed",
                 defaultMessage: "The terms changed after {name} agreed, so they book again",
               },
               { name }
             )
           : formatMessage(
               {
-                id: "cockpit.garden.pool.voucher.check.consentMissing",
+                id: "hub.garden.pool.voucher.check.consentMissing",
                 defaultMessage: "There’s no agreement from {name} to accept, so they book again",
               },
               { name }
@@ -79,20 +79,20 @@ export function VoucherAcceptanceChecks({
       title: member
         ? formatMessage(
             {
-              id: "cockpit.garden.pool.voucher.check.approvalMember",
+              id: "hub.garden.pool.voucher.check.approvalMember",
               defaultMessage: "{issuer} approved the booking from their account",
             },
             { issuer: member }
           )
         : formatMessage({
-            id: "cockpit.garden.pool.voucher.check.approval",
+            id: "hub.garden.pool.voucher.check.approval",
             defaultMessage: "Your Safe approved the booking",
           }),
       note:
         approvedAt !== null
           ? dayText(intl, approvedAt * 1000, nowMs)
           : formatMessage({
-              id: "cockpit.garden.pool.voucher.check.approvalMissing",
+              id: "hub.garden.pool.voucher.check.approvalMissing",
               defaultMessage: "Not approved yet",
             }),
     },
@@ -100,7 +100,7 @@ export function VoucherAcceptanceChecks({
       title: member
         ? formatMessage(
             {
-              id: "cockpit.garden.pool.voucher.check.depositMember",
+              id: "hub.garden.pool.voucher.check.depositMember",
               defaultMessage:
                 "{count, plural, one {# {issuer} voucher} other {# {issuer} vouchers}} deposited in escrow",
             },
@@ -108,7 +108,7 @@ export function VoucherAcceptanceChecks({
           )
         : formatMessage(
             {
-              id: "cockpit.garden.pool.voucher.check.deposit",
+              id: "hub.garden.pool.voucher.check.deposit",
               defaultMessage:
                 "{count, plural, one {# voucher} other {# vouchers}} deposited in escrow",
             },
@@ -116,17 +116,17 @@ export function VoucherAcceptanceChecks({
           ),
       note: checks.deposit
         ? formatMessage({
-            id: "cockpit.garden.pool.voucher.check.depositConfirmed",
+            id: "hub.garden.pool.voucher.check.depositConfirmed",
             defaultMessage: "Confirmed on Green Goods",
           })
         : formatMessage({
-            id: "cockpit.garden.pool.voucher.check.depositMissing",
+            id: "hub.garden.pool.voucher.check.depositMissing",
             defaultMessage: "Not confirmed on Green Goods yet",
           }),
     },
     deadline: {
       title: formatMessage({
-        id: "cockpit.garden.pool.voucher.check.deadline",
+        id: "hub.garden.pool.voucher.check.deadline",
         defaultMessage: "Before the deadline",
       }),
       note: setup
@@ -134,7 +134,7 @@ export function VoucherAcceptanceChecks({
           ? dueDateText(intl, setup.acceptBy * 1000, nowMs)
           : formatMessage(
               {
-                id: "cockpit.garden.pool.voucher.check.deadlinePassed",
+                id: "hub.garden.pool.voucher.check.deadlinePassed",
                 defaultMessage: "It passed {date}",
               },
               { date: dayText(intl, setup.acceptBy * 1000, nowMs) }

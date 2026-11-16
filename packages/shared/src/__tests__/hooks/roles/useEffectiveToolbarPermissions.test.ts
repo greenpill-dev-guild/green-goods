@@ -130,7 +130,7 @@ describe("useEffectiveToolbarPermissions", () => {
     });
   });
 
-  it("evaluator, gardener, and community member sees Hub and Garden, not Community", () => {
+  it("evaluator, gardener, and community member sees Review and Garden, not Community", () => {
     const gardenA = makeGarden("garden-a", {
       evaluators: [ADDR_USER],
       gardeners: [ADDR_USER],
@@ -218,7 +218,7 @@ describe("useEffectiveToolbarPermissions", () => {
     expect(result.current.isLoading).toBe(false);
   });
 
-  it("single-garden scope: steward in A, evaluator in B, scope=B -> Hub and Garden only", () => {
+  it("single-garden scope: steward in A, evaluator in B, scope=B -> Review and Garden only", () => {
     const gardenA = makeGarden("garden-a", {
       stewards: [ADDR_USER],
     });

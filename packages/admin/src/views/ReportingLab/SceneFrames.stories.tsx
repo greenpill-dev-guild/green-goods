@@ -4,22 +4,22 @@ import { RiCheckboxCircleLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { AdminCard, AdminCardBody, AdminCardHeader, AdminCardTitle } from "@/components/AdminCard";
 import { withCanvasFrame } from "../../../../shared/.storybook/decorators";
-import { GardenFrame, GardenTabLayout, HubFrame } from "./SceneFrames";
+import { GardenFrame, GardenTabLayout, ReviewFrame } from "./SceneFrames";
 
 const meta = {
   title: "Admin/Prototypes/Garden Reporting/Components/SceneFrames",
-  component: HubFrame,
+  component: ReviewFrame,
   tags: ["autodocs"],
   parameters: {
     layout: "padded",
     docs: {
       description: {
         component:
-          "Proposed, Storybook only: the workspace frames the walkthrough's screens sit in, built as the shipped Hub and Garden views build theirs: CanvasRouteFrame, a sticky CanvasRouteHeader with its MetaStrip, view actions and tab rail, from the shared builders. Tab presses and actions are inert.",
+          "Proposed, Storybook only: the workspace frames the walkthrough's screens sit in, built as the shipped Review and Garden views build theirs: CanvasRouteFrame, a sticky CanvasRouteHeader with its MetaStrip, view actions and tab rail, from the shared builders. Tab presses and actions are inert.",
       },
     },
   },
-  decorators: [withCanvasFrame({ workspace: "hub", className: "p-4" })],
+  decorators: [withCanvasFrame({ workspace: "review", className: "p-4" })],
   args: {
     stage: "work",
     counts: { work: 47 },
@@ -36,13 +36,13 @@ const meta = {
       </EmptyStateShell>
     ),
   },
-} satisfies Meta<typeof HubFrame>;
+} satisfies Meta<typeof ReviewFrame>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** The Hub frame on its Work stage, with the pending count on the rail. */
-export const HubWork: Story = {};
+/** The Review frame on its Work stage, with the pending count on the rail. */
+export const ReviewWork: Story = {};
 
 /** The Garden frame on Activity, with its main column and rail. */
 export const GardenActivity: Story = {

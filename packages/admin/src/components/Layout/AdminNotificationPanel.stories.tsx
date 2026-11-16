@@ -83,7 +83,7 @@ const meta = {
   decorators: [
     withAdminIdentity,
     withSeededQueryClient(panelSeeds),
-    withRouter([`/hub?gardenId=${STORYBOOK_PRIMARY_ADMIN_GARDEN.id}`]),
+    withRouter([`/review?gardenId=${STORYBOOK_PRIMARY_ADMIN_GARDEN.id}`]),
     withAdminPrimitiveFrame,
   ],
   args: {

@@ -60,7 +60,7 @@ export function VoucherAwardDialog(props: VoucherAwardDialogProps) {
   const { issuer, records, busy, disabled, onClose } = props;
   const intl = useIntl();
   const { formatMessage } = intl;
-  const t = (key: string) => formatMessage({ id: `cockpit.voucherAward.${key}` });
+  const t = (key: string) => formatMessage({ id: `hub.voucherAward.${key}` });
   const formId = useId();
   const historyId = useId();
   const newId = useId();

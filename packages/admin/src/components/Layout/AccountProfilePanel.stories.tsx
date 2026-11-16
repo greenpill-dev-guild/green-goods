@@ -69,7 +69,7 @@ const meta: Meta<typeof AccountProfilePanelContainer> = {
   decorators: [
     withAdminIdentity,
     withSeededQueryClient(STORYBOOK_ADMIN_SHELL_SEEDS),
-    withRouter(["/hub"]),
+    withRouter(["/review"]),
     (Story) => (
       <div className="mx-auto max-w-md p-4">
         <Story />

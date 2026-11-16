@@ -25,25 +25,25 @@ export const OVER_LIMIT_MESSAGES: Record<
   { id: string; defaultMessage: string }
 > = {
   transfer_cap: {
-    id: "cockpit.community.protocolFunding.amount.overTransferCap",
+    id: "hub.community.protocolFunding.amount.overTransferCap",
     defaultMessage: "More than the per-transfer cap.",
   },
   period_allowance: {
-    id: "cockpit.community.protocolFunding.amount.overPeriodAllowance",
+    id: "hub.community.protocolFunding.amount.overPeriodAllowance",
     defaultMessage: "More than the period allowance left.",
   },
   roles_allowance: {
-    id: "cockpit.community.protocolFunding.amount.overSafeAllowance",
+    id: "hub.community.protocolFunding.amount.overSafeAllowance",
     defaultMessage: "More than the Safe allowance left.",
   },
   balance: {
-    id: "cockpit.community.protocolFunding.amount.overBalance",
+    id: "hub.community.protocolFunding.amount.overBalance",
     defaultMessage: "More than the protocol Safe holds.",
   },
 };
 
 const LIMITS_UNREAD_ROW = {
-  id: "cockpit.community.protocolFunding.row.limitsUnread",
+  id: "hub.community.protocolFunding.row.limitsUnread",
   defaultMessage: "Can't be sent until the protocol Safe's limits are read.",
 };
 
@@ -94,31 +94,31 @@ export function ProtocolFundingRows({
   const statusLabel = (state: ProtocolFundingRow["state"]) => {
     const labels: Record<ProtocolFundingRow["state"], string> = {
       queued: formatMessage({
-        id: "cockpit.community.protocolFunding.row.queued",
+        id: "hub.community.protocolFunding.row.queued",
         defaultMessage: "Queued",
       }),
       dispatched: formatMessage({
-        id: "cockpit.community.protocolFunding.row.dispatched",
+        id: "hub.community.protocolFunding.row.dispatched",
         defaultMessage: "Dispatched",
       }),
       "acknowledgement-pending": formatMessage({
-        id: "cockpit.community.protocolFunding.row.acknowledgementPending",
+        id: "hub.community.protocolFunding.row.acknowledgementPending",
         defaultMessage: "Acknowledgment pending",
       }),
       confirmed: formatMessage({
-        id: "cockpit.community.protocolFunding.row.confirmed",
+        id: "hub.community.protocolFunding.row.confirmed",
         defaultMessage: "Confirmed",
       }),
       failed: formatMessage({
-        id: "cockpit.community.protocolFunding.row.failed",
+        id: "hub.community.protocolFunding.row.failed",
         defaultMessage: "Failed",
       }),
       cancelled: formatMessage({
-        id: "cockpit.community.protocolFunding.row.cancelled",
+        id: "hub.community.protocolFunding.row.cancelled",
         defaultMessage: "Canceled",
       }),
       unknown: formatMessage({
-        id: "cockpit.community.protocolFunding.row.unknown",
+        id: "hub.community.protocolFunding.row.unknown",
         defaultMessage: "Unknown",
       }),
     };
@@ -130,7 +130,7 @@ export function ProtocolFundingRows({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <AdminCardTitle as="h3" id="protocol-funding-rows-title">
           {formatMessage({
-            id: "cockpit.community.protocolFunding.rows",
+            id: "hub.community.protocolFunding.rows",
             defaultMessage: "Protocol-to-Garden Transfers",
           })}
         </AdminCardTitle>
@@ -143,7 +143,7 @@ export function ProtocolFundingRows({
             onClick={onRefresh}
           >
             {formatMessage({
-              id: "cockpit.community.protocolFunding.refresh",
+              id: "hub.community.protocolFunding.refresh",
               defaultMessage: "Refresh Funding",
             })}
           </Button>
@@ -152,7 +152,7 @@ export function ProtocolFundingRows({
       {operations.rows.length === 0 ? (
         <p className="type-meta text-text-soft">
           {formatMessage({
-            id: "cockpit.community.protocolFunding.rows.empty",
+            id: "hub.community.protocolFunding.rows.empty",
             defaultMessage: "No indexed protocol funding transfers yet.",
           })}
         </p>
@@ -167,7 +167,7 @@ export function ProtocolFundingRows({
                     <p className="truncate type-body font-medium text-text-strong" title={to}>
                       {formatMessage(
                         {
-                          id: "cockpit.community.protocolFunding.row.transfer",
+                          id: "hub.community.protocolFunding.row.transfer",
                           defaultMessage: "{amount} to {garden}",
                         },
                         { amount: formatGdollar(row.amount, locale), garden: to }
@@ -176,7 +176,7 @@ export function ProtocolFundingRows({
                     <p className="type-meta text-text-soft" title={row.recipient}>
                       {formatMessage(
                         {
-                          id: "cockpit.community.protocolFunding.row.identity",
+                          id: "hub.community.protocolFunding.row.identity",
                           defaultMessage: "Transfer #{id} · Celo account {account}",
                         },
                         { id: row.disbursementId.toString(), account: shortAddress(row.recipient) }
@@ -203,7 +203,7 @@ export function ProtocolFundingRows({
                       onClick={() => onCancel(row.disbursementId)}
                     >
                       {formatMessage({
-                        id: "cockpit.community.protocolFunding.cancel",
+                        id: "hub.community.protocolFunding.cancel",
                         defaultMessage: "Cancel…",
                       })}
                     </Button>
@@ -217,7 +217,7 @@ export function ProtocolFundingRows({
                       onClick={() => onReview("requeue", row)}
                     >
                       {formatMessage({
-                        id: "cockpit.community.protocolFunding.requeue",
+                        id: "hub.community.protocolFunding.requeue",
                         defaultMessage: "Requeue…",
                       })}
                     </Button>
@@ -231,7 +231,7 @@ export function ProtocolFundingRows({
                       onClick={() => onReview("retry", row)}
                     >
                       {formatMessage({
-                        id: "cockpit.community.protocolFunding.retry",
+                        id: "hub.community.protocolFunding.retry",
                         defaultMessage: "Resend…",
                       })}
                     </Button>
@@ -245,7 +245,7 @@ export function ProtocolFundingRows({
                       onClick={() => onReview("dispatch", row)}
                     >
                       {formatMessage({
-                        id: "cockpit.community.protocolFunding.dispatch",
+                        id: "hub.community.protocolFunding.dispatch",
                         defaultMessage: "Dispatch…",
                       })}
                     </Button>

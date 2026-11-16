@@ -38,7 +38,7 @@ const APPROVED_WORK: Work = { ...BASE_WORK, status: "approved" };
 const ACTIVE_ACTION_END = 4_102_444_800_000; // 2100-01-01
 
 const meta: Meta<typeof ReviewForm> = {
-  title: "Admin/Workflows/Hub/ReviewForm",
+  title: "Admin/Workflows/Review/ReviewForm",
   component: ReviewForm,
   tags: ["autodocs"],
   parameters: {

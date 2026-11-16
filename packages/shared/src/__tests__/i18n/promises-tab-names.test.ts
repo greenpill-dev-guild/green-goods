@@ -25,12 +25,12 @@ const locales: Array<{ locale: string; messages: LocaleCatalog; retired: RegExp 
 describe("the cockpit's Promises tab names (DL-077)", () => {
   describe.each(locales)("$locale", ({ messages, retired }) => {
     it("calls the tab what the app calls a garden's Promises tab", () => {
-      expect(messages["cockpit.garden.pool.tab"]).toBe(messages["app.garden.pool"]);
+      expect(messages["hub.garden.pool.tab"]).toBe(messages["app.garden.pool"]);
     });
 
     it("has no cockpit message that uses a retired name", () => {
       const offenders = Object.entries(messages)
-        .filter(([key, value]) => key.startsWith("cockpit.") && retired.test(value))
+        .filter(([key, value]) => key.startsWith("hub.") && retired.test(value))
         .map(([key, value]) => `${key}: ${value}`);
 
       expect(offenders).toEqual([]);

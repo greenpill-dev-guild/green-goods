@@ -60,21 +60,21 @@ export function GardenPromisesScene({ dataset, media, openItemId }: GardenPromis
             <AdminCard density="none">
               <AdminCardHeader>
                 <AdminCardTitle>
-                  {formatMessage({ id: "cockpit.garden.pool.summary.label" })}
+                  {formatMessage({ id: "hub.garden.pool.summary.label" })}
                 </AdminCardTitle>
               </AdminCardHeader>
               <AdminCardBody>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <StatTile
-                    label={formatMessage({ id: "cockpit.garden.pool.summary.waiting" })}
+                    label={formatMessage({ id: "hub.garden.pool.summary.waiting" })}
                     value="0"
                   />
                   <StatTile
-                    label={formatMessage({ id: "cockpit.garden.pool.summary.recovery" })}
+                    label={formatMessage({ id: "hub.garden.pool.summary.recovery" })}
                     value="0"
                   />
                   <StatTile
-                    label={formatMessage({ id: "cockpit.garden.pool.summary.pastDue" })}
+                    label={formatMessage({ id: "hub.garden.pool.summary.pastDue" })}
                     value={String(count("pastDue"))}
                   />
                 </div>
@@ -90,7 +90,7 @@ export function GardenPromisesScene({ dataset, media, openItemId }: GardenPromis
             <AdminCard density="none" data-component="PoolCommitmentsMirror">
               <AdminCardHeader className="flex-wrap gap-3">
                 <AdminCardTitle>
-                  {formatMessage({ id: "cockpit.garden.pool.promises.title" })}
+                  {formatMessage({ id: "hub.garden.pool.promises.title" })}
                 </AdminCardTitle>
                 <div className="flex flex-wrap items-center gap-2">
                   <AdminFilterChip
@@ -126,7 +126,7 @@ export function GardenPromisesScene({ dataset, media, openItemId }: GardenPromis
                           status={{
                             label:
                               state === "pastDue"
-                                ? formatMessage({ id: "cockpit.garden.pool.row.pastDue" })
+                                ? formatMessage({ id: "hub.garden.pool.row.pastDue" })
                                 : state === "confirmed"
                                   ? "Kept"
                                   : item.direction === "ask"
@@ -146,22 +146,22 @@ export function GardenPromisesScene({ dataset, media, openItemId }: GardenPromis
             <AdminCard density="none">
               <AdminCardHeader>
                 <AdminCardTitle>
-                  {formatMessage({ id: "cockpit.garden.pool.approvals.title" })}
+                  {formatMessage({ id: "hub.garden.pool.approvals.title" })}
                 </AdminCardTitle>
               </AdminCardHeader>
               <AdminCardBody>
                 <p className="type-body text-text-sub">
-                  {formatMessage({ id: "cockpit.garden.pool.approvals.empty" })}
+                  {formatMessage({ id: "hub.garden.pool.approvals.empty" })}
                 </p>
               </AdminCardBody>
             </AdminCard>
             <AdminCard density="none">
               <AdminCardHeader className="flex-wrap gap-3">
                 <AdminCardTitle>
-                  {formatMessage({ id: "cockpit.garden.pool.status.title" })}
+                  {formatMessage({ id: "hub.garden.pool.status.title" })}
                 </AdminCardTitle>
                 <StatusBadge variant="success">
-                  {formatMessage({ id: "cockpit.garden.pool.status.open" })}
+                  {formatMessage({ id: "hub.garden.pool.status.open" })}
                 </StatusBadge>
               </AdminCardHeader>
               <AdminCardBody>
