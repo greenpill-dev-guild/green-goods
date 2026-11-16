@@ -343,6 +343,7 @@ export {
   WORK_DOCUMENT_MAX_COUNT,
   isHeicFile,
   isWorkDocument,
+  isWorkMedia,
   isWorkPhoto,
   readPublishedWorkDocuments,
   roundWorkLocation,

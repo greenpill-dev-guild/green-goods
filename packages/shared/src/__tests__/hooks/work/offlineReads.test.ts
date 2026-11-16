@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const seams = vi.hoisted(() => ({
+  visibilityRequired: false,
   completions: vi.fn(() => [] as unknown[]),
   retire: vi.fn(async () => {}),
   list: vi.fn(),
@@ -18,6 +19,10 @@ const seams = vi.hoisted(() => ({
   storeChanged() {
     for (const answer of this.storeViews) answer();
   },
+}));
+vi.mock("../../../modules/work/work-visibility", async (original) => ({
+  ...(await original<typeof import("../../../modules/work/work-visibility")>()),
+  hasWorkVisibilityExclusions: () => seams.visibilityRequired,
 }));
 vi.mock("../../../modules/job-queue/work-completions", () => ({
   retireWorkCompletionSnapshots: seams.retire,
@@ -123,6 +128,7 @@ function mount() {
 }
 beforeEach(() => {
   vi.clearAllMocks();
+  seams.visibilityRequired = false;
   Object.defineProperty(navigator, "onLine", { configurable: true, value: false });
   onlineManager.setOnline(false);
   client = new QueryClient({
@@ -144,6 +150,42 @@ afterEach(() => {
   onlineManager.setOnline(true);
 });
 describe("offline work reading", () => {
+  it("keeps saved exclusions across offline list, personal work and queue projections", async () => {
+    const hidden = { ...cachedWork, id: `0x${"a".repeat(64)}`, approval: undefined };
+    const visible = { ...cachedWork, id: `0x${"b".repeat(64)}`, approval: null };
+    client.setQueryData(worksKeys.visibility(11155111), {
+      chainId: 11155111,
+      excludedWorkUIDs: [hidden.id],
+      excludedApprovalUIDs: [],
+    });
+    client.setQueryData(worksKeys.online(garden, 11155111), [hidden, visible]);
+    seams.jobs.mockResolvedValue([queuedJob]);
+    const { result } = mount();
+    await waitFor(() => expect(result.current.works.map((row) => row.id)).toContain(queuedJob.id));
+    expect(result.current.works.map((row) => row.id)).toEqual(
+      expect.arrayContaining([visible.id, queuedJob.id])
+    );
+    expect(result.current.works.map((row) => row.id)).not.toContain(hidden.id);
+    expect(result.current.onlineCount).toBe(1);
+    expect(result.current.hasUnknownStatuses).toBe(false);
+    expect(result.current.refreshWarning).toBe(false);
+    expect(client.getQueryData(worksKeys.online(garden, 11155111))).toEqual([hidden, visible]);
+    expect(seams.list).not.toHaveBeenCalled();
+  });
+
+  it("keeps unsent work while an old offline cache waits for its first visibility snapshot", async () => {
+    seams.visibilityRequired = true;
+    const hidden = { ...cachedWork, id: `0x${"a".repeat(64)}` };
+    client.setQueryData(worksKeys.online(garden, 11155111), [hidden]);
+    seams.jobs.mockResolvedValue([queuedJob]);
+    const { result } = mount();
+    await waitFor(() => expect(result.current.works.map((row) => row.id)).toEqual([queuedJob.id]));
+    expect(result.current.availability).toBe("partial");
+    expect(result.current.readThisSession).toBe(false);
+    expect(result.current.hasUnknownStatuses).toBe(true);
+    expect(client.getQueryData(worksKeys.online(garden, 11155111))).toEqual([hidden]);
+  });
+
   it("renders cached work while a refreshing read waits on its approvals", async () => {
     onlineManager.setOnline(true);
     // Stale enough to refresh on mount, so the hanging read is genuinely in flight.

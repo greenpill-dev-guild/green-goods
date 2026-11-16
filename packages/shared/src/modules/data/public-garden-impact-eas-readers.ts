@@ -1,3 +1,4 @@
+import { readWorkVisibility } from "../work/work-visibility";
 import { getEASConfig } from "../../config/blockchain";
 import type { PublicGardenImpactSource } from "../../public-contracts/garden-impact";
 import { getAssessmentSchemas } from "../assessment/schemas";
@@ -115,8 +116,14 @@ export function createPublicGardenImpactEasReaders(
       assertPublicGardenImpactChain(chainId, "works");
       const schema = requirePublicGardenImpactSchema("works", getEASConfig(chainId).WORK.uid);
       try {
-        const rows = await queue.run(chainId, signal, () =>
-          readAttestations({
+        const rows = await queue.run(chainId, signal, async () => {
+          const visibility = await withTimeout(
+            readWorkVisibility(chainId),
+            30_000,
+            "readPublicWorkVisibility",
+            signal
+          );
+          return readAttestations({
             reader: createReader(chainId),
             signal,
             source: "works",
@@ -124,10 +131,13 @@ export function createPublicGardenImpactEasReaders(
               schemaId: { equals: schema },
               recipient: addressFilter(gardenAddress),
               revoked: { equals: false },
+              ...(visibility.excludedWorkUIDs.length > 0
+                ? { id: { notIn: visibility.excludedWorkUIDs } }
+                : {}),
             },
             operationName: "readPublicGardenImpactWorks",
-          })
-        );
+          });
+        });
         return rows.map((row) => {
           const fields = decodedFields(row.decodedDataJson);
           const mediaValue = fieldValue(fields, "media");

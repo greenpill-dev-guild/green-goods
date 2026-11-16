@@ -10,6 +10,7 @@ on:
       - "packages/contracts/**"
       - "scripts/contracts/**"
       - "scripts/lib/git-guardrails.mjs"
+      - "scripts/data/solhint-baseline.json"
       - "scripts/quality/check-source-structure.js"
       - ".github/actions/setup-js/action.yml"
       - ".github/workflows/contracts.yml"
@@ -21,6 +22,7 @@ on:
       - "packages/contracts/**"
       - "scripts/contracts/**"
       - "scripts/lib/git-guardrails.mjs"
+      - "scripts/data/solhint-baseline.json"
       - "scripts/quality/check-source-structure.js"
       - ".github/actions/setup-js/action.yml"
       - ".github/workflows/contracts.yml"
@@ -146,11 +148,13 @@ jobs:
           SOLIDITY_TEST_BASE_REF: ${{ github.event_name == 'pull_request' && (github.base_ref == 'main' && startsWith(github.head_ref, 'release/') && 'origin/develop' || format('origin/{0}', github.base_ref)) || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before || '') }}
         run: bun run check --only solidity-test-names
 
-      - name: Run Solidity naming guardrail tests
-        run: node --test scripts/contracts/check-solidity-test-names.test.mjs
+      - name: Run Solidity guardrail tests
+        run: node --test scripts/contracts/check-solidity-test-names.test.mjs scripts/contracts/check-solhint-baseline.test.mjs
 
       - name: Run contract lint
         working-directory: packages/contracts
+        env:
+          SOLHINT_BASELINE_BASE_REF: ${{ github.event_name == 'pull_request' && (github.base_ref == 'main' && startsWith(github.head_ref, 'release/') && 'origin/develop' || format('origin/{0}', github.base_ref)) || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before || '') }}
         run: bun run lint --check
 
       - name: Build contracts

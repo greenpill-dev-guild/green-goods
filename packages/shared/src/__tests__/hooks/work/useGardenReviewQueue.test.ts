@@ -18,6 +18,11 @@ const WORK_LIST = worksKeys.online(GARDEN, DEFAULT_CHAIN_ID);
 const FIRST: GardenReviewQueue = { lastReviewedAt: 100, waiting: [] };
 const SECOND: GardenReviewQueue = { lastReviewedAt: 200, waiting: [] };
 const THIRD: GardenReviewQueue = { lastReviewedAt: 300, waiting: [] };
+const VISIBILITY = {
+  chainId: DEFAULT_CHAIN_ID,
+  excludedWorkUIDs: [],
+  excludedApprovalUIDs: [],
+};
 
 const mocks = vi.hoisted(() => ({ readGardenReviewQueue: vi.fn() }));
 vi.mock("../../../modules/data/eas-review-queue", () => ({
@@ -26,6 +31,10 @@ vi.mock("../../../modules/data/eas-review-queue", () => ({
 
 function queryClientWithWorkList() {
   const queryClient = createTestQueryClient();
+  queryClient.setQueryDefaults(worksKeys.visibility(DEFAULT_CHAIN_ID), {
+    gcTime: Number.POSITIVE_INFINITY,
+  });
+  queryClient.setQueryData(worksKeys.visibility(DEFAULT_CHAIN_ID), VISIBILITY);
   // No screen observes the work list here: keep its entry, so its
   // invalidations and reads still reach the queue.
   queryClient.setQueryDefaults(WORK_LIST, { gcTime: Number.POSITIVE_INFINITY });
@@ -46,7 +55,7 @@ describe("useGardenReviewQueue", () => {
     });
 
     await waitFor(() => expect(result.current).toEqual(FIRST));
-    expect(mocks.readGardenReviewQueue).toHaveBeenCalledWith(GARDEN, { chainId: DEFAULT_CHAIN_ID });
+    expect(mocks.readGardenReviewQueue).toHaveBeenCalledWith(GARDEN, VISIBILITY);
 
     // What a decision and its follow-ups do to the work list.
     await queryClient.invalidateQueries({ queryKey: WORK_LIST });

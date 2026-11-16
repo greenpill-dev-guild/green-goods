@@ -1,6 +1,6 @@
 import { PUBLIC_GARDEN_IMPACT_DOMAINS } from "../public-contracts/garden-impact";
 import { ContractFunctionExecutionError, ContractFunctionZeroDataError } from "viem";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Address } from "../public-contracts";
 import {
   getPublicGardenImpactChainConfig,
@@ -13,6 +13,16 @@ import {
 } from "../modules/data/public-garden-impact-readers";
 import { GQLClient, type GraphQLReader } from "../modules/data/graphql-client";
 
+const { readVisibility } = vi.hoisted(() => ({ readVisibility: vi.fn() }));
+vi.mock("../modules/work/work-visibility", () => ({ readWorkVisibility: readVisibility }));
+beforeEach(() => {
+  readVisibility.mockResolvedValue({
+    chainId: 42161,
+    excludedWorkUIDs: [],
+    excludedApprovalUIDs: [],
+  });
+});
+
 const gardenAddress: Address = "0x1111111111111111111111111111111111111111";
 
 function reader(query: GraphQLReader["query"]): GraphQLReader {
@@ -20,6 +30,37 @@ function reader(query: GraphQLReader["query"]): GraphQLReader {
 }
 
 describe("public garden impact source readers", () => {
+  it("excludes selected work before the report source paginates, retaining unrelated work", async () => {
+    readVisibility.mockResolvedValue({
+      chainId: 42161,
+      excludedWorkUIDs: ["hidden-work"],
+      excludedApprovalUIDs: [],
+    });
+    const query = vi.fn(async (_document, variables) => ({
+      data: {
+        attestations: ["hidden-work", "visible-work"]
+          .filter((id) => !variables.where.id?.notIn.includes(id))
+          .map((id) => ({ id, timeCreated: 1, decodedDataJson: "[]" })),
+      },
+    }));
+    const rows = await createPublicGardenImpactReaders({
+      createEasReader: () => reader(query as GraphQLReader["query"]),
+    }).readWorks(42161, gardenAddress);
+    expect(rows.map((row) => row.id)).toEqual(["visible-work"]);
+    expect(query.mock.calls[0][1].where.id).toEqual({ notIn: ["hidden-work"] });
+  });
+
+  it("reports work as unavailable when exclusion classification fails", async () => {
+    readVisibility.mockRejectedValue(new Error("classification unavailable"));
+    const query = vi.fn().mockResolvedValue({ data: { attestations: [] } });
+    await expect(
+      createPublicGardenImpactReaders({
+        createEasReader: () => reader(query as GraphQLReader["query"]),
+      }).readWorks(42161, gardenAddress)
+    ).rejects.toBeInstanceOf(PublicGardenImpactSourceError);
+    expect(query).not.toHaveBeenCalled();
+  });
+
   it("maps indexer domains to the published API words and leaves unknown values untagged", async () => {
     const domains = ["SOLAR", "AGRO", "EDU", "WASTE", "UNKNOWN", null, 0, "constructor"];
     const indexerQuery = vi.fn().mockResolvedValue({
@@ -79,12 +120,17 @@ describe("public garden impact source readers", () => {
         new Promise<Response>((resolve, reject) => {
           active += 1;
           peak = Math.max(peak, active);
+          let settled = false;
           const abort = () => {
+            if (settled) return;
+            settled = true;
             active -= 1;
             reject(init?.signal?.reason);
           };
           init?.signal?.addEventListener("abort", abort, { once: true });
           finish.push(() => {
+            if (settled) return;
+            settled = true;
             active -= 1;
             init?.signal?.removeEventListener("abort", abort);
             resolve(
@@ -115,8 +161,8 @@ describe("public garden impact source readers", () => {
     queuedController.abort(new Error("queued deadline"));
     activeController.abort(new Error("active deadline"));
     await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(3));
-    finish[1]();
-    finish[2]();
+    // Classification may settle in a different order; finish every still-active request.
+    for (const complete of finish) complete();
     const results = await Promise.all(pending);
     expect(results[0]).toBeInstanceOf(PublicGardenImpactSourceError);
     expect(results[2]).toBeInstanceOf(PublicGardenImpactSourceError);
