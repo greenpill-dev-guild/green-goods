@@ -261,7 +261,9 @@ describe("ProfileAvatarEditor", () => {
 
     expect(avatarEditorMocks.save).toHaveBeenCalledWith(file);
     expect(screen.getByRole("dialog", { name: "Profile Photo" })).toBeVisible();
-    expect(screen.getByRole("img", { name: "Unpublished profile photo draft" })).toBeVisible();
+    expect(
+      await screen.findByRole("img", { name: "Unpublished profile photo draft" })
+    ).toBeVisible();
     expect(screen.getByRole("button", { name: "Try Again" })).toBeEnabled();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Try Again" }));
