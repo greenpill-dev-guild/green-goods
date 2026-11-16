@@ -28,7 +28,7 @@ generated_from:
   - package.json
   - scripts/data/validation-policy.json
   - scripts/data/workflow-catalog.json
-source_digest: "sha256:e2ce704ca6c3bce72defbf46ba99d9e5c832072a011f74cc1bfd7fd9ddee37df"
+source_digest: "sha256:0194749aa12ab3fd150814c90c1bbcaca00cbf1b16e1be0360fed9e7d1b66c56"
 source_of_truth:
   - .github/workflows/admin.yml
   - .github/workflows/agent.yml
@@ -71,7 +71,7 @@ import {CopyCommand} from "@site/src/components/docs";
 | [CodeQL Cache Prune](#codeql-cache-prune) | Deletes stale CodeQL overlay databases from the Actions cache so they cannot evict the Foundry caches the contracts jobs rely on. | pushes to `develop`; a schedule (`37 * * * *` UTC); manual dispatch | No |
 | [Contracts Manual](#contracts-manual) | Runs a chosen contracts operation (fork readiness, the CI lane, or both) on demand by calling the Contracts workflow. | manual dispatch | No |
 | [Contracts Nightly](#contracts-nightly) | The deep fuzz and invariant lane: pull-request CI runs the capped test profile for speed, and this run restores full depth through the ci profile. | a schedule (`17 3 * * *` UTC); manual dispatch | No |
-| [Contracts](#contracts) | Compiles, lints, and tests the Solidity packages and the contract script suite. | pull requests that touch its paths (9 path filters); pushes to `main` and `develop` that touch its paths; a call from another workflow | No |
+| [Contracts](#contracts) | Compiles, lints, and tests the Solidity packages and the contract script suite. | pull requests that touch its paths (10 path filters); pushes to `main` and `develop` that touch its paths; a call from another workflow | No |
 | [Coverage Nightly](#coverage-nightly) | Enforces the measured coverage floors across the packages. Pull requests run plain package tests for fast feedback; this lane measures. | pushes to `main`; a schedule (`43 8 * * *` UTC); manual dispatch | No |
 | [Dependabot Sync Publish](#dependabot-sync-publish) | Publishes repair data from a successful Dependabot Sync run. It validates the origin run, associated PR and current head, executes only trusted default-branch code, and writes a fast-forward repair commit. | completion of another workflow | No |
 | [Dependabot Sync](#dependabot-sync) | Prepares aligned root and matching workspace dependency pins, the root Bun lockfile, and generated docs on Dependabot package PRs; refreshes generated docs for pinned GitHub Actions updates. Preparation has read-only permissions and lifecycle scripts disabled. | every pull request | No |
@@ -158,7 +158,7 @@ The deep fuzz and invariant lane: pull-request CI runs the capped test profile f
 Compiles, lints, and tests the Solidity packages and the contract script suite.
 
 - **Use it when:** Any change under packages/contracts or the contract scripts; the manual workflow calls it with an operation name.
-- **Runs on:** pull requests that touch its paths (9 path filters); pushes to `main` and `develop` that touch its paths; a call from another workflow.
+- **Runs on:** pull requests that touch its paths (10 path filters); pushes to `main` and `develop` that touch its paths; a call from another workflow.
 - **Jobs:** `fork-readiness-arbitrum`, `fork-readiness-core`, `lint-build`, `realism-audit`, `unit`.
 - **Required status:** no, but the CI Gate waits for it on a pull request that touches its paths.
 - **File:** [.github/workflows/contracts.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/contracts.yml)
