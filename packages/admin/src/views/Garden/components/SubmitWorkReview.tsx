@@ -198,7 +198,7 @@ export function SubmitWorkReview({
       <ReviewCard
         title={formatMessage({
           id: "app.admin.work.submit.section.photos",
-          defaultMessage: "Photos",
+          defaultMessage: "Media",
         })}
         onEdit={onEditStep ? () => onEditStep(2) : undefined}
         editText={edit}
@@ -219,7 +219,7 @@ export function SubmitWorkReview({
           <p className="type-body text-text-sub">
             {formatMessage({
               id: "app.admin.work.submit.review.noPhotos",
-              defaultMessage: "No photos added.",
+              defaultMessage: "No media added.",
             })}
           </p>
         )}

@@ -61,7 +61,7 @@ describe("modules/work-submission", () => {
 
     it("fails when images are below explicit minRequired of 1", () => {
       const errors = validateWorkSubmissionContext("0xGarden", 1, [], { minRequired: 1 });
-      expect(errors).toContain("At least one image is required");
+      expect(errors).toContain("At least one media item is required");
     });
 
     it("passes when images meet custom minRequired of 2", () => {
@@ -78,7 +78,7 @@ describe("modules/work-submission", () => {
       const errors = validateWorkSubmissionContext("0xGarden", 1, [createMockFile("img1.jpg")], {
         minRequired: 2,
       });
-      expect(errors).toContain("At least 2 images are required");
+      expect(errors).toContain("At least 2 media items are required");
     });
 
     it("passes when minRequired is 0 (not required)", () => {
@@ -121,7 +121,7 @@ describe("modules/work-submission", () => {
         [createMockFile("img1.jpg"), createMockFile("img2.jpg"), createMockFile("img3.jpg")],
         { minRequired: 5 }
       );
-      expect(errors).toContain("At least 5 images are required");
+      expect(errors).toContain("At least 5 media items are required");
     });
 
     it("still validates garden and actionUID with any minRequired", () => {
