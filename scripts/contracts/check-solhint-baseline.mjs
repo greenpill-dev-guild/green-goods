@@ -16,8 +16,9 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../
 const contractsRoot = path.join(repoRoot, "packages/contracts");
 export const BASELINE_PATH = "scripts/data/solhint-baseline.json";
 const SOURCES = "packages/contracts/src";
-// The lint step's own arguments, so this check sees what `lint` reports.
-const SOLHINT_ARGS = ["--config", "./.solhint.json", "src/**/*.sol", "--ignore-path", ".solhintignore", "-f", "json"];
+// The lint step's own arguments, so this check sees what `lint` reports. `--disc` skips the update
+// check, whose notice would land on stdout ahead of the JSON.
+const SOLHINT_ARGS = ["--config", "./.solhint.json", "src/**/*.sol", "--ignore-path", ".solhintignore", "-f", "json", "--disc"];
 const SHRINK_FLAG = "--baseline-shrink";
 const NOTE =
   "Shrink-only: per rule and file, the solhint warnings the contract sources still carry. Counts may go down, never up; record a lower count with `node scripts/contracts/check-solhint-baseline.mjs --baseline-shrink`.";
