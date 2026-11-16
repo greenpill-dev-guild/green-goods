@@ -344,12 +344,19 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
     const claim = await acquireWorkJobs([jobId]);
     if (!claim) {
       // Another holder, such as another tab, is sending it: a tap that sends nothing says why.
-      const held = context.explicit ? await deps.store.getJob(jobId) : undefined;
-      if (held)
-        deps.analytics.jobSkipped(held.kind, "already-processing", {
-          explicit: true,
-          started: false,
-        });
+      // The record is best effort, so a read that fails never changes what the tap returns.
+      if (context.explicit) {
+        try {
+          const held = await deps.store.getJob(jobId);
+          if (held)
+            deps.analytics.jobSkipped(held.kind, "already-processing", {
+              explicit: true,
+              started: false,
+            });
+        } catch (error) {
+          deps.logger.warn("[JobQueue] A tap on a held job could not be recorded", { error });
+        }
+      }
       return { success: false, skipped: true, error: "already-processing" };
     }
     // Keep the claim alive for the whole send. A wallet or passkey prompt can

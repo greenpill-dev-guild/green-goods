@@ -104,4 +104,18 @@ describe("processJob and its execution claim", () => {
       }
     );
   });
+
+  it("still answers that another send holds the job when that tap cannot be recorded", async () => {
+    mocks.acquire.mockResolvedValue(null);
+    const store = createInMemoryJobQueueStore();
+    store.getJob = vi.fn().mockRejectedValue(new Error("read failed"));
+    const deps = createJobQueueDependencies({ store });
+    const queue = createJobQueue(deps);
+
+    await expect(
+      queue.processJob("busy-job", { transactionSender: null, explicit: true })
+    ).resolves.toEqual({ success: false, skipped: true, error: "already-processing" });
+    expect(deps.analytics.jobSkipped).not.toHaveBeenCalled();
+    expect(deps.logger.warn).toHaveBeenCalledOnce();
+  });
 });

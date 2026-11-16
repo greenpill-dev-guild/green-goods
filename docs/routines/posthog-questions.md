@@ -110,9 +110,13 @@ If a question's output would name a single user (one row per `distinct_id`), it 
 ## Work events
 
 What each event about uploading work means, so a question counts the ending it intends. A Submit
-records `work_submission_started` and then one ending. The queue records its own events for each
-try it makes, whatever asked for it: a Submit, Upload all, Upload now, Try again, or the send when
-the App opens.
+records `work_submission_started` and then one ending. The queue records `offline_job_*` events for
+each try its processor runs, such as the send when the App opens or a passkey Submit's send. A
+batched Upload all or Upload now sends its items in one call outside the processor: the tap is
+recorded (`queued_upload_started`, `queued_upload_finished`), and a job gets its own event only where
+the processor runs, such as `offline_job_processed` when the queue settles an item that was sent. A
+wallet Submit also sends outside the processor, and records `offline_job_processed` when its work
+lands.
 
 | Event | Fires when |
 |---|---|
@@ -629,6 +633,7 @@ Public-safe-default. Aggregates only — never names a single user.
 - **Default privacy**: public-safe
 - **What it answers**: per-step failure rate for the conversion-killing events (`*_failed` paired with `*_success`), **excluding user cancellations**. Surfaces product breakages that vanish from a success-only funnel.
 - **v1.3.0 (2026-08-10) — cancellations are not failures.** A user declining a wallet or passkey prompt was previously counted as a conversion kill. This inflated every step and produced at least one false anomaly (PRD-717: a reported 66.7% `garden_join` failure was 5 aborts out of 8 "failures", from 2 people retrying). The query now classifies each attempt as `success` / `cancelled` / `failed`, reports `cancelled_count` alongside rather than dropping it, and emits `failing_persons` so consumers can require a real cohort before filing. **Treat the pre-v1.3.0 baselines as inflated** — the old entry quoted `garden_join` ~75%, `work_submission` ~70%, `auth_passkey_register` ~27% from 2026-05-09.
+- **v1.4.0 (2026-11-15): work saved for later is still a success.** A Submit that only saves the work to the queue now records `work_submission_offline` instead of `work_submission_success` with `was_offline: true`. It counts as the Submit step's success here, as it did before. `work_submission_failed` now also records two endings it did not before: a declined Terms prompt (`UserRejected`, so cancelled) and a Submit stopped before admission, such as a promise take-up that did not go (`StoppedBeforeAdmission`, so failed). See Work events above.
 - **HogQL**:
   ```sql
   SELECT
@@ -660,7 +665,8 @@ Public-safe-default. Aggregates only — never names a single user.
       -- The literal list mirrors CANCELLED_PATTERNS in
       -- packages/shared/src/utils/errors/tx-error-classifier.ts — keep them in sync.
       multiIf(
-        event LIKE '%_success', 'success',
+        -- Work saved for later was the Submit step's success before it got its own event.
+        event LIKE '%_success' OR event = 'work_submission_offline', 'success',
         event LIKE '%_cancelled'
           OR properties.parsed_error_family = 'UserRejected'
           OR properties.reason = 'cancelled'
@@ -675,7 +681,7 @@ Public-safe-default. Aggregates only — never names a single user.
     WHERE timestamp > now() - interval {window:String}
       AND event IN (
         'garden_join_success', 'garden_join_failed', 'garden_join_cancelled',
-        'work_submission_success', 'work_submission_failed',
+        'work_submission_success', 'work_submission_offline', 'work_submission_failed',
         'work_approval_success', 'work_approval_failed',
         'auth_passkey_register_success', 'auth_passkey_register_failed'
       )
@@ -695,7 +701,7 @@ Public-safe-default. Aggregates only — never names a single user.
   | `auth_passkey_register` | `reason = 'cancelled'` | ⚠️ `reason` is frequently absent; the common WebAuthn string ("operation either timed out or was not allowed") is genuinely ambiguous between a timeout and a dismissal, so it is deliberately **left as a failure** rather than guessed |
   | `work_approval` | none | ❌ emits only a generic `"Transaction failed. Please try again."` via `createMutationErrorHandler`; cancellations are indistinguishable today |
 
-- **Required emit-side events**: the four `*_started/_success/_failed` event triplets above, plus `garden_join_cancelled` (all present in `packages/shared/src/modules/app/analytics-events.ts`). Note that `work_approval_success` may live primarily on the Admin project (262122) — when this question runs against the App project, `work_approval` will report 100% failure even when admin successes exist. Run the query separately against project 262122 for the admin-side success counts and merge in the routine.
+- **Required emit-side events**: the four `*_started/_success/_failed` event triplets above, plus `garden_join_cancelled` and `work_submission_offline` (all present in `packages/shared/src/modules/app/analytics-events.ts`). Note that `work_approval_success` may live primarily on the Admin project (262122): when this question runs against the App project, `work_approval` will report 100% failure even when admin successes exist. Run the query separately against project 262122 for the admin-side success counts and merge in the routine.
 - **Anomaly thresholds (consumer)**: failure rate > 50% AND `failed_count` ≥ 5 AND `failing_persons` ≥ 3 over the window → file a Linear anomaly Issue. 100% failure meeting the same floors → P2/urgent. The person floor is what separates real product breakage from one or two people retrying a broken session — without it, a two-person retry loop reads as a cohort-wide conversion kill (PRD-717).
   - **`failing_persons` does not merge across projects.** It is a distinct count, so the App and Admin rows for `work_approval` can neither be summed (double-counts an operator active on both) nor maxed (undercounts distinct operators). Apply the person floor **per project** and file if either side crosses on its own; only `success_count` / `failed_count` / `cancelled_count` may be merged into a combined row.
 - **Used by**: `growth-pulse` (anomaly detection, replaces sole reliance on `funnel.onboarding`).
