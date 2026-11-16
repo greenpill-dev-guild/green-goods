@@ -180,13 +180,16 @@ export function isHeicFile(file: Pick<File, "name" | "type">): boolean {
 }
 
 /**
- * A file that counts toward an action's required photos: a JPEG, PNG or WebP,
- * and a HEIC still waiting to convert where the policy keeps one. A video never
- * does. A step that holds a flow until the minimum is met counts with this, so
- * it agrees with the check made when the work is sent.
+ * A supported photo, including a HEIC waiting to convert where the policy keeps one.
+ * Photo previews use this without treating videos as images.
  */
 export function isWorkPhoto(file: File, policy: WorkAttachmentPolicy = {}): boolean {
   return PHOTO_TYPES.has(file.type) || (policy.pendingHeic === "accept" && isHeicFile(file));
+}
+
+/** The photos and videos that count toward an action's media minimum. */
+export function isWorkMedia(file: File, policy: WorkAttachmentPolicy = {}): boolean {
+  return isWorkPhoto(file, policy) || VIDEO_TYPES.has(file.type);
 }
 
 /**
@@ -335,18 +338,17 @@ export async function publishableWorkFile(file: File): Promise<File> {
 export function validateWorkAttachments(
   media: File[],
   audio: File[] = [],
-  minPhotos = 0,
+  minMedia = 0,
   policy: WorkAttachmentPolicy = {}
 ): string[] {
-  const isPhoto = (file: File) => isWorkPhoto(file, policy);
+  const isMedia = (file: File) => isWorkMedia(file, policy);
   // Documents travel with the photos and videos but are counted on their own.
   const visual = media.filter((file) => !isWorkDocument(file));
   const errors: string[] = [];
-  if (media.filter(isPhoto).length < minPhotos) errors.push("photos-required");
+  if (media.filter(isMedia).length < minMedia) errors.push("photos-required");
   if (visual.length > 10) errors.push("media-count");
   if (media.length - visual.length > WORK_DOCUMENT_MAX_COUNT) errors.push("document-count");
-  if (visual.some((file) => !isPhoto(file) && !VIDEO_TYPES.has(file.type)))
-    errors.push("media-type");
+  if (visual.some((file) => !isMedia(file))) errors.push("media-type");
   if (
     media.some(
       (file) =>

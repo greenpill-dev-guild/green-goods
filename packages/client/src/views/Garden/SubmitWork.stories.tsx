@@ -25,6 +25,7 @@ import {
   submitWorkControllerFixture,
 } from "../../../../shared/.storybook/submitWorkFixtures";
 import Work from ".";
+import { stagedWorkPhotos, stagedWorkVideo } from "../../../../shared/.storybook/workPhotoFixtures";
 
 const exitFlow = fn();
 
@@ -171,7 +172,7 @@ export const MediaForAPromise: Story = {
     await expect(
       heading.compareDocumentPosition(pinned) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
-    await expect(canvas.getByText("1 photo added")).toBeVisible();
+    await expect(canvas.getByText("1 media item added")).toBeVisible();
   },
 };
 
@@ -221,6 +222,27 @@ export const PromiseSheet: Story = {
 /** Work that isn't for a promise pins nothing. */
 export const MediaWithoutAPromise: Story = {
   beforeEach: onStep("media", { linked: false }),
+};
+
+/** Two required media items, met by a photo and a video, in the toolbar language. */
+export const MediaWithVideo: Story = {
+  beforeEach: () => {
+    const cleanup = onStep("media", { linked: false })();
+    const controller = submitWorkControllerFixture("media", { linked: false });
+    mocked(useWorkSubmissionFlowController).mockReturnValue({
+      ...controller,
+      images: [...stagedWorkPhotos(1), stagedWorkVideo("walkthrough.mp4")],
+      mediaConfig: {
+        ...controller.mediaConfig,
+        title: "",
+        description: "",
+        required: true,
+        minImageCount: 2,
+      },
+      minRequired: 2,
+    });
+    return cleanup;
+  },
 };
 
 /** Real photo, fictional data, no promise: the documentation's evidence example. */

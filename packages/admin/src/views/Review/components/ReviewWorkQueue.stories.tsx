@@ -394,3 +394,18 @@ export const NothingPendingInRecentWork: Story = {
     older: { onShowOlder: fn(), isLoading: false },
   },
 };
+
+/** Selected records leave the displayed queue; unrelated work remains reviewable. */
+export const SelectedWorkHidden: Story = {
+  tags: ["storybook-ci"],
+  args: {
+    items: PENDING_WORK.slice(1),
+    worksLoading: false,
+    hasDataError: false,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.queryByText(PENDING_WORK[0].title)).toBeNull();
+    await expect(canvas.getByText(PENDING_WORK[1].title)).toBeVisible();
+  },
+};
