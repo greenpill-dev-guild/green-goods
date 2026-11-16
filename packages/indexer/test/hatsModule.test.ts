@@ -61,9 +61,7 @@ describe("HatsModule protocol delegation", () => {
   });
 });
 
-// ============================================================================
 // ROLE GRANT — ALL 6 ROLE TYPES
-// ============================================================================
 
 describe("Garden role event history", () => {
   it("records a role grant with normalized identity and its chain position", async () => {
@@ -180,9 +178,7 @@ describe("Garden role event history", () => {
   });
 });
 
-// ============================================================================
 // ROLE GRANT — ALL 6 ROLE TYPES
-// ============================================================================
 
 describe("HatsModule.RoleGranted", () => {
   it("grants Gardener role (role=0)", async () => {
@@ -378,10 +374,6 @@ describe("HatsModule.RoleGranted", () => {
   });
 });
 
-// ============================================================================
-// GARDENER ENTITY CREATION
-// ============================================================================
-
 describe("HatsModule.RoleGranted — Gardener entity", () => {
   it("creates a new Gardener entity on first garden join", async () => {
     let mockDb = seedGarden(createTestIndexer(), addr(10));
@@ -480,23 +472,17 @@ describe("HatsModule.RoleGranted — Gardener entity", () => {
   });
 });
 
-// ============================================================================
-// ROLE REVOKE
-// ============================================================================
-
 describe("HatsModule.RoleRevoked", () => {
   it("revokes Gardener role", async () => {
     let mockDb = seedGarden(createTestIndexer(), addr(10));
     const account = addr(20);
 
-    // Grant first
     const grantEvent = HatsModule.RoleGranted.createMockEvent({
       garden: addr(10),
       account,
       role: 0n,
       mockEventData: mockEvent(CHAIN_ID, 2000),
     });
-    // Revoke
     const revokeEvent = HatsModule.RoleRevoked.createMockEvent({
       garden: addr(10),
       account,
