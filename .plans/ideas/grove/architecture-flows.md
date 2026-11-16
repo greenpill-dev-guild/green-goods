@@ -101,7 +101,7 @@ The agent brings in only what it judges relevant, so it never recommends discard
 sequenceDiagram
   participant G as Gardener on a phone
   participant F as Encrypted file
-  participant R as Reviewer in the cockpit, on a laptop
+  participant R as Reviewer in the Hub, on a laptop
   participant A as Grove's agent, beside the screen
   G->>G: Report work in their own words, spoken or written, with photos
   Note over G: Saved first. No form, model or network
@@ -117,7 +117,7 @@ sequenceDiagram
   G->>G: Approve it before it leaves the garden
 ```
 
-A promise follows the same steps. So does the author's own review when they have a laptop (D35). The reviewer works in the app or the cockpit as today, and Grove's part appears beside that screen through the bridge (D41). A report made through the existing work screen is already structured and skips them. A voice note is transcribed on the laptop first, and one note can become several records, each with the photos and documents that support it (D49). Any knowledge the note holds is proposed beside them (D50). The agent proposes and never decides: it cannot approve, share or publish, and a value the words do not state stays empty (D36). A gardener with only a phone sees the structured version when it comes back, and it leaves the garden only with their approval (D17).
+A promise follows the same steps. So does the author's own review when they have a laptop (D35). The reviewer works in the app or the Hub as today, and Grove's part appears beside that screen through the bridge (D41). A report made through the existing work screen is already structured and skips them. A voice note is transcribed on the laptop first, and one note can become several records, each with the photos and documents that support it (D49). Any knowledge the note holds is proposed beside them (D50). The agent proposes and never decides: it cannot approve, share or publish, and a value the words do not state stays empty (D36). A gardener with only a phone sees the structured version when it comes back, and it leaves the garden only with their approval (D17).
 
 ### Phone to laptop
 
@@ -182,7 +182,7 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-  participant S as Steward in the cockpit, local build
+  participant S as Steward in the Hub, local build
   participant G as Gardener in the app, local build
   participant F as Encrypted file
   participant P as Funder's device
@@ -324,7 +324,7 @@ This project adds local garden identity and shared evidence before the existing 
 
 ## The laptop workspace
 
-The diagrams below describe Grove: the laptop's graph and investigation lane, which is part of the MVP (D25). The agent's three jobs, passive capture, assessment and structuring, are shown in the sequences above (D26 to D30, D35); in these older diagrams they correspond to the capture and investigation steps. Three things in them are next lanes and not the MVP (D22): the Admin Hub import and digest, the KOI peer, and structured Garden, Work and WorkApproval records, which arrive with the Hub import. Pinned resource packs follow the MVP with S10. In the MVP the graph shows the records held on the device: work reports, promises, knowledge captures, reviewed links and received records. For confidential records, the encryption and recipient rules above apply before any outbound adapter. Pi owns resumable investigations; the graph and the review lists read committed knowledge.
+The diagrams below describe Grove: the laptop's graph and investigation lane, which is part of the MVP (D25). The agent's three jobs, passive capture, assessment and structuring, are shown in the sequences above (D26 to D30, D35); in these older diagrams they correspond to the capture and investigation steps. Three things in them are next lanes and not the MVP (D22): the Green Goods Hub import and digest, the KOI peer, and structured Garden, Work and WorkApproval records, which arrive with the Hub import. Pinned resource packs follow the MVP with S10. In the MVP the graph shows the records held on the device: work reports, promises, knowledge captures, reviewed links and received records. For confidential records, the encryption and recipient rules above apply before any outbound adapter. Pi owns resumable investigations; the graph and the review lists read committed knowledge.
 
 ## Two loops joined by garden memory
 

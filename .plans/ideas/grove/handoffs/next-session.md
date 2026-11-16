@@ -15,16 +15,16 @@ Remain on the current checkout and branch unless explicitly authorized otherwise
 - Locally a community is its Garden, with Green Goods' own roles, Actions, work reports, approvals, assessments and promises (D33). This supersedes D23.
 - Work and promises can be reported free-form or through the existing screens (D34).
 - An agent structures a free-form report or promise at any review on a laptop (D35), into the existing report contract and promise fields (D36).
-- The gardener app and the steward cockpit gain local operation together, so every current function is available locally from the first version (D37).
+- The gardener app and the Green Goods Hub gain local operation together, so every current function is available locally from the first version (D37).
 - A new garden starts fully locally; an existing garden is brought local with one connected read of its public roles, Actions and current assessment (D38).
 - The plan follows the Green Goods chain: Actions and assessment, work, approval, the report; then promises, joining and roles, and money and certificates (D39).
 - Money and certificates are recorded now and settled when connected (D40).
 - On a laptop, Grove works beside the app's screens through a bridge limited to the Green Goods pages, and keeps its own page for the graph (D41).
 - Carried files come first; direct sync between open devices is the next lane, ahead of the hosted mailbox (D42).
 - The garden's current assessment is the agent's focus, with extra topics a steward may add (D43).
-- Local operation lives in separate local builds of the app and the cockpit, with no analytics and no hosted calls (D44).
+- Local operation lives in separate local builds of the app and the Hub, with no analytics and no hosted calls (D44).
 - A steward can include an approved work report, in a revision its author shared or approved, in a report to a funder or partner on the steward's approval alone (D45).
-- The local builds are developed and published at `alpha.greengoods.app` for the app and `alpha.admin.greengoods.app` for the cockpit, new subdomains of `greengoods.app`, and not in the beta environment (D46).
+- The local builds are developed and published at `alpha.greengoods.app` for the app and `alpha.admin.greengoods.app` for the Hub, new subdomains of `greengoods.app`, and not in the beta environment (D46).
 - When an existing garden is brought local, the first import records the local garden's identifier onchain, so a second steward finds it and joins instead of making a copy (D47).
 - Running a pool's seasons, support allocations and editing an Action are in the first version, as part of every current function working locally (D37).
 - Each function block starts with an inventory of every action its screens and contracts offer today, and its gate covers that list (D48).
