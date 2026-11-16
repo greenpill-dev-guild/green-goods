@@ -15,7 +15,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Proposed, Storybook only: what every walkthrough Garden screen shares. The cockpit's frame, the Garden header with its stats, actions and tabs, the tab's report scope, the review queue with the alert the shipped rule raises, and the records dialog its content opens.",
+          "Proposed, Storybook only: what every walkthrough Garden screen shares. The Hub's frame, the Garden header with its stats, actions and tabs, the tab's report scope, the review queue with the alert the shipped rule raises, and the records dialog its content opens.",
       },
     },
   },

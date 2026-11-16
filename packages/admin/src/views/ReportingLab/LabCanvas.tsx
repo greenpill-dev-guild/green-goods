@@ -1,5 +1,5 @@
 /**
- * Garden reporting lab (proposed component): the cockpit's frame around a walkthrough
+ * Garden reporting lab (proposed component): the Hub's frame around a walkthrough
  * screen, laid out as CanvasLayout lays out the app: the canvas grid in the workspace's
  * tone, the AppBar with its GardenChip and icons, the MainSheet's scrolling main area, and
  * the NavigationBar. The shell pieces are the shipped ones; only the routing is left out,
@@ -12,7 +12,7 @@ import { AppBar, MainSheet } from "@/components/Shell";
 import { NavigationBar } from "@/components/Shell/NavigationBar";
 import { LAB_NAV_SLOTS, type LabGarden } from "./labShell";
 
-export type LabWorkspace = "hub" | "garden" | "community";
+export type LabWorkspace = "review" | "garden" | "community";
 
 interface LabCanvasProps {
   workspace: LabWorkspace;

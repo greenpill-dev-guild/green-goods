@@ -44,13 +44,20 @@ interface RecordFactsProps {
   media: MediaSet;
   role: ViewerRole;
   at: number;
-  /** Opened over the Hub's queue, where the app's dialog holds the review form itself. */
-  inHub?: boolean;
+  /** Opened over Review's queue, where the app's dialog holds the review form itself. */
+  inReview?: boolean;
 }
 
-export function RecordFacts({ record, dataset, media, role, at, inHub = false }: RecordFactsProps) {
+export function RecordFacts({
+  record,
+  dataset,
+  media,
+  role,
+  at,
+  inReview = false,
+}: RecordFactsProps) {
   const { locale } = useIntl();
-  const [hubNote, setHubNote] = useState(false);
+  const [reviewNote, setReviewNote] = useState(false);
   const { garden } = dataset;
   const status = statusAt(record, at);
   const moment = (ms: number) => formatMoment(ms, locale, garden.timeZone);
@@ -132,26 +139,26 @@ export function RecordFacts({ record, dataset, media, role, at, inHub = false }:
         />
         <FactRow label="Location" value={site ? `${site.name} (approximate)` : "Not shared"} />
       </FactList>
-      {inHub && role === "steward" && status === "pending" ? (
+      {inReview && role === "steward" && status === "pending" ? (
         <p className="type-meta text-text-sub">
           In the app, Review Work holds the review form here. The prototype shows the record only.
         </p>
       ) : null}
-      {!inHub && role === "steward" && status === "pending" ? (
+      {!inReview && role === "steward" && status === "pending" ? (
         <div className="flex flex-col items-end gap-1">
-          <Button type="button" emphasis="secondary" size="sm" onClick={() => setHubNote(true)}>
+          <Button type="button" emphasis="secondary" size="sm" onClick={() => setReviewNote(true)}>
             Review in Hub
           </Button>
-          {hubNote ? (
+          {reviewNote ? (
             <p className="type-meta text-text-sub" role="status">
-              In the product this opens the work in Hub, Work, scoped to this garden.
+              In the product this opens the work in Review, Work, scoped to this garden.
             </p>
           ) : null}
         </div>
       ) : null}
       {role !== "steward" && status === "pending" ? (
         <p className="type-meta text-text-sub">
-          Stewards review work in Hub. This report only reads it.
+          Stewards review work in Review within the Hub. This report only reads it.
         </p>
       ) : null}
     </div>

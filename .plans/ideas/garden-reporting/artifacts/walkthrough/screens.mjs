@@ -10,14 +10,14 @@ export const PERSONA = "You are a steward of Riverbend Compost Collective, a sam
 
 export const END = {
   title: "That's the walk",
-  text: "Every report sits in the tab it improves, built from the cockpit's own components with sample data. See Every Step adds the other states: one band of the queue, a stalled garden, and evidence still missing.",
+  text: "Every report sits in the tab it improves, built from the Hub's own components with sample data. See Every Step adds the other states: one band of the queue, a stalled garden, and evidence still missing.",
 };
 
 export const CHAPTERS = [
   {
     id: "review",
     title: "Start where you review",
-    where: "Hub › Work",
+    where: "Review › Work",
   },
   {
     id: "month",
@@ -51,29 +51,29 @@ export const CHAPTERS = [
 // extra: shown only in "See every step".
 export const SCREENS = [
   {
-    id: "hub-queue",
+    id: "review-queue",
     chapter: "review",
-    story: `${S}hub-work--queue`,
+    story: `${S}review-work--queue`,
     title: "Your queue says how long work has waited",
     caption:
-      "The Hub's Work tab as it ships today, with one addition: chips for how long pending work has waited. Each chip carries its count and filters the queue. Age stays plain ink, never a warning color, as the Hub's own stat says it.",
+      "The Review's Work tab as it ships today, with one addition: chips for how long pending work has waited. Each chip carries its count and filters the queue. Age stays plain ink, never a warning color, as Review's own stat says it.",
     fresh: [{ css: '[role="group"][aria-label="Waiting"]', label: "New" }],
     hotspot: { css: '[data-region="canvas-area-bottom"] button', hasText: "Garden" },
     hint: "Open Garden",
-    alt: "The Hub's Work tab with 47 pending works, 15 of them waiting over a week, and chips for how long work has waited.",
+    alt: "The Review's Work tab with 47 pending works, 15 of them waiting over a week, and chips for how long work has waited.",
   },
   {
-    id: "hub-band",
+    id: "review-band",
     chapter: "review",
     extra: true,
-    story: `${S}hub-work--waited-one-to-two-weeks`,
+    story: `${S}review-work--waited-one-to-two-weeks`,
     title: "One chip narrows the queue",
     caption:
       "Choosing 1 to 2 weeks keeps the 15 works that have waited that long, oldest first. A card still opens Review Work, as it does today.",
     fresh: [{ css: '[role="group"][aria-label="Waiting"]', label: "New" }],
     hotspot: { css: '[data-region="canvas-area-bottom"] button', hasText: "Garden" },
     hint: "Open Garden",
-    alt: "The Hub's Work tab filtered to work that has waited one to two weeks, oldest first.",
+    alt: "The Review's Work tab filtered to work that has waited one to two weeks, oldest first.",
   },
   {
     id: "garden-month",
@@ -94,7 +94,7 @@ export const SCREENS = [
     dialog: true,
     title: "A day opens its work",
     caption:
-      "January 3 opens its four works in a dialog over the calendar, the way records open across the cockpit. One was approved and three are waiting, and each row says who sent it and when.",
+      "January 3 opens its four works in a dialog over the calendar, the way records open across the Hub. One was approved and three are waiting, and each row says who sent it and when.",
     fresh: [{ css: '[role="dialog"]', label: "New" }],
     back: { css: '[role="dialog"] button[aria-label="Close"]' },
     hotspot: { css: '[role="dialog"] li button', hasText: "fennel" },
@@ -108,7 +108,7 @@ export const SCREENS = [
     dialog: true,
     title: "Every date, kept apart",
     caption:
-      "Fennel's cleanup was performed on January 2, sent from the device at 5:24 AM on January 3 and recorded at 7:12 AM, and it is still waiting. The record keeps those moments apart, and says so when a date was never recorded. Stewards review it in the Hub.",
+      "Fennel's cleanup was performed on January 2, sent from the device at 5:24 AM on January 3 and recorded at 7:12 AM, and it is still waiting. The record keeps those moments apart, and says so when a date was never recorded. Stewards review it in the Review.",
     back: { css: '[role="dialog"] button', hasText: "Back to" },
     reveal: { css: '[role="dialog"] button', hasText: "Review in Hub" },
     hotspot: { css: '[role="dialog"] button[aria-label="Close"]' },
@@ -134,7 +134,7 @@ export const SCREENS = [
     story: `${S}garden-health--review`,
     title: "Review Health joins Garden Health",
     caption:
-      "Garden Health stays as it ships. Under it, Review Health gives the shipped stall rule's verdict, how long work has waited, and what came in against what was reviewed each week. An age band opens the Hub's Work tab with that chip chosen.",
+      "Garden Health stays as it ships. Under it, Review Health gives the shipped stall rule's verdict, how long work has waited, and what came in against what was reviewed each week. An age band opens Review's Work tab with that chip chosen.",
     fresh: [{ css: '[data-component="ReviewHealthPanel"]', label: "New" }],
     hotspot: { role: "tab", name: "Promises" },
     hint: "Open Promises",

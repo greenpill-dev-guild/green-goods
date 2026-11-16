@@ -7,8 +7,6 @@ const START: LabControls = {
   scenario: "compost",
   view: "overview",
   role: "steward",
-  nameId: "current",
-  hubLabel: "hub",
   panel: "none",
 };
 
@@ -31,7 +29,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "The lab's reviewer controls, kept apart from the product preview: scenario, interface, viewer role and naming candidate. Notes and the naming preview open right under the controls that change them. Not product UI.",
+          "The lab's reviewer controls, kept apart from the product preview: scenario, interface and viewer role. Notes and the naming preview open right under the controls that change them. Not product UI.",
       },
     },
   },
@@ -49,5 +47,5 @@ export const CalendarNotes: Story = {
 };
 
 export const Naming: Story = {
-  render: () => <BarDemo initial={{ panel: "naming", nameId: "garden-hub" }} />,
+  render: () => <BarDemo initial={{ panel: "naming" }} />,
 };

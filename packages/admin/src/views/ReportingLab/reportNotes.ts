@@ -46,7 +46,7 @@ export const REPORT_NOTES: Record<ReportView, ReportNote> = {
     decisions:
       "Band edges (2, 7 and 14 days). Health reads at today, or at the end of the month the steward picked (lab).",
     proposed: "ReviewHealthPanel, WeeklyBars in paired mode.",
-    home: "Garden, Health, beside Garden Health; its counts could also lead the Hub's Work tab.",
+    home: "Garden, Health, beside Garden Health; its counts could also lead the Review's Work tab.",
   },
   outputs: {
     reuses: "AdminCard, StatusMarks, a semantic table.",

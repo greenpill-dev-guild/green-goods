@@ -26,7 +26,7 @@ interface ReviewHealthPanelProps {
   media: MediaSet;
   onOpenRecords: (request: RecordsRequest) => void;
   onOpenReport?: () => void;
-  /** In the summary, a band hands off here (to the Hub's Work chips) instead of opening a list. */
+  /** In the summary, a band hands off here (to Review's Work chips) instead of opening a list. */
   onOpenBand?: (band: AgeBandId) => void;
   variant?: "summary" | "full";
 }

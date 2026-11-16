@@ -42,7 +42,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Proposed: the Reports page inside the Garden workspace, through the cockpit's CanvasRouteFrame and CanvasRouteHeader. Every report opens the same records dialog, so a drill-down and the way back keep the steward's month and filters. Synthetic sample data.",
+          "Proposed: the Reports page inside the Garden workspace, through the Hub's CanvasRouteFrame and CanvasRouteHeader. Every report opens the same records dialog, so a drill-down and the way back keep the steward's month and filters. Synthetic sample data.",
       },
     },
   },

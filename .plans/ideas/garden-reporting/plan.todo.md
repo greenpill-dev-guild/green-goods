@@ -1,4 +1,4 @@
-# Garden Reporting in the Steward Cockpit Plan
+# Garden Reporting in the Green Goods Hub Plan
 
 **Feature Slug**: `garden-reporting`
 **Stage**: `ideas`
@@ -12,14 +12,14 @@
 |---|---|---|
 | 1 | Each report sits in the shipped tab whose components it improves, not on a separate Reports page (review, 2026-11-13). | Stewards already work in those tabs; one place per question, built on the current design. |
 | 2 | Garden › Health gets a new Review Health card under Garden Health, which stays as it ships (review, 2026-11-13). | Adds the trend and the stall verdict without changing a shipped card. |
-| 3 | Waiting age is plain metadata in the Hub, and pending is neutral across the reports. | DL-044: age is never an alarm; the Hub's cards already say "Pending" in neutral. |
-| 4 | Records open in the cockpit's dialog pattern, as Review Work does. | The left-sheet channel renders an `AdminDialog`; side sheets are retired for records. |
+| 3 | Waiting age is plain metadata in the Review, and pending is neutral across the reports. | DL-044: age is never an alarm; Review's cards already say "Pending" in neutral. |
+| 4 | Records open in the Hub's dialog pattern, as Review Work does. | The left-sheet channel renders an `AdminDialog`; side sheets are retired for records. |
 | 5 | Proposal, not decided: the first slice is the calendar plus Review Health, on a month-range work read that returns counts. | Highest-frequency questions; the data mostly exists; the stall rule ships already. The month-range read is the one prerequisite. |
 
 ## Research / Plan Gate
 
 - [x] Record research evidence in `spec.md`
-- [x] Identify the existing repo pattern to mirror (Hub, Garden and Community tabs; `AdminDialog` records)
+- [x] Identify the existing repo pattern to mirror (Review, Garden and Community tabs; `AdminDialog` records)
 - [x] List human judgment points before implementation
 - [x] Define what is out of scope
 - [ ] Choose the first slice in review
@@ -32,7 +32,7 @@
 | Month-range work read with counts | `state_api` | First slice, step 1 | ⏳ |
 | Garden › Activity calendar | `ui` | First slice, step 2 | ⏳ |
 | Garden › Health Review Health card | `ui` | First slice, step 3 | ⏳ |
-| Hub › Work waiting chips | `ui` | After the first slice | ⏳ |
+| Review › Work waiting chips | `ui` | After the first slice | ⏳ |
 | Places, season timeline, output trends, evidence, participation, funding history | `ui`, `state_api` | Unscheduled until their data gaps close | ⏳ |
 | Contract changes | `contracts` | None | n/a |
 

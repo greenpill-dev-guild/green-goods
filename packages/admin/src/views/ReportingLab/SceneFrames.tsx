@@ -1,6 +1,6 @@
 /**
  * Garden reporting lab (proposed component): the workspace frames the walkthrough's screens
- * sit in, built the way the shipped views build theirs (`views/Hub/index.tsx`,
+ * sit in, built the way the shipped views build theirs (`views/Review/index.tsx`,
  * `views/Garden/index.tsx`, `views/Community/index.tsx`): CanvasRouteFrame, a sticky
  * CanvasRouteHeader with its MetaStrip, view actions and tab rail, and each workspace's own
  * stats, actions and tabs from the shared builders. Tab presses and actions are inert here;
@@ -16,10 +16,10 @@ import {
   buildGardenViewActions,
 } from "@green-goods/shared/hooks/admin-ui/garden/garden.utils";
 import {
-  buildHubViewActions,
-  HUB_STAGE_RAIL_ID,
+  buildReviewViewActions,
+  REVIEW_STAGE_RAIL_ID,
   PIPELINE_STAGE_CONFIG,
-} from "@green-goods/shared/hooks/admin-ui/hub/hub.utils";
+} from "@green-goods/shared/hooks/admin-ui/review/review.utils";
 import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
 import type { AssetAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import type { ReactNode } from "react";
@@ -34,41 +34,48 @@ import {
 
 const ignore = () => undefined;
 
-export type HubStage = (typeof PIPELINE_STAGE_CONFIG)[number]["id"];
+export type ReviewStage = (typeof PIPELINE_STAGE_CONFIG)[number]["id"];
 
-interface HubFrameProps {
-  stage: HubStage;
+interface ReviewFrameProps {
+  stage: ReviewStage;
   /** What waits on the steward per stage (DL-134): pending work, promises to confirm. */
-  counts: Partial<Record<HubStage, number>>;
+  counts: Partial<Record<ReviewStage, number>>;
   stats: MetaStripItem[];
   toolbar: ReactNode;
   resultsLabel: string;
   children: ReactNode;
 }
 
-/** The Hub as `views/Hub/index.tsx` lays it out, with the stage's results inside. */
-export function HubFrame({ stage, counts, stats, toolbar, resultsLabel, children }: HubFrameProps) {
+/** The Review workspace as `views/Review/index.tsx` lays it out, with the stage's results inside. */
+export function ReviewFrame({
+  stage,
+  counts,
+  stats,
+  toolbar,
+  resultsLabel,
+  children,
+}: ReviewFrameProps) {
   const { formatMessage } = useIntl();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
-  const actions = buildHubViewActions(stage, true, true, ignore, {});
+  const actions = buildReviewViewActions(stage, true, true, ignore, {});
 
   return (
     <CanvasRouteFrame
-      className="hub-route-shell"
-      data-component="HubWorkspace"
-      data-region="workspace-hub"
+      className="review-route-shell"
+      data-component="ReviewWorkspace"
+      data-region="workspace-review"
     >
       <div
-        className="hub-route-stack flex min-h-0 flex-1 flex-col"
+        className="review-route-stack flex min-h-0 flex-1 flex-col"
         role="tabpanel"
-        id={`${HUB_STAGE_RAIL_ID}-panel`}
-        aria-labelledby={`${HUB_STAGE_RAIL_ID}-tab-${stage}`}
+        id={`${REVIEW_STAGE_RAIL_ID}-panel`}
+        aria-labelledby={`${REVIEW_STAGE_RAIL_ID}-tab-${stage}`}
       >
         <CanvasRouteHeader
-          wrapperClassName="hub-route-content flex flex-col gap-4 sm:gap-5"
-          title={formatMessage({ id: "cockpit.hub.title", defaultMessage: "Hub" })}
+          wrapperClassName="review-route-content flex flex-col gap-4 sm:gap-5"
+          title={formatMessage({ id: "hub.review.title", defaultMessage: "Review" })}
           description={formatMessage({
-            id: "cockpit.hub.description",
+            id: "hub.review.description",
             defaultMessage: "Review and triage pending submissions.",
           })}
           metadata={stats.length > 0 ? <MetaStrip items={stats} density="inline" /> : undefined}
@@ -78,7 +85,7 @@ export function HubFrame({ stage, counts, stats, toolbar, resultsLabel, children
           toolbar={toolbar}
         >
           <AdminTabRail
-            idBase={HUB_STAGE_RAIL_ID}
+            idBase={REVIEW_STAGE_RAIL_ID}
             tabs={PIPELINE_STAGE_CONFIG.map((config) => ({
               id: config.id,
               label: formatMessage({ id: config.labelId, defaultMessage: config.defaultMessage }),
@@ -87,18 +94,18 @@ export function HubFrame({ stage, counts, stats, toolbar, resultsLabel, children
             }))}
             activeId={stage}
             ariaLabel={formatMessage({
-              id: "cockpit.hub.tabRail",
-              defaultMessage: "Hub pipeline stages",
+              id: "hub.review.tabRail",
+              defaultMessage: "Review pipeline stages",
             })}
             onChange={ignore}
           />
         </CanvasRouteHeader>
         <CanvasRouteContent
-          data-region="workspace-hub-content"
-          className="hub-route-content flex flex-1 flex-col gap-4 sm:gap-5"
+          data-region="workspace-review-content"
+          className="review-route-content flex flex-1 flex-col gap-4 sm:gap-5"
         >
-          <section className="hub-results-shell" aria-label={resultsLabel}>
-            <div className="hub-results-pane">{children}</div>
+          <section className="review-results-shell" aria-label={resultsLabel}>
+            <div className="review-results-pane">{children}</div>
           </section>
         </CanvasRouteContent>
       </div>
@@ -140,7 +147,7 @@ export function GardenFrame({
   return (
     <CanvasRouteFrame data-component="GardenWorkspace" data-region="workspace-garden">
       <CanvasRouteHeader
-        title={formatMessage({ id: "cockpit.garden.title", defaultMessage: "Garden" })}
+        title={formatMessage({ id: "hub.garden.title", defaultMessage: "Garden" })}
         metadata={stats.length > 0 ? <MetaStrip items={stats} density="inline" /> : undefined}
         actions={isDesktop ? <AdminViewActions items={actions} /> : undefined}
         variant="canvas"
@@ -148,7 +155,7 @@ export function GardenFrame({
       >
         <AdminTabRail
           ariaLabel={formatMessage({
-            id: "cockpit.garden.viewSwitcher",
+            id: "hub.garden.viewSwitcher",
             defaultMessage: "Garden views",
           })}
           activeId={view}
@@ -156,20 +163,20 @@ export function GardenFrame({
           tabs={[
             {
               id: "health",
-              label: formatMessage({ id: "cockpit.garden.health", defaultMessage: "Health" }),
+              label: formatMessage({ id: "hub.garden.health", defaultMessage: "Health" }),
               count: alertCount || undefined,
             },
             {
               id: "pool",
-              label: formatMessage({ id: "cockpit.garden.pool.tab", defaultMessage: "Promises" }),
+              label: formatMessage({ id: "hub.garden.pool.tab", defaultMessage: "Promises" }),
             },
             {
               id: "activity",
-              label: formatMessage({ id: "cockpit.garden.activity", defaultMessage: "Activity" }),
+              label: formatMessage({ id: "hub.garden.activity", defaultMessage: "Activity" }),
             },
             {
               id: "impact",
-              label: formatMessage({ id: "cockpit.garden.impact", defaultMessage: "Impact" }),
+              label: formatMessage({ id: "hub.garden.impact", defaultMessage: "Impact" }),
             },
           ]}
         />
@@ -219,7 +226,7 @@ export function CommunityFrame({ view, endowment, children }: CommunityFrameProp
   return (
     <CanvasRouteFrame data-component="CommunityWorkspace" data-region="workspace-community">
       <CanvasRouteHeader
-        title={formatMessage({ id: "cockpit.community.title", defaultMessage: "Community" })}
+        title={formatMessage({ id: "hub.community.title", defaultMessage: "Community" })}
         metadata={stats.length > 0 ? <MetaStrip items={stats} density="inline" /> : undefined}
         actions={isDesktop ? <AdminViewActions items={actions} /> : undefined}
         variant="canvas"
@@ -227,7 +234,7 @@ export function CommunityFrame({ view, endowment, children }: CommunityFrameProp
       >
         <AdminTabRail
           ariaLabel={formatMessage({
-            id: "cockpit.community.viewSwitcher",
+            id: "hub.community.viewSwitcher",
             defaultMessage: "Community views",
           })}
           activeId={view}
@@ -235,18 +242,18 @@ export function CommunityFrame({ view, endowment, children }: CommunityFrameProp
           tabs={[
             {
               id: "members",
-              label: formatMessage({ id: "cockpit.community.members", defaultMessage: "Members" }),
+              label: formatMessage({ id: "hub.community.members", defaultMessage: "Members" }),
             },
             {
               id: "endowment",
               label: formatMessage({
-                id: "cockpit.community.endowment",
+                id: "hub.community.endowment",
                 defaultMessage: "Endowment",
               }),
             },
             {
               id: "payouts",
-              label: formatMessage({ id: "cockpit.community.payouts", defaultMessage: "Payouts" }),
+              label: formatMessage({ id: "hub.community.payouts", defaultMessage: "Payouts" }),
             },
           ]}
         />

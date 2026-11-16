@@ -3,7 +3,7 @@
  * calendar above its Activity Feed. The tab's split, the feed card with its chips, day
  * headings and rows, and the rail's alerts and Key Metrics follow `OverviewTab` in activity
  * mode. New here are the calendar, where a day opens its work in a dialog (the way records
- * open across the cockpit) and stays marked while it is open, and Places beneath it, the
+ * open across the Hub) and stays marked while it is open, and Places beneath it, the
  * month's sites with the work that shared no location kept in its own row. A feed row opens
  * its work the same way, as the shipped feed opens Review Work.
  */

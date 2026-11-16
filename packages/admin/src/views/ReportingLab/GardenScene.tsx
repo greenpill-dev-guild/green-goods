@@ -1,6 +1,6 @@
 /**
  * Garden reporting lab, walkthrough (proposed): what every Garden screen shares. The
- * cockpit's frame and the Garden header with its stats, actions and tabs; the report scope
+ * Hub's frame and the Garden header with its stats, actions and tabs; the report scope
  * the tab reads; the review queue and the alert the shipped rule raises from it; and the
  * records dialog, which a tab's content opens through `openRecords`.
  */

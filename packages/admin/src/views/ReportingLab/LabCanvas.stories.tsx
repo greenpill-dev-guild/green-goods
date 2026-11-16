@@ -14,7 +14,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Proposed, Storybook only: the cockpit's frame around a walkthrough screen, laid out as CanvasLayout lays out the app. The AppBar, GardenChip, MainSheet and NavigationBar are the shipped components; the workspace sets the canvas tone and the active nav item. A steward's nav holds Hub, Garden and Community.",
+          "Proposed, Storybook only: the Hub's frame around a walkthrough screen, laid out as CanvasLayout lays out the app. The AppBar, GardenChip, MainSheet and NavigationBar are the shipped components; the workspace sets the canvas tone and the active nav item. A steward's nav holds Review, Garden and Community.",
       },
     },
   },
@@ -45,6 +45,6 @@ type Story = StoryObj<typeof meta>;
 
 export const Garden: Story = {};
 
-export const Hub: Story = { args: { workspace: "hub" } };
+export const Review: Story = { args: { workspace: "review" } };
 
 export const Community: Story = { args: { workspace: "community" } };

@@ -28,7 +28,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 1100, height: 760
   });
   const fresh = async () => {
     await page.goto("about:blank");
-    await page.goto(`${url}#hub-queue`);
+    await page.goto(`${url}#review-queue`);
     await page.waitForFunction(() => document.getElementById("shot").complete);
   };
 

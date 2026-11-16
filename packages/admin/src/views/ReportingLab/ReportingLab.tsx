@@ -1,13 +1,12 @@
 /**
- * Garden reporting lab: a Storybook-only prototype of reporting in the steward dashboard.
- * Not routed and not imported by the app. The product preview renders the cockpit's real
+ * Garden reporting lab: a Storybook-only prototype of reporting in the Green Goods Hub.
+ * Not routed and not imported by the app. The product preview renders the Hub's real
  * chrome (AppBar with GardenChip, MainSheet, NavigationBar) around the proposed Reports
  * page; the reviewer's controls sit above it and never mix into it. Every number comes
  * from synthetic sample data at a fixed date.
  */
 import { GardenChip } from "@green-goods/shared/components/Canvas/GardenChip";
 import { useMemo, useState } from "react";
-import { IntlProvider, useIntl } from "react-intl";
 import { AppBar } from "@/components/Shell/AppBar";
 import { MainSheet } from "@/components/Shell/MainSheet";
 import { NavigationBar } from "@/components/Shell/NavigationBar";
@@ -33,13 +32,10 @@ export function ReportingLab({
   initialScope,
   showReviewer = true,
 }: ReportingLabProps) {
-  const intl = useIntl();
   const [controls, setControls] = useState<LabControls>({
     scenario: "compost",
     view: "overview",
     role: "steward",
-    nameId: "current",
-    hubLabel: "hub",
     panel: "none",
     ...initial,
   });
@@ -73,13 +69,6 @@ export function ReportingLab({
   };
 
   const gardens = labGardens(media, dataset.garden);
-  const messages = useMemo(
-    () =>
-      controls.hubLabel === "review"
-        ? { ...intl.messages, "cockpit.nav.hub": "Review" }
-        : intl.messages,
-    [controls.hubLabel, intl.messages]
-  );
 
   return (
     <div className="flex min-h-full flex-col" data-component="ReportingLab">
@@ -124,13 +113,7 @@ export function ReportingLab({
           </main>
         </MainSheet>
         <div className="canvas-area-bottom">
-          <IntlProvider locale={intl.locale} messages={messages}>
-            <NavigationBar
-              slots={LAB_NAV_SLOTS}
-              activePath="/garden"
-              onNavigate={() => undefined}
-            />
-          </IntlProvider>
+          <NavigationBar slots={LAB_NAV_SLOTS} activePath="/garden" onNavigate={() => undefined} />
         </div>
       </div>
     </div>

@@ -17,7 +17,7 @@ import type { StatusView } from "./model";
 
 const ORDER: readonly StatusView[] = ["approved", "pending", "rejected", "unknown"];
 
-// Pending is neutral, as the Hub's cards and the Activity Feed say it: waiting is
+// Pending is neutral, as Review's cards and the Activity Feed say it: waiting is
 // metadata, never an alarm (DL-044). Its clock glyph tells it from an unread status.
 const MARK: Record<StatusView, { icon: RemixiconComponentType; ink: string; fill: string }> = {
   approved: { icon: RiCheckLine, ink: "text-success-dark", fill: "bg-success-base" },
