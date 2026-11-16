@@ -62,7 +62,7 @@ Each category maps to a Linear label combination — old `health:*` GitHub label
 | Contracts state drift | `package:contracts` |
 | Agent service down/unreachable | `package:agent` |
 | Client-side error spike | `package:client` or `package:admin` (whichever PostHog project surged) |
-| Scheduled CI lane red | `package:contracts` for Contracts Nightly and Coverage Nightly, `package:shared` for Shared's weekly run, none for any other lane; always `activity:build` |
+| Scheduled CI lane red | the failed job's package: `package:contracts` for Contracts Nightly and Coverage Nightly's contracts job, `package:shared`, `package:client` or `package:admin` for its other coverage jobs, `package:shared` for Shared's weekly run, and none for any other lane |
 
 **Codex hand-off:** most health anomalies are operational (indexer/agent/contract state) and stay `ai:routine` for a human. Only when an accepted health Issue is a **code fix that clears the Codex-ready bar** (clear surface + concrete suggested fix + validation; never `package:contracts` or shared auth — see [`README.md` § Codex hand-off](README.md)) swap `ai:routine`→`ai:codex`, and delegate to Codex when it also clears the autonomous-confident bar.
 
@@ -150,15 +150,19 @@ A scheduled lane is a workflow in `.github/workflows/` with a `schedule:` trigge
 
 The repository is public, so read each lane's latest scheduled run on `develop` from GitHub's REST API **without a token**, one request per lane:
 
-```
+```text
 GET https://api.github.com/repos/greenpill-dev-guild/green-goods/actions/workflows/<file>/runs?event=schedule&branch=develop&per_page=1
 ```
 
-Take `workflow_runs[0]`: its `name`, `status`, `conclusion`, `created_at` and `html_url`. `event=schedule` leaves out manual and push runs, so a passing manual rerun does not hide a red scheduled lane.
+Take `workflow_runs[0]`: its `name`, `status`, `conclusion`, `created_at` and `html_url`. `event=schedule` leaves out manual and push runs, so a passing manual dispatch does not hide a red scheduled lane. Re-running the scheduled run itself does count: the API reports its latest attempt.
 
+Read each lane in this order; the first match wins:
+
+- No scheduled run started within the lane's overdue window → 🟡 informational (`overdue`), whatever the last run concluded. The window is twice the cron interval and never less than 24 hours, because GitHub delays and drops scheduled runs: the hourly CodeQL Cache Prune lane runs every 2 to 11 hours.
+- `status` is anything but `completed` (`queued`, `in_progress`, `waiting`, `pending`, `requested`) → 🟡 informational.
 - `conclusion` is `success` → 🟢.
 - `conclusion` is `failure`, `timed_out` or `startup_failure` → 🔴 accepted anomaly, one Issue per lane (`Scheduled lane <workflow name>` in the title).
-- `cancelled` or `skipped`, a run still `in_progress` or `queued`, or no scheduled run within twice the lane's cron interval → 🟡 informational.
+- Any other conclusion (`cancelled`, `skipped`, `neutral`, `stale`, `action_required`) → 🟡 informational.
 - A request that fails, or returns 403 or 429 (the unauthenticated rate limit is 60 requests an hour per address) → `ci=unknown` in the summary and no Issue.
 
 **Issue body**: the lane, the run's date and link, and the names of the failed jobs (`GET <run url>/jobs` on the same API); never paste logs. The first comment may carry the failing step names. A fix belongs in a pull request, which this routine never opens.
@@ -206,7 +210,8 @@ For **client errors**:
 - If today's count is below the 🟡 floor (App <10, Admin <5) AND the prior 2 daily checks were also below it → transition to `Done` with `Client errors recovered: 3 consecutive checks under threshold. Closing.` Otherwise append a dated comment.
 
 For **scheduled lanes**:
-- If the lane's latest scheduled run on `develop` succeeded → transition to `Done` with `Scheduled lane recovered: <run date> passed (<run link>). Closing.` Otherwise append a dated comment with the latest run's date, link and failed jobs.
+- A pull request fixes a red lane, and under the routing rules green CI never makes an issue `Done`, so the routine never changes this Issue's status. The first time the lane's latest scheduled run succeeds, add one comment, `Scheduled lane recovered: <run date> passed (<run link>).`, and leave the status to a person; after that, a green lane adds nothing. While the lane is red, append a dated comment with the latest run's date, link and failed jobs.
+- For this category the lookup also matches `In Review`, so a lane that is red again while its fix waits for review gets a comment, not a second Issue.
 
 ## Dedupe logic (Linear)
 

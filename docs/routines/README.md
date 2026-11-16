@@ -44,7 +44,7 @@ Gmail is intentionally NOT wired on any GG routine (personal-inbox pollution ris
 | `#engineering` (DISCORD_ENGINEERING_CHANNEL_ID) | health-watch (one-line green; breakdown on change; @mention red only) | operational health status — engineering-focused (indexer / Vercel / contracts / agent uptime / client errors / scheduled CI lanes) |
 | `#research` (DISCORD_RESEARCH_CHANNEL_ID) | research-synthesis (Sat digest; the input channel for research links, filed onto threads with one line each in the Linear document *Research threads*) and, once its spec lands, research-week (Mon pointer line to that document) | researcher-facing state of the agenda tracks: what moved, what is blocked and on whom, and where to read the threads; names and organisations stay in Linear |
 
-`#engineering` is health-watch's home channel (operational health status — indexer / Vercel / contracts / agent uptime / client errors). Other code-local engineering signals still come from the user reading PRs and Linear, not from a routine.
+`#engineering` is health-watch's home channel (operational health status: indexer / Vercel / contracts / agent uptime / client errors / scheduled CI lanes). Other code-local engineering signals, pull-request CI included, still come from the user reading PRs and Linear, not from a routine.
 
 ## Notification policy
 
