@@ -384,12 +384,23 @@ test("a retirement notice covers the retired name, never the replacement it intr
     "Any use of `nominalRetired` was removed.",
     "`withRemoved` was removed with `alsoRemoved`.",
     "The `JobQueue` class was removed; use the `jobQueue` instance.",
+    // A comma ends the clause, and every lead introduces a replacement: folded into, in favour of, prefer.
+    "`oldThing` was renamed to `useLiveHook`, and references to `oldOther` were removed.",
+    "`oldModule` was folded into `newMissingModule`.",
+    "`oldApi` was removed in favour of `newMissingApi`.",
+    "`oldUtil` was deleted; prefer `newMissingUtil`.",
+    "`oldA1` was replaced along with `oldA2`.",
   ].join("\n");
   assert.deepEqual(findUnknownCodeNames(text, "guide.md", new Set(["useLiveHook", "jobQueue"])), [
     "guide.md:1: no tracked source names `newMissingHelper`",
     "guide.md:2: no tracked source names `newName`",
     "guide.md:6: no tracked source names `newMissingLabel`",
+    "guide.md:13: no tracked source names `newMissingModule`",
+    "guide.md:14: no tracked source names `newMissingApi`",
+    "guide.md:15: no tracked source names `newMissingUtil`",
   ]);
+  // A line may hold separators `.` does not match; the check reads it rather than failing.
+  assert.deepEqual(findUnknownCodeNames("Call `liveMissing()`\u2028 then\r`afterCr()` and\u2029 more.", "guide.md", new Set(["liveMissing", "afterCr"])), []);
 });
 
 test("blockquoted fences are examples too, and a fence closes only on its own kind", () => {
@@ -527,10 +538,13 @@ test("each language's own rule decides where a hash comment starts, and an HTML 
     "packages/a/page.html":
       "<script>const liveScriptName = `//notScriptComment`; // scriptCommentName\n/* blockScriptComment */ const re = /a\\/\\/b/;</script>\n<style>.liveStyleName { color: red } /* styleCommentName */</style>\n" +
       // A comment in a template's interpolation goes; a "<!--" or "/*" in a string or pattern is code.
-      '<script>const t = `${liveValue // templateCommentName\n}`; const m = "<!--"; const p = s.replace(/\\/*$/, ""); const liveAfterMarker = 1;</script>\n',
+      '<script>const t = `${liveValue // templateCommentName\n}`; const m = "<!--"; const p = s.replace(/\\/*$/, ""); const liveAfterMarker = 1;</script>\n' +
+      // One pass in page order: the "<!--" string above does not open a comment that this one closes,
+      // and an abrupt `<!-->` is a whole comment.
+      "<!-- tail -->\n<!--><script>const liveAfterEmptyComment = 1;</script>\n<!-- end -->\n",
   };
   const names = codeNamesFrom(Object.keys(files), (file) => files[file], parseSync);
-  const live = ["liveTomlKey", "notTomlComment", "LiveGqlType", "liveShellWord", "liveAnchorName", "liveScriptName", "notScriptComment", "liveStyleName", "liveValue", "liveAfterMarker"];
+  const live = ["liveTomlKey", "notTomlComment", "LiveGqlType", "liveShellWord", "liveAnchorName", "liveScriptName", "notScriptComment", "liveStyleName", "liveValue", "liveAfterMarker", "liveAfterEmptyComment"];
   const gone = ["tomlCommentName", "gqlCommentName", "shellCommentName", "scriptCommentName", "blockScriptComment", "styleCommentName", "templateCommentName"];
   assert.deepEqual(live.filter((name) => !names.has(name)), []);
   assert.deepEqual(gone.filter((name) => names.has(name)), []);

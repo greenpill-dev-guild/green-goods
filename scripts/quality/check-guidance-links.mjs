@@ -207,7 +207,7 @@ export function findUnknownCodeNames(text, relativePath, knownNames, allowed = U
   const failures = [];
   let openFence;
   for (const [index, line] of text.split(/\r?\n/).entries()) {
-    const [, quotes, marker, info] = line.match(/^\s*((?:>\s*)*)(`{3,}|~{3,})?(.*)$/);
+    const [, quotes, marker, info] = line.match(/^\s*((?:>\s*)*)(`{3,}|~{3,})?([\s\S]*)$/);
     const depth = quotes.split(">").length - 1;
     if (openFence && depth < openFence.depth) openFence = undefined;
     if (openFence) {
@@ -230,8 +230,9 @@ export function findUnknownCodeNames(text, relativePath, knownNames, allowed = U
   return failures;
 }
 
-// Up to a clause break, words and code spans: "renamed `oldX` to" reaches its preposition.
-const SAME_CLAUSE = String.raw`(?:[^\x60.;]|\x60[^\x60]*\x60)`;
+// Up to a clause break (a full stop, semicolon or comma), words and code spans: "renamed `oldX` to"
+// reaches its preposition, and "renamed to `newX`, and references to `oldY`" does not reach `oldY`.
+const SAME_CLAUSE = String.raw`(?:[^\x60.;,]|\x60[^\x60]*\x60)`;
 
 // The words that introduce a replacement. A preposition counts only after its own verb in the
 // same clause: "replaced by" or "with", "superseded by", "renamed to", "folded into". So does
@@ -321,11 +322,12 @@ function withoutComments(file, text, parse) {
  * reads the page in order, so a "<!--" inside a script is script text and a "<script" inside a
  * comment is comment text. A tag's name ends at a space, `/` or `>` (`</script-x>` is script
  * text), and it may carry anything after that up to its `>` (`</script\t\n bar>` still ends the
- * script). A comment may close with `--!>`. Browsers read all three this way. A script body goes
+ * script). A comment may close with `--!>`, and `<!-->` is a whole one. Browsers read all of these
+ * this way. A script body goes
  * through the parser, as a script file does.
  */
 function withoutHtmlComments(text, parse) {
-  const page = /<!--[\s\S]*?--!?>|(<script(?=[\s/>])[^>]*>)([\s\S]*?)(<\/script(?=[\s/>])[^>]*>)|(<style(?=[\s/>])[^>]*>)([\s\S]*?)(<\/style(?=[\s/>])[^>]*>)/gi;
+  const page = /<!--(?:-?>|[\s\S]*?--!?>)|(<script(?=[\s/>])[^>]*>)([\s\S]*?)(<\/script(?=[\s/>])[^>]*>)|(<style(?=[\s/>])[^>]*>)([\s\S]*?)(<\/style(?=[\s/>])[^>]*>)/gi;
   return text.replace(page, (_, scriptOpen, script, scriptClose, styleOpen, style, styleClose) => {
     if (scriptOpen) return `${scriptOpen}${parse ? withoutScriptComments("inline.js", script, parse) : script}${scriptClose}`;
     if (styleOpen) return `${styleOpen}${blankSlashComments(style, { lineComments: false })}${styleClose}`;
