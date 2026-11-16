@@ -132,7 +132,6 @@ export const UNTRACKED_CODE_NAMES = new Map([
   ["reviewDecision", "GitHub GraphQL field"],
   ["reviewThreads", "GitHub GraphQL field"],
   ["isOutdated", "GitHub GraphQL field"],
-  ["endCursor", "GitHub GraphQL page cursor"],
   ["EnterWorktree", "Claude Code tool"],
   ["MockDb", "Envio's generated test database, not tracked"],
   ["POSTHOG_PROJECT_ID_APP", "routine environment variable, set outside the repository"],
@@ -169,7 +168,10 @@ function isCodeName(token) {
  * often placeholders.
  */
 function codeNamesIn(fragment) {
-  const reference = fragment.trim().match(/^[@$]?([A-Za-z_][\w$]*(?:\.[A-Za-z_][\w$]*)*)(?:\(.*\))?$/);
+  const text = fragment.trim();
+  // A JSX tag (`<DashboardLayout />`) names its component.
+  const tag = text.match(/^<\/?([A-Za-z_][\w$]*(?:\.[A-Za-z_][\w$]*)*)(?:[\s/>].*)?$/);
+  const reference = tag ?? text.match(/^[@$]?([A-Za-z_][\w$]*(?:\.[A-Za-z_][\w$]*)*)(?:\(.*\))?$/);
   return reference ? reference[1].split(".").filter(isCodeName) : [];
 }
 
@@ -196,9 +198,10 @@ export function findUnknownCodeNames(text, relativePath, knownNames, allowed = U
 /**
  * Every identifier the files contain or are named by, since guidance names files as well as code.
  * Guidance-bearing configuration and this checker's own test, which holds stale names as
- * fixtures, never vouch for one.
+ * fixtures, never vouch for one. Given a parser (`parseSync` from Vite), script comments are
+ * blanked first.
  */
-export function codeNamesFrom(files, read) {
+export function codeNamesFrom(files, read, parse) {
   const names = new Set();
   for (const file of files) {
     if (file === "scripts/quality/check-guidance-links.test.mjs" || CONFIGURATION_GUIDANCE.includes(file)) continue;
@@ -209,16 +212,37 @@ export function codeNamesFrom(files, read) {
     } catch {
       continue;
     }
-    for (const match of text.matchAll(/[A-Za-z_][\w]*/g)) names.add(match[0]);
+    for (const match of withoutComments(file, text, parse).matchAll(/[A-Za-z_][\w]*/g)) names.add(match[0]);
   }
   return names;
 }
 
+const SCRIPT_FILE_RE = /\.(ts|tsx|js|jsx|mjs|cjs|mts|cts)$/;
+
+/**
+ * A script's text with its comments blanked: a name a comment mentions ("the legacy
+ * USER_FRIENDLY_ERRORS lookup") is a memory of code, not code. A file that does not parse keeps
+ * its comments, so a parser gap never turns a live name stale.
+ */
+function withoutComments(file, text, parse) {
+  if (!parse || !SCRIPT_FILE_RE.test(file)) return text;
+  const lang = file.endsWith(".tsx") ? "tsx" : file.endsWith(".jsx") ? "jsx" : /\.[cm]?ts$/.test(file) ? "ts" : "js";
+  const { comments, errors } = parse(file, text, { lang, sourceType: "module" });
+  if (errors.length) return text;
+  let kept = "";
+  let at = 0;
+  for (const comment of comments) {
+    kept += `${text.slice(at, comment.start)} `;
+    at = comment.end;
+  }
+  return kept + text.slice(at);
+}
+
 /** Every identifier in tracked source, scripts, tests, workflows, hooks and root configuration. */
-function collectCodeNames() {
+function collectCodeNames(parse) {
   const files = runGit(repoRoot, ["ls-files", "--", ...CODE_NAME_SOURCES]).stdout.split(/\r?\n/)
     .filter((file) => CODE_FILE_RE.test(file));
-  return codeNamesFrom(files, (file) => fs.readFileSync(path.join(repoRoot, file), "utf8"));
+  return codeNamesFrom(files, (file) => fs.readFileSync(path.join(repoRoot, file), "utf8"), parse);
 }
 
 const LINK_RE = /\]\(([^)#\s]+?\.mdx?)(#[^)]*)?\)/g;
@@ -619,7 +643,7 @@ function checkDesignDecisionLedger(failures) {
   }
 }
 
-function main() {
+async function main() {
   const failures = [];
   let args;
   try {
@@ -641,7 +665,9 @@ function main() {
     path.join(repoRoot, "ONBOARDING.md"),
   ].filter((file) => fs.existsSync(file));
   const knownScripts = collectKnownScripts();
-  const knownCodeNames = collectCodeNames();
+  // Loaded here, not at the top: the brand-voice check imports this module before packages install.
+  const { parseSync } = await import("vite");
+  const knownCodeNames = collectCodeNames(parseSync);
   const instructions = Object.fromEntries(["AGENTS.md", "CLAUDE.md"].map((name) => [
     name, fs.existsSync(path.join(repoRoot, name)) ? fs.readFileSync(path.join(repoRoot, name), "utf8") : "",
   ]));
@@ -813,4 +839,4 @@ function main() {
   );
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === scriptPath) main();
+if (process.argv[1] && path.resolve(process.argv[1]) === scriptPath) await main();

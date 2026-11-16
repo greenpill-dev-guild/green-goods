@@ -105,7 +105,7 @@ if (!permissions.canRemoveMembers(garden)) {
 
 ### Route Guards
 
-`router.tsx` wraps the in-app routes in `routes/CanvasShell.tsx` and takes the route table from `routes/views.tsx`, which places the role guards: `RequireRole` checks `role` (Create Garden takes `["deployer"]`, so only garden creators open it), `RequireProtocolTeam` checks `isProtocolTeam` (the Actions workspace and the `/cookies` redirects), and `RequireCommunityAccess` sends anyone the Community workspace is closed to back to the Hub. Check `views.tsx` for the live nesting.
+`router.tsx` wraps the in-app routes in `routes/CanvasShell.tsx` and takes the route table from `routes/views.tsx`, which places the role guards: `RequireRole` checks `role` (Create Garden takes `["deployer"]`, so only garden creators open it), `RequireProtocolTeam` checks `isProtocolTeam` (the Actions workspace and the `/cookies` redirects), and `RequireCommunityAccess` sends anyone the Community workspace is closed to back to the Hub. Check `views.tsx` for the live nesting. The legacy `RequireAuth` and `DashboardShell` guards are deleted, and `RequireDeployer` and `RequireOperatorOrDeployer` are deleted too.
 
 ### Toast for All Transactions (MANDATORY)
 

@@ -398,3 +398,13 @@ test("a file's own name vouches for it, and settings and this checker's fixtures
   assert.ok(names.has("AdminDialogStandard") && names.has("realName"));
   assert.ok(!names.has("staleHelper") && !names.has("fixtureOnlyName"));
 });
+
+test("a name only a comment mentions vouches for nothing, and a JSX tag names its component", async () => {
+  const { parseSync } = await import("vite");
+  const files = { "packages/a/src/errors.ts": "// The legacy USER_FRIENDLY_ERRORS lookup is gone.\nexport const parseError = () => {};\n" };
+  const names = codeNamesFrom(Object.keys(files), (file) => files[file], parseSync);
+  assert.ok(names.has("parseError") && !names.has("USER_FRIENDLY_ERRORS"));
+  assert.deepEqual(findUnknownCodeNames("Wrap it in `<DashboardLayout />`.", "guide.md", new Set()), [
+    "guide.md:1: no tracked source names `DashboardLayout`",
+  ]);
+});
