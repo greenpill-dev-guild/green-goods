@@ -77,7 +77,7 @@ export function externalTerms(root = repoRoot) {
 // A comment that claims the code around it must stay as it is: important, temporary, a workaround,
 // a warning against changing it. Each one goes to the owner's review table (`--report
 // constraints`), where it is kept, dropped, or encoded as a type, test or lint.
-const CLAIM = /\b(important|temporar(y|ily)|workarounds?|work around|hacky?|do not|don't|never|must|should not|shouldn't|may not|has to|have to|keep (this|these|it|them|the)\b|order matters|todo|fixme|xxx|remove (this|once|when|after)|until\b)/i;
+const CLAIM = /\b(important|temporar(y|ily)|workarounds?|work around|hacky?|do not|don't|never|must|should not|shouldn't|may not|has to|have to|keep (this|these|it|them|the)\b|order matters|ensures?\b|make sure|(loaded|imported|registered|mocked|installed|initiali[sz]ed|set up|called|runs?) (before|after|first)\b|todo|fixme|xxx|remove (this|once|when|after)|until\b)/i;
 // A reason, a consequence or a deliberate choice: why the code is this way rather than another.
 // Not narration, so the purge keeps it; a named dependency with one is a dependency constraint.
 const REASON = /\b(because|since|so|so that|otherwise|would|without|unless|requires?|required|needs?|demands?|expects?|rejects?|refuses?|breaks?|broke|crash(es|ed)?|fails?|failed|throws?|bugs?|quirks?|only|cannot|can't|won't|doesn't|does not|rather than|instead|on purpose|deliberately|intentionally|by design|the whole point|load-bearing)\b/i;
@@ -91,7 +91,8 @@ function constraintKind(text) {
   if (!REASON.test(text)) return "remove";
   return externalTerms().test(text) ? "dependency" : "rationale";
 }
-const JSDOC_TYPES = /@((type|typedef|template|satisfies|import|callback|enum|deprecated|overload)\b|(param|returns?|property)\s*\{)/;
+// The JSDoc tags TypeScript reads when it checks JavaScript, with their aliases.
+const JSDOC_TYPES = /@((type|typedef|template|satisfies|import|callback|enum|deprecated|overload|this|extends|augments|implements|class|constructor|public|private|protected|readonly|override)\b|(param|arg|argument|returns?|property|prop)\s*\{)/;
 
 function languageOf(file) {
   if (file.endsWith(".tsx")) return "tsx";
@@ -129,13 +130,22 @@ function exportedSpans(program) {
   return spans;
 }
 
-// JSX expression containers that hold only comments (`{/* note */}`): removing the comment removes them too.
+// JSX children that hold only comments (`{/* note */}`): removing the comment removes the braces
+// too. One between two runs of text is marked: JSX trims each run on its own, so joining them
+// changes what renders (`a{/* c */}` then `b` on the next line renders "ab"; without it, "a b").
 function emptyJsxContainers(program) {
   const containers = [];
+  const hasText = (node) => node?.type === "JSXText" && /\S/.test(node.value);
   const visit = (node) => {
     if (Array.isArray(node)) return node.forEach(visit);
     if (!node || typeof node !== "object") return;
-    if (node.type === "JSXExpressionContainer" && node.expression?.type === "JSXEmptyExpression") containers.push([node.start, node.end]);
+    if (node.type === "JSXElement" || node.type === "JSXFragment") {
+      node.children.forEach((child, index) => {
+        if (child.type !== "JSXExpressionContainer" || child.expression?.type !== "JSXEmptyExpression") return;
+        const betweenText = hasText(node.children[index - 1]) && hasText(node.children[index + 1]);
+        containers.push({ span: [child.start, child.end], betweenText });
+      });
+    }
     for (const value of Object.values(node)) if (value && typeof value === "object") visit(value);
   };
   visit(program);
@@ -226,20 +236,35 @@ function classifySoliditySource(code) {
   }));
 }
 
+// A `.cjs` file may `return` at its top level, which module parsing rejects, and so may a `.js`
+// file in a CommonJS package; module syntax fails as CommonJS. The extension's mode goes first.
+function parse(file, code) {
+  let failure;
+  for (const sourceType of /\.c[jt]s$/.test(file) ? ["commonjs", "module"] : ["module", "commonjs"]) {
+    const result = parseSync(file, code, { lang: languageOf(file), sourceType });
+    if (!result.errors.length) return result;
+    failure ??= result.errors[0];
+  }
+  throw new Error(`${file}: does not parse (${failure.message})`);
+}
+
 /** Every comment in a source with its class. */
 export function classifySource(code, file) {
   if (file.endsWith(".sol")) return classifySoliditySource(code);
-  const { program, comments, errors } = parseSync(file, code, { lang: languageOf(file), sourceType: "module" });
-  if (errors.length) throw new Error(`${file}: does not parse (${errors[0].message})`);
+  const { program, comments } = parse(file, code);
   const spans = exportedSpans(program);
   const containers = emptyJsxContainers(program);
   // Oxc also reports a hashbang (`#!/usr/bin/env node`) as a line comment; it is the program's, not a comment.
   const real = comments.filter((comment) => comment.start !== program.hashbang?.start);
-  return groupComments(code, real).map((comment) => ({
-    ...comment,
-    container: containers.find(([start, end]) => comment.start > start && comment.end < end) ?? null,
-    kind: classifyComment(comment, { exported: spans.some(([start, end]) => comment.start >= start && comment.end <= end) }),
-  }));
+  return groupComments(code, real).map((comment) => {
+    const holder = containers.find(({ span: [start, end] }) => comment.start > start && comment.end < end);
+    return {
+      ...comment,
+      container: holder?.span ?? null,
+      betweenText: holder?.betweenText ?? false,
+      kind: classifyComment(comment, { exported: spans.some(([start, end]) => comment.start >= start && comment.end <= end) }),
+    };
+  });
 }
 
 function lineStart(code, index) {
@@ -279,9 +304,12 @@ function removal(code, comment) {
 /** The source with every removable comment taken out, and what was removed. */
 export function purgeSource(code, file) {
   const comments = classifySource(code, file);
-  const removed = comments.filter((comment) => comment.kind === "remove");
+  // A comment in a container between two runs of JSX text stays, whatever it says: taking it out
+  // would join the runs and change the rendered text.
+  const removable = (comment) => comment.kind === "remove" && !comment.betweenText;
+  const removed = comments.filter(removable);
   // A JSX container goes only when every comment in it goes, and only once.
-  const keptContainers = new Set(comments.filter((comment) => comment.kind !== "remove" && comment.container).map((comment) => comment.container[0]));
+  const keptContainers = new Set(comments.filter((comment) => !removable(comment) && comment.container).map((comment) => comment.container[0]));
   const removedContainers = new Set();
   let output = code;
   for (const comment of [...removed].sort((a, b) => b.start - a.start)) {
@@ -296,12 +324,13 @@ export function purgeSource(code, file) {
       output = output.slice(0, from) + output.slice(from + 1);
     }
   }
-  return { code: output, removed, kept: comments.filter((comment) => comment.kind !== "remove") };
+  return { code: output, removed, kept: comments.filter((comment) => !removable(comment)) };
 }
 
-function sourceFiles(paths) {
-  const files = execFileSync("git", ["-C", repoRoot, "ls-files", "-z", "--", ...paths], { encoding: "utf8" }).split("\0");
-  return files.filter((file) => SOURCE.test(file) && !/\.d\.[cm]?ts$/.test(file) && !/(^|\/)(generated|vendor|dist|node_modules)\//.test(file));
+/** Source files under the paths: tracked ones and new ones not yet added, never what Git ignores. */
+export function sourceFiles(paths, { root = repoRoot, env = process.env } = {}) {
+  const listed = execFileSync("git", ["-C", root, "ls-files", "-z", "--cached", "--others", "--exclude-standard", "--", ...paths], { encoding: "utf8", env }).split("\0");
+  return [...new Set(listed)].filter((file) => SOURCE.test(file) && !/\.d\.[cm]?ts$/.test(file) && !/(^|\/)(generated|vendor|dist|node_modules)\//.test(file));
 }
 
 function lineOf(code, index) {

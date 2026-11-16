@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
-import { classifySource, groupComments, main, purgeSource } from "./comment-policy.mjs";
+import { fixtureGitEnvironment } from "../lib/dev-shared.js";
+import { classifySource, groupComments, main, purgeSource, sourceFiles } from "./comment-policy.mjs";
 
 const kinds = (code, file = "example.ts") => classifySource(code, file).map((comment) => comment.kind);
 
@@ -233,5 +238,53 @@ test("every JavaScript line terminator inside a removed comment leaves a line br
     const purged = purgeSource(code, "example.ts").code;
     assert.equal(purged, "function f(value) {\n  return\nvalue;\n}\n", JSON.stringify(terminator));
     assert.equal(new Function("value", purged.slice(purged.indexOf("{") + 1, purged.lastIndexOf("}")))(42), undefined);
+  }
+});
+
+test("a comment between two runs of JSX text stays, so the text renders the same", () => {
+  // JSX trims each run of text on its own: these render "ab" and "Helloworld", and would render
+  // "a b" and "Hello world" with the container gone.
+  const inline = "export const A = () => <Label>a{/* note */}\nb</Label>;\n";
+  const lines = "export const B = () => (\n  <p>\n    Hello\n    {/* note */}\n    world\n  </p>\n);\n";
+  assert.equal(purgeSource(inline, "example.tsx").code, inline);
+  assert.equal(purgeSource(lines, "example.tsx").code, lines);
+  const besideElement = "export const C = () => (\n  <p>\n    Hello\n    {/* note */}\n    <b>world</b>\n  </p>\n);\n";
+  assert.equal(
+    purgeSource(besideElement, "example.tsx").code,
+    "export const C = () => (\n  <p>\n    Hello\n    <b>world</b>\n  </p>\n);\n",
+  );
+});
+
+test("every JSDoc tag TypeScript reads when it checks JavaScript keeps its comment", () => {
+  for (const tag of ["@this {{x: number}}", "@extends {Base}", "@augments {Base}", "@implements {Shape}", "@constructor", "@private", "@readonly", "@override", "@arg {string} name"]) {
+    assert.deepEqual(kinds(`/** ${tag} */\nfunction helper() {}`, "example.mjs"), ["documentation"], tag);
+  }
+});
+
+test("a CommonJS file that returns at its top level is read as CommonJS", () => {
+  const code = "// Narration.\nif (!process.env.CI) return;\nmodule.exports = {};\n";
+  assert.equal(purgeSource(code, "example.cjs").code, "if (!process.env.CI) return;\nmodule.exports = {};\n");
+});
+
+test("an ordering requirement is a claimed constraint", () => {
+  // As written in the job-queue tests, above a side-effect import.
+  assert.deepEqual(kinds('// Ensure fake-indexeddb is loaded before job-queue module\nimport "fake-indexeddb/auto";\n'), ["constraint"]);
+  assert.deepEqual(kinds('// The polyfill is imported first.\nimport "./polyfill";\n'), ["constraint"]);
+});
+
+test("paths take in new files Git does not track yet, and never ignored ones", () => {
+  const root = mkdtempSync(join(tmpdir(), "gg-comment-policy-"));
+  try {
+    const env = fixtureGitEnvironment();
+    const git = (...args) => execFileSync("git", args, { cwd: root, env, stdio: "ignore" });
+    git("init", "-q");
+    writeFileSync(join(root, ".gitignore"), "ignored.ts\n");
+    writeFileSync(join(root, "tracked.ts"), "export {};\n");
+    git("add", "tracked.ts");
+    writeFileSync(join(root, "new.ts"), "export {};\n");
+    writeFileSync(join(root, "ignored.ts"), "export {};\n");
+    assert.deepEqual(sourceFiles(["."], { root, env }).sort(), ["new.ts", "tracked.ts"]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
   }
 });
