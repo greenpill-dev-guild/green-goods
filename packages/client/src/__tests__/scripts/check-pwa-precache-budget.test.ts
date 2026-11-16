@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { gzipSync } from "node:zlib";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
@@ -231,6 +232,28 @@ function runFailure(fixture: string, limits: Record<string, string>) {
     return `${result.stderr ?? ""}${result.stdout ?? ""}`;
   }
 }
+
+it("uses the Node gzip boundary even when Bun supplies the node shim", () => {
+  const html = Array.from(
+    { length: 1000 },
+    (_, index) => `<section data-index="${index % 17}">contribution-${index}</section>`
+  ).join("");
+  const fixture = createFixture({ html });
+  const gzipBytes = gzipSync(html).byteLength;
+  const run = (limit: number) =>
+    execFileSync("bun", ["--bun", "run", "check:pwa-precache"], {
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        ...relaxedLimits,
+        PWA_DIST_DIR: fixture,
+        PWA_SHELL_GZIP_MAX: String(limit),
+      },
+      stdio: "pipe",
+    });
+  expect(run(gzipBytes)).toContain("PWA budgets OK");
+  expect(() => run(gzipBytes - 1)).toThrow(/offline shell gzip/);
+});
 
 afterEach(() => {
   for (const directory of fixtureDirectories.splice(0)) {
