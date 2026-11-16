@@ -36,6 +36,7 @@ sb.mock(import("../src/hooks/public/usePublicEndowmentPositions.ts"), { spy: tru
 sb.mock(import("../src/hooks/auth/useWalletModalOpen.ts"), { spy: true });
 sb.mock(import("../src/hooks/blockchain/useBaseLists.ts"), { spy: true });
 sb.mock(import("../src/hooks/garden/useGardenMemberHistory.ts"), { spy: true });
+sb.mock(import("../src/hooks/garden/useGardenMemberContributions.ts"), { spy: true });
 sb.mock(import("../src/hooks/blockchain/useChainConfig.ts"), { spy: true });
 sb.mock(import("../src/hooks/blockchain/useEnsName.ts"), { spy: true });
 sb.mock(import("../src/hooks/blockchain/useSendToken.ts"), { spy: true });

@@ -43,6 +43,9 @@ vi.mock("@green-goods/shared/hooks/profile/useProfileAvatar", async (importOrigi
   ...(await importOriginal()),
   useResolvedProfileAvatar: () => ({ avatarUri: null, isLoading: false }),
 }));
+vi.mock("@green-goods/shared/hooks/garden/useGardenMemberContributions", () => ({
+  useGardenMemberContributions: () => ({ canView: false, byAccount: {} }),
+}));
 vi.mock("@green-goods/shared/hooks/garden/useGardenMemberHistory", () => ({
   useGardenMemberHistory: () => ({ members: [], isLoading: false, isError: false }),
 }));
