@@ -17,9 +17,9 @@ function BadgeGlyph({ slug }: { slug: string }) {
   }
 }
 
-/** The tile's 64px mark (DL-159) and the badge sheet's larger one (DL-183). */
+/** The tile's 80px mark (DL-186) and the badge sheet's 144px one (DL-183). */
 const SIZES = {
-  tile: { box: "size-16 [&>svg]:size-7", px: 64 },
+  tile: { box: "size-20 [&>svg]:size-7", px: 80 },
   sheet: { box: "size-36 [&>svg]:size-16", px: 144 },
 } as const;
 

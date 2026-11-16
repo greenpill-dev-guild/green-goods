@@ -21,8 +21,8 @@ import { resetHookMocks } from "../../../../shared/.storybook/moduleMocks";
 
 const ACCOUNT = "0x2aa64e6d80390f5c017f0313cb908051be2fd35e" as Address;
 const ZERO = "0x0000000000000000000000000000000000000000" as Address;
-/** Midday UTC on 19 November 2025, so the earned day reads the same in every time zone. */
-const EARNED_AT = daysAgo(58) + 12 * 3_600;
+/** Midday UTC on 19 November 2025, so the issue day reads the same in every time zone. */
+const ISSUED_AT = daysAgo(58) + 12 * 3_600;
 
 function badge(
   slug: "genesis" | "first-work" | "first-support",
@@ -55,7 +55,7 @@ function badge(
           sourceRef: badgeId,
           issuer: ZERO,
           unlockTokenId: 7n,
-          issuedAt: EARNED_AT,
+          issuedAt: ISSUED_AT,
           definitionId: `${DEFAULT_CHAIN_ID}-${badgeId}`,
           lastGrantId: `${DEFAULT_CHAIN_ID}-grant-${badgeId}`,
         }
@@ -69,9 +69,13 @@ function claim(isPending = false) {
   >;
 }
 
-function withBadges({ claiming = false } = {}) {
+function withBadges({ claiming = false, failed = false, unknownDate = false } = {}) {
   return () => {
-    const badges = [badge("first-work", true), badge("genesis", false)];
+    const firstWork = badge("first-work", true);
+    if (unknownDate) firstWork.ownership = null;
+    const firstSupport = badge("first-support", true);
+    firstSupport.ownership = null;
+    const badges = [firstWork, firstSupport, badge("genesis", false)];
     mocked(usePrimaryAddress).mockReturnValue(ACCOUNT);
     mocked(useGreenGoodsEnsName).mockReturnValue({ data: "river.greengoods.eth" } as ReturnType<
       typeof useGreenGoodsEnsName
@@ -92,7 +96,11 @@ function withBadges({ claiming = false } = {}) {
       isLoading: false,
       isError: false,
     } as unknown as ReturnType<typeof useGreenWillBadges>);
-    mocked(useClaimGenesisBadge).mockReturnValue(claim(claiming));
+    mocked(useClaimGenesisBadge).mockReturnValue({
+      ...claim(claiming),
+      isError: failed,
+      error: failed ? new Error("execution reverted") : null,
+    } as ReturnType<typeof useClaimGenesisBadge>);
     mocked(useClaimFirstWorkBadge).mockReturnValue(
       claim() as unknown as ReturnType<typeof useClaimFirstWorkBadge>
     );
@@ -116,7 +124,7 @@ function withBadges({ claiming = false } = {}) {
 
 /**
  * Profile badges: earned badges and ones ready to claim. A badge opens a `tall` sheet with its
- * artwork, its standing and, once earned, the day it was earned. A claimable badge's claim is the
+ * artwork, its standing and, when known, its issue date. A claimable badge's claim is the
  * one action in the shared bar (DL-016); an earned badge's sheet has no bar. The fixtures have no
  * Unlock collection, so the artwork shows each badge's own glyph. Badge, membership, and claim
  * hooks are mocked per story.
@@ -143,18 +151,28 @@ export const BadgeGrid: Story = {
   beforeEach: withBadges(),
   play: async () => {
     const grid = within(await screen.findByTestId("profile-badge-grid"));
-    await expect(grid.getByRole("button", { name: "View Genesis badge" })).toBeVisible();
-    await expect(grid.getByRole("button", { name: "View First Work badge" })).toBeVisible();
+    const cards = grid.getAllByRole("button");
+    await expect(cards).toHaveLength(3);
+    const heights = cards.map((card) => card.getBoundingClientRect().height);
+    await expect(new Set(heights).size).toBe(1);
+    await expect(heights[0]).toBeGreaterThanOrEqual(224);
+    await expect(cards[0].querySelector("time")).toBeVisible();
+    await expect(cards[1].querySelector("time")).toBeNull();
   },
 };
+
+async function openBadge(index: number) {
+  const grid = within(await screen.findByTestId("profile-badge-grid"));
+  await userEvent.click(grid.getAllByRole("button")[index]);
+  return screen.findByRole("dialog");
+}
 
 export const ClaimGenesis: Story = {
   beforeEach: withBadges(),
   play: async () => {
-    await userEvent.click(await screen.findByRole("button", { name: "View Genesis badge" }));
-    const sheet = within(await screen.findByRole("dialog", { name: "Genesis" }));
-    const claimAction = sheet.getByRole("button", { name: "Claim Genesis" });
-    await expect(claimAction).toHaveAttribute("data-emphasis", "primary");
+    const sheet = await openBadge(2);
+    const claimAction = sheet.querySelector<HTMLButtonElement>('[data-emphasis="primary"]')!;
+    await expect(claimAction).toBeVisible();
     await userEvent.click(claimAction);
     await expect(mocked(useClaimGenesisBadge).mock.results.at(-1)?.value.mutate).toHaveBeenCalled();
   },
@@ -163,9 +181,8 @@ export const ClaimGenesis: Story = {
 export const Claiming: Story = {
   beforeEach: withBadges({ claiming: true }),
   play: async () => {
-    await userEvent.click(await screen.findByRole("button", { name: "View Genesis badge" }));
-    const sheet = within(await screen.findByRole("dialog", { name: "Genesis" }));
-    await expect(sheet.getByRole("button", { name: "Claim Genesis" })).toHaveAttribute(
+    const sheet = await openBadge(2);
+    await expect(sheet.querySelector('[data-emphasis="primary"]')).toHaveAttribute(
       "aria-busy",
       "true"
     );
@@ -175,9 +192,23 @@ export const Claiming: Story = {
 export const EarnedBadge: Story = {
   beforeEach: withBadges(),
   play: async () => {
-    await userEvent.click(await screen.findByRole("button", { name: "View First Work badge" }));
-    const sheet = await screen.findByRole("dialog", { name: "First Work" });
+    const sheet = await openBadge(0);
     await expect(sheet.querySelector('[data-component="SheetActions"]')).toBeNull();
-    await expect(within(sheet).getByText("November 19, 2025")).toBeVisible();
+    await expect(sheet.querySelector("time")).toHaveAttribute(
+      "datetime",
+      "2025-11-19T12:00:00.000Z"
+    );
+  },
+};
+
+export const IssueDatePending: Story = {
+  beforeEach: withBadges({ unknownDate: true }),
+};
+
+export const ClaimError: Story = {
+  beforeEach: withBadges({ failed: true }),
+  play: async () => {
+    await openBadge(2);
+    await expect(await screen.findByRole("alert")).toBeVisible();
   },
 };
