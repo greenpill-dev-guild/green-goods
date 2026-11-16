@@ -166,3 +166,22 @@ export const LoadError: Story = {
     onRefresh: () => undefined,
   },
 };
+
+/** Synthetic selected-record projection; the hook suite also covers cached and queued rows. */
+export const SelectedWorkHidden: Story = {
+  tags: ["storybook-ci"],
+  args: {
+    works: WORKS.slice(1),
+  },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByText("5 submissions")).toBeVisible();
+  },
+};
+
+/** An older offline cache keeps its data but has no classification snapshot yet. */
+export const WaitingForVisibilitySnapshot: Story = {
+  args: {
+    works: [],
+    readState: { isError: false, isLoading: false, isPaused: true, availability: "unavailable" },
+  },
+};
