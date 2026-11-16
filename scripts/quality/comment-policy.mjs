@@ -111,8 +111,8 @@ const TITLED_RULE = new RegExp(`^[${RULE_CHARS}]{2,}\\s+\\S.{0,60}?\\s+[${RULE_C
 function isLabel(text) {
   const line = text.trim();
   // A negation states something about the code (`maxTouchPoints not set` marks a deliberate
-  // omission); a label only names.
-  if (/\b(?:not|no|never|none|nothing|without)\b/i.test(line)) return false;
+  // omission, as does `Wallet isn't connected`); a label only names.
+  if (/\b(?:not|no|never|none|nothing|without|cannot)\b|n['\u2019]t\b/i.test(line)) return false;
   return /^[A-Za-z][\w &/'()-]*:?$/.test(line) && line.split(/\s+/).length <= 3;
 }
 
@@ -235,6 +235,13 @@ function assignsCommonJsExport(node) {
   return false;
 }
 
+// The value a chain of assignments ends in: `module.exports = exports.client = client` assigns `client`.
+function chainedValue(node) {
+  let at = node;
+  while (at?.type === "AssignmentExpression") at = at.right;
+  return at;
+}
+
 // `module.exports`, `module.exports.name` or `exports.name`.
 function isCommonJsExport(node) {
   const isModuleExports = (target) =>
@@ -254,11 +261,14 @@ function exportedSpans(program) {
       exportedLater.add(statement.declaration.name);
     }
     if (statement.type === "TSExportAssignment" && statement.expression?.type === "Identifier") exportedLater.add(statement.expression.name);
-    // CommonJS: `module.exports = name`, `module.exports = { a, b }`, `exports.a = a`.
-    const assignment = statement.type === "ExpressionStatement" ? statement.expression : null;
-    if (assignment?.type === "AssignmentExpression" && isCommonJsExport(assignment.left)) {
-      if (assignment.right?.type === "Identifier") exportedLater.add(assignment.right.name);
-      for (const property of assignment.right?.type === "ObjectExpression" ? assignment.right.properties : []) {
+    // CommonJS: `module.exports = name`, `module.exports = { a, b }`, `exports.a = a`, and the same
+    // at the end of a chain (`module.exports = exports.a = a`, `const api = module.exports = a`).
+    const assignments = statement.type === "ExpressionStatement" ? [statement.expression]
+      : statement.type === "VariableDeclaration" ? statement.declarations.map((declaration) => declaration.init) : [];
+    for (const assignment of assignments.filter(assignsCommonJsExport)) {
+      const value = chainedValue(assignment);
+      if (value?.type === "Identifier") exportedLater.add(value.name);
+      for (const property of value?.type === "ObjectExpression" ? value.properties : []) {
         if (property.value?.type === "Identifier") exportedLater.add(property.value.name);
       }
     }
