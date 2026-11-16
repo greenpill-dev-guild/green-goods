@@ -251,7 +251,7 @@ describe("OctantVault.Deposit", () => {
   });
 
   it("ignores deposit when vault address not indexed", async () => {
-    const mockDb = createTestIndexer();
+    const mockDb = createTestIndexer(); // No vault setup
 
     const event = OctantVault.Deposit.createMockEvent({
       sender: addr(30),
