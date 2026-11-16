@@ -104,7 +104,6 @@ test.describe("Client PWA", () => {
     });
 
     test("client app loads without critical errors", async ({ page }) => {
-      // Navigate to root
       await page.goto("/");
 
       // Wait for initial load
@@ -125,7 +124,6 @@ test.describe("Client PWA", () => {
         const errorText = await page.locator("body").textContent();
         console.error("App error found:", errorText?.substring(0, 500));
 
-        // Try reloading once
         await page.reload();
         await page.waitForLoadState("domcontentloaded");
         await page.waitForTimeout(2000);

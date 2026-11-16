@@ -155,7 +155,6 @@ test.describe("Offline Sync CI Tests", () => {
       const offlineStatus = page.getByRole("status", { name: "App is in offline mode" });
       await expect(offlineStatus).toBeVisible({ timeout: 10000 });
 
-      // Go back online
       await context.setOffline(false);
       await expect(page.getByRole("status", { name: "App is back online" })).toBeVisible({
         timeout: 10000,
@@ -217,7 +216,6 @@ test.describe("Offline Sync CI Tests", () => {
       await dashboardButton.click();
       await expect(page.getByRole("dialog")).toBeVisible({ timeout: 10000 });
 
-      // Restore online state
       await context.setOffline(false);
     });
   });

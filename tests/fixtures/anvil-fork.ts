@@ -37,10 +37,6 @@ import {
 import { privateKeyToAccount } from "viem/accounts";
 import { ANVIL_TIMEOUTS, FORK_CONFIG, TEST_ACCOUNTS } from "./anvil-config";
 
-// ============================================================================
-// TYPES
-// ============================================================================
-
 /**
  * Deployment artifact structure from packages/contracts/deployments/
  */
@@ -158,10 +154,6 @@ export async function normalizeForkAccounts(
   }
 }
 
-// ============================================================================
-// ANVIL CHAIN DEFINITION
-// ============================================================================
-
 /**
  * Create a chain definition for Anvil fork
  */
@@ -181,10 +173,6 @@ function createAnvilChain(port: number, chainId: number): Chain {
     },
   };
 }
-
-// ============================================================================
-// ANVIL PROCESS MANAGEMENT
-// ============================================================================
 
 /**
  * Start Anvil process with fork configuration
@@ -215,7 +203,6 @@ async function spawnAnvil(options: ForkOptions): Promise<ChildProcess> {
     detached: false,
   });
 
-  // Log any errors
   anvilProcess.stderr?.on("data", (data) => {
     const message = data.toString().trim();
     if (message && !message.includes("Listening on")) {
@@ -263,10 +250,6 @@ async function waitForAnvil(port: number, timeout: number = ANVIL_TIMEOUTS.start
   throw new Error(`Anvil failed to start within ${timeout}ms`);
 }
 
-// ============================================================================
-// DEPLOYMENT LOADING
-// ============================================================================
-
 /**
  * Load deployment artifact for the forked chain
  */
@@ -291,10 +274,6 @@ async function loadDeployment(): Promise<DeploymentArtifact> {
     );
   }
 }
-
-// ============================================================================
-// MAIN FIXTURE
-// ============================================================================
 
 /**
  * Start an Anvil fork and create viem clients for testing
@@ -340,7 +319,6 @@ export async function startAnvilFork(options: ForkOptions = {}): Promise<AnvilFo
     });
   }
 
-  // Create clients
   const testClient = createTestClient({
     chain,
     mode: "anvil",
@@ -357,7 +335,6 @@ export async function startAnvilFork(options: ForkOptions = {}): Promise<AnvilFo
     transport,
   });
 
-  // Create account signers
   const accounts = {
     deployer: {
       address: TEST_ACCOUNTS.deployer.address,
@@ -396,11 +373,9 @@ export async function startAnvilFork(options: ForkOptions = {}): Promise<AnvilFo
     }
   }
 
-  // Load deployment
   const deployment = await loadDeployment();
   console.log(`  📜 Loaded deployment: gardenToken=${deployment.gardenToken}`);
 
-  // Cleanup function
   const cleanup = async () => {
     if (anvilProcess) {
       console.log("🛑 Stopping Anvil...");
@@ -433,10 +408,6 @@ export async function startAnvilFork(options: ForkOptions = {}): Promise<AnvilFo
   };
 }
 
-// ============================================================================
-// STATE MANAGEMENT UTILITIES
-// ============================================================================
-
 /**
  * Create a snapshot of the current blockchain state
  *
@@ -462,10 +433,6 @@ export async function revertToSnapshot(
   await testClient.revert({ id: snapshotId });
   console.log(`⏪ Reverted to snapshot: ${snapshotId}`);
 }
-
-// ============================================================================
-// UTILITY EXPORTS
-// ============================================================================
 
 export { parseEther } from "viem";
 export { ANVIL_TIMEOUTS, FORK_CONFIG, TEST_ACCOUNTS } from "./anvil-config";
