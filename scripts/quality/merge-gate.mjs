@@ -47,11 +47,13 @@ const SUBMODULE_MODE = "160000";
 // `role_name` and carries its base access in `permission`, where maintain reads as write.
 const WRITE_ROLES = new Set(["admin", "maintain", "write"]);
 const WRITE_PERMISSIONS = new Set(["admin", "write"]);
-// A marker names the head by its full SHA or by a prefix of at least nine characters, the length
-// the status prints.
-const MIN_SHA_PREFIX = 9;
-const MARKER_RE = /^merge-gate:\s+(reviewed|full-gate)\s+([0-9a-f]{9,40})\b/gim;
-const MARKER_LINE = new RegExp(MARKER_RE.source, "im");
+// A marker names the head by its full SHA. A prefix can be ground: a fork could push a commit that
+// shares a reviewed head's first characters and carry that head's proof over to it.
+const MARKER_LINE = /^merge-gate:\s+(reviewed|full-gate)\s+([0-9a-f]{40})\b/i;
+// How much of a SHA a description shows when it only names the head.
+const SHORT_SHA = 9;
+// GitHub's limit on a status description.
+const DESCRIPTION_LIMIT = 140;
 
 export function loadMergePolicy(root = repoRoot) {
   return JSON.parse(readFileSync(resolve(root, ".agents/merge-policy.json"), "utf8"));
@@ -130,39 +132,45 @@ export function classifyChange({
   return { tier: "routine", reasons: [] };
 }
 
-/** A comment as a reader sees it: fenced code blocks and HTML comments hide what they hold. */
-function visibleText(body) {
+/**
+ * A comment's lines as a reader sees them. HTML comments hide what they hold, an unclosed one to
+ * the end of the comment. So do fenced code blocks: only a bare fence of the opener's character, at
+ * least as long, closes one. Every Markdown line break ends a line, a lone CR included; U+2028
+ * does not, as Markdown does not break on it.
+ */
+function visibleLines(body) {
   const lines = [];
   let fence = null;
-  for (const line of String(body ?? "").replace(/<!--[\s\S]*?-->/g, " ").split(/\r?\n/)) {
-    const marker = line.match(/^\s*(`{3,}|~{3,})/)?.[1];
-    if (marker) {
-      if (!fence) fence = marker;
-      else if (marker[0] === fence[0] && marker.length >= fence.length) fence = null;
+  for (const line of String(body ?? "").replace(/<!--[\s\S]*?(?:--!?>|$)/g, " ").split(/\r\n|\r|\n/)) {
+    const [, marker, info] = line.match(/^\s*(`{3,}|~{3,})(.*)$/) ?? [];
+    if (fence) {
+      if (marker?.[0] === fence[0] && marker.length >= fence.length && !info.trim()) fence = null;
       continue;
     }
-    if (!fence) lines.push(line);
+    if (marker) fence = marker;
+    else lines.push(line);
   }
-  return lines.join("\n");
+  return lines;
 }
 
 /** Whether a comment holds a marker-shaped line at all, before anyone's access is looked up. */
 export function hasMarker(comment) {
-  return MARKER_LINE.test(visibleText(comment.body));
+  return visibleLines(comment.body).some((line) => MARKER_LINE.test(line));
 }
 
 /**
  * The proofs the comments record for this head. A marker counts from an account `canWrite` accepts,
- * outside code blocks and HTML comments, when it names the head by its full SHA or a prefix of at
- * least nine characters. A quoted line starts with `>`, so a quoted marker never counts.
+ * outside code blocks and HTML comments, when it names the head by its full SHA. A quoted line
+ * starts with `>`, so a quoted marker never counts.
  */
 export function markersFor(comments, headSha, canWrite) {
   const found = { reviewed: false, fullGate: false };
   const head = headSha.toLowerCase();
   for (const comment of comments) {
     if (!canWrite(comment.user?.login)) continue;
-    for (const [, kind, sha] of visibleText(comment.body).matchAll(MARKER_RE)) {
-      if (sha.length < MIN_SHA_PREFIX || !head.startsWith(sha.toLowerCase())) continue;
+    for (const line of visibleLines(comment.body)) {
+      const [, kind, sha] = line.match(MARKER_LINE) ?? [];
+      if (!kind || sha.toLowerCase() !== head) continue;
       if (kind.toLowerCase() === "reviewed") found.reviewed = true;
       else found.fullGate = true;
     }
@@ -173,32 +181,42 @@ export function markersFor(comments, headSha, canWrite) {
 /**
  * The commenters who may write proof: those whose repository role is admin, maintain or write, or
  * a custom role built on write or maintain. `accessOf` looks one up as GitHub's
- * collaborator-permission response; an account it cannot confirm writes nothing.
+ * collaborator-permission response. A lookup that fails throws, so the run reports an error
+ * instead of waiting on proof it could not read.
  */
 export async function writersAmong(comments, accessOf) {
   const writers = new Set();
   for (const login of new Set(comments.filter(hasMarker).map((comment) => comment.user?.login).filter(Boolean))) {
-    try {
-      const access = await accessOf(login);
-      if (WRITE_ROLES.has(access?.role_name) || WRITE_PERMISSIONS.has(access?.permission)) writers.add(login);
-    } catch {
-      // Unconfirmed access counts as none.
-    }
+    const access = await accessOf(login);
+    if (WRITE_ROLES.has(access?.role_name) || WRITE_PERMISSIONS.has(access?.permission)) writers.add(login);
   }
   return writers;
 }
 
-/** The status for one head: success once its tier's proof is recorded, pending until then. */
+// A path may hold control characters; none reaches a status or the log, where a line break could
+// start a workflow command.
+export const printable = (text) => String(text).replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, " ");
+const fit = (text, room) => (text.length <= room ? text : `${text.slice(0, Math.max(0, room - 3))}...`);
+
+/**
+ * The status for one head: success once its tier's proof is recorded, pending until then. A
+ * pending description always ends with what it waits for and the full head; the first reason is
+ * shortened to the room left. `needed` holds the marker lines that would record the missing proof.
+ */
 export function decide({ tier, reasons, markers, headSha }) {
-  const head = headSha.slice(0, MIN_SHA_PREFIX);
   const label = `${tier[0].toUpperCase()}${tier.slice(1)}`;
-  if (tier === "routine") return { state: "success", description: "Routine: CI Gate is the proof." };
-  const missing = [];
-  if (!markers.reviewed) missing.push(`merge-gate: reviewed ${head}`);
-  if (tier === "critical" && !markers.fullGate) missing.push(`merge-gate: full-gate ${head}`);
-  if (!missing.length) return { state: "success", description: `${label}: proof recorded for ${head}.` };
-  const cause = reasons.length > 1 ? `${reasons[0]} and ${reasons.length - 1} more` : reasons[0];
-  return { state: "pending", description: `${label} (${cause}). Waits for ${missing.join(" and ")}.`.slice(0, 140) };
+  if (tier === "routine") return { state: "success", description: "Routine: CI Gate is the proof.", needed: [] };
+  const missing = [!markers.reviewed && "reviewed", tier === "critical" && !markers.fullGate && "full-gate"].filter(Boolean);
+  if (!missing.length) return { state: "success", description: `${label}: proof recorded for ${headSha.slice(0, SHORT_SHA)}.`, needed: [] };
+  const waits = missing.length > 1 ? "reviewed and full-gate markers" : `a ${missing[0]} marker`;
+  const tail = `). Waits for ${waits} naming ${headSha}.`;
+  const more = reasons.length > 1 ? ` and ${reasons.length - 1} more` : "";
+  const room = DESCRIPTION_LIMIT - `${label} (`.length - more.length - tail.length;
+  return {
+    state: "pending",
+    description: `${label} (${fit(printable(reasons[0] ?? "no reason given"), room)}${more}${tail}`,
+    needed: missing.map((kind) => `merge-gate: ${kind} ${headSha}`),
+  };
 }
 
 /** The open pull requests an event concerns. `findByHead` looks a fork's pull request up by its head branch. */
@@ -270,25 +288,28 @@ export function fetchCommit(sha, { cwd = repoRoot, env = process.env } = {}) {
   execFileSync("git", ["fetch", "--quiet", "--no-tags", ...(shallow ? ["--depth=1"] : []), "origin", sha], { cwd, env, stdio: ["ignore", "ignore", "inherit"] });
 }
 
-async function github(path, { method = "GET", body, token, repository }) {
-  const response = await fetch(`https://api.github.com/repos/${repository}/${path}`, {
-    method,
-    headers: {
-      authorization: `Bearer ${token}`,
-      accept: "application/vnd.github+json",
-      "x-github-api-version": "2022-11-28",
-      ...(body ? { "content-type": "application/json" } : {}),
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  if (!response.ok) throw new Error(`${method} ${path.split("?")[0]}: HTTP ${response.status}`);
-  return response.status === 204 ? null : response.json();
+/** GitHub's REST API for one repository: `call(path, { method, body })` returns the parsed response. */
+export function githubClient({ token, repository }) {
+  return async (path, { method = "GET", body } = {}) => {
+    const response = await fetch(`https://api.github.com/repos/${repository}/${path}`, {
+      method,
+      headers: {
+        authorization: `Bearer ${token}`,
+        accept: "application/vnd.github+json",
+        "x-github-api-version": "2022-11-28",
+        ...(body ? { "content-type": "application/json" } : {}),
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    if (!response.ok) throw new Error(`${method} ${path.split("?")[0]}: HTTP ${response.status}`);
+    return response.status === 204 ? null : response.json();
+  };
 }
 
-async function paginate(path, options, limit = Number.POSITIVE_INFINITY) {
+async function paginate(github, path, limit = Number.POSITIVE_INFINITY) {
   const items = [];
   for (let page = 1; items.length < limit; page++) {
-    const batch = await github(`${path}${path.includes("?") ? "&" : "?"}per_page=100&page=${page}`, options);
+    const batch = await github(`${path}${path.includes("?") ? "&" : "?"}per_page=100&page=${page}`);
     items.push(...batch);
     if (batch.length < 100) break;
   }
@@ -296,10 +317,10 @@ async function paginate(path, options, limit = Number.POSITIVE_INFINITY) {
 }
 
 /** Deleted Shared files whose code, as the base has it, reached a mutation primitive; unreadable ones too. */
-function deletedMutationPaths(baseEntries, deletedPaths) {
+function deletedMutationPaths(baseEntries, deletedPaths, git) {
   const deleted = deletedPaths.filter((path) => /^packages\/shared\/src\/.+\.[cm]?[jt]sx?$/.test(path));
   if (!deleted.length) return { deletedMutation: [], unreadable: [] };
-  const baseRoot = materializeShared(baseEntries);
+  const baseRoot = materializeShared(baseEntries, git);
   try {
     return {
       deletedMutation: resolveMutationPaths(deleted, { cwd: baseRoot }),
@@ -310,41 +331,71 @@ function deletedMutationPaths(baseEntries, deletedPaths) {
   }
 }
 
-/** The status for one pull request's head, every read pinned to that commit. */
-async function evaluate(pull, headSha, options) {
-  const files = await paginate(`pulls/${pull.number}/files`, options, GITHUB_FILE_LIMIT);
+// The commit GitHub diffs the pull request against, so a file develop changed or removed after the
+// branch point reads as the pull request found it. Without the comparison the base tip stands in,
+// which can only make a removed path look absent, and so critical.
+async function mergeBaseOf(github, pull, headSha) {
+  try {
+    return (await github(`compare/${pull.base.sha}...${headSha}?per_page=1`)).merge_base_commit?.sha ?? pull.base.sha;
+  } catch {
+    return pull.base.sha;
+  }
+}
+
+// The selector refuses some paths outright (a test path with brackets, say). The gate needs only its
+// risk, and one it cannot read counts as critical instead of failing every run.
+function selectorRiskOf(change) {
+  try {
+    return selectValidation({ ...change, intent: "merge", ci: true }).risk;
+  } catch {
+    return "unknown";
+  }
+}
+
+// The marker comments as they stood: a run whose read went stale posts nothing.
+export const markerCommentsKey = (comments) =>
+  JSON.stringify(comments.filter(hasMarker).map((comment) => [comment.id, comment.updated_at]));
+
+/**
+ * The decision for one pull request's head, every read pinned to that commit. It also returns the
+ * reasons behind the tier, and the marker comments it read. `github` calls the repository's REST
+ * API (as `githubClient` does). `cwd` is a clone that can fetch the pull request's commits.
+ */
+export async function evaluate(pull, headSha, { github, cwd = repoRoot, env = process.env, policy = loadMergePolicy() }) {
+  const git = { cwd, env };
+  const files = await paginate(github, `pulls/${pull.number}/files`, GITHUB_FILE_LIMIT);
   const paths = [...new Set(files.flatMap((file) => (file.previous_filename ? [file.filename, file.previous_filename] : [file.filename])))];
   const deletedPaths = [...new Set(files.flatMap((file) => (file.status === "removed" ? [file.filename] : file.previous_filename ? [file.previous_filename] : [])))];
-  fetchCommit(headSha);
-  fetchCommit(pull.base.sha);
-  const entries = treeEntries(headSha);
+  const baseSha = await mergeBaseOf(github, pull, headSha);
+  fetchCommit(headSha, git);
+  fetchCommit(baseSha, git);
+  const entries = treeEntries(headSha, git);
   // A removed or renamed path is only in the base, so its mode is read there.
-  const baseEntries = treeEntries(pull.base.sha);
+  const baseEntries = treeEntries(baseSha, git);
   const modesOf = (tree) => new Map([...tree].map(([path, entry]) => [path, entry.mode]));
-  const sharedRoot = materializeShared(entries);
+  const sharedRoot = materializeShared(entries, git);
   try {
     const unreadable = paths.filter(
       (path) => path.startsWith("packages/shared/") && entries.get(path)?.type === "blob" && entries.get(path).mode !== SYMLINK_MODE && !existsSync(join(sharedRoot, path)),
     );
-    const deleted = deletedMutationPaths(baseEntries, deletedPaths);
+    const deleted = deletedMutationPaths(baseEntries, deletedPaths, git);
     const mutationPaths = resolveMutationPaths(paths, { cwd: sharedRoot });
-    const selectorRisk = selectValidation({ changedPaths: paths, deletedPaths, mutationPaths, intent: "merge", ci: true }).risk;
     const change = classifyChange({
       paths,
       modes: modesOf(entries),
       baseModes: modesOf(baseEntries),
-      selectorRisk,
-      policy: loadMergePolicy(),
+      selectorRisk: selectorRiskOf({ changedPaths: paths, deletedPaths, mutationPaths }),
+      policy,
       fork: pull.head.repo?.full_name !== pull.base.repo.full_name,
       truncated: files.length >= GITHUB_FILE_LIMIT,
       untraced: paths.filter((path) => !entries.has(path) && !baseEntries.has(path)),
       unreadable: [...unreadable, ...deleted.unreadable],
       deletedMutation: deleted.deletedMutation,
     });
-    const comments = await paginate(`issues/${pull.number}/comments`, options);
-    const accessOf = (login) => github(`collaborators/${encodeURIComponent(login)}/permission`, options);
-    const writers = await writersAmong(comments, accessOf);
-    return decide({ ...change, markers: markersFor(comments, headSha, (login) => writers.has(login)), headSha });
+    const comments = await paginate(github, `issues/${pull.number}/comments`);
+    const writers = await writersAmong(comments, (login) => github(`collaborators/${encodeURIComponent(login)}/permission`));
+    const decision = decide({ ...change, markers: markersFor(comments, headSha, (login) => writers.has(login)), headSha });
+    return { decision, reasons: change.reasons, commentsKey: markerCommentsKey(comments) };
   } finally {
     rmSync(sharedRoot, { recursive: true, force: true });
   }
@@ -352,51 +403,71 @@ async function evaluate(pull, headSha, options) {
 
 /**
  * In the workflow, decide every pull request the event concerns and post its status. With
- * `--dry-run <number>`, decide that pull request and print the decision without posting.
+ * `--dry-run <number>`, decide that pull request and print the decision without posting. `deps`
+ * stands in for GitHub, the event, the decision and the output in tests.
  */
-async function main(argv = process.argv.slice(2)) {
+export async function main(argv = process.argv.slice(2), deps = {}) {
+  const env = deps.env ?? process.env;
   const dryRun = argv[0] === "--dry-run" ? Number(argv[1]) : null;
   if (argv.length && !(dryRun > 0 && argv.length === 2)) {
     console.error("usage: node scripts/quality/merge-gate.mjs [--dry-run <pull request number>]");
     return 2;
   }
-  const options = { token: process.env.GITHUB_TOKEN, repository: process.env.GITHUB_REPOSITORY };
-  const bases = (process.env.MERGE_GATE_BASES ?? "develop").split(",").map((base) => base.trim()).filter(Boolean);
-  const runUrl = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`;
-  const findByHead = (head) => github(`pulls?state=open&head=${encodeURIComponent(head)}`, options);
+  const github = deps.github ?? githubClient({ token: env.GITHUB_TOKEN, repository: env.GITHUB_REPOSITORY });
+  const decideHead = deps.evaluate ?? evaluate;
+  const log = deps.log ?? ((line) => console.log(line));
+  const summary = deps.summary ?? ((line) => env.GITHUB_STEP_SUMMARY && appendFileSync(env.GITHUB_STEP_SUMMARY, `${line}\n`));
+  const bases = (env.MERGE_GATE_BASES ?? "develop").split(",").map((base) => base.trim()).filter(Boolean);
+  const runUrl = `${env.GITHUB_SERVER_URL}/${env.GITHUB_REPOSITORY}/actions/runs/${env.GITHUB_RUN_ID}`;
+  const findByHead = (head) => github(`pulls?state=open&head=${encodeURIComponent(head)}`);
   const numbers = dryRun
     ? [dryRun]
-    : await pullNumbers(JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, "utf8")), process.env.GITHUB_EVENT_NAME, findByHead);
+    : await pullNumbers(deps.event ?? JSON.parse(readFileSync(env.GITHUB_EVENT_PATH, "utf8")), env.GITHUB_EVENT_NAME, findByHead);
   let failed = false;
   for (const number of numbers) {
-    const pull = await github(`pulls/${number}`, options);
+    const pull = await github(`pulls/${number}`);
     if (!dryRun && (pull.state !== "open" || !bases.includes(pull.base.ref))) continue;
     // The snapshot: every read below, and the status, are for this commit only.
     const headSha = pull.head.sha;
-    let decision;
+    const head = headSha.slice(0, SHORT_SHA);
+    let outcome;
     try {
-      decision = await evaluate(pull, headSha, options);
+      outcome = await decideHead(pull, headSha, { github });
     } catch (error) {
       failed = true;
-      decision = { state: "error", description: `Could not decide, so nothing passes: ${error.message}`.slice(0, 140) };
+      const description = fit(printable(`Could not decide, so nothing passes: ${error.message}`), DESCRIPTION_LIMIT);
+      outcome = { decision: { state: "error", description, needed: [] }, reasons: [], commentsKey: null };
     }
-    // A push while the run read the pull request leaves a mixed snapshot; the run for the new head
-    // decides instead.
-    const current = await github(`pulls/${number}`, options);
+    const { decision } = outcome;
+    // A push or a marker comment written while the run read the pull request leaves a mixed
+    // snapshot; the run for the newer state decides instead.
+    const current = await github(`pulls/${number}`);
     if (current.head.sha !== headSha) {
-      console.log(`#${number}: the head moved to ${current.head.sha.slice(0, MIN_SHA_PREFIX)} while ${headSha.slice(0, MIN_SHA_PREFIX)} was read; nothing posted.`);
+      log(`#${number}: the head moved to ${current.head.sha.slice(0, SHORT_SHA)} while ${head} was read; nothing posted.`);
       continue;
     }
+    if (outcome.commentsKey !== null && markerCommentsKey(await paginate(github, `issues/${number}/comments`)) !== outcome.commentsKey) {
+      log(`#${number}: a marker comment changed while ${head} was read; nothing posted.`);
+      continue;
+    }
+    const line = `#${number} at ${head}: ${decision.state}. ${decision.description}`;
     if (!dryRun) {
+      // GitHub keeps at most 1,000 statuses for a head and context, so an unchanged decision is not
+      // posted again.
+      const latest = (await github(`commits/${headSha}/statuses?per_page=100`)).find((status) => status.context === STATUS_CONTEXT);
+      if (latest?.state === decision.state && latest?.description === decision.description) {
+        log(`${line} Unchanged, so not posted again.`);
+        continue;
+      }
       await github(`statuses/${headSha}`, {
-        ...options,
         method: "POST",
         body: { state: decision.state, context: STATUS_CONTEXT, description: decision.description, target_url: runUrl },
       });
     }
-    const line = `#${number} at ${headSha.slice(0, MIN_SHA_PREFIX)}: ${decision.state}. ${decision.description}`;
-    console.log(line);
-    if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${line}\n`);
+    log(line);
+    summary(line);
+    for (const reason of outcome.reasons) summary(`- ${printable(reason)}`);
+    for (const marker of decision.needed) summary(`- record with: \`${marker}\``);
   }
   return failed ? 2 : 0;
 }
@@ -407,7 +478,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
       process.exitCode = code;
     },
     (error) => {
-      console.error(`Merge Gate could not run: ${error.message}`);
+      console.error(`Merge Gate could not run: ${printable(error.message)}`);
       process.exitCode = 2;
     },
   );

@@ -9,10 +9,13 @@ import {
   GATE_CRITICAL_PATHS,
   classifyChange,
   decide,
+  evaluate,
   globRegex,
   highestTier,
   loadMergePolicy,
   fetchCommit,
+  main,
+  markerCommentsKey,
   markersFor,
   writersAmong,
   materializeShared,
@@ -72,22 +75,35 @@ test("whatever the gate cannot classify is critical", () => {
   for (const [input, reason] of cases) assert.deepEqual(change(input), { tier: "critical", reasons: [reason] });
 });
 
-test("only writers' visible markers naming the head count, by full SHA or a nine-character prefix", () => {
+test("only writers' visible markers naming the full head count", () => {
   const comment = (body, login = "writer") => ({ body, user: { login } });
   const canWrite = (login) => login === "writer";
   const none = { reviewed: false, fullGate: false };
   assert.deepEqual(markersFor([comment(`Review addressed.\nmerge-gate: reviewed ${HEAD}`)], HEAD, canWrite), { reviewed: true, fullGate: false });
-  assert.deepEqual(markersFor([comment(`merge-gate: full-gate ${HEAD.slice(0, 9).toUpperCase()} receipts 5/5`)], HEAD, canWrite), { reviewed: false, fullGate: true });
-  assert.deepEqual(markersFor([comment(`merge-gate: reviewed ${HEAD.slice(0, 8)}`)], HEAD, canWrite), none);
+  assert.deepEqual(markersFor([comment(`merge-gate: full-gate ${HEAD.toUpperCase()} receipts 5/5`)], HEAD, canWrite), { reviewed: false, fullGate: true });
+  // A prefix can be ground onto another commit, so none counts, however long.
+  assert.deepEqual(markersFor([comment(`merge-gate: reviewed ${HEAD.slice(0, 39)}`)], HEAD, canWrite), none);
   assert.deepEqual(markersFor([comment(`merge-gate: reviewed ${OTHER}`)], HEAD, canWrite), none);
   assert.deepEqual(markersFor([comment(`merge-gate: reviewed ${HEAD}`, "reader")], HEAD, canWrite), none);
-  const hidden = [`See merge-gate: reviewed ${HEAD}`, `> merge-gate: reviewed ${HEAD}`, `\`\`\`\nmerge-gate: reviewed ${HEAD}\n\`\`\``, `<!--\nmerge-gate: reviewed ${HEAD}\n-->`, "merge-gate: reviewed"];
+  // Hidden from a reader: quoted, in code, in an HTML comment (an unclosed one too), in a fence that
+  // a line with an info string cannot close or that lone CRs break, and after U+2028 on one line.
+  const hidden = [
+    `See merge-gate: reviewed ${HEAD}`,
+    `> merge-gate: reviewed ${HEAD}`,
+    `\`\`\`\nmerge-gate: reviewed ${HEAD}\n\`\`\``,
+    `Note\r\`\`\`\rmerge-gate: reviewed ${HEAD}\r\`\`\``,
+    `\`\`\`\n\`\`\`js\nmerge-gate: reviewed ${HEAD}`,
+    `<!--\nmerge-gate: reviewed ${HEAD}\n-->`,
+    `<!-- draft\nmerge-gate: reviewed ${HEAD}`,
+    `See\u2028merge-gate: reviewed ${HEAD}`,
+    "merge-gate: reviewed",
+  ];
   for (const body of hidden) assert.deepEqual(markersFor([comment(body)], HEAD, canWrite), none, body);
 });
 
-test("only accounts that can push write proof, and an unconfirmed account writes none", async () => {
+test("only accounts that can push write proof, and a failed access lookup fails the run", async () => {
   const marker = (login) => ({ body: `merge-gate: reviewed ${HEAD}`, user: { login } });
-  const comments = [marker("maintainer"), marker("custom-writer"), marker("member-reads"), marker("custom-reader"), marker("lookup-fails"), { body: "Thanks!", user: { login: "chatty" } }];
+  const comments = [marker("maintainer"), marker("custom-writer"), marker("member-reads"), marker("custom-reader"), { body: "Thanks!", user: { login: "chatty" } }];
   // GitHub's collaborator-permission response: a custom role keeps its base access in `permission`.
   const access = {
     maintainer: { role_name: "maintain", permission: "write" },
@@ -102,21 +118,28 @@ test("only accounts that can push write proof, and an unconfirmed account writes
     return access[login];
   };
   assert.deepEqual([...(await writersAmong(comments, accessOf))], ["maintainer", "custom-writer"]);
-  assert.deepEqual(asked, ["maintainer", "custom-writer", "member-reads", "custom-reader", "lookup-fails"]);
+  assert.deepEqual(asked, ["maintainer", "custom-writer", "member-reads", "custom-reader"]);
+  await assert.rejects(writersAmong([marker("lookup-fails")], accessOf), /HTTP 403/);
 });
 
-test("each tier waits for its own proof at the head", () => {
+test("each tier waits for its own proof at the head, and a pending description always ends with it", () => {
   const none = { reviewed: false, fullGate: false };
   assert.equal(decide({ tier: "routine", reasons: [], markers: none, headSha: HEAD }).state, "success");
-  const sensitive = decide({ tier: "sensitive", reasons: ["sensitive path a"], markers: none, headSha: HEAD });
-  assert.equal(sensitive.state, "pending");
-  assert.match(sensitive.description, /merge-gate: reviewed aaaaaaaaa/);
+  assert.deepEqual(decide({ tier: "sensitive", reasons: ["sensitive path a"], markers: none, headSha: HEAD }), {
+    state: "pending",
+    description: `Sensitive (sensitive path a). Waits for a reviewed marker naming ${HEAD}.`,
+    needed: [`merge-gate: reviewed ${HEAD}`],
+  });
   assert.equal(decide({ tier: "sensitive", reasons: [], markers: { ...none, reviewed: true }, headSha: HEAD }).state, "success");
-  const critical = decide({ tier: "critical", reasons: ["critical path a", "symlink b"], markers: { ...none, reviewed: true }, headSha: HEAD });
-  assert.equal(critical.state, "pending");
-  assert.match(critical.description, /critical path a and 1 more.*full-gate aaaaaaaaa/);
-  assert.ok(critical.description.length <= 140);
+  // A long first reason is shortened; the count of the others and what the status waits for stay.
+  const long = "critical path packages/shared/src/hooks/admin-ui/pool/useProtocolFundingOperationsController.ts";
+  const critical = decide({ tier: "critical", reasons: [long, "symlink b"], markers: none, headSha: HEAD });
+  assert.ok(critical.description.length <= 140, critical.description);
+  assert.ok(critical.description.endsWith(` and 1 more). Waits for reviewed and full-gate markers naming ${HEAD}.`), critical.description);
+  assert.deepEqual(critical.needed, [`merge-gate: reviewed ${HEAD}`, `merge-gate: full-gate ${HEAD}`]);
   assert.equal(decide({ tier: "critical", reasons: [], markers: { reviewed: true, fullGate: true }, headSha: HEAD }).state, "success");
+  // A line break in a path never reaches a status, where it could start a workflow command.
+  assert.doesNotMatch(decide({ tier: "critical", reasons: ["a\n::warning::b"], markers: none, headSha: HEAD }).description, /\n/);
 });
 
 test("events name their open pull requests, a fork's by its head branch", async () => {
@@ -189,4 +212,79 @@ test("fetching a head never turns a full clone shallow", () => {
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+test("a pull request is decided from the API and its commits: a removed link, a fork, and only writers' markers", async () => {
+  const root = mkdtempSync(path.join(tmpdir(), "gg-merge-gate-evaluate-"));
+  try {
+    const env = fixtureGitEnvironment();
+    const git = (...args) => execFileSync("git", args, { cwd: root, env, encoding: "utf8" }).trim();
+    git("init", "-q");
+    mkdirSync(path.join(root, "docs"));
+    writeFileSync(path.join(root, "docs/a.md"), "a\n");
+    symlinkSync("a.md", path.join(root, "docs/link.md"));
+    git("add", "--", "docs");
+    git("commit", "-q", "-m", "base");
+    const base = git("rev-parse", "HEAD");
+    git("rm", "-q", "--", "docs/link.md");
+    writeFileSync(path.join(root, "docs/a.md"), "b\n");
+    git("commit", "-q", "-am", "head");
+    const head = git("rev-parse", "HEAD");
+    const comments = [
+      { id: 1, updated_at: "t1", user: { login: "reader" }, body: `merge-gate: reviewed ${head}\nmerge-gate: full-gate ${head}` },
+      { id: 2, updated_at: "t2", user: { login: "writer" }, body: `merge-gate: reviewed ${head}` },
+    ];
+    const access = { writer: { role_name: "write", permission: "write" }, reader: { role_name: "read", permission: "read" } };
+    const github = async (route) => {
+      if (route.startsWith("pulls/7/files")) return [{ filename: "docs/link.md", status: "removed" }, { filename: "docs/a.md", status: "modified" }];
+      if (route.startsWith("compare/")) return { merge_base_commit: { sha: base } };
+      if (route.startsWith("issues/7/comments")) return comments;
+      const login = route.match(/^collaborators\/([^/]+)\/permission$/)?.[1];
+      if (login) return access[login];
+      throw new Error(`unexpected ${route}`);
+    };
+    const pull = (owner) => ({ number: 7, base: { sha: base, repo: { full_name: "o/r" } }, head: { sha: head, repo: { full_name: `${owner}/r` } } });
+    const options = { github, cwd: root, env, policy };
+    const removedLink = await evaluate(pull("o"), head, options);
+    assert.ok(removedLink.reasons.includes("symlink docs/link.md"), removedLink.reasons.join("; "));
+    // The reader's full-gate marker counts for nothing; the writer's reviewed marker counts.
+    assert.deepEqual(removedLink.decision.needed, [`merge-gate: full-gate ${head}`]);
+    comments.push({ id: 3, updated_at: "t3", user: { login: "writer" }, body: `merge-gate: full-gate ${head}` });
+    assert.equal((await evaluate(pull("o"), head, options)).decision.state, "success");
+    assert.ok((await evaluate(pull("fork"), head, options)).reasons.includes("a fork's pull request"));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("a run posts once for an open pull request into develop, unless its head or marker comments moved or nothing changed", async () => {
+  const open = { number: 7, state: "open", base: { ref: "develop" }, head: { sha: HEAD } };
+  const decision = { state: "pending", description: "Sensitive (x). Waits.", needed: [] };
+  const run = async ({ pulls, markerComments = [], statuses = [] }) => {
+    const posted = [];
+    let reads = 0;
+    const github = async (route, request = {}) => {
+      if (request.method === "POST") return void posted.push([route, request.body.state, request.body.context]);
+      if (route === "pulls/7") return pulls[Math.min(reads++, pulls.length - 1)];
+      if (route.startsWith("issues/7/comments")) return markerComments;
+      if (route.startsWith(`commits/${HEAD}/statuses`)) return statuses;
+      throw new Error(`unexpected ${route}`);
+    };
+    const deps = {
+      env: { GITHUB_EVENT_NAME: "issue_comment" },
+      event: { issue: { number: 7, pull_request: {} } },
+      github,
+      evaluate: async () => ({ decision, reasons: ["x"], commentsKey: markerCommentsKey([]) }),
+      log: () => {},
+      summary: () => {},
+    };
+    assert.equal(await main([], deps), 0);
+    return posted;
+  };
+  assert.deepEqual(await run({ pulls: [open] }), [[`statuses/${HEAD}`, "pending", "Merge Gate"]]);
+  assert.deepEqual(await run({ pulls: [{ ...open, base: { ref: "main" } }] }), []);
+  assert.deepEqual(await run({ pulls: [{ ...open, state: "closed" }] }), []);
+  assert.deepEqual(await run({ pulls: [open, { ...open, head: { sha: OTHER } }] }), []);
+  assert.deepEqual(await run({ pulls: [open], markerComments: [{ id: 9, updated_at: "t", user: { login: "w" }, body: `merge-gate: reviewed ${HEAD}` }] }), []);
+  assert.deepEqual(await run({ pulls: [open], statuses: [{ context: "Merge Gate", state: "pending", description: decision.description }] }), []);
 });
