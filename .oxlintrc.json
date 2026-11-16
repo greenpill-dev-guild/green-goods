@@ -6,15 +6,7 @@
     "es2021": true,
     "node": true
   },
-  "ignorePatterns": [
-    "api/**",
-    "dev-dist/**",
-    "dist/**",
-    "node_modules/**",
-    "**/*.test.ts",
-    "**/*.test.tsx",
-    "**/__tests__/**"
-  ],
+  "ignorePatterns": ["api/**", "dev-dist/**", "dist/**", "node_modules/**"],
   "rules": {
     "react/rules-of-hooks": "error",
     "react/exhaustive-deps": "warn",
@@ -62,6 +54,17 @@
     "no-duplicate-imports": "error"
   },
   "overrides": [
+    {
+      // Tests print diagnostics, pass children through render helpers, and cast mock arguments
+      // they expect to exist, where an unexpected undefined fails the test anyway. Every other
+      // rule applies to tests as it does to the code they cover.
+      "files": ["**/*.test.ts", "**/*.test.tsx", "**/__tests__/**", "tests/**"],
+      "rules": {
+        "no-console": "off",
+        "react/no-children-prop": "off",
+        "no-unsafe-optional-chaining": "off"
+      }
+    },
     {
       "files": ["packages/indexer/**/*.{ts,tsx}"],
       "rules": {

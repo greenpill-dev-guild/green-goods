@@ -80,7 +80,6 @@ const TEST_SIGNER = "0xDeaDbeefdEAdbeefdEadbEEFdeadbeEFdEaDbeeF" as Address;
 const CHAIN_ID = 11155111;
 
 function makeTestParams(overrides?: Partial<CreateListingParams>): CreateListingParams {
-  const now = Math.floor(Date.now() / 1000);
   return {
     hypercertId: 1001n,
     fractionId: 2001n,

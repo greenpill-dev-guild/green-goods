@@ -9,17 +9,8 @@
  */
 
 import { readFileSync } from "node:fs";
-import {
-  type Abi,
-  encodeAbiParameters,
-  getContract,
-  type Log,
-  parseEventLogs,
-  type PublicClient,
-  parseAbiParameters,
-  type WalletClient,
-} from "viem";
-import type { AnvilForkContext, DeploymentArtifact, TestAccountWithSigner } from "./anvil-fork";
+import { type Abi, encodeAbiParameters, type Log, parseEventLogs, parseAbiParameters } from "viem";
+import type { AnvilForkContext, TestAccountWithSigner } from "./anvil-fork";
 
 function loadAbi(relativePath: string): Abi {
   return JSON.parse(readFileSync(new URL(relativePath, import.meta.url), "utf8")) as Abi;

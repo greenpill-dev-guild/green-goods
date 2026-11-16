@@ -5,7 +5,7 @@
  * Tests the Zustand store for per-garden UI state with sessionStorage persistence.
  */
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import {
   ALL_GARDENS_KEY,
   GARDEN_STATE_STORAGE_KEY,

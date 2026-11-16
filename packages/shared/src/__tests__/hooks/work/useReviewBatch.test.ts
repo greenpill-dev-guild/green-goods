@@ -7,7 +7,12 @@
 import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useReviewBatch } from "../../../hooks/work/useReviewBatch";
-import type { Address } from "../../../types/domain";
+import {
+  type Address,
+  Confidence,
+  VerificationMethod,
+  type WorkApprovalDraft,
+} from "../../../types/domain";
 import type { OverlayWork } from "../../../modules/work/local-status-overlay";
 import type { ReviewBatchOutcome } from "../../../modules/work/review-batch";
 import type { ProvenReview } from "../../../modules/work/review-hold";
@@ -16,7 +21,6 @@ import {
   reviewBatchScope,
   useReviewBatchStore,
 } from "../../../stores/useReviewBatchStore";
-import { Confidence, VerificationMethod, type WorkApprovalDraft } from "../../../types/domain";
 import { renderHookWithProviders } from "../../test-utils/render-helpers";
 
 const { auth, batch, toasts } = vi.hoisted(() => ({

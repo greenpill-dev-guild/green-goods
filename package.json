@@ -28,7 +28,7 @@
     "check": "node scripts/dev/ci-local.js",
     "test": "node scripts/dev/test.js",
     "build": "bun run --cwd packages/contracts build && bun run --cwd packages/shared build && bun run --cwd packages/indexer build && bun run --cwd packages/client build && bun run --cwd packages/admin build",
-    "lint": "node scripts/quality/check-react-patterns.js && bun --bun run oxlint packages/client/src packages/admin/src packages/shared/src packages/indexer/src packages/agent/src packages/contracts/script --deny-warnings && bun run --cwd packages/contracts lint --check",
+    "lint": "node scripts/quality/check-react-patterns.js && bun --bun run oxlint packages/client/src packages/admin/src packages/shared/src packages/indexer/src packages/agent/src packages/contracts/script tests --deny-warnings && bun run --cwd packages/contracts lint --check",
     "format": "node scripts/dev/package-commands.mjs root format",
     "contracts": "node packages/contracts/script/cli.mjs",
     "browser": "node scripts/dev/browser.js",

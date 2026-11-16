@@ -603,7 +603,7 @@ describe("GardenDetail", () => {
     expect(
       within(dialog).getByText("Categoria: Plástico, Peso (kg): 15; Categoria: Vidro, Peso (kg): 8")
     ).toBeInTheDocument();
-    expect(within(dialog).queryByText(/\{\"category\"/)).not.toBeInTheDocument();
+    expect(within(dialog).queryByText(/\{"category"/)).not.toBeInTheDocument();
   });
 
   it("withholds detail keys absent from the historical action", () => {

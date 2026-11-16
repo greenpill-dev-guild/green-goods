@@ -180,7 +180,7 @@ describe("useSuspenseBaseLists", () => {
 
       // useSuspenseQuery rethrows on error - ErrorBoundary would catch this
       // renderHook will see the error
-      const { result } = renderHook(() => useSuspenseActions(), {
+      renderHook(() => useSuspenseActions(), {
         wrapper: createSuspenseWrapper(queryClient),
       });
 

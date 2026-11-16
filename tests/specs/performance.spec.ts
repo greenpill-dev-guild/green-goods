@@ -5,7 +5,6 @@
  */
 
 import { expect, test } from "@playwright/test";
-import { TIMEOUTS } from "../helpers/test-config";
 import { TEST_URLS } from "../helpers/test-utils";
 
 test.describe("Performance Tests", () => {
@@ -25,7 +24,7 @@ test.describe("Performance Tests", () => {
       const metrics = await page.evaluate(() => {
         return new Promise((resolve) => {
           let lcp = 0;
-          let fid = 0;
+          const fid = 0;
           let cls = 0;
 
           // LCP (Largest Contentful Paint)
@@ -102,7 +101,7 @@ test.describe("Performance Tests", () => {
       expect(criticalFailures).toHaveLength(0);
     });
 
-    test("bundles are appropriately sized", async ({ page, request }) => {
+    test("bundles are appropriately sized", async ({ request }) => {
       // Get the main page
       const response = await request.get(TEST_URLS.client);
       const html = await response.text();

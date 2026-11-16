@@ -14,8 +14,12 @@ import { useBatchWorkApproval } from "../../../hooks/work/useBatchWorkApproval";
 import type { BatchExecution } from "../../../modules/transactions/batch-types";
 import type { OverlayWork } from "../../../modules/work/local-status-overlay";
 import type { ReviewDecision } from "../../../modules/work/review-batch";
-import type { Address, WorkApprovalDraft } from "../../../types/domain";
-import { Confidence, VerificationMethod } from "../../../types/domain";
+import {
+  type Address,
+  type WorkApprovalDraft,
+  Confidence,
+  VerificationMethod,
+} from "../../../types/domain";
 import { encodeWorkApprovalData } from "../../../utils/eas/encoders";
 import { createTestQueryClient } from "../../test-utils/query-client";
 import { renderHookWithProviders } from "../../test-utils/render-helpers";
