@@ -131,7 +131,7 @@ export function selectConfirmQueueRows(input: {
   return rows.filter((row) => matchesConfirmSearch(row, search));
 }
 
-/** Whether a row answers the Hub's search: its title, its garden, or its pool's garden. */
+/** Whether a row answers Review's search: its title, its garden, or its pool's garden. */
 export function matchesConfirmSearch(
   row: Pick<ConfirmQueueProjectionRow, "title" | "gardenName" | "poolGardenName">,
   search: string

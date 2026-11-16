@@ -30,6 +30,7 @@ import {
   trackNetworkError,
 } from "../../modules/app/error-tracking";
 import { logger } from "../../modules/app/logger";
+import { refuseWithoutWallet } from "../../modules/auth/wallet-reconnect";
 import { activeGardenScope } from "../../modules/garden/active-garden";
 import {
   createDefaultJoinGardenPorts,
@@ -164,7 +165,7 @@ interface JoinGardenState {
  */
 export function useJoinGarden() {
   const { formatMessage } = useIntl();
-  const { smartAccountAddress, smartAccountClient, eoa } = useUser();
+  const { smartAccountAddress, smartAccountClient, eoa, walletRestore } = useUser();
   const walletAddress = eoa?.address;
   const primaryAddress = smartAccountAddress || walletAddress;
 
@@ -251,14 +252,17 @@ export function useJoinGarden() {
             smartAccountClient: client,
           },
           createDefaultJoinGardenPorts({
-            walletSend: ({ gardenAddress: targetGarden, chainId: targetChain }) =>
-              writeContractAsync({
+            walletSend: ({ gardenAddress: targetGarden, chainId: targetChain }) => {
+              // A wallet that has not answered is asked to reconnect before it is asked to sign.
+              if (walletRestore) refuseWithoutWallet();
+              return writeContractAsync({
                 address: targetGarden,
                 abi: GardenAccountABI,
                 functionName: "joinGarden",
                 args: [],
                 chainId: targetChain,
-              }),
+              });
+            },
             recordPending: addPendingJoin,
           })
         );
@@ -372,6 +376,7 @@ export function useJoinGarden() {
     [
       primaryAddress,
       smartAccountClient,
+      walletRestore,
       writeContractAsync,
       chainId,
       queryClient,

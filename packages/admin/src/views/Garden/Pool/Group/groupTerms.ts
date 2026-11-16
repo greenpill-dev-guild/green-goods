@@ -79,12 +79,12 @@ export function rewardText(
   if (centsAsSet !== null) return formatUsd(centsAsSet, intl.locale);
   if (price.status === "ready") {
     return intl.formatMessage(
-      { id: "cockpit.garden.pool.reward.about", defaultMessage: "about {amount}" },
+      { id: "hub.garden.pool.reward.about", defaultMessage: "about {amount}" },
       { amount: formatUsd(goodDollarWeiToUsdCents(wei, price.price), intl.locale) }
     );
   }
   return intl.formatMessage(
-    { id: "cockpit.garden.pool.reward.inGoodDollars", defaultMessage: "{amount} G$" },
+    { id: "hub.garden.pool.reward.inGoodDollars", defaultMessage: "{amount} G$" },
     { amount: formatGoodDollars(wei, intl.locale) }
   );
 }
@@ -122,14 +122,14 @@ function rewardLine(
   if (mixedAvailable) {
     const sections = [
       `${intl.formatMessage(
-        { id: "cockpit.garden.pool.reward.availableRow", defaultMessage: "{count} available" },
+        { id: "hub.garden.pool.reward.availableRow", defaultMessage: "{count} available" },
         { count: reward.available.length }
       )}: ${amountsOf(reward.available)}`,
     ];
     if (reward.taken.length > 0) {
       sections.push(
         `${intl.formatMessage(
-          { id: "cockpit.garden.pool.reward.takenRow", defaultMessage: "{count} taken" },
+          { id: "hub.garden.pool.reward.takenRow", defaultMessage: "{count} taken" },
           { count: reward.taken.length }
         )}: ${amountsOf(reward.taken)}`
       );
@@ -139,7 +139,7 @@ function rewardLine(
   if (!mixed && reward.centsAsSet !== null && set.at !== null) {
     return intl.formatMessage(
       {
-        id: "cockpit.garden.pool.group.rewardEachSet",
+        id: "hub.garden.pool.group.rewardEachSet",
         defaultMessage: "{amount} each in G$, paid once it’s kept ({goodDollars} G$, set {day})",
       },
       { amount: current, goodDollars, day: dayText(intl, set.at, set.now) }
@@ -148,7 +148,7 @@ function rewardLine(
   if (!mixed) {
     return intl.formatMessage(
       {
-        id: "cockpit.garden.pool.group.rewardEach",
+        id: "hub.garden.pool.group.rewardEach",
         defaultMessage: "{amount} each in G$, paid once it’s kept ({goodDollars} G$)",
       },
       { amount: current, goodDollars }
@@ -156,7 +156,7 @@ function rewardLine(
   }
   return intl.formatMessage(
     {
-      id: "cockpit.garden.pool.group.rewardAgreements",
+      id: "hub.garden.pool.group.rewardAgreements",
       defaultMessage: "{available} available at {amount} each in G$ · taken rewards: {taken}",
     },
     {
@@ -186,13 +186,13 @@ export function groupTerms(input: {
   const due = Number(first.dueDate ?? 0n) * 1000;
   return [
     [
-      formatMessage({ id: "cockpit.garden.pool.group.asksFor", defaultMessage: "Asks for" }),
+      formatMessage({ id: "hub.garden.pool.group.asksFor", defaultMessage: "Asks for" }),
       formatMessage(
         {
           id:
             first.direction === "OFFER"
-              ? "cockpit.garden.pool.group.poolOffers"
-              : "cockpit.garden.pool.group.poolRequests",
+              ? "hub.garden.pool.group.poolOffers"
+              : "hub.garden.pool.group.poolRequests",
           defaultMessage:
             first.direction === "OFFER" ? "{amount} · The pool offers" : "{amount} · The pool asks",
         },
@@ -200,34 +200,34 @@ export function groupTerms(input: {
       ),
     ],
     [
-      formatMessage({ id: "cockpit.garden.pool.commitment.fact.due", defaultMessage: "Due" }),
+      formatMessage({ id: "hub.garden.pool.commitment.fact.due", defaultMessage: "Due" }),
       due > 0 ? exactTime(intl, due) : "—",
     ],
     [
-      formatMessage({ id: "cockpit.garden.pool.group.reward", defaultMessage: "Reward" }),
+      formatMessage({ id: "hub.garden.pool.group.reward", defaultMessage: "Reward" }),
       rewardLine(intl, children, reward, price, { at: setAt, now }),
     ],
     [
       formatMessage({
-        id: "cockpit.garden.pool.group.claimAndConfirmers",
+        id: "hub.garden.pool.group.claimAndConfirmers",
         defaultMessage: "Claim mode · confirmers",
       }),
       `${
         first.claimMode === "APPROVAL_GATED"
           ? formatMessage({
-              id: "cockpit.garden.pool.seed.claimMode.gated",
+              id: "hub.garden.pool.seed.claimMode.gated",
               defaultMessage: "Steward-reviewed",
             })
-          : formatMessage({ id: "cockpit.garden.pool.seed.claimMode.open", defaultMessage: "Open" })
+          : formatMessage({ id: "hub.garden.pool.seed.claimMode.open", defaultMessage: "Open" })
       } · ${
         first.confirmers.length === 0
           ? formatMessage({
-              id: "cockpit.garden.pool.seed.review.ordinary",
+              id: "hub.garden.pool.seed.review.ordinary",
               defaultMessage: "Ordinary rule",
             })
           : formatMessage(
               {
-                id: "cockpit.garden.pool.seed.review.named",
+                id: "hub.garden.pool.seed.review.named",
                 defaultMessage: "Named group · {threshold} of {count}",
               },
               { threshold: first.confirmationThreshold ?? 1, count: first.confirmers.length }

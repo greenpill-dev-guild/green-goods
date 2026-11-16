@@ -88,7 +88,7 @@ describe("PersonRow", () => {
     expect(container.querySelector("img")).toBeNull();
     expect(avatar()?.querySelector("svg")).not.toBeNull();
 
-    // A photo still being looked up keeps the glyph, as in the cockpit, never an empty circle.
+    // A photo still being looked up keeps the glyph, as in the Hub, never an empty circle.
     hooks.avatar.mockReturnValue({ avatarUri: null, isLoading: true });
     rerender(<PersonRow address={person} />);
     expect(avatar()?.querySelector("svg")).not.toBeNull();

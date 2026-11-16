@@ -17,7 +17,7 @@ export interface AssetSelectorProps {
  * A radio group of shared chips, one per vault asset (DL-026): capsules at 32px
  * with a 44px finger box, the action fill with white text when selected
  * (DL-017), so the picker reads the same in the wallet sheet, the funding
- * panel, and the cockpit.
+ * panel, and the Hub.
  */
 export function AssetSelector({
   vaults,

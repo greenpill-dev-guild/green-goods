@@ -2,7 +2,7 @@
 
 How Claude (and subagents) resolve casual admin-UI defect reports to an exact DOM node, token, and fix, without making the user memorize a formal template. The companion to `prompt-contract.md`: prompt-contract is how we talk **to** AI design tools; this is how Claude reasons **about** existing rendered admin UI.
 
-> **For the user**: speak casually. "The card on Hub feels tight" is a valid input. The agent is responsible for resolving it to a canonical component and grounding the fix (see "Automatic component resolution" below).
+> **For the user**: speak casually. "The card in Review feels tight" is a valid input. The agent is responsible for resolving it to a canonical component and grounding the fix (see "Automatic component resolution" below).
 
 ## Automatic component resolution (agent behavior)
 
@@ -29,30 +29,30 @@ Narrow candidates by:
 
 | User says… | Agent filters by… |
 |------------|-------------------|
-| "on Hub" / "in Garden" / etc. | `data-workspace` on CanvasLayout root |
+| "in Review" / "in Garden" / etc. | `data-workspace` on CanvasLayout root (Review's id is `review`; "the Hub" names the whole dashboard and narrows nothing) |
 | "at the top" / "top bar" | `data-region="canvas-area-top"` |
 | "the main area" / "the content" | `data-region="main-scroll-area"` |
 | "the bottom nav" / "tabs at bottom" | `data-region="canvas-area-bottom"` |
-| "the card" | `data-component="AdminCard"` (also `HubWorkCard` / `WorkbenchCard`) + visible rect |
+| "the card" | `data-component="AdminCard"` (also `ReviewWorkCard` / `WorkbenchCard`) + visible rect |
 | "the tabs" | `data-component="AdminTabRail"` |
 | "the search" / "search bar" | `data-component="AdminSearchToolbar"` |
 | "that button" / "the CTA" | the shared button, `.gg-button` (an icon button is `.gg-icon-button`) with its `data-emphasis` and `data-size`; the nav-shell FAB is `data-component="FabButton"` |
 | "the input" / "the field" | `data-component="AdminTextField"` (+ `data-variant`) |
 | "the dropdown" / "the select" | `data-component="AdminSelect"` (form) or `AdminSortSelect` (toolbar sort pill) |
-| "the list item" / "the row" | `data-component="FactRow"` for a fact or a setting (`data-kind="fact"` or `"setting"`, DL-109; `AdminSettingRow` until DL-109's code change lands); workbench queue rows are the card grammar above |
+| "the list item" / "the row" | `data-component="FactRow"` for a fact or a setting (`data-kind="fact"` or `"setting"`, DL-109); workbench queue rows are the card grammar above |
 | "the chip" / "filter" | `data-component="AdminFilterChip"` |
 | "the progress bar" | `data-component="AdminLinearProgress"` |
 | "the modal" / "the dialog" | `data-component="AdminDialog"` |
 | "the tooltip" | `data-component="AdminTooltip"` |
 | "the badge" / "status chip" | shared `StatusBadge` (no `data-component` tag, so narrow by visible text/rect) |
-| "the toggle row" / "the setting row" | `data-component="FactRow"` with `data-kind="setting"` (`AdminSettingRow` until DL-109's code change lands) |
+| "the toggle row" / "the setting row" | `data-component="FactRow"` with `data-kind="setting"` |
 | "the choice chips" / "the option group" | `data-component="AdminChoiceGroup"` |
 | "the selectable card" | `data-component="AdminSelectableCard"` |
 | "the picker card" / "the action card" in Submit Work | a card of the shared action or garden picker: `.gg-media-card[role="option"]` inside the `role="listbox"` (DL-111; `data-component="AdminSelectableCard"` until DL-111's code change lands) |
 | "the action card" on the Actions workspace | the action's shared `WorkbenchCard` (no `data-component` tag, so narrow by its title and rect) |
 | "the inline field" | `data-component="AdminInlineField"` |
 | "the garden switcher" / "the garden pill" | `data-component="GardenChip"` (shared 36px pill in the AppBar) |
-| "the work card" | `data-component="HubWorkCard"` |
+| "the work card" | `data-component="ReviewWorkCard"` |
 
 ### Tier 2: Static grep (authenticated Brave access unavailable, or page not open)
 
@@ -66,7 +66,7 @@ Use the casual-term mapping above, narrow to the workspace directory, and cross-
 
 If Tier 1 + 2 do not narrow to a single candidate, ask in terms the user recognizes:
 
-> "On `/hub`, is this the `AdminCard` in WorkSubmissions, or the `GardenCommunityCard` on the same view?"
+> "On `/review`, is this the `AdminCard` in WorkSubmissions, or the `GardenCommunityCard` on the same view?"
 
 Never ask the user to formalize their report in the grammar. That is the agent's job.
 
@@ -103,7 +103,7 @@ The left column is what the user says. The right column is the internal statemen
 
 | User says | Agent's internal statement |
 |-----------|----------------------------|
-| "The card on Hub feels tight." | `AdminCard in /hub WorkSubmissions → spacing: expected p-4 (16px), AdminCard's default padding, currently p-3 (12px)` |
+| "The card in Review feels tight." | `AdminCard in /review WorkSubmissions → spacing: expected p-4 (16px), AdminCard's default padding, currently p-3 (12px)` |
 | "The top bar on Garden feels detached from the page." | `canvas-area-top in /garden → hierarchy: AppBar reads detached from the canvas (expected: transparent root over the --tone-surface-tint-color wash); check the wash gradient and sticky-header transparency` |
 | "The tabs on Community snap weirdly." | `AdminTabRail in /community → motion: hover/active text transition hardcodes ease-out 200ms instead of --spring-effects-fast (each cell draws its own underline: there is no sliding indicator to animate)` |
 | "The input label looks wrong at phone width." | `AdminTextField in AdminDialog create-garden form → responsive: the label above the box wraps to two lines below 400px container width, so its box sits lower than the field beside it` |

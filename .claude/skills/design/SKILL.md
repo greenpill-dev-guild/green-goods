@@ -1,7 +1,7 @@
 ---
 name: design
 user-invocable: false
-description: "Green Goods design direction: the Warm Earth design language (shape, motion, color, material tokens), admin cockpit vs client PWA surface identities, paradigm selection, layout composition, AI design-tool prompt contracts, and design review lenses. Use for design direction, visual language decisions, what paradigm or material a view should use, new views or components, UI polish passes, and preparing prompts for AI design tools."
+description: "Green Goods design direction: the Warm Earth design language (shape, motion, color, material tokens), Hub vs client PWA surface identities, paradigm selection, layout composition, AI design-tool prompt contracts, and design review lenses. Use for design direction, visual language decisions, what paradigm or material a view should use, new views or components, UI polish passes, and preparing prompts for AI design tools."
 token_version: "2.34.0"
 ---
 
@@ -113,7 +113,7 @@ Choose one paradigm per surface. Mix across a view.
 
 ### Material Metaphors
 
-Pick a material that carries the entire surface. A metaphor sets the visual language, never translucency: every rendered surface is solid, and the cockpit's nav dock is the one translucent piece (DL-108).
+Pick a material that carries the entire surface. A metaphor sets the visual language, never translucency: every rendered surface is solid, and the Hub's nav dock is the one translucent piece (DL-108).
 
 | Material | Visual Language | Best For |
 |----------|----------------|----------|
@@ -124,9 +124,9 @@ Pick a material that carries the entire surface. A metaphor sets the visual lang
 
 Then enforce it: every element speaks the same material language.
 
-### Admin Cockpit Carve-Out
+### Hub Carve-Out
 
-For `packages/admin` and steward dashboards, do not treat the Warm Earth language as permission to make the cockpit theatrical. The cockpit inherits warmth and concentric geometry from the design language, but expresses them through restraint: solid surfaces, quiet workspace tint, utility copy. See [prompt-contract.md](./prompt-contract.md) for the stable admin brief.
+For `packages/admin` and steward dashboards, do not treat the Warm Earth language as permission to make the Hub theatrical. The Hub inherits warmth and concentric geometry from the design language, but expresses them through restraint: solid surfaces, quiet workspace tint, utility copy. See [prompt-contract.md](./prompt-contract.md) for the stable admin brief.
 
 - Default to **Command Surface** with restrained material, strong typography, and calm workspace hierarchy.
 - Use subtle atmosphere and tint, not decorative spectacle.
@@ -168,7 +168,7 @@ If a platform-specific quirk really is worth recording (e.g. a one-line tip abou
 10. **Generic AI slop**: Inter + purple gradient + white bg + predictable grid = forgettable.
 11. **Sharp corners at scale**: Squircles for panes. Sharp only for inline text elements.
 12. **Motion without meaning**: Every animation communicates state change, not decoration.
-13. **Client styling in the cockpit**: Do not import landing-page or public-brand composition rules into steward surfaces.
+13. **Client styling in the Hub**: Do not import landing-page or public-brand composition rules into steward surfaces.
 
 ---
 
@@ -186,7 +186,7 @@ What kind of design work?
 │
 ├─► New component?
 │   ├── What Z-layer? (ground / surface / floating / overlay) → surfaces.md
-│   ├── Solid surface? (only the cockpit's nav dock is translucent) → surfaces.md
+│   ├── Solid surface? (only the Hub's nav dock is translucent) → surfaces.md
 │   ├── Interactive? (hit targets ≥ 44px, keyboard reachable) → surfaces.md
 │   └── Run review-checklist.md § Lens 2 (Spatial Readiness)
 │

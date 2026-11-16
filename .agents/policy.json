@@ -1,0 +1,166 @@
+{
+  "version": 1,
+  "commands": [
+    {
+      "id": "bun-test",
+      "pattern": "^(\\S*/)?bun test( |$)",
+      "action": "block",
+      "message": "Use `bun run test` instead of `bun test`; Green Goods relies on the Vitest wrapper."
+    },
+    {
+      "id": "forge-direct",
+      "pattern": "^(\\S*/)?forge (build|test)( |$)",
+      "action": "ask",
+      "message": "Use Green Goods bun wrappers instead of direct forge build/test commands."
+    },
+    {
+      "id": "vercel-prod",
+      "pattern": "^(\\S*/)?vercel( \\S+)* --prod( |$)",
+      "action": "ask",
+      "message": "PRODUCTION DEPLOYMENT: requires explicit out-of-band confirmation before proceeding."
+    },
+    {
+      "id": "fly-deploy",
+      "pattern": "^(\\S*/)?fly deploy( |$)",
+      "action": "ask",
+      "message": "PRODUCTION DEPLOYMENT: requires explicit out-of-band confirmation before proceeding."
+    },
+    {
+      "id": "mainnet-deploy",
+      "pattern": "^(\\S*/)?((bun|npm|pnpm)( run)?|node|bash|sh) (\\S*[/:._-])?(deploy|upgrade)(?=[/:._ -]|$).*(^|[ /:=._-])mainnet([/:._ -]|$)",
+      "action": "ask",
+      "message": "PRODUCTION DEPLOYMENT: requires explicit out-of-band confirmation before proceeding."
+    },
+    {
+      "id": "mainnet-contracts",
+      "pattern": "^(\\S*/)?(bun|npm|pnpm) run contracts(?=.* (deploy|upgrade)( |$))(?=.*[ /:=._-]mainnet([/:._ -]|$))",
+      "action": "ask",
+      "message": "PRODUCTION DEPLOYMENT: requires explicit out-of-band confirmation before proceeding."
+    },
+    {
+      "id": "production-broadcast",
+      "pattern": "^(?=(\\S*/)?(bun|npm|pnpm|node|bash|sh|tsx)(?= |$))(?!.* (--help|-h|--explain)( |$))(?!.* contracts( --)? help( |$))(?:(?=.* contracts( --)? release operator( |$))|(?=(\\S*/)?(bun|node|tsx)( run)? (\\S*/)?release-operator\\.(ts|mjs|js)( |$))|(?=.* (--mode(=| )(broadcast(-\\S+)?|sign-safe)(?= |$)(?!.* --mode(=| ))|--broadcast(-\\S+)?|--sign-safe|-b)( |$))(?:(?=.* (--network(=| )|-n )(mainnet|arbitrum|celo|gnosis)(?= |$)(?!.* (--network(=| )|-n )))|(?=.* (contracts|(\\S*/)?script/\\S+\\.(ts|mjs|js))( |$))(?:(?=.* --(rpc-url|chain-id)(=| |$))|(?!.* (--network(=| )|-n )(localhost|sepolia)(?= |$)(?!.* (--network(=| )|-n ))))))",
+      "action": "ask",
+      "message": "PRODUCTION DEPLOYMENT: requires explicit out-of-band confirmation before proceeding."
+    }
+  ],
+  "paths": [
+    {
+      "id": "package-env",
+      "glob": "packages/*/.env*",
+      "action": "block",
+      "message": "Package-level .env files are not allowed. Use the root .env only."
+    },
+    {
+      "id": "client-hooks",
+      "glob": "packages/client/src/hooks/**",
+      "action": "block",
+      "message": "All hooks must be in packages/shared/src/hooks/."
+    },
+    {
+      "id": "admin-hooks",
+      "glob": "packages/admin/src/hooks/**",
+      "action": "block",
+      "message": "All hooks must be in packages/shared/src/hooks/."
+    },
+    {
+      "id": "critical-contracts",
+      "glob": "packages/contracts/src/**",
+      "action": "notice",
+      "message": "Critical surface: read every touched line, verify access control, storage layout, external calls and invariants, and run the contracts-security reviewer flow before merge. Log-only failure handling is not acceptable here."
+    },
+    {
+      "id": "critical-auth-provider",
+      "glob": "packages/shared/src/providers/Auth.tsx",
+      "action": "notice",
+      "message": "Critical surface (shared auth, queue or mutation path): read every touched line, keep failure states explicit to the caller or UI, and keep retries and replays coherent. Log-only catch blocks are not acceptable here."
+    },
+    {
+      "id": "critical-job-queue-provider",
+      "glob": "packages/shared/src/providers/JobQueue.tsx",
+      "action": "notice",
+      "message": "Critical surface (shared auth, queue or mutation path): read every touched line, keep failure states explicit to the caller or UI, and keep retries and replays coherent. Log-only catch blocks are not acceptable here."
+    },
+    {
+      "id": "critical-work-provider",
+      "glob": "packages/shared/src/providers/Work.tsx",
+      "action": "notice",
+      "message": "Critical surface (shared auth, queue or mutation path): read every touched line, keep failure states explicit to the caller or UI, and keep retries and replays coherent. Log-only catch blocks are not acceptable here."
+    },
+    {
+      "id": "critical-job-queue",
+      "glob": "packages/shared/src/modules/job-queue/**",
+      "action": "notice",
+      "message": "Critical surface (shared auth, queue or mutation path): read every touched line, keep failure states explicit to the caller or UI, and keep retries and replays coherent. Log-only catch blocks are not acceptable here."
+    },
+    {
+      "id": "critical-auth-hooks",
+      "glob": "packages/shared/src/hooks/auth/**",
+      "action": "notice",
+      "message": "Critical surface (shared auth, queue or mutation path): read every touched line, keep failure states explicit to the caller or UI, and keep retries and replays coherent. Log-only catch blocks are not acceptable here."
+    },
+    {
+      "id": "critical-work-hooks",
+      "glob": "packages/shared/src/hooks/work/**",
+      "action": "notice",
+      "message": "Critical surface (shared auth, queue or mutation path): read every touched line, keep failure states explicit to the caller or UI, and keep retries and replays coherent. Log-only catch blocks are not acceptable here."
+    },
+    {
+      "id": "critical-vault-hooks",
+      "glob": "packages/shared/src/hooks/vault/**",
+      "action": "notice",
+      "message": "Critical surface (shared auth, queue or mutation path): read every touched line, keep failure states explicit to the caller or UI, and keep retries and replays coherent. Log-only catch blocks are not acceptable here."
+    },
+    {
+      "id": "critical-blockchain-hooks",
+      "glob": "packages/shared/src/hooks/blockchain/**",
+      "action": "notice",
+      "message": "Critical surface (shared auth, queue or mutation path): read every touched line, keep failure states explicit to the caller or UI, and keep retries and replays coherent. Log-only catch blocks are not acceptable here."
+    },
+    {
+      "id": "config-manifests",
+      "glob": "**/package.json",
+      "action": "notice",
+      "message": "Dependency manifest: keep scope tight, install or upgrade nothing without approval, and call out validation explicitly."
+    },
+    {
+      "id": "config-lockfile",
+      "glob": "**/bun.lock",
+      "action": "notice",
+      "message": "Lockfile: preserve it and the release-age gate; call out validation explicitly."
+    },
+    {
+      "id": "config-workflows",
+      "glob": ".github/workflows/**",
+      "action": "notice",
+      "message": "CI workflow: keep scope tight, never weaken a check as a workaround, and call out validation explicitly."
+    },
+    {
+      "id": "config-codex",
+      "glob": ".codex/**",
+      "action": "notice",
+      "message": "Agent harness configuration: keep scope tight, never weaken a check as a workaround, and call out validation explicitly."
+    },
+    {
+      "id": "config-claude",
+      "glob": ".claude/**",
+      "action": "notice",
+      "message": "Agent harness configuration: keep scope tight, never weaken a check as a workaround, and call out validation explicitly."
+    },
+    {
+      "id": "config-agents",
+      "glob": ".agents/**",
+      "action": "notice",
+      "message": "Agent harness configuration: keep scope tight, never weaken a check as a workaround, and call out validation explicitly."
+    }
+  ],
+  "proof": {
+    "commands": [
+      "^node scripts/dev/ci-local\\.js\\b",
+      "^node scripts/quality/[\\w.-]+\\.m?js\\b",
+      "^bash scripts/(quality|contracts)/check-[\\w.-]+\\.sh\\b",
+      "^bun run (contracts|indexer|agent|client|admin|shared|docs|qa) (test|build|lint|typecheck|check)[\\w:-]*\\b",
+      "^bun run --cwd \\S+ (test|build|lint|typecheck)\\b"
+    ]
+  }
+}

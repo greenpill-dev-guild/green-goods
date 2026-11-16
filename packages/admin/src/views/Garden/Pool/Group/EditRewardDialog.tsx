@@ -121,14 +121,14 @@ export function EditRewardDialog({
     ? null
     : !settlementActive
       ? formatMessage({
-          id: "cockpit.garden.pool.reward.needsSettlement",
+          id: "hub.garden.pool.reward.needsSettlement",
           defaultMessage:
             "A reward is paid through this garden's settlement account, which isn't active.",
         })
       : (unavailable ??
         (unchanged
           ? formatMessage({
-              id: "cockpit.garden.pool.reward.unchanged",
+              id: "hub.garden.pool.reward.unchanged",
               defaultMessage: "Type the new amount to change the reward.",
             })
           : null));
@@ -140,7 +140,7 @@ export function EditRewardDialog({
     if (outcome === "blocked") {
       setError(
         formatMessage({
-          id: "cockpit.garden.pool.reward.blocked",
+          id: "hub.garden.pool.reward.blocked",
           defaultMessage: "Nothing could be sent from here. Check your wallet, then try again.",
         })
       );
@@ -199,7 +199,7 @@ export function EditRewardDialog({
   const note =
     status.phase === "asking"
       ? formatMessage({
-          id: "cockpit.garden.pool.seed.note.waiting",
+          id: "hub.garden.pool.seed.note.waiting",
           defaultMessage: "The dialog stays open until your wallet answers.",
         })
       : status.busy
@@ -209,7 +209,7 @@ export function EditRewardDialog({
           (reward.mode === "one-by-one"
             ? formatMessage(
                 {
-                  id: "cockpit.garden.pool.seed.note.oneByOne",
+                  id: "hub.garden.pool.seed.note.oneByOne",
                   defaultMessage:
                     "{count, plural, one {Your wallet will ask you once.} =2 {Your wallet will ask you twice, one after the other.} other {Your wallet will ask you # times, one after another.}}",
                 },
@@ -218,7 +218,7 @@ export function EditRewardDialog({
             : count <= PER_APPROVAL
               ? formatMessage(
                   {
-                    id: "cockpit.garden.pool.seed.note.bundle",
+                    id: "hub.garden.pool.seed.note.bundle",
                     defaultMessage:
                       "{count, plural, one {Your wallet will ask you once.} other {Your wallet will ask you once, for all #.}}",
                   },
@@ -226,7 +226,7 @@ export function EditRewardDialog({
                 )
               : formatMessage(
                   {
-                    id: "cockpit.garden.pool.reward.note.bundles",
+                    id: "hub.garden.pool.reward.note.bundles",
                     defaultMessage: "Your wallet will ask you {requests} times, once for every 50.",
                   },
                   { requests: Math.ceil(count / PER_APPROVAL) }
@@ -267,7 +267,7 @@ export function EditRewardDialog({
               disabled={status.busy}
             >
               {formatMessage({
-                id: "cockpit.garden.pool.reward.remove",
+                id: "hub.garden.pool.reward.remove",
                 defaultMessage: "Remove Reward",
               })}
             </Button>
@@ -287,18 +287,18 @@ export function EditRewardDialog({
               ? status.phase === "partial"
                 ? formatMessage(
                     {
-                      id: "cockpit.garden.pool.seed.tryAgainCount",
+                      id: "hub.garden.pool.seed.tryAgainCount",
                       defaultMessage: "Try Again ({count})",
                     },
                     { count }
                   )
                 : formatMessage({
-                    id: "cockpit.garden.pool.setup.retry",
+                    id: "hub.garden.pool.setup.retry",
                     defaultMessage: "Try Again",
                   })
               : formatMessage(
                   {
-                    id: "cockpit.garden.pool.reward.change",
+                    id: "hub.garden.pool.reward.change",
                     defaultMessage: "{count, plural, one {Change Reward} other {Change # Rewards}}",
                   },
                   { count }
@@ -318,7 +318,7 @@ export function EditRewardDialog({
       tone="garden"
       preventClose={status.busy}
       title={formatMessage({
-        id: "cockpit.garden.pool.reward.title",
+        id: "hub.garden.pool.reward.title",
         defaultMessage: "Edit Reward",
       })}
       target={
@@ -347,13 +347,13 @@ export function EditRewardDialog({
         >
           <AdminCardTitle as="h4" id={`${fieldsetId}-title`}>
             {formatMessage({
-              id: "cockpit.garden.pool.reward.newReward",
+              id: "hub.garden.pool.reward.newReward",
               defaultMessage: "New reward",
             })}
           </AdminCardTitle>
           <AdminTextField
             label={formatMessage({
-              id: "cockpit.garden.pool.seed.rewardAmountUsd",
+              id: "hub.garden.pool.seed.rewardAmountUsd",
               defaultMessage: "Amount for each (USD)",
             })}
             value={amountText}
@@ -364,7 +364,7 @@ export function EditRewardDialog({
               (newCents !== null && price.state.status === "ready"
                 ? formatMessage(
                     {
-                      id: "cockpit.garden.pool.reward.estimate",
+                      id: "hub.garden.pool.reward.estimate",
                       defaultMessage: "About {amount} G$ at today's rate, fixed when you save.",
                     },
                     {
@@ -375,14 +375,14 @@ export function EditRewardDialog({
                     }
                   )
                 : formatMessage({
-                    id: "cockpit.garden.pool.reward.rate",
+                    id: "hub.garden.pool.reward.rate",
                     defaultMessage: "Paid in G$ at today's rate, fixed when you save.",
                   }))
             }
             error={
               amountText.trim() !== "" && newCents === null
                 ? formatMessage({
-                    id: "cockpit.garden.pool.seed.error.considerationUsd",
+                    id: "hub.garden.pool.seed.error.considerationUsd",
                     defaultMessage: "Enter an amount in dollars above zero, like 5.00.",
                   })
                 : undefined

@@ -348,7 +348,7 @@ export function CampaignCookieJarCreateWorkspace({
     preventRouteChange: createJar.isPending,
   });
   const title = formatMessage({
-    id: "cockpit.community.cookies.dialogTitle",
+    id: "hub.community.cookies.dialogTitle",
     defaultMessage: "Create Cookie Jar",
   });
   const form: CampaignCookieJarCreateFormProps = {
@@ -457,7 +457,7 @@ export function CampaignCookieJarCreateWorkspace({
               isLast={stepIndex === steps.length - 1}
               phase={phase}
               sendLabel={formatMessage({
-                id: "cockpit.community.cookies.create",
+                id: "hub.community.cookies.create",
                 defaultMessage: "Create Cookie Jar",
               })}
               note={<SingleSendNote phase={phase} />}
@@ -468,7 +468,7 @@ export function CampaignCookieJarCreateWorkspace({
                 createdJarAddress
                   ? {
                       label: formatMessage({
-                        id: "cockpit.community.cookies.createAnother",
+                        id: "hub.community.cookies.createAnother",
                         defaultMessage: "Create Another",
                       }),
                       onClick: startAnother,

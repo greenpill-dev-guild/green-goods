@@ -3,7 +3,7 @@
  * pool stands, whether the pool's steward may accept it, and whether a
  * proposed return or a raised allowance stays inside the issuer's terms. The
  * acceptance checks mirror what `acceptServiceClaim` enforces on chain, so the
- * cockpit never offers an Accept the contract would refuse.
+ * Hub never offers an Accept the contract would refuse.
  */
 
 import { describe, expect, it } from "vitest";

@@ -174,7 +174,7 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
     !preOpen && !finished ? (
       <PoolStatsCard
         label={formatMessage({
-          id: "cockpit.garden.pool.summary.label",
+          id: "hub.garden.pool.summary.label",
           defaultMessage: "What needs you",
         })}
         stats={[
@@ -182,7 +182,7 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
             id: "claims",
             count: model.counts.claimsWaiting,
             label: formatMessage({
-              id: "cockpit.garden.pool.summary.waiting",
+              id: "hub.garden.pool.summary.waiting",
               defaultMessage: "To review",
             }),
             onOpen: () => jumpTo("pool-claims"),
@@ -191,7 +191,7 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
             id: "recovery",
             count: withVoucherRecovery(model, pool.commitments, vouchers).counts.needsRecovery,
             label: formatMessage({
-              id: "cockpit.garden.pool.summary.recovery",
+              id: "hub.garden.pool.summary.recovery",
               defaultMessage: "Needs recovery",
             }),
             onOpen: () => openFocus("recovery"),
@@ -200,7 +200,7 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
             id: "pastDue",
             count: model.counts.pastDue,
             label: formatMessage({
-              id: "cockpit.garden.pool.summary.pastDue",
+              id: "hub.garden.pool.summary.pastDue",
               defaultMessage: "Past due",
             }),
             onOpen: () => openFocus("pastDue"),
@@ -216,7 +216,7 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
         {vouchers.snapshot.status === "unavailable" && pool.chainId === 42161 ? (
           <Alert variant="warning">
             {formatMessage({
-              id: "cockpit.garden.pool.voucher.live.indexerUnavailable",
+              id: "hub.garden.pool.voucher.live.indexerUnavailable",
               defaultMessage:
                 "Voucher bookings could not be loaded. The indexer may still be catching up. Refresh before approving or accepting a booking.",
             })}
@@ -227,7 +227,7 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
         pool.chainId === 42161 ? (
           <Alert variant="warning">
             {formatMessage({
-              id: "cockpit.garden.pool.voucher.live.partial",
+              id: "hub.garden.pool.voucher.live.partial",
               defaultMessage:
                 "Voucher discovery is incomplete. Some bookings may be missing while cross-chain messages or the indexer catch up.",
             })}

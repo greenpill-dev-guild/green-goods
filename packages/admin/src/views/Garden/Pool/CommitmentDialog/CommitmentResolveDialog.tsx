@@ -44,36 +44,36 @@ export function CommitmentResolveDialog({
       tone={tone}
       target={target}
       title={formatMessage({
-        id: "cockpit.garden.pool.commitment.resolve.title",
+        id: "hub.garden.pool.commitment.resolve.title",
         defaultMessage: "Resolve the Dispute",
       })}
       description={
         can.resolveFulfilled
           ? formatMessage({
-              id: "cockpit.garden.pool.commitment.resolve.description",
+              id: "hub.garden.pool.commitment.resolve.description",
               defaultMessage: "Every outcome records its reason in the member’s timeline.",
             })
           : formatMessage({
-              id: "cockpit.garden.pool.commitment.resolve.descriptionNoFulfilled",
+              id: "hub.garden.pool.commitment.resolve.descriptionNoFulfilled",
               defaultMessage:
                 "You can’t mark this kept: nobody confirms their own work, and a record that had expired can’t be kept. A steward who isn’t on it may. Every outcome records its reason.",
             })
       }
       confirmLabel={formatMessage({
-        id: "cockpit.garden.pool.commitment.resolve.confirm",
+        id: "hub.garden.pool.commitment.resolve.confirm",
         defaultMessage: "Resolve",
       })}
       suggestions={[
         formatMessage({
-          id: "cockpit.garden.pool.commitment.resolve.suggestion.gathering",
+          id: "hub.garden.pool.commitment.resolve.suggestion.gathering",
           defaultMessage: "Resolved at the gathering",
         }),
         formatMessage({
-          id: "cockpit.garden.pool.commitment.resolve.suggestion.completed",
+          id: "hub.garden.pool.commitment.resolve.suggestion.completed",
           defaultMessage: "Work completed since",
         }),
         formatMessage({
-          id: "cockpit.garden.pool.commitment.resolve.suggestion.release",
+          id: "hub.garden.pool.commitment.resolve.suggestion.release",
           defaultMessage: "Agreed to release it",
         }),
       ]}
@@ -85,7 +85,7 @@ export function CommitmentResolveDialog({
     >
       <AdminChoiceGroup
         ariaLabel={formatMessage({
-          id: "cockpit.garden.pool.commitment.resolve.outcome",
+          id: "hub.garden.pool.commitment.resolve.outcome",
           defaultMessage: "Outcome",
         })}
         value={resolution}
@@ -94,11 +94,11 @@ export function CommitmentResolveDialog({
           {
             value: "RESTORE_PREVIOUS",
             label: formatMessage({
-              id: "cockpit.garden.pool.commitment.resolve.restore",
+              id: "hub.garden.pool.commitment.resolve.restore",
               defaultMessage: "Restore Previous State",
             }),
             description: formatMessage({
-              id: "cockpit.garden.pool.commitment.resolve.restoreHint",
+              id: "hub.garden.pool.commitment.resolve.restoreHint",
               defaultMessage: "Returns the exact stored state, no unit movement",
             }),
           },
@@ -107,11 +107,11 @@ export function CommitmentResolveDialog({
                 {
                   value: "FULFILLED",
                   label: formatMessage({
-                    id: "cockpit.garden.pool.commitment.resolve.fulfilled",
+                    id: "hub.garden.pool.commitment.resolve.fulfilled",
                     defaultMessage: "Kept",
                   }),
                   description: formatMessage({
-                    id: "cockpit.garden.pool.commitment.resolve.fulfilledHint",
+                    id: "hub.garden.pool.commitment.resolve.fulfilledHint",
                     defaultMessage: "Counts as confirmed; the team is frozen",
                   }),
                 },
@@ -120,14 +120,14 @@ export function CommitmentResolveDialog({
           {
             value: "CANCELLED",
             label: formatMessage({
-              id: "cockpit.garden.pool.commitment.resolve.cancelled",
+              id: "hub.garden.pool.commitment.resolve.cancelled",
               defaultMessage: "Canceled",
             }),
           },
           {
             value: "EXPIRED",
             label: formatMessage({
-              id: "cockpit.garden.pool.commitment.resolve.expired",
+              id: "hub.garden.pool.commitment.resolve.expired",
               defaultMessage: "Expired",
             }),
           },

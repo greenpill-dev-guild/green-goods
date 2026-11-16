@@ -1,4 +1,5 @@
 import { createLogger } from "../logger";
+import { captureAgentException } from "../sentry";
 import { readControl } from "./controls";
 import { inTransaction } from "./database";
 import { decryptConversationChat } from "./identity-store";
@@ -342,24 +343,48 @@ function recordSendResult(
   });
 }
 
-/** A failed delivery waits for its next attempt, or ends once it is terminal or exhausted. */
+/**
+ * A failed delivery waits for its next attempt, or ends once it is terminal or exhausted. Moving
+ * into a wait leaves a warning; moving into the end leaves an error and an error event, since the
+ * message never reaches the chat. A provider can repeat a failed status for one attempt, and a
+ * repeat that leaves the state as it was records nothing, so it cannot flood the error tracker.
+ * Only the reply's kind, the error code and the attempt count are recorded.
+ */
 export function endOrRetry(
   core: ReportingCore,
   outboxId: string,
   input: { terminal: boolean; code: string; next: number; now: number }
 ): void {
+  const state = input.terminal ? "terminal_failed" : "retry_wait";
+  const before = core.db
+    .query("SELECT state, reply_kind, attempts FROM delivery_outbox WHERE id = $id")
+    .get({ id: outboxId }) as { state: string; reply_kind: string; attempts: number } | null;
   core.db
     .query(
       `UPDATE delivery_outbox SET state = $state, last_error_code = $code, next_attempt_at = $next, updated_at = $now
        WHERE id = $id`
     )
-    .run({
-      id: outboxId,
-      state: input.terminal ? "terminal_failed" : "retry_wait",
-      code: input.code,
-      next: input.next,
-      now: input.now,
-    });
+    .run({ id: outboxId, state, code: input.code, next: input.next, now: input.now });
+  if (!before || before.state === state) return;
+  const fields = {
+    replyKind: before.reply_kind,
+    errorCode: input.code,
+    attempt: before.attempts,
+    maxAttempts: core.settings.maxOutboxAttempts,
+  };
+  if (!input.terminal) {
+    log.warn(
+      { ...fields, retryInMs: input.next - input.now },
+      "Chat message not delivered; trying again"
+    );
+    return;
+  }
+  log.error(fields, "Chat message could not be delivered");
+  captureAgentException(new Error("Chat message could not be delivered"), {
+    source: "reporting.outbox",
+    surface: "reporting",
+    metadata: fields,
+  });
 }
 
 /** A crash between claim and result leaves `dispatching`; treat it as uncertain and retry later. */

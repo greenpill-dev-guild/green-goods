@@ -77,7 +77,7 @@ export interface GardenCommitmentController {
   takeUpOpen: boolean;
   /**
    * Nobody took it up and the chain's clock is known to be past its due date, so anyone may
-   * expire it; the app says so, and expiring stays the cockpit's act (DL-110 as amended).
+   * expire it; the app says so, and expiring stays the Hub's act (DL-110 as amended).
    */
   pastDue: boolean;
   /**

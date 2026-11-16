@@ -134,8 +134,8 @@ vi.mock("@green-goods/shared/hooks/blockchain/useErc20Balance", () => ({
   }),
 }));
 
-import { CookieJarDepositModal } from "@/views/Hub/components/CookieJarDepositModal";
-import { CookieJarWithdrawModal } from "@/views/Hub/components/CookieJarWithdrawModal";
+import { CookieJarDepositModal } from "@/views/Review/components/CookieJarDepositModal";
+import { CookieJarWithdrawModal } from "@/views/Review/components/CookieJarWithdrawModal";
 
 describe("CookieJar payout modals", () => {
   beforeEach(() => {

@@ -26,7 +26,7 @@ export function CommitmentSettlementDisbursements({
   target,
 }: {
   settlement: CommitmentSettlementController;
-  tone: "garden" | "hub" | "community";
+  tone: "garden" | "review" | "community";
   target?: ReactNode;
 }) {
   const intl = useIntl();
@@ -46,7 +46,7 @@ export function CommitmentSettlementDisbursements({
     // The panel's status line says whether it landed or is waiting on a Safe.
     toastService.success({
       title: formatMessage({
-        id: "cockpit.garden.pool.settlement.toast.sent",
+        id: "hub.garden.pool.settlement.toast.sent",
         defaultMessage: "Settlement step sent",
       }),
       message: `${idLabel(disbursementId)} · ${hash.slice(0, 10)}…`,
@@ -67,7 +67,7 @@ export function CommitmentSettlementDisbursements({
             onClick={() => setOpen({ act: "dispatch", disbursementId: id })}
           >
             {formatMessage({
-              id: "cockpit.garden.pool.settlement.act.dispatch",
+              id: "hub.garden.pool.settlement.act.dispatch",
               defaultMessage: "Dispatch…",
             })}
           </Button>
@@ -81,7 +81,7 @@ export function CommitmentSettlementDisbursements({
             onClick={() => setOpen({ act: "retry", disbursementId: id })}
           >
             {formatMessage({
-              id: "cockpit.garden.pool.settlement.act.retry",
+              id: "hub.garden.pool.settlement.act.retry",
               defaultMessage: "Resend…",
             })}
           </Button>
@@ -95,7 +95,7 @@ export function CommitmentSettlementDisbursements({
             onClick={() => setOpen({ act: "requeue", disbursementId: id })}
           >
             {formatMessage({
-              id: "cockpit.garden.pool.settlement.act.requeue",
+              id: "hub.garden.pool.settlement.act.requeue",
               defaultMessage: "Requeue…",
             })}
           </Button>
@@ -109,7 +109,7 @@ export function CommitmentSettlementDisbursements({
             onClick={() => setOpen({ act: "cancel", disbursementId: id })}
           >
             {formatMessage({
-              id: "cockpit.garden.pool.settlement.act.cancel",
+              id: "hub.garden.pool.settlement.act.cancel",
               defaultMessage: "Cancel…",
             })}
           </Button>
@@ -126,7 +126,7 @@ export function CommitmentSettlementDisbursements({
     <div className="space-y-2" data-component="CommitmentSettlementDisbursements">
       <h5 className="type-meta-sm text-text-soft">
         {formatMessage({
-          id: "cockpit.garden.pool.settlement.disbursements",
+          id: "hub.garden.pool.settlement.disbursements",
           defaultMessage: "Disbursements",
         })}
       </h5>
@@ -145,7 +145,7 @@ export function CommitmentSettlementDisbursements({
                 <span className="text-text-strong">
                   {formatMessage(
                     {
-                      id: "cockpit.garden.pool.settlement.disbursement.row",
+                      id: "hub.garden.pool.settlement.disbursement.row",
                       defaultMessage: "{id} · {amount} to {recipient}",
                     },
                     {
@@ -194,18 +194,18 @@ export function CommitmentSettlementDisbursements({
         variant="danger"
         title={formatMessage(
           {
-            id: "cockpit.garden.pool.settlement.cancel.title",
+            id: "hub.garden.pool.settlement.cancel.title",
             defaultMessage: "Cancel disbursement {id}",
           },
           { id: open ? idLabel(open.disbursementId) : "" }
         )}
         description={formatMessage({
-          id: "cockpit.garden.pool.settlement.cancel.body",
+          id: "hub.garden.pool.settlement.cancel.body",
           defaultMessage:
             "The disbursement stays recorded as canceled with your reason. The payout plan keeps its pointer to this promise.",
         })}
         confirmLabel={formatMessage({
-          id: "cockpit.garden.pool.settlement.cancel.confirm",
+          id: "hub.garden.pool.settlement.cancel.confirm",
           defaultMessage: "Cancel Disbursement",
         })}
         isLoading={settlement.isActing}

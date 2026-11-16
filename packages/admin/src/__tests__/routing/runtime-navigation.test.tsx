@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FabProvider, useFabConfigValue } from "@green-goods/shared/components/Canvas/FabContext";
 import { NavigationBar } from "@green-goods/shared/components/Canvas/NavigationBar";
 import { useViewActions } from "@green-goods/shared/components/Canvas/useViewActions";
-import { buildHubViewActions } from "@green-goods/shared/hooks/admin-ui/hub/hub.utils";
+import { buildReviewViewActions } from "@green-goods/shared/hooks/admin-ui/review/review.utils";
 import { getAdminWorkspaceForPath } from "@green-goods/shared/utils/navigation/admin-routes";
 import { getNetworkConfig } from "@green-goods/shared/config/blockchain";
 import { getCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
@@ -37,7 +37,7 @@ vi.mock("@green-goods/shared/hooks/roles/useEffectiveToolbarPermissions", () => 
 }));
 
 // Keep the production lazy loaders: distinct module markers detect a route importing the wrong view.
-vi.mock("@/views/Hub", () => ({ default: () => <div data-testid="route-target">Hub</div> }));
+vi.mock("@/views/Review", () => ({ default: () => <div data-testid="route-target">Review</div> }));
 vi.mock("@/views/Garden", () => ({ default: () => <div data-testid="route-target">Garden</div> }));
 vi.mock("@/views/Community", () => ({
   default: () => <div data-testid="route-target">Community</div>,
@@ -66,7 +66,7 @@ async function renderAdminCanvasRoute(initialEntry: string) {
   return router;
 }
 
-const hubCreateActions = [
+const reviewCreateActions = [
   ["submit-work", "Submit Work"],
   ["create-assessment", "Create Assessment"],
   ["create-hypercert", "Create Hypercert"],
@@ -78,8 +78,8 @@ const TestIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-function HubMobileFabHarness({ navigate }: { navigate: (to: string) => void }) {
-  const actions = buildHubViewActions("work", true, true, navigate, {
+function ReviewMobileFabHarness({ navigate }: { navigate: (to: string) => void }) {
+  const actions = buildReviewViewActions("work", true, true, navigate, {
     gardenId: "0xAAA",
   });
   useViewActions({ actions, isDesktop: false });
@@ -90,23 +90,23 @@ function HubMobileFabHarness({ navigate }: { navigate: (to: string) => void }) {
     <NavigationBar
       slots={[
         {
-          id: "hub",
-          label: "Hub",
-          labelId: "cockpit.nav.hub",
+          id: "review",
+          label: "Review",
+          labelId: "hub.nav.review",
           icon: TestIcon,
-          path: "/hub",
+          path: "/review",
           visible: true,
         },
         {
           id: "garden",
           label: "Garden",
-          labelId: "cockpit.nav.garden",
+          labelId: "hub.nav.garden",
           icon: TestIcon,
           path: "/garden",
           visible: true,
         },
       ]}
-      activePath="/hub"
+      activePath="/review"
       onNavigate={vi.fn()}
       fab={fab}
     />
@@ -150,12 +150,12 @@ describe("admin canvas runtime navigation", () => {
     "/community/members",
     "/community/endowment/vault/deposit?gardenId=0xAAA&item=0xBBB",
     "/garden/members?gardenId=0xAAA",
-  ])("redirects an evaluator away from %s to Hub", async (entry) => {
+  ])("redirects an evaluator away from %s to Review", async (entry) => {
     mockCommunityPermission.allowed = false;
     const router = await renderAdminCanvasRoute(entry);
 
-    expect(router.state.location.pathname).toBe("/hub/work");
-    expect(screen.getByTestId("route-target")).toHaveTextContent("Hub");
+    expect(router.state.location.pathname).toBe("/review/work");
+    expect(screen.getByTestId("route-target")).toHaveTextContent("Review");
   });
 
   it.each([
@@ -171,12 +171,12 @@ describe("admin canvas runtime navigation", () => {
     expect(search.get("item")).toBe(item);
   });
 
-  it("redirects /hub to canonical work mode while preserving shareable context", async () => {
+  it("redirects /review to canonical work mode while preserving shareable context", async () => {
     const router = await renderAdminCanvasRoute(
-      "/hub?view=history&gardenAddress=0xAAA&sort=oldest"
+      "/review?view=history&gardenAddress=0xAAA&sort=oldest"
     );
 
-    expect(router.state.location.pathname).toBe("/hub/work");
+    expect(router.state.location.pathname).toBe("/review/work");
 
     expect(router.state.location.search).toBe("?gardenAddress=0xAAA&sort=oldest");
   });
@@ -233,9 +233,9 @@ describe("admin canvas runtime navigation", () => {
   });
 
   it.each([
-    ["/hub/work/submit", "/hub/work", "submit-work"],
-    ["/hub/assess/create", "/hub/assess", "create-assessment"],
-    ["/hub/certify/create", "/hub/certify", "create-hypercert"],
+    ["/review/work/submit", "/review/work", "submit-work"],
+    ["/review/assess/create", "/review/assess", "create-assessment"],
+    ["/review/certify/create", "/review/certify", "create-hypercert"],
   ])("opens %s's flow over its own stage, keeping the URL's context", async (oldPath, stage, item) => {
     const router = await renderAdminCanvasRoute(`${oldPath}?gardenId=0xAAA&sort=oldest`);
 
@@ -243,13 +243,13 @@ describe("admin canvas runtime navigation", () => {
       expect(router.state.location.pathname).toBe(stage);
     });
     expect(router.state.location.search).toBe(`?gardenId=0xAAA&sort=oldest&item=${item}`);
-    expect(screen.getByTestId("route-target")).toHaveTextContent("Hub");
+    expect(screen.getByTestId("route-target")).toHaveTextContent("Review");
   });
 
-  it("opens Hub create flows over the stage from the shared action targets", async () => {
-    for (const [id] of hubCreateActions) {
-      const router = await renderAdminCanvasRoute("/hub/work?gardenId=0xAAA");
-      const actions = buildHubViewActions("work", true, true, router.navigate, {
+  it("opens Review create flows over the stage from the shared action targets", async () => {
+    for (const [id] of reviewCreateActions) {
+      const router = await renderAdminCanvasRoute("/review/work?gardenId=0xAAA");
+      const actions = buildReviewViewActions("work", true, true, router.navigate, {
         gardenId: "0xAAA",
       });
 
@@ -260,14 +260,14 @@ describe("admin canvas runtime navigation", () => {
       await waitFor(() => {
         expect(router.state.location.search).toBe(`?gardenId=0xAAA&item=${id}`);
       });
-      expect(router.state.location.pathname).toBe("/hub/work");
-      expect(screen.getByTestId("route-target")).toHaveTextContent("Hub");
-      expect(getAdminWorkspaceForPath(router.state.location.pathname)).toBe("hub");
+      expect(router.state.location.pathname).toBe("/review/work");
+      expect(screen.getByTestId("route-target")).toHaveTextContent("Review");
+      expect(getAdminWorkspaceForPath(router.state.location.pathname)).toBe("review");
       cleanup();
     }
   });
 
-  it("opens Hub create flows over the stage from the mobile FAB speed-dial", async () => {
+  it("opens Review create flows over the stage from the mobile FAB speed-dial", async () => {
     Object.defineProperty(window, "matchMedia", {
       configurable: true,
       writable: true,
@@ -283,13 +283,13 @@ describe("admin canvas runtime navigation", () => {
       })),
     });
 
-    for (const [id, label] of hubCreateActions) {
+    for (const [id, label] of reviewCreateActions) {
       const user = userEvent.setup();
-      const router = createAdminCanvasRouter("/hub/work?gardenId=0xAAA");
+      const router = createAdminCanvasRouter("/review/work?gardenId=0xAAA");
 
       renderWithProviders(
         <FabProvider>
-          <HubMobileFabHarness navigate={(to) => void router.navigate(to)} />
+          <ReviewMobileFabHarness navigate={(to) => void router.navigate(to)} />
           <RouterProvider router={router} />
         </FabProvider>
       );
@@ -300,9 +300,9 @@ describe("admin canvas runtime navigation", () => {
       await waitFor(() => {
         expect(router.state.location.search).toBe(`?gardenId=0xAAA&item=${id}`);
       });
-      expect(router.state.location.pathname).toBe("/hub/work");
-      expect(screen.getByTestId("route-target")).toHaveTextContent("Hub");
-      expect(getAdminWorkspaceForPath(router.state.location.pathname)).toBe("hub");
+      expect(router.state.location.pathname).toBe("/review/work");
+      expect(screen.getByTestId("route-target")).toHaveTextContent("Review");
+      expect(getAdminWorkspaceForPath(router.state.location.pathname)).toBe("review");
       cleanup();
     }
   });
@@ -349,29 +349,40 @@ describe("admin canvas runtime navigation", () => {
   });
 
   it.each([
-    ["/hub/work/work-7", "/hub/work/work-7", "Hub", { workId: "work-7" }],
-    ["/hub/confirm", "/hub/confirm", "Hub", {}],
-    ["/hub/confirm/9", "/hub/confirm/9", "Hub", { commitmentId: "9" }],
+    ["/review/work/work-7", "/review/work/work-7", "Review", { workId: "work-7" }],
+    ["/review/confirm", "/review/confirm", "Review", {}],
+    ["/review/confirm/9", "/review/confirm/9", "Review", { commitmentId: "9" }],
     ["/garden/pool", "/garden/pool", "Garden", {}],
     ["/garden/pool/seed", "/garden/pool/seed", "Garden", {}],
     ["/garden/pool/9", "/garden/pool/9", "Garden", { commitmentId: "9" }],
     ["/community/pools", "/community/coordination", "Community", {}],
-    ["/hub/assess", "/hub/assess", "Hub", {}],
+    ["/review/assess", "/review/assess", "Review", {}],
     [
-      "/hub/assess/assessment-7",
-      "/hub/assess/assessment-7",
-      "Hub",
+      "/review/assess/assessment-7",
+      "/review/assess/assessment-7",
+      "Review",
       { assessmentId: "assessment-7" },
     ],
-    ["/hub/certify", "/hub/certify", "Hub", {}],
+    ["/review/certify", "/review/certify", "Review", {}],
+    [
+      "/review/certify/assessment-7",
+      "/review/assess/assessment-7",
+      "Review",
+      { assessmentId: "assessment-7" },
+    ],
+    ["/review/history", "/review/work", "Review", {}],
+    ["/review/history/event-7", "/review/work", "Review", {}],
+    // Review lived under /hub until 2026-11-14; a saved link still lands in its place.
+    ["/hub", "/review/work", "Review", {}],
+    ["/hub/work/work-7", "/review/work/work-7", "Review", { workId: "work-7" }],
+    ["/hub/confirm/9", "/review/confirm/9", "Review", { commitmentId: "9" }],
     [
       "/hub/certify/assessment-7",
-      "/hub/assess/assessment-7",
-      "Hub",
+      "/review/assess/assessment-7",
+      "Review",
       { assessmentId: "assessment-7" },
     ],
-    ["/hub/history", "/hub/work", "Hub", {}],
-    ["/hub/history/event-7", "/hub/work", "Hub", {}],
+    ["/hub/history/event-7", "/review/work", "Review", {}],
     [
       "/garden/impact/hypercerts/cert-7",
       "/garden/impact/hypercerts/cert-7",

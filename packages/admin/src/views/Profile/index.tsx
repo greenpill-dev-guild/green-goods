@@ -50,8 +50,8 @@ export default function ProfileView() {
   const description = useMemo(
     () =>
       formatMessage({
-        id: "cockpit.profile.description",
-        defaultMessage: "Manage your canvas identity, appearance, and steward preferences.",
+        id: "hub.profile.description",
+        defaultMessage: "Manage your Hub identity, appearance, and steward preferences.",
       }),
     [formatMessage]
   );
@@ -63,7 +63,7 @@ export default function ProfileView() {
   return (
     <CanvasRouteFrame>
       <CanvasRouteHeader
-        title={formatMessage({ id: "cockpit.nav.profile", defaultMessage: "Profile" })}
+        title={formatMessage({ id: "hub.nav.profile", defaultMessage: "Profile" })}
         description={description}
         variant="canvas"
         sticky

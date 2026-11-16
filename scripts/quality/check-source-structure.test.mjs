@@ -68,6 +68,20 @@ test("rejects a component whose client filename is not PascalCase", () => {
   }
 });
 
+test("checks first-party lib folders like other source, and leaves vendored code out", () => {
+  const lib = "packages/admin/src/lib/feature.ts";
+  const vendored = "packages/admin/src/vendor/feature.ts";
+  const source = "export function useFeature() { return true; }\n";
+  const root = fixture({ [lib]: source, [vendored]: source });
+  try {
+    const found = ids(audit(root, [lib, vendored]));
+    assert(found.includes(`hook-location:${lib}:useFeature`));
+    assert(!found.some((id) => id.includes(vendored)));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("rejects hook definitions outside shared", () => {
   const path = "packages/admin/src/components/feature.ts";
   const root = fixture({ [path]: "export function useFeature() { return true; }\n" });
@@ -382,7 +396,7 @@ test("allows capability consumers, pure state dependencies and comments describi
     "packages/shared/src/modules/wallet/send.ts": 'import { ABI } from "../../utils/blockchain/abis/goodDollar";',
     "packages/shared/src/modules/profile-avatar/publisher.ts": 'import { sign } from "../auth/account-message-signer";',
     "packages/shared/src/hooks/client-ui/wallet/useCeloWallet.ts": 'import { settlement } from "../../../modules/commitment-pooling/funding";',
-    "packages/shared/src/hooks/admin-ui/hub/useAssessment.ts": 'import { select } from "../../../stores/transitions/assessment";',
+    "packages/shared/src/hooks/admin-ui/review/useAssessment.ts": 'import { select } from "../../../stores/transitions/assessment";',
   };
   const root = fixture(files);
   try {

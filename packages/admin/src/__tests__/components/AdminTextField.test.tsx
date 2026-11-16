@@ -231,7 +231,7 @@ describe("AdminSelect", () => {
     expect(control.parentElement?.querySelector("span[aria-hidden]")).toBeNull();
     // Option-row colours are not a utility on this control: a Tailwind class
     // would land in @layer utilities and beat the shared rule, putting the
-    // cockpit field on a different surface from every other select. The contract
+    // Hub field on a different surface from every other select. The contract
     // lives in theme.css, guarded by shared nativeSelectTheming.guard.test.ts.
     expect(control.className).not.toMatch(/\[&>option\]/);
 

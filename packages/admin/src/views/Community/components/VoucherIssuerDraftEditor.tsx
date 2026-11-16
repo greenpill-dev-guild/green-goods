@@ -97,7 +97,7 @@ export function VoucherIssuerDraftEditor({
   onClose,
 }: Props) {
   const intl = useIntl();
-  const t = (key: string) => intl.formatMessage({ id: `cockpit.community.voucherDesk.${key}` });
+  const t = (key: string) => intl.formatMessage({ id: `hub.community.voucherDesk.${key}` });
   const formId = useId();
   const [id] = useState(() => record?.draft.id ?? draftId ?? `service-${crypto.randomUUID()}`);
   const [fields, setFields] = useState(() => fieldsFrom(record?.draft));

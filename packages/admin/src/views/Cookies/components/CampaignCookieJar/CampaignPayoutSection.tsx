@@ -25,7 +25,7 @@ export function CampaignPayoutSection(props: CampaignCookieJarCreateFormProps) {
             id="campaign-cookie-jar-claim-amount"
             className="min-w-0 flex-1"
             label={formatMessage({
-              id: "cockpit.community.cookies.claimAmountPerSteward",
+              id: "hub.community.cookies.claimAmountPerSteward",
               defaultMessage: "Claim amount per steward",
             })}
             value={claimAmount}

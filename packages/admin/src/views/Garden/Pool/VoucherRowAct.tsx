@@ -43,11 +43,11 @@ export function VoucherRowAct({ booking, act, disabled, onOpen, onRetry }: Vouch
           label:
             booking.issuer.execution === "safe-file"
               ? formatMessage({
-                  id: "cockpit.garden.pool.voucher.live.downloadRetry",
+                  id: "hub.garden.pool.voucher.live.downloadRetry",
                   defaultMessage: "Download Retry File",
                 })
               : formatMessage({
-                  id: "cockpit.garden.pool.voucher.act.retry",
+                  id: "hub.garden.pool.voucher.act.retry",
                   defaultMessage: "Retry Transfer",
                 }),
           glyph: <RiRefreshLine aria-hidden="true" />,
@@ -58,11 +58,11 @@ export function VoucherRowAct({ booking, act, disabled, onOpen, onRetry }: Vouch
           label:
             act === "report"
               ? formatMessage({
-                  id: "cockpit.garden.pool.voucher.act.report",
+                  id: "hub.garden.pool.voucher.act.report",
                   defaultMessage: "Report Visit…",
                 })
               : formatMessage({
-                  id: "cockpit.garden.pool.voucher.act.propose",
+                  id: "hub.garden.pool.voucher.act.propose",
                   defaultMessage: "Propose Return…",
                 }),
           glyph:

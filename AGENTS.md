@@ -1,4 +1,4 @@
-# Green Goods — Agent Guide
+# Green Goods Agent Guide
 
 Green Goods connects regenerative work, community verification, and funding. This file owns
 shared repository instructions for every coding agent. Read the nearest `AGENTS.md` before
@@ -11,8 +11,8 @@ implementation facts; the [ontology](.claude/context/ontology.md) owns shared do
 |---|---|---|
 | Contracts | Solidity, deployment and upgrade wrappers, Foundry tests | [packages/contracts/AGENTS.md](packages/contracts/AGENTS.md) |
 | Shared | Hooks, providers, stores, domain modules, i18n, UI foundations | [packages/shared/AGENTS.md](packages/shared/AGENTS.md) |
-| Client | Public website and installed PWA | [packages/client/AGENTS.md](packages/client/AGENTS.md) |
-| Admin | Steward cockpit | [packages/admin/AGENTS.md](packages/admin/AGENTS.md) |
+| Client | Green Goods Website and the installed Green Goods App | [packages/client/AGENTS.md](packages/client/AGENTS.md) |
+| Admin | Green Goods Hub, the steward surface | [packages/admin/AGENTS.md](packages/admin/AGENTS.md) |
 | Agent | Messaging and webhook runtime | [packages/agent/AGENTS.md](packages/agent/AGENTS.md) |
 | Indexer | Envio event indexing | [packages/indexer/AGENTS.md](packages/indexer/AGENTS.md) |
 | QA | Private QA recording application | [packages/qa/AGENTS.md](packages/qa/AGENTS.md) |
@@ -39,6 +39,70 @@ live in `.plans/{ideas|backlog|active}/`; code, tests, and CI must not depend on
   Report changes to these surfaces; do not weaken permissions or safety checks as a workaround.
 - This repository is public. Keep secrets and private QA evidence out of Git and public records;
   follow the [QA privacy boundary](.claude/context/qa.md#public-repository-boundary).
+
+## Rules and their enforcers
+
+A rule with an enforcer fails a check, a hook or a guard when it is broken. The shared guards are
+machine-wide hooks in `~/.agents/guards` that `dev agents sync` installs on each developer's
+machine; this repository does not carry them. They apply their own rules and the ones
+`.agents/policy.json` declares. Where they are absent, as in cloud sessions or on other
+contributors' machines, this repository's hooks (`scripts/harness/command-policy.mjs`,
+`.claude/settings.json`, `.codex/hooks`) are the floor, but only for what a row says they do: a
+row whose enforcer is only the shared guards has no floor.
+
+| Rule | Enforcer | Where |
+| --- | --- | --- |
+| `bun run test`, never `bun test` | `bun test` (with `test` right after `bun`) is blocked by the shared guards and both harnesses' hooks | `.agents/policy.json` `bun-test`, `scripts/harness/command-policy.mjs` |
+| Bun contract wrappers, not raw `forge build` or `forge test` | the shared guards ask; the Codex hook blocks | `.agents/policy.json` `forge-direct` |
+| Mainnet deploys and live broadcasts need out-of-band confirmation | the shared guards ask and the Codex hook blocks a broadcast or Safe signature whose last `--network` or `-n` is live, a contracts broadcast not pinned to a test network, and the release operator | `.agents/policy.json` `mainnet-*`, `production-broadcast`, `vercel-prod`, `fly-deploy` |
+| No env files under `packages/*` | file-tool edits to a `.env` or `.env.*` file in `packages/*` are blocked, and the shared guards also block them anywhere else except `.env.example`; shell writes such as `cp` or a `>` redirect pass | `.agents/policy.json` `package-env`, `~/.agents/guards` `secret-edit`, `.claude/settings.json`, `.codex/hooks/edit_policy.sh` |
+| No secrets in Git | push protection for the secret patterns GitHub supports; the shared guards block reading a `.env` or `.env.*` file other than `.env.example` with Read, Grep or most shell programs, and the repository hooks block common readers such as `cat`, `grep` or `sed` | GitHub secret scanning, `~/.agents/guards` `secret-read`, `scripts/harness/command-policy.mjs` |
+| React hooks live in `packages/shared/src/hooks` | file-tool edits to app hook folders are blocked; exported hooks defined in Client or Admin fail lint | `.agents/policy.json` `client-hooks`, `admin-hooks`, `check-react-patterns.js` |
+| Admin, Client, Agent and Indexer consume Shared through its declared exports | lint | `check-react-patterns.js` rule 11 |
+| No new raw timers (in React modules), raw listeners or address strings in Shared, Client and Admin | shrink-only lint baseline | `check-react-patterns.js`, `scripts/quality/data/lint-rules-baseline.json` |
+| Shared imports `DEFAULT_CHAIN_ID` from `config/default-chain`, not `config/blockchain` | structure check | `check-source-structure.js` |
+| Package boundaries, placement and file size | structure check in each package workflow; the extension has no workflow, and QA has neither a workflow nor `src` | `check-source-structure.js` |
+| The structure and React-pattern debt baselines only shrink | growth against the base fails | `check-source-structure.js`, `check-react-patterns.js` |
+| The shared `logger`, not `console`, in Client, Admin, Shared and Agent `src` | lint with warnings denied, the logger module and test files aside | `.oxlintrc.json` `no-console` |
+| Lockfile and release-age gate | frozen installs; a minimum release age when versions are resolved | `.github/actions/setup-js`, `bunfig.toml` |
+| Report changes to sensitive surfaces | the shared guards print a notice on file-tool edits to manifests, the lockfile, workflows, `.agents`, `.claude` and `.codex`, and critical paths | `.agents/policy.json` `config-*`, `critical-*` |
+| An answer, audit or review request does not authorize edits | on a turn whose prompt the shared guards read as a question, review, audit, plan or discussion, they block file-tool edits, commits, pushes, `gh` pull request and issue writes, `sed -i`, redirects and file commands into the repository, and MCP writes such as `save_issue`; a script that writes for itself passes | `~/.agents/guards` `read-only-turn` |
+| Stay on the current branch | the shared guards block creating, switching or renaming a branch, `git worktree add -b`, `gh pr edit --base` and `gh pr create --base main` unless a prompt in the session has asked for branch, worktree, rebase or pull request work | `~/.agents/guards` `branch-change` |
+| Do not stash another session's work | the shared guards block `git stash`, `stash pop`, `stash clear` and a `stash push` without `-m` | `~/.agents/guards` `stash` |
+| Leave changes you did not author untouched | the shared guards block `git reset --hard`, `git clean -f`, a forced checkout or switch, `git worktree remove --force`, and `git restore` or `git checkout --` on `.` or on a file dirty when the session started | `~/.agents/guards` `reset-hard`, `clean`, `discard-changes`, `worktree-remove-force`, `restore-dirty` |
+| Stage only your task's paths | the shared guards block `git add -A`, `-u` or `.` and `git commit -a`; naming a folder passes | `~/.agents/guards` `broad-staging`, `commit-all` |
+| Force-pushes need fresh authorization | the shared guards block `--force`, `-f` and `+ref` pushes and any force push that names `main` or `master`, but not `--force-with-lease` to another branch; the repository hooks block only a push with a force flag that names `main` or `master` | `~/.agents/guards` `force-push`, `force-push-main`, `scripts/harness/command-policy.mjs` |
+| Critical changes keep their proof | the check selector's critical overrides, on every intent but `diagnose` and `review`, which plan evidence only | `scripts/data/validation-policy.json`, `scripts/quality/select-validation.mjs` |
+| Report the checks you ran and what they showed | the shared guards' stop hook sends a final reply back when the turn edited repository files with a file tool and no check command ran after the last edit, or the reply cites none; the same reply sent again passes, the result is not read, and shell edits do not trigger it | `~/.agents/guards` `proof`, `.agents/policy.json` `proof` |
+| Run the push intent before publication | pre-push hook | `.husky/pre-push` |
+| Current-head CI passes before merge | required check that organization admins may bypass, on `develop` always and on `main` in a pull request | `CI Gate` in the `develop` and `main` rulesets |
+| Contract source, tests, scripts, deployments and config; workflows; the root and `packages/*` guides; `CLAUDE.md`; `.claude`; `.codex`; and root env files have code owners | review requests | `.github/CODEOWNERS` |
+| Local guides exist and name commands that exist; the skills link and `CLAUDE.md` as an import stay intact | guidance check | `check-codex-docs.js` |
+| Plan hubs live in `.plans/{ideas,backlog,active}` | plan hub validation in CI checks the layout inside `.plans`; a hub-shaped folder elsewhere is never found | `scripts/harness/plan-hub.mjs validate` |
+| A release that touches authenticated surfaces needs an attestation | when the selector's `browser-proof` paths changed (they also catch public-only routes such as `packages/client/src/routes/PublicShell.tsx`), the release gate exits blocked unless an attestation names `authenticated Brave`, carries a `YYYY-MM-DD` date and adds 12 or more characters, which filler can supply; other intents leave `browser-proof` advisory | `scripts/data/validation-policy.json`, `scripts/dev/ci-local.js` `validateAttestation` |
+| Brave only for the DevTools MCP wrapper | a local launch refuses other browsers; a remote endpoint is not checked | `scripts/mcp/brave-devtools.mjs` |
+| WebMCP exposes only public-safe tools | pinned tools and routes | `packages/client/src/__tests__/webmcp.test.ts` |
+| Linear is the backlog | GitHub Issues are off; issues saved through a `save_issue` MCP tool are shape-checked | repository settings, the `lint-linear-issue.sh` hook |
+
+Review alone holds the rest: reading the nearest `AGENTS.md`, inspecting `git status` before
+editing, Bun for package operations other than tests, `bun test` after Bun's global options,
+approval before installing dependencies, merge commits only (both rulesets still allow squash), live
+writers with no broadcast flag (`cast send`, `open-minting.mjs`), `forge script`, private hooks
+outside hook folders, the other debt baselines, secrets GitHub has no pattern for, the release age
+of versions already in the lockfile, an `.env.example` in other package folders such as `docs/`,
+env files written from the shell, reading `.env` inside a script, through `git show` or as an
+option value, a notice for edits to `AGENTS.md`, choosing the default chain through
+`getDefaultChain()` or `DEFAULT_CHAIN_ID`, code owners for `.agents`, `.github/actions`, other
+contracts files, `docs/AGENTS.md` and package env files, Linear writes through other paths, the
+logger in QA, the extension and `docs/src`, `context.log` rather than `console` in the indexer,
+Shared's declared exports in contracts tooling, raw timers outside React modules and the three
+ratcheted patterns outside Shared, Client and Admin, the structure of an extension-only change in
+CI, QA's source layout, staging a folder or another session's files by name, `git revert`, `rm`
+and file-tool overwrites of another session's work, `--force-with-lease` to other branches, a
+branch change in a later turn of a session that asked for one earlier, files a script writes for
+itself in a read-only turn, whether a cited check passed, proof after a shell edit, guide prose
+beyond its commands, code and CI that do not depend on `.plans/`, labeled rendered proof and a
+Linear line in every PR body, and registering new scripts in `scripts/README.md`.
 
 ## Scope and workflow
 
@@ -209,9 +273,17 @@ or owning handoff; unknown timing and human attention stay unknown.
 
 ## Shared skills and harness configuration
 
-Edit shared skills in `.claude/skills`; `.agents/skills` is its symlinked Codex discovery path.
-Do not replace the symlink with a second copy. Project-specific settings and hooks live in
-`.claude/settings.json` and `.codex/`; they enforce tool behavior beyond prose instructions.
+Edit shared skills in `.claude/skills`; `.agents/skills` is its symlinked Codex discovery path. Do
+not replace the symlink with a second copy. The review, debug, plan, ship and research skills come
+from the shared agent kit (dev-surfaces `agents/kit/skills`): change their method there first, and
+keep Green Goods specifics in `.agents/adapter.md`, which they read. Project-specific settings and
+hooks live in `.claude/settings.json` and `.codex/`; they enforce tool behavior beyond prose
+instructions. `.agents/policy.json` declares the same command and path rules for the machine-wide
+guards, and these hooks stay their floor where those guards are absent;
+`scripts/harness/agent-hooks.test.mjs` fails when a declared rule loses its floor enforcer on its
+listed fixtures. `.agents/merge-policy.json` states the merge tiers, and
+`scripts/quality/select-validation.test.mjs` keeps them covering the selector's critical and
+sensitive paths.
 Keep `CLAUDE.md` as a compatibility import until supported Claude environments load `AGENTS.md`
 directly; it must not duplicate repository policy.
 

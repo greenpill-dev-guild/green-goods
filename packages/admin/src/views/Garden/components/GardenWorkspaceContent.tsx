@@ -20,7 +20,7 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
   if (!workspace.selectedGarden) {
     return (
       <CanvasWorkspaceSelectionGate
-        workspaceLabel={formatMessage({ id: "cockpit.nav.garden", defaultMessage: "Garden" })}
+        workspaceLabel={formatMessage({ id: "hub.nav.garden", defaultMessage: "Garden" })}
         gardens={workspace.gardenOptions}
         onSelectGarden={workspace.handleSelectGarden}
       />
@@ -37,7 +37,7 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
         message={
           workspace.error?.message ??
           formatMessage({
-            id: "cockpit.garden.loadFailedDescription",
+            id: "hub.garden.loadFailedDescription",
             defaultMessage: "Try choosing a different garden or refreshing the page.",
           })
         }

@@ -9,7 +9,7 @@ import { useWindowEvent } from "../../hooks/utils/useEventListener";
  *
  * The roles are the `type-*` utilities at the end of shared `theme.css`. They
  * read `--gg-type-<role>-size|line|weight|tracking`: `theme.css` holds the
- * installed app's values and admin `src/index.css` the cockpit's (mirrored for
+ * installed app's values and admin `src/index.css` the Hub's (mirrored for
  * Storybook in `surfaces.css`). Every specimen below reports what the browser
  * rendered, so the page cannot drift from the tokens.
  */
@@ -78,7 +78,7 @@ const roles: TypeRole[] = [
 
 /**
  * Size / line height · weight · tracking, as the browser rendered them. It reads
- * again on resize, since field text changes size at 640px in the cockpit.
+ * again on resize, since field text changes size at 640px in the Hub.
  */
 function useRenderedType() {
   const ref = useRef<HTMLSpanElement>(null);
@@ -129,7 +129,7 @@ function RoleTable() {
       <div className="hidden grid-cols-[12rem_1fr_1fr] gap-6 border-b-2 border-stroke-sub-300 pb-2 md:grid">
         <span className="type-label-sm font-medium text-text-strong-950">Role</span>
         <span className="type-label-sm font-medium text-text-strong-950">Installed app</span>
-        <span className="type-label-sm font-medium text-text-strong-950">Cockpit</span>
+        <span className="type-label-sm font-medium text-text-strong-950">Hub</span>
       </div>
       {roles.map((role) => (
         <RoleRow key={role.className} role={role} />
@@ -149,7 +149,7 @@ const meta: Meta = {
     docs: {
       description: {
         component:
-          "The type roles: three titles, body, two labels, two meta sizes, and field text. Each is a `type-*` utility that keeps one name on every surface and takes the density of the surface that draws it: the installed app at 16px body, the cockpit at 14px. A weight, leading, or tracking utility on the same element adjusts a role.",
+          "The type roles: three titles, body, two labels, two meta sizes, and field text. Each is a `type-*` utility that keeps one name on every surface and takes the density of the surface that draws it: the installed app at 16px body, the Hub at 14px. A weight, leading, or tracking utility on the same element adjusts a role.",
       },
     },
   },
@@ -161,15 +161,15 @@ type Story = StoryObj;
 /*  Stories                                                                     */
 /* -------------------------------------------------------------------------- */
 
-/** Every role on the installed app and the cockpit, with the rendered values. */
+/** Every role on the installed app and the Hub, with the rendered values. */
 export const Default: Story = {
   render: () => (
     <div className="space-y-6">
       <p className="max-w-2xl type-label-sm text-text-sub-600">
         Each role keeps one name on both surfaces and takes the density of the surface that draws
         it. The values under each specimen are what this browser rendered: size and line height in
-        pixels, then weight and tracking. In the cockpit, field text is 16px on touch widths and
-        14px from 640px.
+        pixels, then weight and tracking. In the Hub, field text is 16px on touch widths and 14px
+        from 640px.
       </p>
       <RoleTable />
     </div>

@@ -127,7 +127,7 @@ Green Goods uses three PostHog projects (org-level connector scope, switch-proje
 | Project | ID | Surfaces | Used by |
 |---|---|---|---|
 | **App** | `163591` | Client + PWA + editorial website (single ingest target — editorial-to-PWA lineage stays a within-project query) | `growth-pulse` (primary), `bug-intake` (primary), `sync-triage-pulse` (PWA/website-surface items), `health-watch` (errors) |
-| **Admin** | `262122` | Operator cockpit / admin web app | `growth-pulse` (`actions.template-creation-rate` only), `bug-intake` (admin-route reports), `sync-triage-pulse` (admin-surface items) |
+| **Admin** | `262122` | Green Goods Hub (steward web app) | `growth-pulse` (`actions.template-creation-rate` only), `bug-intake` (admin-route reports), `sync-triage-pulse` (admin-surface items) |
 | **Agent** | `262124` | Bot/messaging runtime (Telegram + future WhatsApp/SMS) | `bug-intake` (Telegram-source reports) |
 
 The PostHog connector is the primary access path. The connector key has a project scope set per-project at OAuth time — confirm with `switch-project` + a 1-event test query before assuming a routine can read a given project. A routine that returns zero events on a known-busy project (e.g., App over 30d) should treat the result as a wiring failure (out-of-scope or wrong project ID), not a real anomaly.
@@ -137,7 +137,7 @@ Cloud routines set the project ID env vars below and reference the right one per
 | Variable | Value | Used for |
 |---|---|---|
 | `POSTHOG_PROJECT_ID_APP` | `163591` | App/client/PWA/editorial queries |
-| `POSTHOG_PROJECT_ID_ADMIN` | `262122` | Admin cockpit queries |
+| `POSTHOG_PROJECT_ID_ADMIN` | `262122` | Hub queries |
 | `POSTHOG_PROJECT_ID_AGENT` | `262124` | Agent/bot-channel queries |
 
 Do not add `POSTHOG_PROJECT_API_KEY`, single-project `POSTHOG_PROJECT_ID`, or `POSTHOG_HOST` to the active Claude routine env unless you are deliberately enabling the local fallback script. Those variables belong to `scripts/agents/posthog-query.ts` for non-Claude/Codex/local fallback reads; connector-backed routines should only need the connector plus the three project IDs above.

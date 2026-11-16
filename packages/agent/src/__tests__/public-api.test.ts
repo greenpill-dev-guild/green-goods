@@ -426,24 +426,6 @@ describe("public funding intent API", () => {
     expect(response.headers.get("access-control-allow-headers")).toContain("Content-Type");
   });
 
-  it("answers funding-intent CORS preflight for owned Vercel previews", async () => {
-    const { app } = createFundingApp();
-    const previewOrigin =
-      "https://green-goods-git-feature-nyc-vault-crow-880636-greenpilldevguild.vercel.app";
-
-    const response = await app.request(PUBLIC_AGENT_ROUTES.fundingIntents, {
-      method: "OPTIONS",
-      headers: {
-        origin: previewOrigin,
-        "access-control-request-method": "POST",
-        "access-control-request-headers": "content-type",
-      },
-    });
-
-    expect(response.status).toBe(204);
-    expect(response.headers.get("access-control-allow-origin")).toBe(previewOrigin);
-  });
-
   it("rejects funding-intent CORS preflight for untrusted origins", async () => {
     const { app } = createFundingApp();
 
@@ -461,13 +443,23 @@ describe("public funding intent API", () => {
     expect((await response.json()).errorCode).toBe("origin_not_allowed");
   });
 
-  it("rejects funding-intent CORS preflight for unrelated Vercel origins", async () => {
+  // A hostname is no proof of ownership: Vercel hands out `.vercel.app` names first come, first
+  // served. Only listed origins are answered, so none of these is.
+  it.each([
+    // A real deployment and a real branch alias under the `greengoods` team.
+    "https://green-goods-qbf9uec53-greengoods.vercel.app",
+    "https://green-goods-git-develop-greengoods.vercel.app",
+    // A name any Vercel account can claim that ends like one of ours.
+    "https://green-goods-x-greengoods.vercel.app",
+    // The team's former slug, which it no longer owns.
+    "https://green-goods-git-develop-greenpilldevguild.vercel.app",
+  ])("rejects funding-intent CORS preflight from unlisted Vercel hosts: %s", async (origin) => {
     const { app } = createFundingApp();
 
     const response = await app.request(PUBLIC_AGENT_ROUTES.fundingIntents, {
       method: "OPTIONS",
       headers: {
-        origin: "https://green-goods-8bccw8q6a-attacker.vercel.app",
+        origin,
         "access-control-request-method": "POST",
         "access-control-request-headers": "content-type",
       },

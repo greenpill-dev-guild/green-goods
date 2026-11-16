@@ -69,7 +69,7 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
       {!moduleConfigured ? (
         <AdminCard variant="outlined" className="type-meta text-text-sub">
           {formatMessage({
-            id: "cockpit.community.cookies.factoryMissing",
+            id: "hub.community.cookies.factoryMissing",
             defaultMessage: "Cookie Jar factory discovery is not configured on this network yet.",
           })}
         </AdminCard>
@@ -77,7 +77,7 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
       {!isProtocolTeam && !roleLoading ? (
         <AdminCard variant="outlined" className="type-meta text-text-sub">
           {formatMessage({
-            id: "cockpit.community.cookies.deployerOnly",
+            id: "hub.community.cookies.deployerOnly",
             defaultMessage:
               "This surface is for the Green Goods team. Connect a team account to create jars, or the jar owner to sync an existing jar.",
           })}
@@ -101,13 +101,13 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
         }}
         title={formatMessage(
           {
-            id: "cockpit.community.cookies.manageTitle",
+            id: "hub.community.cookies.manageTitle",
             defaultMessage: "Manage {title}",
           },
           { title: selectedCampaignTitle }
         )}
         description={formatMessage({
-          id: "cockpit.community.cookies.manageDescription",
+          id: "hub.community.cookies.manageDescription",
           defaultMessage:
             "Review the public link, update campaign metadata, and sync garden steward access.",
         })}
@@ -141,7 +141,7 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
               loading={syncPending}
             >
               {formatMessage({
-                id: "cockpit.community.cookies.sync",
+                id: "hub.community.cookies.sync",
                 defaultMessage: "Sync Allowlist",
               })}
             </Button>
@@ -154,7 +154,7 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
             <div className="rounded-[var(--m3-shape-md)] border border-stroke-soft p-3">
               <p className="type-label-sm text-text-strong">
                 {formatMessage({
-                  id: "cockpit.community.cookies.jarAddress",
+                  id: "hub.community.cookies.jarAddress",
                   defaultMessage: "Jar address",
                 })}
               </p>
@@ -164,7 +164,7 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
               {createdLabel ? (
                 <p className="mt-1 type-meta text-text-sub">
                   {formatMessage(
-                    { id: "cockpit.community.cookies.createdOn", defaultMessage: "Created {date}" },
+                    { id: "hub.community.cookies.createdOn", defaultMessage: "Created {date}" },
                     { date: createdLabel }
                   )}
                 </p>
@@ -176,7 +176,7 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
                 className="mt-2 inline-flex items-center gap-1 type-label-sm text-primary-dark underline-offset-4 hover:underline"
               >
                 {formatMessage({
-                  id: "cockpit.community.cookies.openPublicLink",
+                  id: "hub.community.cookies.openPublicLink",
                   defaultMessage: "Open Public Link",
                 })}
                 <RiExternalLinkLine className="h-4 w-4" aria-hidden />
@@ -187,7 +187,7 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
                 id="campaign-cookie-jar-manage-description"
                 className="md:col-span-2"
                 label={formatMessage({
-                  id: "cockpit.community.cookies.campaignDescription",
+                  id: "hub.community.cookies.campaignDescription",
                   defaultMessage: "Campaign description",
                 })}
                 value={syncCampaignDescription}
@@ -206,7 +206,7 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
               <div className="rounded-[var(--m3-shape-md)] border border-stroke-soft bg-bg-white p-3">
                 <p className="type-label-sm text-text-strong">
                   {formatMessage({
-                    id: "cockpit.community.cookies.generatedCampaignLink",
+                    id: "hub.community.cookies.generatedCampaignLink",
                     defaultMessage: "Campaign page",
                   })}
                 </p>
@@ -227,7 +227,7 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
             <AdminTextArea
               id="campaign-cookie-jar-manage-extra-addresses"
               label={formatMessage({
-                id: "cockpit.community.cookies.extraAddresses",
+                id: "hub.community.cookies.extraAddresses",
                 defaultMessage: "Extra allowlist addresses",
               })}
               value={syncExtraAddresses}
@@ -236,21 +236,21 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
             <div className="grid gap-3 sm:grid-cols-3">
               <DiffStat
                 label={formatMessage({
-                  id: "cockpit.community.cookies.desired",
+                  id: "hub.community.cookies.desired",
                   defaultMessage: "Desired",
                 })}
                 value={syncAggregation.allowlist.length}
               />
               <DiffStat
                 label={formatMessage({
-                  id: "cockpit.community.cookies.grant",
+                  id: "hub.community.cookies.grant",
                   defaultMessage: "Grant",
                 })}
                 value={syncDiff.grant.length}
               />
               <DiffStat
                 label={formatMessage({
-                  id: "cockpit.community.cookies.revoke",
+                  id: "hub.community.cookies.revoke",
                   defaultMessage: "Revoke",
                 })}
                 value={syncDiff.revoke.length}
@@ -260,7 +260,7 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
               <p className="type-meta text-error-dark">
                 {formatMessage(
                   {
-                    id: "cockpit.community.cookies.invalidExtras",
+                    id: "hub.community.cookies.invalidExtras",
                     defaultMessage: "Invalid addresses: {addresses}",
                   },
                   { addresses: syncAggregation.invalidAddresses.join(", ") }
@@ -270,7 +270,7 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
             {selectedJarAddress && syncJar.jar && !syncJar.jar.isOwner ? (
               <p className="type-meta text-error-dark">
                 {formatMessage({
-                  id: "cockpit.community.cookies.jarOwnerRequired",
+                  id: "hub.community.cookies.jarOwnerRequired",
                   defaultMessage:
                     "Connect the jar owner or ops Safe to grant, revoke, and update campaign metadata.",
                 })}

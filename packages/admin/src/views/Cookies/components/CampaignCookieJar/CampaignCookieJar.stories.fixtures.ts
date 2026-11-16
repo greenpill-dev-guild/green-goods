@@ -41,7 +41,7 @@ const panelViewFormatMessage = ((
   descriptor: { id: string; defaultMessage?: string },
   values?: { count?: number }
 ) => {
-  if (descriptor.id === "cockpit.community.cookies.listDescription") {
+  if (descriptor.id === "hub.community.cookies.listDescription") {
     const count = typeof values?.count === "number" ? values.count : 0;
     return `${count} campaign ${count === 1 ? "jar" : "jars"} on this network.`;
   }

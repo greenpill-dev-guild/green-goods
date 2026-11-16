@@ -332,8 +332,16 @@ describe("GardenPool", () => {
         ],
       ]),
     });
+    if (group?.kind !== "group") throw new Error("expected the copies to fold into one group");
     mockUseCommitments.mockReturnValue(commitmentsResult({ commitments: copies }));
-    mockUsePoolPromiseEntries.mockReturnValue([{ kind: "group", group }]);
+    // The entries hook counts the group as its page does; nobody has asked for an open copy.
+    mockUsePoolPromiseEntries.mockReturnValue([
+      {
+        kind: "group",
+        group: { ...group, counts: { ...group.counts, requested: 0 } },
+        availabilityKnown: true,
+      },
+    ]);
 
     render(<GardenPool pool={pool()} />);
 
@@ -373,10 +381,12 @@ describe("GardenPool", () => {
     // On the chain's clock the copies have ended, as the entries hook counts them.
     const onClock = {
       ...group,
-      counts: { ...group.counts, available: 0, ended: group.counts.published },
+      counts: { ...group.counts, available: 0, ended: group.counts.published, requested: 0 },
     };
     mockUseCommitments.mockReturnValue(commitmentsResult({ commitments: copies }));
-    mockUsePoolPromiseEntries.mockReturnValue([{ kind: "group", group: onClock }]);
+    mockUsePoolPromiseEntries.mockReturnValue([
+      { kind: "group", group: onClock, availabilityKnown: true },
+    ]);
 
     render(<GardenPool pool={pool()} />);
 
@@ -744,7 +754,7 @@ describe("GardenPool", () => {
     expect(rows[1]).toHaveAttribute("data-done", "false");
     expect(screen.getByText("What this pool is for")).toBeInTheDocument();
     expect(screen.getByText("How many promises one person can hold at once")).toBeInTheDocument();
-    expect(screen.getByText(/steward dashboard/i)).toBeInTheDocument();
+    expect(screen.getByText(/Green Goods Hub/i)).toBeInTheDocument();
   });
 
   it("says only what is true for anyone while the steward read is still out", () => {

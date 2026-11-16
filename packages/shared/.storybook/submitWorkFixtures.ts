@@ -317,14 +317,17 @@ export function submitWorkControllerFixture(
     takesUp = false,
     documentationPhoto = false,
     start = startStepFixture(),
-    namedGarden = null,
+    namedGarden = JOURNEY_GARDEN_RECORD,
   }: {
     linked?: boolean;
     /** The promise is the hub's Open ask, which Submit takes up first (decision 18). */
     takesUp?: boolean;
     documentationPhoto?: boolean;
     start?: StartStep;
-    /** The submission garden, named under the steps while it is not the active one. */
+    /**
+     * The submission garden the flow names under its steps from Start on: the journey's own
+     * garden unless a story names another (PRD-1492).
+     */
     namedGarden?: typeof JOURNEY_GARDEN_RECORD | null;
   } = {}
 ): SubmitWorkController {

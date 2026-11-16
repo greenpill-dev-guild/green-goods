@@ -541,7 +541,7 @@ describe("CommitmentsSheet", () => {
     it("counts on its launcher what the garden's tabs count, and nothing from elsewhere", () => {
       const waiting = { commitment: commitment(), seat: "confirmer" as const, needsYou: true };
       mockUseCommitmentsInbox.mockReturnValue(inbox({ totalActCount: 2 }));
-      // The tab lists the garden's own confirmations; fallbacks and disputes are the cockpit's.
+      // The tab lists the garden's own confirmations; fallbacks and disputes are the Hub's.
       mockUseCommitmentsToConfirm.mockReturnValue(
         toConfirm({
           count: 3,

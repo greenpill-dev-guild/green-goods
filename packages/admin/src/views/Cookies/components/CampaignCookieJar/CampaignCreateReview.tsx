@@ -33,35 +33,35 @@ export function CampaignCreateReview({ status, outcome, ...props }: CampaignCrea
         <FactList frame="inset">
           <FactRow
             label={formatMessage({
-              id: "cockpit.community.cookies.reviewPayout",
+              id: "hub.community.cookies.reviewPayout",
               defaultMessage: "Payout",
             })}
             value={payoutLabel}
           />
           <FactRow
             label={formatMessage({
-              id: "cockpit.community.cookies.selectedGardens",
+              id: "hub.community.cookies.selectedGardens",
               defaultMessage: "Selected gardens",
             })}
             value={aggregation.sources.length}
           />
           <FactRow
             label={formatMessage({
-              id: "cockpit.community.cookies.generatedStewards",
+              id: "hub.community.cookies.generatedStewards",
               defaultMessage: "Stewards who can claim",
             })}
             value={aggregation.allowlist.length}
           />
           <FactRow
             label={formatMessage({
-              id: "cockpit.community.cookies.missingStewards",
+              id: "hub.community.cookies.missingStewards",
               defaultMessage: "Gardens without a steward",
             })}
             value={aggregation.missingStewardGardens.length}
           />
           <FactRow
             label={formatMessage({
-              id: "cockpit.community.cookies.generatedCampaignLink",
+              id: "hub.community.cookies.generatedCampaignLink",
               defaultMessage: "Campaign page",
             })}
             value={publicCampaignUrl}

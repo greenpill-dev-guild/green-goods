@@ -140,7 +140,7 @@ export default function GardenSignalPoolView({
     : "app.signal.hypercertPool.confirmDeregisterDescription";
   const communityBackLink = {
     to: adminRoutes.communityCoordination(gardenRouteContext),
-    label: formatMessage({ id: "cockpit.nav.community", defaultMessage: "Community" }),
+    label: formatMessage({ id: "hub.nav.community", defaultMessage: "Community" }),
   };
   const poolTabs = [
     {

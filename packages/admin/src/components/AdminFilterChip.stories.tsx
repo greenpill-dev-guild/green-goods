@@ -14,7 +14,7 @@ const meta: Meta<typeof AdminFilterChip> = {
     docs: {
       description: {
         component:
-          "The cockpit's filter chip: a 32px capsule with a 44px hit area, outlined when unselected and filled with the workspace tone's action color when selected, the installed app's selected look (DL-101). Selection shows by fill alone, with no check mark, so a chip keeps its width when chosen (DL-065); an optional leading icon shows in both states.",
+          "The Hub's filter chip: a 32px capsule with a 44px hit area, outlined when unselected and filled with the workspace tone's action color when selected, the installed app's selected look (DL-101). Selection shows by fill alone, with no check mark, so a chip keeps its width when chosen (DL-065); an optional leading icon shows in both states.",
       },
     },
   },
@@ -91,13 +91,13 @@ export const StateCatalog: Story = {
 };
 
 const WORKSPACE_TONES = [
-  ["hub", "Hub"],
+  ["review", "Review"],
   ["garden", "Garden"],
   ["community", "Community"],
   ["actions", "Actions"],
 ] as const;
 
-/** Pending and Approved as the Hub draws them: two scopes of one list (DL-082). */
+/** Pending and Approved as Review draws them: two scopes of one list (DL-082). */
 const ScopePair = () => {
   const [scope, setScope] = useState<"pending" | "approved">("pending");
   return (
@@ -177,7 +177,7 @@ export const WorkspaceToneMatrix: Story = {
             Number.parseFloat(getComputedStyle(chip).borderTopLeftRadius)
           ).toBeGreaterThanOrEqual(chip.getBoundingClientRect().height / 2);
         }
-        // A resting chip draws the cockpit's control outline (DL-098), in the dark
+        // A resting chip draws the Hub's control outline (DL-098), in the dark
         // section too, where theme.css would otherwise lay its dark hairline.
         await waitFor(() =>
           expect(getComputedStyle(approved).borderTopColor).toBe(

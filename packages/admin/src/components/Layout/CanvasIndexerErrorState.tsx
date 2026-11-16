@@ -28,17 +28,17 @@ export function CanvasIndexerErrorState({ onRetry }: CanvasIndexerErrorStateProp
         tone="error"
         icon={<RiErrorWarningLine />}
         title={formatMessage({
-          id: "cockpit.access.indexerErrorTitle",
+          id: "hub.access.indexerErrorTitle",
           defaultMessage: "Can't load garden access",
         })}
         description={formatMessage({
-          id: "cockpit.access.indexerErrorDescription",
+          id: "hub.access.indexerErrorDescription",
           defaultMessage:
             "We couldn't load gardens from the indexer. This is usually temporary. Try again in a moment.",
         })}
         action={
           <Button type="button" size="sm" onClick={onRetry}>
-            {formatMessage({ id: "cockpit.access.indexerErrorRetry", defaultMessage: "Try Again" })}
+            {formatMessage({ id: "hub.access.indexerErrorRetry", defaultMessage: "Try Again" })}
           </Button>
         }
       />

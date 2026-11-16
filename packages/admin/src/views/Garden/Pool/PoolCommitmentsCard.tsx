@@ -87,7 +87,7 @@ export function PoolCommitmentsCard({
   const { titles, isOnline, isActing, acts } = pool;
   const model = withVoucherRecovery(pool.model, pool.commitments, vouchers);
   const expireLabel = formatMessage({
-    id: "cockpit.garden.pool.row.act.expire",
+    id: "hub.garden.pool.row.act.expire",
     defaultMessage: "Expire Now…",
   });
   const [search, setSearch] = useState("");
@@ -105,7 +105,7 @@ export function PoolCommitmentsCard({
   const titleOf = (commitment: CommitmentReadModel) =>
     (commitment.metadataCID && titles.get(commitment.metadataCID.trim())?.title) ??
     formatMessage(
-      { id: "cockpit.garden.pool.row.untitled", defaultMessage: "Promise {id}" },
+      { id: "hub.garden.pool.row.untitled", defaultMessage: "Promise {id}" },
       { id: commitment.commitmentId.toString() }
     );
 
@@ -160,7 +160,7 @@ export function PoolCommitmentsCard({
         <div className="flex flex-wrap items-center justify-between gap-2">
           <AdminCardTitle>
             {formatMessage({
-              id: "cockpit.garden.pool.promises.title",
+              id: "hub.garden.pool.promises.title",
               defaultMessage: "Offers and Asks",
             })}
           </AdminCardTitle>
@@ -173,7 +173,7 @@ export function PoolCommitmentsCard({
             disabled={!canSeed}
           >
             {formatMessage({
-              id: "cockpit.garden.pool.act.seedPromises",
+              id: "hub.garden.pool.act.seedPromises",
               defaultMessage: "Seed Promises",
             })}
           </Button>
@@ -183,7 +183,7 @@ export function PoolCommitmentsCard({
           search={search}
           onSearchChange={setSearch}
           placeholder={formatMessage({
-            id: "cockpit.garden.pool.promises.search",
+            id: "hub.garden.pool.promises.search",
             defaultMessage: "Search promises",
           })}
         >
@@ -191,13 +191,13 @@ export function PoolCommitmentsCard({
             className="flex flex-wrap items-center gap-1.5"
             role="group"
             aria-label={formatMessage({
-              id: "cockpit.garden.pool.commitments.scope",
+              id: "hub.garden.pool.commitments.scope",
               defaultMessage: "Promise scope",
             })}
           >
             <AdminFilterChip
               label={formatMessage({
-                id: "cockpit.garden.pool.commitments.open",
+                id: "hub.garden.pool.commitments.open",
                 defaultMessage: "Open",
               })}
               selected={scope === "open" && focus === null}
@@ -208,7 +208,7 @@ export function PoolCommitmentsCard({
             />
             <AdminFilterChip
               label={formatMessage({
-                id: "cockpit.garden.pool.commitments.confirmed",
+                id: "hub.garden.pool.commitments.confirmed",
                 defaultMessage: "Confirmed",
               })}
               selected={scope === "confirmed" && focus === null}
@@ -219,7 +219,7 @@ export function PoolCommitmentsCard({
             />
             <AdminFilterChip
               label={formatMessage({
-                id: "cockpit.garden.pool.commitments.past",
+                id: "hub.garden.pool.commitments.past",
                 defaultMessage: "Past",
               })}
               selected={scope === "past" && focus === null}
@@ -232,7 +232,7 @@ export function PoolCommitmentsCard({
               <AdminFilterChip
                 label={formatMessage(
                   {
-                    id: "cockpit.garden.pool.commitments.pastDue",
+                    id: "hub.garden.pool.commitments.pastDue",
                     defaultMessage: "Past due ({count})",
                   },
                   { count: model.dueLive.length }
@@ -245,7 +245,7 @@ export function PoolCommitmentsCard({
               <AdminFilterChip
                 label={formatMessage(
                   {
-                    id: "cockpit.garden.pool.commitments.needsRecovery",
+                    id: "hub.garden.pool.commitments.needsRecovery",
                     defaultMessage: "Needs recovery ({count})",
                   },
                   { count: model.needsRecovery.length }
@@ -265,11 +265,11 @@ export function PoolCommitmentsCard({
           <EmptyState
             icon={<RiSeedlingLine />}
             title={formatMessage({
-              id: "cockpit.garden.pool.commitments.emptyTitle",
+              id: "hub.garden.pool.commitments.emptyTitle",
               defaultMessage: "No promises yet",
             })}
             description={formatMessage({
-              id: "cockpit.garden.pool.commitments.emptyBody",
+              id: "hub.garden.pool.commitments.emptyBody",
               defaultMessage:
                 "Offers and asks between neighbors show up here. Seed the first one to begin.",
             })}
@@ -280,11 +280,11 @@ export function PoolCommitmentsCard({
             title={
               search.trim()
                 ? formatMessage({
-                    id: "cockpit.garden.pool.commitments.noMatch",
+                    id: "hub.garden.pool.commitments.noMatch",
                     defaultMessage: "Nothing matches that search.",
                   })
                 : formatMessage({
-                    id: "cockpit.garden.pool.commitments.noneInScope",
+                    id: "hub.garden.pool.commitments.noneInScope",
                     defaultMessage: "Nothing here right now.",
                   })
             }
@@ -331,7 +331,7 @@ export function PoolCommitmentsCard({
                       isDue
                         ? {
                             label: formatMessage({
-                              id: "cockpit.garden.pool.row.pastDue",
+                              id: "hub.garden.pool.row.pastDue",
                               defaultMessage: "Past due",
                             }),
                             tone: "error",
@@ -388,7 +388,7 @@ export function PoolCommitmentsCard({
         {focus === "pastDue" && rows.length > 0 ? (
           <p className="type-meta text-text-soft">
             {formatMessage({
-              id: "cockpit.garden.pool.commitments.dueNote",
+              id: "hub.garden.pool.commitments.dueNote",
               defaultMessage:
                 "Past due alone changes nothing. A row stays live until its expiry goes through; a failed expiry keeps it live.",
             })}

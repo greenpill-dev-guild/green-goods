@@ -17,7 +17,7 @@ const meta: Meta<typeof AdminDialog> = {
     docs: {
       description: {
         component: [
-          "**AdminDialog** - the cockpit's dialog: its own surface (16dp corners,",
+          "**AdminDialog** - the Hub's dialog: its own surface (16dp corners,",
           "surface-container-high, elevation 2, 32 percent scrim) under the shared",
           "`SheetHeader` (DL-117): the 22px title, the target line, the description",
           "and the close button on the title's line, with no icon. The confirm family's",
@@ -290,7 +290,7 @@ export const PaletteVariant: Story = {
         </div>
         <div className="p-2">
           <button className="flex w-full rounded-sm px-3 py-2 text-left type-body text-text-sub">
-            Hub
+            Review
           </button>
           <button className="flex w-full rounded-sm px-3 py-2 text-left type-body text-text-sub">
             Garden
@@ -673,7 +673,7 @@ export const MobileSheetGeometry: Story = {
     await expect(surfaceRect.right - closeRect.right).toBeLessThan(24);
     await expect(closeRect.bottom).toBeLessThanOrEqual(bodyRect.top + VIEWPORT_EDGE_TOLERANCE_PX);
     await expect(titleRect.right).toBeLessThanOrEqual(closeRect.left + VIEWPORT_EDGE_TOLERANCE_PX);
-    // The cockpit keeps its 22px dialog title in the shared header.
+    // The Hub keeps its 22px dialog title in the shared header.
     await expect(getComputedStyle(title).fontSize).toBe("22px");
 
     // The grip tops the surface, centred above the title, and marks the sheet
@@ -869,7 +869,7 @@ export const ReducedMotionContract: Story = {
 export const ToneMatrix: Story = {
   render: () => (
     <div className="grid gap-4 md:grid-cols-2">
-      {(["hub", "garden", "community", "actions"] as const).map((tone) => (
+      {(["review", "garden", "community", "actions"] as const).map((tone) => (
         <div key={tone} data-tone={tone}>
           <div className="mb-2 type-label-sm font-semibold uppercase tracking-[0.06em] text-text-soft">
             {`[data-tone="${tone}"]`}

@@ -74,7 +74,7 @@ export function ToConfirmTab({
       isLoading={toConfirm.isLoading}
       isError={toConfirm.isError}
       isOnline={isOnline}
-      // Empty means nothing this tab lists; the cockpit's fallbacks and disputes are not listed here.
+      // Empty means nothing this tab lists; the Hub's fallbacks and disputes are not listed here.
       isEmpty={listedToConfirmCount(toConfirm) === 0}
       onRetry={() => void toConfirm.refetch()}
       regionClassName={PWA_SHEET_SCROLL_CLASSNAME}

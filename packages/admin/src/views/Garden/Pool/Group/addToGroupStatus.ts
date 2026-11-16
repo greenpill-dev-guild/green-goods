@@ -74,14 +74,14 @@ export function addToGroupStatus(input: {
         tone: "neutral",
         title: formatMessage(
           {
-            id: "cockpit.garden.pool.add.ready",
+            id: "hub.garden.pool.add.ready",
             defaultMessage:
               "{count, plural, one {Adds one promise to this group} other {Adds # promises to this group}}",
           },
           { count }
         ),
         description: formatMessage({
-          id: "cockpit.garden.pool.add.readyHint",
+          id: "hub.garden.pool.add.readyHint",
           defaultMessage: "Same terms, deadline and G$ amount as the group.",
         }),
       };
@@ -94,14 +94,14 @@ export function addToGroupStatus(input: {
         progress: state.progress,
         title: formatMessage(
           {
-            id: "cockpit.garden.pool.seed.status.sending",
+            id: "hub.garden.pool.seed.status.sending",
             defaultMessage: "Confirm in your wallet ({current} of {total})",
           },
           { current: state.current, total: state.total }
         ),
         description: formatMessage(
           {
-            id: "cockpit.garden.pool.add.sendingHint",
+            id: "hub.garden.pool.add.sendingHint",
             defaultMessage:
               "{added} added so far. This wallet asks once per promise; declining one skips only that one.",
           },
@@ -116,13 +116,13 @@ export function addToGroupStatus(input: {
         busy: true,
         title: formatMessage(
           {
-            id: "cockpit.garden.pool.add.confirming",
+            id: "hub.garden.pool.add.confirming",
             defaultMessage: "{count, plural, one {Adding the promise} other {Adding # promises}}",
           },
           { count: state.inRequest }
         ),
         description: formatMessage({
-          id: "cockpit.garden.pool.seed.status.confirmingHint",
+          id: "hub.garden.pool.seed.status.confirmingHint",
           defaultMessage: "Your wallet approved. Waiting for confirmation…",
         }),
       };
@@ -136,7 +136,7 @@ export function addToGroupStatus(input: {
           state.requests > 1
             ? formatMessage(
                 {
-                  id: "cockpit.garden.pool.seed.status.askingOf",
+                  id: "hub.garden.pool.seed.status.askingOf",
                   defaultMessage:
                     "{count, plural, one {Approve in your wallet: one promise ({current} of {requests})} other {Approve in your wallet: # promises in one request ({current} of {requests})}}",
                 },
@@ -144,7 +144,7 @@ export function addToGroupStatus(input: {
               )
             : formatMessage(
                 {
-                  id: "cockpit.garden.pool.add.asking",
+                  id: "hub.garden.pool.add.asking",
                   defaultMessage:
                     "{count, plural, one {Approve in your wallet} other {Approve all # in one request}}",
                 },
@@ -152,7 +152,7 @@ export function addToGroupStatus(input: {
               ),
         description: formatMessage(
           {
-            id: "cockpit.garden.pool.add.askingHint",
+            id: "hub.garden.pool.add.askingHint",
             defaultMessage:
               "{count, plural, one {It is added once your wallet approves.} other {Your wallet adds them together: all #, or none if it declines.}}",
           },
@@ -166,11 +166,11 @@ export function addToGroupStatus(input: {
         tone: "warning",
         retry: state.retry,
         title: formatMessage({
-          id: "cockpit.garden.pool.seed.status.unconfirmed",
+          id: "hub.garden.pool.seed.status.unconfirmed",
           defaultMessage: "The request didn't finish",
         }),
         description: formatMessage({
-          id: "cockpit.garden.pool.add.unconfirmedHint",
+          id: "hub.garden.pool.add.unconfirmedHint",
           defaultMessage:
             "Some may have been added anyway. Try Again finishes them without adding any twice.",
         }),
@@ -183,24 +183,24 @@ export function addToGroupStatus(input: {
         tone: "error",
         retry: state.retry,
         title: formatMessage({
-          id: "cockpit.garden.pool.add.nothing",
+          id: "hub.garden.pool.add.nothing",
           defaultMessage: "Nothing was added",
         }),
         description:
           state.phase === "declined"
             ? formatMessage({
-                id: "cockpit.garden.pool.add.declinedHint",
+                id: "hub.garden.pool.add.declinedHint",
                 defaultMessage:
                   "Your wallet declined the request. The group is unchanged, and Try Again asks once more.",
               })
             : state.overCeilings
               ? formatMessage({
-                  id: "cockpit.garden.pool.add.overCeilingsHint",
+                  id: "hub.garden.pool.add.overCeilingsHint",
                   defaultMessage:
                     "These can't share one signature right now, so nothing was sent. The group is unchanged, and Try Again asks for each one on its own.",
                 })
               : formatMessage({
-                  id: "cockpit.garden.pool.add.refusedHint",
+                  id: "hub.garden.pool.add.refusedHint",
                   defaultMessage:
                     "The request didn't go through. The group is unchanged, and Try Again asks once more.",
                 }),
@@ -214,7 +214,7 @@ export function addToGroupStatus(input: {
         retry: state.notSent,
         title: formatMessage(
           {
-            id: "cockpit.garden.pool.add.partial",
+            id: "hub.garden.pool.add.partial",
             defaultMessage:
               "{added} added · {notSent} didn't send{later, plural, =0 {} one { · # waits} other { · # wait}}",
           },
@@ -222,7 +222,7 @@ export function addToGroupStatus(input: {
         ),
         description: formatMessage(
           {
-            id: "cockpit.garden.pool.add.partialHint",
+            id: "hub.garden.pool.add.partialHint",
             defaultMessage:
               "Try Again ({notSent}) sends only the ones that didn't send, with the group's terms and deadline.",
           },
@@ -237,14 +237,14 @@ export function addToGroupStatus(input: {
         progress: state.progress,
         title: formatMessage(
           {
-            id: "cockpit.garden.pool.add.finishLater",
+            id: "hub.garden.pool.add.finishLater",
             defaultMessage: "{added} added · {later} didn't send",
           },
           { added: state.created, later: state.later }
         ),
         description: formatMessage(
           {
-            id: "cockpit.garden.pool.seed.status.finishLaterHint",
+            id: "hub.garden.pool.seed.status.finishLaterHint",
             defaultMessage:
               "{later, plural, one {Finish creating the last one from the Promises tab when you're ready.} other {Finish creating the last # from the Promises tab when you're ready.}}",
           },
@@ -259,13 +259,13 @@ export function addToGroupStatus(input: {
         progress: state.progress,
         title: formatMessage(
           {
-            id: "cockpit.garden.pool.add.added",
+            id: "hub.garden.pool.add.added",
             defaultMessage: "{count, plural, one {The promise is added} other {# promises added}}",
           },
           { count: state.created }
         ),
         description: formatMessage({
-          id: "cockpit.garden.pool.add.addedHint",
+          id: "hub.garden.pool.add.addedHint",
           defaultMessage: "They join the group's row, with its terms and deadline.",
         }),
       };

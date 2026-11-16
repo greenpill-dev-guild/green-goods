@@ -24,7 +24,7 @@ import { cn } from "../utils/styles/cn";
 export type ConvictionStatus = "accruing" | "passing" | "funded" | "withdrawn" | "expired";
 
 /**
- * Status pills are one size on both surfaces, the cockpit's chip size. `xs` and
+ * Status pills are one size on both surfaces, the Hub's chip size. `xs` and
  * `sm` take `type-meta-sm` (11px, 22px tall): `xs` for dense rows and cards,
  * such as a promise row or a season card, `sm` for status blocks. `md` takes
  * `type-meta` (12px) for headers.

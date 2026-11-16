@@ -48,7 +48,7 @@ const meta: Meta<typeof ItemRow> = {
     docs: {
       description: {
         component:
-          "One item in a list on both surfaces (F7): 88px in every state and language, the item's photo or a 56px icon tile, a one-line title, the one status pill under it, at most two details on one line, and the row's one action in its right slot. The cockpit's density comes from its tokens, so the same row draws 13px titles there.",
+          "One item in a list on both surfaces (F7): 88px in every state and language, the item's photo or a 56px icon tile, a one-line title, the one status pill under it, at most two details on one line, and the row's one action in its right slot. The Hub's density comes from its tokens, so the same row draws 13px titles there.",
       },
     },
   },
@@ -157,8 +157,8 @@ export const OneHeight: Story = {
 };
 
 /**
- * The same rows at the installed app's density and the cockpit's: one row, its title at
- * 15px in the app and 13px in the cockpit (`type-card-title`), the card surface on each
+ * The same rows at the installed app's density and the Hub's: one row, its title at
+ * 15px in the app and 13px in the Hub (`type-card-title`), the card surface on each
  * surface's own ladder.
  */
 export const Densities: Story = {
@@ -178,7 +178,7 @@ export const Densities: Story = {
         </Column>
       </section>
       <section className="flex flex-col gap-2" data-surface-scope="admin">
-        <h3 className="type-label-sm text-text-sub-600">Cockpit</h3>
+        <h3 className="type-label-sm text-text-sub-600">Hub</h3>
         <Column width={366}>
           <ItemRow
             {...workRow}
@@ -199,11 +199,11 @@ export const Densities: Story = {
   ),
   play: async ({ canvasElement }) => {
     await expectItemRowsFit(canvasElement);
-    const [app, cockpit] = [...canvasElement.querySelectorAll<HTMLElement>("section")];
+    const [app, hub] = [...canvasElement.querySelectorAll<HTMLElement>("section")];
     const titleSize = (section: HTMLElement) =>
       getComputedStyle(section.querySelector(".gg-item-row-title") as HTMLElement).fontSize;
     await expect(titleSize(app)).toBe("15px");
-    await expect(titleSize(cockpit)).toBe("13px");
+    await expect(titleSize(hub)).toBe("13px");
   },
 };
 
@@ -288,7 +288,7 @@ export const Amounts: Story = {
       {(
         [
           ["Installed app", undefined, [288, 328, 358]],
-          ["Cockpit", "admin", [296, 366]],
+          ["Hub", "admin", [296, 366]],
         ] as const
       ).map(([label, scope, widths]) => (
         <section key={label} className="flex flex-col gap-3" data-surface-scope={scope}>

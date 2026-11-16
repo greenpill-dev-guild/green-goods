@@ -1,6 +1,6 @@
-## Summary
+## Why
 
-- What changed and why
+What problem this solves, in one or two sentences.
 
 ## Linear
 
@@ -21,7 +21,17 @@ description. Only bot PRs leave this section out; for an outside contributor's P
 maintainer adds the line.
 -->
 
-## Validation
+## Measured
 
-- [ ] `bun run test` passes
-- [ ] `bun format && bun lint` passes
+The numbers or observations that show the problem, and what changed.
+
+## Verification
+
+The checks that ran after the last commit, with their commands and results, as the check selector
+plans them for the change's risk (`bun run check --plan -- --intent push`). Label any rendered
+proof with the engine and session that produced it (AGENTS.md § Browser Evidence), or say that it
+is pending and why. When the change adds more test lines than source lines, say so and why.
+
+## Not verified
+
+What was not checked, and why.

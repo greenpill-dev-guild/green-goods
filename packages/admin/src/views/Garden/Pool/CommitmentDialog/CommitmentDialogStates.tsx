@@ -15,7 +15,7 @@ export function CommitmentDialogLoading() {
       className="space-y-3 p-4"
       role="status"
       aria-label={formatMessage({
-        id: "cockpit.garden.pool.commitment.loading",
+        id: "hub.garden.pool.commitment.loading",
         defaultMessage: "Loading the promise",
       })}
     >
@@ -47,11 +47,11 @@ export function CommitmentDialogNotFound({
         tone="error"
         icon={<RiErrorWarningLine />}
         title={formatMessage({
-          id: "cockpit.garden.pool.commitment.notFound.title",
+          id: "hub.garden.pool.commitment.notFound.title",
           defaultMessage: "This promise couldn’t be loaded",
         })}
         description={formatMessage({
-          id: "cockpit.garden.pool.commitment.notFound.body",
+          id: "hub.garden.pool.commitment.notFound.body",
           defaultMessage:
             "It may be mid-sync, or the link is stale. Retry, or return to the pool to pick it again.",
         })}
@@ -65,7 +65,7 @@ export function CommitmentDialogNotFound({
               onClick={() => onRetry()}
             >
               {formatMessage({
-                id: "cockpit.garden.pool.commitment.notFound.retry",
+                id: "hub.garden.pool.commitment.notFound.retry",
                 defaultMessage: "Retry",
               })}
             </Button>
@@ -76,7 +76,7 @@ export function CommitmentDialogNotFound({
               onClick={() => navigate(adminRoutes.gardenPool({ gardenId: garden }))}
             >
               {formatMessage({
-                id: "cockpit.garden.pool.commitment.notFound.back",
+                id: "hub.garden.pool.commitment.notFound.back",
                 defaultMessage: "Back to Pool",
               })}
             </Button>
@@ -100,11 +100,11 @@ export function CommitmentDialogUnavailable({ garden }: { garden: Address }) {
       <EmptyState
         icon={<RiTimeLine />}
         title={formatMessage({
-          id: "cockpit.garden.pool.unavailable.title",
-          defaultMessage: "Commitment pooling isn't switched on in this app yet",
+          id: "hub.garden.pool.unavailable.title",
+          defaultMessage: "Commitment pooling isn't switched on in the Hub yet",
         })}
         description={formatMessage({
-          id: "cockpit.garden.pool.unavailable.body",
+          id: "hub.garden.pool.unavailable.body",
           defaultMessage: "The pool console switches on with the release that serves pooling here.",
         })}
         action={
@@ -115,7 +115,7 @@ export function CommitmentDialogUnavailable({ garden }: { garden: Address }) {
             onClick={() => navigate(adminRoutes.gardenPool({ gardenId: garden }))}
           >
             {formatMessage({
-              id: "cockpit.garden.pool.commitment.notFound.back",
+              id: "hub.garden.pool.commitment.notFound.back",
               defaultMessage: "Back to Pool",
             })}
           </Button>

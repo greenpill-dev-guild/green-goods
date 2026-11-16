@@ -103,7 +103,7 @@ export function CommunityMembersTab({
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex flex-wrap items-baseline gap-x-2">
                 <AdminCardTitle>
-                  {formatMessage({ id: "cockpit.community.members.directory" })}
+                  {formatMessage({ id: "hub.community.members.directory" })}
                 </AdminCardTitle>
                 <span className="type-meta text-text-sub">
                   {formatMessage({ id: "app.admin.garden.members.count" }, { count: memberCount })}
@@ -119,7 +119,7 @@ export function CommunityMembersTab({
                     })}
                   >
                     <RiUserSettingsLine className="h-[18px] w-[18px]" aria-hidden="true" />
-                    {formatMessage({ id: "cockpit.community.members.manageRoles" })}
+                    {formatMessage({ id: "hub.community.members.manageRoles" })}
                   </Link>
                 </Button>
               ) : null}
@@ -134,12 +134,12 @@ export function CommunityMembersTab({
             {/* Counts live in the Members rail; these controls only filter (DL-141). */}
             <AdminSelect
               className="@[480px]:hidden"
-              label={formatMessage({ id: "cockpit.community.members.filterAria" })}
+              label={formatMessage({ id: "hub.community.members.filterAria" })}
               value={activeRole}
               onChange={(event) => setRoleFilter(event.target.value as GardenRole | "all")}
             >
               <option value="all">
-                {formatMessage({ id: "cockpit.community.members.filterAll" })}
+                {formatMessage({ id: "hub.community.members.filterAll" })}
               </option>
               {availableRoles.map((entry) => (
                 <option key={entry.role} value={entry.role}>
@@ -150,10 +150,10 @@ export function CommunityMembersTab({
             <div
               className="hidden flex-wrap gap-2 @[480px]:flex"
               role="group"
-              aria-label={formatMessage({ id: "cockpit.community.members.filterAria" })}
+              aria-label={formatMessage({ id: "hub.community.members.filterAria" })}
             >
               <AdminFilterChip
-                label={formatMessage({ id: "cockpit.community.members.filterAll" })}
+                label={formatMessage({ id: "hub.community.members.filterAll" })}
                 selected={activeRole === "all"}
                 onToggle={() => setRoleFilter("all")}
               />
@@ -182,7 +182,7 @@ export function CommunityMembersTab({
                 }
                 description={
                   activeRole !== "all"
-                    ? formatMessage({ id: "cockpit.community.members.emptyFiltered" })
+                    ? formatMessage({ id: "hub.community.members.emptyFiltered" })
                     : undefined
                 }
               />
@@ -210,7 +210,7 @@ export function CommunityMembersTab({
                   const count =
                     entry.roles.length > 1
                       ? formatMessage(
-                          { id: "cockpit.community.members.roleCount" },
+                          { id: "hub.community.members.roleCount" },
                           { count: entry.roles.length }
                         )
                       : undefined;
@@ -236,9 +236,9 @@ export function CommunityMembersTab({
                               emphasis="tertiary"
                               size="sm"
                               aria-label={formatMessage({
-                                id: "cockpit.community.members.manageRoles",
+                                id: "hub.community.members.manageRoles",
                               })}
-                              title={formatMessage({ id: "cockpit.community.members.manageRoles" })}
+                              title={formatMessage({ id: "hub.community.members.manageRoles" })}
                             >
                               <Link
                                 to={adminRoutes.communityMembers({
@@ -274,9 +274,7 @@ export function CommunityMembersTab({
             />
           ) : null}
           <AdminCard variant="elevated" className="space-y-3">
-            <AdminCardTitle>
-              {formatMessage({ id: "cockpit.community.members.title" })}
-            </AdminCardTitle>
+            <AdminCardTitle>{formatMessage({ id: "hub.community.members.title" })}</AdminCardTitle>
             <FactList frame="inset">
               {roleSummary.map((entry) => (
                 <FactRow
@@ -289,7 +287,7 @@ export function CommunityMembersTab({
             {missingCriticalRoles.length > 0 ? (
               <Alert variant="warning" className="p-3">
                 {formatMessage(
-                  { id: "cockpit.community.members.missingCritical" },
+                  { id: "hub.community.members.missingCritical" },
                   {
                     roles: missingCriticalRoles
                       .map((entry) => getRoleLabel(entry.role, formatMessage).plural)

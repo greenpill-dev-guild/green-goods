@@ -7,6 +7,11 @@ import { logger } from "../../modules/app/logger";
 import { appCodeRecovery } from "../../modules/app/cache-recovery";
 import { jobQueueDB } from "../../modules/job-queue/db";
 import { jobQueue } from "../../modules/job-queue/default-instance";
+import {
+  recordBestEffort,
+  trackQueuedUploadFinished,
+  trackQueuedUploadStarted,
+} from "../../modules/job-queue/job-analytics";
 import { takeUpOf } from "../../modules/job-queue/take-up-hold";
 import { uploadOutcomeToast } from "../../modules/work/upload-outcome-toast";
 import {
@@ -22,10 +27,18 @@ import {
 } from "../../modules/work/upload-state";
 import { connectivityStore } from "../../stores/connectivity";
 import type { ApprovalJobPayload, Job } from "../../types/job-queue";
+import { wasAskedToReconnect } from "../../utils/errors/unsent-failures";
 import { useConnectivityStatus } from "../app/useOnlineStatus";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { useLiveQuery } from "../utils/useLiveQuery";
+
+/**
+ * What background preparation is doing for one queued item it has not answered yet. It is
+ * working on it, now or later in this pass; or a try failed and it will try again by itself;
+ * or it waits, for everyone, on Data Saver, a steady connection, or an app update.
+ */
+export type ItemPreparation = "working" | "retrying" | "data-saver" | "connection" | "app-update";
 
 export interface WorkUploads {
   /** Items Upload all sends now. */
@@ -53,6 +66,8 @@ export interface WorkUploads {
     workUID: string
   ): { jobId: string; status: QueuedUploadStatus; savedAt: number } | undefined;
   statusOf(jobId: string): QueuedUploadStatus | undefined;
+  /** What preparation is doing for this item, read when its status is still preparing. */
+  preparationOf(jobId: string): ItemPreparation;
   upload(): Promise<UploadOutcome | undefined>;
   uploadOne(jobId: string): Promise<UploadOutcome | undefined>;
   retryOne(jobId: string): Promise<void>;
@@ -162,6 +177,8 @@ export function useWorkUploads(options: { inScope?: GardenScopeFilter } = {}): W
       // Check before loading: the upload modules may not be on this device yet,
       // and an import that fails offline stays failed for the life of the page.
       if (!(await connectivityStore.confirmOnline())) return { status: "connection-unconfirmed" };
+      // A wallet that has not answered is asked to reconnect before anything is sent.
+      sender.assertReadyToSign?.();
       const [{ uploadQueuedWork }, { createDefaultUploadQueuedWorkPorts }] = await Promise.all([
         import("../../modules/work/upload-queued-work"),
         import("../../modules/work/upload-queued-work-defaults"),
@@ -169,6 +186,42 @@ export function useWorkUploads(options: { inScope?: GardenScopeFilter } = {}): W
       return uploadQueuedWork(
         { userAddress, chainId, sender, jobIds },
         await createDefaultUploadQueuedWorkPorts()
+      );
+    },
+    // Each tap leaves its start before anything is signed, and its end, even one that sent
+    // nothing: a page suspended mid-prompt still shows that someone tried (PRD-1495).
+    // A record never decides the upload: both callbacks run inside the mutation.
+    onMutate: (jobIds) => {
+      const tap = {
+        scope: jobIds ? ("selected" as const) : ("all" as const),
+        authMode: sender?.authMode,
+        startedAt: Date.now(),
+      };
+      recordBestEffort(() =>
+        trackQueuedUploadStarted({
+          scope: tap.scope,
+          itemCount: jobIds?.length ?? summary.readyCount,
+          authMode: tap.authMode,
+        })
+      );
+      return tap;
+    },
+    onSettled: (outcome, error, _jobIds, tap) => {
+      if (!tap) return;
+      recordBestEffort(() =>
+        trackQueuedUploadFinished({
+          scope: tap.scope,
+          authMode: tap.authMode,
+          durationMs: Date.now() - tap.startedAt,
+          status: error
+            ? wasAskedToReconnect(error)
+              ? "wallet-reconnect-required"
+              : "stopped"
+            : (outcome?.status ?? "not-signed-in"),
+          sent: outcome && "sent" in outcome ? outcome.sent : 0,
+          flagged: outcome && "flagged" in outcome ? outcome.flagged : 0,
+          error: error ?? (outcome?.status === "failed" ? outcome.error : undefined),
+        })
       );
     },
     onSuccess: (outcome) => {
@@ -186,6 +239,8 @@ export function useWorkUploads(options: { inScope?: GardenScopeFilter } = {}): W
       });
     },
     onError: (error) => {
+      // The reconnect prompt already asked, and the work is still queued.
+      if (wasAskedToReconnect(error)) return;
       logger.error("[useWorkUploads] Upload all stopped", { error });
       if (appCodeRecovery.report(error)) return;
       toastService.error({
@@ -213,6 +268,18 @@ export function useWorkUploads(options: { inScope?: GardenScopeFilter } = {}): W
     waitingDecisionGardenIds: summary.waitingDecisionGardenIds,
     decisionFor: (workUID) => summary.decisionsByWorkId.get(workUID.toLowerCase()),
     statusOf: (jobId) => summary.statuses.get(jobId),
+    preparationOf: (jobId) => {
+      // A try under way outranks the backoff it may end with.
+      if (preparation.activeJobId === jobId) return "working";
+      // Preparation runs only on a confirmed connection, and before it loads it reports no pause.
+      if (connectivity.state !== "online" || preparation.paused === "unconfirmed")
+        return "connection";
+      if (preparation.paused === "data-saver") return "data-saver";
+      if (preparation.paused === "app-code") return "app-update";
+      if (preparation.retryingJobIds.has(jobId)) return "retrying";
+      // Hidden or held for a send, it resumes by itself as soon as it can.
+      return "working";
+    },
     // The upload reads each job's readiness again; scoped, it is handed this list's jobs only.
     upload: () => mutation.mutateAsync(inScope ? summary.scopedJobIds : undefined),
     uploadOne: (jobId) => mutation.mutateAsync([jobId]),

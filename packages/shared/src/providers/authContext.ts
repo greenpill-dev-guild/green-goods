@@ -2,7 +2,12 @@ import { createContext } from "react";
 import type { SmartAccountClient } from "permissionless";
 import type { Hex } from "viem";
 import type { P256Credential } from "viem/account-abstraction";
-import type { AuthMode, SmartAccountClientResolver, WalletConnectFailure } from "../types/auth";
+import type {
+  AuthMode,
+  SmartAccountClientResolver,
+  WalletConnectFailure,
+  WalletRestoreState,
+} from "../types/auth";
 import type { PasskeyAccountProfileId } from "../modules/auth/account-profile";
 import type {
   PilotAccountPreview,
@@ -15,7 +20,10 @@ export interface AuthStateValue {
   walletReleaseStalled?: boolean;
   /** The last wallet sign-in ended without the wallet answering; cleared by the next attempt. */
   walletConnectFailure?: WalletConnectFailure | null;
+  /** A wallet account whose wallet has not answered yet, or null once it has. */
+  walletRestore?: WalletRestoreState | null;
   authMode: AuthMode;
+  /** The session is known: signed out, or signed in, including a wallet account still restoring. */
   isReady: boolean;
   isAuthenticated: boolean;
   isAuthenticating: boolean;

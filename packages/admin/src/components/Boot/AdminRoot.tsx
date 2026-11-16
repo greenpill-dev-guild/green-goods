@@ -1,4 +1,5 @@
 import { ErrorBoundary } from "@green-goods/shared/components/ErrorBoundary/ErrorBoundary";
+import { HUB_URL } from "@green-goods/shared/config/app";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import {
   createQueryPersistence,
@@ -27,9 +28,9 @@ const persistence = createQueryPersistence({
 });
 attachQueryPersistence(queryClient, persistence);
 
-// WalletConnect verifies the requesting origin; a retired build-time URL breaks that match.
-const adminAppUrl =
-  typeof window !== "undefined" ? window.location.origin : "https://admin.greengoods.app";
+// WalletConnect verifies the requesting origin, so the Hub names the host it is served from
+// (admin.greengoods.app or hub.greengoods.app); a retired build-time URL breaks that match.
+const adminAppUrl = typeof window !== "undefined" ? window.location.origin : HUB_URL;
 
 /**
  * The admin application tree: query persistence, the app error boundary,
@@ -50,8 +51,8 @@ export default function AdminRoot({
         <AppKitProvider
           projectId={import.meta.env.VITE_WALLETCONNECT_PROJECT_ID}
           metadata={{
-            name: "Green Goods Admin",
-            description: "Garden management canvas for the Green Goods protocol",
+            name: "Green Goods Hub",
+            description: "Garden management for Green Goods stewards",
             url: adminAppUrl,
             icons: ["https://greengoods.app/icon.png"],
           }}

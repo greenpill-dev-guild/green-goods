@@ -49,10 +49,10 @@ function OwnerSafeRule({ chainId, safe }: { chainId: number; safe: Address }) {
     <p className="type-meta text-text-soft" data-component="OwnerSafeRule" data-chain={chainId}>
       {rule?.status === "observed" && rule.threshold !== null && rule.owners !== null
         ? intl.formatMessage(
-            { id: "cockpit.community.voucherIssuers.safe.needs" },
+            { id: "hub.community.voucherIssuers.safe.needs" },
             { threshold: rule.threshold, owners: rule.owners }
           )
-        : intl.formatMessage({ id: "cockpit.community.voucherIssuers.safe.unread" })}
+        : intl.formatMessage({ id: "hub.community.voucherIssuers.safe.unread" })}
     </p>
   );
 }
@@ -72,7 +72,7 @@ export function VoucherIssuerDialog({
 }: Props) {
   const intl = useIntl();
   const t = (key: string, values?: Record<string, string | number>) =>
-    intl.formatMessage({ id: `cockpit.community.voucherIssuers.${key}` }, values);
+    intl.formatMessage({ id: `hub.community.voucherIssuers.${key}` }, values);
   const [copied, setCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
   const [reason, setReason] = useState("");

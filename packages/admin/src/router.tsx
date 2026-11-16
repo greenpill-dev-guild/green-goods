@@ -25,7 +25,7 @@ function RouteLoadingScreen() {
 // Login redirect - preserves redirectTo param for bookmarked /login URLs
 const LoginRedirect = () => {
   const location = useLocation();
-  const redirectTo = new URLSearchParams(location.search).get("redirectTo") || adminRoutes.hub();
+  const redirectTo = new URLSearchParams(location.search).get("redirectTo") || adminRoutes.review();
   return <Navigate to={redirectTo} replace />;
 };
 
@@ -61,7 +61,7 @@ export const router = createRouter([
       {
         // Home — explicit terminal states (spinner / redirect / no-access /
         // connect prompt). Lives outside CanvasShell because none of those
-        // states need the hub chrome; IndexRoute provides its own visual shell.
+        // states need the Hub's chrome; IndexRoute provides its own visual shell.
         index: true,
         lazy: async () => ({
           Component: (await import("@/routes/IndexRoute")).default,

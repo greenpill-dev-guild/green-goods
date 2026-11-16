@@ -1,6 +1,12 @@
+import { createLogger } from "../logger";
 import { ConversationWriter } from "./coordinator/writer";
 import { bindingForSubject } from "./participants";
 import type { ReportingCore } from "./runtime";
+
+const log = createLogger("reporting");
+
+/** A dedupe prefix opens with a word naming the reply's purpose; any other opening is an id. */
+const PURPOSE = /^[a-z]+(?:-[a-z]+)*$/;
 
 /**
  * A writer for background work (jobs and browser commands) that must reply in a participant's
@@ -18,9 +24,11 @@ export function participantWriter(
        ORDER BY arrival_seq DESC LIMIT 1`
     )
     .get({ conversation: input.conversationId }) as { channel_subject_id: string } | null;
-  if (!sender) return null;
+  if (!sender) return noRecipient("no_sender", input.dedupePrefix);
   const binding = bindingForSubject(core, sender.channel_subject_id);
-  if (!binding || binding.participantId !== input.participantId) return null;
+  if (!binding) return noRecipient("no_binding", input.dedupePrefix);
+  if (binding.participantId !== input.participantId)
+    return noRecipient("binding_moved", input.dedupePrefix);
   return new ConversationWriter(core, {
     conversationId: input.conversationId,
     subjectId: sender.channel_subject_id,
@@ -28,6 +36,22 @@ export function participantWriter(
     locale: binding.locale ?? "en",
     dedupePrefix: input.dedupePrefix,
   });
+}
+
+/**
+ * A reply with nobody to address is never written, so the miss leaves a warning: why, and what
+ * the reply was for. Only the purpose word is logged, never the ids that follow it.
+ */
+function noRecipient(
+  reason: "no_sender" | "no_binding" | "binding_moved",
+  dedupePrefix: string
+): null {
+  const [head = ""] = dedupePrefix.split(":", 1);
+  log.warn(
+    { reason, purpose: PURPOSE.test(head) ? head : "other" },
+    "No live recipient in a participant's conversation"
+  );
+  return null;
 }
 
 export function conversationRealm(core: ReportingCore, conversationId: string): string {

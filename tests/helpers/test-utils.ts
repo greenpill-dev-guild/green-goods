@@ -200,7 +200,7 @@ export async function setupAuthenticatedClient(
 /**
  * Helper for admin app testing with deterministic dev auth.
  *
- * Prefer `mockAuth` URL/session overrides for cockpit verification.
+ * Prefer `mockAuth` URL/session overrides for the Hub verification.
  * NOTE: For multi-tab tests, use the context parameter to ensure
  * the init script applies to all pages in the context.
  */
@@ -240,7 +240,7 @@ export class AdminTestHelper {
     }
   }
 
-  async goToCockpit(path: string = "/hub", role: AdminMockRole = "steward") {
+  async goToHub(path: string = "/review", role: AdminMockRole = "steward") {
     await this.page.goto(this.buildMockAuthPath(path, role));
     await this.page.waitForLoadState("domcontentloaded");
   }

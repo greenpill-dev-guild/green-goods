@@ -28,7 +28,7 @@ import { describe, expect, it } from "vitest";
 
 const ADMIN_SRC = join(__dirname, "..", "..");
 const VALID_SIZES = new Set(["sm", "md", "lg"]);
-const VALID_TONES = new Set(["hub", "garden", "community", "actions", "home"]);
+const VALID_TONES = new Set(["review", "garden", "community", "actions", "home"]);
 
 /**
  * Files whose `<AdminDialog` sites are deliberately neutral — the only
@@ -178,7 +178,7 @@ export function collectViolations(source: string, filePath: string): string[] {
         );
       } else if (toneLiteral && !VALID_TONES.has(toneLiteral[1])) {
         violations.push(
-          `${where} — tone="${toneLiteral[1]}" is outside the shipped set (hub|garden|community|actions|home)`
+          `${where} — tone="${toneLiteral[1]}" is outside the shipped set (review|garden|community|actions|home)`
         );
       }
     }
@@ -228,13 +228,13 @@ describe("AdminDialog size/variant standard", () => {
 
   it("detects seeded violations (self-check)", () => {
     const seeded = `
-      <AdminDialog open size="xl" tone="hub" title="bad">
-      <AdminDialog open size={wide ? "2xl" : "lg"} tone="hub" title="bad">
-      <AdminDialog open size={dynamicSize} tone="hub" title="bad">
-      <AdminDialog open className="p-0 max-w-5xl" tone="hub" title="bad">
-      <AdminDialog open variant="flow" tone="hub" title="bad">
-      <AdminDialog open size="lg" variant="flow" tone="hub" className={ADMIN_FLOW_DIALOG_CLASS} title="good">
-      <AdminDialog open size="md" tone="hub" onOpenChange={(next) => { if (!next) close(); }} title="good">
+      <AdminDialog open size="xl" tone="review" title="bad">
+      <AdminDialog open size={wide ? "2xl" : "lg"} tone="review" title="bad">
+      <AdminDialog open size={dynamicSize} tone="review" title="bad">
+      <AdminDialog open className="p-0 max-w-5xl" tone="review" title="bad">
+      <AdminDialog open variant="flow" tone="review" title="bad">
+      <AdminDialog open size="lg" variant="flow" tone="review" className={ADMIN_FLOW_DIALOG_CLASS} title="good">
+      <AdminDialog open size="md" tone="review" onOpenChange={(next) => { if (!next) close(); }} title="good">
     `;
     const violations = collectViolations(seeded, "seed.tsx");
     expect(violations).toHaveLength(5);
@@ -274,7 +274,7 @@ describe("AdminDialog size/variant standard", () => {
     );
 
     // Flow dialogs own their chrome via ActionFlowShell — SheetFooter is fine.
-    const flowSeed = `<AdminDialog open size="lg" variant="flow" tone="hub" className={ADMIN_FLOW_DIALOG_CLASS} title="x">
+    const flowSeed = `<AdminDialog open size="lg" variant="flow" tone="review" className={ADMIN_FLOW_DIALOG_CLASS} title="x">
       <SheetFooter>flow footer</SheetFooter>
     </AdminDialog>`;
     expect(collectViolations(flowSeed, "views/Flow.tsx")).toEqual([]);

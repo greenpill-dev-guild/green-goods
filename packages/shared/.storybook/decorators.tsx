@@ -238,13 +238,13 @@ export function withDataRouter(path = "/"): Decorator {
 interface CanvasFrameOptions {
   className?: string;
   heightClassName?: string;
-  workspace?: "home" | "hub" | "garden" | "community" | "actions" | "profile";
+  workspace?: "home" | "review" | "garden" | "community" | "actions" | "profile";
 }
 
 export function withCanvasFrame({
   className = "",
   heightClassName = "min-h-[560px]",
-  workspace = "hub",
+  workspace = "review",
 }: CanvasFrameOptions = {}): Decorator {
   return (Story) => (
     <div
@@ -339,7 +339,7 @@ export function withInstalledPwa({
 
 export const withAdminPrimitiveFrame: Decorator = (Story) => (
   <div
-    data-workspace="hub"
+    data-workspace="review"
     className="admin-m3 storybook-canvas-frame min-h-[520px] overflow-auto p-6 text-[rgb(var(--m3-on-surface))] sm:p-8"
   >
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 rounded-[var(--m3-shape-lg)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface))] p-6 shadow-[var(--m3-elevation-1)]">

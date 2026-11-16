@@ -3,7 +3,7 @@ import { adminRoutes } from "../../../utils/navigation/admin-routes";
 
 export type AdminWorkspaceSectionTab = "overview" | "impact" | "work" | "community";
 export type AdminIndexRedirectKind =
-  | "hub"
+  | "review"
   | "garden"
   | "community"
   | "garden-overview"
@@ -13,7 +13,7 @@ interface AdminWorkspaceSectionRouteOptions {
   tab: AdminWorkspaceSectionTab;
   section: string;
   itemId?: string;
-  hubSort?: "newest" | "oldest";
+  reviewSort?: "newest" | "oldest";
   gardenId?: Address | string;
   gardenAddress?: Address | string;
 }
@@ -28,8 +28,8 @@ function preserveAdminSearch(search: string, omitKeys: string[] = []): string {
 }
 
 export function resolveAdminIndexRedirect(kind: AdminIndexRedirectKind, search: string): string {
-  if (kind === "hub") {
-    return `${adminRoutes.hubWork()}${preserveAdminSearch(search, ["view"])}`;
+  if (kind === "review") {
+    return `${adminRoutes.reviewWork()}${preserveAdminSearch(search, ["view"])}`;
   }
   if (kind === "garden" || kind === "garden-overview") {
     return `${adminRoutes.gardenHealth()}${preserveAdminSearch(search, ["view"])}`;
@@ -41,15 +41,15 @@ export function resolveAdminIndexRedirect(kind: AdminIndexRedirectKind, search: 
 }
 
 export function resolveAdminWorkspaceSectionRoute(options: AdminWorkspaceSectionRouteOptions) {
-  const { tab, section, itemId, hubSort } = options;
+  const { tab, section, itemId, reviewSort } = options;
   const gardenId = options.gardenId ?? options.gardenAddress;
 
   if (tab === "work") {
     if (section === "work" && itemId) {
-      return adminRoutes.hubWorkDetail(itemId, { gardenId, sort: hubSort });
+      return adminRoutes.reviewWorkDetail(itemId, { gardenId, sort: reviewSort });
     }
 
-    return adminRoutes.hubWork({ gardenId, sort: hubSort });
+    return adminRoutes.reviewWork({ gardenId, sort: reviewSort });
   }
 
   if (tab === "impact") {

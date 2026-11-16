@@ -12,7 +12,7 @@ const OTHERS_THRESHOLD = 5;
 
 /**
  * Color palette for distribution chart segments. Each entry reads a role's RGB
- * triple, which resolves on the segment the way the cockpit's utilities do: the
+ * triple, which resolves on the segment the way the Hub's utilities do: the
  * build ships a Tailwind `--color-*` alias only when a startup utility uses it,
  * so a segment that read one drew black. Feature purple stands in for success,
  * whose green is the brand's own.

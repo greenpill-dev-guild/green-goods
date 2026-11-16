@@ -90,6 +90,6 @@ jobs:
           path: |
             output/contracts-test-audit/coverage-summary.md
             output/contracts-test-audit/coverage-summary.json
-            output/contracts-test-audit/coverage-local.log
             output/contracts-test-audit/lcov-local.info
+            output/contracts-test-audit/coverage-local.log
           if-no-files-found: warn

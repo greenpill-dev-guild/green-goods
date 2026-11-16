@@ -19,7 +19,7 @@ export interface AdminSortSelectProps {
 /**
  * AdminSortSelect — the canonical "Sort by" pill.
  *
- * Extracted from Hub's inline control so Hub and Actions can't drift: an
+ * Extracted from Review's inline control so Review and Actions can't drift: an
  * `h-9` M3 pill on the 36px toolbar tier (DL-011, matching the
  * `AdminSearchToolbar` search field) with
  * a `whitespace-nowrap` label and a borderless `NativeSelect` at the same

@@ -53,14 +53,14 @@ type FailedAct = "load" | "new" | "record";
 
 /**
  * Review first; preparing records the exact Safe call, and only a verified receipt completes it.
- * The dialog reads as the cockpit's others: history with each award's state as a pill, the new
+ * The dialog reads as the Hub's others: history with each award's state as a pill, the new
  * award's facts, and its acts in the pinned footer.
  */
 export function VoucherAwardDialog(props: VoucherAwardDialogProps) {
   const { issuer, records, busy, disabled, onClose } = props;
   const intl = useIntl();
   const { formatMessage } = intl;
-  const t = (key: string) => formatMessage({ id: `cockpit.voucherAward.${key}` });
+  const t = (key: string) => formatMessage({ id: `hub.voucherAward.${key}` });
   const formId = useId();
   const historyId = useId();
   const newId = useId();

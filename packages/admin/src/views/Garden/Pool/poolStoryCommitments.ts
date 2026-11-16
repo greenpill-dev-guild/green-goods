@@ -1,7 +1,7 @@
 /**
  * Commitment records, their titles, the claim requests raised against them,
  * and the confirmation queue they feed — the plain read-model shapes the
- * pool console and Hub stories render.
+ * pool console and Review stories render.
  */
 
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";

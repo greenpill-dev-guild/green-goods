@@ -114,15 +114,56 @@ function scanCommands(source) {
   return { commands, partial };
 }
 
+// Words that run the rest of the command without a shell string, with the options that take a
+// value: the same set the machine-wide guards strip, so .agents/policy.json rules match alike.
+const WRAPPERS = new Map([
+  ["env", ["-u", "--unset", "-C", "--chdir"]],
+  ["command", []],
+  ["builtin", []],
+  ["exec", ["-a"]],
+  ["time", []],
+  ["nohup", []],
+  ["nice", ["-n", "--adjustment"]],
+  ["timeout", ["-s", "--signal", "-k", "--kill-after"]],
+  ["caffeinate", ["-t", "-w"]],
+  ["sudo", ["-u", "--user", "-g", "--group", "-h", "--host", "-p", "--prompt", "-C", "--close-from", "-D", "--chdir", "-r", "--role", "-t", "--type", "-U", "--other-user", "-T", "--command-timeout"]],
+  ["npx", ["-p", "--package", "-c", "--call", "-w", "--workspace"]],
+  ["bunx", ["-p", "--package"]],
+  ["bun x", ["-p", "--package"]],
+  ["npm exec", ["-p", "--package", "-c", "--call", "-w", "--workspace"]],
+  ["pnpm dlx", ["--package"]],
+  ["pnpm exec", []],
+  ["yarn dlx", ["-p", "--package"]],
+  ["yarn exec", []],
+]);
+const PACKAGE_RUNNERS = new Set(["npx", "bunx", "bun x", "npm exec", "pnpm dlx", "pnpm exec", "yarn dlx", "yarn exec"]);
+const ASSIGNMENT = /^[A-Za-z_][A-Za-z_0-9]*=/;
+
 function executableWords(words) {
   const args = words.filter((word) => !word.inputFile);
-  while (args.length && /^[A-Za-z_][A-Za-z_0-9]*=/.test(args[0].value)) args.shift();
-  // These wrappers preserve the command's meaning without executing a shell string.
-  while (["env", "command", "exec"].includes(args[0]?.value)) {
-    args.shift();
-    while (args[0] && (args[0].value === "--" || /^[A-Za-z_][A-Za-z_0-9]*=/.test(args[0].value))) args.shift();
+  for (;;) {
+    while (args.length && ASSIGNMENT.test(args[0].value)) args.shift();
+    const head = basename(args[0]?.value ?? "");
+    const wrapper = [`${head} ${args[1]?.value}`, head].find((name) => WRAPPERS.has(name));
+    if (!wrapper) return args;
+    args.splice(0, wrapper.split(" ").length);
+    const valueOptions = WRAPPERS.get(wrapper);
+    while (args.length && (args[0].value.startsWith("-") || (wrapper === "env" && ASSIGNMENT.test(args[0].value)))) {
+      const [option] = args.splice(0, 1);
+      if (option.value === "--") break;
+      // `command -v` and `command -V` look the name up and run nothing.
+      if (wrapper === "command" && /^-[A-Za-z]*[vV]/.test(option.value)) return [];
+      // A package runner's call string is a command of its own, evaluated by evaluateCommand.
+      if (PACKAGE_RUNNERS.has(wrapper) && /^(-c|--call)(=|$)/.test(option.value)) {
+        const call = option.value.includes("=") ? { value: option.value.slice(option.value.indexOf("=") + 1) } : args.shift();
+        return Object.assign([], { call: call && !call.dynamic ? call.value : "" });
+      }
+      if (valueOptions.includes(option.value)) args.shift();
+    }
+    if (wrapper === "timeout") args.shift();
+    // A package runner names a package, maybe with a version: `vercel@62.1.0` runs `vercel`.
+    if (PACKAGE_RUNNERS.has(wrapper) && args[0]) args[0] = { ...args[0], value: args[0].value.replace(/^(@?[^@]+)@.*$/, "$1") };
   }
-  return args;
 }
 
 function isSecretFile(value) {
@@ -185,7 +226,41 @@ function commandDecision(words, harness) {
   const operation = /(?:^|[/:._-])(deploy|upgrade)(?:$|[/:._-])/i.test(script ?? "");
   const mainnet = values.some((arg) => /(?:^|[/:=._-])mainnet(?:$|[/:._-])/i.test(arg));
   const contractsOperation = values[2] === "contracts" && values.some((arg) => /^(deploy|upgrade)$/.test(arg));
-  const production = ((operation || contractsOperation) && mainnet) ||
+  // The last occurrence wins, as the contracts scripts read repeated options.
+  const option = (name) => {
+    let value;
+    values.forEach((arg, index) => {
+      if (arg === name) value = values[index + 1] ?? "";
+      else if (arg.startsWith(`${name}=`)) value = arg.slice(name.length + 1);
+    });
+    return value;
+  };
+  // A contracts broadcast or Safe signature asks unless its last network is a test network; any
+  // other command asks only when it names a live network. The contracts scripts read the last of
+  // `--network` and `-n`, and some default to a live chain or follow `--rpc-url` or `--chain-id`,
+  // so an override always asks. The release operator broadcasts whatever its stage needs. Help and
+  // explain never broadcast.
+  const runner = ["bun", "npm", "pnpm", "node", "bash", "sh", "tsx"].includes(executable);
+  const contractsAt = (index) => values[index] === "contracts" && (values[index + 1] === "--" ? index + 2 : index + 1);
+  const help = values.some((arg) => ["--help", "-h", "--explain"].includes(arg)) ||
+    values.some((_, index) => contractsAt(index) && values[contractsAt(index)] === "help");
+  let lastNetwork;
+  values.forEach((arg, index) => {
+    if (arg === "--network" || arg === "-n") lastNetwork = values[index + 1] ?? "";
+    else if (arg.startsWith("--network=")) lastNetwork = arg.slice("--network=".length);
+  });
+  const broadcasting = /^(broadcast(-\S+)?|sign-safe)$/.test(option("--mode") ?? "") ||
+    values.some((arg) => /^(--broadcast(-\S+)?|--sign-safe|-b)$/.test(arg));
+  const liveNetwork = /^(mainnet|arbitrum|celo|gnosis)$/.test(lastNetwork ?? "");
+  const testNetwork = /^(localhost|sepolia)$/.test(lastNetwork ?? "");
+  const contractsCommand = values.some((arg) => arg === "contracts" || /(?:^|\/)script\/\S+\.(?:ts|mjs|js)$/.test(arg));
+  const networkOverride = values.some((arg) => /^--(rpc-url|chain-id)(=|$)/.test(arg));
+  const releaseOperator =
+    values.some((_, index) => contractsAt(index) && values[contractsAt(index)] === "release" && values[contractsAt(index) + 1] === "operator") ||
+    (["bun", "node", "tsx"].includes(executable) && /(?:^|\/)release-operator\.(?:ts|mjs|js)$/.test(values[values[1] === "run" ? 2 : 1] ?? ""));
+  const productionBroadcast = runner && !help && (releaseOperator ||
+    (broadcasting && (liveNetwork || (contractsCommand && (networkOverride || !testNetwork)))));
+  const production = ((operation || contractsOperation) && mainnet) || productionBroadcast ||
     (executable === "vercel" && values.includes("--prod")) ||
     (harness === "codex" && executable === "fly" && values[1] === "deploy");
   if (production) return {
@@ -195,15 +270,33 @@ function commandDecision(words, harness) {
   return null;
 }
 
-export function evaluateCommand(command, harness) {
+/** The words of each simple command after wrappers, as `.agents/policy.json` rules see them. */
+export function commandValues(command) {
+  return scanCommands(command).commands.map((words) => executableWords(words).map((word) => word.dynamic ? "" : word.value));
+}
+
+export function evaluateCommand(command, harness, depth = 0) {
   const { commands, partial } = scanCommands(command);
-  const decisions = commands.map((words) => commandDecision(words, harness)).filter(Boolean);
+  const decisions = [];
+  let nestedPartial = false;
+  for (const words of commands) {
+    // The outer command keeps its own checks (an input redirect is a read) before its call string.
+    const decision = commandDecision(words, harness);
+    if (decision) decisions.push(decision);
+    const { call } = executableWords(words);
+    if (call === undefined) continue;
+    if (call && depth < 3) {
+      const nested = evaluateCommand(call, harness, depth + 1);
+      decisions.push(...nested.decisions);
+      nestedPartial ||= nested.partial;
+    } else nestedPartial = true;
+  }
   const opaqueProgram = commands.some((words) => {
     const args = executableWords(words);
     return args[0]?.dynamic || ["eval", "bash", "sh", "zsh", "if", "for", "while", "case", "function"]
       .includes(basename(args[0]?.value ?? ""));
   });
-  return { decisions, partial: partial || opaqueProgram };
+  return { decisions, partial: partial || opaqueProgram || nestedPartial };
 }
 
 function main() {

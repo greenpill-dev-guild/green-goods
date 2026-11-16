@@ -10,7 +10,7 @@ interface TestSlot extends NavigationVisibilitySlot {
 }
 
 const slots: TestSlot[] = [
-  { id: "hub", visible: true },
+  { id: "review", visible: true },
   { id: "garden", visible: true },
   { id: "profile", visible: true, mobileOnly: true },
   { id: "desktop-tools", visible: true, desktopOnly: true },
@@ -28,8 +28,8 @@ describe("selectNavigationBarModel", () => {
   it("filters desktop and mobile slots without losing their declared order", () => {
     const model = selectNavigationBarModel(slots, baseState);
 
-    expect(model.desktopSlots.map(({ id }) => id)).toEqual(["hub", "garden", "desktop-tools"]);
-    expect(model.mobileSlots.map(({ id }) => id)).toEqual(["hub", "garden", "profile"]);
+    expect(model.desktopSlots.map(({ id }) => id)).toEqual(["review", "garden", "desktop-tools"]);
+    expect(model.mobileSlots.map(({ id }) => id)).toEqual(["review", "garden", "profile"]);
   });
 
   it.each([
@@ -63,7 +63,7 @@ describe("selectNavigationBarModel", () => {
   });
 
   it("suppresses a one-item shell unless a FAB keeps it actionable", () => {
-    const oneSlot = [{ id: "hub", visible: true }];
+    const oneSlot = [{ id: "review", visible: true }];
 
     expect(selectNavigationBarModel(oneSlot, baseState).shouldRender).toBe(false);
     expect(selectNavigationBarModel(oneSlot, { ...baseState, hasFab: true }).shouldRender).toBe(

@@ -189,7 +189,7 @@ export function PoolSetupFlow({
   const blocked = stepBlockedReason(currentStep, validity);
   const blockedReason = !pool.isOnline
     ? formatMessage({
-        id: "cockpit.garden.pool.setup.blocked.offline",
+        id: "hub.garden.pool.setup.blocked.offline",
         defaultMessage: "Connect to continue.",
       })
     : blocked
@@ -394,7 +394,7 @@ export function PoolSetupFlow({
         preventClose={submitting}
         title={title}
         description={formatMessage({
-          id: "cockpit.garden.pool.setup.description",
+          id: "hub.garden.pool.setup.description",
           defaultMessage: "Write how this pool runs and open it to the garden.",
         })}
         bodyClassName="flex min-h-0 flex-col !overflow-hidden"

@@ -80,7 +80,7 @@ export function DesignTokens() {
       <section className={styles.block}>
         <h3>Type</h3>
         <p>
-          Plus Jakarta Sans for the installed app and the cockpit, Inter for the public website, Fraunces for its
+          Plus Jakarta Sans for the Green Goods App and Hub, Inter for the Green Goods Website, Fraunces for its
           editorial moments. Each sample loads the fonts the app loads, so it renders at its token's own weight.
         </p>
         <div className={styles.type}>

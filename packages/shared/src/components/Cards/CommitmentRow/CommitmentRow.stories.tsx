@@ -149,7 +149,7 @@ export const QueueAndActStates: Story = {
   },
 };
 
-/** The same rows at the app's density and the cockpit's: 15px and 13px titles, one height. */
+/** The same rows at the app's density and the Hub's: 15px and 13px titles, one height. */
 export const Densities: Story = {
   render: () => (
     <div className="flex flex-wrap gap-8">
@@ -160,7 +160,7 @@ export const Densities: Story = {
         </Column>
       </section>
       <section className="flex flex-col gap-2" data-surface-scope="admin">
-        <h3 className="type-label-sm text-text-sub-600">Cockpit</h3>
+        <h3 className="type-label-sm text-text-sub-600">Hub</h3>
         <Column width={366}>
           <EveryState />
         </Column>
@@ -169,11 +169,11 @@ export const Densities: Story = {
   ),
   play: async ({ canvasElement }) => {
     await expectItemRowsFit(canvasElement);
-    const [app, cockpit] = [...canvasElement.querySelectorAll<HTMLElement>("section")];
+    const [app, hub] = [...canvasElement.querySelectorAll<HTMLElement>("section")];
     const titleSize = (section: HTMLElement) =>
       getComputedStyle(section.querySelector(".gg-item-row-title") as HTMLElement).fontSize;
     await expect(titleSize(app)).toBe("15px");
-    await expect(titleSize(cockpit)).toBe("13px");
+    await expect(titleSize(hub)).toBe("13px");
   },
 };
 

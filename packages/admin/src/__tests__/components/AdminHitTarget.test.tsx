@@ -28,7 +28,7 @@ describe("compact admin hit targets", () => {
     );
 
     // A button is the shared one now (DL-115): its 44px box is the shared hit box
-    // on the cockpit's --gg-hit-block, pinned by AdminDensityScale.guard.
+    // on the Hub's --gg-hit-block, pinned by AdminDensityScale.guard.
     expect(screen.getByRole("button", { name: "Review" })).toHaveAttribute("data-size", "compact");
     expect(screen.getByRole("button", { name: "Open" })).toHaveClass("admin-hit-target");
   });

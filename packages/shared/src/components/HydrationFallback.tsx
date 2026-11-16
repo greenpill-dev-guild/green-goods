@@ -22,7 +22,7 @@ export interface HydrationFallbackProps {
  * <HydrationFallback appName="Green Goods" />
  *
  * // Admin
- * <HydrationFallback appName="Green Goods Admin" showIcon showMessage />
+ * <HydrationFallback appName="Green Goods Hub" showIcon showMessage />
  */
 export const HydrationFallback: React.FC<HydrationFallbackProps> = ({
   appName = "Green Goods",

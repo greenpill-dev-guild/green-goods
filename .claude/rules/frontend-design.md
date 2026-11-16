@@ -73,7 +73,7 @@ All user-generated text MUST have `truncate` or `line-clamp-*` AND a `title` att
 
 View-level actions in the `CanvasRouteHeader` `actions` slot / `AdminViewActions` (or the tab bar) are canonical. Do not create shortcut cards that duplicate them.
 
-An empty state's Create button repeats a header action only while that header action is hidden: the Hub's Assessments and Hypercerts keep their empty-state Create below 1024px and hide it from 1024px (DL-138).
+An empty state's Create button repeats a header action only while that header action is hidden: Review's Assessments and Hypercerts keep their empty-state Create below 1024px and hide it from 1024px (DL-138).
 
 ## Rule 6: Flex Height
 
@@ -89,11 +89,11 @@ Use `flex-1` on cards that should expand vertically within a flex container.
 
 ## Rule 8: Thumbnails
 
-Entity references in lists (gardens, actions) include small thumbnails — 40px for generic lists — using `ImageWithFallback` or letter fallbacks. Shipped variants are sanctioned: `GardenChip`'s 22px avatar (the garden's banner with DL-124's code change), `HubWorkCard`'s media mosaic, the shared `ItemRow`'s lead, the item's own square photo as tall as the row or a 56px icon tile (DL-102), the shared media card's 104px banner on the action picker and the installed app's garden card (DL-111, with its code change), and, with DL-112's code change, a person's 56px round avatar (`PersonRow`).
+Entity references in lists (gardens, actions) include small thumbnails — 40px for generic lists — using `ImageWithFallback` or letter fallbacks. Shipped variants are sanctioned: `GardenChip`'s 22px avatar (the garden's banner with DL-124's code change), `ReviewWorkCard`'s media mosaic, the shared `ItemRow`'s lead, the item's own square photo as tall as the row or a 56px icon tile (DL-102), the shared media card's 104px banner on the action picker and the installed app's garden card (DL-111, with its code change), and, with DL-112's code change, a person's 56px round avatar (`PersonRow`).
 
 ## Rule 9: Typography Utilities
 
-Text takes its size from the type scale, never from a raw Tailwind size (`text-xs` … `text-2xl`). That scale is the type roles: shared components use them on both surfaces (root `DESIGN.md` § Typography), and in admin each is at the cockpit's density (`packages/admin/DESIGN.md` § Typography):
+Text takes its size from the type scale, never from a raw Tailwind size (`text-xs` … `text-2xl`). That scale is the type roles: shared components use them on both surfaces (root `DESIGN.md` § Typography), and in admin each is at the Hub's density (`packages/admin/DESIGN.md` § Typography):
 
 - `type-title-lg` 22/28 for dialog, sheet, flow, and step titles; a step title takes its flow title's size through `FlowStepHeader`, above the step's 16px section titles and 14px rows (DL-063). The headline value in the shared `StatTile` also takes this role (DL-136) · `type-title-md` 16/24 for route headers, card and section titles, and state titles (the state block, DL-106) · `type-title-sm` 14/20. Titles are weight 600.
 - `type-body` 14px body · `type-label` 14px labels (500), every button size · `type-label-sm` 12px label (500) · `type-meta` 12px meta and supporting text · `type-meta-sm` 11px for chips and the smallest supporting lines.
@@ -126,7 +126,7 @@ Always include `sm:` breakpoint. Never skip from single-column to `md:` 2-column
 
 ## Rule 12: Accessibility — Status Indicators
 
-Status indicators must not rely on color alone. Use icons alongside color (WCAG 1.4.1). Use `StatusBadge` for generic status. `HubWorkCard`'s semantic status chip pairs are the sanctioned Hub exception — colors there are always icon/text-paired or text-labeled, never color-only.
+Status indicators must not rely on color alone. Use icons alongside color (WCAG 1.4.1). Use `StatusBadge` for generic status. `ReviewWorkCard`'s semantic status chip pairs are the sanctioned Review exception — colors there are always icon/text-paired or text-labeled, never color-only.
 
 ## Rule 13: Dark Mode — Semantic Tokens Only
 
@@ -149,7 +149,7 @@ modal (avoid building these) needs `max-w-[calc(100vw-2rem)] sm:max-w-lg` to sur
 **Admin**: fields ride the admin field family — `AdminTextField` / `AdminTextArea` /
 `AdminSelect` for single controls, `AdminInlineField` for the 32px inline axis, and
 `AdminFieldGroup` for group-shaped fields (checkbox grids, repeating rows, upload wells). The
-single controls and the inline field are the shared field at the cockpit's density (DL-116): each
+single controls and the inline field are the shared field at the Hub's density (DL-116): each
 renders the shared `TextInput`, `Textarea` or `NativeSelect` on the admin surface inside its own
 label, message line, icons and counter, so the box, its outline, the focus ring, the error border
 and the disabled fill are the shared control's. `AdminFieldGroup` keeps its group shape, since
@@ -159,8 +159,7 @@ render the `Admin*` wrappers, never the controls: a shared `FormField`/`TextInpu
 `NativeSelect` render in `packages/admin/src` outside the wrappers' own files fails the
 wrapper-adoption sweep in `check:design-tokens`. For an inline **setting row** (field title
 left, `Switch` or compact control right), use the shared `FactRow` with no value and the control as
-its `action`, in a `FactList` (DL-109): its label reads as a field title. `AdminSettingRow` draws the
-setting row until DL-109's code change retires it.
+its `action`, in a `FactList` (DL-109): its label reads as a field title.
 
 **Client**: use the `FormField` component from `@green-goods/shared` for label+input+error
 patterns, with the shared `TextInput`, `Textarea`, `NativeSelect`, `Switch`,
@@ -169,7 +168,7 @@ patterns, with the shared `TextInput`, `Textarea`, `NativeSelect`, `Switch`,
 default surface and an underline on the public editorial surface (DL-022, DL-024). Mark required fields in both surfaces (the admin family renders
 its own aria-hidden asterisk from `required` — never hardcode `" *"` into label strings).
 
-**The installed app and the cockpit** lay a field out one way (DL-105): the label above an
+**The installed app and the Hub** lay a field out one way (DL-105): the label above an
 outlined control, at the field title's 14px / 500, and a message line under it that reserves two
 lines for a hint or an error, so a message that fits never moves the form. The admin family,
 `FormField`, `FormattedAmountInput` and `DatePicker` draw that line with the shared
@@ -263,16 +262,16 @@ When to redeclare:
 
 Otherwise: trust the chrome. Anti-pattern guard for review: search the rendered DOM for the active garden / workspace / entity name; if it appears more than once outside chrome, justify it or remove it.
 
-## Rule 18: Cockpit M3 1a Invariants (admin)
+## Rule 18: Hub M3 1a Invariants (admin)
 
-The six enforceable invariants of the admin cockpit finish — treat violations as design regressions:
+The six enforceable invariants of the Hub finish — treat violations as design regressions:
 
 - **Single elevation ladder** — `--m3-elevation-0/1/2` plus `--admin-chrome-shadow` (floating nav/FAB chrome) are the only shadows, besides the shared bottom sheet's float shadow on a dialog or the side sheet below 640px (DL-104) and the shared card's faint shadow (`--gg-card-shadow`, DL-102).
 - **Admin radius set** — 4/8/12/16/9999px plus the shared card's 24px corner (`--gg-card-radius`, DL-102); no 20 or 28px radii (`rounded-xl`/`rounded-2xl` remap to 16px in admin, so a card takes its corner from `.gg-card`, never from a `rounded-*` utility). `AdminCard` is the shared card and `AdminListRow` takes the shared row's 16px corner (`--gg-row-radius`), while `AdminSelectableCard` keeps its 12px (DL-118).
-- **Six-use tone budget** — workspace tone appears only in the active tab (its 10% accent tint, label and 2px underline, DL-100), the active nav pill, at most one filled `--tone-action` header action (none on a review surface such as the Hub, DL-043), the nav-shell FAB fill, the shared `CountBadge` on a rail tab where something waits on the steward, filled with `--tone-on-surface-accent` (DL-099; a total goes in the panel's own header line and a flag shows no badge, DL-134), and a selected `AdminFilterChip`, filled with `--tone-action` (DL-101), plus the faint canvas wash. The focus role (DL-098), which rings focus and marks the record a list has open (DL-103), is not counted.
-- **Hover rule** — hovers are an elevation step-up or the neutral ink layer `rgb(var(--m3-on-surface) / 0.08)`, painted beneath the label on a filled control (`m3-state-layer-beneath`) so a hovered or pressed label keeps its rest contrast; a card or item row takes the ink layer only and never lifts (DL-102); a shared button takes the shared hover, its filled emphasis stepping to its tone's measured hover fill (`--tone-action-hover`, DL-009) and the others to the weak fill (DL-115); a selected filter chip answers a hover or a press with the ink layer beneath its label, at the cockpit's state opacities (DL-122); never translate/scale lifts or hue shifts.
-- **Admin views render the shared Button and IconButton directly** — with DL-119's code change, a view renders the shared `Button` (`emphasis` primary, secondary or tertiary, `tone="danger"` for a destructive act) and `IconButton`, and `AdminButton` and `AdminIconButton` are gone (until it lands, those adapters render the same pieces, DL-115). Sizes are compact, sm and lg, which the cockpit's tokens set at 28, 32 and 40px with a 44px finger box. A call site names its size, says `type` on a button that is not a link, sizes a leading glyph (16px at 28px, 18px otherwise) and gives an icon button's name as its tooltip too; a link drawn as either is `asChild`. Pill shape, one 14px label at every size, Title Case action labels (en; DL-012). The chosen option in a set is an `AdminFilterChip`, not a button; `EmptyState` takes a ready `Button` element as its action, and the confirm family's action bar is the shared `SheetActions` (DL-117). Control heights ride the DL-011 compact metric (buttons 28/32/40 with a 44px finger box on every tier, fields 44 on touch widths and 40 from 640px, pills and tabs 36; DL-030).
-- **Shared pieces ride the shared family** — the shared components the cockpit renders (FileUploadField, DatePicker, ConfidenceSelector, AudioRecorder, ImagePreviewDialog, toast actions, AssetSelector, AddressDisplay, Alert, and the dialogs' `SheetHeader` and `SheetActions`, DL-117) keep their shared `Button` / `IconButton` / `Chip` / control anatomy, and `index.css` sets the family's `--gg-*` tokens so they land on the cockpit metric: pills, one 14px label, lg and md on 40, sm on 32, compact on 28, a 44px finger box, and the responsive field tier through `surface="admin"` (DL-031). The same tokens keep the cockpit's buttons still while pressed, its icon buttons round with an 18px glyph, and a disabled button on the neutral pair (a 12% ink fill under a 38% ink label) instead of a dim (DL-115). A shared piece marks the buttons it lays out itself (`data-piece-control`), so they keep the app's layout, with no reserved margin and no height cap (DL-119). Never restyle a shared piece from admin; move the token. Where a shared piece fits, the cockpit's own wrapper draws it in place and keeps its name and props (`AdminCard` over `.gg-card`); a wrapper with no shared counterpart stays the cockpit's (DL-118).
+- **Six-use tone budget** — workspace tone appears only in the active tab (its 10% accent tint, label and 2px underline, DL-100), the active nav pill, at most one filled `--tone-action` header action (none on a review surface such as Review, DL-043), the nav-shell FAB fill, the shared `CountBadge` on a rail tab where something waits on the steward, filled with `--tone-on-surface-accent` (DL-099; a total goes in the panel's own header line and a flag shows no badge, DL-134), and a selected `AdminFilterChip`, filled with `--tone-action` (DL-101), plus the faint canvas wash. The focus role (DL-098), which rings focus and marks the record a list has open (DL-103), is not counted.
+- **Hover rule** — hovers are an elevation step-up or the neutral ink layer `rgb(var(--m3-on-surface) / 0.08)`, painted beneath the label on a filled control (`m3-state-layer-beneath`) so a hovered or pressed label keeps its rest contrast; a card or item row takes the ink layer only and never lifts (DL-102); a shared button takes the shared hover, its filled emphasis stepping to its tone's measured hover fill (`--tone-action-hover`, DL-009) and the others to the weak fill (DL-115); a selected filter chip answers a hover or a press with the ink layer beneath its label, at the Hub's state opacities (DL-122); never translate/scale lifts or hue shifts.
+- **Admin views render the shared Button and IconButton directly** — with DL-119's code change, a view renders the shared `Button` (`emphasis` primary, secondary or tertiary, `tone="danger"` for a destructive act) and `IconButton`, and `AdminButton` and `AdminIconButton` are gone (until it lands, those adapters render the same pieces, DL-115). Sizes are compact, sm and lg, which the Hub's tokens set at 28, 32 and 40px with a 44px finger box. A call site names its size, says `type` on a button that is not a link, sizes a leading glyph (16px at 28px, 18px otherwise) and gives an icon button's name as its tooltip too; a link drawn as either is `asChild`. Pill shape, one 14px label at every size, Title Case action labels (en; DL-012). The chosen option in a set is an `AdminFilterChip`, not a button; `EmptyState` takes a ready `Button` element as its action, and the confirm family's action bar is the shared `SheetActions` (DL-117). Control heights ride the DL-011 compact metric (buttons 28/32/40 with a 44px finger box on every tier, fields 44 on touch widths and 40 from 640px, pills and tabs 36; DL-030).
+- **Shared pieces ride the shared family** — the shared components the Hub renders (FileUploadField, DatePicker, ConfidenceSelector, AudioRecorder, ImagePreviewDialog, toast actions, AssetSelector, AddressDisplay, Alert, and the dialogs' `SheetHeader` and `SheetActions`, DL-117) keep their shared `Button` / `IconButton` / `Chip` / control anatomy, and `index.css` sets the family's `--gg-*` tokens so they land on the Hub metric: pills, one 14px label, lg and md on 40, sm on 32, compact on 28, a 44px finger box, and the responsive field tier through `surface="admin"` (DL-031). The same tokens keep the Hub's buttons still while pressed, its icon buttons round with an 18px glyph, and a disabled button on the neutral pair (a 12% ink fill under a 38% ink label) instead of a dim (DL-115). A shared piece marks the buttons it lays out itself (`data-piece-control`), so they keep the app's layout, with no reserved margin and no height cap (DL-119). Never restyle a shared piece from admin; move the token. Where a shared piece fits, the Hub's own wrapper draws it in place and keeps its name and props (`AdminCard` over `.gg-card`); a wrapper with no shared counterpart stays the Hub's (DL-118).
 
 ## Rule 19: Client Buttons and Controls Come From the Shared Family
 

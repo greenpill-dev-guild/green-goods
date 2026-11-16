@@ -82,7 +82,7 @@ export default function Actions() {
       <CanvasRouteHeader
         title={intl.formatMessage({ id: "app.admin.nav.actions", defaultMessage: "Actions" })}
         description={intl.formatMessage({
-          id: "cockpit.actions.description",
+          id: "hub.actions.description",
           defaultMessage:
             "Scan the registry, review lifecycle status, and maintain submission requirements.",
         })}
@@ -118,7 +118,7 @@ export default function Actions() {
         {actions.showToolbar ? (
           <AdminTabRail
             ariaLabel={intl.formatMessage({
-              id: "cockpit.actions.domainSwitcher",
+              id: "hub.actions.domainSwitcher",
               defaultMessage: "Filter actions by domain",
             })}
             activeId={activeDomainTab}
@@ -127,7 +127,7 @@ export default function Actions() {
               {
                 id: "all",
                 label: intl.formatMessage({
-                  id: "cockpit.actions.stage.all",
+                  id: "hub.actions.stage.all",
                   defaultMessage: "All",
                 }),
               },
@@ -247,7 +247,7 @@ export default function Actions() {
                   meta={[
                     intl.formatMessage(
                       {
-                        id: "cockpit.actions.inputsCount",
+                        id: "hub.actions.inputsCount",
                         defaultMessage: "{count} {count, plural, one {field} other {fields}}",
                       },
                       { count: displayAction.inputs.length }
@@ -255,7 +255,7 @@ export default function Actions() {
                     capitalsSummary,
                   ].filter(Boolean)}
                   statusLabel={intl.formatMessage({
-                    id: `cockpit.actions.status.${stage}`,
+                    id: `hub.actions.status.${stage}`,
                     defaultMessage:
                       stage === "active"
                         ? "Active"

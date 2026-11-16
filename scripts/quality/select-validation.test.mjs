@@ -35,7 +35,8 @@ test("hook and doctor edits select their behavioral proof", () => {
   const cases = [
     ["review-guardrails-test", [
       ".claude/scripts/task-completion-gate.sh", ".claude/scripts/teammate-idle-gate.sh",
-      ".codex/hooks/pre_tool_policy.sh", ".claude/settings.json", ".codex/hooks.json",
+      ".codex/hooks/pre_tool_policy.sh", ".codex/hooks/edit_policy.sh", ".agents/policy.json",
+      ".claude/settings.json", ".codex/hooks.json",
       "scripts/harness/command-policy.mjs", "scripts/harness/agent-hooks.test.mjs",
     ]],
     ["validation-system-test", [
@@ -3505,7 +3506,7 @@ test("a push replaces builds with typechecks, leaves presets and Storybook to CI
 
 test("react-patterns runs on push for the source and manifests it reads, never for tests or docs", () => {
   // Every manifest the architecture walk reads, and every package source it scans for imports.
-  for (const path of ["packages/admin/src/views/Hub/index.tsx", "packages/agent/src/services/analytics.ts", "packages/extension/src/graph/canvas.ts", "packages/shared/package.json", "packages/contracts/package.json", "packages/qa/package.json", "packages/extension/package.json", "scripts/quality/check-react-patterns.js"]) {
+  for (const path of ["packages/admin/src/views/Review/index.tsx", "packages/agent/src/services/analytics.ts", "packages/extension/src/graph/canvas.ts", "packages/shared/package.json", "packages/contracts/package.json", "packages/qa/package.json", "packages/extension/package.json", "scripts/quality/check-react-patterns.js"]) {
     const plan = selectValidation({ intent: "push", changedPaths: [path], mutationPaths: [] });
     assert.ok(plan.checks.find((check) => check.id === "react-patterns")?.selectedBy.includes("conditional:react-patterns"), path);
   }
@@ -3513,7 +3514,7 @@ test("react-patterns runs on push for the source and manifests it reads, never f
     assert.ok(!ids(selectValidation({ intent: "push", changedPaths: [path], mutationPaths: [] })).includes("react-patterns"), path);
   }
   // Only the push selects it from this rule.
-  assert.ok(!ids(selectValidation({ intent: "qa", changedPaths: ["packages/admin/src/views/Hub/index.tsx"] })).includes("react-patterns"));
+  assert.ok(!ids(selectValidation({ intent: "qa", changedPaths: ["packages/admin/src/views/Review/index.tsx"] })).includes("react-patterns"));
 });
 
 test("the Indexer keeps its typecheck, its build, as owner and consumer proof on a critical push", () => {
@@ -3545,4 +3546,27 @@ test("the Indexer keeps its typecheck, its build, as owner and consumer proof on
   assert.equal(manual.status, "ready");
   assert.ok(manual.checks.find((check) => check.id === "indexer-build")?.selectedBy.includes("critical-owner-types:indexer"));
   assert.deepEqual(manual.checks.find((check) => check.id === "indexer-test").focusedPaths, ["test/handlers.test.ts"]);
+});
+
+test("the merge policy's tiers cover every path the selector calls critical or sensitive", () => {
+  const policy = loadPolicy();
+  const merge = JSON.parse(readFileSync(join(repositoryRoot, ".agents/merge-policy.json"), "utf8"));
+  // dev merge-settings reads these globs: ** spans folders, * and ? stay inside one.
+  const globRegex = (glob) =>
+    new RegExp(`^${glob.replace(/\*\*|\*|\?|[.+^${}()|[\]\\]/g, (token) => ({ "**": ".*", "*": "[^/]*", "?": "[^/]" })[token] ?? `\\${token}`)}$`);
+  const covers = (tier, path) => merge.tiers[tier].paths.some((glob) => globRegex(glob).test(path));
+  const probes = (rule) => [
+    ...(rule.exact ?? []),
+    ...(rule.contains?.length
+      ? rule.prefixes.flatMap((prefix) => rule.contains.map((part) => `${prefix}probe/${part}-probe.ts`))
+      : (rule.prefixes ?? []).map((prefix) => (prefix.endsWith("/") ? `${prefix}probe.ts` : prefix))),
+  ];
+  const sensitive = policy.riskRules.filter((rule) => rule.risk === "sensitive").flatMap(probes);
+  assert.deepEqual(
+    [
+      ...policy.criticalOverrides.flatMap(probes).filter((path) => !covers("critical", path)).map((path) => `critical ${path}`),
+      ...sensitive.filter((path) => !covers("sensitive", path) && !covers("critical", path)).map((path) => `sensitive ${path}`),
+    ],
+    [],
+  );
 });

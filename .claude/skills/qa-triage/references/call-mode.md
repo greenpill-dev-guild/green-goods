@@ -96,7 +96,7 @@ the QA Sheet. One writer per session; the Phase 3b dedupe catches the other's re
   with the usual confirmation (an unattended run never writes the Sheet), and the Sheet rows
   remain the one place replay URLs and session IDs may land, under its existing private exception.
 
-Downstream, fix sessions pull the slices via the `debug` skill's QA Slice Fix Protocol — one
+Downstream, fix sessions pull the slices via the `debug` skill's slice loop — one
 slice = one branch = one PR, posture per [`.claude/context/qa.md § Fix posture`](../../../context/qa.md).
 
 ## Session window

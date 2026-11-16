@@ -65,7 +65,7 @@ export function ActionDetailPanel({
     intl.locale
   );
   const lifecycleLabel = formatMessage({
-    id: `cockpit.actions.status.${lifecycle}`,
+    id: `hub.actions.status.${lifecycle}`,
     defaultMessage:
       lifecycle === "active" ? "Active" : lifecycle === "upcoming" ? "Upcoming" : "Completed",
   });
@@ -116,7 +116,7 @@ export function ActionDetailPanel({
           ) : (
             <p className="type-body text-text-sub">
               {formatMessage({
-                id: "cockpit.actions.noMedia",
+                id: "hub.actions.noMedia",
                 defaultMessage: "No media attached",
               })}
             </p>
@@ -139,7 +139,7 @@ export function ActionDetailPanel({
             />
             <FactRow
               label={formatMessage({
-                id: "cockpit.actions.lifecycle",
+                id: "hub.actions.lifecycle",
                 defaultMessage: "Lifecycle",
               })}
               value={lifecycleLabel}
@@ -178,7 +178,7 @@ export function ActionDetailPanel({
               <RiFileListLine className="h-4 w-4 text-text-soft" />
               <h3 className="type-body font-semibold text-text-strong">
                 {formatMessage({
-                  id: "cockpit.actions.requirements",
+                  id: "hub.actions.requirements",
                   defaultMessage: "Submission requirements",
                 })}
               </h3>
@@ -198,7 +198,7 @@ export function ActionDetailPanel({
             ) : (
               <p className="type-body text-text-sub">
                 {formatMessage({
-                  id: "cockpit.actions.noInputs",
+                  id: "hub.actions.noInputs",
                   defaultMessage: "No form fields configured",
                 })}
               </p>

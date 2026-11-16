@@ -3,7 +3,7 @@ import type { GardenMemberHistory } from "../types/domain";
 import { GARDEN_ROLE_ORDER, getRoleLabel, type GardenRole } from "../utils/blockchain/garden-roles";
 import { FactList, FactRow } from "./Cards/FactRow";
 
-/** Membership facts use the same dates and unknown state in the app and cockpit. */
+/** Membership facts use the same dates and unknown state in the app and the Hub. */
 export function GardenMembershipDates({
   history,
   roles,

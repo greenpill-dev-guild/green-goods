@@ -195,7 +195,7 @@ function renderStaticRecovery(container: HTMLElement, error: unknown): void {
   card.style.cssText =
     "min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1.5rem;text-align:center;font-family:system-ui,sans-serif";
   const title = document.createElement("h1");
-  title.textContent = "Green Goods Admin could not start";
+  title.textContent = "Green Goods Hub could not start";
   const body = document.createElement("p");
   body.textContent = describe(error);
   const button = document.createElement("button");

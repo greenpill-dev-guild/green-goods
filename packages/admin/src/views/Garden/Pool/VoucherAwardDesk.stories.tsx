@@ -39,6 +39,7 @@ const meta: Meta<typeof VoucherAwardDesk> = {
       externalWalletConnected: true,
       externalWalletAddress: account,
       primaryAddress: account,
+      walletRestore: null,
     });
     mocked(useVoucherAwards).mockReturnValue({
       records: [],

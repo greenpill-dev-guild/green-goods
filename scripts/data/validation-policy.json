@@ -26,6 +26,7 @@
     {
       "risk": "sensitive",
       "prefixes": [
+        ".agents/",
         ".github/",
         ".claude/",
         ".codex/",
@@ -114,6 +115,12 @@
   ],
   "conditionalRules": [
     {
+      "check": "comment-policy-test",
+      "runInQa": true,
+      "runInEvidence": true,
+      "exact": ["scripts/quality/comment-policy.mjs", "bun.lock", "package.json"]
+    },
+    {
       "check": "dependabot-sync-test",
       "runInQa": true,
       "runInEvidence": true,
@@ -134,6 +141,8 @@
         ".claude/scripts/task-completion-gate.sh",
         ".claude/scripts/teammate-idle-gate.sh",
         ".codex/hooks/pre_tool_policy.sh",
+        ".codex/hooks/edit_policy.sh",
+        ".agents/policy.json",
         ".claude/settings.json",
         ".codex/hooks.json",
         "scripts/harness/command-policy.mjs",
@@ -154,6 +163,7 @@
         "scripts/dev/test-lease.mjs",
         "turbo.json",
         "scripts/data/validation-policy.json",
+        ".agents/merge-policy.json",
         "scripts/quality/select-validation.mjs",
         "scripts/quality/shared-mutation-surface.mjs",
         "scripts/dev/ci-local.js",
@@ -428,6 +438,7 @@
       "runInQa": true,
       "runInEvidence": true,
       "exact": [
+        ".agents/adapter.md",
         "AGENTS.md",
         "CLAUDE.md",
         ".claude/context/codebase-architecture.md",
@@ -441,6 +452,7 @@
         "scripts/quality/check-direct-tested-seams.mjs",
         "scripts/quality/check-direct-tested-seams.test.mjs",
         "scripts/quality/check-codex-docs.js",
+        "scripts/quality/check-react-patterns.js",
         "scripts/quality/check-guidance-links.mjs",
         "scripts/quality/check-skill-behavior-contracts.mjs",
         ".plans/README.md"
@@ -959,6 +971,16 @@
       "expectedSignal": "test-quality and certified seam guardrails pass without baseline debt",
       "freshness": "exact-test-guidance-registry-inputs-and-toolchain",
       "budgetSeconds": 2,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "comment-policy-test",
+      "command": "node scripts/dev/node-cli.js node --test scripts/quality/comment-policy.test.mjs",
+      "risk": "the comment codemod removes a comment it must keep, or misreads code as a comment",
+      "expectedSignal": "the comment codemod's fixtures pass for TypeScript, JavaScript and Solidity",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 15,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -1737,8 +1759,8 @@
         "packages/shared/src/hooks/admin-ui/garden/useGardenWorkspaceController.ts",
         "packages/shared/src/hooks/admin-ui/garden/useManageMembersController.ts",
         "packages/shared/src/hooks/admin-ui/garden/useSubmitWorkController.ts",
-        "packages/shared/src/hooks/admin-ui/hub/useCreateAssessmentController.ts",
-        "packages/shared/src/hooks/admin-ui/hub/useHubWorkbenchController.ts",
+        "packages/shared/src/hooks/admin-ui/review/useCreateAssessmentController.ts",
+        "packages/shared/src/hooks/admin-ui/review/useReviewWorkbenchController.ts",
         "packages/shared/src/hooks/admin-ui/hypercerts/useWizardData.ts",
         "packages/shared/src/hooks/admin-ui/layout/useAccountProfileController.ts",
         "packages/shared/src/hooks/admin-ui/layout/useStewardAccessRequestController.ts",
@@ -1748,7 +1770,7 @@
         "packages/shared/src/hooks/admin-ui/pool/useCommitmentVoucherOutcomes.ts",
         "packages/shared/src/hooks/admin-ui/pool/useEditReward.ts",
         "packages/shared/src/hooks/admin-ui/pool/useFinishCreating.ts",
-        "packages/shared/src/hooks/admin-ui/pool/useHubConfirmQueueController.ts",
+        "packages/shared/src/hooks/admin-ui/pool/useReviewConfirmQueueController.ts",
         "packages/shared/src/hooks/admin-ui/pool/usePoolConsoleController.ts",
         "packages/shared/src/hooks/admin-ui/pool/useProtocolFundingOperationsController.ts",
         "packages/shared/src/hooks/admin-ui/pool/useSeedTray.ts",

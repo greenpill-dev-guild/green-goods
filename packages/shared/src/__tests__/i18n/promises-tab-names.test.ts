@@ -8,12 +8,12 @@ type LocaleCatalog = Record<string, string>;
 /**
  * DL-077: the Garden workspace's Pool tab is called Promises, the name the app
  * already gives a garden's tab, and its card for asks is Review Promises.
- * "Waiting for approval" read from the asker's side, so the cockpit no longer
+ * "Waiting for approval" read from the asker's side, so the Hub no longer
  * says it anywhere.
  *
- * A dozen cockpit messages also send a steward to that tab by name ("finish
+ * A dozen Hub messages also send a steward to that tab by name ("finish
  * from the Promises tab"). Rather than pin each string, this scans every
- * cockpit message, so one that names the tab or the card the old way fails
+ * Hub message, so one that names the tab or the card the old way fails
  * wherever it is written.
  */
 const locales: Array<{ locale: string; messages: LocaleCatalog; retired: RegExp }> = [
@@ -22,15 +22,15 @@ const locales: Array<{ locale: string; messages: LocaleCatalog; retired: RegExp 
   { locale: "pt", messages: pt, retired: /separador do fundo comum|à espera de aprovação/i },
 ];
 
-describe("the cockpit's Promises tab names (DL-077)", () => {
+describe("the Hub's Promises tab names (DL-077)", () => {
   describe.each(locales)("$locale", ({ messages, retired }) => {
     it("calls the tab what the app calls a garden's Promises tab", () => {
-      expect(messages["cockpit.garden.pool.tab"]).toBe(messages["app.garden.pool"]);
+      expect(messages["hub.garden.pool.tab"]).toBe(messages["app.garden.pool"]);
     });
 
-    it("has no cockpit message that uses a retired name", () => {
+    it("has no Hub message that uses a retired name", () => {
       const offenders = Object.entries(messages)
-        .filter(([key, value]) => key.startsWith("cockpit.") && retired.test(value))
+        .filter(([key, value]) => key.startsWith("hub.") && retired.test(value))
         .map(([key, value]) => `${key}: ${value}`);
 
       expect(offenders).toEqual([]);

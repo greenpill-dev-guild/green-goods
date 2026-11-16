@@ -59,7 +59,7 @@ Green Goods uses **three PostHog projects**, partitioned by product surface:
 | Project | ID | Surfaces emitting | Used by this routine |
 |---|---|---|---|
 | **App** | `163591` | Client app + PWA + editorial website (single ingest target — editorial-to-PWA lineage is a within-project query, not cross-project) | **Primary** — funnel, retention, gardens, errors |
-| **Admin** | `262122` | Operator cockpit (admin web app) | Admin-side anomalies (`failures.conversion-kill` work_approval segment). **`actions.template-creation-rate` is BLOCKED** — the admin template signal now reads from the indexer `Action` entity, not PostHog; see Phase 1 step 8. |
+| **Admin** | `262122` | Green Goods Hub (steward web app) | Admin-side anomalies (`failures.conversion-kill` work_approval segment). **`actions.template-creation-rate` is BLOCKED** — the admin template signal now reads from the indexer `Action` entity, not PostHog; see Phase 1 step 8. |
 | **Agent** | `262124` | Bot/messaging runtime (Telegram, future WhatsApp/SMS) | Future agent-channel adoption metrics |
 
 Switch projects with the connector's `switch-project`, using the routine env project IDs as the source of truth. When the connector is bound to one project at a time, use `switch-project` between phases:

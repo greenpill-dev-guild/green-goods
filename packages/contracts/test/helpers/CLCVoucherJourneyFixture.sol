@@ -823,18 +823,26 @@ abstract contract CLCVoucherJourneyFixture is CLCPurchaseFixture {
         string memory base = string.concat(field, ".linkReferences");
         string[] memory sources = IJourneyJsonVm(address(vm)).parseJsonKeys(artifact, base);
         for (uint256 i; i < sources.length; ++i) {
-            string memory sourcePath = string.concat(base, '["', sources[i], '"]');
-            string[] memory names = IJourneyJsonVm(address(vm)).parseJsonKeys(artifact, sourcePath);
-            for (uint256 j; j < names.length; ++j) {
-                _patchProductionLibrary(
-                    encoded,
-                    artifact,
-                    string.concat(sourcePath, '["', names[j], '"]'),
-                    _journeyLibrary(sources[i], names[j])
-                );
-            }
+            _linkSource(encoded, artifact, string.concat(base, '["', sources[i], '"]'), sources[i]);
         }
         return vm.parseBytes(string(encoded));
+    }
+
+    function _linkSource(
+        bytes memory encoded,
+        string memory artifact,
+        string memory sourcePath,
+        string memory source
+    )
+        private
+    {
+        string[] memory names = IJourneyJsonVm(address(vm)).parseJsonKeys(artifact, sourcePath);
+        for (uint256 j; j < names.length; ++j) {
+            address libraryAddress = _journeyLibrary(source, names[j]);
+            ArtifactRange[] memory ranges =
+                abi.decode(vm.parseJson(artifact, string.concat(sourcePath, '["', names[j], '"]')), (ArtifactRange[]));
+            _writeLibraryAddress(encoded, ranges, bytes(vm.toString(libraryAddress)));
+        }
     }
 
     function _journeyLibrary(string memory source, string memory name) private returns (address libraryAddress) {
@@ -846,18 +854,7 @@ abstract contract CLCVoucherJourneyFixture is CLCPurchaseFixture {
         }
     }
 
-    /// @dev Keep byte patching separate from JSON traversal so coverage's minimum-IR build
-    ///      does not need the recursive deployment and both source/name loops on one stack.
-    function _patchProductionLibrary(
-        bytes memory encoded,
-        string memory artifact,
-        string memory rangesPath,
-        address libraryAddress
-    )
-        private
-    {
-        bytes memory addressText = bytes(vm.toString(libraryAddress));
-        ArtifactRange[] memory ranges = abi.decode(vm.parseJson(artifact, rangesPath), (ArtifactRange[]));
+    function _writeLibraryAddress(bytes memory encoded, ArtifactRange[] memory ranges, bytes memory addressText) private {
         for (uint256 k; k < ranges.length; ++k) {
             assertEq(ranges[k].length, 20);
             for (uint256 n; n < 40; ++n) {

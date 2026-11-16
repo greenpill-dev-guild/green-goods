@@ -14,7 +14,7 @@
  * System foundation stories pin these numbers, so a product change shows up
  * here as a failing parity check instead of silent drift. Sources:
  *   - admin:   packages/admin/src/index.css (`@theme` radius aliases, the
- *              type roles' cockpit values, the Plus Jakarta Sans body font,
+ *              type roles' Hub values, the Plus Jakarta Sans body font,
  *              the Tier 1a colour aliases)
  *   - client:  packages/client/index.html (Plus Jakarta Sans / Inter /
  *              Fraunces), packages/client/src/index.css and
@@ -25,7 +25,7 @@
  * so a class-scoped admin layout rule belongs there rather than here.
  * ============================================================================ */
 
-/* ── Admin cockpit ─────────────────────────────────────────────────────── */
+/* ── Hub ─────────────────────────────────────────────────────── */
 :root[data-surface="admin"],
 [data-surface-scope="admin"] {
   /* M3 shape scale — index.css `@theme` plus its unlayered `:root` remap, so
@@ -68,7 +68,7 @@
   --r-lg: var(--admin-radius-lg);
   --r-full: var(--admin-radius-full);
 
-  /* The shared control family in the cockpit (DL-031) — index.css `:root`.
+  /* The shared control family in the Hub (DL-031) — index.css `:root`.
      Shared pieces rendered in admin ride Button / IconButton / Chip / control
      classes that read these tokens: pills, one 14px / 500 label, the 28 / 32 /
      40 tiers and the 44px finger box. AdminDensityScale.guard pins this block
@@ -117,7 +117,7 @@
   --gg-state-mark-fill: rgb(var(--text-strong-950) / 0.06);
   --gg-state-mark-ink: rgb(var(--text-sub-600));
 
-  /* The type roles at the cockpit's density, as index.css `:root` sets them,
+  /* The type roles at the Hub's density, as index.css `:root` sets them,
      with its 640px media rule for field text below. */
   --gg-type-title-lg-size: 1.375rem;
   --gg-type-title-lg-line: 1.75rem;
@@ -155,7 +155,7 @@
   --gg-sheet-title-size: var(--gg-type-title-lg-size);
   --gg-sheet-title-line: var(--gg-type-title-lg-line);
 
-  /* The shared card surface on the cockpit's ladder, as index.css `:root`
+  /* The shared card surface on the Hub's ladder, as index.css `:root`
      sets it (its dark block re-declares the three below). */
   --gg-card-surface: var(--admin-surface-0);
   --gg-card-edge: var(--neutral-200);
@@ -227,12 +227,12 @@
   --gg-card-fill: var(--m3-surface-container-high);
 }
 
-/* The control outline in a dark scope below the cockpit root: Storybook's theme
+/* The control outline in a dark scope below the Hub root: Storybook's theme
    frame (`withTheme` puts data-theme on .storybook-browser-preview) and a story's
    own dark section. theme.css's dark block declares the outline again on every
    [data-theme="dark"] element, so such a scope would draw the shared dark hairline
-   (--stroke-sub-300, about 1.9:1) in place of the cockpit's outline above. The
-   running cockpit has one dark scope, <html>, so every control there takes
+   (--stroke-sub-300, about 1.9:1) in place of the Hub's outline above. The
+   running Hub has one dark scope, <html>, so every control there takes
    index.css's :root outline, --m3-outline (#a8a29e in dark, DL-098); a nested
    scope resolves the same here. :where() keeps the root out of the specificity,
    so a scope column's own outline still wins. */
@@ -241,7 +241,7 @@
   --gg-control-outline: var(--m3-outline);
 }
 
-/* The cockpit body font. Production sets it on <body> in `@layer base` and has
+/* The Hub body font. Production sets it on <body> in `@layer base` and has
    no `*` font rule, so everything inherits Plus Jakarta Sans; the Storybook
    frame and the <body> (for portaled dialogs and sheets) carry it here. */
 :root[data-surface="admin"] body,
@@ -251,9 +251,9 @@
 }
 
 /* The garden chip's app density is set in the installed app's scope
-   (theme.css), so a cockpit column inside an app document would inherit it.
-   Production's cockpit never sets these tokens; `initial` returns the column's
-   chip to the same fallbacks, the cockpit's 36px pill. Kept out of the first
+   (theme.css), so a Hub column inside an app document would inherit it.
+   Production's Hub never sets these tokens; `initial` returns the column's
+   chip to the same fallbacks, the Hub's 36px pill. Kept out of the first
    admin block, which AdminDensityScale.guard pins against index.css. */
 [data-surface-scope="admin"] {
   --gg-garden-chip-height: initial;
@@ -267,7 +267,7 @@
   --gg-garden-chip-focus-ring: initial;
 }
 
-/* STATUS PALETTE REMAP (mirror). The cockpit's amber, handoff red and azure
+/* STATUS PALETTE REMAP (mirror). The Hub's amber, handoff red and azure
    ramps from index.css, set on <body> as production does, so admin stories and
    the dialogs and sheets they portal draw the canvas's colors. Copied
    declaration for declaration; WorkspaceToneContrast.guard fails when the two
@@ -353,20 +353,20 @@
   --information-lighter: var(--sky-500) / 16%;
 }
 
-/* The status aliases in a dark scope inside a dark cockpit document: Storybook's
+/* The status aliases in a dark scope inside a dark Hub document: Storybook's
    theme frame, a story's own dark section, and <body> when a palette assertion
-   marks it dark. The cockpit's one dark scope is <html>, above <body>'s ramp
+   marks it dark. The Hub's one dark scope is <html>, above <body>'s ramp
    remap, so its error, warning and verified aliases keep the shared ramp, and
    --information-* and the link-hover step --primary-darker take the remap on
    <body>. Below <body>, theme.css's and admin-m3-tokens.css's dark blocks would
    resolve them again against the remapped ramps (--error-base 248 113 113 for
-   the cockpit's 255 104 117) and put back theme.css's dark-green --primary-darker
+   the Hub's 255 104 117) and put back theme.css's dark-green --primary-darker
    (22 100 59), so a nested scope inherits them; the container inks read
    --error-dark and --warning-dark and follow. On <body> the remap above outranks
    this rule and keeps --information-* and --primary-darker. It must stay after
    admin-m3-tokens.css, which sets three of these at the same specificity. A dark
    section inside a light story still resolves them against the remap; the
-   cockpit never draws one. */
+   Hub never draws one. */
 :where(:root[data-surface="admin"][data-theme="dark"]) [data-theme="dark"] {
   --error-base: inherit;
   --error-dark: inherit;
@@ -384,7 +384,7 @@
   --primary-darker: inherit;
 }
 
-/* The remap's colors where the cockpit resolves them. Its workspace stylesheet
+/* The remap's colors where the Hub resolves them. Its workspace stylesheet
    compiles against `@reference "../index.css"` and leaves these Tailwind aliases
    undeclared (only the dark .admin-m3 canvas sets --color-primary-darker), so
    `bg-information-lighter` reads
@@ -408,7 +408,7 @@
 
 /* ── Installed app and public website ──────────────────────────────────── */
 /* The client sets Inter on :root and, in the installed app's presentation,
-   Plus Jakarta Sans, the cockpit's face (index.css). The app frame and <body>
+   Plus Jakarta Sans, the Hub's face (index.css). The app frame and <body>
    (for portaled dialogs and sheets) carry the app's face here. The
    button corner and label weight tokens live on :root in shared theme.css
    (`:root:has([data-site="website"])` flips them); a scope wrapper re-declares
@@ -439,7 +439,7 @@
   --gg-icon-size-compact: initial;
   --gg-hit-block: initial;
   --gg-field-message-lines: initial;
-  /* And the cockpit's button look (DL-115, DL-119): no cap or reserve, the
+  /* And the Hub's button look (DL-115, DL-119): no cap or reserve, the
      press scale, the 20px glyph and the dimmed disabled state. */
   --gg-button-block-cap-lg: initial;
   --gg-button-block-cap-md: initial;

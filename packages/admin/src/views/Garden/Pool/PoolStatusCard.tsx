@@ -67,7 +67,7 @@ export function PoolStatusCard({
   const offline = !isOnline;
   const cap = pool.pool?.providerOpenCommitmentCap ?? 0n;
   const offlineNote = formatMessage({
-    id: "cockpit.garden.pool.offline",
+    id: "hub.garden.pool.offline",
     defaultMessage: "Needs a connection. Pool changes are sent right away, not queued.",
   });
   const actDisabled = offline || isActing;
@@ -83,7 +83,7 @@ export function PoolStatusCard({
         <div>
           <AdminCardTitle>
             {formatMessage({
-              id: "cockpit.garden.pool.status.title",
+              id: "hub.garden.pool.status.title",
               defaultMessage: "Pool Status",
             })}
           </AdminCardTitle>
@@ -94,7 +94,7 @@ export function PoolStatusCard({
           {protocolContext ? (
             <StatusBadge variant="neutral" size="sm">
               {formatMessage({
-                id: "cockpit.garden.pool.status.protocol",
+                id: "hub.garden.pool.status.protocol",
                 defaultMessage: "Protocol pool",
               })}
             </StatusBadge>
@@ -109,7 +109,7 @@ export function PoolStatusCard({
         <ul
           className="space-y-1.5"
           aria-label={formatMessage({
-            id: "cockpit.garden.pool.setup.checklist",
+            id: "hub.garden.pool.setup.checklist",
             defaultMessage: "Setup checklist",
           })}
         >
@@ -118,11 +118,11 @@ export function PoolStatusCard({
             label={
               model.readiness.charter
                 ? formatMessage({
-                    id: "cockpit.garden.pool.setup.charterDone",
+                    id: "hub.garden.pool.setup.charterDone",
                     defaultMessage: "Agreement written",
                   })
                 : formatMessage({
-                    id: "cockpit.garden.pool.setup.charterMissing",
+                    id: "hub.garden.pool.setup.charterMissing",
                     defaultMessage: "Agreement not written yet",
                   })
             }
@@ -132,11 +132,11 @@ export function PoolStatusCard({
             label={
               model.readiness.cap
                 ? formatMessage({
-                    id: "cockpit.garden.pool.setup.capDone",
+                    id: "hub.garden.pool.setup.capDone",
                     defaultMessage: "Promise limit set",
                   })
                 : formatMessage({
-                    id: "cockpit.garden.pool.setup.capMissing",
+                    id: "hub.garden.pool.setup.capMissing",
                     defaultMessage: "Promise limit not set",
                   })
             }
@@ -147,7 +147,7 @@ export function PoolStatusCard({
           {pool.charter.charter ? (
             <FactRow
               label={formatMessage({
-                id: "cockpit.garden.pool.status.charter",
+                id: "hub.garden.pool.status.charter",
                 defaultMessage: "What this pool is for",
               })}
               value={
@@ -159,13 +159,13 @@ export function PoolStatusCard({
           ) : pool.charter.isUnavailable ? (
             <FactRow
               label={formatMessage({
-                id: "cockpit.garden.pool.status.charter",
+                id: "hub.garden.pool.status.charter",
                 defaultMessage: "What this pool is for",
               })}
               value={
                 <span className="font-normal text-text-soft">
                   {formatMessage({
-                    id: "cockpit.garden.pool.status.charterUnavailable",
+                    id: "hub.garden.pool.status.charterUnavailable",
                     defaultMessage: "The agreement could not be read right now.",
                   })}
                 </span>
@@ -174,12 +174,12 @@ export function PoolStatusCard({
           ) : null}
           <FactRow
             label={formatMessage({
-              id: "cockpit.garden.pool.status.cap",
+              id: "hub.garden.pool.status.cap",
               defaultMessage: "Promise limit",
             })}
             value={formatMessage(
               {
-                id: "cockpit.garden.pool.status.capValue",
+                id: "hub.garden.pool.status.capValue",
                 defaultMessage: "{count} per person at once",
               },
               { count: cap.toString() }
@@ -191,7 +191,7 @@ export function PoolStatusCard({
       {model.status === "not-ready" ? (
         <p className="type-meta text-text-soft">
           {formatMessage({
-            id: "cockpit.garden.pool.setup.note",
+            id: "hub.garden.pool.setup.note",
             defaultMessage:
               "Setting up writes how this pool works and opens its first season, in four short steps. Your wallet will ask up to six times, fewer when it can take several changes at once.",
           })}
@@ -203,14 +203,14 @@ export function PoolStatusCard({
           {pool.pauseReason.reason
             ? formatMessage(
                 {
-                  id: "cockpit.garden.pool.paused.withReason",
+                  id: "hub.garden.pool.paused.withReason",
                   defaultMessage:
                     "Paused: “{reason}”. Members keep adding proof and recovering promises; making, claiming, and confirming wait.",
                 },
                 { reason: pool.pauseReason.reason.reason }
               )
             : formatMessage({
-                id: "cockpit.garden.pool.paused.noReason",
+                id: "hub.garden.pool.paused.noReason",
                 defaultMessage:
                   "Paused. Members keep adding proof and recovering promises; making, claiming, and confirming wait.",
               })}
@@ -221,7 +221,7 @@ export function PoolStatusCard({
         <p className="type-meta text-text-soft" data-slot="close-blocked">
           {formatMessage(
             {
-              id: "cockpit.garden.pool.close.blocked",
+              id: "hub.garden.pool.close.blocked",
               defaultMessage:
                 "{live, plural, one {# live promise} other {# live promises}} and {cycles, plural, one {# unfinished cycle} other {# unfinished cycles}} must be wound down before this pool can close.",
             },
@@ -233,7 +233,7 @@ export function PoolStatusCard({
           {(pool.pool?.liveCommitmentCount ?? 0n) > 0n ? (
             <Button type="button" emphasis="tertiary" size="compact" onClick={onReviewLive}>
               {formatMessage({
-                id: "cockpit.garden.pool.close.reviewLive",
+                id: "hub.garden.pool.close.reviewLive",
                 defaultMessage: "Review Live Promises",
               })}
             </Button>
@@ -256,7 +256,7 @@ export function PoolStatusCard({
             onClick={onEditSettings}
             disabled={actDisabled}
           >
-            {formatMessage({ id: "cockpit.garden.pool.act.editPool", defaultMessage: "Edit Pool" })}
+            {formatMessage({ id: "hub.garden.pool.act.editPool", defaultMessage: "Edit Pool" })}
           </Button>
           {model.status === "paused" ? (
             <Button
@@ -267,7 +267,7 @@ export function PoolStatusCard({
               disabled={actDisabled || resumeHeld}
             >
               {formatMessage({
-                id: "cockpit.garden.pool.act.resume",
+                id: "hub.garden.pool.act.resume",
                 defaultMessage: "Resume Pool",
               })}
             </Button>
@@ -279,7 +279,7 @@ export function PoolStatusCard({
               onClick={onPause}
               disabled={actDisabled}
             >
-              {formatMessage({ id: "cockpit.garden.pool.act.pause", defaultMessage: "Pause…" })}
+              {formatMessage({ id: "hub.garden.pool.act.pause", defaultMessage: "Pause…" })}
             </Button>
           ) : null}
         </div>
@@ -289,7 +289,7 @@ export function PoolStatusCard({
           phase={pool.resumePhase}
           chainId={pool.chainId}
           confirmed={formatMessage({
-            id: "cockpit.garden.pool.act.resumed",
+            id: "hub.garden.pool.act.resumed",
             defaultMessage: "Resumed. The pool reads open once the index shows it.",
           })}
         />
@@ -307,7 +307,7 @@ export function PoolStatusCard({
             disabled={actDisabled}
           >
             {formatMessage({
-              id: "cockpit.garden.pool.act.closePool",
+              id: "hub.garden.pool.act.closePool",
               defaultMessage: "Close Pool…",
             })}
           </Button>
@@ -318,7 +318,7 @@ export function PoolStatusCard({
         <div className="space-y-3">
           <p className="type-body text-text-sub">
             {formatMessage({
-              id: "cockpit.garden.pool.closed.note",
+              id: "hub.garden.pool.closed.note",
               defaultMessage:
                 "The pool is closed. Its history stays with the garden. Archiving it keeps that history; reopening starts the next era.",
             })}
@@ -332,7 +332,7 @@ export function PoolStatusCard({
               disabled={actDisabled}
             >
               {formatMessage({
-                id: "cockpit.garden.pool.act.compostPool",
+                id: "hub.garden.pool.act.compostPool",
                 defaultMessage: "Archive Pool…",
               })}
             </Button>
@@ -344,7 +344,7 @@ export function PoolStatusCard({
         <div className="space-y-3">
           <p className="type-body text-text-sub">
             {formatMessage({
-              id: "cockpit.garden.pool.composted.note",
+              id: "hub.garden.pool.composted.note",
               defaultMessage:
                 "This pool is archived. Reopening preserves its history; members can't take part again until a season opens.",
             })}
@@ -358,7 +358,7 @@ export function PoolStatusCard({
               disabled={actDisabled}
             >
               {formatMessage({
-                id: "cockpit.garden.pool.act.reopenPool",
+                id: "hub.garden.pool.act.reopenPool",
                 defaultMessage: "Reopen Pool…",
               })}
             </Button>

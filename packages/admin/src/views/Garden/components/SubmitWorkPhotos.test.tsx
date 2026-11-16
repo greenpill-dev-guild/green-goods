@@ -172,7 +172,7 @@ describe("SubmitWorkPhotos", () => {
   });
 
   it("draws live object URLs under StrictMode, which runs each effect twice", () => {
-    // StrictMode is outermost, as in the cockpit: React skips the second pass for one mounted
+    // StrictMode is outermost, as in the Hub: React skips the second pass for one mounted
     // under a parent that is not strict.
     const { container } = renderBare(
       <StrictMode>

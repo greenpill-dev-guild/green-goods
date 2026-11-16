@@ -52,7 +52,7 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
           maxWidthClassName="max-w-5xl"
           title={formatMessage({ id: "app.actions.loading" })}
           description={formatMessage({
-            id: "cockpit.actions.editDescription",
+            id: "hub.actions.editDescription",
             defaultMessage: "Update lifecycle details and the submission contract for this action.",
           })}
           variant="canvas"
@@ -76,7 +76,7 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
           maxWidthClassName="max-w-5xl"
           title={formatMessage({ id: "app.actions.notFound" })}
           description={formatMessage({
-            id: "cockpit.actions.editDescription",
+            id: "hub.actions.editDescription",
             defaultMessage: "Update lifecycle details and the submission contract for this action.",
           })}
           variant="canvas"
@@ -112,7 +112,7 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
             </h3>
             <p className="mt-1 type-body text-text-sub">
               {formatMessage({
-                id: "cockpit.actions.detailDescription",
+                id: "hub.actions.detailDescription",
                 defaultMessage:
                   "Review lifecycle details and the submission requirements for this action.",
               })}
@@ -243,7 +243,7 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
         maxWidthClassName="max-w-5xl"
         title={formatMessage({ id: "app.actions.edit.title" }, { name: action.title })}
         description={formatMessage({
-          id: "cockpit.actions.editDescription",
+          id: "hub.actions.editDescription",
           defaultMessage: "Update lifecycle details and the submission contract for this action.",
         })}
         variant="canvas"

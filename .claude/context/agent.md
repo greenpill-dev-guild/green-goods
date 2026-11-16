@@ -48,7 +48,7 @@ User → Platform API → Agent → Handler Router → Services
                                     ↓
                               HandlerResult
                                     ↓
-Platform API ← toResponse() ← Agent
+Platform API ← toTelegramReply() ← Agent
 ```
 
 ## Critical Patterns
@@ -107,7 +107,7 @@ export const getUser = (platform: Platform, id: string) => getDB().getUser(platf
 One file per platform with all platform-specific code:
 
 - `toInboundMessage()` — Convert platform event → InboundMessage
-- `toResponse()` — Convert OutboundResponse → platform format
+- `toTelegramReply()`, private to `telegram.ts`: convert OutboundResponse to Telegram text and reply options
 - `create{Platform}Bot()` — Bot setup and lifecycle
 - `createVoiceProcessor()` — Voice handling (if supported)
 - `createNotifier()` — Outbound notifications
@@ -280,14 +280,14 @@ The test setup (`src/__tests__/setup.ts`) provides:
 - **telegraf** → Telegram bot mock
 - **posthog-node** → Analytics mock
 
-> **Note:** For file-based database tests (e.g., `data/test/handlers-test.db`), run with `bun test` directly outside Vitest.
+> **Note:** File-based database tests (`handlers.test.ts`, `api-messages.test.ts`, `group-capture.test.ts`) open a per-process database file, so they run under Vitest with `bun run test` like every other test.
 
 ## Adding a New Platform
 
 1. **Create `platforms/{platform}.ts`:**
    ```typescript
    export function toInboundMessage(event: PlatformEvent): InboundMessage | null { ... }
-   export function toResponse(response: OutboundResponse): PlatformFormat { ... }
+   function to{Platform}Reply(response: OutboundResponse): PlatformFormat { ... }
    export function createBot(config, handleMessage) { ... }
    ```
 

@@ -1,0 +1,163 @@
+import type { Meta, StoryObj } from "@storybook/react";
+import { fn } from "storybook/test";
+import { withRouter } from "../../../../../shared/.storybook/decorators";
+import { daysAgo } from "../../../../../shared/.storybook/fixtures";
+import {
+  ReviewAssessmentList,
+  type ReviewAssessmentListItem,
+  ReviewHypercertList,
+  type ReviewHypercertListItem,
+} from "./ReviewRecordLists";
+
+// Each end of a reporting period is stored as UTC midnight of the picked day.
+const utcDay = (year: number, month: number, day: number) => Date.UTC(year, month - 1, day) / 1000;
+
+const ASSESSMENTS: ReviewAssessmentListItem[] = [
+  {
+    id: "0xabc1",
+    title: "Eastern ridge baseline",
+    description: "Where the ridge stands before the planting season, and what the season aims for.",
+    domain: 1,
+    startDate: utcDay(2025, 10, 1),
+    endDate: utcDay(2025, 12, 31),
+    createdAt: daysAgo(2),
+  },
+  {
+    id: "0xabc2",
+    title: "Workshop cohort plan",
+    description: "",
+    domain: 2,
+    startDate: utcDay(2025, 7, 1),
+    endDate: utcDay(2025, 9, 30),
+    createdAt: daysAgo(40),
+  },
+  {
+    // An attestation with no period and a domain the Hub does not know.
+    id: "0xabc3",
+    title: "",
+    description: "An early assessment recorded before reporting periods were kept.",
+    domain: 9,
+    startDate: null,
+    endDate: null,
+    createdAt: daysAgo(200),
+  },
+];
+
+const HYPERCERTS: ReviewHypercertListItem[] = [
+  {
+    id: "42161-1002",
+    title: "Eastern ridge canopy, autumn 2025",
+    description: "Native saplings planted and checked for survival along the eastern ridge.",
+    workScopes: ["planting", "maintenance", "survival checks", "nursery"],
+    mintedAt: daysAgo(3),
+    attestationCount: 12,
+  },
+  {
+    id: "42161-1001",
+    title: "",
+    description: null,
+    workScopes: [],
+    mintedAt: daysAgo(90),
+    attestationCount: 0,
+  },
+];
+
+const meta: Meta<typeof ReviewAssessmentList> = {
+  title: "Admin/Workflows/Review/ReviewRecordLists",
+  component: ReviewAssessmentList,
+  tags: ["autodocs"],
+  decorators: [withRouter()],
+  parameters: {
+    docs: {
+      description: {
+        component:
+          "Review's two record tabs: the garden's assessments and its minted hypercerts, each record the shared item row that opens it: its icon, its title, and its date, then for a hypercert how many works it bundles. A row carries no status pill, since a record waits on no one. An empty tab says what it holds and when it is needed, and offers the create flow to a reader who can use it; a search that finds nothing says so instead.",
+      },
+    },
+  },
+  args: {
+    items: ASSESSMENTS,
+    isLoading: false,
+    hasDataError: false,
+    searchQuery: "",
+    createHref: "/review/assess?item=create-assessment",
+    selectedAssessmentId: undefined,
+    onClearSearch: fn(),
+    onOpenAssessment: fn(),
+  },
+};
+
+export default meta;
+type Story = StoryObj<typeof ReviewAssessmentList>;
+
+export const Assessments: Story = {};
+
+export const AssessmentSelected: Story = {
+  args: { selectedAssessmentId: "0xabc2" },
+};
+
+export const AssessmentsLoading: Story = {
+  args: { items: [], isLoading: true },
+};
+
+export const NoAssessments: Story = {
+  args: { items: [] },
+};
+
+/** A reader who cannot create an assessment gets the explanation without the act. */
+export const NoAssessmentsReadOnly: Story = {
+  args: { items: [], createHref: undefined },
+};
+
+export const NoSearchResults: Story = {
+  args: { items: [], searchQuery: "riverbank" },
+};
+
+export const DataError: Story = {
+  args: { items: [], hasDataError: true },
+};
+
+const hypercertArgs = {
+  isLoading: false,
+  hasDataError: false,
+  searchQuery: "",
+  createHref: "/review/certify?item=create-hypercert",
+  onClearSearch: fn(),
+  onOpenHypercert: fn(),
+};
+
+export const Hypercerts: Story = {
+  render: () => <ReviewHypercertList {...hypercertArgs} items={HYPERCERTS} />,
+};
+
+export const NoHypercerts: Story = {
+  render: () => <ReviewHypercertList {...hypercertArgs} items={[]} />,
+};
+
+/** Evaluators see the tab but cannot mint, so the empty state offers no act. */
+export const NoHypercertsReadOnly: Story = {
+  render: () => <ReviewHypercertList {...hypercertArgs} items={[]} createHref={undefined} />,
+};
+
+/** A garden with more hypercerts than the newest page holds reads the rest on request. */
+export const HypercertsWithOlder: Story = {
+  render: () => (
+    <ReviewHypercertList
+      {...hypercertArgs}
+      items={HYPERCERTS}
+      older={{ onShowOlder: fn(), isLoading: false }}
+    />
+  ),
+};
+
+/** A search that misses the loaded hypercerts says the older ones aren't read yet. */
+export const HypercertSearchMissesLoaded: Story = {
+  render: () => (
+    <ReviewHypercertList
+      {...hypercertArgs}
+      items={[]}
+      searchQuery="riverbank"
+      older={{ onShowOlder: fn(), isLoading: false }}
+    />
+  ),
+};

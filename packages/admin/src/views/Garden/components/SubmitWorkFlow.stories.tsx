@@ -21,7 +21,7 @@ const meta = {
     withAdminIdentity,
     withSeededQueryClient(STORYBOOK_ADMIN_SHELL_SEEDS),
     withSelectedAdminGarden(STORYBOOK_PRIMARY_ADMIN_GARDEN),
-    withRouter(["/hub/work/submit"]),
+    withRouter(["/review/work/submit"]),
     withCanvasFrame({ workspace: "garden", heightClassName: "h-[760px]" }),
   ],
   args: {

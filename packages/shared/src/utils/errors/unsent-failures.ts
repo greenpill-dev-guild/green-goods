@@ -1,9 +1,10 @@
 /**
  * Failures the app raises itself before anything reaches the chain: the queue
  * already holds an earlier version of the act, the wallet is on another
- * network, the phone is offline, a send that needs a connection had none, or a
- * jar review no longer matches the jar. Their words are the app's own, never a
- * contract's, so each names the translated copy its reader should see.
+ * network or has not answered, the phone is offline, a send that needs a
+ * connection had none, or a jar review no longer matches the jar. Their words
+ * are the app's own, never a contract's, so each names the translated copy its
+ * reader should see.
  *
  * @module utils/errors/unsent-failures
  */
@@ -15,7 +16,7 @@ import { wrongWalletNetwork } from "./wallet-network-refusal";
 /**
  * A send refused before anything left the device, because the connection is
  * offline or unconfirmed, where nothing is kept to send later (the admin
- * cockpit's Submit Work). Read before any "offline" in a message is: here
+ * Hub's Submit Work). Read before any "offline" in a message is: here
  * nothing is saved to sync.
  */
 export class ConnectionNeededError extends Error {
@@ -25,6 +26,35 @@ export class ConnectionNeededError extends Error {
   }
 }
 
+/** How the queue reports an act it did not try because the wallet has not answered. */
+export const WALLET_RECONNECT_REQUIRED = "wallet-reconnect-required";
+
+/**
+ * An act that needs the wallet, refused before it started because the wallet
+ * account's wallet has not answered (PRD-1499). `asked` says whether a prompt
+ * already asked the person to reconnect, so the act's own error can stay quiet.
+ */
+export class WalletReconnectRequiredError extends Error {
+  constructor(readonly asked: boolean) {
+    super(`${WALLET_RECONNECT_REQUIRED}: nothing was sent`);
+    this.name = "WalletReconnectRequiredError";
+  }
+}
+
+/**
+ * Whether an act failed only because the wallet has not answered and the
+ * reconnect prompt already asked, so its own error can stay quiet. Follows the
+ * causes an act wraps its failures in.
+ */
+export function wasAskedToReconnect(error: unknown): boolean {
+  let current = error;
+  for (let depth = 0; current instanceof Error && depth < 5; depth++) {
+    if (current instanceof WalletReconnectRequiredError) return current.asked;
+    current = current.cause;
+  }
+  return false;
+}
+
 /**
  * How the queue refuses a second, different act behind an identity it already
  * holds. The code names the queue ("offline job"), not the phone's connection.
@@ -32,13 +62,26 @@ export class ConnectionNeededError extends Error {
 const QUEUE_IDENTITY_CONFLICT = "offline_job_identity_conflict:";
 
 /**
- * The queue's refusal, a send that needed a connection, an out-of-date jar
- * review, or a wallet-network failure, read before any single word in its
- * message ("offline", "connection", "rejected") is taken for something else.
- * Null for every other error.
+ * The queue's refusal, a send that needed a connection, an act refused because
+ * the wallet has not answered, an out-of-date jar review, or a wallet-network
+ * failure, read before any single word in its message ("offline",
+ * "connection", "rejected") is taken for something else. Null for every other
+ * error.
  */
 export function parseUnsentFailure(error: unknown, message: string): ParsedContractError | null {
   if (error instanceof ConnectionNeededError) return connectionNeededFailure(message);
+  if (error instanceof WalletReconnectRequiredError) {
+    return {
+      raw: message,
+      name: "WalletReconnectRequired",
+      message: "Nothing was sent. Reconnect your wallet, then try again.",
+      titleKey: "app.wallet.reconnect.needed.title",
+      messageKey: "app.wallet.reconnect.needed.message",
+      isKnown: true,
+      recoverable: true,
+      suggestedAction: "check-wallet",
+    };
+  }
   if (error instanceof JarReviewChangedError) return jarReviewChangedFailure(error);
   if (message.includes(QUEUE_IDENTITY_CONFLICT)) {
     return {

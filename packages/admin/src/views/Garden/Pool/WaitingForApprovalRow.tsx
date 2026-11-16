@@ -88,19 +88,19 @@ export function WaitingForApprovalRow({
   if (state.status === "waiting" && state.isNew) {
     marker = (
       <span className="shrink-0 type-label-sm text-information-dark">
-        {formatMessage({ id: "cockpit.garden.pool.approvals.new", defaultMessage: "New" })}
+        {formatMessage({ id: "hub.garden.pool.approvals.new", defaultMessage: "New" })}
       </span>
     );
   } else if (state.status === "failed") {
     marker = (
       <span role="status" className="shrink-0 type-label-sm text-error-dark">
         {formatMessage({
-          id: "cockpit.garden.pool.approvals.failed",
+          id: "hub.garden.pool.approvals.failed",
           defaultMessage: "Didn’t go through",
         })}
         <span className="sr-only">
           {formatMessage({
-            id: "cockpit.garden.pool.approvals.failedDetail",
+            id: "hub.garden.pool.approvals.failedDetail",
             defaultMessage: ", and nothing changed. You can try again.",
           })}
         </span>
@@ -123,8 +123,8 @@ export function WaitingForApprovalRow({
           {
             id:
               row.commitment.direction === "REQUEST"
-                ? "cockpit.garden.pool.approvals.willDo"
-                : "cockpit.garden.pool.approvals.takesUp",
+                ? "hub.garden.pool.approvals.willDo"
+                : "hub.garden.pool.approvals.takesUp",
             defaultMessage:
               row.commitment.direction === "REQUEST" ? "{who} will do this" : "{who} takes this up",
           },
@@ -149,11 +149,11 @@ export function WaitingForApprovalRow({
         {/* The issuer approves a booking; the pool's steward accepts it. */}
         {voucher
           ? formatMessage({
-              id: "cockpit.garden.pool.voucher.accepted",
+              id: "hub.garden.pool.voucher.accepted",
               defaultMessage: "Accepted",
             })
           : formatMessage({
-              id: "cockpit.garden.pool.approvals.approved",
+              id: "hub.garden.pool.approvals.approved",
               defaultMessage: "Approved",
             })}
       </StatusBadge>
@@ -163,16 +163,16 @@ export function WaitingForApprovalRow({
       <StatusBadge variant="neutral" size="sm" showIcon={false}>
         {state.status === "declined"
           ? formatMessage({
-              id: "cockpit.garden.pool.approvals.declined",
+              id: "hub.garden.pool.approvals.declined",
               defaultMessage: "Declined",
             })
           : state.status === "not-chosen"
             ? formatMessage({
-                id: "cockpit.garden.pool.approvals.notChosen",
+                id: "hub.garden.pool.approvals.notChosen",
                 defaultMessage: "Not chosen",
               })
             : formatMessage({
-                id: "cockpit.garden.pool.approvals.gone",
+                id: "hub.garden.pool.approvals.gone",
                 defaultMessage: "No longer waiting",
               })}
       </StatusBadge>
@@ -181,7 +181,7 @@ export function WaitingForApprovalRow({
     action = null;
   } else {
     const retryLabel = formatMessage({
-      id: "cockpit.garden.pool.approvals.retry",
+      id: "hub.garden.pool.approvals.retry",
       defaultMessage: "Try Again",
     });
     // A voucher booking's act opens its dialog, and one that waits on someone else has none.
@@ -196,7 +196,7 @@ export function WaitingForApprovalRow({
             state.status === "failed"
               ? retryLabel
               : formatMessage({
-                  id: "cockpit.garden.pool.approvals.approve",
+                  id: "hub.garden.pool.approvals.approve",
                   defaultMessage: "Approve",
                 }),
           onClick: onApprove,
@@ -211,7 +211,7 @@ export function WaitingForApprovalRow({
           disabled={disabled}
         >
           {formatMessage({
-            id: "cockpit.garden.pool.claims.act.decline",
+            id: "hub.garden.pool.claims.act.decline",
             defaultMessage: "Decline…",
           })}
         </Button>
@@ -232,7 +232,7 @@ export function WaitingForApprovalRow({
 
   const line = voucher
     ? formatMessage(
-        { id: "cockpit.garden.pool.voucher.ask.what", defaultMessage: "Booking · {title}" },
+        { id: "hub.garden.pool.voucher.ask.what", defaultMessage: "Booking · {title}" },
         { title }
       )
     : `${directionLabel(row.commitment.direction, formatMessage)} · ${title}`;

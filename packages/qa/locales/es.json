@@ -33,7 +33,7 @@
         "Sesión de responsable; al menos un envío pendiente en el jardín seleccionado"
       ],
       "steps": [
-        "Abre /hub/work",
+        "Abre /review/work",
         "Abre una entrega pendiente",
         "Revisa las pruebas multimedia",
         "Elige un nivel de confianza (al principio no hay ninguno elegido) y escribe tus comentarios",
@@ -51,10 +51,10 @@
         "Un compromiso que espera la confirmación de ese jardín y marcado como Listo para confirmar; la cuenta que confirma no ha contribuido"
       ],
       "steps": [
-        "Abre Hub → Confirmar y pulsa Confirmar cumplido… en la fila del compromiso",
+        "Abre Revisión → Confirmar y pulsa Confirmar cumplido… en la fila del compromiso",
         "Lee la revisión",
         "Pulsa Confirmar cumplido y confirma en la wallet",
-        "Lee Hub → Confirmar y el compromiso después"
+        "Lee Revisión → Confirmar y el compromiso después"
       ],
       "expected": "Antes de enviar nada, la revisión nombra el compromiso, el pool del jardín en el que está y quién lo cumplió, e indica si esta confirmación lo cierra como cumplido para todos o qué confirmación de cuántas es, y que no se puede deshacer; confirmar es una sola transacción; después el compromiso aparece como Cumplido y sale de la cola, o su fila muestra una confirmación más",
       "role": "Responsable"
@@ -315,7 +315,7 @@
       "role": "Responsable"
     },
     "ADM-202": {
-      "scenario": "Resuelve la solicitud y verifica el acceso confirmado al panel",
+      "scenario": "Resuelve la solicitud y verifica el acceso confirmado al Hub",
       "preconditions": [
         "Solicitud ADM-201 pendiente",
         "Persona revisora autorizada e independiente y solicitante con cuentas distintas",
@@ -324,7 +324,7 @@
       "steps": [
         "Abre la cola de acceso de responsables y aprueba la solicitud",
         "Espera la confirmación del rol y la resolución de la solicitud",
-        "Como solicitante, actualiza y entra al panel; compara con una solicitud de membresía ordinaria"
+        "Como solicitante, actualiza y entra al Hub; compara con una solicitud de membresía ordinaria"
       ],
       "expected": "La aprobación asigna el rol de responsable, no una membresía ordinaria. El acceso se abre solo tras confirmar la autoridad; una asignación pendiente o fallida no se presenta como acceso concedido.",
       "role": "responsable"
@@ -396,11 +396,11 @@
         "Participantes requeridos: responsable e informante."
       ],
       "steps": [
-        "Busca el mismo trabajo y su evidencia en el panel",
+        "Busca el mismo trabajo y su evidencia en el Hub",
         "Aprueba o rechaza con comentarios y espera la confirmación",
         "Como informante, consulta el resultado en chat y app"
       ],
-      "expected": "La revisión independiente y los comentarios coinciden en chat, app y panel. La confirmación del trabajo no se confunde con aprobación ni pago.",
+      "expected": "La revisión independiente y los comentarios coinciden en chat, App y Hub. La confirmación del trabajo no se confunde con aprobación ni pago.",
       "role": "responsable"
     },
     "AGT-002": {
@@ -711,8 +711,8 @@
       }
     },
     "steward-access": {
-      "label": "Acceso de responsable: solicitud, rol y panel",
-      "summary": "Usa cuentas distintas. Una solicitud pendiente no concede privilegios; verifica el rol confirmado antes de entrar al panel.",
+      "label": "Acceso de responsable: solicitud, rol y Hub",
+      "summary": "Usa cuentas distintas. Una solicitud pendiente no concede privilegios; verifica el rol confirmado antes de entrar al Hub.",
       "lanes": {
         "requester": {
           "label": "Solicitante",
@@ -731,7 +731,7 @@
           "handoff": "Quien revisa ve la solicitud pendiente de la misma cuenta y jardín; quien solicita aún no tiene acceso de responsable."
         },
         "ADM-202": {
-          "handoff": "Quien solicita actualiza y verifica el rol confirmado y el acceso al panel del jardín previsto."
+          "handoff": "Quien solicita actualiza y verifica el rol confirmado y el acceso al Hub del jardín previsto."
         }
       }
     },
@@ -753,7 +753,7 @@
       },
       "steps": {
         "AGT-002": {
-          "handoff": "Quien revisa de forma independiente encuentra el mismo trabajo publicado y su evidencia en el panel antes de revisarlo."
+          "handoff": "Quien revisa de forma independiente encuentra el mismo trabajo publicado y su evidencia en el Hub antes de revisarlo."
         },
         "AGT-003": {
           "handoff": "Quien informa ve el resultado confirmado de la revisión del mismo trabajo en el chat y la app."

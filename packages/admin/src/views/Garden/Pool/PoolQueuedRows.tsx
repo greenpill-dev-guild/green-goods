@@ -43,7 +43,7 @@ export function PoolQueuedRows({ console: pool, rows, now }: PoolQueuedRowsProps
   const { formatMessage } = intl;
   const { acts, isOnline } = pool;
   const discardLabel = formatMessage({
-    id: "cockpit.garden.pool.queued.discard",
+    id: "hub.garden.pool.queued.discard",
     defaultMessage: "Discard",
   });
   const [busyJobId, setBusyJobId] = useState<string | null>(null);
@@ -64,7 +64,7 @@ export function PoolQueuedRows({ console: pool, rows, now }: PoolQueuedRowsProps
           !row.hasRecordedSend &&
           isPastDeadline(row.groupDueDate ? BigInt(row.groupDueDate) : null, now);
         const sentLine = formatMessage({
-          id: "cockpit.garden.pool.queued.sent",
+          id: "hub.garden.pool.queued.sent",
           defaultMessage: "Sent. This row leaves once the index shows the promise.",
         });
         // A refusal outlasts the send that found it: the row says why it can't go rather
@@ -80,7 +80,7 @@ export function PoolQueuedRows({ console: pool, rows, now }: PoolQueuedRowsProps
           actPhaseText(intl, { phase, chainId: pool.chainId, confirmed: sentLine }) ??
           (expired
             ? formatMessage({
-                id: "cockpit.garden.pool.add.expired",
+                id: "hub.garden.pool.add.expired",
                 defaultMessage:
                   "This group's deadline has passed, so nothing can join it. Start a new group instead.",
               })
@@ -88,7 +88,7 @@ export function PoolQueuedRows({ console: pool, rows, now }: PoolQueuedRowsProps
               ? formatMessage({ id: "app.pool.queued.settlementDeferredNote" })
               : row.waitingForSettlementAccount
                 ? formatMessage({
-                    id: "cockpit.garden.pool.reward.needsSettlement",
+                    id: "hub.garden.pool.reward.needsSettlement",
                     defaultMessage:
                       "A reward is paid through this garden's settlement account, which isn't active.",
                   })
@@ -101,11 +101,11 @@ export function PoolQueuedRows({ console: pool, rows, now }: PoolQueuedRowsProps
         const units = note ? null : `${row.targetUnits} ${row.unitLabel}`.trim() || null;
         const sendLabel = row.failed
           ? formatMessage({
-              id: "cockpit.garden.pool.queued.retry",
+              id: "hub.garden.pool.queued.retry",
               defaultMessage: "Try Again",
             })
           : formatMessage({
-              id: "cockpit.garden.pool.queued.sendNow",
+              id: "hub.garden.pool.queued.sendNow",
               defaultMessage: "Send Now",
             });
         const SendGlyph = row.failed ? RiRefreshLine : RiSendPlaneLine;
@@ -117,7 +117,7 @@ export function PoolQueuedRows({ console: pool, rows, now }: PoolQueuedRowsProps
               title={
                 row.title ??
                 formatMessage({
-                  id: "cockpit.garden.pool.queued.untitled",
+                  id: "hub.garden.pool.queued.untitled",
                   defaultMessage: "New promise",
                 })
               }

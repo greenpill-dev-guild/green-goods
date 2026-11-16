@@ -43,7 +43,7 @@ export interface LeftSheetConfig {
   /**
    * Workspace tone for the portaled dialog. The dialog portals out of
    * CanvasLayout's `[data-tone]` scope, so descriptors pass their workspace
-   * tone to keep the per-view accent (Hub blue, Garden green, etc.).
+   * tone to keep the per-view accent (Review blue, Garden green, etc.).
    */
   tone?: LeftSheetDialogTone;
 }

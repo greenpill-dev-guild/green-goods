@@ -54,7 +54,7 @@ export interface ManageMembersDialogProps {
   viewerIsOwner: boolean;
   viewerCanManageStewards?: boolean;
   allowedRoles?: readonly GardenRole[];
-  /** The account the cockpit signs with, so its own Owner and Steward roles stay out of reach. */
+  /** The account the Hub signs with, so its own Owner and Steward roles stay out of reach. */
   viewerAddress?: Address | null;
   /** The garden every change applies to, named under the title (Interface Principles 4, 9). */
   gardenName: string;
@@ -380,7 +380,7 @@ export function ManageMembersDialog({
         height="stable"
         tone={tone}
         title={formatMessage({
-          id: review ? "admin.manageRoles.reviewTitle" : "cockpit.community.members.manageRoles",
+          id: review ? "admin.manageRoles.reviewTitle" : "hub.community.members.manageRoles",
         })}
         target={gardenName}
         description={
