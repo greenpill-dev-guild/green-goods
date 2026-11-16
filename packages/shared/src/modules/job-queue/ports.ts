@@ -134,7 +134,20 @@ export interface JobQueueAnalytics {
   ): Promise<void>;
   storageWarning(kind: string, quota: StorageQuotaSnapshot, isOnline: boolean): void;
   privateEvent(event: string, properties: Record<string, unknown>): void;
-  processingStarted(kind: string, attempt: number): void;
+  /**
+   * A try starts: a send, or the check of a send already on record (`confirming`).
+   * `explicit` when a person's tap asked for it rather than a background pass.
+   */
+  processingStarted(
+    kind: string,
+    attempt: number,
+    context: { explicit: boolean; confirming: boolean }
+  ): void;
+  /**
+   * A try ended with nothing sent and no answer yet: every such end of a try that `started`,
+   * and a tap's refusal before one. A background pass that never starts records nothing.
+   */
+  jobSkipped(kind: string, reason: string, context: { explicit: boolean; started: boolean }): void;
 }
 
 export interface JobQueueLogger {
