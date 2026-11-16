@@ -192,7 +192,7 @@ export const WorkUploadFooter: FC<WorkUploadFooterProps> = ({
         description={intl.formatMessage({
           id: "app.uploads.discardConfirmDescription",
           defaultMessage:
-            "It hasn't been uploaded. Its photos and notes will be removed from this device.",
+            "It hasn't been uploaded. Its media and notes will be removed from this device.",
         })}
         confirmLabel={intl.formatMessage({ id: "app.uploads.discard", defaultMessage: "Discard" })}
         cancelLabel={intl.formatMessage({ id: "app.uploads.keep", defaultMessage: "Keep" })}

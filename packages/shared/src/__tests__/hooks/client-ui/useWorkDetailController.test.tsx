@@ -9,6 +9,8 @@ import type { Action } from "../../../types/domain";
 
 const mocks = vi.hoisted(() => ({
   actions: [] as Action[],
+  visibilityReady: true,
+  workVisible: true,
   canManageGarden: vi.fn(),
   isUserAddress: vi.fn(),
   navigateToTop: vi.fn(),
@@ -119,6 +121,14 @@ vi.mock("../../../hooks/work/useWorkMetadata", () => ({
   }),
 }));
 
+vi.mock("../../../hooks/work/useWorkVisibility", () => ({
+  useWorkVisibility: () => ({
+    isReady: mocks.visibilityReady,
+    isVisible: () => mocks.workVisible,
+    isLoading: false,
+    refetch: vi.fn(),
+  }),
+}));
 vi.mock("../../../hooks/work/useWorks", () => ({
   useWorks: () => ({
     queuedLoading: mocks.queuedLoading,
@@ -231,6 +241,8 @@ const OLDER_ROW = {
 
 describe("useWorkDetailController", () => {
   beforeEach(() => {
+    mocks.visibilityReady = true;
+    mocks.workVisible = true;
     vi.clearAllMocks();
     mocks.actions = [];
     mocks.userId = "0x1111111111111111111111111111111111111111";
@@ -242,6 +254,18 @@ describe("useWorkDetailController", () => {
     mocks.decisionOverlay = undefined;
     mocks.queuedLoading = false;
     mocks.online = true;
+  });
+
+  it("withholds excluded direct work and distinguishes unknown offline classification", () => {
+    mocks.workVisible = false;
+    const { result, rerender } = renderHook(() => useWorkDetailController(), {
+      wrapper: RouterWrapper,
+    });
+    expect(result.current.work).toBeUndefined();
+    expect(result.current.workLoadError).toBe(false);
+    mocks.visibilityReady = false;
+    rerender();
+    expect(result.current.workLoadError).toBe(true);
   });
 
   it("opens older reviewed work through the direct UID read", () => {

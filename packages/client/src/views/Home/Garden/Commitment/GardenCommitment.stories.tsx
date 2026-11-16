@@ -461,3 +461,17 @@ export const SavedNotificationOffline: Story = {
     detail: null,
   })),
 };
+
+/** Existing promise facts remain readable while linked work cannot yet be classified. */
+export const WorkVisibilityUnavailable: Story = {
+  beforeEach: atStage("working", (page) => ({
+    ...page,
+    workVisibility: { isReady: false, isLoading: false, isVisible: () => false },
+    detail: page.detail
+      ? {
+          ...page.detail,
+          commitment: { ...page.detail.commitment, commitmentType: "DOMAIN_IMPACT" },
+        }
+      : null,
+  })),
+};

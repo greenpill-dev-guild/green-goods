@@ -3,6 +3,19 @@ import { gzipSync } from "node:zlib";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { reexecUnderSystemNodeIfNeeded } from "../../../scripts/lib/dev-shared.js";
+
+// Bun's injected node shim compresses differently. Keep one Node zlib measurement
+// for ordinary builds and qualified preview builds, against the same byte ceilings.
+reexecUnderSystemNodeIfNeeded({
+  scriptPath: fileURLToPath(import.meta.url),
+  sentinel: "GREEN_GOODS_PWA_BUDGET_NODE_REEXEC",
+  cwd: process.cwd(),
+});
+if (process.versions.bun) {
+  console.error("PWA build budgets require system Node for stable gzip measurements.");
+  process.exit(1);
+}
 
 const KiB = 1024;
 const MiB = 1024 * KiB;

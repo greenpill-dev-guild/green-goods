@@ -2,6 +2,7 @@ import { getEASConfig } from "../../config/blockchain";
 import type { EASWork, EASWorkApproval, EASWorkListRow } from "../../types/eas-responses";
 import { isZeroBytes32 } from "../../utils/blockchain/bytes";
 import { logger } from "../app/logger";
+import { isWorkVisible, readWorkVisibility, type WorkVisibilitySnapshot } from "./work-visibility";
 import {
   getGardenActivitySince,
   getWorkApprovalsForWork,
@@ -18,6 +19,7 @@ export interface ReadWorkListOptions {
   chainId: number;
   /** How many of the newest works to read; the screen widens this when asked for older work. */
   take?: number;
+  visibility?: WorkVisibilitySnapshot;
 }
 
 function withLatestApproval(work: EASWork, approvals: EASWorkApproval[]): EASWorkListRow {
@@ -32,7 +34,12 @@ function withLatestApproval(work: EASWork, approvals: EASWorkApproval[]): EASWor
 }
 
 /** Read an older work directly when it is outside the garden list's loaded page. */
-export async function readWorkByUID(uid: string, chainId: number): Promise<EASWorkListRow | null> {
+export async function readWorkByUID(
+  uid: string,
+  chainId: number,
+  visibility?: WorkVisibilitySnapshot
+): Promise<EASWorkListRow | null> {
+  if (!isWorkVisible(uid, visibility ?? (await readWorkVisibility(chainId)))) return null;
   const work = (await getWorksByUIDs([uid], chainId))[0];
   if (!work) return null;
   try {
@@ -80,8 +87,10 @@ async function readGardenWorkList({
   garden,
   chainId,
   take = WORK_LIST_PAGE_SIZE,
+  visibility,
 }: ReadWorkListOptions): Promise<EASWorkListRow[]> {
-  const works = await getWorkListPage(garden, { chainId, take });
+  const exclusions = visibility ?? (await readWorkVisibility(chainId));
+  const works = await getWorkListPage(garden, { ...exclusions, chainId, take });
   if (works.length === 0) return [];
   let approvals: EASWorkApproval[];
   let failedWorkUIDs = new Set<string>();
@@ -133,13 +142,17 @@ export function readGardenActivity({
   garden,
   chainId,
   since,
+  visibility,
 }: {
   garden: string;
   chainId: number;
   since: number;
+  visibility?: WorkVisibilitySnapshot;
 }): Promise<GardenActivity> {
   return inTurn(async () => {
+    const exclusions = visibility ?? (await readWorkVisibility(chainId));
     const { works, decisions, truncated } = await getGardenActivitySince(garden, {
+      ...exclusions,
       chainId,
       since,
     });

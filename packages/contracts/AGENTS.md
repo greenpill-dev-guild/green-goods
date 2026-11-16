@@ -6,7 +6,7 @@ The contracts package contains Solidity smart contracts for the Green Goods prot
 
 - `bun run build`
 - `bun run test`
-- `bun run lint`
+- `bun run lint` (solhint's warnings are held to the shrink-only `scripts/data/solhint-baseline.json`; `node ../../scripts/contracts/check-solhint-baseline.mjs --baseline-shrink` records a lower count or a renamed file)
 - `bun run test:audit full`
 
 ## Validation

@@ -19,7 +19,7 @@ describe("components/Cards/MinimalWorkCard", () => {
     metadata: "",
   };
 
-  it("names the work, its one status pill and its short age, with the photo count on the photo", () => {
+  it("names the work, its one status pill and its short age, with the media count on the photo", () => {
     render(
       <MinimalWorkCard
         work={{ ...work, feedback: "" } as any}
@@ -32,7 +32,7 @@ describe("components/Cards/MinimalWorkCard", () => {
     expect(row).toHaveTextContent("Custom Title");
     expect(screen.getAllByRole("status")).toHaveLength(1);
     expect(screen.getByRole("status")).toHaveTextContent("Approved");
-    expect(screen.getByText("1 photo")).toBeInTheDocument();
+    expect(screen.getByText("1 media item")).toBeInTheDocument();
     expect(screen.getByText("2 hr. ago")).toBeInTheDocument();
     expect(screen.queryByText("Feedback")).not.toBeInTheDocument();
   });

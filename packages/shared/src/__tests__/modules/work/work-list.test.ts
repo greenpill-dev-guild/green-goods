@@ -8,6 +8,16 @@ const seams = vi.hoisted(() => ({
   byUID: vi.fn(),
   approvalsForWork: vi.fn(),
   activity: vi.fn(),
+  visibility: vi.fn(async () => ({
+    chainId: 42161,
+    excludedWorkUIDs: [] as string[],
+    excludedApprovalUIDs: [] as string[],
+  })),
+}));
+
+vi.mock("../../../modules/work/work-visibility", async (original) => ({
+  ...(await original<typeof import("../../../modules/work/work-visibility")>()),
+  readWorkVisibility: seams.visibility,
 }));
 
 vi.mock("../../../modules/data/eas", () => ({
@@ -180,7 +190,12 @@ describe("readGardenActivity", () => {
 
     const activity = await readGardenActivity({ garden: "garden", chainId: 42161, since: 5 });
 
-    expect(seams.activity).toHaveBeenCalledWith("garden", { chainId: 42161, since: 5 });
+    expect(seams.activity).toHaveBeenCalledWith("garden", {
+      chainId: 42161,
+      since: 5,
+      excludedWorkUIDs: [],
+      excludedApprovalUIDs: [],
+    });
     expect(seams.byUID).toHaveBeenCalledWith(["work-old"], 42161);
     expect(activity.complete).toBe(true);
     expect(activity.rows.map(({ id, approval }) => [id, approval?.id ?? approval])).toEqual([
@@ -209,6 +224,17 @@ describe("readGardenActivity", () => {
 });
 
 describe("readWorkByUID", () => {
+  it("does not reopen an excluded work through its direct link", async () => {
+    seams.visibility.mockResolvedValueOnce({
+      chainId: 42161,
+      excludedWorkUIDs: ["work-hidden"],
+      excludedApprovalUIDs: [],
+    });
+    seams.byUID.mockResolvedValue([work("work-hidden")]);
+    seams.approvalsForWork.mockResolvedValue([]);
+
+    await expect(readWorkByUID("WORK-HIDDEN", 42161)).resolves.toBeNull();
+  });
   beforeEach(() => vi.clearAllMocks());
 
   it("opens an older reviewed work outside the garden list window", async () => {

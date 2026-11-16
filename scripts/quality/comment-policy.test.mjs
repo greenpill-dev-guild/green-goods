@@ -388,6 +388,11 @@ test("a trailing note never shields the lines under it, and JSX containers still
 test("a declaration CommonJS exports keeps its documentation", () => {
   assert.deepEqual(kinds("/** Create client */\nfunction createClient() {}\nmodule.exports = { createClient };\n", "example.cjs"), ["documentation"]);
   assert.deepEqual(kinds("/** Create client */\nfunction createClient() {}\nexports.createClient = createClient;\n", "example.cjs"), ["documentation"]);
+  // At the end of a chain of assignments too.
+  assert.deepEqual(kinds("/** Create client */\nfunction client() {}\nmodule.exports = exports.client = client;\n", "example.cjs"), ["documentation"]);
+  assert.deepEqual(kinds("/** Create client */\nfunction client() {}\nconst api = module.exports = { client };\n", "example.cjs"), ["documentation"]);
+  // A chain that starts at a target that is not an export still exports what it ends in.
+  assert.deepEqual(kinds("/** Create client */\nfunction client() {}\nexports = module.exports = client;\n", "example.cjs"), ["documentation"]);
 });
 
 test("a run of line comments joins across every line break, CRLF and CR included", () => {
@@ -439,6 +444,11 @@ test("a negation states something, so it is never a label", () => {
   const code = "export function setup(mock) {\n  mock({\n    userAgent: \"Macintosh\",\n    // maxTouchPoints not set\n  });\n}\n";
   assert.equal(purgeSource(code, "example.ts").code, code);
   assert.deepEqual(kinds("// No user connected\nexport const user = null;\n"), ["narration"]);
+  // A contraction negates too, so the purge keeps it.
+  for (const note of ["Wallet isn't connected", "Didn't load"]) {
+    const source = `// ${note}\nexport const user = null;\n`;
+    assert.equal(purgeSource(source, "example.ts").code, source, note);
+  }
 });
 
 test("a comment between two separators fills a slot, in Solidity and JavaScript alike", () => {

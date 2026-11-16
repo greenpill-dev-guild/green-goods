@@ -301,7 +301,7 @@ export const AvailableAction: Story = {
     // here: advancing without it shows an inline error and the Details fields stay
     // out of reach.
     await userEvent.click(await canvas.findByRole("button", { name: "Next" }));
-    await expect(await canvas.findByText(/Add at least 1 photo to continue/)).toBeVisible();
+    await expect(await canvas.findByText(/Add at least 1 media item to continue/)).toBeVisible();
     await expect(canvas.queryByLabelText(/Plot code/)).not.toBeInTheDocument();
   },
 };
@@ -407,7 +407,7 @@ export const MediaStepStaging: Story = {
     const photos = () =>
       within(flow.querySelector<HTMLElement>('[data-component="SubmitWorkPhotos"]')!);
     const count = () => photos().getByRole("status");
-    await expect(count()).toHaveTextContent("0 of 2 photos");
+    await expect(count()).toHaveTextContent("0 of 2 media items");
 
     // Each photo is under the 1 MB compression threshold, so it stages as it is.
     const input = flow.querySelector<HTMLInputElement>('input[type="file"]');
@@ -422,7 +422,7 @@ export const MediaStepStaging: Story = {
       { name: "Preview east-bed-after.jpg" },
       { timeout: 5000 }
     );
-    await expect(count()).toHaveTextContent("3 photos added");
+    await expect(count()).toHaveTextContent("3 media items added");
     await expect(count()).toHaveAttribute("data-state", "met");
 
     // Both controls sit on one tile, so each has to take the press at its own centre.
@@ -456,10 +456,12 @@ export const MediaStepStaging: Story = {
     // Back below the requirement, the count turns amber again and Next is held.
     await userEvent.click(remove);
     await userEvent.click(within(flow).getByRole("button", { name: "Remove seedling-tray.jpg" }));
-    await expect(count()).toHaveTextContent("1 of 2 photos");
+    await expect(count()).toHaveTextContent("1 of 2 media items");
     await expect(count()).toHaveAttribute("data-state", "needed");
     await userEvent.click(within(flow).getByRole("button", { name: "Next" }));
-    await expect(await within(flow).findByText(/Add at least 2 photos to continue/)).toBeVisible();
+    await expect(
+      await within(flow).findByText(/Add at least 2 media items to continue/)
+    ).toBeVisible();
   },
 };
 

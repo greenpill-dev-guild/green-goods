@@ -1,0 +1,54 @@
+name: Merge Gate
+
+# Posts the "Merge Gate" commit status, which holds a pull request into develop to its tier's proof
+# (scripts/quality/merge-gate.mjs): routine needs CI Gate alone, sensitive a fresh agent review
+# recorded for the head, critical that review and the critical gate. It runs from develop when CI
+# Gate finishes on a pull request, and when a comment that holds or held a marker is written,
+# edited or deleted, so a pull request cannot rewrite its own gate. Any `merge-gate:` comment, such
+# as `merge-gate: recheck` after a pull request is retargeted, asks for a fresh decision. The job
+# reads the pull request through the API and fetched objects; nothing from it is checked out or run.
+on:
+  workflow_run:
+    workflows: ["CI Gate"]
+    types: [completed]
+  issue_comment:
+    types: [created, edited, deleted]
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+  statuses: write
+
+jobs:
+  gate:
+    # Not "Merge Gate": this job's own check run lands on develop's tip, and only the status it
+    # posts may carry that name.
+    name: Evaluate merge proof
+    if: >-
+      (github.event_name == 'workflow_run' && github.event.workflow_run.event == 'pull_request') ||
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request &&
+        (contains(github.event.comment.body, 'merge-gate:') || contains(github.event.changes.body.from, 'merge-gate:')))
+    # One queue per pull request for runs that evaluate. A comment without a marker skips the job, so
+    # it never takes a queue slot from a real run. A fork's CI Gate run names no pull request and
+    # queues by its head; the gate rereads the head before it posts.
+    concurrency:
+      group: merge-gate-${{ github.event.issue.number || github.event.workflow_run.pull_requests[0].number || github.event.workflow_run.head_sha }}
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout develop
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: "22.23.4"
+
+      - name: Hold the pull request to its tier's proof
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/quality/merge-gate.mjs
