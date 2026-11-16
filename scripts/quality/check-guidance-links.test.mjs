@@ -369,19 +369,61 @@ test("names inside member paths and calls count, and arguments do not", () => {
   ]);
 });
 
-test("root manifests are sources; plans and settings in folders are not", () => {
+test("a retirement notice covers the retired name, never the replacement it introduces", () => {
+  const text = [
+    "`oldHelper()` was replaced by `newMissingHelper()`.",
+    "`oldName` was renamed to `newName`, and `goneName` was removed.",
+    "`oldFirst` was removed along with `oldSecond`.",
+    "`retiredHook` was retired; use `useLiveHook`.",
+    "Migrating to 2.0 removed `formerHelper`.",
+  ].join("\n");
+  assert.deepEqual(findUnknownCodeNames(text, "guide.md", new Set(["useLiveHook"])), [
+    "guide.md:1: no tracked source names `newMissingHelper`",
+    "guide.md:2: no tracked source names `newName`",
+  ]);
+});
+
+test("blockquoted fences are examples too, and a fence closes only on its own kind", () => {
+  const text = [
+    "> ```md",
+    "> Call `quotedExample()` here.",
+    "> ```",
+    "Call `liveMissing()` here.",
+    "~~~~md",
+    "```",
+    "Still inside: `innerExample()`.",
+    "~~~~",
+    "After: `afterMissing()`.",
+  ].join("\n");
+  assert.deepEqual(findUnknownCodeNames(text, "guide.md", new Set()), [
+    "guide.md:4: no tracked source names `liveMissing`",
+    "guide.md:9: no tracked source names `afterMissing`",
+  ]);
+});
+
+test("the root, the docs site and app pages are sources; plans, settings and generated locks are not", () => {
   const root = mkdtempSync(path.join(tmpdir(), "gg-guidance-names-"));
   try {
     const env = fixtureGitEnvironment();
     const git = (...args) => execFileSync("git", args, { cwd: root, env, encoding: "utf8" });
     git("init", "-q");
-    const files = ["package.json", "packages/a/src/b.ts", ".plans/a/status.json", ".claude/settings.json"];
-    for (const file of files) {
+    const sources = [
+      "docs/docusaurus.config.ts",
+      "docs/plugins/a.mjs",
+      "docs/tina/config.ts",
+      "ecosystem.config.cjs",
+      "knip.ts",
+      "package.json",
+      "packages/a/src/b.ts",
+      "packages/qa/index.html",
+    ];
+    const others = [".plans/a/status.json", ".plans/a/x.ts", ".claude/settings.json", "docs/docs/page.ts", "docs/tina/tina-lock.json"];
+    for (const file of [...sources, ...others]) {
       mkdirSync(path.dirname(path.join(root, file)), { recursive: true });
       writeFileSync(path.join(root, file), "{}\n");
     }
-    git("add", "--", ...files);
-    assert.deepEqual(git("ls-files", "--", ...CODE_NAME_SOURCES).trim().split("\n").sort(), ["package.json", "packages/a/src/b.ts"]);
+    git("add", "--", ...sources, ...others);
+    assert.deepEqual(git("ls-files", "--", ...CODE_NAME_SOURCES).trim().split("\n").sort(), sources);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -407,4 +449,21 @@ test("a name only a comment mentions vouches for nothing, and a JSX tag names it
   assert.deepEqual(findUnknownCodeNames("Wrap it in `<DashboardLayout />`.", "guide.md", new Set()), [
     "guide.md:1: no tracked source names `DashboardLayout`",
   ]);
+});
+
+test("comments vouch for nothing in Solidity, CSS, JSONC, YAML, shell or HTML either", () => {
+  const files = {
+    "packages/contracts/src/A.sol":
+      '// legacySolName\n/** @notice natSpecName */\ncontract A { string s = "// keptInString"; function liveSolName() external {} }\n',
+    "packages/a/styles.css": "/* cssCommentName */\n.liveClassName { background: url(//cdn/x.png); }\n",
+    "tsconfig.json": '{ // jsoncCommentName\n  "compilerOptions": { "liveJsonName": true } }\n',
+    ".github/workflows/a.yml": '# yamlCommentName\nrun: echo "#quotedHashName" liveYamlName # trailingYamlName\n',
+    "scripts/a.sh": "#!/bin/sh\n# shellCommentName\necho ${#items[@]} liveShellName\n",
+    "packages/a/index.html": '<!-- htmlCommentName -->\n<div id="liveHtmlName"></div>\n',
+  };
+  const names = codeNamesFrom(Object.keys(files), (file) => files[file]);
+  const live = ["liveSolName", "keptInString", "liveClassName", "liveJsonName", "quotedHashName", "liveYamlName", "liveShellName", "liveHtmlName"];
+  const gone = ["legacySolName", "natSpecName", "cssCommentName", "jsoncCommentName", "yamlCommentName", "trailingYamlName", "shellCommentName", "htmlCommentName"];
+  assert.deepEqual(live.filter((name) => !names.has(name)), []);
+  assert.deepEqual(gone.filter((name) => names.has(name)), []);
 });
