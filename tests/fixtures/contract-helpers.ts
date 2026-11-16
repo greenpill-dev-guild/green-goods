@@ -554,7 +554,7 @@ export async function createActionTimestamps(
   const oneDay = BigInt(86400);
 
   return {
-    startTime: currentTimestamp - oneDay,
+    startTime: currentTimestamp - oneDay, // Started yesterday
     endTime: currentTimestamp + BigInt(durationDays) * oneDay,
   };
 }
