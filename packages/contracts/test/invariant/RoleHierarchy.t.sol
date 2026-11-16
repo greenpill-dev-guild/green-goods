@@ -12,25 +12,24 @@ import { MockHats } from "../../src/mocks/Hats.sol";
 // Handler: target contract for Foundry invariant fuzzer
 // ═══════════════════════════════════════════════════════════════════════════
 
-/// @title RoleStranger
-/// @notice A caller that holds no role in either garden: every role change it attempts must revert.
-contract RoleStranger {
-    HatsModule public adapter;
+/// @title RoleCaller
+/// @notice An account that attempts role changes. setUp fixes the roles it holds; no handler call changes them.
+contract RoleCaller {
+    HatsModule public immutable adapter;
 
     constructor(HatsModule _adapter) {
         adapter = _adapter;
     }
 
-    function tryGrant(address garden, address user, IHatsModule.GardenRole role) external returns (bool) {
-        try adapter.grantRole(garden, user, role) {
-            return true;
-        } catch {
-            return false;
+    function tryChange(address garden, address user, IHatsModule.GardenRole role, bool revoke) external returns (bool) {
+        if (revoke) {
+            try adapter.revokeRole(garden, user, role) {
+                return true;
+            } catch {
+                return false;
+            }
         }
-    }
-
-    function tryRevoke(address garden, address user, IHatsModule.GardenRole role) external returns (bool) {
-        try adapter.revokeRole(garden, user, role) {
+        try adapter.grantRole(garden, user, role) {
             return true;
         } catch {
             return false;
@@ -39,23 +38,37 @@ contract RoleStranger {
 }
 
 /// @title RoleHierarchyHandler
-/// @notice Exposes role operations as target functions for Foundry's invariant fuzzer.
-///         The fuzzer calls grantRole/revokeRole in arbitrary sequences, then invariants
-///         are checked after each call. It counts the calls that landed, so a run that
-///         changed nothing cannot pass for one that did.
+/// @notice Exposes role operations as target functions for Foundry's invariant fuzzer. The handler is the garden
+///         token, so its own grants and revokes are always authorized. A Steward of garden1 makes changes inside
+///         and outside its authority; a Gardener, a revoked Steward and a stranger try changes they have no
+///         authority for. A grant counts as landed only when it gave the role, and a revoke only when it took the
+///         role away.
 contract RoleHierarchyHandler {
     HatsModule public adapter;
-    RoleStranger public stranger;
+    RoleCaller public steward;
+    RoleCaller[3] public callersWithoutAuthority;
     address public garden1;
     address public garden2;
     address[5] public users;
-    uint256 public grants;
-    uint256 public revokes;
-    uint256 public strangerChanges;
 
-    constructor(HatsModule _adapter, RoleStranger _stranger, address _garden1, address _garden2, address[5] memory _users) {
+    uint256 public grantsLanded;
+    uint256 public revokesLanded;
+    uint256 public acceptedWithoutEffect;
+    uint256 public acceptedWithoutAuthority;
+    uint256 public stewardOverreaches;
+    uint256 public stewardRefusals;
+
+    constructor(
+        HatsModule _adapter,
+        RoleCaller _steward,
+        RoleCaller[3] memory _callersWithoutAuthority,
+        address _garden1,
+        address _garden2,
+        address[5] memory _users
+    ) {
         adapter = _adapter;
-        stranger = _stranger;
+        steward = _steward;
+        callersWithoutAuthority = _callersWithoutAuthority;
         garden1 = _garden1;
         garden2 = _garden2;
         users = _users;
@@ -63,31 +76,107 @@ contract RoleHierarchyHandler {
 
     /// @notice Grant a role to a random user in a random garden
     function grantRole(uint8 gardenSeed, uint8 userSeed, uint8 roleSeed) external {
-        address garden = gardenSeed % 2 == 0 ? garden1 : garden2;
+        address garden = _garden(gardenSeed);
         address user = users[userSeed % 5];
         IHatsModule.GardenRole role = _seedToRole(roleSeed);
+        bool heldBefore = _holds(garden, user, role);
         try adapter.grantRole(garden, user, role) {
-            ++grants;
+            _recordAccepted(garden, user, role, false, heldBefore);
         } catch { }
     }
 
-    /// @notice Revoke a role from a random user in a random garden
+    /// @notice Revoke a role someone holds in a random garden, or a random role when nobody holds one
     function revokeRole(uint8 gardenSeed, uint8 userSeed, uint8 roleSeed) external {
-        address garden = gardenSeed % 2 == 0 ? garden1 : garden2;
-        address user = users[userSeed % 5];
-        IHatsModule.GardenRole role = _seedToRole(roleSeed);
+        address garden = _garden(gardenSeed);
+        (address user, IHatsModule.GardenRole role) = _heldRole(garden, userSeed, roleSeed);
+        bool heldBefore = _holds(garden, user, role);
         try adapter.revokeRole(garden, user, role) {
-            ++revokes;
+            _recordAccepted(garden, user, role, true, heldBefore);
         } catch { }
     }
 
-    /// @notice The same role changes from a caller with no role, which must never land
-    function strangerChangesRole(uint8 gardenSeed, uint8 userSeed, uint8 roleSeed, bool revoke) external {
-        address garden = gardenSeed % 2 == 0 ? garden1 : garden2;
+    /// @notice The Steward of garden1 changes a role. Below Owner in garden1 it must be accepted; granting Owner,
+    ///         revoking from an Owner, or acting in garden2, where it holds no role, must be refused.
+    function stewardChangesRole(uint8 gardenSeed, uint8 userSeed, uint8 roleSeed, bool revoke) external {
+        address garden = _garden(gardenSeed);
         address user = users[userSeed % 5];
         IHatsModule.GardenRole role = _seedToRole(roleSeed);
-        bool landed = revoke ? stranger.tryRevoke(garden, user, role) : stranger.tryGrant(garden, user, role);
-        if (landed) ++strangerChanges;
+        bool touchesOwner = role == IHatsModule.GardenRole.Owner || (revoke && adapter.isOwnerOf(garden, user));
+        bool heldBefore = _holds(garden, user, role);
+        bool accepted = steward.tryChange(garden, user, role, revoke);
+        if (garden != garden1) {
+            if (accepted) ++acceptedWithoutAuthority;
+        } else if (touchesOwner) {
+            if (accepted) ++stewardOverreaches;
+        } else if (!accepted) {
+            ++stewardRefusals;
+        }
+        if (accepted) _recordAccepted(garden, user, role, revoke, heldBefore);
+    }
+
+    /// @notice A Gardener, a revoked Steward, or a stranger changes a role; every attempt must be refused
+    function callerWithoutAuthorityChangesRole(
+        uint8 callerSeed,
+        uint8 gardenSeed,
+        uint8 userSeed,
+        uint8 roleSeed,
+        bool revoke
+    )
+        external
+    {
+        RoleCaller caller = callersWithoutAuthority[callerSeed % 3];
+        if (caller.tryChange(_garden(gardenSeed), users[userSeed % 5], _seedToRole(roleSeed), revoke)) {
+            ++acceptedWithoutAuthority;
+        }
+    }
+
+    function _recordAccepted(
+        address garden,
+        address user,
+        IHatsModule.GardenRole role,
+        bool revoke,
+        bool heldBefore
+    )
+        internal
+    {
+        bool heldAfter = _holds(garden, user, role);
+        if (revoke) {
+            if (heldAfter) ++acceptedWithoutEffect;
+            else if (heldBefore) ++revokesLanded;
+        } else {
+            if (!heldAfter) ++acceptedWithoutEffect;
+            else if (!heldBefore) ++grantsLanded;
+        }
+    }
+
+    /// @dev Returns the first user and role held in `garden`, scanning from the seeded pair.
+    function _heldRole(
+        address garden,
+        uint8 userSeed,
+        uint8 roleSeed
+    )
+        internal
+        view
+        returns (address, IHatsModule.GardenRole)
+    {
+        uint256 start = uint256(userSeed % 5) * 4 + roleSeed % 4;
+        for (uint256 offset = 0; offset < 20; ++offset) {
+            uint256 slot = (start + offset) % 20;
+            IHatsModule.GardenRole role = _seedToRole(uint8(slot % 4));
+            if (_holds(garden, users[slot / 4], role)) return (users[slot / 4], role);
+        }
+        return (users[userSeed % 5], _seedToRole(roleSeed));
+    }
+
+    function _holds(address garden, address user, IHatsModule.GardenRole role) internal view returns (bool) {
+        if (role == IHatsModule.GardenRole.Owner) return adapter.isOwnerOf(garden, user);
+        if (role == IHatsModule.GardenRole.Steward) return adapter.isStewardOf(garden, user);
+        if (role == IHatsModule.GardenRole.Evaluator) return adapter.isEvaluatorOf(garden, user);
+        return adapter.isGardenerOf(garden, user);
+    }
+
+    function _garden(uint8 seed) internal view returns (address) {
+        return seed % 2 == 0 ? garden1 : garden2;
     }
 
     function _seedToRole(uint8 seed) internal pure returns (IHatsModule.GardenRole) {
@@ -105,13 +194,17 @@ contract RoleHierarchyHandler {
 
 /// @title RoleHierarchyInvariantTest
 /// @notice True Foundry invariant tests using handler + targetContract pattern.
-///         The fuzzer calls random sequences of grantRole/revokeRole on the handler,
+///         The fuzzer calls random sequences of role changes on the handler,
 ///         then each invariant_* function is checked after EVERY call.
 /// @dev Invariants verified:
 ///      1. Funder/Community are never auto-granted by core role operations
 ///      2. Garden hat configuration is never corrupted by role operations
-///      3. Cross-garden isolation: operations in one garden don't affect the other
-///      4. All role queries succeed without reverting (no corrupted state)
+///      3. All role queries succeed without reverting (no corrupted state)
+///      4. A caller without a Steward or Owner hat in a garden never changes a role there: a Gardener, a revoked
+///         Steward, a stranger, and the garden1 Steward acting in garden2
+///      5. A Steward changes roles below Owner in its garden, but never grants Owner or revokes from an Owner
+///      6. An accepted change takes effect: after a grant the user holds the role, after a revoke they do not
+///      After each run, at least one grant gave a role and at least one revoke took one away.
 ///
 ///      The default caps keep the local push gate inside its budget. A default line applies to every profile,
 ///      so the test and ci lines restore those profiles' foundry.toml values.
@@ -170,11 +263,27 @@ contract RoleHierarchyInvariantTest is Test {
         users[3] = address(0x3004);
         users[4] = address(0x3005);
 
-        // Deploy handler and authorize it as gardenToken for role operations; the stranger holds no role
-        handler = new RoleHierarchyHandler(adapter, new RoleStranger(adapter), garden1, garden2, users);
+        // Callers with fixed roles in garden1; the stranger holds none. Revoking the Steward hat leaves the
+        // Evaluator and Gardener hats its grant cascaded, so the revoked Steward still holds roles but has no
+        // authority.
+        RoleCaller steward = new RoleCaller(adapter);
+        RoleCaller gardener = new RoleCaller(adapter);
+        RoleCaller revokedSteward = new RoleCaller(adapter);
+        RoleCaller stranger = new RoleCaller(adapter);
+        adapter.grantRole(garden1, address(steward), IHatsModule.GardenRole.Steward);
+        adapter.grantRole(garden1, address(gardener), IHatsModule.GardenRole.Gardener);
+        adapter.grantRole(garden1, address(revokedSteward), IHatsModule.GardenRole.Steward);
+        adapter.revokeRole(garden1, address(revokedSteward), IHatsModule.GardenRole.Steward);
+
+        // Each garden starts with an Owner, so a run can revoke from its first call and the Steward meets an Owner
+        adapter.grantRole(garden1, users[0], IHatsModule.GardenRole.Owner);
+        adapter.grantRole(garden2, users[1], IHatsModule.GardenRole.Owner);
+
+        // Deploy handler and authorize it as gardenToken for role operations
+        handler = new RoleHierarchyHandler(adapter, steward, [gardener, revokedSteward, stranger], garden1, garden2, users);
         adapter.setGardenToken(address(handler));
 
-        // Only target the handler — fuzzer will call grantRole/revokeRole randomly
+        // Only target the handler; the fuzzer calls its role changes in random sequences
         targetContract(address(handler));
     }
 
@@ -228,17 +337,37 @@ contract RoleHierarchyInvariantTest is Test {
     }
 
     // =========================================================================
-    // Invariant 4: A Caller With No Role Never Changes Roles
-    // The handler also tries every role change from a contract that holds no role.
+    // Invariant 4: A Caller Without Authority Never Changes Roles
+    // A Gardener, a revoked Steward and a stranger try every role change, and the
+    // garden1 Steward tries them in garden2. Each must revert.
     // =========================================================================
 
-    function invariant_RoleHierarchy_aCallerWithNoRoleNeverChangesRoles() public {
-        assertEq(handler.strangerChanges(), 0, "A caller with no role changed a role");
+    function invariant_RoleHierarchy_aCallerWithoutAuthorityNeverChangesRoles() public {
+        assertEq(handler.acceptedWithoutAuthority(), 0, "A caller without authority changed a role");
     }
 
-    /// @notice A run in which no grant landed checked an untouched tree, so it fails.
+    // =========================================================================
+    // Invariant 5: A Steward Acts Only Below Owner
+    // What the Steward may revoke depends on who is an Owner when it acts.
+    // =========================================================================
+
+    function invariant_RoleHierarchy_aStewardActsOnlyBelowOwner() public {
+        assertEq(handler.stewardOverreaches(), 0, "A Steward granted Owner or revoked from an Owner");
+        assertEq(handler.stewardRefusals(), 0, "A Steward was refused a change below Owner in its garden");
+    }
+
+    // =========================================================================
+    // Invariant 6: An Accepted Change Takes Effect
+    // =========================================================================
+
+    function invariant_RoleHierarchy_anAcceptedChangeTakesEffect() public {
+        assertEq(handler.acceptedWithoutEffect(), 0, "An accepted grant or revoke left the role unchanged");
+    }
+
+    /// @notice A run in which no grant gave a role or no revoke took one away checked too little, so it fails.
     function afterInvariant() public {
-        assertGt(handler.grants(), 0, "No role grant landed in this run");
+        assertGt(handler.grantsLanded(), 0, "No grant gave anyone a role in this run");
+        assertGt(handler.revokesLanded(), 0, "No revoke took a role away in this run");
     }
 }
 
