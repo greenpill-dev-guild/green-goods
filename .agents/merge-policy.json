@@ -5,7 +5,7 @@
   "deleteBranchOnMerge": true,
   "requiredChecks": ["CI Gate"],
   "release": {
-    "about": "The owner's approval is required at the release boundary only, never at a merge into develop: promotion into main, a release branch or tag, and a contract broadcast. Agents act through his GitHub account, so the approval must be something they cannot produce; the signature design is drafted for him and not built. The kit's merge-policy schema has no field for a gate by branch or environment, so the merge-settings tool does not apply this entry.",
+    "about": "The owner's approval is required at the release boundary only, never at a merge into develop: promotion into main, a release branch or tag, and a contract broadcast. Agents act through his GitHub account, so the approval must be something they cannot produce; the signature design is drafted for him and not built. The kit's merge-policy schema has no field for a gate by branch or environment, so the merge-settings tool does not apply this entry. A merge into develop is itself a deploy: Fly redeploys the Agent from every develop commit, and Vercel builds the client and admin staging sites, so this boundary does not cover the Agent.",
     "approvalAt": ["main", "release/*", "tags v*", "contract broadcasts"]
   },
   "tiers": {
