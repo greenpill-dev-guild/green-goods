@@ -162,7 +162,7 @@ function AboutGardenStory({ width, locale }: AboutGardenStoryProps) {
   useLayoutEffect(() => () => useUIStore.getState().closeGardenSheet(), []);
   return (
     <JournalPhone width={width} locale={locale}>
-      <AboutGarden garden={GARDEN} />
+      <AboutGarden garden={GARDEN} hubUrl="https://hub.example.test" />
     </JournalPhone>
   );
 }
@@ -219,6 +219,7 @@ export const Steward: Story = {
     await expect(rowTitles(canvasElement)).toEqual([
       "Insights",
       "Gardeners",
+      "Green Goods Hub",
       "Share Garden",
       "Endowment",
     ]);
@@ -237,7 +238,12 @@ export const Evaluator: Story = {
 export const Owner: Story = {
   args: { role: "owner" },
   play: async ({ canvasElement }) => {
-    await expect(rowTitles(canvasElement)).toEqual(["Insights", "Gardeners", "Share Garden"]);
+    await expect(rowTitles(canvasElement)).toEqual([
+      "Insights",
+      "Gardeners",
+      "Green Goods Hub",
+      "Share Garden",
+    ]);
   },
 };
 
@@ -271,11 +277,25 @@ export const OpensInsights: Story = {
 /** The steward's rows in English, Spanish and Portuguese at 390 and 360px, one detail line each. */
 export const Locales: Story = {
   args: { role: "steward" },
-  render: () => <JournalLocales render={() => <AboutGarden garden={GARDEN} />} />,
+  render: () => (
+    <JournalLocales
+      render={() => <AboutGarden garden={GARDEN} hubUrl="https://hub.example.test" />}
+    />
+  ),
 };
 
 /** The depositor's rows, whose Endowment carries a detail, in the six frames. */
 export const DepositorLocales: Story = {
   args: { role: "depositor" },
-  render: () => <JournalLocales render={() => <AboutGarden garden={GARDEN} />} />,
+  render: () => (
+    <JournalLocales
+      render={() => <AboutGarden garden={GARDEN} hubUrl="https://hub.example.test" />}
+    />
+  ),
+};
+
+/** The selected garden's steward entry at the viewport width and toolbar language. */
+export const HubAtViewport: Story = {
+  args: { role: "steward" },
+  render: () => <AboutGarden garden={GARDEN} hubUrl="https://hub.example.test" />,
 };

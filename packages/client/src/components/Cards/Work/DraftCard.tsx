@@ -58,7 +58,7 @@ export const DraftCard: React.FC<DraftCardProps> = ({
               {
                 id: "app.pending.status.draftTakesUp",
                 defaultMessage:
-                  "{count, plural, =0 {Takes up an ask · Step {step} of 4} one {Takes up an ask · Step {step} of 4 · # photo} other {Takes up an ask · Step {step} of 4 · # photos}}",
+                  "{count, plural, =0 {Takes up an ask · Step {step} of 4} one {Takes up an ask · Step {step} of 4 · # attachment} other {Takes up an ask · Step {step} of 4 · # attachments}}",
               },
               progress
             )
@@ -66,7 +66,7 @@ export const DraftCard: React.FC<DraftCardProps> = ({
               {
                 id: "app.pending.status.draft",
                 defaultMessage:
-                  "{count, plural, =0 {Step {step} of 4} one {Step {step} of 4 · # photo} other {Step {step} of 4 · # photos}}",
+                  "{count, plural, =0 {Step {step} of 4} one {Step {step} of 4 · # attachment} other {Step {step} of 4 · # attachments}}",
               },
               progress
             )

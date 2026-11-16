@@ -6,6 +6,7 @@ import { GC_TIMES, STALE_TIMES } from "../../config/react-query";
 import { readGardenReviewQueue } from "../../modules/data/eas-review-queue";
 import type { GardenReviewQueue } from "../../types/garden-detail";
 import { workSessionStartedAt } from "./gardenWorkListQuery";
+import { workVisibilityQuery } from "./useWorkVisibility";
 
 /**
  * A garden's whole review queue, for a garden with more work than its newest
@@ -21,7 +22,11 @@ export function useGardenReviewQueue(
   const queryClient = useQueryClient();
   const query = useQuery({
     queryKey: worksKeys.reviewQueue(gardenId, chainId),
-    queryFn: () => readGardenReviewQueue(gardenId, { chainId }),
+    queryFn: async () =>
+      readGardenReviewQueue(gardenId, {
+        ...(await queryClient.fetchQuery(workVisibilityQuery(chainId))),
+        chainId,
+      }),
     enabled: enabled && Boolean(gardenId),
     networkMode: "online",
     staleTime: (read) =>
