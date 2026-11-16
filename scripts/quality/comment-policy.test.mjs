@@ -50,7 +50,7 @@ test("a run of line comments reads as one comment, kept or removed whole", () =>
   assert.equal(purgeSource(code, "example.ts").code, code);
 });
 
-test("banners, labels, restatements and commented-out code go with their lines; narration stays for triage", () => {
+test("banners, labels, restatements and commented-out code go with their lines; narration and end-of-line notes stay for triage", () => {
   const code = [
     "// ==== Helpers ====",
     "// Handler for the GardenMinted event",
@@ -63,10 +63,10 @@ test("banners, labels, restatements and commented-out code go with their lines; 
     "}",
     "",
   ].join("\n");
-  assert.deepEqual(kinds(code), ["banner", "narration", "code", "restatement", "label"]);
+  assert.deepEqual(kinds(code), ["banner", "narration", "code", "restatement", "narration"]);
   assert.equal(
     purgeSource(code, "example.ts").code,
-    "// Handler for the GardenMinted event\nexport function onMint() {\n  const ready = true;\n  const user = getUser();\n  return user;\n}\n",
+    "// Handler for the GardenMinted event\nexport function onMint() {\n  const ready = true;\n  const user = getUser();\n  return user; // the result\n}\n",
   );
 });
 
@@ -91,7 +91,7 @@ test("a purge is idempotent, so it can be re-run on any branch", () => {
   assert.match(once, /TODO keep until the migration lands/);
 });
 
-test("Solidity keeps its licence, NatSpec, analyzer directives and constraints, and drops banners and labels", () => {
+test("Solidity keeps its licence, NatSpec, analyzer directives, constraints and end-of-line notes, and drops banners", () => {
   const code = [
     "// SPDX-License-Identifier: MIT",
     "pragma solidity ^0.8.28;",
@@ -114,11 +114,12 @@ test("Solidity keeps its licence, NatSpec, analyzer directives and constraints, 
     "",
   ].join("\n");
   assert.deepEqual(kinds(code, "Registry.sol"), [
-    "licence", "documentation", "label", "documentation", "banner", "directive", "constraint",
+    "licence", "documentation", "narration", "documentation", "banner", "directive", "constraint",
   ]);
   const purged = purgeSource(code, "Registry.sol").code;
-  assert.doesNotMatch(purged, /the site|---- checks/);
-  assert.match(purged, /"https:\/\/example\.org\/a\/\/b";\n/);
+  assert.doesNotMatch(purged, /---- checks/);
+  assert.match(purged, /\/\/ the site/);
+  assert.match(purged, /"https:\/\/example\.org\/a\/\/b"; \/\/ the site\n/);
   assert.match(purged, /@custom:oz-upgrades-unsafe-allow constructor/);
   assert.match(purged, /solhint-disable-next-line/);
   assert.equal(purgeSource(purged, "Registry.sol").code, purged);
@@ -180,11 +181,11 @@ test("a hashbang is never read as a comment", () => {
   assert.equal(purgeSource(code, "tool.mjs").code, "#!/usr/bin/env node\nconst x = 1;\n");
 });
 
-test("only a JSX container that holds just comments goes with them; object and function braces stay", () => {
+test("only a JSX container that holds just comments goes with them; a comment that is a block's whole content stays", () => {
   const code = "const options = { /* defaults */ };\nfunction noop() { /* nothing */ }\nexport const View = () => <div>{/* a */ /* b */}</div>;\n";
   assert.equal(
     purgeSource(code, "example.tsx").code,
-    "const options = { };\nfunction noop() { }\nexport const View = () => <div></div>;\n",
+    "const options = { /* defaults */ };\nfunction noop() { /* nothing */ }\nexport const View = () => <div></div>;\n",
   );
 });
 
@@ -342,4 +343,24 @@ test("notation in a comment is prose, and an ordering note is a claim", () => {
   assert.deepEqual(kinds("// isWearerOfHat => false\nconst read = vi.fn();\n"), ["narration"]);
   assert.deepEqual(kinds("// `${hash(text)}_${sourceLang}_${targetLang}`\nconst key = make();\n"), ["narration"]);
   assert.deepEqual(kinds('// Import after mocks\nimport { Login } from "./Login";\n'), ["constraint"]);
+});
+
+test("a comment that marks a deliberate empty block, or annotates the end of a line, stays", () => {
+  const swallow = "export function stop(close) {\n  try {\n    close();\n  } catch {\n    // Ignore errors\n  }\n}\n";
+  assert.equal(purgeSource(swallow, "example.ts").code, swallow);
+  const chain = "export const config = {\n  chainId: 11155111, // Sepolia\n  owner: owner(), // the owner\n};\n";
+  assert.equal(purgeSource(chain, "example.ts").code, chain);
+  assert.deepEqual(kinds("uint256 constant WINDOW = 3600; // one hour\n", "Lib.sol"), ["narration"]);
+});
+
+test("a note after another comment on its line is still a heading, so one pass is enough", () => {
+  for (const [code, file] of [
+    ["/* ---- */ // Helpers\nconst x = 1;\n", "example.ts"],
+    ["let x = 1 /* a\n */ // b\nx++;\n", "example.ts"],
+    ["/* ---- */ // Helpers\nuint256 constant X = 1;\n", "Lib.sol"],
+  ]) {
+    const once = purgeSource(code, file).code;
+    assert.equal(purgeSource(once, file).code, once, JSON.stringify(code));
+    assert.doesNotMatch(once, /Helpers|\/\/ b/);
+  }
 });
