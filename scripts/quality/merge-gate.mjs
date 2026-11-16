@@ -135,14 +135,14 @@ export function classifyChange({
 /**
  * A comment's lines as a reader sees them. HTML comments hide what they hold, an unclosed one to
  * the end of the comment. So do fenced code blocks: only a bare fence of the opener's character, at
- * least as long, closes one. Every Markdown line break ends a line, a lone CR included; U+2028
- * does not, as Markdown does not break on it.
+ * least as long and indented at most three spaces, closes one. Every Markdown line break ends a
+ * line, a lone CR included; U+2028 does not, as Markdown does not break on it.
  */
 function visibleLines(body) {
   const lines = [];
   let fence = null;
   for (const line of String(body ?? "").replace(/<!--[\s\S]*?(?:--!?>|$)/g, " ").split(/\r\n|\r|\n/)) {
-    const [, marker, info] = line.match(/^\s*(`{3,}|~{3,})(.*)$/) ?? [];
+    const [, marker, info] = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/) ?? [];
     if (fence) {
       if (marker?.[0] === fence[0] && marker.length >= fence.length && !info.trim()) fence = null;
       continue;
@@ -301,7 +301,7 @@ export function githubClient({ token, repository }) {
       },
       body: body ? JSON.stringify(body) : undefined,
     });
-    if (!response.ok) throw new Error(`${method} ${path.split("?")[0]}: HTTP ${response.status}`);
+    if (!response.ok) throw Object.assign(new Error(`${method} ${path.split("?")[0]}: HTTP ${response.status}`), { status: response.status });
     return response.status === 204 ? null : response.json();
   };
 }
@@ -341,23 +341,29 @@ async function mergeBaseOf(github, pull, headSha) {
 }
 
 // The selector refuses some paths outright (a test path with brackets, say). The gate needs only its
-// risk, and one it cannot read counts as critical instead of failing every run.
+// risk, and one it cannot read counts as critical instead of failing every run; its message joins
+// the reasons, so a broken selector shows.
 function selectorRiskOf(change) {
   try {
-    return selectValidation({ ...change, intent: "merge", ci: true }).risk;
-  } catch {
-    return "unknown";
+    return { risk: selectValidation({ ...change, intent: "merge", ci: true }).risk };
+  } catch (error) {
+    return { risk: "unknown", error: printable(error.message) };
   }
 }
 
-// The marker comments as they stood: a run whose read went stale posts nothing.
-export const markerCommentsKey = (comments) =>
-  JSON.stringify(comments.filter(hasMarker).map((comment) => [comment.id, comment.updated_at]));
+// A collaborator's access, as GitHub reports it. A login GitHub does not know (HTTP 404) has none;
+// any other failed lookup throws.
+const accessLookup = (github) => (login) =>
+  github(`collaborators/${encodeURIComponent(login)}/permission`).catch((error) => {
+    if (error.status === 404) return { permission: "none" };
+    throw error;
+  });
 
 /**
  * The decision for one pull request's head, every read pinned to that commit. It also returns the
- * reasons behind the tier, and the marker comments it read. `github` calls the repository's REST
- * API (as `githubClient` does). `cwd` is a clone that can fetch the pull request's commits.
+ * reasons behind the tier, the markers it counted, and the marker authors it looked up and found
+ * to be writers. `github` calls the repository's REST API (as `githubClient` does). `cwd` is a clone
+ * that can fetch the pull request's commits.
  */
 export async function evaluate(pull, headSha, { github, cwd = repoRoot, env = process.env, policy = loadMergePolicy() }) {
   const git = { cwd, env };
@@ -378,11 +384,12 @@ export async function evaluate(pull, headSha, { github, cwd = repoRoot, env = pr
     );
     const deleted = deletedMutationPaths(baseEntries, deletedPaths, git);
     const mutationPaths = resolveMutationPaths(paths, { cwd: sharedRoot });
+    const selector = selectorRiskOf({ changedPaths: paths, deletedPaths, mutationPaths });
     const change = classifyChange({
       paths,
       modes: modesOf(entries),
       baseModes: modesOf(baseEntries),
-      selectorRisk: selectorRiskOf({ changedPaths: paths, deletedPaths, mutationPaths }),
+      selectorRisk: selector.risk,
       policy,
       fork: pull.head.repo?.full_name !== pull.base.repo.full_name,
       truncated: files.length >= GITHUB_FILE_LIMIT,
@@ -390,10 +397,12 @@ export async function evaluate(pull, headSha, { github, cwd = repoRoot, env = pr
       unreadable: [...unreadable, ...deleted.unreadable],
       deletedMutation: deleted.deletedMutation,
     });
+    const reasons = selector.error ? [...change.reasons, `selector error: ${selector.error}`] : change.reasons;
     const comments = await paginate(github, `issues/${pull.number}/comments`);
-    const writers = await writersAmong(comments, (login) => github(`collaborators/${encodeURIComponent(login)}/permission`));
-    const decision = decide({ ...change, markers: markersFor(comments, headSha, (login) => writers.has(login)), headSha });
-    return { decision, reasons: change.reasons, commentsKey: markerCommentsKey(comments) };
+    const authors = new Set(comments.filter(hasMarker).map((comment) => comment.user?.login).filter(Boolean));
+    const writers = await writersAmong(comments, accessLookup(github));
+    const markers = markersFor(comments, headSha, (login) => writers.has(login));
+    return { decision: decide({ ...change, reasons, markers, headSha }), reasons, markers, authors, writers };
   } finally {
     rmSync(sharedRoot, { recursive: true, force: true });
   }
@@ -434,12 +443,13 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
     } catch (error) {
       failed = true;
       const description = fit(printable(`Could not decide, so nothing passes: ${error.message}`), DESCRIPTION_LIMIT);
-      outcome = { decision: { state: "error", description, needed: [] }, reasons: [], commentsKey: null };
+      outcome = { decision: { state: "error", description, needed: [] }, reasons: [], markers: null };
     }
     const { decision } = outcome;
-    // A push or a marker comment written while the run read the pull request leaves a mixed
-    // snapshot; the run for the newer state decides instead. A re-read that fails confirms nothing:
-    // pending or error still posts, since holding a merge is always safe, but success does not.
+    // A push, or a writer's marker written while the run read the pull request, leaves a mixed
+    // snapshot; the run for the newer state decides instead. Only a change to what the writers'
+    // markers prove counts, so nobody else's comments can stop a post. A re-read that fails confirms
+    // nothing: pending or error still posts, since holding a merge is always safe, but success does not.
     let confirmed = true;
     try {
       const current = await github(`pulls/${number}`);
@@ -447,9 +457,15 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
         log(`#${number}: the head moved to ${current.head.sha.slice(0, SHORT_SHA)} while ${head} was read; nothing posted.`);
         continue;
       }
-      if (outcome.commentsKey !== null && markerCommentsKey(await paginate(github, `issues/${number}/comments`)) !== outcome.commentsKey) {
-        log(`#${number}: a marker comment changed while ${head} was read; nothing posted.`);
-        continue;
+      if (outcome.markers) {
+        const reread = await paginate(github, `issues/${number}/comments`);
+        const newcomers = reread.filter((comment) => hasMarker(comment) && comment.user?.login && !outcome.authors.has(comment.user.login));
+        const writers = new Set([...outcome.writers, ...(await writersAmong(newcomers, accessLookup(github)))]);
+        const now = markersFor(reread, headSha, (login) => writers.has(login));
+        if (now.reviewed !== outcome.markers.reviewed || now.fullGate !== outcome.markers.fullGate) {
+          log(`#${number}: a writer's marker changed while ${head} was read; nothing posted.`);
+          continue;
+        }
       }
     } catch (error) {
       confirmed = false;

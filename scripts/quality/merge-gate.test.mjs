@@ -15,7 +15,6 @@ import {
   loadMergePolicy,
   fetchCommit,
   main,
-  markerCommentsKey,
   markersFor,
   writersAmong,
   materializeShared,
@@ -81,6 +80,8 @@ test("only writers' visible markers naming the full head count", () => {
   const none = { reviewed: false, fullGate: false };
   assert.deepEqual(markersFor([comment(`Review addressed.\nmerge-gate: reviewed ${HEAD}`)], HEAD, canWrite), { reviewed: true, fullGate: false });
   assert.deepEqual(markersFor([comment(`merge-gate: full-gate ${HEAD.toUpperCase()} receipts 5/5`)], HEAD, canWrite), { reviewed: false, fullGate: true });
+  // A lone CR breaks a line, so a marker after one counts.
+  assert.deepEqual(markersFor([comment(`Done.\rmerge-gate: reviewed ${HEAD}`)], HEAD, canWrite), { reviewed: true, fullGate: false });
   // A prefix can be ground onto another commit, so none counts, however long.
   assert.deepEqual(markersFor([comment(`merge-gate: reviewed ${HEAD.slice(0, 39)}`)], HEAD, canWrite), none);
   assert.deepEqual(markersFor([comment(`merge-gate: reviewed ${OTHER}`)], HEAD, canWrite), none);
@@ -95,6 +96,7 @@ test("only writers' visible markers naming the full head count", () => {
     `\`\`\`\n\`\`\`js\nmerge-gate: reviewed ${HEAD}`,
     `<!--\nmerge-gate: reviewed ${HEAD}\n-->`,
     `<!-- draft\nmerge-gate: reviewed ${HEAD}`,
+    `\`\`\`\nmerge-gate: reviewed ${HEAD}\n    \`\`\`\nmerge-gate: reviewed ${HEAD}`,
     `See\u2028merge-gate: reviewed ${HEAD}`,
     "merge-gate: reviewed",
   ];
@@ -257,8 +259,9 @@ test("a pull request is decided from the API and its commits: a removed link, a 
   }
 });
 
-test("a run posts once for an open pull request into develop, unless its head or marker comments moved or nothing changed", async () => {
+test("a run posts once for an open pull request into develop, unless its head or a writer's marker moved or nothing changed", async () => {
   const open = { number: 7, state: "open", base: { ref: "develop" }, head: { sha: HEAD } };
+  const access = { writer: { role_name: "write", permission: "write" }, outsider: { role_name: "read", permission: "read" } };
   const run = async ({ pulls, markerComments = [], statuses = [], state = "pending", exit = 0 }) => {
     const posted = [];
     let reads = 0;
@@ -268,6 +271,8 @@ test("a run posts once for an open pull request into develop, unless its head or
       if (route === "pulls/7") return answer(pulls[Math.min(reads++, pulls.length - 1)]);
       if (route.startsWith("issues/7/comments")) return answer(markerComments);
       if (route.startsWith(`commits/${HEAD}/statuses`)) return answer(statuses);
+      const login = route.match(/^collaborators\/([^/]+)\/permission$/)?.[1];
+      if (login) return access[login] ?? Promise.reject(Object.assign(new Error("HTTP 404"), { status: 404 }));
       throw new Error(`unexpected ${route}`);
     };
     const decision = { state, description: `${state} for x.`, needed: [] };
@@ -275,7 +280,7 @@ test("a run posts once for an open pull request into develop, unless its head or
       env: { GITHUB_EVENT_NAME: "issue_comment" },
       event: { issue: { number: 7, pull_request: {} } },
       github,
-      evaluate: async () => ({ decision, reasons: ["x"], commentsKey: markerCommentsKey([]) }),
+      evaluate: async () => ({ decision, reasons: ["x"], markers: { reviewed: false, fullGate: false }, authors: new Set(), writers: new Set() }),
       log: () => {},
       summary: () => {},
     };
@@ -286,7 +291,12 @@ test("a run posts once for an open pull request into develop, unless its head or
   assert.deepEqual(await run({ pulls: [{ ...open, base: { ref: "main" } }] }), []);
   assert.deepEqual(await run({ pulls: [{ ...open, state: "closed" }] }), []);
   assert.deepEqual(await run({ pulls: [open, { ...open, head: { sha: OTHER } }] }), []);
-  assert.deepEqual(await run({ pulls: [open], markerComments: [{ id: 9, updated_at: "t", user: { login: "w" }, body: `merge-gate: reviewed ${HEAD}` }] }), []);
+  const marker = (login) => ({ id: 9, updated_at: "t", user: { login }, body: `merge-gate: reviewed ${HEAD}` });
+  // A writer's new marker changes what the run read, so the run it starts decides instead.
+  assert.deepEqual(await run({ pulls: [open], markerComments: [marker("writer")] }), []);
+  // Nobody else's comments can stop a post, nor can a login GitHub does not know.
+  assert.deepEqual(await run({ pulls: [open], markerComments: [marker("outsider")] }), [[`statuses/${HEAD}`, "pending", "Merge Gate"]]);
+  assert.deepEqual(await run({ pulls: [open], markerComments: [marker("gone")], state: "success" }), [[`statuses/${HEAD}`, "success", "Merge Gate"]]);
   assert.deepEqual(await run({ pulls: [open], statuses: [{ context: "Merge Gate", state: "pending", description: "pending for x." }] }), []);
   // A failed lookup confirms nothing: a hold still posts, so an older success cannot outlive its
   // proof, and a success is not posted.
@@ -294,4 +304,64 @@ test("a run posts once for an open pull request into develop, unless its head or
   assert.deepEqual(await run({ pulls: [open], statuses: lost }), [[`statuses/${HEAD}`, "pending", "Merge Gate"]]);
   assert.deepEqual(await run({ pulls: [open, lost] }), [[`statuses/${HEAD}`, "pending", "Merge Gate"]]);
   assert.deepEqual(await run({ pulls: [open], markerComments: lost, state: "success", exit: 2 }), []);
+});
+
+test("evaluate reads every classification input: the merge base, Shared mutation, deletions, refusals and limits", async () => {
+  const root = mkdtempSync(path.join(tmpdir(), "gg-merge-gate-inputs-"));
+  try {
+    const env = fixtureGitEnvironment();
+    const git = (...args) => execFileSync("git", args, { cwd: root, env, encoding: "utf8" }).trim();
+    const write = (file, text) => {
+      mkdirSync(path.dirname(path.join(root, file)), { recursive: true });
+      writeFileSync(path.join(root, file), text);
+    };
+    const signing = 'import { writeContract } from "@wagmi/core";\nexport const pay = () => writeContract({});\n';
+    git("init", "-q");
+    write("docs/a.md", "a\n");
+    symlinkSync("a.md", path.join(root, "docs/link.md"));
+    write("packages/shared/src/utils/send.ts", signing);
+    git("add", "--", "docs", "packages");
+    git("commit", "-q", "-m", "merge base");
+    const mergeBase = git("rev-parse", "HEAD");
+    // Develop moves on and turns the link into a file, so only the merge base shows it as one.
+    git("rm", "-q", "--", "docs/link.md");
+    write("docs/link.md", "now a file\n");
+    git("add", "--", "docs/link.md");
+    git("commit", "-q", "-m", "develop");
+    const baseTip = git("rev-parse", "HEAD");
+    git("checkout", "-q", mergeBase);
+    git("rm", "-q", "--", "docs/link.md", "packages/shared/src/utils/send.ts");
+    write("packages/shared/src/utils/pay.ts", signing);
+    git("add", "--", "packages");
+    git("commit", "-q", "-m", "head");
+    const head = git("rev-parse", "HEAD");
+    const pull = { number: 7, base: { sha: baseTip, repo: { full_name: "o/r" } }, head: { sha: head, repo: { full_name: "o/r" } } };
+    const decideFiles = async (files) => {
+      const github = async (route) => {
+        if (route.startsWith("pulls/7/files")) {
+          const page = Number(route.match(/[?&]page=(\d+)/)[1]);
+          return files.slice((page - 1) * 100, page * 100);
+        }
+        if (route.startsWith(`compare/${baseTip}...${head}`)) return { merge_base_commit: { sha: mergeBase } };
+        if (route.startsWith("issues/7/comments")) return [];
+        throw new Error(`unexpected ${route}`);
+      };
+      return (await evaluate(pull, head, { github, cwd: root, env, policy })).reasons;
+    };
+    const removed = (filename) => ({ filename, status: "removed" });
+    const reasons = await decideFiles([removed("docs/link.md"), removed("packages/shared/src/utils/send.ts"), removed("docs/ghost.md")]);
+    assert.ok(reasons.includes("symlink docs/link.md"), reasons.join("; "));
+    assert.ok(reasons.includes("deleted mutation path packages/shared/src/utils/send.ts"), reasons.join("; "));
+    assert.ok(reasons.includes("path in neither tree docs/ghost.md"), reasons.join("; "));
+    // A changed Shared file that reaches a signing primitive makes the selector's risk critical.
+    assert.equal((await decideFiles([{ filename: "packages/shared/src/utils/pay.ts", status: "added" }]))[0], "selector risk critical");
+    // A path the selector refuses is critical, and its message is kept.
+    const refused = await decideFiles([{ filename: "packages/client/src/routes/[gardenId].test.tsx", status: "added" }]);
+    assert.equal(refused[0], "selector risk unknown");
+    assert.ok(refused.some((reason) => reason.startsWith("selector error: ")), refused.join("; "));
+    const many = Array.from({ length: 3000 }, (_, index) => ({ filename: `docs/f${index}.md`, status: "modified" }));
+    assert.ok((await decideFiles(many)).includes("more than 3000 files"));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
