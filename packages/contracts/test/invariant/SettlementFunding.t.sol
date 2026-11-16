@@ -8,6 +8,14 @@ import { SettlementFundingHandler } from "./handlers/SettlementFundingHandler.so
 
 /// @title SettlementFundingInvariantTest
 /// @notice The refund obligation keeps one immutable child across failure, retry, and cancellation.
+/// @dev The default caps keep the local push gate inside its budget. A default line applies to every profile,
+///      so the test and ci lines restore those profiles' foundry.toml values.
+/// forge-config: default.invariant.runs = 32
+/// forge-config: default.invariant.depth = 64
+/// forge-config: test.invariant.runs = 16
+/// forge-config: test.invariant.depth = 96
+/// forge-config: ci.invariant.runs = 256
+/// forge-config: ci.invariant.depth = 500
 contract SettlementFundingInvariantTest is SettlementPayerTest {
     uint256 private constant POOL_ID = 77;
     uint256 private constant COMMITMENT_ID = 88;
@@ -34,8 +42,6 @@ contract SettlementFundingInvariantTest is SettlementPayerTest {
         _targetedContracts.push(address(handler));
     }
 
-    /// forge-config: default.invariant.runs = 32
-    /// forge-config: default.invariant.depth = 64
     function invariant_SettlementFunding_refundRelationshipNeverPointsAtAReplacementChild() public {
         ISettlementModule.CommitmentFunding memory funding = settlement.getCommitmentFunding(fundingId);
         uint256 childId = settlement.fundingRefundDisbursementOf(fundingId);
@@ -55,8 +61,6 @@ contract SettlementFundingInvariantTest is SettlementPayerTest {
         );
     }
 
-    /// forge-config: default.invariant.runs = 32
-    /// forge-config: default.invariant.depth = 64
     function invariant_SettlementFunding_refundChildPreservesTheRecordedObligation() public {
         ISettlementModule.CommitmentFunding memory funding = settlement.getCommitmentFunding(fundingId);
         assertEq(funding.commitmentId, COMMITMENT_ID);
@@ -83,8 +87,6 @@ contract SettlementFundingInvariantTest is SettlementPayerTest {
         }
     }
 
-    /// forge-config: default.invariant.runs = 32
-    /// forge-config: default.invariant.depth = 64
     function invariant_SettlementFunding_atMostOneRefundChildAndOneConfirmedRefundExist() public {
         uint256 refundChildren;
         uint256 confirmedRefunds;

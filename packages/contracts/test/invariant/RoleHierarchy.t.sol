@@ -112,6 +112,15 @@ contract RoleHierarchyHandler {
 ///      2. Garden hat configuration is never corrupted by role operations
 ///      3. Cross-garden isolation: operations in one garden don't affect the other
 ///      4. All role queries succeed without reverting (no corrupted state)
+///
+///      The default caps keep the local push gate inside its budget. A default line applies to every profile,
+///      so the test and ci lines restore those profiles' foundry.toml values.
+/// forge-config: default.invariant.runs = 32
+/// forge-config: default.invariant.depth = 64
+/// forge-config: test.invariant.runs = 16
+/// forge-config: test.invariant.depth = 96
+/// forge-config: ci.invariant.runs = 256
+/// forge-config: ci.invariant.depth = 500
 contract RoleHierarchyInvariantTest is Test {
     HatsModule public adapter;
     MockHats public mockHats;
@@ -175,8 +184,6 @@ contract RoleHierarchyInvariantTest is Test {
     // Funder or Community roles.
     // =========================================================================
 
-    /// forge-config: default.invariant.runs = 32
-    /// forge-config: default.invariant.depth = 64
     function invariant_funderAndCommunityNeverAutoGranted() public {
         for (uint256 i = 0; i < 5; i++) {
             assertFalse(adapter.isFunderOf(garden1, users[i]), "Funder must never be auto-granted in garden1");
@@ -191,8 +198,6 @@ contract RoleHierarchyInvariantTest is Test {
     // Role operations must never corrupt the garden hat configuration.
     // =========================================================================
 
-    /// forge-config: default.invariant.runs = 32
-    /// forge-config: default.invariant.depth = 64
     function invariant_configurationPreserved() public {
         assertTrue(adapter.isConfigured(garden1), "Garden1 must remain configured");
         assertTrue(adapter.isConfigured(garden2), "Garden2 must remain configured");
@@ -203,8 +208,6 @@ contract RoleHierarchyInvariantTest is Test {
     // No role query should revert (no corrupted hat IDs or broken state).
     // =========================================================================
 
-    /// forge-config: default.invariant.runs = 32
-    /// forge-config: default.invariant.depth = 64
     function invariant_allRoleQueriesSucceed() public {
         for (uint256 i = 0; i < 5; i++) {
             // These must never revert on configured gardens
@@ -229,8 +232,6 @@ contract RoleHierarchyInvariantTest is Test {
     // The handler also tries every role change from a contract that holds no role.
     // =========================================================================
 
-    /// forge-config: default.invariant.runs = 32
-    /// forge-config: default.invariant.depth = 64
     function invariant_RoleHierarchy_aCallerWithNoRoleNeverChangesRoles() public {
         assertEq(handler.strangerChanges(), 0, "A caller with no role changed a role");
     }
