@@ -37,6 +37,10 @@ import {
   trackJobPermanentlyFailed,
   trackJobProcessed,
   trackJobProcessingError,
+  trackJobSkipped,
+  trackJobStarted,
+  trackQueuedUploadFinished,
+  trackQueuedUploadStarted,
   trackStorageWarning,
   trackUploadPreparation,
 } from "../../modules/job-queue/job-analytics";
@@ -148,6 +152,60 @@ describe("job queue analytics privacy", () => {
       ],
       ["upload_preparation_retry_scheduled", { job_kind: "work", attempt: 2, delay_ms: 60_000 }],
     ]);
+  });
+
+  it("names each send's start and every end that sent nothing by a code, never a message (PRD-1495)", () => {
+    trackJobStarted("work", 2, { explicit: true, confirming: false });
+    trackJobSkipped("work", "awaiting-confirmation", { explicit: false, started: true });
+    // A reason can come from an error: anything that is not a plain code is named `other`.
+    trackJobSkipped("approval", `failed for ${gardenAddress}`, { explicit: true, started: false });
+    trackJobSkipped("work", "backoff_12s", { explicit: false, started: false });
+    trackQueuedUploadStarted({ scope: "all", itemCount: 3, authMode: "passkey" });
+    trackQueuedUploadFinished({
+      scope: "selected",
+      status: "failed",
+      sent: 0,
+      flagged: 1,
+      durationMs: 9_000,
+      authMode: "wallet",
+      error: new Error(`User rejected the request.\n  from: ${userAddress}`),
+    });
+
+    expect(
+      analyticsMocks.track.mock.calls.map(([event, properties]) => [event, properties])
+    ).toEqual([
+      ["offline_job_started", { job_kind: "work", attempt: 2, explicit: true, confirming: false }],
+      [
+        "offline_job_skipped",
+        { job_kind: "work", reason: "awaiting-confirmation", explicit: false, started: true },
+      ],
+      [
+        "offline_job_skipped",
+        { job_kind: "approval", reason: "other", explicit: true, started: false },
+      ],
+      [
+        "offline_job_skipped",
+        { job_kind: "work", reason: "backoff", explicit: false, started: false },
+      ],
+      ["queued_upload_started", { scope: "all", item_count: 3, auth_mode: "passkey" }],
+      [
+        "queued_upload_finished",
+        {
+          scope: "selected",
+          status: "failed",
+          sent: 0,
+          flagged: 1,
+          duration_ms: 9_000,
+          auth_mode: "wallet",
+          parsed_error_family: "UserRejected",
+        },
+      ],
+    ]);
+    for (const [, properties, options] of analyticsMocks.track.mock.calls) {
+      expect(JSON.stringify(properties)).not.toContain(userAddress);
+      expect(JSON.stringify(properties)).not.toContain(gardenAddress);
+      expect(options).toEqual({ includeSessionId: false });
+    }
   });
 
   it("keeps queue breadcrumbs free of local job and address identifiers", () => {

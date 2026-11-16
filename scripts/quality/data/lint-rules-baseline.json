@@ -153,7 +153,7 @@
       "packages/shared/src/hooks/vault/useVaultDeposit.ts": 2,
       "packages/shared/src/hooks/vault/useVaultWithdraw.ts": 1,
       "packages/shared/src/modules/agent-reporting/gardens.ts": 1,
-      "packages/shared/src/modules/app/analytics-events.ts": 32,
+      "packages/shared/src/modules/app/analytics-events.ts": 30,
       "packages/shared/src/modules/app/error-categories.ts": 1,
       "packages/shared/src/modules/app/error-events.ts": 2,
       "packages/shared/src/modules/app/external-error-reporters.ts": 1,

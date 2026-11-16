@@ -107,6 +107,38 @@ The same boundary the bug-intake routine uses, applied to every consumer. Never 
 
 If a question's output would name a single user (one row per `distinct_id`), it is private-only by definition. Aggregations over ≥ 5 users are public-safe.
 
+## Work events
+
+What each event about uploading work means, so a question counts the ending it intends. A Submit
+records `work_submission_started` and then one ending. The queue records `offline_job_*` events for
+each try its processor runs, such as the send when the App opens or a passkey Submit's send. A
+batched Upload all or Upload now sends its items in one call outside the processor: the tap is
+recorded (`queued_upload_started`, `queued_upload_finished`), and a job gets its own event only where
+the processor runs, such as `offline_job_processed` when the queue settles an item that was sent. A
+wallet Submit also sends outside the processor, and records `offline_job_processed` when its work
+lands.
+
+| Event | Fires when |
+|---|---|
+| `work_submission_started` | A Submit begins, after the Terms prompt is accepted. |
+| `work_submission_success` | The Submit's work reached the chain. |
+| `work_submission_offline` | The Submit only saved the work to the queue to send later. `reason`: `offline`, `connection-unconfirmed`, or `not-sent` (online, but the queue keeps it). |
+| `work_submission_queued` | The Submit's send is on record but not confirmed yet (`status: awaiting-confirmation`). |
+| `work_submission_failed` | The Submit failed. `parsed_error_family: UserRejected` marks a cancel, a declined Terms prompt included. |
+| `offline_job_started` | The queue starts a try: a send, or the check of a send already on record (`confirming`). `explicit` when a person's tap asked for it. |
+| `offline_job_skipped` | A started try ended with nothing sent and no answer, or a tap the queue could not act on. `reason` is a code such as `awaiting-confirmation`, `offline` or `wallet-reconnect-required`. |
+| `offline_job_processed` | A queued job reached the chain. |
+| `offline_job_failed` | A try failed and will be retried; `offline_job_permanently_failed` when it will not be. |
+| `queued_upload_started`, `queued_upload_finished` | An Upload all or Upload now tap, and how it ended (`status`, `sent`, `flagged`). |
+
+Builds made after 2026-11-15 record `work_submission_offline`, `work_submission_queued`,
+`offline_job_started`, `offline_job_skipped` and the `queued_upload_*` events. Before that, a
+Submit that only saved the work recorded `work_submission_success` with `was_offline: true`. A
+question that counts submitted work therefore reads both `work_submission_success` and
+`work_submission_offline`: each Submit records only one of them, so the two never count one
+Submit twice. A work saved to the queue and sent later also records `offline_job_processed`
+(`job_kind: work`) when it lands.
+
 ---
 
 ## Product/quality lens
@@ -365,6 +397,7 @@ Public-safe-default. Aggregates only — never names a single user.
 - **Lens**: growth-bd
 - **Default privacy**: public-safe
 - **What it answers**: passkey register → garden join → first work submission funnel over a window.
+- **v1.1.0 (2026-11-15): work saved for later counts.** A Submit that only saves the work to the queue now records `work_submission_offline` instead of `work_submission_success` with `was_offline: true`, so the first-work step reads both events and measures what it did before. See Work events above.
 - **Identity stitching note**: PostHog assigns an anonymous UUID `distinct_id` on first page-load and switches it to the wallet/passkey-credential `distinct_id` after `posthog.identify()` in the auth flow. **Joins must be by `person_id`** (which stitches anonymous + identified IDs at the person level), not raw `distinct_id` — joining by `distinct_id` produces 0% conversion across the auth boundary even when conversions are happening. Verified empirically 2026-05-09 against the App project (163591): 7 person registers + 6 person joins in 30d, 0 overlap when joined by `distinct_id`; correct number when joined by `person_id`.
 - **HogQL**:
   ```sql
@@ -388,7 +421,7 @@ Public-safe-default. Aggregates only — never names a single user.
       SELECT j.person_id, min(e.timestamp) AS first_work_at
       FROM join_users j
       JOIN events e ON e.person_id = j.person_id
-      WHERE e.event = 'work_submission_success'
+      WHERE e.event IN ('work_submission_success', 'work_submission_offline')
         AND e.timestamp >= j.join_at
       GROUP BY j.person_id
     )
@@ -401,7 +434,7 @@ Public-safe-default. Aggregates only — never names a single user.
   ```
 - **Bind variables**: `{ window: "30d" }`
 - **Output schema**: every field public.
-- **Required emit-side events**: `auth_passkey_register_success`, `garden_join_success`, `garden_auto_join_success`, `work_submission_success` (all present today, `packages/shared/src/modules/app/analytics-events.ts`).
+- **Required emit-side events**: `auth_passkey_register_success`, `garden_join_success`, `garden_auto_join_success`, `work_submission_success`, `work_submission_offline` (all defined in `packages/shared/src/modules/app/analytics-events.ts`).
 - **Cohort caveat**: this funnel only tracks the new-user cohort within `{window}`. Returning users (registered before the window) who join gardens during the window are intentionally excluded — that's a different question. If `registered > 0` but `register_to_join_pct == 0`, verify by comparing to the raw `garden_join_success` count over the same window: a non-zero raw count with a zero funnel percentage usually means joiners are returning users from outside the window, not a product breakage.
 - **Used by**: `growth-pulse` (App project, id 163591).
 
@@ -410,13 +443,14 @@ Public-safe-default. Aggregates only — never names a single user.
 - **Lens**: growth-bd
 - **Default privacy**: public-safe
 - **What it answers**: of users whose first work submission was in the past 30 days, what percentage submitted a second work within 7 days?
+- **v1.1.0 (2026-11-15): work saved for later counts.** Both steps read `work_submission_offline` as well as `work_submission_success`, so a work saved to the queue counts as a submission, as it did before. See Work events above.
 - **Identity stitching note**: same as `funnel.onboarding` — joins are by `person_id` so anonymous→identified transitions don't break the cohort.
 - **HogQL**:
   ```sql
   WITH first_subs AS (
     SELECT person_id, min(timestamp) AS first_at
     FROM events
-    WHERE event = 'work_submission_success'
+    WHERE event IN ('work_submission_success', 'work_submission_offline')
       AND timestamp > now() - interval 60 day
     GROUP BY person_id
     HAVING first_at > now() - interval 30 day
@@ -425,7 +459,7 @@ Public-safe-default. Aggregates only — never names a single user.
     SELECT f.person_id
     FROM first_subs f
     JOIN events e ON e.person_id = f.person_id
-    WHERE e.event = 'work_submission_success'
+    WHERE e.event IN ('work_submission_success', 'work_submission_offline')
       AND e.timestamp > f.first_at
       AND e.timestamp <= f.first_at + interval 7 day
     GROUP BY f.person_id
@@ -437,7 +471,7 @@ Public-safe-default. Aggregates only — never names a single user.
   ```
 - **Bind variables**: none (window is fixed at 30d / 7d to keep the metric stable across runs).
 - **Output schema**: every field public.
-- **Required emit-side events**: `work_submission_success`.
+- **Required emit-side events**: `work_submission_success`, `work_submission_offline`.
 - **Used by**: `growth-pulse` (App project, id 163591).
 
 ### `retention.curve`
@@ -487,25 +521,26 @@ Public-safe-default. Aggregates only — never names a single user.
 - **Lens**: growth-bd
 - **Default privacy**: public-safe (per-garden numbers; garden addresses are already public on-chain)
 - **What it answers**: per-garden 7-day active members + 7-day work submitted.
+- **v1.1.0 (2026-11-15): work saved for later counts.** `work_submitted_7d` counts `work_submission_offline` as well as `work_submission_success`, as it did before saved-for-later work moved to its own event. See Work events above.
 - **HogQL**:
   ```sql
   SELECT
     properties.garden_address AS garden_address,
     properties.garden_name AS garden_name,
     count(DISTINCT distinct_id) AS active_members_7d,
-    countIf(event = 'work_submission_success') AS work_submitted_7d,
+    countIf(event IN ('work_submission_success', 'work_submission_offline')) AS work_submitted_7d,
     countIf(event = 'work_approval_success') AS work_approved_7d
   FROM events
   WHERE timestamp > now() - interval 7 day
     AND properties.garden_address IS NOT NULL
-    AND event IN ('work_submission_success', 'work_approval_success', 'garden_join_success', 'garden_auto_join_success')
+    AND event IN ('work_submission_success', 'work_submission_offline', 'work_approval_success', 'garden_join_success', 'garden_auto_join_success')
   GROUP BY garden_address, garden_name
   ORDER BY work_submitted_7d DESC
   ```
 - **Bind variables**: none.
 - **Output schema**:
   - `garden_address`, `garden_name`, `active_members_7d`, `work_submitted_7d`, `work_approved_7d` — public
-- **Required emit-side events**: `work_submission_success`, `work_approval_success`, `garden_join_success`, `garden_auto_join_success` (all present; all carry `garden_address`).
+- **Required emit-side events**: `work_submission_success`, `work_submission_offline`, `work_approval_success`, `garden_join_success`, `garden_auto_join_success`. Joins and approvals carry `garden_address`; Submit events have not carried it since September 2026, so this question and `gardens.dormant` cannot count a garden's submitted work until they carry it again.
 - **Used by**: `growth-pulse` (App project, id 163591).
 
 ### `gardens.dormant`
@@ -513,6 +548,7 @@ Public-safe-default. Aggregates only — never names a single user.
 - **Lens**: growth-bd
 - **Default privacy**: public-safe
 - **What it answers**: gardens with zero work submitted in the last 7 / 14 / 30 days. Drives the `#498` dormancy signal and Season-One health awareness.
+- **v1.1.0 (2026-11-15): work saved for later counts.** A garden's last work reads `work_submission_offline` as well as `work_submission_success`, as it did before saved-for-later work moved to its own event. See Work events above.
 - **HogQL**:
   ```sql
   WITH known_gardens AS (
@@ -525,7 +561,7 @@ Public-safe-default. Aggregates only — never names a single user.
       properties.garden_address AS garden_address,
       max(timestamp) AS last_work_at
     FROM events
-    WHERE event = 'work_submission_success'
+    WHERE event IN ('work_submission_success', 'work_submission_offline')
     GROUP BY garden_address
   )
   SELECT
@@ -542,7 +578,7 @@ Public-safe-default. Aggregates only — never names a single user.
   ```
 - **Bind variables**: none.
 - **Output schema**: all public.
-- **Required emit-side events**: `admin_garden_create_success`, `garden_join_success`, `garden_auto_join_success`, `work_submission_success`.
+- **Required emit-side events**: `admin_garden_create_success`, `garden_join_success`, `garden_auto_join_success`, `work_submission_success`, `work_submission_offline`.
 - **Used by**: `growth-pulse` (App project, id 163591).
 
 ### `gardens.operator-activity`
@@ -597,6 +633,7 @@ Public-safe-default. Aggregates only — never names a single user.
 - **Default privacy**: public-safe
 - **What it answers**: per-step failure rate for the conversion-killing events (`*_failed` paired with `*_success`), **excluding user cancellations**. Surfaces product breakages that vanish from a success-only funnel.
 - **v1.3.0 (2026-08-10) — cancellations are not failures.** A user declining a wallet or passkey prompt was previously counted as a conversion kill. This inflated every step and produced at least one false anomaly (PRD-717: a reported 66.7% `garden_join` failure was 5 aborts out of 8 "failures", from 2 people retrying). The query now classifies each attempt as `success` / `cancelled` / `failed`, reports `cancelled_count` alongside rather than dropping it, and emits `failing_persons` so consumers can require a real cohort before filing. **Treat the pre-v1.3.0 baselines as inflated** — the old entry quoted `garden_join` ~75%, `work_submission` ~70%, `auth_passkey_register` ~27% from 2026-05-09.
+- **v1.4.0 (2026-11-15): work saved for later is still a success.** A Submit that only saves the work to the queue now records `work_submission_offline` instead of `work_submission_success` with `was_offline: true`. It counts as the Submit step's success here, as it did before. `work_submission_failed` now also records two endings it did not before: a declined Terms prompt (`UserRejected`, so cancelled) and a Submit stopped before admission, such as a promise take-up that did not go (`StoppedBeforeAdmission`, so failed). See Work events above.
 - **HogQL**:
   ```sql
   SELECT
@@ -628,7 +665,8 @@ Public-safe-default. Aggregates only — never names a single user.
       -- The literal list mirrors CANCELLED_PATTERNS in
       -- packages/shared/src/utils/errors/tx-error-classifier.ts — keep them in sync.
       multiIf(
-        event LIKE '%_success', 'success',
+        -- Work saved for later was the Submit step's success before it got its own event.
+        event LIKE '%_success' OR event = 'work_submission_offline', 'success',
         event LIKE '%_cancelled'
           OR properties.parsed_error_family = 'UserRejected'
           OR properties.reason = 'cancelled'
@@ -643,7 +681,7 @@ Public-safe-default. Aggregates only — never names a single user.
     WHERE timestamp > now() - interval {window:String}
       AND event IN (
         'garden_join_success', 'garden_join_failed', 'garden_join_cancelled',
-        'work_submission_success', 'work_submission_failed',
+        'work_submission_success', 'work_submission_offline', 'work_submission_failed',
         'work_approval_success', 'work_approval_failed',
         'auth_passkey_register_success', 'auth_passkey_register_failed'
       )
@@ -663,7 +701,7 @@ Public-safe-default. Aggregates only — never names a single user.
   | `auth_passkey_register` | `reason = 'cancelled'` | ⚠️ `reason` is frequently absent; the common WebAuthn string ("operation either timed out or was not allowed") is genuinely ambiguous between a timeout and a dismissal, so it is deliberately **left as a failure** rather than guessed |
   | `work_approval` | none | ❌ emits only a generic `"Transaction failed. Please try again."` via `createMutationErrorHandler`; cancellations are indistinguishable today |
 
-- **Required emit-side events**: the four `*_started/_success/_failed` event triplets above, plus `garden_join_cancelled` (all present in `packages/shared/src/modules/app/analytics-events.ts`). Note that `work_approval_success` may live primarily on the Admin project (262122) — when this question runs against the App project, `work_approval` will report 100% failure even when admin successes exist. Run the query separately against project 262122 for the admin-side success counts and merge in the routine.
+- **Required emit-side events**: the four `*_started/_success/_failed` event triplets above, plus `garden_join_cancelled` and `work_submission_offline` (all present in `packages/shared/src/modules/app/analytics-events.ts`). Note that `work_approval_success` may live primarily on the Admin project (262122): when this question runs against the App project, `work_approval` will report 100% failure even when admin successes exist. Run the query separately against project 262122 for the admin-side success counts and merge in the routine.
 - **Anomaly thresholds (consumer)**: failure rate > 50% AND `failed_count` ≥ 5 AND `failing_persons` ≥ 3 over the window → file a Linear anomaly Issue. 100% failure meeting the same floors → P2/urgent. The person floor is what separates real product breakage from one or two people retrying a broken session — without it, a two-person retry loop reads as a cohort-wide conversion kill (PRD-717).
   - **`failing_persons` does not merge across projects.** It is a distinct count, so the App and Admin rows for `work_approval` can neither be summed (double-counts an operator active on both) nor maxed (undercounts distinct operators). Apply the person floor **per project** and file if either side crosses on its own; only `success_count` / `failed_count` / `cancelled_count` may be merged into a combined row.
 - **Used by**: `growth-pulse` (anomaly detection, replaces sole reliance on `funnel.onboarding`).
@@ -699,7 +737,7 @@ Public-safe-default. Aggregates only — never names a single user.
 The following questions would expand coverage but require events that don't exist yet. Listed here so a future emit-side plan can pick them up:
 
 - `funnel.invite-acceptance` — needs `garden_invite_sent` and `garden_invite_accepted`. `garden_join_success` fires after the invite link is followed, but the invite-creation step itself isn't tracked. Add via `createTracker<T>` in `packages/shared/src/modules/app/analytics-events.ts` if invitation conversion becomes a key metric. (The `garden_auto_join_*` family used to be listed here as a second source; it was defined but never called and never fired a single event in 365 days, so it was deleted on 2026-08-10 — don't reach for it.)
-- `funnel.first-work-from-invite` — depends on the same invitation events plus a stable `first_work` derivation. The derivation is computable from `work_submission_success` (`min(timestamp) per distinct_id`), so no new event is strictly required, but a `first_work_submitted` event would let cohort joins be cheaper.
+- `funnel.first-work-from-invite`: depends on the same invitation events plus a stable `first_work` derivation. The derivation is computable from `work_submission_success` and `work_submission_offline` (`min(timestamp) per distinct_id`), so no new event is strictly required, but a `first_work_submitted` event would let cohort joins be cheaper.
 
 Do not write a question for these until the underlying events ship. **Consuming** (running the HogQL of) a `blocked` question from a routine is a `routine-self-audit` violation; **documenting** a question's blocked/deprecated status in routine prose (as `growth-pulse` now does for `actions.template-creation-rate`) is expected and not a violation.
 

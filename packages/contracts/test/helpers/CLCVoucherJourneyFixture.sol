@@ -823,27 +823,44 @@ abstract contract CLCVoucherJourneyFixture is CLCPurchaseFixture {
         string memory base = string.concat(field, ".linkReferences");
         string[] memory sources = IJourneyJsonVm(address(vm)).parseJsonKeys(artifact, base);
         for (uint256 i; i < sources.length; ++i) {
-            string memory sourcePath = string.concat(base, '["', sources[i], '"]');
-            string[] memory names = IJourneyJsonVm(address(vm)).parseJsonKeys(artifact, sourcePath);
-            for (uint256 j; j < names.length; ++j) {
-                bytes32 identity = keccak256(abi.encode(vm.activeFork(), sources[i], names[j]));
-                address libraryAddress = journeyLibraries[identity];
-                if (libraryAddress == address(0)) {
-                    libraryAddress = _productionDeploy(sources[i], names[j], "");
-                    journeyLibraries[identity] = libraryAddress;
-                }
-                bytes memory addressText = bytes(vm.toString(libraryAddress));
-                ArtifactRange[] memory ranges =
-                    abi.decode(vm.parseJson(artifact, string.concat(sourcePath, '["', names[j], '"]')), (ArtifactRange[]));
-                for (uint256 k; k < ranges.length; ++k) {
-                    assertEq(ranges[k].length, 20);
-                    for (uint256 n; n < 40; ++n) {
-                        encoded[2 + ranges[k].start * 2 + n] = addressText[2 + n];
-                    }
-                }
-            }
+            _linkSource(encoded, artifact, string.concat(base, '["', sources[i], '"]'), sources[i]);
         }
         return vm.parseBytes(string(encoded));
+    }
+
+    function _linkSource(
+        bytes memory encoded,
+        string memory artifact,
+        string memory sourcePath,
+        string memory source
+    )
+        private
+    {
+        string[] memory names = IJourneyJsonVm(address(vm)).parseJsonKeys(artifact, sourcePath);
+        for (uint256 j; j < names.length; ++j) {
+            address libraryAddress = _journeyLibrary(source, names[j]);
+            ArtifactRange[] memory ranges =
+                abi.decode(vm.parseJson(artifact, string.concat(sourcePath, '["', names[j], '"]')), (ArtifactRange[]));
+            _writeLibraryAddress(encoded, ranges, bytes(vm.toString(libraryAddress)));
+        }
+    }
+
+    function _journeyLibrary(string memory source, string memory name) private returns (address libraryAddress) {
+        bytes32 identity = keccak256(abi.encode(vm.activeFork(), source, name));
+        libraryAddress = journeyLibraries[identity];
+        if (libraryAddress == address(0)) {
+            libraryAddress = _productionDeploy(source, name, "");
+            journeyLibraries[identity] = libraryAddress;
+        }
+    }
+
+    function _writeLibraryAddress(bytes memory encoded, ArtifactRange[] memory ranges, bytes memory addressText) private {
+        for (uint256 k; k < ranges.length; ++k) {
+            assertEq(ranges[k].length, 20);
+            for (uint256 n; n < 40; ++n) {
+                encoded[2 + ranges[k].start * 2 + n] = addressText[2 + n];
+            }
+        }
     }
 
     function _journeyBasename(string memory source) private pure returns (string memory) {

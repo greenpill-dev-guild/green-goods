@@ -6,7 +6,6 @@ import { isZeroAddress } from "../../utils/blockchain/address";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { scheduleTask, yieldToMain } from "../../utils/scheduler";
 import { getStorageQuota } from "../../utils/storage/quota";
-import { addBreadcrumb } from "../app/error-tracking";
 import { logger } from "../app/logger";
 import { SW_MESSAGE } from "../app/service-worker-protocol";
 import { COMMITMENT_JOB_KINDS } from "../commitment-pooling/jobs";
@@ -33,6 +32,8 @@ import {
   trackJobPermanentlyFailed,
   trackJobProcessed,
   trackJobProcessingError,
+  trackJobSkipped,
+  trackJobStarted,
   trackPrivateQueueEvent,
   trackStorageWarning,
 } from "./job-analytics";
@@ -131,9 +132,8 @@ export function createDefaultJobQueueDependencies(): JobQueueDependencies {
       jobProcessingError: trackJobProcessingError,
       storageWarning: trackStorageWarning,
       privateEvent: trackPrivateQueueEvent,
-      processingStarted(kind, attempt) {
-        addBreadcrumb("job_processing_started", { job_kind: kind, attempt });
-      },
+      processingStarted: trackJobStarted,
+      jobSkipped: trackJobSkipped,
     },
     quota: { get: getStorageQuota },
     scheduler: {
