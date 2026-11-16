@@ -95,6 +95,7 @@ vi.mock("../../../modules/app/logger", () => ({
 
 vi.mock("../../../config/query-keys/work", () => ({
   worksKeys: {
+    visibility: (chainId: number) => ["works", "visibility", chainId],
     online: (gardenId: string, chainId: number) => ["works", "online", gardenId, chainId],
     window: (gardenId: string, chainId: number) => ["works", "window", gardenId, chainId],
     offline: (gardenId: string, chainId?: number, account?: string) => [
@@ -177,6 +178,8 @@ describe("hooks/work/useWorks", () => {
     expect(mockGetWorkListPage).toHaveBeenCalledWith(TEST_GARDEN, {
       chainId: TEST_CHAIN_ID,
       take: 51,
+      excludedWorkUIDs: [],
+      excludedApprovalUIDs: [],
     });
   });
 
@@ -280,6 +283,8 @@ describe("hooks/work/useWorks", () => {
     expect(mockGetWorkListPage).toHaveBeenLastCalledWith(TEST_GARDEN, {
       chainId: TEST_CHAIN_ID,
       take: 101,
+      excludedWorkUIDs: [],
+      excludedApprovalUIDs: [],
     });
     // A page short of the window means the garden has nothing older left.
     expect(result.current.hasOlderWork).toBe(false);
@@ -308,6 +313,8 @@ describe("hooks/work/useWorks", () => {
     expect(mockGetWorkListPage).toHaveBeenCalledWith(TEST_GARDEN, {
       chainId: TEST_CHAIN_ID,
       take: 51,
+      excludedWorkUIDs: [],
+      excludedApprovalUIDs: [],
     });
   });
 
@@ -343,6 +350,8 @@ describe("hooks/work/useWorks", () => {
       expect(mockGetWorkListPage).toHaveBeenLastCalledWith(TEST_GARDEN, {
         chainId: TEST_CHAIN_ID,
         take: 101,
+        excludedWorkUIDs: [],
+        excludedApprovalUIDs: [],
       })
     );
     expect(result.current.first.works).toHaveLength(70);
