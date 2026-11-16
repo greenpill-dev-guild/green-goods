@@ -2,16 +2,8 @@ import { type BrowserContext, type Page } from "@playwright/test";
 import { WORK_UPLOAD_POLICY_VERSION } from "../../packages/shared/src/modules/work/upload-policy";
 import { type MockClientBackendOptions, mockClientBackend } from "./mock-backend";
 
-// ============================================================================
-// TYPES
-// ============================================================================
-
 /** `operator` is the steward role's former name; DevAuthProvider still resolves it. */
 export type AdminMockRole = "deployer" | "steward" | "operator" | "user" | "disconnected";
-
-// ============================================================================
-// CONSTANTS
-// ============================================================================
 
 // In CI, Vite skips mkcert and runs on HTTP instead of HTTPS
 const isCI = process.env.CI === "true";
@@ -68,10 +60,6 @@ export async function seedAcceptedUploadTerms(
   await context.setStorageState({ cookies: [], origins: [origin] });
 }
 
-// ============================================================================
-// CLIENT AUTH HELPERS
-// ============================================================================
-
 /**
  * Client CI mock-auth and legacy wallet-storage helpers.
  * Qualified passkey specs own their virtual authenticators.
@@ -103,7 +91,7 @@ export class ClientTestHelper {
                   "mock",
                   {
                     accounts: [address],
-                    chainId: 11155111, // Sepolia
+                    chainId: 11155111,
                   },
                 ],
               ],
@@ -193,9 +181,7 @@ export async function setupAuthenticatedClient(
   return Object.assign(helper, { backend: scenario });
 }
 
-// ============================================================================
 // ADMIN AUTH HELPERS (Dev mockAuth)
-// ============================================================================
 
 /**
  * Helper for admin app testing with deterministic dev auth.

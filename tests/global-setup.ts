@@ -81,7 +81,7 @@ async function globalSetup() {
   process.env.TEST_INDEXER_URL = "http://localhost:3006/v1/graphql";
   process.env.TEST_CLIENT_URL = `${protocol}://localhost:3001`;
   process.env.TEST_ADMIN_URL = `${protocol}://localhost:3002`;
-  process.env.TEST_CHAIN_ID = "11155111"; // Sepolia
+  process.env.TEST_CHAIN_ID = "11155111";
 
   // Enable service worker only for PWA tests
   if (process.env.ENABLE_PWA_E2E === "true") {
@@ -95,7 +95,6 @@ async function globalSetup() {
     return;
   }
 
-  // Run health checks
   const browser = await chromium.launch({
     channel: process.env.PLAYWRIGHT_QUALIFIED === "true" ? "chromium" : undefined,
   });
