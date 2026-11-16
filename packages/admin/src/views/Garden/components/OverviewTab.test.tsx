@@ -187,7 +187,7 @@ describe("OverviewTab", () => {
       title: `Work ${index}`,
       description: "Submitted work",
       statusLabel: "Pending",
-      href: `/hub/work/event-${index}`,
+      href: `/review/work/event-${index}`,
       timestamp: 1_790_000_000_000 - index * DAY_MS,
     }));
     const { container } = renderOverview({ activity, mode: "activity" });
@@ -204,6 +204,6 @@ describe("OverviewTab", () => {
       screen.queryByRole("button", { name: pt["app.common.showMore"] })
     ).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /Work 22/ }));
-    expect(screen.getByLabelText("Route")).toHaveTextContent("/hub/work/event-22");
+    expect(screen.getByLabelText("Route")).toHaveTextContent("/review/work/event-22");
   });
 });

@@ -24,7 +24,7 @@ export function PoolCycleDialogs({
   pool: PoolConsoleController;
   /** The pool whose cycle this is, named first in both dialogs. */
   target: PoolWriteTarget;
-  tone: "garden" | "hub" | "community";
+  tone: "garden" | "review" | "community";
   cycleDialog: CycleDialog;
   setCycleDialog: Dispatch<SetStateAction<CycleDialog>>;
 }) {
@@ -43,11 +43,11 @@ export function PoolCycleDialogs({
         title={
           campaign
             ? formatMessage({
-                id: "cockpit.garden.pool.endCycle.campaignTitle",
+                id: "hub.garden.pool.endCycle.campaignTitle",
                 defaultMessage: "End This Campaign",
               })
             : formatMessage({
-                id: "cockpit.garden.pool.endCycle.seasonTitle",
+                id: "hub.garden.pool.endCycle.seasonTitle",
                 defaultMessage: "End This Season",
               })
         }
@@ -55,12 +55,12 @@ export function PoolCycleDialogs({
         description={
           campaign
             ? formatMessage({
-                id: "cockpit.garden.pool.endCycle.campaignDescription",
+                id: "hub.garden.pool.endCycle.campaignDescription",
                 defaultMessage:
                   "Nobody can make or take up promises in this campaign any more. Its record is reconciled and ready for an impact certificate.",
               })
             : formatMessage({
-                id: "cockpit.garden.pool.endCycle.seasonDescription",
+                id: "hub.garden.pool.endCycle.seasonDescription",
                 defaultMessage:
                   "Nobody can make or take up promises in this season any more. Its record is reconciled and ready for an impact certificate, and a new season can start.",
               })
@@ -68,16 +68,16 @@ export function PoolCycleDialogs({
         confirmLabel={
           campaign
             ? formatMessage({
-                id: "cockpit.garden.pool.endCycle.campaignConfirm",
+                id: "hub.garden.pool.endCycle.campaignConfirm",
                 defaultMessage: "End Campaign",
               })
             : formatMessage({
-                id: "cockpit.garden.pool.endCycle.seasonConfirm",
+                id: "hub.garden.pool.endCycle.seasonConfirm",
                 defaultMessage: "End Season",
               })
         }
         cancelLabel={formatMessage({
-          id: "cockpit.garden.pool.endCycle.keep",
+          id: "hub.garden.pool.endCycle.keep",
           defaultMessage: "Keep Running",
         })}
         isLoading={pool.isActing}
@@ -97,11 +97,11 @@ export function PoolCycleDialogs({
         title={
           campaign
             ? formatMessage({
-                id: "cockpit.garden.pool.archiveCycle.campaignTitle",
+                id: "hub.garden.pool.archiveCycle.campaignTitle",
                 defaultMessage: "Archive This Campaign",
               })
             : formatMessage({
-                id: "cockpit.garden.pool.archiveCycle.seasonTitle",
+                id: "hub.garden.pool.archiveCycle.seasonTitle",
                 defaultMessage: "Archive This Season",
               })
         }
@@ -109,12 +109,12 @@ export function PoolCycleDialogs({
         description={
           campaign
             ? formatMessage({
-                id: "cockpit.garden.pool.archiveCycle.campaignDescription",
+                id: "hub.garden.pool.archiveCycle.campaignDescription",
                 defaultMessage:
                   "Archiving is final. After it, no impact certificate can be made for this campaign, so make one first if the garden wants it. The campaign stays readable in the pool’s history.",
               })
             : formatMessage({
-                id: "cockpit.garden.pool.archiveCycle.seasonDescription",
+                id: "hub.garden.pool.archiveCycle.seasonDescription",
                 defaultMessage:
                   "Archiving is final. After it, no impact certificate can be made for this season, so make one first if the garden wants it. The season stays readable in the pool’s history.",
               })
@@ -122,16 +122,16 @@ export function PoolCycleDialogs({
         confirmLabel={
           campaign
             ? formatMessage({
-                id: "cockpit.garden.pool.archiveCycle.campaignConfirm",
+                id: "hub.garden.pool.archiveCycle.campaignConfirm",
                 defaultMessage: "Archive Campaign",
               })
             : formatMessage({
-                id: "cockpit.garden.pool.archiveCycle.seasonConfirm",
+                id: "hub.garden.pool.archiveCycle.seasonConfirm",
                 defaultMessage: "Archive Season",
               })
         }
         cancelLabel={formatMessage({
-          id: "cockpit.garden.pool.archiveCycle.keep",
+          id: "hub.garden.pool.archiveCycle.keep",
           defaultMessage: "Not Now",
         })}
         isLoading={pool.isActing}

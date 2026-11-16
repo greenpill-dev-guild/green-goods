@@ -16,7 +16,7 @@ const meta = {
       },
     },
   },
-  decorators: [withCanvasFrame({ heightClassName: "min-h-[320px]", workspace: "hub" })],
+  decorators: [withCanvasFrame({ heightClassName: "min-h-[320px]", workspace: "review" })],
   args: {
     children: (
       <div className="p-6 type-body text-text-sub">

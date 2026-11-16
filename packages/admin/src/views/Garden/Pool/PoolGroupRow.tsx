@@ -48,7 +48,7 @@ export function PoolGroupRow({
     counts.inProgress > 0
       ? formatMessage(
           {
-            id: "cockpit.garden.pool.group.inProgress",
+            id: "hub.garden.pool.group.inProgress",
             defaultMessage: "<b>{count}</b> in progress",
           },
           { count: counts.inProgress, b: plain }
@@ -56,19 +56,19 @@ export function PoolGroupRow({
       : null,
     counts.kept > 0
       ? formatMessage(
-          { id: "cockpit.garden.pool.group.kept", defaultMessage: "<b>{count}</b> kept" },
+          { id: "hub.garden.pool.group.kept", defaultMessage: "<b>{count}</b> kept" },
           { count: counts.kept, b: plain }
         )
       : null,
     counts.ended > 0
       ? formatMessage(
-          { id: "cockpit.garden.pool.group.ended", defaultMessage: "<b>{count}</b> ended" },
+          { id: "hub.garden.pool.group.ended", defaultMessage: "<b>{count}</b> ended" },
           { count: counts.ended, b: plain }
         )
       : null,
   ].filter((part): part is string => Boolean(part));
   const finishLabel = formatMessage(
-    { id: "cockpit.garden.pool.group.finish", defaultMessage: "Finish Creating ({count})" },
+    { id: "hub.garden.pool.group.finish", defaultMessage: "Finish Creating ({count})" },
     { count: unsent }
   );
 
@@ -82,7 +82,7 @@ export function PoolGroupRow({
           ? {
               label: formatMessage(
                 {
-                  id: "cockpit.garden.pool.group.didntSend",
+                  id: "hub.garden.pool.group.didntSend",
                   defaultMessage: "<b>{count}</b> didn’t send",
                 },
                 { count: unsent, b: plain }
@@ -92,7 +92,7 @@ export function PoolGroupRow({
           : {
               label: formatMessage(
                 {
-                  id: "cockpit.garden.pool.group.available",
+                  id: "hub.garden.pool.group.available",
                   defaultMessage: "<b>{count}</b> available",
                 },
                 { count: counts.available, b: plain }
@@ -107,7 +107,7 @@ export function PoolGroupRow({
           unsent > 0
             ? formatMessage(
                 {
-                  id: "cockpit.garden.pool.group.created",
+                  id: "hub.garden.pool.group.created",
                   defaultMessage: "<b>{count}</b> created",
                 },
                 { count: counts.published, b: plain }

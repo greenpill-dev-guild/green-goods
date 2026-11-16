@@ -43,7 +43,7 @@ export function CommunityEndowmentTab({
           <div className="garden-tab-rail-sticky">
             <AdminCard variant="elevated" className="space-y-3">
               <AdminCardTitle>
-                {formatMessage({ id: "cockpit.community.endowment.status" })}
+                {formatMessage({ id: "hub.community.endowment.status" })}
               </AdminCardTitle>
               <StatTile
                 label={formatMessage({ id: "app.treasury.totalValueLocked" })}

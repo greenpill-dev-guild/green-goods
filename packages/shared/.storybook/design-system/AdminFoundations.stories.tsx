@@ -25,7 +25,7 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <div className="admin-m3" data-tone="hub" data-workspace="hub">
+      <div className="admin-m3" data-tone="review" data-workspace="review">
         <Story />
       </div>
     ),
@@ -35,7 +35,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-const TONES = ["hub", "garden", "community", "actions", "home"] as const;
+const TONES = ["review", "garden", "community", "actions", "home"] as const;
 
 function CornerSwatch({ radiusVar, label }: { radiusVar: string; label: string }) {
   return (

@@ -43,7 +43,7 @@ export function GardenCreatorsCard({ creators }: { creators: GardenCreators }) {
       onClick={() => setAddOpen(true)}
       disabled={creators.isWriting}
     >
-      {formatMessage({ id: "cockpit.community.gardenCreators.add" })}
+      {formatMessage({ id: "hub.community.gardenCreators.add" })}
     </Button>
   );
 
@@ -56,10 +56,10 @@ export function GardenCreatorsCard({ creators }: { creators: GardenCreators }) {
       <div className="flex flex-col items-start gap-3 @[560px]:flex-row @[560px]:justify-between">
         <div className="min-w-0">
           <AdminCardTitle>
-            {formatMessage({ id: "cockpit.community.gardenCreators.title" })}
+            {formatMessage({ id: "hub.community.gardenCreators.title" })}
           </AdminCardTitle>
           <p className="mt-1 type-body text-text-soft">
-            {formatMessage({ id: "cockpit.community.gardenCreators.description" })}
+            {formatMessage({ id: "hub.community.gardenCreators.description" })}
           </p>
         </div>
         {creators.creators.length > 0 ? addButton : null}
@@ -67,22 +67,22 @@ export function GardenCreatorsCard({ creators }: { creators: GardenCreators }) {
 
       {creators.error ? (
         <Alert variant="error">
-          {formatMessage({ id: "cockpit.community.gardenCreators.readError" })}
+          {formatMessage({ id: "hub.community.gardenCreators.readError" })}
         </Alert>
       ) : creators.loading ? (
         <div className="h-16 rounded-[var(--m3-shape-md)] skeleton-shimmer" aria-hidden />
       ) : creators.creators.length === 0 ? (
         <EmptyState
           icon={<RiSeedlingLine />}
-          title={formatMessage({ id: "cockpit.community.gardenCreators.emptyTitle" })}
-          description={formatMessage({ id: "cockpit.community.gardenCreators.emptyDescription" })}
+          title={formatMessage({ id: "hub.community.gardenCreators.emptyTitle" })}
+          description={formatMessage({ id: "hub.community.gardenCreators.emptyDescription" })}
           action={addButton}
         />
       ) : (
         <ul className="grid grid-cols-1 gap-2 @[560px]:grid-cols-2">
           {creators.creators.map((creator) => {
             const removeLabel = formatMessage(
-              { id: "cockpit.community.gardenCreators.removeLabel" },
+              { id: "hub.community.gardenCreators.removeLabel" },
               { name: formatAddress(creator) }
             );
             return (
@@ -119,13 +119,13 @@ export function GardenCreatorsCard({ creators }: { creators: GardenCreators }) {
         onClose={() => setRemoving(null)}
         tone="community"
         variant="danger"
-        title={formatMessage({ id: "cockpit.community.gardenCreators.removeDialog.title" })}
+        title={formatMessage({ id: "hub.community.gardenCreators.removeDialog.title" })}
         description={formatMessage({
-          id: "cockpit.community.gardenCreators.removeDialog.description",
+          id: "hub.community.gardenCreators.removeDialog.description",
         })}
         target={removing ? <EnsAddressText address={removing} /> : undefined}
         confirmLabel={formatMessage({
-          id: "cockpit.community.gardenCreators.removeDialog.confirm",
+          id: "hub.community.gardenCreators.removeDialog.confirm",
         })}
         cancelLabel={formatMessage({ id: "app.common.cancel" })}
         isLoading={creators.isWriting}
@@ -153,7 +153,7 @@ function AddGardenCreatorDialog({
     if (creators.creators.some((creator) => compareAddresses(creator, resolved))) {
       return {
         success: false,
-        error: formatMessage({ id: "cockpit.community.gardenCreators.alreadyCreator" }),
+        error: formatMessage({ id: "hub.community.gardenCreators.alreadyCreator" }),
       };
     }
     void creators.addCreator(resolved as Address).then((sent) => {
@@ -175,8 +175,8 @@ function AddGardenCreatorDialog({
       size="sm"
       tone="community"
       preventClose={creators.isWriting}
-      title={formatMessage({ id: "cockpit.community.gardenCreators.addDialog.title" })}
-      description={formatMessage({ id: "cockpit.community.gardenCreators.addDialog.description" })}
+      title={formatMessage({ id: "hub.community.gardenCreators.addDialog.title" })}
+      description={formatMessage({ id: "hub.community.gardenCreators.addDialog.description" })}
       actions={
         <>
           <Button
@@ -195,7 +195,7 @@ function AddGardenCreatorDialog({
             loading={creators.isWriting}
             disabled={busy || !address.trimmedInput}
           >
-            {formatMessage({ id: "cockpit.community.gardenCreators.add" })}
+            {formatMessage({ id: "hub.community.gardenCreators.add" })}
           </Button>
         </>
       }

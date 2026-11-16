@@ -45,7 +45,7 @@ export interface CommitmentDialogPanelProps {
   /** The pool's garden: the authority a garden fallback uses. */
   garden: Address;
   commitmentId: string;
-  tone: "garden" | "hub" | "community";
+  tone: "garden" | "review" | "community";
   /**
    * Open the seeding wizard on this commitment's answers. Only a surface that
    * has a seeding wizard passes it, and only the pool's stewards are offered it.
@@ -58,7 +58,7 @@ export interface CommitmentDialogPanelProps {
 /**
  * W10, one commitment in the steward's dialect (uiux-spec §6.7, follow-up
  * item 2: sectioned anatomy). Rendered inside the Garden workspace's left
- * inspector or the Hub's Confirm stage; every act goes through the shared
+ * inspector or Review's Confirm stage; every act goes through the shared
  * controller, every reasoned act through AdminReasonDialog, and a fallback
  * confirmation appears only when the ordinary path is unreachable, naming
  * the garden whose authority it uses.
@@ -104,7 +104,7 @@ function CommitmentRecord({
     }
   }, [focus, loaded, asksShown]);
   const offlineNote = formatMessage({
-    id: "cockpit.garden.pool.offline",
+    id: "hub.garden.pool.offline",
     defaultMessage: "Needs a connection. Pool changes are sent right away, not queued.",
   });
 
@@ -124,12 +124,12 @@ function CommitmentRecord({
   const title =
     dialog.title ??
     formatMessage(
-      { id: "cockpit.garden.pool.row.untitled", defaultMessage: "Promise {id}" },
+      { id: "hub.garden.pool.row.untitled", defaultMessage: "Promise {id}" },
       { id: commitment.commitmentId.toString() }
     );
   const actDisabled = !dialog.isOnline || dialog.isActing;
   // Every dialog below names the commitment and its garden's pool first: the
-  // inspector also opens from the Hub and the protocol list, where the header
+  // inspector also opens from Review and the protocol list, where the header
   // cannot say which garden a write lands in.
   const target = <GardenPoolTarget chainId={chainId} garden={garden} record={title} />;
   const stage = stageIndex(commitment.onchainState, commitment.evidenceCount);
@@ -340,23 +340,23 @@ function CommitmentRecord({
         target={target}
         variant="warning"
         title={formatMessage({
-          id: "cockpit.garden.pool.commitment.reconciliation.title",
+          id: "hub.garden.pool.commitment.reconciliation.title",
           defaultMessage: "Count Approved Linked Work",
         })}
         description={`${formatMessage(
           {
-            id: "cockpit.garden.pool.commitment.reconciliation.body",
+            id: "hub.garden.pool.commitment.reconciliation.body",
             defaultMessage:
               "{count, plural, one {# approved link is} other {# approved links are}} waiting to count.",
           },
           { count: dialog.reconciliation.count }
         )} ${formatMessage({
-          id: "cockpit.garden.pool.commitment.reconciliation.warning",
+          id: "hub.garden.pool.commitment.reconciliation.warning",
           defaultMessage:
             "Counting work can make the promise ready for confirmation and freeze its contributor roster.",
         })}`}
         confirmLabel={formatMessage({
-          id: "cockpit.garden.pool.commitment.reconciliation.confirm",
+          id: "hub.garden.pool.commitment.reconciliation.confirm",
           defaultMessage: "Count Linked Work",
         })}
         cancelLabel={formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
@@ -364,7 +364,7 @@ function CommitmentRecord({
         onError={() =>
           toastService.error({
             title: formatMessage({
-              id: "cockpit.garden.pool.commitment.reconciliation.unavailable",
+              id: "hub.garden.pool.commitment.reconciliation.unavailable",
               defaultMessage: "Work decision readback is unavailable.",
             }),
             message: formatMessage({ id: "app.error.garden.tryAgain" }),

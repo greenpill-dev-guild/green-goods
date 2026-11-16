@@ -34,28 +34,28 @@ export function PoolFundingDialogReadinessSections({
       >
         <AdminCardTitle id="funding-route-title">
           {formatMessage({
-            id: "cockpit.garden.pool.funding.dialog.route",
+            id: "hub.garden.pool.funding.dialog.route",
             defaultMessage: "Account and Route Readiness",
           })}
         </AdminCardTitle>
         <FactList frame="inset">
           <FactRow
             label={formatMessage({
-              id: "cockpit.garden.pool.funding.route.account",
+              id: "hub.garden.pool.funding.route.account",
               defaultMessage: "Registered account",
             })}
             value={address(snapshot?.routeAddresses.account ?? null)}
           />
           <FactRow
             label={formatMessage({
-              id: "cockpit.garden.pool.funding.route.indexed",
+              id: "hub.garden.pool.funding.route.indexed",
               defaultMessage: "Indexed Celo route",
             })}
             value={address(snapshot?.routeAddresses.indexed ?? null)}
           />
           <FactRow
             label={formatMessage({
-              id: "cockpit.garden.pool.funding.route.live",
+              id: "hub.garden.pool.funding.route.live",
               defaultMessage: "Live Celo route",
             })}
             value={address(snapshot?.routeAddresses.live ?? null)}
@@ -64,7 +64,7 @@ export function PoolFundingDialogReadinessSections({
         {settlementReady ? (
           <p className="type-body text-text-sub">
             {formatMessage({
-              id: "cockpit.garden.pool.funding.ready",
+              id: "hub.garden.pool.funding.ready",
               defaultMessage: "Account, route, token, fees, and limits are ready.",
             })}
           </p>
@@ -78,7 +78,7 @@ export function PoolFundingDialogReadinessSections({
         ) : (
           <p className="type-body text-text-sub">
             {formatMessage({
-              id: "cockpit.garden.pool.funding.settlementUnavailable",
+              id: "hub.garden.pool.funding.settlementUnavailable",
               defaultMessage: "Settlement unavailable",
             })}
           </p>
@@ -91,14 +91,14 @@ export function PoolFundingDialogReadinessSections({
       >
         <AdminCardTitle id="funding-network-title">
           {formatMessage({
-            id: "cockpit.garden.pool.funding.dialog.networkFees",
+            id: "hub.garden.pool.funding.dialog.networkFees",
             defaultMessage: "Network Fees",
           })}
         </AdminCardTitle>
         <FactList frame="inset">
           <FactRow
             label={formatMessage({
-              id: "cockpit.garden.pool.funding.nativeReserve",
+              id: "hub.garden.pool.funding.nativeReserve",
               defaultMessage: "Celo acknowledgment reserve",
             })}
             value={
@@ -110,7 +110,7 @@ export function PoolFundingDialogReadinessSections({
         </FactList>
         <p className="type-meta text-text-soft">
           {formatMessage({
-            id: "cockpit.garden.pool.funding.nativeReserve.note",
+            id: "hub.garden.pool.funding.nativeReserve.note",
             defaultMessage:
               "This native CELO reserve pays CCIP acknowledgment fees. It is not G$ pool liquidity.",
           })}

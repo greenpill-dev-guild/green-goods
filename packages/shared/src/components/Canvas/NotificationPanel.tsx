@@ -92,7 +92,7 @@ function NotificationRow({ item }: { item: NotificationPanelItem }) {
           className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full ring-2 ring-bg-white-0"
           style={{ background: "rgb(var(--tone-action, var(--green-800)))" }}
           aria-label={formatMessage({
-            id: "cockpit.notifications.unread",
+            id: "hub.notifications.unread",
             defaultMessage: "Unread",
           })}
         />
@@ -245,11 +245,11 @@ export function NotificationPanel({
       <EmptyState
         icon={<RiInboxLine />}
         title={formatMessage({
-          id: "cockpit.notifications.empty.title",
+          id: "hub.notifications.empty.title",
           defaultMessage: "No notifications",
         })}
         description={formatMessage({
-          id: "cockpit.notifications.empty.description",
+          id: "hub.notifications.empty.description",
           defaultMessage: "Work submissions, assessments, and system alerts will appear here.",
         })}
       />

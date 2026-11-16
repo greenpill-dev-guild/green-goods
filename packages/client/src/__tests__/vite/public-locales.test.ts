@@ -97,7 +97,7 @@ describe("public locale payloads", () => {
         "app.button.busy": "Busy",
         "future.shared.label": "Shared label",
         "app.test.only": "Test",
-        "cockpit.private.view": "Private view",
+        "hub.private.view": "Private view",
       })
     );
     const messages = await catalogue(await configure(client), "en");

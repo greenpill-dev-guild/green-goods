@@ -149,7 +149,7 @@ function ClientColumn({ surface }: { surface: "app" | "website" }) {
 function AdminColumn() {
   return (
     <Column surface="admin" title={ADMIN.name} rules={ADMIN.rules}>
-      <div className="admin-m3" data-tone="hub">
+      <div className="admin-m3" data-tone="review">
         <Row>
           <Specimen title="Filled / outlined / text · md" expect={ADMIN.button("md")} wide>
             <Button type="button" size="sm">Create Garden</Button>

@@ -10,17 +10,17 @@ import { NavigationBar } from "./NavigationBar";
 
 const slots: ToolbarSlot[] = [
   {
-    id: "hub",
-    label: "Hub",
-    labelId: "cockpit.nav.hub",
+    id: "review",
+    label: "Review",
+    labelId: "hub.nav.review",
     icon: RiAppsLine,
-    path: "/hub",
+    path: "/review",
     visible: true,
   },
   {
     id: "garden",
     label: "Garden",
-    labelId: "cockpit.nav.garden",
+    labelId: "hub.nav.garden",
     icon: RiSeedlingLine,
     path: "/garden",
     visible: true,
@@ -28,7 +28,7 @@ const slots: ToolbarSlot[] = [
   {
     id: "community",
     label: "Community",
-    labelId: "cockpit.nav.community",
+    labelId: "hub.nav.community",
     icon: RiTeamLine,
     path: "/community",
     visible: true,
@@ -60,12 +60,12 @@ const meta = {
     withCanvasFrame({
       className: "relative",
       heightClassName: "min-h-[420px]",
-      workspace: "hub",
+      workspace: "review",
     }),
   ],
   args: {
     slots,
-    activePath: "/hub",
+    activePath: "/review",
     onNavigate: fn(),
   },
 } satisfies Meta<typeof NavigationBar>;
@@ -76,7 +76,7 @@ type Story = StoryObj<typeof meta>;
 export const ActiveRoute: Story = {
   play: async ({ args, canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByRole("button", { name: /hub/i })).toHaveAttribute(
+    await expect(canvas.getByRole("button", { name: /review/i })).toHaveAttribute(
       "data-state",
       "active"
     );
@@ -106,7 +106,7 @@ const phoneSlots: ToolbarSlot[] = [
   {
     id: "profile",
     label: "Profile",
-    labelId: "cockpit.nav.profile",
+    labelId: "hub.nav.profile",
     icon: RiUserLine,
     path: "/profile",
     visible: true,

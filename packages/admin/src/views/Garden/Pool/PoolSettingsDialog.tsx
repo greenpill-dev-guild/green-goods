@@ -55,7 +55,7 @@ export function PoolSettingsDialog({
   const sequence = useCommitmentPoolSetupSequence({
     chainId: pool.chainId,
     toastContext: formatMessage({
-      id: "cockpit.garden.pool.settings.title",
+      id: "hub.garden.pool.settings.title",
       defaultMessage: "Pool Settings",
     }),
   });
@@ -85,7 +85,7 @@ export function PoolSettingsDialog({
   const capError =
     cap.trim().length > 0 && (capValue === null || capValue === 0n)
       ? formatMessage({
-          id: "cockpit.garden.pool.settings.capError",
+          id: "hub.garden.pool.settings.capError",
           defaultMessage: "A whole number above zero",
         })
       : undefined;
@@ -180,7 +180,7 @@ export function PoolSettingsDialog({
               loading={status === "running"}
             >
               {formatMessage({
-                id: "cockpit.garden.pool.setup.retry",
+                id: "hub.garden.pool.setup.retry",
                 defaultMessage: "Try Again",
               })}
             </Button>
@@ -208,7 +208,7 @@ export function PoolSettingsDialog({
           loading={busy}
         >
           {formatMessage({
-            id: "cockpit.garden.pool.settings.save",
+            id: "hub.garden.pool.settings.save",
             defaultMessage: "Save Settings",
           })}
         </Button>
@@ -225,7 +225,7 @@ export function PoolSettingsDialog({
         tone="garden"
         preventClose={busy}
         title={formatMessage({
-          id: "cockpit.garden.pool.settings.title",
+          id: "hub.garden.pool.settings.title",
           defaultMessage: "Pool Settings",
         })}
         target={<PoolTarget target={target} />}
@@ -237,7 +237,7 @@ export function PoolSettingsDialog({
             <AdminTextArea
               id={purposeId}
               label={formatMessage({
-                id: "cockpit.garden.pool.settings.purpose",
+                id: "hub.garden.pool.settings.purpose",
                 defaultMessage: "What this pool is for",
               })}
               value={purpose}
@@ -250,14 +250,14 @@ export function PoolSettingsDialog({
             />
             <AdminTextField
               label={formatMessage({
-                id: "cockpit.garden.pool.settings.cap",
+                id: "hub.garden.pool.settings.cap",
                 defaultMessage: "How many promises one person can hold at once",
               })}
               value={cap}
               onChange={(event) => setCap(event.target.value)}
               error={capError}
               helperText={formatMessage({
-                id: "cockpit.garden.pool.settings.capHelp",
+                id: "hub.garden.pool.settings.capHelp",
                 defaultMessage: "A safety limit so nobody over-commits. 24 suits most gardens.",
               })}
               inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}
@@ -266,7 +266,7 @@ export function PoolSettingsDialog({
             />
             <p className="type-meta text-text-soft">
               {formatMessage({
-                id: "cockpit.garden.pool.settings.note",
+                id: "hub.garden.pool.settings.note",
                 defaultMessage:
                   "Both stay editable for the pool's whole life. Changing the limit never affects promises already made.",
               })}
@@ -290,7 +290,7 @@ export function PoolSettingsDialog({
         {!pool.isOnline && status !== "complete" ? (
           <Alert variant="warning">
             {formatMessage({
-              id: "cockpit.garden.pool.offline",
+              id: "hub.garden.pool.offline",
               defaultMessage: "Needs a connection. Pool changes are sent right away, not queued.",
             })}
           </Alert>
@@ -298,7 +298,7 @@ export function PoolSettingsDialog({
         {pinFailed ? (
           <Alert variant="error">
             {formatMessage({
-              id: "cockpit.garden.pool.settings.pinFailed",
+              id: "hub.garden.pool.settings.pinFailed",
               defaultMessage:
                 "The agreement could not be stored, so nothing was sent. Your words are still here; try saving again.",
             })}

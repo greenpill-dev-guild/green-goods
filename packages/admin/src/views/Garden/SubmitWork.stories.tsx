@@ -187,7 +187,7 @@ const DETAILS_ACTION: Action = {
 // first eligible garden by name, which is not the seeded one. So every story's
 // route names the garden the story is about.
 function submitWorkPath(garden: SharedGarden = STORYBOOK_PRIMARY_ADMIN_GARDEN) {
-  return `/hub/work/submit?gardenId=${garden.id}`;
+  return `/review/work/submit?gardenId=${garden.id}`;
 }
 
 const STORYBOOK_EMPTY_DOMAIN_GARDEN = {
@@ -282,7 +282,7 @@ function submitWorkDecorators({
     withCanvasFrame({
       className: "p-0",
       heightClassName: "h-[760px]",
-      workspace: "hub",
+      workspace: "review",
     }),
   ];
 }
@@ -352,8 +352,8 @@ function SubmitWorkDataRoute({ children }: { children: ReactNode }) {
   const [router] = useState(() =>
     createMemoryRouter(
       [
-        { path: "/hub/work/submit", element: children },
-        { path: "*", element: <div className="p-6">Hub route</div> },
+        { path: "/review/work/submit", element: children },
+        { path: "*", element: <div className="p-6">Review route</div> },
       ],
       { initialEntries: [submitWorkPath()] }
     )
@@ -361,7 +361,7 @@ function SubmitWorkDataRoute({ children }: { children: ReactNode }) {
   return <RouterProvider router={router} />;
 }
 
-// The route host in its dialog, as the Hub opens it, with the given actions seeded.
+// The route host in its dialog, as Review opens it, with the given actions seeded.
 function submitWorkRouteDecorators(actions: Action[]) {
   return [
     withAdminIdentity,
@@ -374,7 +374,7 @@ function submitWorkRouteDecorators(actions: Action[]) {
     withCanvasFrame({
       className: "p-0",
       heightClassName: "h-[760px]",
-      workspace: "hub",
+      workspace: "review",
     }),
   ];
 }

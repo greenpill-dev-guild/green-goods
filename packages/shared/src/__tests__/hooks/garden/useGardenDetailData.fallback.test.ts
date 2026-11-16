@@ -234,7 +234,7 @@ describe("useGardenDetailData eligible garden fallback", () => {
     expect(result.current.worksError).toBe(worksError);
   });
 
-  // PRD-1087: the Hub's refresh rereads the open tab's list, so each record
+  // PRD-1087: Review's refresh rereads the open tab's list, so each record
   // list's reread and busy state must reach it.
   it("hands on what a refresh of each record list rereads", () => {
     const refetchHypercerts = vi.fn(async () => []);
@@ -255,7 +255,7 @@ describe("useGardenDetailData eligible garden fallback", () => {
     expect(result.current.hypercertsFetching).toBe(true);
   });
 
-  // The Hub reads only what this hook hands it: a list whose next page stops
+  // Review reads only what this hook hands it: a list whose next page stops
   // here can never reach older records (PRD-1086).
   it("hands on each list's next page", () => {
     const loadOlderWork = vi.fn();

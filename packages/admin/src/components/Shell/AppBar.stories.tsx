@@ -38,7 +38,7 @@ const meta = {
       },
     },
   },
-  decorators: [withCanvasFrame({ heightClassName: "min-h-[240px]", workspace: "hub" })],
+  decorators: [withCanvasFrame({ heightClassName: "min-h-[240px]", workspace: "review" })],
   args: {
     gardenChip: gardenChipElement,
     onOpenSearch: fn(),

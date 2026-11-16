@@ -203,19 +203,19 @@ export interface ConfirmQueueRow {
   groupSize: number | null;
 }
 
-export interface HubConfirmQueueActs {
+export interface ReviewConfirmQueueActs {
   confirm: (row: ConfirmQueueRow) => Promise<string>;
   notYet: (row: ConfirmQueueRow, reason: string) => Promise<HexString>;
 }
 
-export interface HubConfirmQueueController {
+export interface ReviewConfirmQueueController {
   rows: ConfirmQueueRow[];
   isOnline: boolean;
   isLoading: boolean;
   isError: boolean;
   isConfirming: boolean;
   isDisputing: boolean;
-  acts: HubConfirmQueueActs;
+  acts: ReviewConfirmQueueActs;
 }
 
 export type DisputeResolutionKey = "RESTORE_PREVIOUS" | "FULFILLED" | "CANCELLED" | "EXPIRED";

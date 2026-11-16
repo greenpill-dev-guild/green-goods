@@ -20,12 +20,12 @@ export function overLimitMessage(
 ): string {
   return bytes
     ? formatMessage({
-        id: "cockpit.textField.overByteLimit",
+        id: "hub.textField.overByteLimit",
         defaultMessage: "Shorten this: accented letters count as two, and some symbols as more",
       })
     : formatMessage(
         {
-          id: "cockpit.textField.overLimit",
+          id: "hub.textField.overLimit",
           defaultMessage: "Shorten this to {max, number} characters or fewer",
         },
         { max }
@@ -89,14 +89,14 @@ export function CharacterCounter({
         {bytes
           ? formatMessage(
               {
-                id: "cockpit.textField.byteCount",
+                id: "hub.textField.byteCount",
                 defaultMessage: "{count, number} of {max, number} bytes used",
               },
               { count, max }
             )
           : formatMessage(
               {
-                id: "cockpit.textField.characterCount",
+                id: "hub.textField.characterCount",
                 defaultMessage: "{count, number} of {max, number} characters used",
               },
               { count, max }
@@ -106,11 +106,11 @@ export function CharacterCounter({
         {edited && count === max
           ? bytes
             ? formatMessage({
-                id: "cockpit.textField.byteLimitReached",
+                id: "hub.textField.byteLimitReached",
                 defaultMessage: "Byte limit reached",
               })
             : formatMessage({
-                id: "cockpit.textField.characterLimitReached",
+                id: "hub.textField.characterLimitReached",
                 defaultMessage: "Character limit reached",
               })
           : null}

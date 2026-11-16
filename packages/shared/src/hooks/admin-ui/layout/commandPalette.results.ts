@@ -109,7 +109,7 @@ export function buildCommandPaletteResults({
         id: "app.admin.nav.quickAction.pendingReviews",
         defaultMessage: "Go to Pending Reviews",
       }),
-      href: adminRoutes.hubWork(),
+      href: adminRoutes.reviewWork(),
       roles: ["deployer", "steward"],
     },
     {
@@ -124,7 +124,7 @@ export function buildCommandPaletteResults({
     {
       id: "open-profile-sheet",
       label: formatMessage({
-        id: "cockpit.nav.profile",
+        id: "hub.nav.profile",
         defaultMessage: "Profile",
       }),
       actionId: "open-profile-sheet",
@@ -134,7 +134,7 @@ export function buildCommandPaletteResults({
     {
       id: "open-settings-sheet",
       label: formatMessage({
-        id: "cockpit.settings.title",
+        id: "hub.settings.title",
         defaultMessage: "Settings",
       }),
       actionId: "open-settings-sheet",

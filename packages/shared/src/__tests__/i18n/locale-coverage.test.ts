@@ -98,10 +98,10 @@ const allowedIdenticalLocalizedKeys = new Set([
   // Token symbol and network proper name have no words to translate.
   "app.celoWallet.asset",
   "app.community.weightScheme.linear",
-  "cockpit.community.stats.pools",
+  "hub.community.stats.pools",
   // The G$ symbol, alone or beside an amount, has no words to translate.
   "app.commitment.reward.goodDollars",
-  "cockpit.garden.pool.reward.inGoodDollars",
+  "hub.garden.pool.reward.inGoodDollars",
   "app.voucher.rw.gd",
   "app.voucher.rw.sh.gd",
   "public.fund.vaults.vaultCount",
@@ -129,6 +129,8 @@ const allowedIdenticalProductValues = new Set([
   "Feedback",
   "GitHub",
   "Green Goods",
+  // The steward surface's name, kept as a name in every language (PRD-1485).
+  "Green Goods Hub",
   // The product noun the team already uses untranslated in Spanish and
   // Portuguese copy ("las pools", "as pools").
   "Pool",

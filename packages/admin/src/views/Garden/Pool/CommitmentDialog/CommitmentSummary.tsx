@@ -44,13 +44,13 @@ export function CommitmentSummary({
           </StatusBadge>
           {isDue ? (
             <StatusBadge variant="error" size="sm">
-              {formatMessage({ id: "cockpit.garden.pool.row.pastDue", defaultMessage: "Past due" })}
+              {formatMessage({ id: "hub.garden.pool.row.pastDue", defaultMessage: "Past due" })}
             </StatusBadge>
           ) : null}
           {fallbackPath ? (
             <StatusBadge variant="warning" size="sm">
               {formatMessage({
-                id: "cockpit.garden.pool.commitment.fallbackEligible",
+                id: "hub.garden.pool.commitment.fallbackEligible",
                 defaultMessage: "Ordinary confirmation unreachable",
               })}
             </StatusBadge>
@@ -69,7 +69,7 @@ export function CommitmentSummary({
             <span>
               ·{" "}
               {formatMessage(
-                { id: "cockpit.garden.pool.row.due", defaultMessage: "due {date}" },
+                { id: "hub.garden.pool.row.due", defaultMessage: "due {date}" },
                 { date: dueDateText(intl, Number(commitment.dueDate) * 1000, Date.now()) }
               )}
             </span>
@@ -82,7 +82,7 @@ export function CommitmentSummary({
         <ol
           className="flex flex-wrap gap-1 type-meta"
           aria-label={formatMessage({
-            id: "cockpit.garden.pool.commitment.stages",
+            id: "hub.garden.pool.commitment.stages",
             defaultMessage: "Lifecycle",
           })}
         >

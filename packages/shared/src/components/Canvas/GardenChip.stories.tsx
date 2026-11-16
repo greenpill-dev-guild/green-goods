@@ -157,7 +157,7 @@ export const LongName: Story = {
 
 /**
  * Tone matrix — the same chip rendered inside each `[data-tone]` scope so the
- * leaf-icon tinting can be verified at a glance. Hub blue, Garden green,
+ * leaf-icon tinting can be verified at a glance. Review blue, Garden green,
  * Community amber, Actions clay.
  */
 export const ToneMatrix: Story = {
@@ -168,7 +168,7 @@ export const ToneMatrix: Story = {
   },
   render: () => (
     <div className="grid grid-cols-2 gap-4 p-4">
-      {(["hub", "garden", "community", "actions"] as const).map((tone) => (
+      {(["review", "garden", "community", "actions"] as const).map((tone) => (
         <div key={tone} data-tone={tone} className="rounded-2xl bg-bg-white-0 p-4">
           <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-text-soft">
             [data-tone=&quot;{tone}&quot;]

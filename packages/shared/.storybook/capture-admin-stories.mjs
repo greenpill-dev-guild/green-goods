@@ -15,7 +15,7 @@ const outputDir = resolve(repoRoot, "tmp/storybook-design-assets/screenshots");
 // Buckets reflect the historical per-view capture model retained in
 // .plans/archive/admin-claude-design-export/.
 const TITLE_BUCKETS = [
-  { bucket: "hub", pattern: /^Admin\/Workspaces\/Hub$/ },
+  { bucket: "review", pattern: /^Admin\/Workspaces\/Review$/ },
   { bucket: "garden", pattern: /^Admin\/Workspaces\/Garden$/ },
   { bucket: "community", pattern: /^Admin\/Workspaces\/Community$/ },
   { bucket: "actions", pattern: /^Admin\/Workspaces\/Actions$/ },
@@ -23,7 +23,7 @@ const TITLE_BUCKETS = [
   // without their own patterns bucketFor() returns null and every pooling story
   // is silently skipped. Consumed by the Commitment Loop Walk artifact build.
   { bucket: "pooling", pattern: /^Admin\/Pool\// },
-  { bucket: "pooling", pattern: /^Admin\/(Hub\/HubConfirmQueue|Community\/CommunityPools)$/ },
+  { bucket: "pooling", pattern: /^Admin\/(Review\/ReviewConfirmQueue|Community\/CommunityPools)$/ },
   { bucket: "primitives", pattern: /^Admin\/Primitives\// },
   { bucket: "shell", pattern: /^Admin\/Shell\/CanvasLayout$/ },
   {

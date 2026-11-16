@@ -713,8 +713,8 @@ fi
 #     Anchor `{` to end-of-line so the single-line wash assignments
 #     (`[data-tone="X"] { --tone-canvas: … }`) are excluded — only the multi-line
 #     `--tone-*` definition blocks count.
-LIGHT_TONE_BLOCKS="$(grep -cE '^\[data-tone="(hub|garden|community|actions|home)"\] \{ *$' "$ADMIN_TONE_CSS" || true)"
-DARK_TONE_BLOCKS="$(grep -cE '^\[data-theme="dark"\] \[data-tone="(hub|garden|community|actions|home)"\] \{ *$' "$ADMIN_TONE_CSS" || true)"
+LIGHT_TONE_BLOCKS="$(grep -cE '^\[data-tone="(review|garden|community|actions|home)"\] \{ *$' "$ADMIN_TONE_CSS" || true)"
+DARK_TONE_BLOCKS="$(grep -cE '^\[data-theme="dark"\] \[data-tone="(review|garden|community|actions|home)"\] \{ *$' "$ADMIN_TONE_CSS" || true)"
 if [[ "$LIGHT_TONE_BLOCKS" -lt 5 || "$DARK_TONE_BLOCKS" -ne "$LIGHT_TONE_BLOCKS" ]]; then
   echo "❌ Dark tone parity drift in $ADMIN_TONE_CSS: ${LIGHT_TONE_BLOCKS} light [data-tone] blocks vs ${DARK_TONE_BLOCKS} dark blocks (expected 5 each)."
   echo "   Every workspace tone must define a deliberate [data-theme=\"dark\"] [data-tone=\"…\"] block, not inherit the light values."

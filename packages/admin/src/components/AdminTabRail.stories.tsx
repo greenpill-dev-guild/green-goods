@@ -228,7 +228,7 @@ export const NarrowActionsLifecycle: Story = {
 };
 
 /**
- * The Hub's four cells, each with an icon, a label and a count, need more than
+ * Review's four cells, each with an icon, a label and a count, need more than
  * a phone's rail even at 12px, so the row scrolls instead of clipping a label.
  * The clipped edge fades so the rail reads as scrollable, and tabs snap as it
  * scrolls (D18).
@@ -241,7 +241,7 @@ export const OverflowOnAPhone: Story = {
       return (
         <div style={{ width: 283 }}>
           <AdminTabRail
-            ariaLabel="Hub stages"
+            ariaLabel="Review stages"
             activeId={active}
             onChange={setActive}
             tabs={[
@@ -257,7 +257,7 @@ export const OverflowOnAPhone: Story = {
     return <Demo />;
   },
   play: async ({ canvasElement }) => {
-    const rail = await within(canvasElement).findByRole("tablist", { name: "Hub stages" });
+    const rail = await within(canvasElement).findByRole("tablist", { name: "Review stages" });
     const fades = () => {
       const style = getComputedStyle(rail);
       return (style.maskImage || style.getPropertyValue("-webkit-mask-image")) !== "none";
@@ -461,7 +461,7 @@ function ToneFrame({
   tone,
   children,
 }: {
-  tone: "hub" | "garden" | "community" | "actions";
+  tone: "review" | "garden" | "community" | "actions";
   children: React.ReactNode;
 }) {
   return (
@@ -475,14 +475,14 @@ function ToneFrame({
 }
 
 /**
- * Hub tone — `[data-tone="hub"]`, blue accent on the active cell's tint, label
+ * Review tone — `[data-tone="review"]`, blue accent on the active cell's tint, label
  * and underline, and on every count badge. Visual weight stays neutral; tone
  * reads as "context", not "content" per `DESIGN_NOTES § Tone system`.
  */
-export const HubTone: Story = {
+export const ReviewTone: Story = {
   render: () => (
-    <ToneFrame tone="hub">
-      <StagesDemo ariaLabel="Hub stages" />
+    <ToneFrame tone="review">
+      <StagesDemo ariaLabel="Review stages" />
     </ToneFrame>
   ),
 };

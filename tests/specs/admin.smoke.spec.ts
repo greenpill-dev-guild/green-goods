@@ -6,7 +6,7 @@
  * Strategy:
  * - Use the app's dev-only `mockAuth` seam instead of brittle wagmi storage injection
  * - Mock indexer gardens/actions queries so cockpit routes have stable data
- * - Mock EAS GraphQL with empty attestations so `/hub` renders predictable empty/loading states
+ * - Mock EAS GraphQL with empty attestations so `/review` renders predictable empty/loading states
  */
 import { expect, type Page, type Route, test } from "@playwright/test";
 import { mockSepoliaRpc } from "../helpers/mock-backend";
@@ -204,7 +204,7 @@ test.describe("Admin Cockpit", () => {
   test.use({ baseURL: ADMIN_URL });
 
   test("shows the connect shell when unauthenticated", async ({ page }) => {
-    await page.goto("/hub");
+    await page.goto("/review");
     await page.waitForLoadState("domcontentloaded");
 
     await expect(page.getByText("Connect to continue")).toBeVisible({ timeout: 15000 });
@@ -214,7 +214,7 @@ test.describe("Admin Cockpit", () => {
   test("renders the work cockpit for a mocked steward", async ({ page }) => {
     const helper = await setupMockSteward(page);
 
-    await page.goto(helper.buildMockAuthPath("/hub", "steward"));
+    await page.goto(helper.buildMockAuthPath("/review", "steward"));
     await helper.waitForPageLoad();
 
     await expect(page.getByText("Connect to continue")).toHaveCount(0);
@@ -241,7 +241,7 @@ test.describe("Admin Cockpit", () => {
     test.setTimeout(2 * SIGNED_IN_LOAD_MS);
     const helper = await setupMockSteward(page);
 
-    await page.goto(helper.buildMockAuthPath("/hub", "steward"));
+    await page.goto(helper.buildMockAuthPath("/review", "steward"));
     await waitForSignedInBoot(page, helper);
 
     await page.goto("/actions");
@@ -257,17 +257,19 @@ test.describe("Admin Cockpit", () => {
     });
   });
 
-  test("sends someone without Community access to Hub", async ({ page }) => {
+  test("sends someone without Community access to Review", async ({ page }) => {
     // As the page arrives, the garden sync writes the garden into the address while the guard's
-    // redirect is still loading Hub. The redirect has to land anyway, not leave a blank page.
+    // redirect is still loading Review. The redirect has to land anyway, not leave a blank page.
     test.setTimeout(SIGNED_IN_LOAD_MS);
     const helper = await setupMockSteward(page, EVALUATOR_ONLY);
 
     await page.goto(helper.buildMockAuthPath("/community", "steward"));
     await waitForSignedInBoot(page, helper);
 
-    await expect(page).toHaveURL(/\/hub\b/, { timeout: 15000 });
-    await expect(page.getByRole("heading", { name: "Hub" })).toBeVisible({ timeout: 15000 });
+    await expect(page).toHaveURL(/\/review\b/, { timeout: 15000 });
+    await expect(page.getByRole("heading", { name: "Review", exact: true })).toBeVisible({
+      timeout: 15000,
+    });
   });
 
   test("treats mobile profile as a route-backed workspace and keeps settings secondary in-query", async ({
@@ -304,7 +306,7 @@ test.describe("Admin Cockpit", () => {
     await expect.poll(() => new URL(page.url()).searchParams.get("tab")).toBe(null);
   });
 
-  test("redirects desktop profile deep links back to hub while opening the settings sheet", async ({
+  test("redirects desktop profile deep links back to Review while opening the settings sheet", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
@@ -313,10 +315,10 @@ test.describe("Admin Cockpit", () => {
     await page.goto(helper.buildMockAuthPath("/profile?tab=settings"));
     await helper.waitForPageLoad();
 
-    // Hub redirects /hub → /hub/<active-stage>. Default stage is "work".
+    // Review redirects /review → /review/<active-stage>. Default stage is "work".
     await expect
       .poll(() => new URL(page.url()).pathname, { timeout: 15000 })
-      .toMatch(/^\/hub(?:\/[a-z]+)?$/);
+      .toMatch(/^\/review(?:\/[a-z]+)?$/);
     const settingsDialog = page.getByRole("dialog", { name: "Settings" });
     await expect(settingsDialog).toBeVisible({ timeout: 15000 });
     await expect(settingsDialog.getByRole("heading", { name: "Theme" })).toBeVisible();

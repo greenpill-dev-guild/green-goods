@@ -55,7 +55,7 @@ export function SeedFlowNote({
   const note =
     phase === "asking"
       ? formatMessage({
-          id: "cockpit.garden.pool.seed.note.waiting",
+          id: "hub.garden.pool.seed.note.waiting",
           defaultMessage: "The dialog stays open until your wallet answers.",
         })
       : busy
@@ -65,7 +65,7 @@ export function SeedFlowNote({
             ? count <= CREATION_BUNDLE_SIZE
               ? formatMessage(
                   {
-                    id: "cockpit.garden.pool.seed.note.bundle",
+                    id: "hub.garden.pool.seed.note.bundle",
                     defaultMessage:
                       "{count, plural, one {Your wallet will ask you once.} other {Your wallet will ask you once, for all #.}}",
                   },
@@ -73,7 +73,7 @@ export function SeedFlowNote({
                 )
               : formatMessage(
                   {
-                    id: "cockpit.garden.pool.seed.note.bundles",
+                    id: "hub.garden.pool.seed.note.bundles",
                     defaultMessage: "Your wallet will ask you {requests} times, once for every 10.",
                   },
                   { requests: Math.ceil(count / CREATION_BUNDLE_SIZE) }
@@ -81,7 +81,7 @@ export function SeedFlowNote({
             : mode === "one-by-one"
               ? formatMessage(
                   {
-                    id: "cockpit.garden.pool.seed.note.oneByOne",
+                    id: "hub.garden.pool.seed.note.oneByOne",
                     defaultMessage:
                       "{count, plural, one {Your wallet will ask you once.} =2 {Your wallet will ask you twice, one after the other.} other {Your wallet will ask you # times, one after another.}}",
                   },
@@ -89,7 +89,7 @@ export function SeedFlowNote({
                 )
               : mode === "background"
                 ? formatMessage({
-                    id: "cockpit.garden.pool.seed.note.background",
+                    id: "hub.garden.pool.seed.note.background",
                     defaultMessage:
                       "They wait in this device's queue until you send them from the Promises tab.",
                   })
@@ -201,7 +201,7 @@ export function SeedFlowFooter({
             className="w-full sm:w-auto"
           >
             {formatMessage({
-              id: "cockpit.garden.pool.seed.addAnother",
+              id: "hub.garden.pool.seed.addAnother",
               defaultMessage: "Add Another Like This",
             })}
           </Button>
@@ -219,18 +219,18 @@ export function SeedFlowFooter({
             ? status.phase === "partial"
               ? formatMessage(
                   {
-                    id: "cockpit.garden.pool.seed.tryAgainCount",
+                    id: "hub.garden.pool.seed.tryAgainCount",
                     defaultMessage: "Try Again ({count})",
                   },
                   { count: status.retry }
                 )
               : formatMessage({
-                  id: "cockpit.garden.pool.setup.retry",
+                  id: "hub.garden.pool.setup.retry",
                   defaultMessage: "Try Again",
                 })
             : formatMessage(
                 {
-                  id: "cockpit.garden.pool.seed.create",
+                  id: "hub.garden.pool.seed.create",
                   defaultMessage: "{count, plural, one {Create Promise} other {Create # Promises}}",
                 },
                 { count: total }

@@ -240,7 +240,7 @@ export class AdminTestHelper {
     }
   }
 
-  async goToCockpit(path: string = "/hub", role: AdminMockRole = "steward") {
+  async goToCockpit(path: string = "/review", role: AdminMockRole = "steward") {
     await this.page.goto(this.buildMockAuthPath(path, role));
     await this.page.waitForLoadState("domcontentloaded");
   }

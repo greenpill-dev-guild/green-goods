@@ -17,9 +17,9 @@ vi.mock("react-intl", () => ({
   useIntl: () => ({
     formatMessage: ({ id }: { id: string }) => {
       const messages: Record<string, string> = {
-        "cockpit.gardenChip.allGardens": "All Gardens",
-        "cockpit.gardenChip.selectGarden": "Select Garden",
-        "cockpit.gardenChip.createGarden": "Create Garden",
+        "hub.gardenChip.allGardens": "All Gardens",
+        "hub.gardenChip.selectGarden": "Select Garden",
+        "hub.gardenChip.createGarden": "Create Garden",
       };
       return messages[id] ?? id;
     },

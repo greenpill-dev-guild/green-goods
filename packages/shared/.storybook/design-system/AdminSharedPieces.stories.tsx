@@ -38,7 +38,7 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <div className="admin-m3" data-tone="hub" data-workspace="hub">
+      <div className="admin-m3" data-tone="review" data-workspace="review">
         <Story />
       </div>
     ),
@@ -99,7 +99,7 @@ function Pieces() {
               />
             </EmptyStateShell>
           </Specimen>
-          <Specimen title="EmptyState action · Button tertiary compact (HubWorkQueue)" target="button" expect={ADMIN.button("sm")} wide>
+          <Specimen title="EmptyState action · Button tertiary compact (ReviewWorkQueue)" target="button" expect={ADMIN.button("sm")} wide>
             <EmptyStateShell>
               <EmptyState
                 icon={<RiFileListLine className="h-6 w-6" />}

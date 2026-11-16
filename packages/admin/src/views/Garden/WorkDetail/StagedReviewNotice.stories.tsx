@@ -12,7 +12,7 @@ const APPROVAL = {
 };
 
 const meta: Meta<typeof StagedReviewNotice> = {
-  title: "Admin/Workflows/Hub/StagedReviewNotice",
+  title: "Admin/Workflows/Review/StagedReviewNotice",
   component: StagedReviewNotice,
   tags: ["autodocs"],
   parameters: {

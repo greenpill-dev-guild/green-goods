@@ -86,18 +86,18 @@ export function PoolFundingSection({
       <div className="flex items-center justify-between gap-2">
         <AdminCardTitle as="h3" id="pool-funding-title">
           {formatMessage({
-            id: "cockpit.garden.pool.funding.title",
+            id: "hub.garden.pool.funding.title",
             defaultMessage: "Pool Funding",
           })}
         </AdminCardTitle>
         <IconButton
           size="lg"
           aria-label={formatMessage({
-            id: "cockpit.garden.pool.funding.refresh",
+            id: "hub.garden.pool.funding.refresh",
             defaultMessage: "Refresh Pool Funding",
           })}
           title={formatMessage({
-            id: "cockpit.garden.pool.funding.refresh",
+            id: "hub.garden.pool.funding.refresh",
             defaultMessage: "Refresh Pool Funding",
           })}
           onClick={() => void handleRefresh()}
@@ -111,7 +111,7 @@ export function PoolFundingSection({
           role="status"
           className="space-y-2"
           aria-label={formatMessage({
-            id: "cockpit.garden.pool.funding.loading",
+            id: "hub.garden.pool.funding.loading",
             defaultMessage: "Loading pool funding",
           })}
         >
@@ -123,7 +123,7 @@ export function PoolFundingSection({
           <div className="space-y-0.5">
             <p className="type-meta text-text-soft">
               {formatMessage({
-                id: "cockpit.garden.pool.funding.availablePromises",
+                id: "hub.garden.pool.funding.availablePromises",
                 defaultMessage: "Available for new promises",
               })}
             </p>
@@ -135,7 +135,7 @@ export function PoolFundingSection({
                 <span className="type-body text-text-sub">
                   {formatMessage(
                     {
-                      id: "cockpit.garden.pool.funding.aboutGoodDollars",
+                      id: "hub.garden.pool.funding.aboutGoodDollars",
                       defaultMessage: "about {amount} G$",
                     },
                     { amount: formatGoodDollarsCompact(available, locale) }
@@ -149,7 +149,7 @@ export function PoolFundingSection({
             {snapshot?.safe
               ? formatMessage(
                   {
-                    id: "cockpit.garden.pool.funding.safeLine",
+                    id: "hub.garden.pool.funding.safeLine",
                     defaultMessage: "{balance} in the Safe · {committed} committed",
                   },
                   {
@@ -160,7 +160,7 @@ export function PoolFundingSection({
               : funding.isError && !snapshot
                 ? fundingStateMessage("unavailable", intl)
                 : formatMessage({
-                    id: "cockpit.garden.pool.funding.noSafe",
+                    id: "hub.garden.pool.funding.noSafe",
                     defaultMessage: "No settlement Safe configured",
                   })}
           </p>
@@ -193,11 +193,11 @@ export function PoolFundingSection({
             >
               {snapshot?.settlementReadiness === "ready" && !stale
                 ? formatMessage({
-                    id: "cockpit.garden.pool.funding.settlementReady",
+                    id: "hub.garden.pool.funding.settlementReady",
                     defaultMessage: "Settlement ready",
                   })
                 : formatMessage({
-                    id: "cockpit.garden.pool.funding.settlementUnavailable",
+                    id: "hub.garden.pool.funding.settlementUnavailable",
                     defaultMessage: "Settlement unavailable",
                   })}
             </StatusBadge>
@@ -212,7 +212,7 @@ export function PoolFundingSection({
           {protocolContext ? (
             <p className="type-meta text-text-soft">
               {formatMessage({
-                id: "cockpit.garden.pool.funding.protocolNote",
+                id: "hub.garden.pool.funding.protocolNote",
                 defaultMessage:
                   "Upstream treasury inflow is not recorded here; the Celo Safe balance is authoritative.",
               })}
@@ -223,13 +223,13 @@ export function PoolFundingSection({
             <span>
               {funding.isRefetching
                 ? formatMessage({
-                    id: "cockpit.garden.pool.funding.refreshing",
+                    id: "hub.garden.pool.funding.refreshing",
                     defaultMessage: "Refreshing…",
                   })
                 : snapshot?.balance?.readAt
-                  ? `${stale ? formatMessage({ id: "cockpit.garden.pool.funding.lastRead", defaultMessage: "Last read" }) : formatMessage({ id: "cockpit.garden.pool.funding.readAt", defaultMessage: "Read" })} ${formatTime(snapshot.balance.readAt * 1_000, { hour: "numeric", minute: "2-digit" })}`
+                  ? `${stale ? formatMessage({ id: "hub.garden.pool.funding.lastRead", defaultMessage: "Last read" }) : formatMessage({ id: "hub.garden.pool.funding.readAt", defaultMessage: "Read" })} ${formatTime(snapshot.balance.readAt * 1_000, { hour: "numeric", minute: "2-digit" })}`
                   : formatMessage({
-                      id: "cockpit.garden.pool.funding.notRead",
+                      id: "hub.garden.pool.funding.notRead",
                       defaultMessage: "No current balance read",
                     })}
             </span>
@@ -242,7 +242,7 @@ export function PoolFundingSection({
               onClick={onOpenDetails}
             >
               {formatMessage({
-                id: "cockpit.garden.pool.funding.openDetails",
+                id: "hub.garden.pool.funding.openDetails",
                 defaultMessage: "View Details",
               })}
             </Button>
@@ -253,7 +253,7 @@ export function PoolFundingSection({
       <span className="sr-only" aria-live="polite">
         {manualRefresh === "done"
           ? formatMessage({
-              id: "cockpit.garden.pool.funding.refreshComplete",
+              id: "hub.garden.pool.funding.refreshComplete",
               defaultMessage: "Pool funding refreshed",
             })
           : ""}

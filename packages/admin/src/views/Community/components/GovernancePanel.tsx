@@ -64,11 +64,11 @@ export function GovernancePanel({ pools, gardenId }: GovernancePanelProps) {
       <EmptyState
         icon={<RiUserVoiceLine className="h-6 w-6" />}
         title={formatMessage({
-          id: "cockpit.community.governance.noPool.title",
+          id: "hub.community.governance.noPool.title",
           defaultMessage: "No conviction pool yet",
         })}
         description={formatMessage({
-          id: "cockpit.community.governance.noPool.description",
+          id: "hub.community.governance.noPool.description",
           defaultMessage:
             "Create a HypercertSignalPool from the Community panel to enable conviction voting on this garden's hypercerts.",
         })}
@@ -114,11 +114,11 @@ export function GovernancePanel({ pools, gardenId }: GovernancePanelProps) {
       <EmptyState
         icon={<RiUserVoiceLine className="h-6 w-6" />}
         title={formatMessage({
-          id: "cockpit.community.governance.empty.title",
+          id: "hub.community.governance.empty.title",
           defaultMessage: "No registered proposals yet",
         })}
         description={formatMessage({
-          id: "cockpit.community.governance.empty.description",
+          id: "hub.community.governance.empty.description",
           defaultMessage:
             "Register hypercerts in this garden's signal pool to surface them here for conviction voting.",
         })}
@@ -136,7 +136,7 @@ export function GovernancePanel({ pools, gardenId }: GovernancePanelProps) {
         <div className="flex flex-col gap-3 border-b border-stroke-soft px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <p className="type-meta-sm text-text-strong">
-              {formatMessage({ id: "cockpit.community.coordination.hypercertPool" })}
+              {formatMessage({ id: "hub.community.coordination.hypercertPool" })}
             </p>
             <p className="mt-1 font-mono type-meta text-text-soft">
               {formatShortAddress(hypercertPool.poolAddress)}
@@ -145,13 +145,13 @@ export function GovernancePanel({ pools, gardenId }: GovernancePanelProps) {
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-full bg-bg-soft px-2 py-0.5 type-label-sm text-text-sub">
               {formatMessage(
-                { id: "cockpit.community.coordination.proposalCount" },
+                { id: "hub.community.coordination.proposalCount" },
                 { count: proposals.length }
               )}
             </span>
             <Button asChild emphasis="tertiary" size="compact">
               <Link to={adminRoutes.communityCoordinationSignalPool("hypercert", { gardenId })}>
-                {formatMessage({ id: "cockpit.community.coordination.openPool" })}
+                {formatMessage({ id: "hub.community.coordination.openPool" })}
                 <RiArrowRightSLine className="h-4 w-4" />
               </Link>
             </Button>
@@ -159,9 +159,9 @@ export function GovernancePanel({ pools, gardenId }: GovernancePanelProps) {
         </div>
 
         <div className="hidden grid-cols-[minmax(0,1fr)_8rem_12rem_auto] gap-3 border-b border-stroke-soft bg-bg-weak px-4 py-2 type-label-sm uppercase tracking-[0.04em] text-text-soft lg:grid">
-          <span>{formatMessage({ id: "cockpit.community.coordination.proposal" })}</span>
-          <span>{formatMessage({ id: "cockpit.community.coordination.support" })}</span>
-          <span>{formatMessage({ id: "cockpit.community.coordination.conviction" })}</span>
+          <span>{formatMessage({ id: "hub.community.coordination.proposal" })}</span>
+          <span>{formatMessage({ id: "hub.community.coordination.support" })}</span>
+          <span>{formatMessage({ id: "hub.community.coordination.conviction" })}</span>
           <span className="sr-only">{formatMessage({ id: "app.actions.view" })}</span>
         </div>
 
@@ -183,11 +183,11 @@ export function GovernancePanel({ pools, gardenId }: GovernancePanelProps) {
               </div>
               <div className="space-y-1 lg:space-y-0">
                 <p className="type-meta text-text-soft lg:hidden">
-                  {formatMessage({ id: "cockpit.community.coordination.support" })}
+                  {formatMessage({ id: "hub.community.coordination.support" })}
                 </p>
                 <p className="type-body font-medium tabular-nums text-text-strong">
                   {formatMessage(
-                    { id: "cockpit.community.coordination.supporters" },
+                    { id: "hub.community.coordination.supporters" },
                     { count: proposal.supporters }
                   )}
                 </p>
@@ -231,13 +231,13 @@ export function GovernancePanel({ pools, gardenId }: GovernancePanelProps) {
         <div className="rounded-lg border border-stroke-soft bg-bg-weak px-4 py-3">
           <p className="type-body font-medium text-text-strong">
             {formatMessage({
-              id: "cockpit.community.governance.signIn.title",
+              id: "hub.community.governance.signIn.title",
               defaultMessage: "Sign In to Allocate Conviction",
             })}
           </p>
           <p className="mt-1 type-body text-text-sub">
             {formatMessage({
-              id: "cockpit.community.governance.signIn.description",
+              id: "hub.community.governance.signIn.description",
               defaultMessage:
                 "Connect your wallet or sign in to allocate your conviction weight across the proposals below.",
             })}

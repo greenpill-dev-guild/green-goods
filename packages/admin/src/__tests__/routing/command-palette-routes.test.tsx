@@ -138,13 +138,13 @@ describe("CommandPalette Routes", () => {
     );
 
     // The palette renders static page items when open with empty query
-    expect(screen.getByText("Hub")).toBeInTheDocument();
+    expect(screen.getByText("Review")).toBeInTheDocument();
     expect(screen.getByText("Garden")).toBeInTheDocument();
     expect(screen.getByText("Community")).toBeInTheDocument();
     expect(screen.getByText("Actions")).toBeInTheDocument();
   });
 
-  it("omits Community when the navigation bar hides it, since its route redirects to Hub", () => {
+  it("omits Community when the navigation bar hides it, since its route redirects to Review", () => {
     mockPermissions.showCommunity = false;
     renderWithProviders(
       <MemoryRouter>

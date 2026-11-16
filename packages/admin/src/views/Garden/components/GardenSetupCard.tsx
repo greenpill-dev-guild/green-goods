@@ -12,31 +12,31 @@ import { useIntl } from "react-intl";
 import { AdminCard, AdminCardBody, AdminCardHeader, AdminCardTitle } from "@/components/AdminCard";
 
 const STEP_LABELS: Record<GardenSetupStepId, string> = {
-  name: "cockpit.garden.setup.step.name",
-  community: "cockpit.garden.setup.step.community",
-  pools: "cockpit.garden.setup.step.pools",
-  vaults: "cockpit.garden.setup.step.vaults",
-  jars: "cockpit.garden.setup.step.jars",
-  commitmentPool: "cockpit.garden.setup.step.commitmentPool",
-  stewardSafe: "cockpit.garden.setup.step.stewardSafe",
-  settlement: "cockpit.garden.setup.step.settlement",
+  name: "hub.garden.setup.step.name",
+  community: "hub.garden.setup.step.community",
+  pools: "hub.garden.setup.step.pools",
+  vaults: "hub.garden.setup.step.vaults",
+  jars: "hub.garden.setup.step.jars",
+  commitmentPool: "hub.garden.setup.step.commitmentPool",
+  stewardSafe: "hub.garden.setup.step.stewardSafe",
+  settlement: "hub.garden.setup.step.settlement",
 };
 
 const STEP_ACTIONS: Partial<Record<GardenSetupStepId, string>> = {
-  name: "cockpit.garden.setup.action.name",
-  pools: "cockpit.garden.setup.action.pools",
-  vaults: "cockpit.garden.setup.action.vaults",
+  name: "hub.garden.setup.action.name",
+  pools: "hub.garden.setup.action.pools",
+  vaults: "hub.garden.setup.action.vaults",
 };
 
 const STATUS_BADGES = {
-  done: { variant: "success", label: "cockpit.garden.setup.status.done" },
-  missing: { variant: "warning", label: "cockpit.garden.setup.status.missing" },
-  pending: { variant: "info", label: "cockpit.garden.setup.status.pending" },
+  done: { variant: "success", label: "hub.garden.setup.status.done" },
+  missing: { variant: "warning", label: "hub.garden.setup.status.missing" },
+  pending: { variant: "info", label: "hub.garden.setup.status.pending" },
 } as const;
 
 const PENDING_HINTS = {
-  update: "cockpit.garden.setup.hint.update",
-  delivery: "cockpit.garden.setup.hint.delivery",
+  update: "hub.garden.setup.hint.update",
+  delivery: "hub.garden.setup.hint.delivery",
 } as const;
 
 /** Mounts on a garden's Health tab: reads the chain for those who could act on what it finds. */
@@ -62,14 +62,14 @@ export function GardenSetupCard({ setup }: { setup: GardenSetup }) {
   return (
     <AdminCard density="none" data-component="GardenSetup" data-region="garden-setup">
       <AdminCardHeader>
-        <AdminCardTitle>{formatMessage({ id: "cockpit.garden.setup.title" })}</AdminCardTitle>
+        <AdminCardTitle>{formatMessage({ id: "hub.garden.setup.title" })}</AdminCardTitle>
       </AdminCardHeader>
       <AdminCardBody className="space-y-3">
         <p className="type-meta text-text-soft">
           {formatMessage({
             id: setup.needsAttention
-              ? "cockpit.garden.setup.description"
-              : "cockpit.garden.setup.descriptionPending",
+              ? "hub.garden.setup.description"
+              : "hub.garden.setup.descriptionPending",
           })}
         </p>
         <FactList frame="inset">
@@ -95,9 +95,9 @@ function GardenSetupRow({ step, setup }: { step: GardenSetupStep; setup: GardenS
   if (step.status === "pending") {
     description = formatMessage({ id: PENDING_HINTS[step.pendingOn ?? "update"] });
   } else if (missing && step.fix === "team") {
-    description = formatMessage({ id: "cockpit.garden.setup.hint.team" });
+    description = formatMessage({ id: "hub.garden.setup.hint.team" });
   } else if (missing && step.fix === "waiting") {
-    description = formatMessage({ id: "cockpit.garden.setup.hint.waiting" });
+    description = formatMessage({ id: "hub.garden.setup.hint.waiting" });
   } else if (missing && step.id === "name" && setup.slug) {
     description = `${setup.slug}.greengoods.eth`;
   }

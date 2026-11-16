@@ -91,13 +91,13 @@ export const StateCatalog: Story = {
 };
 
 const WORKSPACE_TONES = [
-  ["hub", "Hub"],
+  ["review", "Review"],
   ["garden", "Garden"],
   ["community", "Community"],
   ["actions", "Actions"],
 ] as const;
 
-/** Pending and Approved as the Hub draws them: two scopes of one list (DL-082). */
+/** Pending and Approved as Review draws them: two scopes of one list (DL-082). */
 const ScopePair = () => {
   const [scope, setScope] = useState<"pending" | "approved">("pending");
   return (

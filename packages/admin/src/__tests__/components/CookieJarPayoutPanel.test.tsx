@@ -88,17 +88,17 @@ vi.mock("@green-goods/shared/hooks/cookie-jar/useCookieJarAdmin", () => ({
 }));
 
 // Mock modal components to avoid deep hook dependencies (AuthProvider, wagmi, etc.)
-vi.mock("@/views/Hub/components/CookieJarWithdrawModal", () => ({
+vi.mock("@/views/Review/components/CookieJarWithdrawModal", () => ({
   CookieJarWithdrawModal: () => null,
 }));
-vi.mock("@/views/Hub/components/CookieJarDepositModal", () => ({
+vi.mock("@/views/Review/components/CookieJarDepositModal", () => ({
   CookieJarDepositModal: (props: { isOpen: boolean; onFixLimit?: (jar: Address) => void }) => {
     mocks.depositModalProps = props;
     return props.isOpen ? <div role="dialog" aria-label="Fund Cookie Jar" /> : null;
   },
 }));
 
-import { CookieJarPayoutPanel } from "@/views/Hub/components/CookieJarPayoutPanel";
+import { CookieJarPayoutPanel } from "@/views/Review/components/CookieJarPayoutPanel";
 
 type PanelProps = {
   routeEditLimitJar?: Address;

@@ -32,7 +32,7 @@ const METADATA: Partial<WorkMetadata> = {
 };
 
 const meta: Meta<typeof SubmissionDetails> = {
-  title: "Admin/Workflows/Hub/SubmissionDetails",
+  title: "Admin/Workflows/Review/SubmissionDetails",
   component: SubmissionDetails,
   tags: ["autodocs"],
   parameters: {

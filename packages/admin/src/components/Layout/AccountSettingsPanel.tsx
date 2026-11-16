@@ -13,9 +13,9 @@ import { AdminChoiceGroup } from "../AdminChoiceGroup";
 import { type AccountPanelLayout, accountPanelBodyProps } from "./accountPanelLayout";
 
 const THEME_OPTIONS = [
-  { value: "light" as const, icon: RiSunLine, labelId: "cockpit.settings.lightMode" },
-  { value: "dark" as const, icon: RiMoonLine, labelId: "cockpit.settings.darkMode" },
-  { value: "system" as const, icon: RiComputerLine, labelId: "cockpit.settings.systemMode" },
+  { value: "light" as const, icon: RiSunLine, labelId: "hub.settings.lightMode" },
+  { value: "dark" as const, icon: RiMoonLine, labelId: "hub.settings.darkMode" },
+  { value: "system" as const, icon: RiComputerLine, labelId: "hub.settings.systemMode" },
 ];
 
 /** Native-name labels — a language is its own proper noun, never translated. */
@@ -81,10 +81,10 @@ export function AccountSettingsPanel({ layout = "sheet", className }: AccountSet
       {/* Appearance */}
       <section className="space-y-3">
         <SettingsSectionHeader
-          title={formatMessage({ id: "cockpit.settings.theme", defaultMessage: "Theme" })}
+          title={formatMessage({ id: "hub.settings.theme", defaultMessage: "Theme" })}
         />
         <AdminChoiceGroup
-          ariaLabel={formatMessage({ id: "cockpit.settings.theme", defaultMessage: "Theme" })}
+          ariaLabel={formatMessage({ id: "hub.settings.theme", defaultMessage: "Theme" })}
           value={theme}
           onChange={(nextTheme) => setTheme(nextTheme as typeof theme)}
           columns={3}
@@ -101,14 +101,14 @@ export function AccountSettingsPanel({ layout = "sheet", className }: AccountSet
       {/* Language */}
       <section className="space-y-3">
         <SettingsSectionHeader
-          title={formatMessage({ id: "cockpit.settings.language", defaultMessage: "Language" })}
+          title={formatMessage({ id: "hub.settings.language", defaultMessage: "Language" })}
           description={formatMessage({
-            id: "cockpit.settings.languageDescription",
-            defaultMessage: "Choose the language for the steward canvas.",
+            id: "hub.settings.languageDescription",
+            defaultMessage: "Choose the language for the Green Goods Hub.",
           })}
         />
         <AdminChoiceGroup
-          ariaLabel={formatMessage({ id: "cockpit.settings.language", defaultMessage: "Language" })}
+          ariaLabel={formatMessage({ id: "hub.settings.language", defaultMessage: "Language" })}
           value={locale}
           onChange={(nextLocale) => switchLanguage(nextLocale as Locale)}
           columns={3}
@@ -125,7 +125,7 @@ export function AccountSettingsPanel({ layout = "sheet", className }: AccountSet
       {/* Network — build-time chain truth with an explorer escape hatch. */}
       <section className="space-y-3">
         <SettingsSectionHeader
-          title={formatMessage({ id: "cockpit.settings.chainInfo", defaultMessage: "Network" })}
+          title={formatMessage({ id: "hub.settings.chainInfo", defaultMessage: "Network" })}
         />
         <FactList frame="inset">
           <FactRow
@@ -136,7 +136,7 @@ export function AccountSettingsPanel({ layout = "sheet", className }: AccountSet
         <ExternalLinkRow
           href={getBlockExplorer(DEFAULT_CHAIN_ID)}
           label={formatMessage({
-            id: "cockpit.account.viewOnExplorer",
+            id: "hub.account.viewOnExplorer",
             defaultMessage: "View on Explorer",
           })}
         />
@@ -147,21 +147,21 @@ export function AccountSettingsPanel({ layout = "sheet", className }: AccountSet
       {/* About */}
       <section className="space-y-3">
         <SettingsSectionHeader
-          title={formatMessage({ id: "cockpit.settings.about", defaultMessage: "About" })}
+          title={formatMessage({ id: "hub.settings.about", defaultMessage: "About" })}
         />
         <FactList frame="inset">
           <FactRow
-            label={formatMessage({ id: "cockpit.settings.version", defaultMessage: "Version" })}
+            label={formatMessage({ id: "hub.settings.version", defaultMessage: "Version" })}
             value={<span className="tabular-nums">{appVersion}</span>}
           />
         </FactList>
         <ExternalLinkRow
           href={DOCS_URL}
-          label={formatMessage({ id: "cockpit.settings.docs", defaultMessage: "Documentation" })}
+          label={formatMessage({ id: "hub.settings.docs", defaultMessage: "Documentation" })}
         />
         <ExternalLinkRow
           href={SUPPORT_URL}
-          label={formatMessage({ id: "cockpit.settings.support", defaultMessage: "Support" })}
+          label={formatMessage({ id: "hub.settings.support", defaultMessage: "Support" })}
         />
       </section>
     </SheetBody>

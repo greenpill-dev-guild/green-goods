@@ -40,11 +40,11 @@ export function PoolFundingDialog({
       open={open}
       onOpenChange={onOpenChange}
       title={formatMessage({
-        id: "cockpit.garden.pool.funding.dialog.title",
+        id: "hub.garden.pool.funding.dialog.title",
         defaultMessage: "Pool Funding Details",
       })}
       description={formatMessage({
-        id: "cockpit.garden.pool.funding.dialog.description",
+        id: "hub.garden.pool.funding.dialog.description",
         defaultMessage: "How live G$ liquidity, obligations, fees, and settlement limits combine.",
       })}
       icon={RiFundsLine}
@@ -56,7 +56,7 @@ export function PoolFundingDialog({
       <FactList frame="inset">
         <FactRow
           label={formatMessage({
-            id: "cockpit.garden.pool.funding.safe",
+            id: "hub.garden.pool.funding.safe",
             defaultMessage: "Celo Safe",
           })}
           value={
@@ -72,7 +72,7 @@ export function PoolFundingDialog({
                 <RiExternalLinkLine className="h-4 w-4" aria-hidden />
                 <span className="sr-only">
                   {formatMessage({
-                    id: "cockpit.garden.pool.funding.opensExplorer",
+                    id: "hub.garden.pool.funding.opensExplorer",
                     defaultMessage: "Opens in Celo Explorer",
                   })}
                 </span>
@@ -81,7 +81,7 @@ export function PoolFundingDialog({
               fundingStateMessage("unavailable", intl)
             ) : (
               formatMessage({
-                id: "cockpit.garden.pool.funding.noSafe",
+                id: "hub.garden.pool.funding.noSafe",
                 defaultMessage: "No settlement Safe configured",
               })
             )
@@ -91,7 +91,7 @@ export function PoolFundingDialog({
       {protocolContext ? (
         <p className="rounded-[var(--m3-shape-sm)] bg-bg-soft p-3 type-body text-text-sub">
           {formatMessage({
-            id: "cockpit.garden.pool.funding.protocolNote",
+            id: "hub.garden.pool.funding.protocolNote",
             defaultMessage:
               "Upstream treasury inflow is not recorded here; the Celo Safe balance is authoritative.",
           })}
