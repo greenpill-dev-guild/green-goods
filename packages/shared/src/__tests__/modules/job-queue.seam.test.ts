@@ -823,6 +823,58 @@ describe("processJob", () => {
     );
   });
 
+  // PRD-1495: a try that sent nothing still leaves a record, so an attempt never vanishes.
+  it("records the start of each try, before any prompt, and every end that sent nothing", async () => {
+    const ends = [
+      {
+        execution: { status: "waiting", reason: "awaiting-confirmation" },
+        skipped: "awaiting-confirmation",
+      },
+      { execution: { status: "submitted", txHash: "0xsent" }, skipped: "pending_materialization" },
+      { execution: { status: "complete", txHash: "0xtest" }, skipped: undefined },
+    ] as const;
+    for (const { execution, skipped } of ends) {
+      const { deps, queue } = setup({
+        store: createInMemoryJobQueueStore([queuedJob()]),
+        executors: createFakeJobExecutorRegistry(execution),
+      });
+      await queue.processJob("job-1", { transactionSender: {} as never });
+
+      expect(deps.analytics.processingStarted).toHaveBeenCalledExactlyOnceWith("work", 1, {
+        explicit: false,
+        confirming: false,
+      });
+      if (skipped)
+        expect(deps.analytics.jobSkipped).toHaveBeenCalledExactlyOnceWith("work", skipped, {
+          explicit: false,
+          started: true,
+        });
+      else expect(deps.analytics.jobProcessed).toHaveBeenCalledOnce();
+      if (!skipped) expect(deps.analytics.jobSkipped).not.toHaveBeenCalled();
+    }
+  });
+
+  it("says why a tap sent nothing, and keeps a background pass that never started quiet", async () => {
+    const connectivity = createFakeJobQueueConnectivity(false);
+    const { deps, queue } = setup({
+      store: createInMemoryJobQueueStore([queuedJob()]),
+      connectivity,
+    });
+
+    await queue.processJob("job-1", { transactionSender: {} as never });
+    expect(deps.analytics.jobSkipped).not.toHaveBeenCalled();
+
+    await queue.processJob("job-1", { transactionSender: {} as never, explicit: true });
+    connectivity.setOnline(true);
+    await queue.processJob("job-1", { transactionSender: null, explicit: true });
+
+    expect(vi.mocked(deps.analytics.jobSkipped).mock.calls).toEqual([
+      ["work", "offline", { explicit: true, started: false }],
+      ["work", "transaction_sender_unavailable", { explicit: true, started: false }],
+    ]);
+    expect(deps.analytics.processingStarted).not.toHaveBeenCalled();
+  });
+
   // PRD-1499: a wallet account whose wallet has not answered can read but not sign.
   describe("while the wallet has not answered", () => {
     function unansweredWallet() {
@@ -851,6 +903,12 @@ describe("processJob", () => {
       expect(job?.attempts).toBe(0);
       expect(job?.lastError).toBeUndefined();
       expect(deps.analytics.jobProcessingError).not.toHaveBeenCalled();
+      // The tap is on record even though nothing was asked of the wallet.
+      expect(deps.analytics.jobSkipped).toHaveBeenCalledExactlyOnceWith(
+        "work",
+        "wallet-reconnect-required",
+        { explicit: true, started: true }
+      );
     });
 
     it("rechecks a send already on record without asking, leaving it awaiting confirmation", async () => {
