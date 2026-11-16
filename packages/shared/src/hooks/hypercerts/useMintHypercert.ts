@@ -169,7 +169,7 @@ export function useMintHypercert(options: UseMintHypercertOptions = {}): UseMint
       // to maintain some type safety while satisfying the compiler.
       // See: https://stately.ai/docs/actors#frompromise
     } as unknown as typeof mintHypercertMachine.implementations);
-  }, []); // Machine created once — actors read current values from refs
+  }, [currentScope]); // Stable scope reader; actors read current values from refs.
 
   const [state, send] = useMachine(machine);
   useEffect(() => {
