@@ -364,3 +364,28 @@ test("a note after another comment on its line is still a heading, so one pass i
     assert.doesNotMatch(once, /Helpers|\/\/ b/);
   }
 });
+
+test("every line terminator ends a line: a CR-only Solidity comment never swallows the file", () => {
+  assert.equal(purgeSource("// x = 1;\rcontract C {}\r", "C.sol").code, "contract C {}\r");
+  assert.equal(purgeSource("// Setup\r\nconst x = 1;\r\n", "example.ts").code, "const x = 1;\r\n");
+  const separated = "export const id = 1; // Sepolia export const next = 2;\n";
+  assert.equal(purgeSource(separated, "example.ts").code, separated);
+});
+
+test("a comment stays where a value or statement would go, however many comments fill the place", () => {
+  const swallow = "export function stop(close) {\n  try {\n    close();\n  } catch { /* expected */ /* noop */ }\n}\n";
+  assert.equal(purgeSource(swallow, "example.ts").code, swallow);
+  const tuple = "export function read(pair) {\n  const [\n    , // first\n    // second\n  ] = pair;\n  return pair;\n}\n";
+  assert.equal(purgeSource(tuple, "example.ts").code, tuple);
+});
+
+test("a trailing note never shields the lines under it, and JSX containers still go", () => {
+  const code = "export const live = 1; // units\n// const legacy = readLegacy();\nexport const next = 2;\n";
+  assert.equal(purgeSource(code, "example.ts").code, "export const live = 1; // units\nexport const next = 2;\n");
+  assert.equal(purgeSource("export const V = () => <div>{// header\n}</div>;\n", "example.tsx").code, "export const V = () => <div></div>;\n");
+});
+
+test("a declaration CommonJS exports keeps its documentation", () => {
+  assert.deepEqual(kinds("/** Create client */\nfunction createClient() {}\nmodule.exports = { createClient };\n", "example.cjs"), ["documentation"]);
+  assert.deepEqual(kinds("/** Create client */\nfunction createClient() {}\nexports.createClient = createClient;\n", "example.cjs"), ["documentation"]);
+});

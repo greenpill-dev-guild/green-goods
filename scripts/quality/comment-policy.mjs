@@ -225,6 +225,14 @@ function declaredNames(statement) {
   return statement.id?.name ? [statement.id.name] : [];
 }
 
+// `module.exports`, `module.exports.name` or `exports.name`.
+function isCommonJsExport(node) {
+  const isModuleExports = (target) =>
+    target?.type === "MemberExpression" && target.object?.name === "module" && target.property?.name === "exports";
+  return isModuleExports(node) ||
+    (node?.type === "MemberExpression" && (isModuleExports(node.object) || node.object?.name === "exports"));
+}
+
 function exportedSpans(program) {
   // Names a later `export { a, b }` or `export default a` makes public: their declarations are API too.
   const exportedLater = new Set();
@@ -236,6 +244,14 @@ function exportedSpans(program) {
       exportedLater.add(statement.declaration.name);
     }
     if (statement.type === "TSExportAssignment" && statement.expression?.type === "Identifier") exportedLater.add(statement.expression.name);
+    // CommonJS: `module.exports = name`, `module.exports = { a, b }`, `exports.a = a`.
+    const assignment = statement.type === "ExpressionStatement" ? statement.expression : null;
+    if (assignment?.type === "AssignmentExpression" && isCommonJsExport(assignment.left)) {
+      if (assignment.right?.type === "Identifier") exportedLater.add(assignment.right.name);
+      for (const property of assignment.right?.type === "ObjectExpression" ? assignment.right.properties : []) {
+        if (property.value?.type === "Identifier") exportedLater.add(property.value.name);
+      }
+    }
   }
   const spans = [];
   let previousEnd = 0;
@@ -297,6 +313,7 @@ export function classifyComment(comment, { exported, name = null, marksIntent = 
  * (`/* ---- *\/ // Helpers`) is still a heading, so one pass removes both.
  */
 function marksIntent(code, comment, { comments = [], inJsxContainer = false } = {}) {
+  if (inJsxContainer) return false;
   const start = lineStart(code, comment.start);
   let before = code.slice(start, comment.start);
   for (const other of comments) {
@@ -307,8 +324,21 @@ function marksIntent(code, comment, { comments = [], inJsxContainer = false } = 
   }
   const afterOnLine = code.slice(comment.end, lineEnd(code, comment.end));
   if (before.trim() && !afterOnLine.trim()) return true;
-  if (inJsxContainer) return false;
-  return /[{[]$/.test(code.slice(0, comment.start).trimEnd()) && /^[}\]]/.test(code.slice(comment.end).trimStart());
+  // Where a statement or value would go, with only comments and space between it and the
+  // delimiters around it: a block's content, an empty argument list, a tuple's unnamed slot.
+  let back = comment.start;
+  for (let earlier; ; back = earlier.start) {
+    while (back > 0 && /\s/.test(code[back - 1])) back--;
+    earlier = comments.find((other) => other.end === back);
+    if (!earlier) break;
+  }
+  let ahead = comment.end;
+  for (let later; ; ahead = later.end) {
+    while (ahead < code.length && /\s/.test(code[ahead])) ahead++;
+    later = comments.find((other) => other.start === ahead);
+    if (!later) break;
+  }
+  return /[{[(,]/.test(code[back - 1] ?? "") && /[}\])]/.test(code[ahead] ?? "");
 }
 
 // A directive or licence line applies on its own, so it never joins a run.
@@ -323,8 +353,10 @@ export function groupComments(code, comments, { standalone = scriptStandalone, j
   for (const comment of comments) {
     const last = groups.at(-1);
     const between = last ? code.slice(last.end, comment.start) : null;
+    // A note that ends a line of code stands alone: it never joins the lines under it.
     if (last && last.type === "Line" && comment.type === "Line" && /^[ \t]*\n[ \t]*$/.test(between) &&
       !code.slice(lineStart(code, comment.start), comment.start).trim() &&
+      !code.slice(lineStart(code, last.start), last.start).trim() &&
       !standalone(comment.value) && !standalone(last.lastValue) && joins(last.lastValue, comment.value)) {
       last.end = comment.end;
       last.value += `\n${comment.value}`;
@@ -460,13 +492,24 @@ function jsxChildren(program) {
   return elements.join("\n");
 }
 
+// Every JavaScript line terminator, which Solidity's carriage return is among: a scan that knew only
+// the line feed read a CR-only file as one line, so its first `//` comment swallowed the file.
+const TERMINATOR = /[\n\r\u2028\u2029]/;
+
 function lineStart(code, index) {
-  return code.lastIndexOf("\n", index - 1) + 1;
+  for (let at = index - 1; at >= 0; at--) if (TERMINATOR.test(code[at])) return at + 1;
+  return 0;
 }
 
 function lineEnd(code, index) {
-  const end = code.indexOf("\n", index);
-  return end < 0 ? code.length : end;
+  for (let at = index; at < code.length; at++) if (TERMINATOR.test(code[at])) return at;
+  return code.length;
+}
+
+/** Where the next line begins after a line that ends at `end`: past its terminator, CRLF as one. */
+function nextLineStart(code, end) {
+  if (end >= code.length) return code.length;
+  return code[end] === "\r" && code[end + 1] === "\n" ? end + 2 : end + 1;
 }
 
 // What a removal takes and leaves: a whole line when the comment is alone on it, the JSX container
@@ -476,14 +519,14 @@ function removal(code, comment) {
   if (comment.container) {
     const [open, close] = comment.container;
     if (!code.slice(lineStart(code, open), open).trim() && !code.slice(close, lineEnd(code, close)).trim()) {
-      return { from: lineStart(code, open), to: Math.min(lineEnd(code, close) + 1, code.length), text: "" };
+      return { from: lineStart(code, open), to: nextLineStart(code, lineEnd(code, close)), text: "" };
     }
     return { from: open, to: close, text: "" };
   }
   const start = lineStart(code, comment.start);
   const end = lineEnd(code, comment.end);
   if (!code.slice(start, comment.start).trim() && !code.slice(comment.end, end).trim()) {
-    return { from: start, to: Math.min(end + 1, code.length), text: "" };
+    return { from: start, to: nextLineStart(code, end), text: "" };
   }
   let from = comment.start;
   while (from > start && /[ \t]/.test(code[from - 1])) from--;
