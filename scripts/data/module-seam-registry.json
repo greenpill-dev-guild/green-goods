@@ -64,7 +64,7 @@
         "integration": ["packages/shared/src/__tests__/providers/WorkProvider.test.tsx"]
       },
       "reviewedAt": "2026-11-14",
-      "evidenceFingerprint": "sha256:1a0c1ed2ef98f7e9516a44e7f38837bcf6801e72ab210b1e61b342062dea0352"
+      "evidenceFingerprint": "sha256:254cd12e6a12f702deeb47217c1861ebfdee66beedb50238f9b32049e5f948bd"
     },
     {
       "id": "shared-commitment-pooling-public",
@@ -83,7 +83,7 @@
         "integration": ["packages/shared/src/__tests__/commitment-pooling-hooks.test.tsx"]
       },
       "reviewedAt": "2026-11-12",
-      "evidenceFingerprint": "sha256:db2078c025d96bfdf02dd60db8914d90fbb444d8b4952739893e2153480ebc0d"
+      "evidenceFingerprint": "sha256:388e27777264ad11092a73d1b9124c2309bef6c88f0110b4cca854ddc1c7b5fb"
     }
   ]
 }
