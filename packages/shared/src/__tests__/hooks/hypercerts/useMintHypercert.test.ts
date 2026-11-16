@@ -12,6 +12,12 @@ import { renderHookWithProviders } from "../../test-utils/render-helpers";
 const mocks = vi.hoisted(() => ({
   walletRestore: null as "restoring" | "failed" | null,
   authMode: "wallet" as "wallet" | "passkey",
+  eoaAddress: `0x${"1".repeat(40)}`,
+  networkContracts: {} as { gardensModule?: string },
+  readPool: vi.fn(),
+  waitForReceipt: vi.fn(),
+  readyWalletClient: vi.fn(),
+  register: vi.fn(),
   upload: vi.fn(),
   resolveContracts: vi.fn(),
   mintState: vi.fn(),
@@ -22,7 +28,7 @@ vi.mock("../../../hooks/auth/useAuth", () => ({
   useAuth: () => ({
     authMode: mocks.authMode,
     walletRestore: mocks.walletRestore,
-    eoaAddress: `0x${"1".repeat(40)}`,
+    eoaAddress: mocks.eoaAddress,
   }),
 }));
 vi.mock("../../../stores/useAdminStore", () => ({
@@ -45,7 +51,17 @@ vi.mock("../../../hooks/hypercerts/hypercert-contracts", () => ({
 }));
 vi.mock("../../../utils/blockchain/contracts", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../../utils/blockchain/contracts")>()),
-  getNetworkContracts: () => ({}),
+  getNetworkContracts: () => mocks.networkContracts,
+}));
+vi.mock("../../../config/pimlico", () => ({
+  createPublicClientForChain: () => ({
+    readContract: mocks.readPool,
+    waitForTransactionReceipt: mocks.waitForReceipt,
+  }),
+}));
+vi.mock("../../../modules/transactions/chain-guard", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../modules/transactions/chain-guard")>()),
+  readyWalletClient: mocks.readyWalletClient,
 }));
 vi.mock("../../../hooks/hypercerts/services/build-and-sign", async () => {
   const { fromPromise } = await import("xstate");
@@ -72,6 +88,12 @@ describe("hypercert wallet readiness", () => {
     vi.clearAllMocks();
     mocks.walletRestore = null;
     mocks.authMode = "wallet";
+    mocks.eoaAddress = `0x${"1".repeat(40)}`;
+    mocks.networkContracts = {};
+    mocks.readPool.mockResolvedValue(`0x${"2".repeat(40)}`);
+    mocks.readyWalletClient.mockResolvedValue({ writeContract: mocks.register });
+    mocks.register.mockResolvedValue(`0x${"ef".repeat(32)}`);
+    mocks.waitForReceipt.mockResolvedValue({ status: "success" });
     mocks.resolveContracts.mockResolvedValue({});
     mocks.upload.mockRejectedValue(new Error("upload unavailable"));
   });
@@ -165,6 +187,55 @@ describe("hypercert wallet readiness", () => {
       expect(mocks.upload).toHaveBeenCalledTimes(2);
       expect(mocks.buildAndSign).toHaveBeenCalledOnce();
       expect(asked).not.toHaveBeenCalled();
+    } finally {
+      stop();
+    }
+  });
+
+  it("defers a configured pool write after receipt recovery until the original wallet answers", async () => {
+    const hash = `0x${"ab".repeat(32)}`;
+    const txHash = `0x${"cd".repeat(32)}`;
+    mocks.networkContracts = { gardensModule: `0x${"3".repeat(40)}` };
+    mocks.upload.mockResolvedValue({ cid: "bafy-mint" });
+    mocks.buildAndSign.mockResolvedValue({ hash });
+    mocks.pollForReceipt
+      .mockRejectedValueOnce(new Error("Receipt polling timed out"))
+      .mockResolvedValueOnce({ txHash, hypercertId: "123" });
+    const { result, rerender } = renderHookWithProviders(() =>
+      useMintHypercert({ errorMode: "inline" })
+    );
+    await act(() => result.current.mint(input()));
+    await waitFor(() => expect(result.current.status).toBe("failed"));
+    mocks.walletRestore = "failed";
+    rerender();
+    const asked = vi.fn();
+    const stop = onWalletReconnectAsk(asked);
+    try {
+      act(() => result.current.retry());
+      await waitFor(() => expect(mocks.readPool).toHaveBeenCalled());
+      await waitFor(() => expect(asked).toHaveBeenCalledOnce());
+      expect(result.current.status).toBe("registering_proposal");
+      expect(result.current.poolRegistered).toBeNull();
+      expect(result.current.txHash).toBe(txHash);
+      expect(result.current.hypercertId).toBe("123");
+      expect(mocks.readyWalletClient).not.toHaveBeenCalled();
+      expect(mocks.register).not.toHaveBeenCalled();
+
+      mocks.walletRestore = null;
+      mocks.eoaAddress = `0x${"4".repeat(40)}`;
+      rerender();
+      expect(mocks.register).not.toHaveBeenCalled();
+      expect(result.current.status).toBe("registering_proposal");
+      mocks.eoaAddress = `0x${"1".repeat(40)}`;
+      rerender();
+      await waitFor(() => expect(result.current.status).toBe("confirmed"));
+      expect(result.current.poolRegistered).toBe(true);
+      expect(result.current.userOpHash).toBe(hash);
+      expect(result.current.txHash).toBe(txHash);
+      expect(mocks.register).toHaveBeenCalledOnce();
+      expect(mocks.buildAndSign).toHaveBeenCalledOnce();
+      expect(mocks.upload).toHaveBeenCalledTimes(2);
+      expect(mocks.pollForReceipt).toHaveBeenCalledTimes(2);
     } finally {
       stop();
     }

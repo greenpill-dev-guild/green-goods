@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useIntl } from "react-intl";
+import { WalletReconnectRequiredError } from "../../utils/errors/unsent-failures";
 import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { batchKeys, gardensKeys } from "../../config/query-keys/garden";
@@ -148,7 +149,12 @@ export function useAddMembersBatch(gardenId: string) {
         }
         // Only what this path tried, as `createGardenOperation` does: a role the chain already has is
         // no attempt, and a list past its ceilings has not been tried yet.
-        start([...outcome.added, ...outcome.unknown, ...outcome.refused, ...outcome.notSent]);
+        start([
+          ...outcome.added,
+          ...outcome.unknown,
+          ...outcome.refused,
+          ...(outcome.failure instanceof WalletReconnectRequiredError ? [] : outcome.notSent),
+        ]);
         landRows([...outcome.added, ...outcome.alreadyHeld]);
         return outcome;
       });
@@ -158,7 +164,8 @@ export function useAddMembersBatch(gardenId: string) {
       for (const { transactionHash, ...row } of added) trackAdded(row, transactionHash);
       for (const { reason, ...row } of refused) trackFailed(row, reason);
       const stoppedBy = failure ? parseContractError(failure).message : "Not sent";
-      for (const row of notSent) trackFailed(row, stoppedBy);
+      if (!(failure instanceof WalletReconnectRequiredError))
+        for (const row of notSent) trackFailed(row, stoppedBy);
       if (failure) handleError(failure, { authMode: rail, gardenAddress });
       if (outcome.added.length > 0) {
         announceAdded(outcome.added.length);

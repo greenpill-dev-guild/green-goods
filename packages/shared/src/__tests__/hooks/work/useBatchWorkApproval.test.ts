@@ -24,6 +24,8 @@ import { encodeWorkApprovalData } from "../../../utils/eas/encoders";
 import { createTestQueryClient } from "../../test-utils/query-client";
 import { renderHookWithProviders } from "../../test-utils/render-helpers";
 import { createFakeBatchingSender } from "../../test-utils/transaction-fakes";
+import { onWalletReconnectAsk, refuseWithoutWallet } from "../../../modules/auth/wallet-reconnect";
+import { track } from "../../../modules/app/posthog";
 
 const { auth, chainState, sending, toasts, listing } = vi.hoisted(() => ({
   auth: { primaryAddress: null as string | null, passkeyAccountProfile: "kernel-0.3.1-legacy" },
@@ -187,6 +189,26 @@ describe("useBatchWorkApproval", () => {
     chainState.decided = new Set();
     chainState.logs = [];
     chainState.attestations = new Map();
+  });
+
+  it("keeps reconnect-refused decisions pending without action start or failure events", async () => {
+    const { sender, decide, listWorks, workOf, render } = setup();
+    sender.assertReadyToSign = vi.fn(refuseWithoutWallet);
+    const decision = decide();
+    listWorks([decision]);
+    const { result } = render();
+    const asked = vi.fn();
+    const stop = onWalletReconnectAsk(asked);
+    try {
+      await act(() => result.current.send([decision]));
+      expect(asked).toHaveBeenCalledOnce();
+      expect(sender.sendContractCall).not.toHaveBeenCalled();
+      expect(track).not.toHaveBeenCalledWith("batch_approval_started", expect.anything());
+      expect(track).not.toHaveBeenCalledWith("batch_approval_failed", expect.anything());
+      expect(workOf(decision)).toMatchObject({ status: "pending", _isPending: false });
+    } finally {
+      stop();
+    }
   });
 
   it.each([

@@ -49,11 +49,18 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
   const inputId = useId();
   const statusId = `${inputId}-status`;
   const inputRef = useRef<HTMLInputElement>(null);
+  const currentAddressRef = useRef(editor.address);
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [removeConfirmOpen, setRemoveConfirmOpen] = useState(false);
   const [activeAction, setActiveAction] = useState<ActiveAction>(null);
-  const draftFile = editor.draft?.file ?? null;
+  const [refusedSelection, setRefusedSelection] = useState<{
+    address: typeof editor.address;
+    file: File;
+  } | null>(null);
+  const selectedFile =
+    refusedSelection?.address === editor.address ? (refusedSelection?.file ?? null) : null;
+  const draftFile = selectedFile ?? editor.draft?.file ?? null;
   const draftPreviewUrl = useProfileAvatarDraftPreview(draftFile);
   const displayedError =
     error ??
@@ -64,7 +71,7 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
         })
       : null);
   const status = getProfileAvatarStageMessage(editor.stage, formatMessage);
-  const recoverableDraft = Boolean(editor.draft);
+  const recoverableDraft = Boolean(selectedFile || editor.draft);
   const busy = editor.isSaving || activeAction !== null || Boolean(status);
   const retryInProgress =
     activeAction === "retry" || (activeAction === null && recoverableDraft && busy);
@@ -92,10 +99,12 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
   });
 
   useEffect(() => {
+    currentAddressRef.current = editor.address;
     setOpen(false);
     setError(null);
     setRemoveConfirmOpen(false);
     setActiveAction(null);
+    setRefusedSelection(null);
   }, [editor.address]);
 
   const closeSheet = () => {
@@ -104,20 +113,27 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
     setRemoveConfirmOpen(false);
   };
 
-  const saveFile = async (file: File | null) => {
+  const saveFile = async (file: File | null, action: "choose" | "retry" = "choose") => {
     if (!file || busy) return;
+    const address = editor.address;
     setError(null);
-    setActiveAction("choose");
+    setActiveAction(action);
+    setRefusedSelection(null);
     try {
       await editor.save(file);
+      if (currentAddressRef.current !== address) return;
       setOpen(false);
       setRemoveConfirmOpen(false);
     } catch (caught) {
-      if (wasAskedToReconnect(caught)) return;
+      if (currentAddressRef.current !== address) return;
+      if (wasAskedToReconnect(caught)) {
+        setRefusedSelection({ address, file });
+        return;
+      }
       if (caught instanceof UploadPolicyCancelledError) return;
       setError(getProfileAvatarFailureMessage("save", formatMessage, caught));
     } finally {
-      setActiveAction(null);
+      if (currentAddressRef.current === address) setActiveAction(null);
     }
   };
 
@@ -140,6 +156,7 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
 
   const recoverDraft = async () => {
     if (busy || !isOnline) return;
+    if (selectedFile) return saveFile(selectedFile, "retry");
     setError(null);
     setActiveAction("retry");
     try {
@@ -161,6 +178,7 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
     setActiveAction("discard");
     try {
       await editor.discardDraft();
+      setRefusedSelection(null);
     } catch (caught) {
       setError(getProfileAvatarFailureMessage("discard", formatMessage, caught));
     } finally {
