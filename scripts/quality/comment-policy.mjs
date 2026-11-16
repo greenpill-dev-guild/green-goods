@@ -1,22 +1,22 @@
 #!/usr/bin/env node
-// Comment policy for TypeScript, JavaScript and Solidity sources: which comments carry meaning a
-// tool or a reader needs, and a codemod that removes the rest. TypeScript and JavaScript comments
-// are found with Vite's Oxc parser, so strings, regular expressions, template literals and JSX
-// text are never mistaken for them; Solidity comments with a scanner that skips string literals.
+// Comment policy for TypeScript, JavaScript and Solidity sources, and the codemod for its narrow
+// first pass. TypeScript and JavaScript comments are found with Vite's Oxc parser, so strings,
+// regular expressions, template literals and JSX text are never mistaken for them; Solidity
+// comments with a scanner that skips string literals.
 //
-// Kept: licence headers, functional directives (compiler, linter, bundler, analyzer and repository
-// markers), documentation on exported declarations and their members, type annotations in JSDoc,
-// all NatSpec (with its @custom tags), reasons (why the code is this way: a consequence, a
-// deliberate choice, a constraint an outside dependency forces), and comments that claim a
-// constraint (important, temporary, a workaround, a warning against changing it), which
-// `--report constraints` lists for the owner's review. Removed: everything else (narration,
-// banners, commented-out code). The purge is idempotent, so re-running it on any
-// branch resolves its own conflicts. Deployed contract sources (packages/contracts/src) are never
-// rewritten.
+// The narrow pass removes four kinds: banners, commented-out code, labels (a heading of a few
+// words) and notes that only restate the name they sit on. Everything else stays for a triage
+// pass that moves each comment into a type, test or lint, or the docs, or keeps or deletes it:
+// licence headers, directives (compiler, linter, bundler, analyzer and repository markers),
+// documentation on exported declarations and JSDoc types, all NatSpec, claimed constraints,
+// reasons, and narration. `--report triage` lists what that pass reads and `--report
+// constraints` the claims. The purge is idempotent, leaves rendered JSX text as it was, writes
+// nothing when any file fails to parse, and never rewrites deployed contract sources
+// (packages/contracts/src).
 //
 //   node scripts/quality/comment-policy.mjs --write <path...>    purge the files or folders
 //   node scripts/quality/comment-policy.mjs --check <path...>    exit 1 when a purge would change them
-//   node scripts/quality/comment-policy.mjs --report constraints <path...>   JSON of claimed constraints
+//   node scripts/quality/comment-policy.mjs --report constraints|triage <path...>   JSON for review
 import { execFileSync } from "node:child_process";
 import { readFileSync, statSync, writeFileSync } from "node:fs";
 import { relative, resolve } from "node:path";
@@ -27,7 +27,7 @@ const repoRoot = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 const SOURCE = /\.(ts|tsx|js|jsx|mjs|cjs|mts|cts|sol)$/;
 const DEPLOYED_CONTRACT_SOURCE = /^packages\/contracts\/src\//;
 
-const LICENCE = /SPDX-License-Identifier|@license|@preserve|\bcopyright\b/i;
+const LICENCE = /SPDX-License-Identifier|@license|@preserve|\bcopyright\b|\blicen[cs]ed under\b|\b(apache|mit|bsd|isc|mpl|gpl|lgpl|agpl)(-\d(\.\d)?)?\s+licen[cs]e\b|\bapache-2\.0\b/i;
 const DIRECTIVES = [
   /^\s*@ts-(expect-error|ignore|nocheck|check)\b/,
   /^\s*(eslint|oxlint)-(disable|enable)/,
@@ -48,6 +48,9 @@ const DIRECTIVES = [
   /@direct-test-(command|subject)\b/,
   /@shared-graph\b/,
   /Staged — not yet wired into the live checkout\./,
+  // A governed test skip, which check-test-quality.sh reads in the lines above `.skip(` or `.only(`.
+  /^\s*SKIP:.*#\d+/,
+  /^\s*Owner:.*Expiry:/i,
 ];
 const SOLIDITY_DIRECTIVES = [/^\s*(solhint|slither)-(disable|enable)/, /^\s*(forge-lint|forge-fmt|forgefmt):/];
 // A comment that claims the code around it must stay as it is, for a reason the code cannot show.
@@ -77,7 +80,7 @@ export function externalTerms(root = repoRoot) {
 // A comment that claims the code around it must stay as it is: important, temporary, a workaround,
 // a warning against changing it. Each one goes to the owner's review table (`--report
 // constraints`), where it is kept, dropped, or encoded as a type, test or lint.
-const CLAIM = /\b(important|temporar(y|ily)|workarounds?|work around|hacky?|do not|don't|never|must|should not|shouldn't|may not|has to|have to|keep (this|these|it|them|the)\b|order matters|ensures?\b|make sure|(loaded|imported|registered|mocked|installed|initiali[sz]ed|set up|called|runs?) (before|after|first)\b|todo|fixme|xxx|remove (this|once|when|after)|until\b)/i;
+const CLAIM = /\b(important|temporar(y|ily)|workarounds?|work around|hacky?|do not|don't|never|must|should not|shouldn't|may not|has to|have to|keep (this|these|it|them|the)\b|order matters|ensures?\b|make sure|(load|import|register|mock|install|initiali[sz]e|set up|call|run)(s|ed|ing)? (before|after|first)\b|todo|fixme|xxx|remove (this|once|when|after)|until\b)/i;
 // A reason, a consequence or a deliberate choice: why the code is this way rather than another.
 // Not narration, so the purge keeps it; a named dependency with one is a dependency constraint.
 const REASON = /\b(because|since|so|so that|otherwise|would|without|unless|requires?|required|needs?|demands?|expects?|rejects?|refuses?|breaks?|broke|crash(es|ed)?|fails?|failed|throws?|bugs?|quirks?|only|cannot|can't|won't|doesn't|does not|rather than|instead|on purpose|deliberately|intentionally|by design|the whole point|load-bearing)\b/i;
@@ -93,6 +96,119 @@ function constraintKind(text) {
 }
 // The JSDoc tags TypeScript reads when it checks JavaScript, with their aliases.
 const JSDOC_TYPES = /@((type|typedef|template|satisfies|import|callback|enum|deprecated|overload|this|extends|augments|implements|class|constructor|public|private|protected|readonly|override)\b|(param|arg|argument|returns?|property|prop)\s*\{)/;
+
+/** What the narrow pass removes; every other kind waits for the triage pass. */
+export const REMOVED_KINDS = new Set(["banner", "code", "label", "restatement"]);
+
+// Rule characters: ASCII punctuation, box drawing, the em and en dashes, middle dots and bullets.
+const RULE_CHARS = "-=*#~_+/\\\\|.\\u2500-\\u257f\\u2013\\u2014\\u00b7\\u2022";
+const RULE_LINE = new RegExp(`^[${RULE_CHARS}]{3,}$`);
+const TITLED_RULE = new RegExp(`^[${RULE_CHARS}]{2,}\\s+\\S.{0,60}?\\s+[${RULE_CHARS}]{2,}$`);
+
+/** A heading of one to three words with no sentence punctuation: `// Helpers`, `// Public API:`. */
+function isLabel(text) {
+  const line = text.trim();
+  return /^[A-Za-z][\w &/'()-]*:?$/.test(line) && line.split(/\s+/).length <= 3;
+}
+
+/** Rules of punctuation, alone or around a title (`// ==== Helpers ====`), over one or more lines. */
+function isBanner(text) {
+  const lines = commentLines(text).map((line) => line.trim()).filter(Boolean);
+  const rule = (line) => RULE_LINE.test(line) || TITLED_RULE.test(line);
+  return lines.some(rule) && lines.every((line) => rule(line) || isLabel(line));
+}
+
+const CODE_HINT = /[;{}]|=>|^\s*<\/?[A-Za-z]|\b(const|let|var|return|import|export|await)\b|[\w)]\(.*\)\s*;?\s*$/m;
+
+/**
+ * Code a comment holds instead of running: it parses as statements, an expression or JSX. Prose
+ * that happens to parse as a label (`TODO: fix()`, `Note: x()`) is not code.
+ */
+function isCommentedOutCode(text) {
+  const body = commentLines(text).join("\n").trim();
+  if (!body || !CODE_HINT.test(body)) return false;
+  // An object wrapper only for what ends like a property list (`foo: bar,`): it would read
+  // any `Word: text` as a property.
+  const candidates = [body, `(${body}\n)`, ...(/,\s*$/.test(body) ? [`({${body}\n})`] : [])];
+  return candidates.some((candidate) => {
+    const { program, errors } = parseSync("comment.tsx", candidate, { lang: "tsx", sourceType: "module" });
+    return !errors.length && program.body.length > 0 && program.body.every((statement) => statement.type !== "LabeledStatement") && !isNotation(program);
+  });
+}
+
+// One value or a mapping from a name to a value (`key => false`, a template showing a key's format)
+// reads as notation in prose, not as code taken out.
+function isNotation(program) {
+  const unwrap = (node) => (node?.type === "ParenthesizedExpression" ? unwrap(node.expression) : node);
+  const only = program.body.length === 1 && program.body[0].type === "ExpressionStatement" ? unwrap(program.body[0].expression) : null;
+  const simple = (node) => ["Identifier", "Literal", "StringLiteral", "NumericLiteral", "TemplateLiteral"].includes(unwrap(node)?.type);
+  return simple(only) || (only?.type === "ArrowFunctionExpression" && simple(only.body));
+}
+
+/** Solidity code in a comment: every line ends a statement or a block, and one assigns or calls. */
+function isSolidityCode(text) {
+  const lines = commentLines(text).map((line) => line.trim()).filter(Boolean);
+  return lines.length > 0 && lines.every((line) => /[;{}]$/.test(line)) && lines.some((line) => /[=(]/.test(line));
+}
+
+const STOP_WORDS = new Set(
+  ("a an the this that these those of for to in on at by with from as is are was be been it its and or into via per each new " +
+    "current given function method helper handler callback component hook class type interface constant variable value property " +
+    "prop field get gets return returns set sets create creates make makes handle handles render renders use uses do does").split(" "),
+);
+const stem = (word) => word.replace(/ies$/, "y").replace(/(es|s|ed|ing)$/, "");
+const wordsOf = (text) =>
+  text.replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2").toLowerCase().match(/[a-z0-9]+/g) ?? [];
+
+/** A short note whose every word is in the name it sits on, or a stop word: `// Get the user` on `getUser`. */
+function restatesName(text, name) {
+  if (!name) return false;
+  const nameWords = new Set(wordsOf(name).map(stem));
+  const words = wordsOf(text);
+  return words.length > 0 && words.length <= 8 && words.filter((word) => !STOP_WORDS.has(word)).every((word) => nameWords.has(stem(word)));
+}
+
+const DECLARATIONS = [
+  /\b(?:function\*?|class|interface|type|enum|namespace|struct|event|modifier|error|contract|library)\s+([A-Za-z_$][\w$]*)/,
+  /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)/,
+  /^\s*<([A-Z][\w$.]*)/,
+  /^\s*(?:(?:export|default|public|private|protected|static|readonly|async|override|abstract|declare|get|set)\s+)*([A-Za-z_$][\w$]*)\s*[?!]?\s*[(:=]/,
+];
+const NOT_NAMES = new Set(["if", "for", "while", "switch", "return", "await", "catch", "case", "default", "else", "try", "throw", "require", "assert", "emit"]);
+
+/** The name a comment sits on: the code before it on its line, or else the next line of code past any comments. */
+function subjectName(code, comment) {
+  const declared = (line) => {
+    for (const pattern of DECLARATIONS) {
+      const name = line.match(pattern)?.[1];
+      if (name) return NOT_NAMES.has(name) ? null : name;
+    }
+    return null;
+  };
+  const before = code.slice(lineStart(code, comment.start), comment.start);
+  if (before.trim()) return declared(before);
+  for (let from = comment.end; from < code.length; ) {
+    const end = lineEnd(code, from);
+    const line = code.slice(from, end);
+    if (line.trim() && !/^\s*(\/\/|\/\*|\*)/.test(line)) return declared(line);
+    from = end + 1;
+  }
+  return null;
+}
+
+/** A comment no tool reads: a claim or a reason stays; else one of the removed kinds, or narration. */
+function narrowKind(text, name) {
+  const kind = constraintKind(text);
+  if (kind !== "remove") return kind;
+  if (isBanner(text)) return "banner";
+  const body = commentLines(text).map((line) => line.trim()).filter(Boolean).join(" ");
+  if (isLabel(body)) return "label";
+  if (restatesName(body, name)) return "restatement";
+  return "narration";
+}
+
+// A rule of punctuation stands alone, so a banner never hides inside the note under it.
+const isRuleLine = (value) => RULE_LINE.test(value.trim()) || TITLED_RULE.test(value.trim());
 
 function languageOf(file) {
   if (file.endsWith(".tsx")) return "tsx";
@@ -160,17 +276,18 @@ function commentLines(text) {
 const isDirective = (text, patterns = DIRECTIVES) =>
   [text, ...commentLines(text)].some((line) => patterns.some((pattern) => pattern.test(line)));
 
-export function classifyComment(comment, { exported }) {
+export function classifyComment(comment, { exported, name = null }) {
   const text = comment.value;
   const doc = comment.type === "Block" && text.startsWith("*");
   if (LICENCE.test(text) || (comment.type === "Block" && text.startsWith("!"))) return "licence";
   if (isDirective(text)) return "directive";
   if (doc && (exported || JSDOC_TYPES.test(text))) return "documentation";
-  return constraintKind(text);
+  if (isCommentedOutCode(text)) return "code";
+  return narrowKind(text, name);
 }
 
 // A directive or licence line applies on its own, so it never joins a run.
-const scriptStandalone = (value) => LICENCE.test(value) || DIRECTIVES.some((pattern) => pattern.test(value));
+const scriptStandalone = (value) => LICENCE.test(value) || DIRECTIVES.some((pattern) => pattern.test(value)) || isRuleLine(value);
 
 /**
  * Comments as readers see them: a run of line comments on consecutive lines is one comment, unless
@@ -217,33 +334,38 @@ export function solidityComments(code) {
 
 const isNatSpec = (comment) => (comment.type === "Line" ? comment.value.startsWith("/") : comment.value.startsWith("*"));
 
-export function classifySolidityComment(comment) {
+export function classifySolidityComment(comment, { name = null } = {}) {
   const text = comment.value;
   if (LICENCE.test(text)) return "licence";
   if (isDirective(text, SOLIDITY_DIRECTIVES)) return "directive";
   // NatSpec documents the contract surface and carries tooling tags such as @custom:oz-upgrades.
   if (isNatSpec(comment)) return "documentation";
-  return constraintKind(text);
+  if (isSolidityCode(text)) return "code";
+  return narrowKind(text, name);
 }
 
 function classifySoliditySource(code) {
-  const standalone = (value) => LICENCE.test(value) || isDirective(value, SOLIDITY_DIRECTIVES);
+  const standalone = (value) => LICENCE.test(value) || isDirective(value, SOLIDITY_DIRECTIVES) || isRuleLine(value);
   // A NatSpec line (`///`) and a plain line (`//`) never join: they are different kinds of comment.
   const joins = (previous, next) => previous.startsWith("/") === next.startsWith("/");
   return groupComments(code, solidityComments(code), { standalone, joins }).map((comment) => ({
     ...comment,
-    kind: classifySolidityComment(comment),
+    kind: classifySolidityComment(comment, { name: subjectName(code, comment) }),
   }));
 }
 
 // A `.cjs` file may `return` at its top level, which module parsing rejects, and so may a `.js`
-// file in a CommonJS package; module syntax fails as CommonJS. The extension's mode goes first.
+// file in a CommonJS package; module syntax fails as CommonJS. A `.js` file may hold JSX. The
+// extension's reading goes first.
 function parse(file, code) {
   let failure;
-  for (const sourceType of /\.c[jt]s$/.test(file) ? ["commonjs", "module"] : ["module", "commonjs"]) {
-    const result = parseSync(file, code, { lang: languageOf(file), sourceType });
-    if (!result.errors.length) return result;
-    failure ??= result.errors[0];
+  const langs = languageOf(file) === "js" ? ["js", "jsx"] : [languageOf(file)];
+  for (const lang of langs) {
+    for (const sourceType of /\.c[jt]s$/.test(file) ? ["commonjs", "module"] : ["module", "commonjs"]) {
+      const result = parseSync(file, code, { lang, sourceType });
+      if (!result.errors.length) return result;
+      failure ??= result.errors[0];
+    }
   }
   throw new Error(`${file}: does not parse (${failure.message})`);
 }
@@ -262,9 +384,53 @@ export function classifySource(code, file) {
       ...comment,
       container: holder?.span ?? null,
       betweenText: holder?.betweenText ?? false,
-      kind: classifyComment(comment, { exported: spans.some(([start, end]) => comment.start >= start && comment.end <= end) }),
+      kind: classifyComment(comment, {
+        exported: spans.some(([start, end]) => comment.start >= start && comment.end <= end),
+        name: subjectName(code, comment),
+      }),
     };
   });
+}
+
+/**
+ * JSX text as React receives it (Babel's whitespace rule): each line trimmed where it meets
+ * another line, lines with nothing left dropped, and the rest joined by one space.
+ */
+function jsxText(value) {
+  const lines = value.split(/\r\n|\n|\r/);
+  let lastFilled = -1;
+  lines.forEach((line, index) => {
+    if (/[^ \t]/.test(line)) lastFilled = index;
+  });
+  let text = "";
+  lines.forEach((line, index) => {
+    let piece = line.replace(/\t/g, " ");
+    if (index > 0) piece = piece.replace(/^ +/, "");
+    if (index < lines.length - 1) piece = piece.replace(/ +$/, "");
+    if (piece) text += index === lastFilled ? piece : `${piece} `;
+  });
+  return text;
+}
+
+/** Each JSX element's children as rendered: text, or the kind of child; empty containers render nothing. */
+function jsxChildren(program) {
+  const elements = [];
+  const visit = (node) => {
+    if (Array.isArray(node)) return node.forEach(visit);
+    if (!node || typeof node !== "object") return;
+    if (node.type === "JSXElement" || node.type === "JSXFragment") {
+      elements.push(
+        node.children.flatMap((child) => {
+          if (child.type === "JSXText") return jsxText(child.value) ? [JSON.stringify(jsxText(child.value))] : [];
+          if (child.type === "JSXExpressionContainer" && child.expression?.type === "JSXEmptyExpression") return [];
+          return [child.type];
+        }).join(","),
+      );
+    }
+    for (const value of Object.values(node)) if (value && typeof value === "object") visit(value);
+  };
+  visit(program);
+  return elements.join("\n");
 }
 
 function lineStart(code, index) {
@@ -301,12 +467,23 @@ function removal(code, comment) {
   return { from, to: comment.end, text: joins ? " " : "" };
 }
 
-/** The source with every removable comment taken out, and what was removed. */
+/**
+ * The source with every removable comment taken out, and what was removed. A comment in a JSX
+ * container between two runs of text stays, since taking the braces out joins the runs; and when
+ * removing the file's containers would still change any element's rendered children (a space
+ * between a value and a comment container at a line end, say), every container in the file stays.
+ */
 export function purgeSource(code, file) {
   const comments = classifySource(code, file);
-  // A comment in a container between two runs of JSX text stays, whatever it says: taking it out
-  // would join the runs and change the rendered text.
-  const removable = (comment) => comment.kind === "remove" && !comment.betweenText;
+  let result = removeComments(code, comments, false);
+  if (/\.[cm]?[jt]sx?$/.test(file) && result.code !== code && jsxChildren(parse(file, code).program) !== jsxChildren(parse(file, result.code).program)) {
+    result = removeComments(code, comments, true);
+  }
+  return result;
+}
+
+function removeComments(code, comments, keepContainers) {
+  const removable = (comment) => REMOVED_KINDS.has(comment.kind) && !comment.betweenText && !(keepContainers && comment.container);
   const removed = comments.filter(removable);
   // A JSX container goes only when every comment in it goes, and only once.
   const keptContainers = new Set(comments.filter((comment) => !removable(comment) && comment.container).map((comment) => comment.container[0]));
@@ -337,42 +514,61 @@ function lineOf(code, index) {
   return code.slice(0, index).split("\n").length;
 }
 
-export function main(argv = process.argv.slice(2)) {
+// The kinds the triage pass reads: what no tool needs and the narrow pass leaves.
+const TRIAGE_KINDS = new Set(["constraint", "dependency", "rationale", "narration"]);
+
+export function main(argv = process.argv.slice(2), { root = repoRoot, env = process.env } = {}) {
   const mode = argv[0];
-  const paths = argv.slice(mode === "--report" ? 2 : 1).map((path) => relative(repoRoot, resolve(path)) || ".");
-  if (!["--write", "--check", "--report"].includes(mode) || !paths.length) {
-    console.error("usage: comment-policy.mjs --write|--check <path...> | --report constraints <path...>");
+  const report = mode === "--report" ? argv[1] : null;
+  const paths = argv.slice(report ? 2 : 1).map((path) => relative(root, resolve(path)) || ".");
+  if (!["--write", "--check", "--report"].includes(mode) || (mode === "--report" && !["constraints", "triage"].includes(report)) || !paths.length) {
+    console.error("usage: comment-policy.mjs --write|--check <path...> | --report constraints|triage <path...>");
     return 2;
   }
   const changed = [];
-  const constraints = [];
-  let dependencies = 0;
-  let rationale = 0;
+  const entries = [];
+  const removedByKind = {};
+  const keptByKind = {};
   const skipped = [];
-  for (const file of sourceFiles(paths)) {
+  const failures = [];
+  for (const file of sourceFiles(paths, { root, env })) {
     if (DEPLOYED_CONTRACT_SOURCE.test(file)) {
       skipped.push(file);
       continue;
     }
-    const absolute = resolve(repoRoot, file);
+    const absolute = resolve(root, file);
     if (!statSync(absolute, { throwIfNoEntry: false })) continue;
     const code = readFileSync(absolute, "utf8");
-    const result = purgeSource(code, file);
-    dependencies += result.kept.filter((entry) => entry.kind === "dependency").length;
-    rationale += result.kept.filter((entry) => entry.kind === "rationale").length;
-    for (const comment of result.kept.filter((entry) => entry.kind === "constraint")) {
-      constraints.push({ file, line: lineOf(code, comment.start), text: code.slice(comment.start, comment.end) });
+    let result;
+    try {
+      result = purgeSource(code, file);
+    } catch (error) {
+      failures.push(error.message);
+      continue;
     }
-    if (result.code === code) continue;
-    changed.push({ file, removed: result.removed.length });
-    if (mode === "--write") writeFileSync(absolute, result.code);
+    for (const comment of result.removed) removedByKind[comment.kind] = (removedByKind[comment.kind] ?? 0) + 1;
+    for (const comment of result.kept) {
+      keptByKind[comment.kind] = (keptByKind[comment.kind] ?? 0) + 1;
+      if (report === "constraints" ? comment.kind === "constraint" : TRIAGE_KINDS.has(comment.kind)) {
+        entries.push({ file, line: lineOf(code, comment.start), kind: comment.kind, text: code.slice(comment.start, comment.end) });
+      }
+    }
+    if (result.code !== code) changed.push({ file, absolute, code: result.code, removed: result.removed.length });
   }
-  if (mode === "--report") {
-    console.log(JSON.stringify({ constraints }, null, 2));
+  // Nothing is written while any file fails to parse, so a run never leaves a half-done purge.
+  if (failures.length) {
+    for (const failure of failures) console.error(failure);
+    console.error(`${failures.length} file(s) do not parse; nothing was ${mode === "--write" ? "written" : "checked"}.`);
+    return 1;
+  }
+  if (report) {
+    console.log(JSON.stringify({ [report]: entries }, null, 2));
     return 0;
   }
+  if (mode === "--write") for (const entry of changed) writeFileSync(entry.absolute, entry.code);
   const total = changed.reduce((sum, entry) => sum + entry.removed, 0);
-  console.log(`${mode === "--write" ? "Removed" : "Would remove"} ${total} comment(s) from ${changed.length} file(s); ${constraints.length} claimed constraint(s) kept for review; ${dependencies} dependency constraint(s) and ${rationale} reason(s) kept.`);
+  const count = (counts) => Object.entries(counts).sort(([a], [b]) => a.localeCompare(b)).map(([kind, n]) => `${n} ${kind}`).join(", ") || "none";
+  console.log(`${mode === "--write" ? "Removed" : "Would remove"} ${total} comment(s) from ${changed.length} file(s) (${count(removedByKind)}); kept ${count(keptByKind)}.`);
   if (skipped.length) console.log(`Skipped ${skipped.length} deployed contract source file(s) under packages/contracts/src.`);
   return mode === "--check" && changed.length ? 1 : 0;
 }

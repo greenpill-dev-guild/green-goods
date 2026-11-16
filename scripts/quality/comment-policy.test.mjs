@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -23,9 +23,9 @@ test("licence headers, directives and tool markers are never removed", () => {
   assert.equal(purgeSource(code, "example.ts").code, code);
 });
 
-test("documentation stays on exported declarations and their members, and goes elsewhere", () => {
+test("documentation stays on exported declarations and their members; a private note that restates its name goes", () => {
   const code = [
-    "/** Narration on a private helper. */",
+    "/** The helper. */",
     "function helper() {}",
     "/** Public API. */",
     "export interface Shape {",
@@ -33,8 +33,8 @@ test("documentation stays on exported declarations and their members, and goes e
     "  size: number;",
     "}",
   ].join("\n");
-  assert.deepEqual(kinds(code), ["remove", "documentation", "documentation"]);
-  assert.equal(purgeSource(code, "example.ts").code.includes("Narration"), false);
+  assert.deepEqual(kinds(code), ["restatement", "documentation", "documentation"]);
+  assert.equal(purgeSource(code, "example.ts").code.includes("The helper"), false);
 });
 
 test("JSDoc that carries types stays in JavaScript", () => {
@@ -50,17 +50,24 @@ test("a run of line comments reads as one comment, kept or removed whole", () =>
   assert.equal(purgeSource(code, "example.ts").code, code);
 });
 
-test("narration, banners and commented-out code are removed with their lines", () => {
+test("banners, labels, restatements and commented-out code go with their lines; narration stays for triage", () => {
   const code = [
     "// ==== Helpers ====",
     "// Handler for the GardenMinted event",
     "export function onMint() {",
     "  // const legacy = readLegacy();",
-    "  return 1; // the result",
+    "  const ready = true;",
+    "  // Get the current user",
+    "  const user = getUser();",
+    "  return user; // the result",
     "}",
     "",
   ].join("\n");
-  assert.equal(purgeSource(code, "example.ts").code, "export function onMint() {\n  return 1;\n}\n");
+  assert.deepEqual(kinds(code), ["banner", "narration", "code", "restatement", "label"]);
+  assert.equal(
+    purgeSource(code, "example.ts").code,
+    "// Handler for the GardenMinted event\nexport function onMint() {\n  const ready = true;\n  const user = getUser();\n  return user;\n}\n",
+  );
 });
 
 test("a JSX comment container goes with its comment", () => {
@@ -84,7 +91,7 @@ test("a purge is idempotent, so it can be re-run on any branch", () => {
   assert.match(once, /TODO keep until the migration lands/);
 });
 
-test("Solidity keeps its licence, NatSpec, analyzer directives and constraints, and drops narration", () => {
+test("Solidity keeps its licence, NatSpec, analyzer directives and constraints, and drops banners and labels", () => {
   const code = [
     "// SPDX-License-Identifier: MIT",
     "pragma solidity ^0.8.28;",
@@ -107,7 +114,7 @@ test("Solidity keeps its licence, NatSpec, analyzer directives and constraints, 
     "",
   ].join("\n");
   assert.deepEqual(kinds(code, "Registry.sol"), [
-    "licence", "documentation", "remove", "documentation", "remove", "directive", "constraint",
+    "licence", "documentation", "label", "documentation", "banner", "directive", "constraint",
   ]);
   const purged = purgeSource(code, "Registry.sol").code;
   assert.doesNotMatch(purged, /the site|---- checks/);
@@ -118,8 +125,8 @@ test("Solidity keeps its licence, NatSpec, analyzer directives and constraints, 
 });
 
 test("a NatSpec line and a plain comment under it stay separate comments", () => {
-  const code = "/// @notice Kept.\n// narration that goes\nuint256 constant X = 1;\n";
-  assert.deepEqual(kinds(code, "Lib.sol"), ["documentation", "remove"]);
+  const code = "/// @notice Kept.\n// Constants\nuint256 constant X = 1;\n";
+  assert.deepEqual(kinds(code, "Lib.sol"), ["documentation", "label"]);
   assert.equal(purgeSource(code, "Lib.sol").code, "/// @notice Kept.\nuint256 constant X = 1;\n");
 });
 
@@ -146,10 +153,10 @@ test("claims go to the owner's table, a named dependency needs a reason, and a b
     "const c = 3;",
     "",
   ].join("\n");
-  assert.deepEqual(kinds(code), ["constraint", "dependency", "remove"]);
+  assert.deepEqual(kinds(code), ["constraint", "dependency", "narration"]);
 });
 
-test("reasons and warnings survive the purge: only narration goes", () => {
+test("reasons, warnings and narration survive the narrow pass", () => {
   const code = [
     "/** The secret is required. Falling back to defaults would ship an app that looks signed in and is not. */",
     "function config() {}",
@@ -163,16 +170,13 @@ test("reasons and warnings survive the purge: only narration goes", () => {
     "const entries = {};",
     "",
   ].join("\n");
-  assert.deepEqual(kinds(code), ["rationale", "dependency", "constraint", "rationale", "remove"]);
-  const purged = purgeSource(code, "example.ts").code;
-  assert.doesNotMatch(purged, /caseId -> person/);
-  assert.match(purged, /would ship an app/);
-  assert.match(purged, /demands an explicit extension/);
+  assert.deepEqual(kinds(code), ["rationale", "dependency", "constraint", "rationale", "narration"]);
+  assert.equal(purgeSource(code, "example.ts").code, code);
 });
 
 test("a hashbang is never read as a comment", () => {
-  const code = "#!/usr/bin/env node\n// Narration that goes.\nconst x = 1;\n";
-  assert.deepEqual(kinds(code, "tool.mjs"), ["remove"]);
+  const code = "#!/usr/bin/env node\n// Setup\nconst x = 1;\n";
+  assert.deepEqual(kinds(code, "tool.mjs"), ["label"]);
   assert.equal(purgeSource(code, "tool.mjs").code, "#!/usr/bin/env node\nconst x = 1;\n");
 });
 
@@ -193,7 +197,7 @@ test("deleting an inline comment never joins two tokens", () => {
 });
 
 test("blank lines change only where a comment line went, never inside a template literal", () => {
-  const code = "const text = `a\n\n\nb`;\n\n// Narration that goes.\n\nconst next = 1;\n";
+  const code = "const text = `a\n\n\nb`;\n\n// Setup\n\nconst next = 1;\n";
   assert.equal(purgeSource(code, "example.ts").code, "const text = `a\n\n\nb`;\n\nconst next = 1;\n");
   assert.equal(purgeSource("const text = `a\n\n\nb`;\n", "example.ts").code, "const text = `a\n\n\nb`;\n");
 });
@@ -210,8 +214,8 @@ test("markers that repository tools read are directives", () => {
 });
 
 test("documentation stays on declarations exported later by name or as the default", () => {
-  const code = "/** Counts unread items. */\nfunction CountBadge() {}\n/** The badge. */\nconst Badge = () => null;\n/** Private. */\nfunction helper() {}\nexport { CountBadge };\nexport default Badge;\n";
-  assert.deepEqual(kinds(code), ["documentation", "documentation", "remove"]);
+  const code = "/** Counts unread items. */\nfunction CountBadge() {}\n/** The badge. */\nconst Badge = () => null;\n/** The helper. */\nfunction helper() {}\nexport { CountBadge };\nexport default Badge;\n";
+  assert.deepEqual(kinds(code), ["documentation", "documentation", "restatement"]);
 });
 
 test("JSDoc-form directives, object and union JSDoc types, and copyright notices in Solidity are kept", () => {
@@ -262,7 +266,7 @@ test("every JSDoc tag TypeScript reads when it checks JavaScript keeps its comme
 });
 
 test("a CommonJS file that returns at its top level is read as CommonJS", () => {
-  const code = "// Narration.\nif (!process.env.CI) return;\nmodule.exports = {};\n";
+  const code = "// Setup\nif (!process.env.CI) return;\nmodule.exports = {};\n";
   assert.equal(purgeSource(code, "example.cjs").code, "if (!process.env.CI) return;\nmodule.exports = {};\n");
 });
 
@@ -287,4 +291,55 @@ test("paths take in new files Git does not track yet, and never ignored ones", (
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+test("a purge that would change any element's rendered children keeps the file's comment containers", () => {
+  // Removing the label's container would leave `{message} ` at a line end, and JSX drops a space
+  // that runs into a line break: the text would read "now.Try Again".
+  const code = "export const N = ({ message }) => (\n  <p>\n    {message} {/* note */}\n    <Button>Try Again</Button>\n  </p>\n);\n";
+  assert.equal(purgeSource(code, "example.tsx").code, code);
+});
+
+test("commented-out JSX is code, prose that parses as a label is not, and a .js file may hold JSX", () => {
+  assert.deepEqual(kinds("export const V = () => (\n  <div>\n    {/* <OldBanner tone=\"warm\" /> */}\n  </div>\n);\n", "example.tsx"), ["code"]);
+  assert.deepEqual(kinds("// TODO: fix()\nconst x = 1;\n"), ["constraint"]);
+  assert.equal(purgeSource("// Setup\nexport const A = () => <div />;\n", "example.js").code, "export const A = () => <div />;\n");
+});
+
+test("governed test skips and plain licence notices are kept", () => {
+  const skip = "// SKIP: #312 the upstream RPC is down\n// Owner: protocol / Expiry: 2026-12-31\nit.skip(\"reads the chain\", () => {});\n";
+  assert.deepEqual(kinds(skip), ["directive", "directive"]);
+  assert.deepEqual(kinds("// Licensed under the Apache License, Version 2.0\nexport const icon = 1;\n"), ["licence"]);
+  assert.deepEqual(kinds("/* MIT License */\nexport const icon = 1;\n"), ["licence"]);
+});
+
+test("a run writes nothing while any file fails to parse, and the triage report lists what stays", () => {
+  const root = mkdtempSync(join(tmpdir(), "gg-comment-policy-main-"));
+  const out = [];
+  const errors = [];
+  const { log, error } = console;
+  console.log = (line) => out.push(line);
+  console.error = (line) => errors.push(line);
+  try {
+    const env = fixtureGitEnvironment();
+    execFileSync("git", ["init", "-q"], { cwd: root, env, stdio: "ignore" });
+    writeFileSync(join(root, "good.ts"), "// Setup\n// Read the garden before the pool loads.\nexport const x = 1;\n");
+    writeFileSync(join(root, "bad.ts"), "export const = ;\n");
+    assert.equal(main(["--write", root], { root, env }), 1);
+    assert.equal(readFileSync(join(root, "good.ts"), "utf8"), "// Setup\n// Read the garden before the pool loads.\nexport const x = 1;\n");
+    assert.match(errors.join("\n"), /nothing was written/);
+    rmSync(join(root, "bad.ts"));
+    assert.equal(main(["--report", "triage", root], { root, env }), 0);
+    assert.deepEqual(JSON.parse(out.at(-1)).triage.map((entry) => entry.kind), ["narration"]);
+  } finally {
+    console.log = log;
+    console.error = error;
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("notation in a comment is prose, and an ordering note is a claim", () => {
+  assert.deepEqual(kinds("// isWearerOfHat => false\nconst read = vi.fn();\n"), ["narration"]);
+  assert.deepEqual(kinds("// `${hash(text)}_${sourceLang}_${targetLang}`\nconst key = make();\n"), ["narration"]);
+  assert.deepEqual(kinds('// Import after mocks\nimport { Login } from "./Login";\n'), ["constraint"]);
 });

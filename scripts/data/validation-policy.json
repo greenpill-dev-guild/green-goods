@@ -118,7 +118,7 @@
       "check": "comment-policy-test",
       "runInQa": true,
       "runInEvidence": true,
-      "exact": ["scripts/quality/comment-policy.mjs"]
+      "exact": ["scripts/quality/comment-policy.mjs", "bun.lock", "package.json"]
     },
     {
       "check": "dependabot-sync-test",
