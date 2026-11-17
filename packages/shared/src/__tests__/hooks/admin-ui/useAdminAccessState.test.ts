@@ -40,6 +40,7 @@ const baseEligibleGardens = {
   canCreateGarden: false,
   isLoaded: true,
   isError: false,
+  deploymentPermissionsError: false,
   hasStaleBaseList: false,
 };
 
@@ -62,6 +63,23 @@ describe("useAdminAccessState", () => {
     });
     const { result } = renderHook(() => useAdminAccessState());
     expect(result.current.status).toBe("ready");
+  });
+
+  it("offers Try Again for an unread garden-creation permission only when no garden is eligible", () => {
+    mockUseEligibleAdminGardens.mockReturnValue({
+      ...baseEligibleGardens,
+      deploymentPermissionsError: true,
+    });
+    expect(renderHook(() => useAdminAccessState()).result.current.status).toBe("indexer-error");
+
+    const garden = { id: "0x2222222222222222222222222222222222222222", name: "Garden" };
+    mockUseEligibleAdminGardens.mockReturnValue({
+      ...baseEligibleGardens,
+      deploymentPermissionsError: true,
+      eligibleGardens: [garden],
+      resolvedDefaultGarden: garden,
+    });
+    expect(renderHook(() => useAdminAccessState()).result.current.status).toBe("ready");
   });
 
   it("shows no access for a passkey account without eligible gardens", () => {

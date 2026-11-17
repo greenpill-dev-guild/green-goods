@@ -76,6 +76,8 @@ export interface RoleInfo {
   isAgent: boolean;
   isTechnicalDeployer: boolean;
   protocolRolesError: boolean;
+  /** The deployment registry could not be read, so `isDeployer` is unknown rather than false. */
+  deploymentPermissionsError: boolean;
   isSteward: boolean;
   stewardGardens: StewardGarden[];
   loading: boolean;
@@ -152,6 +154,7 @@ export function useRole(): RoleInfo {
     isAgent: protocolRoles.agents,
     isTechnicalDeployer: protocolRoles.deployer,
     protocolRolesError: protocolRoles.isError,
+    deploymentPermissionsError: deploymentRegistry.error !== undefined,
     isSteward,
     stewardGardens,
     loading: !ready || isFetching || deploymentRegistry.loading || protocolRoles.isLoading,

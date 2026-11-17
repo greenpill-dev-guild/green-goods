@@ -231,6 +231,17 @@ describe("useRole", () => {
     expect(result.current.loading).toBe(false);
   });
 
+  it("reports an unread deployment registry apart from the garden reads", async () => {
+    mocks.registry = { ...mocks.registry, error: "RPC connection failed" } as typeof mocks.registry;
+    const { result } = renderRole();
+    await waitFor(() => expect(result.current.role).toBe("steward"));
+    expect(result.current).toMatchObject({
+      isDeployer: false,
+      deploymentPermissionsError: true,
+      gardensError: false,
+    });
+  });
+
   it("distinguishes an indexer outage from no access and recovers on refetch", async () => {
     vi.spyOn(logger, "error").mockImplementation(() => {});
     mocks.query.mockResolvedValueOnce({ error: new Error("Indexer unavailable") });

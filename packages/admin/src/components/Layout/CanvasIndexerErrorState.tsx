@@ -14,7 +14,8 @@ interface CanvasIndexerErrorStateProps {
  * Distinct from `CanvasGardenAccessState` — that copy implies "you don't have
  * access yet"; this copy says "we can't tell yet". Mixing the two during an
  * outage was the deceptive UX flagged in the audit. The copy names no source:
- * the error covers the indexer's garden reads and the chain's role read alike.
+ * the error covers the indexer's garden reads and the chain's role and
+ * garden-creation permission reads alike.
  */
 export function CanvasIndexerErrorState({ onRetry }: CanvasIndexerErrorStateProps) {
   const { formatMessage } = useIntl();
