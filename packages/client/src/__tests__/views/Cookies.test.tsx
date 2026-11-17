@@ -106,7 +106,9 @@ vi.mock("@green-goods/shared/utils/blockchain/vaults", async (importOriginal) =>
 
 vi.mock("@green-goods/shared/components/Display/ImageWithFallback", async () => {
   return {
-    ImageWithFallback: (props: React.ImgHTMLAttributes<HTMLImageElement>) => <img {...props} />,
+    ImageWithFallback: ({ alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) => (
+      <img alt={alt} {...props} />
+    ),
   };
 });
 

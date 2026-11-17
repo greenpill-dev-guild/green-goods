@@ -13,7 +13,7 @@ const meta: Meta<typeof AdminTextField> = {
     docs: {
       description: {
         component:
-          "The cockpit's text field, in the installed app's anatomy (F3): the label above, an outlined box at the cockpit's 8px corner on the responsive tier (44px with 16px text on touch widths, 40px with 14px from 640px), icon slots, and the message line under it, which reserves two lines for a hint, an error or a character count.",
+          "The Hub's text field, in the installed app's anatomy (F3): the label above, an outlined box at the Hub's 8px corner on the responsive tier (44px with 16px text on touch widths, 40px with 14px from 640px), icon slots, and the message line under it, which reserves two lines for a hint, an error or a character count.",
       },
     },
   },
@@ -376,14 +376,14 @@ export const StatesShowOnTheBox: Story = {
 };
 
 /**
- * In dark each box draws the cockpit's control outline, --m3-outline (#a8a29e,
- * DL-098), as the running cockpit does. The story sits in Storybook's dark theme
- * frame, a dark scope the cockpit never has, where shared theme.css re-declares
- * the outline as its dark hairline (about 1.9:1); surfaces.css gives the cockpit's
+ * In dark each box draws the Hub's control outline, --m3-outline (#a8a29e,
+ * DL-098), as the running Hub does. The story sits in Storybook's dark theme
+ * frame, a dark scope the Hub never has, where shared theme.css re-declares
+ * the outline as its dark hairline (about 1.9:1); surfaces.css gives the Hub's
  * back to every dark scope below an admin root. Checked in browser mode, where the
  * cascade layers apply.
  */
-export const CockpitOutlineInDark: Story = {
+export const HubOutlineInDark: Story = {
   tags: ["storybook-ci"],
   globals: { theme: "dark" },
   render: () => (
@@ -417,7 +417,7 @@ export const CockpitOutlineInDark: Story = {
   },
 };
 
-/** The status aliases the cockpit resolves above <body>'s ramp remap, or on <body> itself. */
+/** The status aliases the Hub resolves above <body>'s ramp remap, or on <body> itself. */
 const STATUS_ALIASES = [
   "--error-base",
   "--error-dark",
@@ -435,14 +435,14 @@ const STATUS_ALIASES = [
 ] as const;
 
 /**
- * In dark an error draws the cockpit's red, and every status alias in the story
- * reads what the cockpit resolves: the value on <body>, where the dialogs a story
+ * In dark an error draws the Hub's red, and every status alias in the story
+ * reads what the Hub resolves: the value on <body>, where the dialogs a story
  * portals read it too. The theme frame sits below <body>, so theme.css's and
  * admin-m3-tokens.css's dark blocks would resolve the aliases again against the
- * cockpit's remapped ramps; surfaces.css hands the frame the document's values
+ * Hub's remapped ramps; surfaces.css hands the frame the document's values
  * instead. Checked in browser mode, where the cascade layers apply.
  */
-export const CockpitStatusInDark: Story = {
+export const HubStatusInDark: Story = {
   tags: ["storybook-ci"],
   globals: { theme: "dark" },
   render: () => (

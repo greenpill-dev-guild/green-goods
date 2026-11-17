@@ -458,6 +458,27 @@ describe("createMutationErrorHandler", () => {
       // mockKnownParsedResult has recoverable: false
       expect(mockWalletProgressError.mock.calls[0][1]).toBe(false);
     });
+
+    // PRD-1499: an act refused because the wallet has not answered, before it started.
+    it("leaves the ask to the wallet reconnect prompt, and still tracks the refusal", async () => {
+      // Imported after the reset, as the handler is, so the class is the one it checks.
+      const { WalletReconnectRequiredError } = await import(
+        "../../../utils/errors/unsent-failures"
+      );
+      const handler = createMutationErrorHandler({ source: "useTest", toastContext: "test" });
+
+      handler(new WalletReconnectRequiredError(true), { authMode: "wallet" });
+      // An act that wraps the refusal in an error of its own is followed to it.
+      handler(new Error("Approval failed", { cause: new WalletReconnectRequiredError(true) }), {
+        authMode: "wallet",
+      });
+      expect(mockToastError).not.toHaveBeenCalled();
+      expect(mockTrackContractError).toHaveBeenCalledTimes(2);
+
+      // With no prompt mounted to ask, the act says so itself.
+      handler(new WalletReconnectRequiredError(false), { authMode: "wallet" });
+      expect(mockToastError).toHaveBeenCalledOnce();
+    });
   });
 
   // ------------------------------------------

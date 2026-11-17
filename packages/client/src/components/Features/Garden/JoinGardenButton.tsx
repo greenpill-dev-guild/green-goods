@@ -2,6 +2,7 @@ import { Button } from "@green-goods/shared/components/Button";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { useJoinGarden } from "@green-goods/shared/hooks/garden/useJoinGarden";
 import { logger } from "@green-goods/shared/modules/app/logger";
+import { wasAskedToReconnect } from "@green-goods/shared/utils/errors/tx-error-classifier";
 import { lazy, Suspense, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
@@ -55,6 +56,8 @@ export function JoinGardenButton({ gardenId, gardenName }: JoinGardenButtonProps
       }
       navigate(APP_ROUTES.home, { replace: true, viewTransition: true });
     } catch (error) {
+      // A wallet that has not answered was already asked to reconnect; nothing was sent.
+      if (wasAskedToReconnect(error)) return;
       logger.error("Failed to join garden", { error, gardenId });
       toastService.error({
         title: intl.formatMessage({

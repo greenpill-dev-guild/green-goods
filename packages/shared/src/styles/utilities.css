@@ -296,6 +296,15 @@
     }
   }
 
+  /* A browser without the Popover API (Chrome before 114, Safari before 17) draws a
+   * popover as ordinary content, in the flow and always there, and nothing can open
+   * it. Hide it as a closed popover is hidden. */
+  @supports not selector(:popover-open) {
+    [popover] {
+      display: none;
+    }
+  }
+
   /* ── Shimmer Skeleton ── */
   @keyframes shimmer {
     0% {
@@ -521,10 +530,10 @@
   /* ── The bottom sheet's material (DL-028) ──
    * One solid surface for every bottom sheet: the fill, a hairline on its top
    * and sides, its top corners and the float shadow. PwaSheet's surface carries
-   * it, and so do the cockpit's AdminDialog and AdminSideSheet below 640px. A
+   * it, and so do the Hub's AdminDialog and AdminSideSheet below 640px. A
    * surface tunes the fill and the hairline through `--gg-sheet-fill` and
    * `--gg-sheet-edge`, with the installed app's values as the fallback
-   * (DL-031): the cockpit points them at the same steps of the one ladder. */
+   * (DL-031): the Hub points them at the same steps of the one ladder. */
   [data-sheet-surface] {
     border: 1px solid var(--gg-sheet-edge, rgb(var(--stroke-soft-200)));
     border-bottom: 0;
@@ -567,7 +576,7 @@
 
   /* The grip (SheetGrip) tops every bottom sheet. Only a sheet that binds the
    * gesture marks its handle as a drag region and takes the grab cursor; the
-   * cockpit's phone dialogs show the grip without one. */
+   * Hub's phone dialogs show the grip without one. */
   [data-component="SheetGrip"][data-slot="drag-handle"] {
     display: flex;
     flex-shrink: 0;
@@ -598,7 +607,7 @@
    * keeps its own bottom rule. The title and description sizes live here, in
    * the components layer, so no consumer stylesheet may carry unlayered
    * element type rules. A surface sets its own title size through
-   * `--gg-sheet-title-size` and `--gg-sheet-title-line` (the cockpit keeps its
+   * `--gg-sheet-title-size` and `--gg-sheet-title-line` (the Hub keeps its
    * 22px dialog title); the installed app's 18px is the fallback. */
   [data-component="SheetHeader"][data-slot="root"] {
     display: flex;

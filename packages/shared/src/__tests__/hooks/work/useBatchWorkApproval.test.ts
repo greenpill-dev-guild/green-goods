@@ -14,12 +14,18 @@ import { useBatchWorkApproval } from "../../../hooks/work/useBatchWorkApproval";
 import type { BatchExecution } from "../../../modules/transactions/batch-types";
 import type { OverlayWork } from "../../../modules/work/local-status-overlay";
 import type { ReviewDecision } from "../../../modules/work/review-batch";
-import type { Address, WorkApprovalDraft } from "../../../types/domain";
-import { Confidence, VerificationMethod } from "../../../types/domain";
+import {
+  type Address,
+  type WorkApprovalDraft,
+  Confidence,
+  VerificationMethod,
+} from "../../../types/domain";
 import { encodeWorkApprovalData } from "../../../utils/eas/encoders";
 import { createTestQueryClient } from "../../test-utils/query-client";
 import { renderHookWithProviders } from "../../test-utils/render-helpers";
 import { createFakeBatchingSender } from "../../test-utils/transaction-fakes";
+import { onWalletReconnectAsk, refuseWithoutWallet } from "../../../modules/auth/wallet-reconnect";
+import { track } from "../../../modules/app/posthog";
 
 const { auth, chainState, sending, toasts, listing } = vi.hoisted(() => ({
   auth: { primaryAddress: null as string | null, passkeyAccountProfile: "kernel-0.3.1-legacy" },
@@ -55,7 +61,8 @@ vi.mock("../../../modules/data/eas", () => ({
     chainState.decided.has(workUID) ? [{ id: "earlier" }] : []
   ),
 }));
-vi.mock("@wagmi/core", () => ({
+vi.mock("@wagmi/core", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@wagmi/core")>()),
   // Every work here was made after the resolver began counting decisions, so it counts each one.
   readContract: vi.fn(
     async (_config, { functionName, args = [""] }: { functionName: string; args?: [string] }) => {
@@ -182,6 +189,26 @@ describe("useBatchWorkApproval", () => {
     chainState.decided = new Set();
     chainState.logs = [];
     chainState.attestations = new Map();
+  });
+
+  it("keeps reconnect-refused decisions pending without action start or failure events", async () => {
+    const { sender, decide, listWorks, workOf, render } = setup();
+    sender.assertReadyToSign = vi.fn(refuseWithoutWallet);
+    const decision = decide();
+    listWorks([decision]);
+    const { result } = render();
+    const asked = vi.fn();
+    const stop = onWalletReconnectAsk(asked);
+    try {
+      await act(() => result.current.send([decision]));
+      expect(asked).toHaveBeenCalledOnce();
+      expect(sender.sendContractCall).not.toHaveBeenCalled();
+      expect(track).not.toHaveBeenCalledWith("batch_approval_started", expect.anything());
+      expect(track).not.toHaveBeenCalledWith("batch_approval_failed", expect.anything());
+      expect(workOf(decision)).toMatchObject({ status: "pending", _isPending: false });
+    } finally {
+      stop();
+    }
   });
 
   it.each([

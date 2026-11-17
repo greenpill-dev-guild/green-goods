@@ -48,7 +48,7 @@ test.describe("Admin Authentication", () => {
       await seedAcceptedUploadTerms(context, ADMIN_URL, ["steward", "deployer"]);
     });
 
-    // Each test boots the signed-in cockpit one to three times. A boot shows "Opening your
+    // Each test boots the signed-in the Hub one to three times. A boot shows "Opening your
     // workspace…" for 10 to 20 seconds on a quiet clean-room dev server, and the first also
     // compiles the signed-in module graph, which the global warm-up (a signed-out boot) never
     // reaches. On a busy machine a boot outlasts the helper's 30s wait for `main`, so every
@@ -147,7 +147,6 @@ test.describe("Admin Authentication", () => {
       await waitForSignedInBoot(page2, helper2);
       await expect(page2.getByText("Connect to continue")).toHaveCount(0);
 
-      // Close tabs
       await page1.close();
       await page2.close();
     });

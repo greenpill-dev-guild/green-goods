@@ -1,6 +1,6 @@
 /**
  * MediaCardPicker — choosing one object from media cards, the same on the installed app
- * and the cockpit: the action a work answers, or the garden it is for.
+ * and the Hub: the action a work answers, or the garden it is for.
  *
  * The cards are the options of one listbox with one tab stop: Tab reaches the chosen card (or,
  * with nothing chosen, the first), the arrow keys and Home and End move between cards, and Space,
@@ -9,7 +9,7 @@
  * focus moves. The chosen card takes the media card's selected mark, the 3px border in the focus
  * role. `row` lays the cards in one row that scrolls sideways, each 90% of it, snapping
  * to a card's start (the installed app); `grid` lays them one to a row, then two once the
- * picker is 36rem wide (the cockpit's flow dialog); `tiles` lays them two to a row at every
+ * picker is 36rem wide (the Hub's flow dialog); `tiles` lays them two to a row at every
  * width, each picture in a 16:9 frame and each title on two lines, so every tile is one height
  * (the installed app's Start step, DL-131). While the options load, `loading` holds their place
  * with four empty cards in the same layout (DL-056).

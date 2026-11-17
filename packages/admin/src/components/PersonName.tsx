@@ -11,7 +11,7 @@ interface PersonNameProps {
 }
 
 /**
- * What the cockpit calls a person in a line of text: the name the shared address display
+ * What the Hub calls a person in a line of text: the name the shared address display
  * resolves (their Green Goods name, then their ENS name, then a short address, never a raw
  * hex string), so a confirmer chip, a member suggestion, a Review Promises row and a person
  * row name the same person the same way (DL-112), in one style (PRD-1025 D11): 14px

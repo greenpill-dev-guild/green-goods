@@ -1,3 +1,5 @@
+import { gardenContributionDetail } from "@green-goods/shared/components/GardenContributionDate";
+import { useGardenMemberContributions } from "@green-goods/shared/hooks/garden/useGardenMemberContributions";
 import { useGardenMemberHistory } from "@green-goods/shared/hooks/garden/useGardenMemberHistory";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { Button } from "@green-goods/shared/components/Button";
@@ -49,7 +51,12 @@ export function CommunityMembersTab({
   setMemberSearch,
   visibleDirectory,
 }: CommunityMembersTabProps) {
-  const { formatMessage, formatDate } = useIntl();
+  const intl = useIntl();
+  const { formatMessage, formatDate } = intl;
+  const contributions = useGardenMemberContributions({
+    garden,
+    accounts: visibleDirectory.map((entry) => entry.address),
+  });
   const history = useGardenMemberHistory({
     garden: isAddress(garden.id) ? garden.id : undefined,
     chainId: garden.chainId,
@@ -191,6 +198,12 @@ export function CommunityMembersTab({
               // says how many roles they hold when it is more than that one (DL-112).
               <ul className="flex flex-col gap-(--gg-list-gap)">
                 {filteredDirectory.map((entry) => {
+                  const contribution = contributions.canView
+                    ? gardenContributionDetail(
+                        contributions.byAccount[entry.address.toLowerCase()],
+                        intl
+                      )
+                    : undefined;
                   const joinedAt = historyByAccount.get(entry.address.toLowerCase())?.joinedAt;
                   const joined = joinedAt
                     ? {
@@ -221,13 +234,17 @@ export function CommunityMembersTab({
                         roles={entry.roles}
                         chainId={garden.chainId}
                         details={
-                          joined
+                          contribution
                             ? count
-                              ? [joined, count]
-                              : [joined]
-                            : count
-                              ? [count]
-                              : undefined
+                              ? [contribution, count]
+                              : [contribution]
+                            : joined
+                              ? count
+                                ? [joined, count]
+                                : [joined]
+                              : count
+                                ? [count]
+                                : undefined
                         }
                         action={
                           canManage ? (

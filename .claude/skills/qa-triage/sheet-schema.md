@@ -16,10 +16,10 @@ The skill **always** uses the column order read from the Sheet, not the order in
 |---|---|---|
 | `Guide` | Auxiliary | QA execution rules. Read-only for this skill. |
 | `Summary` | Auxiliary | Per-surface pass/fail/blocked counters. Recomputed from formulas. Read-only. |
-| `Public Website` | Test | 8 test rows covering client editorial routes. |
-| `PWA iOS` | Test | 10 test rows covering installed iOS PWA scenarios. |
-| `PWA Android` | Test | 8 test rows covering installed Android PWA scenarios. |
-| `Admin Dashboard` | Test | 11 test rows covering admin cockpit surfaces. |
+| `Green Goods Website` | Test | 8 test rows covering client editorial routes. |
+| `Green Goods App iOS` | Test | 10 test rows covering installed iOS PWA scenarios. |
+| `Green Goods App Android` | Test | 8 test rows covering installed Android PWA scenarios. |
+| `Green Goods Hub` | Test | 11 test rows covering the Hub's surfaces. |
 | `Cross Surface` | Test | 4 test rows for visual / copy / error / evidence-quality cross-cutting checks. |
 | `Defects` | Defects | Bug records. The skill appends new rows here and references them from Test rows via `Defect Link`. |
 
@@ -33,7 +33,7 @@ A `Docs` surface exists upstream in the catalog and in generated run sheets; it 
 
 Test-scenario **definitions** are versioned in the repo: `scripts/data/qa-test-catalog.json` is the upstream source of truth (Test IDs, areas, scenarios, steps, expected results, roles). This Sheet is the **live defect log and team run ledger**; its test tabs are downstream. `bun run qa workbook` projects the catalog into a simplified human-first run sheet (Overview + surface tabs, 8 columns) used for walkthroughs — Test ID / Area / Scenario stay verbatim, so this skill's matching keeps working. When definitions change, reconcile this Sheet by appending new rows or marking retired ones — never rewrite historical result columns. Results, owners, defect links, and PostHog data live only here and in run sheets stored in Drive, never in the public repo.
 
-Catalog **v2** (2026-08-29) merged the active tab model to four surfaces: `Public Website | PWA | Admin Dashboard | Docs`. The installed-PWA iOS/Android split and the `Cross Surface` tab exist only on retired rows now; device-specific cases keep their `PWA-IOS-` / `PWA-AND-` / `PWA-ROLE-` id prefixes (and their `[iOS]` / `[Android]` scenario markers) inside the merged `PWA` surface. When reconciling this Sheet against v2, route by prefix so platform identity survives: `PWA-IOS-*` rows go to the `PWA iOS` tab, `PWA-AND-*` rows to `PWA Android`, and `PWA-ROLE-*` rows to the legacy tab matching their `[iOS]`/`[Android]` scenario marker. Generic `PWA-*` rows have no legacy home — like the Docs rule above, **do not emit backfill rows targeting them until this Sheet gains a merged `PWA` tab** (create it from the catalog definitions in this Sheet's own 20-column schema, then add it to the tab table). Historical tabs and result columns stay untouched.
+Catalog **v2** (2026-08-29) merged the active tab model to four surfaces, named since 2026-11-14 `Green Goods Website | Green Goods App | Green Goods Hub | Docs`. The installed-app iOS/Android split and the `Cross Surface` tab exist only on retired rows now; device-specific cases keep their `PWA-IOS-` / `PWA-AND-` / `PWA-ROLE-` id prefixes (and their `[iOS]` / `[Android]` scenario markers) inside the merged `Green Goods App` surface. When reconciling this Sheet against v2, route by prefix so platform identity survives: `PWA-IOS-*` rows go to the `Green Goods App iOS` tab, `PWA-AND-*` rows to `Green Goods App Android`, and `PWA-ROLE-*` rows to the legacy tab matching their `[iOS]`/`[Android]` scenario marker. Generic `PWA-*` rows have no legacy home — like the Docs rule above, **do not emit backfill rows targeting them until this Sheet gains a merged `Green Goods App` tab** (create it from the catalog definitions in this Sheet's own 20-column schema, then add it to the tab table). Historical tabs and result columns stay untouched.
 
 ---
 
@@ -46,7 +46,7 @@ The Defects tab is the skill's primary write target. Column order **after** the 
 | 1 | `Defect ID` | string | Auto-generated `D-NNN` from `max(existing) + 1` |
 | 2 | `Linked Test ID` | string | Phase 5 — set only when the extraction or `[derived:test-fail]` names a Test ID (e.g. `ADM-006`) |
 | 3 | `Severity` | enum | `P0 \| P1 \| P2 \| P3` (defaults: see below) |
-| 4 | `Surface` | enum | `Public Website \| PWA iOS \| PWA Android \| Admin Dashboard \| Cross Surface \| Docs` |
+| 4 | `Surface` | enum | `Green Goods Website \| Green Goods App iOS \| Green Goods App Android \| Green Goods Hub \| Cross Surface \| Docs` |
 | 5 | `Title` | string | The extraction's one-line description |
 | 6 | `Owner` | string | Phase 5 assignee-dialog result |
 | 7 | `Status` | enum | `Open` by default |
@@ -89,7 +89,7 @@ The user pastes this into row 1 of the Defects tab, starting in the first empty 
 
 ## Test tab schema
 
-The 5 Test tabs (`Public Website`, `PWA iOS`, `PWA Android`, `Admin Dashboard`, `Cross Surface`) share a 20-column schema.
+The 5 Test tabs (`Green Goods Website`, `Green Goods App iOS`, `Green Goods App Android`, `Green Goods Hub`, `Cross Surface`) share a 20-column schema.
 
 | # | Column | Filled by | Mutable by skill? |
 |---|---|---|---|
@@ -123,8 +123,8 @@ Phase 5 emits `sheet-test-backfill.csv` of shape:
 
 ```csv
 tab,test_id,defect_link
-PWA iOS,PWA-IOS-004,D-018
-Admin Dashboard,ADM-006,D-019
+Green Goods App iOS,PWA-IOS-004,D-018
+Green Goods Hub,ADM-006,D-019
 ```
 
 Phase 6's guided-paste step lists each `(tab, test_id)` pair and asks the user to navigate to the row and paste the `defect_link` value into the `Defect Link` cell. Single-column-precise; no other column touched.
@@ -133,19 +133,19 @@ Phase 6's guided-paste step lists each `(tab, test_id)` pair and asks the user t
 
 ## Surface vocabulary
 
-The skill's surface vocabulary matches the Sheet's `Surface` column values, plus a sixth value `Docs`:
+The skill's surface vocabulary matches the Sheet's `Surface` column values, plus a sixth value `Docs`. Rows filed before 2026-11-14 keep the old names (`Public Website`, `PWA iOS`, `PWA Android`, `Admin Dashboard`); read them as the same surfaces when matching or deduplicating, and write the new names on new rows:
 
 | Vocabulary | Source surface | Test tab | PostHog project |
 |---|---|---|---|
-| `Public Website` | Client editorial (`packages/client` in website mode) | `Public Website` | App `163591` |
-| `PWA` | Client app (merged surface; desktop shell or device-unspecified) | — route by prefix; merged tab pending | App `163591` |
-| `PWA iOS` | Installed PWA on iOS | `PWA iOS` | App `163591` |
-| `PWA Android` | Installed PWA on Android | `PWA Android` | App `163591` |
-| `Admin Dashboard` | Admin cockpit (`packages/admin`) | `Admin Dashboard` | Admin `262122` |
+| `Green Goods Website` | Client editorial (`packages/client` in website mode) | `Green Goods Website` | App `163591` |
+| `Green Goods App` | Client app (merged surface; desktop shell or device-unspecified) | — route by prefix; merged tab pending | App `163591` |
+| `Green Goods App iOS` | Installed PWA on iOS | `Green Goods App iOS` | App `163591` |
+| `Green Goods App Android` | Installed PWA on Android | `Green Goods App Android` | App `163591` |
+| `Green Goods Hub` | The Hub (`packages/admin`) | `Green Goods Hub` | Admin `262122` |
 | `Cross Surface` | Multi-surface / cross-cutting | `Cross Surface` | App + Admin (per-surface) |
 | `Docs` | Docusaurus (`docs/`) | — (no test tab) | none |
 
-Platform assignment: when the notes name a device, use `PWA iOS` or `PWA Android`; when they discuss the client app without naming a device (or the desktop shell), use the merged `PWA` surface — never default to iOS. `Cross Surface` is only for observations genuinely spanning client and admin.
+Platform assignment: when the notes name a device, use `Green Goods App iOS` or `Green Goods App Android`; when they discuss the client app without naming a device (or the desktop shell), use the merged `Green Goods App` surface — never default to iOS. `Cross Surface` is only for observations genuinely spanning client and admin.
 
 ---
 

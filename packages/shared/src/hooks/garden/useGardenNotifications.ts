@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { worksKeys } from "../../config/query-keys/work";
@@ -23,6 +23,7 @@ import { useHasRole } from "../roles/useHasRole";
 import { useDocumentEvent } from "../utils/useEventListener";
 import { useTimeout } from "../utils/useTimeout";
 import { useWorks } from "../work/useWorks";
+import { useWorkVisibility, workVisibilityQuery } from "../work/useWorkVisibility";
 import { useGardenPermissions } from "./useGardenPermissions";
 import { useJoinRequestCount } from "./useJoinRequestCount";
 import { useMyGardens } from "./useMyGardens";
@@ -91,6 +92,9 @@ const WEEK_BOUNDARY_MARGIN_MS = 1_000;
  */
 export function useGardenNotifications(gardenId: string): GardenNotifications {
   const chainId = DEFAULT_CHAIN_ID;
+  const queryClient = useQueryClient();
+  const visibility = useWorkVisibility(chainId);
+  const { isVisible } = visibility;
   const account = usePrimaryAddress();
   const myGardens = useMyGardens(account, chainId);
   const permissions = useGardenPermissions();
@@ -117,18 +121,19 @@ export function useGardenNotifications(gardenId: string): GardenNotifications {
   });
 
   // The garden's page of works, read as the installed app's other work screens read it, so they
-  // share one projection and the bell never writes the cockpit's merged rows, which those screens
+  // share one projection and the bell never writes the Hub's merged rows, which those screens
   // take as overlays.
   const workRead = useWorks(gardenId, { offline: true });
   // The week's works and decisions, however far back each work began: the page holds only the
   // newest works, and an older one decided this week is as new as a fresh submission.
   const activityRead = useQuery({
     queryKey: worksKeys.activity(gardenId, chainId),
-    queryFn: () =>
+    queryFn: async () =>
       readGardenActivity({
         garden: gardenId,
         chainId,
         since: nowInSeconds() - NEW_NOTIFICATION_WINDOW_SECONDS,
+        visibility: await queryClient.fetchQuery(workVisibilityQuery(chainId)),
       }),
     enabled: Boolean(gardenId),
     networkMode: "online",
@@ -191,7 +196,11 @@ export function useGardenNotifications(gardenId: string): GardenNotifications {
     // The page's rows carry this device's own decisions, so they win where both list a work.
     const onPage = new Set(works.map((work) => work.id));
     const week = activity
-      ? resolveGardenWorkRows({ remote: activity.rows, saved: undefined, overlay: undefined })
+      ? resolveGardenWorkRows({
+          remote: activity.rows.filter((work) => isVisible(work.id)),
+          saved: undefined,
+          overlay: undefined,
+        })
       : null;
     // A work whose decisions disagree in one timestamp bucket has no known status: it is listed
     // neither as a submission nor as a decision, and the week is incomplete for it.
@@ -229,6 +238,7 @@ export function useGardenNotifications(gardenId: string): GardenNotifications {
     canDecideTakeUps,
     works,
     activity,
+    isVisible,
     poolId,
     cachedCommitments,
     cachedTakeUps,

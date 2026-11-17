@@ -123,7 +123,7 @@ button.garden-stat-row:hover {
 
   /**
    * Canvas route frame — the region that wraps a workspace view (Review, Garden,
-   * Community, Actions, Cookies, etc.). Cockpit M3 1a: the linen canvas IS the
+   * Community, Actions, Cookies, etc.). Hub M3 1a: the linen canvas IS the
    * page ground, so this frame is transparent — route header, tab rail, and
    * card grids sit directly on the canvas and its tone wash. Cards (white,
    * elevation level 1) provide the raised surfaces. Padding follows the 1a
@@ -193,8 +193,8 @@ button.garden-stat-row:hover {
   }
 
   /* ── Workbench surfaces (Review's workbench grid + Actions WorkbenchCard) ──
-     WorkbenchCard, a shared Canvas component, renders only in the cockpit, so
-     its elevation, hover and selected treatment lives here with the cockpit's
+     WorkbenchCard, a shared Canvas component, renders only in the Hub, so
+     its elevation, hover and selected treatment lives here with the Hub's
      other surface rules, as named classes the card carries. Its fill, edge and
      corner are the shared card surface (.gg-card). */
   .review-workbench-grid {
@@ -232,7 +232,7 @@ button.garden-stat-row:hover {
   }
 
   /* Hover feedback is a pure elevation step (1 → 2) with box-shadow 150ms —
-     no translate lift, no hue shift (Cockpit M3 1a interaction contract). */
+     no translate lift, no hue shift (Hub M3 1a interaction contract). */
   .workbench-card {
     transition-property: background-color, box-shadow;
     transition-duration: var(--spring-effects-fast-duration);

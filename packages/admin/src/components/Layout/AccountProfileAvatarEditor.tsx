@@ -7,6 +7,7 @@ import {
   useResolvedProfileAvatar,
 } from "@green-goods/shared/hooks/profile/useProfileAvatar";
 import { mediaResourceManager } from "@green-goods/shared/modules/job-queue/media-resource-manager";
+import { wasAskedToReconnect } from "@green-goods/shared/utils/errors/tx-error-classifier";
 import {
   getProfileAvatarFailureMessage,
   getProfileAvatarStageMessage,
@@ -86,6 +87,7 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
       await editor.save(selectedFile);
       setSelectedFile(null);
     } catch (caught) {
+      if (wasAskedToReconnect(caught)) return;
       if (caught instanceof UploadPolicyCancelledError) return;
       setSelectedFile(null);
       setError(getProfileAvatarFailureMessage("save", formatMessage));
@@ -97,7 +99,8 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
     try {
       await editor.clear();
       setSelectedFile(null);
-    } catch {
+    } catch (caught) {
+      if (wasAskedToReconnect(caught)) return;
       setError(getProfileAvatarFailureMessage("remove", formatMessage));
     }
   };
@@ -107,6 +110,7 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
     try {
       await editor.continueAfterReconnect();
     } catch (caught) {
+      if (wasAskedToReconnect(caught)) return;
       if (caught instanceof UploadPolicyCancelledError) return;
       setError(getProfileAvatarFailureMessage("continue", formatMessage));
     }

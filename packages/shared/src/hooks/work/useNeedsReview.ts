@@ -26,6 +26,7 @@ import type { EASWorkListRow } from "../../types/eas-responses";
 import { isUserAddress } from "../../utils/blockchain/address";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { gardenWorkListQuery } from "./gardenWorkListQuery";
+import { useWorkVisibility } from "./useWorkVisibility";
 
 export interface NeedsReviewState {
   /** Loaded work rows, including reviewed history, for opening their detail route. */
@@ -89,6 +90,8 @@ export function useNeedsReview(
   const queryClient = useQueryClient();
   const primaryAddress = usePrimaryAddress();
   const chainId = DEFAULT_CHAIN_ID;
+  const visibility = useWorkVisibility(chainId);
+  const { isVisible } = visibility;
   const gardenKey = [...new Set(gardenIds.map((id) => id.toLowerCase()))].sort().join(",");
   const gardens = useMemo(() => (gardenKey ? gardenKey.split(",") : []), [gardenKey]);
 
@@ -140,11 +143,14 @@ export function useNeedsReview(
         overlay: decisions[index],
         now,
       });
-      unknown += unknownIds.size;
       for (const row of rows) {
+        if (!isVisible(row.id)) continue;
         allWorks.push(row);
         // A work whose status is unknown stays out rather than asking for a second review.
-        if (unknownIds.has(row.id)) continue;
+        if (unknownIds.has(row.id)) {
+          unknown++;
+          continue;
+        }
         if (row.status === "pending") {
           if (!isUserAddress(row.gardenerAddress, address)) works.push(row);
         } else if (
@@ -162,7 +168,7 @@ export function useNeedsReview(
       unknown,
       incomplete,
     };
-  }, [gardens, reads.data, saved, decisions, address, chainId, queryClient]);
+  }, [gardens, reads.data, saved, decisions, address, chainId, queryClient, isVisible]);
 
   const { refetchers } = reads;
   const refetch = useCallback(async () => {
@@ -178,10 +184,10 @@ export function useNeedsReview(
     decidedHere: resolved.decidedHere,
     ready:
       gardens.length === 0 ||
-      (reads.allSucceeded && resolved.unknown === 0 && !resolved.incomplete),
-    isLoading: reads.isLoading,
-    isFetching: reads.isFetching,
-    isError: reads.isError,
+      (visibility.isReady && reads.allSucceeded && resolved.unknown === 0 && !resolved.incomplete),
+    isLoading: reads.isLoading || (!visibility.isReady && visibility.isLoading),
+    isFetching: reads.isFetching || visibility.isFetching,
+    isError: reads.isError || (!visibility.isReady && visibility.isError),
     savedAt: reads.savedAt,
     refetch,
   };

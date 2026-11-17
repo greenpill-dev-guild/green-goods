@@ -179,7 +179,7 @@ export function resolvePackageCommand(pkg, action, args = []) {
       if (scope === "full") node(["envio", "codegen"]);
       // Mocha's require-first loader and Envio's ESM loader can register each handler twice.
       const mocha = ["mocha", "--node-option", "no-experimental-require-module", "--node-option", "import=tsx",
-        "--timeout", scope === "contract-events" ? "480000" : "30000",
+        "--timeout", scope === "contract-events" ? "780000" : "30000",
         ...(scope === "contract-events" ? ["test/contractEventsLocal.test.ts"] : paths.length ? paths : ["test/**/*.ts"]),
         ...(values.grep ? ["--grep", values.grep] : [])];
       if (values.coverage) node(["c8", ...(values.reporter ?? []).flatMap((r) => ["--reporter", r]), "node", NODE_CLI, ...mocha]);

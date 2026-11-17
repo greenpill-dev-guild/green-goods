@@ -1,7 +1,7 @@
 // The photos staged on Submit Work's media step: how many against what the
 // action requires, and each one as a tile that opens larger and can be removed.
 // The count follows the PWA's media rule pill (amber until the requirement is
-// met, then green with a tick) in the cockpit's own status badge. The tiles sit
+// met, then green with a tick) in the Hub's own status badge. The tiles sit
 // beside the shared FileUploadField, which keeps only its label and upload well
 // here, so the four other admin forms that use it are untouched.
 
@@ -13,6 +13,7 @@ import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import {
   getWorkMediaId,
   isVideoFile,
+  isWorkMedia,
   isWorkPhoto,
 } from "@green-goods/shared/modules/work/media-processing";
 import {
@@ -30,7 +31,7 @@ import { imagePreviewLabels } from "@/components/imagePreviewLabels";
 export interface SubmitWorkPhotosProps {
   /** Media staged for this submission, in the order it was added. */
   images: File[];
-  /** How many photos the action requires; 0 when photos are optional. */
+  /** How many photos or videos the action requires; 0 when media is optional. */
   minRequired: number;
   onRemove: (index: number) => void;
 }
@@ -73,9 +74,8 @@ export function SubmitWorkPhotos({ images, minRequired, onRemove }: SubmitWorkPh
     };
   }, []);
 
-  // The requirement is in photos, so only photos count: the same rule the Next
-  // button and the submission check.
-  const count = images.filter((file) => isWorkPhoto(file)).length;
+  // Share the minimum with Next and submission, while previews remain photo-only.
+  const count = images.filter((file) => isWorkMedia(file)).length;
   const met = count >= minRequired;
   const showCount = minRequired > 0 || count > 0;
 

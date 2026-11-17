@@ -28,6 +28,7 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 
 import { getPwaSheetExitMs } from "@/components/Pwa/sheetStyles";
 import { APP_ROUTES } from "@/config/pwaRouting";
+import { AddedGardensToast } from "./AddedGardensToast";
 import {
   type ArrivalActionKind,
   arrivalToastSpec,
@@ -465,6 +466,7 @@ const Home: React.FC = () => {
         </HomeShownContext>
       </div>
       <Outlet />
+      <AddedGardensToast home={isHomeRoute} onSwitch={pickGarden} onChoose={openSwitcher} />
       {isSwitcherPresent ? (
         <Suspense fallback={null}>
           <GardenSwitcherSheet

@@ -1,177 +1,76 @@
----
-name: plan/brainstorm
-description: Pre-plan exploration when requirements are fuzzy — turns a vague idea into an approved design before any plan steps are written
----
+# Brainstorm before planning
 
-# Brainstorm Before Plan
+Part of the [plan skill](SKILL.md). Turn a fuzzy idea into an approved design through dialogue before any plan steps exist. Paths and priorities come from the adapter's `## plan` section.
 
-Turn ideas into designs through collaborative dialogue before committing to a plan. Fires when requirements are too fuzzy to start planning directly.
+## When
 
-## When to brainstorm
-
-Brainstorm first when any of the following are true:
-
-- The user's request has no clear "done when" criteria
-- Multiple plausible approaches exist and the tradeoffs haven't been discussed
-- The request spans 3+ packages and scope isn't bounded
-- The user says "what do you think?" / "how should we approach this?" / "let's figure out..."
-- Scope feels like a platform rather than a feature ("build a dashboard with charts, filters, and export")
-
-**Skip brainstorming when** the request is single-file, a clear bug report, a config change, or an execution of an already-approved plan.
+Brainstorm first when the request has no clear "done when", several plausible approaches have undiscussed tradeoffs, it spans 3+ packages with unbounded scope, the user asks "what do you think?", "how should we approach this?", or "let's figure out...", or it reads like a platform rather than a feature. Skip it for a single-file change, a clear bug report, a config change, or an already-approved plan.
 
 ## Hard gate
 
-Do NOT write a plan, scaffold files, or edit code until:
-1. The design has been presented and explicitly approved by the user
-2. A brief has been written to `.plans/ideas/<feature-slug>/brief.md`
-3. The user has reviewed the brief
-
-This applies regardless of perceived simplicity. "Simple" projects are where unexamined assumptions cause the most wasted work.
+Write no plan, scaffold no files, and edit no code until (1) the user has explicitly approved the design, (2) a brief exists at the idea stage of **Plan location** (default: a `brief.md` beside the work), and (3) the user has reviewed that brief. This holds however simple the project looks; simple projects are where unexamined assumptions waste the most work.
 
 ## Process
 
-```
-Explore context → Research factual gaps → Ask dependency-aware frontier rounds → Propose 2-3 approaches
-  → Present design in sections → User approves → Write brief → User reviews brief
-  → Move to planning to create implementation plan
-```
+Explore context → research factual gaps → ask frontier rounds → propose 2 or 3 approaches → present the design in sections → user approves → write the brief → user reviews the brief → plan.
 
-### 1. Explore project context (before asking anything)
+1. **Explore before asking.** Read the affected files, recent commits in the area, overlapping active plans, and the guides in **Context**. Never ask what the code or docs already answer.
+2. **Assess scope before any question.** If the request describes several independent subsystems, say so at once and decompose: "This sounds like three independent features: A, B, C. Which one first?" Each piece gets its own brief, plan, and implementation.
+3. **Resolve the decision frontier** (purpose, constraints, success criteria):
+   1. List the unresolved decisions and the dependencies between them.
+   2. Settle cheap repository facts from code, docs, plans, or live state; send bounded factual prerequisites that need reconciled evidence to the `research` skill.
+   3. The frontier is the unresolved decisions whose prerequisites are already known.
+   4. Ask every independent frontier question together in one numbered round, each with a recommended answer and the tradeoff behind it. Prefer multiple choice when the options are few.
+   5. Defer a question that depends on an unsettled one, and update the frontier after each answer. Advance only when no silent assumption remains; anything deliberately deferred goes under Open questions in the brief.
 
-- Read relevant files in the affected packages
-- Check recent commits touching the area
-- Check for existing plans in `.plans/active/` that overlap
-- Read `AGENTS.md` + package context files (`.claude/context/*.md`)
+   The frontier is a reasoning aid, not a second artifact: keep no separate decision ledger. Split an unusually large frontier into coherent rounds that keep dependency order.
+   Good: "Should draft state persist across sessions or only within the tab? (a) across sessions, (b) tab only, (c) no persistence." "Is this offline-capable from day one, or online-only first?" Bad: "What tech should we use?" (the stack is known); "Anything else to consider?" (fishing).
+4. **Propose 2 or 3 approaches**, each with a one-line summary, pros, and cons, then a recommendation tied to **Priorities** (default: correctness, security, user experience, developer experience, elegance).
+5. **Present the design in sections**, a few sentences for simple parts and up to about 250 words for nuanced ones, and ask after each whether it looks right. Cover architecture (where code lives), components or entities created and modified, data flow, error handling, test strategy, and breaking changes or migrations, plus **Design sections** (default: none).
+6. **Write the brief, then ask for review**: "Brief written to `<path>`. Any changes before it moves to active and we write the plan?"
 
-Don't ask the user about things the code or docs already answer.
+   ```markdown
+   # <Feature Name> Brief
 
-### 2. Scope assessment (do this before clarifiers)
+   **Status**: IDEA
+   **Created**: YYYY-MM-DD
 
-If the request describes multiple independent subsystems, flag it immediately. Don't spend clarifiers refining a project that needs to be decomposed first.
+   ## Problem
+   What need does this serve? Which user journey?
 
-> "This sounds like 3 independent features: A, B, C. Let's decompose before diving in — which one do you want to brainstorm first?"
+   ## Approach
+   The chosen approach and its key tradeoffs.
 
-Each sub-feature gets its own brief → plan → implementation cycle.
+   ## Scope
+   - In scope: ...
+   - Out of scope: ...
+   - Deferred: ...
 
-### 3. Resolve the decision frontier
+   ## Impact
+   Packages touched, breaking changes, migration path.
 
-Focus on: purpose, constraints, success criteria.
+   ## Open questions
+   Anything unresolved that the plan must answer.
+   ```
 
-Before asking the first round, maintain an internal **decision frontier**:
+   On approval, move the brief to the active stage of **Plan location** and continue in the plan skill.
 
-1. List the unresolved decisions and the dependencies between them.
-2. Resolve cheap repository facts from code, docs, plans, or live state. Route bounded factual
-   prerequisites through the `research` skill when they require reconciling evidence; do not ask the
-   user to reconstruct discoverable facts.
-3. Treat the current frontier as the unresolved decisions whose prerequisites are already known.
-4. Ask every independent question on the current frontier together in a numbered round. Give each
-   question a recommended answer and the tradeoff behind it.
-5. If a question depends on another unsettled question, defer it to a later round. Update the
-   frontier after each response. Brainstorming is ready to advance only when no silent assumptions
-   remain; anything intentionally deferred must appear under `Open questions` in the brief.
+## Principles
 
-The frontier is a reasoning aid, not a second planning artifact. Do not create a separate decision
-ledger. Keep each round to the current independent frontier; when that frontier is unusually large,
-split it into coherent rounds that preserve dependency order.
+- Ask the current independent frontier together, then advance.
+- YAGNI ruthlessly: remove everything the user did not ask for.
+- When approaches conflict, resolve them by **Priorities**.
+- Scale to complexity: a bug fix needs no ten-section design; a new module does.
+- Claim alignment only after the user explicitly approves each section.
 
-**Rules:**
-- Ask all currently independent human decisions together; do not mix in questions whose factual
-  prerequisites are still unsettled.
-- Prefer multiple choice when the option space is small. Open-ended is fine when it isn't.
-- Don't ask about things the code already answers.
-- For a human decision, state the recommended option and why it best fits the known constraints.
+| Anti-pattern | Why it hurts |
+|---|---|
+| A wall of dependent questions | unsettled prerequisites invalidate the later answers |
+| Independent decisions asked one message at a time | avoidable back-and-forth that hides how they relate |
+| One approach with no alternatives | forecloses the conversation and hides tradeoffs |
+| Code before the brief is approved | breaks the hard gate and wastes work |
+| A brief longer than the plan will be | a sign of fuzzy thinking: distill it |
+| Questions the code already answers | read first, ask second |
+| Brainstorming an already-clear task | skip it when requirements are concrete |
 
-**Good questions:**
-- "For the garden creation flow — should draft state persist across sessions, or only within the same tab? (a) cross-session via IndexedDB, (b) tab-only via sessionStorage, (c) no persistence"
-- "Is this offline-capable from day one, or are we shipping online-only and adding offline later?"
-
-**Bad questions:**
-- "What tech should we use?" (too open; we already know the stack)
-- "Anything else to consider?" (fishing)
-
-### 4. Propose 2-3 approaches
-
-Once you understand intent, propose 2-3 approaches with tradeoffs and a recommendation.
-
-```markdown
-**Approach A** — [one-line summary]
-Pros: ...
-Cons: ...
-
-**Approach B** — [one-line summary]
-Pros: ...
-Cons: ...
-
-**Recommendation:** A, because [reason tied to Green Goods intent priorities: offline correctness → security → UX → DX → elegance].
-```
-
-### 5. Present design in sections
-
-Scale each section to its complexity. A few sentences for straightforward parts; up to ~250 words for nuanced ones. Ask after each section whether it looks right before continuing.
-
-Cover:
-- **Architecture** — where code lives (which packages, which modules)
-- **Components / entities** — what gets created, what gets modified
-- **Data flow** — mutations, queries, onchain calls, indexer entities
-- **Error handling** — what fails, how we surface it
-- **Offline behavior** — what works without network (per `.claude/context/values.md`)
-- **Test strategy** — what to unit/integration/e2e test
-- **Breaking changes / migrations** — if any
-
-### 6. Write brief and get user review
-
-Save the validated design to `.plans/ideas/<feature-slug>/brief.md` with this structure:
-
-```markdown
-# <Feature Name> Brief
-
-**Status**: IDEA
-**Created**: YYYY-MM-DD
-
-## Problem
-What need does this serve? Which user journey?
-
-## Approach
-Chosen approach from brainstorm, with key tradeoffs.
-
-## Scope
-- In scope: ...
-- Out of scope: ...
-- Deferred: ...
-
-## Impact
-Packages touched, breaking changes, migration path.
-
-## Open questions
-Anything unresolved the plan must answer.
-```
-
-Then ask the user to review:
-
-> "Brief written to `.plans/ideas/<slug>/brief.md`. Review it — any changes before we move it to `.plans/active/` and write the plan?"
-
-On approval, move the brief to `.plans/active/<slug>/brief.md`, then move to planning to create `spec.md`, `plan.todo.md`, `status.json`.
-
-## Key principles
-
-- **Dependency-aware rounds** — ask the current independent frontier together, then advance
-- **YAGNI ruthlessly** — remove everything the user didn't ask for
-- **Resolve intent priorities** — when approaches conflict, default to: offline > security > UX > DX > elegance (per `.claude/context/values.md`)
-- **Scale to complexity** — a bug fix doesn't need a 10-section design; a new module does
-- **Evidence before claims** — don't claim alignment until the user explicitly approves each section
-
-## Anti-patterns
-
-| Don't | Why |
-|-------|-----|
-| Ask a wall of dependent questions | Later answers will be invalidated by unsettled prerequisites |
-| Ask independent decisions one message at a time | It creates avoidable back-and-forth and hides their relationship |
-| Propose one approach without alternatives | Forecloses the conversation; hides tradeoffs |
-| Start writing code before the brief is approved | Violates the hard gate; wastes work |
-| Write a brief longer than the plan will be | Overplanning signals fuzzy thinking; distill |
-| Ask about things the code already answers | Read first, ask second |
-| Use the brainstorm for an already-clear task | Skip brainstorm when requirements are concrete |
-
-## Transition
-
-The terminal state of brainstorming is the planning skill. Do NOT jump straight into implementation — planning owns the path from approved brief to execution.
+The end state of brainstorming is the plan skill, never implementation.

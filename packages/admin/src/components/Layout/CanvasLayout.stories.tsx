@@ -185,7 +185,7 @@ function getCanvasLayoutRoot(canvasElement: HTMLElement): HTMLElement {
   return root as HTMLElement;
 }
 
-// Cockpit M3 1a: the dark canvas ground is constant (the m3 floor); workspace
+// Hub M3 1a: the dark canvas ground is constant (the m3 floor); workspace
 // identity is the faint wash overlay. The contract per route is (a) the
 // [data-tone] attribute lands, and (b) the registered wash color
 // (--tone-surface-tint-color) resolves to a real, per-tone color — collected

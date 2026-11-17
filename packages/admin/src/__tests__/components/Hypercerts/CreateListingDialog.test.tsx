@@ -8,6 +8,14 @@ const mockCreateListing = vi.fn();
 const mockReset = vi.fn();
 const mockUseCreateListing = vi.fn();
 const mockLoggerError = vi.fn();
+const mockWasAskedToReconnect = vi.fn();
+
+vi.mock("@green-goods/shared/utils/errors/tx-error-classifier", async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import("@green-goods/shared/utils/errors/tx-error-classifier")
+  >()),
+  wasAskedToReconnect: (error: unknown) => mockWasAskedToReconnect(error),
+}));
 
 vi.mock("@green-goods/shared/components/Alert", () => ({
   Alert: ({ children }: { children: ReactNode }) =>
@@ -99,6 +107,33 @@ describe("components/Hypercerts/CreateListingDialog", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseCreateListing.mockReturnValue(DEFAULT_HOOK_STATE);
+    mockWasAskedToReconnect.mockReturnValue(false);
+  });
+
+  it("keeps edited pricing when reconnect was already requested without a second error", async () => {
+    const refusal = new Error("wallet-reconnect-required: nothing was sent");
+    mockCreateListing.mockRejectedValueOnce(refusal);
+    mockWasAskedToReconnect.mockImplementation((error) => error === refusal);
+    render(
+      createElement(CreateListingDialog, {
+        open: true,
+        onOpenChange: vi.fn(),
+        gardenAddress: "0x1111111111111111111111111111111111111111",
+        hypercertId: 1n,
+        fractionId: 2n,
+      })
+    );
+    const user = userEvent.setup();
+    const price = screen.getByLabelText(/price per unit/i);
+    await user.clear(price);
+    await user.type(price, "0.25");
+    await user.click(screen.getByRole("button", { name: /sign & list/i }));
+
+    await waitFor(() => expect(mockCreateListing).toHaveBeenCalledOnce());
+    expect(screen.getByLabelText(/price per unit/i)).toHaveValue("0.25");
+    expect(screen.getByRole("button", { name: /sign & list/i })).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(mockLoggerError).not.toHaveBeenCalled();
   });
 
   it("shows an actionable error state when listing creation rejects before hook error state updates", async () => {

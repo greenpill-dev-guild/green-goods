@@ -10,7 +10,7 @@ import { identicalOpenCopyKey } from "@green-goods/shared/modules/commitment-poo
 /**
  * What the To confirm tab lists, and so what its badge and the launcher count:
  * the confirmations its gardens make as the party. The reasoned fallbacks and
- * disputes that `count` adds are the cockpit's queue, which this tab does not list.
+ * disputes that `count` adds are the Hub's queue, which this tab does not list.
  */
 export function listedToConfirmCount(toConfirm: Pick<CommitmentsToConfirm, "groups">): number {
   return toConfirm.groups.reduce((sum, group) => sum + group.rows.length, 0);

@@ -129,7 +129,7 @@ describe("scoped voucher projections", () => {
       { chainId: 100 },
       { moduleAddress: key.buyer },
       { buyer: key.coreModule },
-      { commitmentId: 9007199254740993 },
+      { commitmentId: Number.MAX_SAFE_INTEGER + 2 },
       { setupId: "0x01" },
     ])
       await expect(

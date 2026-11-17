@@ -29,6 +29,7 @@ import {
   gardenLabel,
   promptNextStep,
 } from "./prompting";
+import { frozenReply } from "./report-commands";
 import { handleReportMessage } from "./report-message";
 import {
   adoptAction,
@@ -139,7 +140,7 @@ export function handleReportAnswer(
     return;
   }
   if (!EDITABLE_STATES.has(lifecycleState(draft))) {
-    writer.say("report.frozen");
+    writer.say(frozenReply(core, draft));
     return;
   }
   const sourceEntryId = writer.sourceEntryId();

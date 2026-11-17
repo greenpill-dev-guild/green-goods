@@ -26,6 +26,7 @@ const meta = {
   args: {
     garden: storyGarden,
     canManage: true,
+    canManageStewards: false,
     isOwner: false,
     closeMembersModal: fn(),
     roleMembers: storyRoleMembers,
@@ -39,3 +40,6 @@ type Story = StoryObj<typeof meta>;
 
 export const AddMember: Story = {};
 export const ManageRoles: Story = { args: { selectedItem: "manage-members" } };
+export const TeamStewardAdministration: Story = {
+  args: { canManage: false, canManageStewards: true, selectedItem: "add-member" },
+};

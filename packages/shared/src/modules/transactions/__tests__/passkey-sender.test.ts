@@ -10,14 +10,17 @@ import {
   createFakeSmartAccountClient,
   createMockBatchBudget,
   createMockContractCall,
+  fakePreparedUserOperation,
 } from "../../../__tests__/test-utils/transaction-fakes";
 import { MOCK_TX_HASH } from "../../../__tests__/test-utils/mock-factories";
-import type { P256Credential } from "viem/account-abstraction";
+import {
+  type P256Credential,
+  entryPoint07Address,
+  getUserOperationHash,
+} from "viem/account-abstraction";
 import { encodeAbiParameters, toEventSelector } from "viem";
-import { entryPoint07Address, getUserOperationHash } from "viem/account-abstraction";
 import { arbitrum, celo as celoChain, sepolia } from "viem/chains";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fakePreparedUserOperation } from "../../../__tests__/test-utils/transaction-fakes";
 import {
   createSmartAccountClientResolver,
   invalidateSmartAccountClientResolver,

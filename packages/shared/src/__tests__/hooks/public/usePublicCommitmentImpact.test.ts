@@ -2,6 +2,7 @@
 import { act, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { usePublicCommitmentImpact } from "../../../hooks/public/usePublicCommitmentImpact";
+import { withoutAbortSignalAny } from "../../test-utils/abort-signal-any";
 import { createTestQueryClient } from "../../test-utils/query-client";
 import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
@@ -41,6 +42,20 @@ describe("public commitment impact transport", () => {
       "https://agent.greengoods.app/public/commitments/42161/impact",
       { signal: expect.any(AbortSignal) }
     );
+  });
+
+  // React Query always passes the read a signal, which reached AbortSignal.any on every load.
+  it("reads the snapshot where AbortSignal.any is missing", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => response }));
+    const { result } = await withoutAbortSignalAny(async () => {
+      const rendered = renderHookWithQueryClient(() => usePublicCommitmentImpact(42161), {
+        queryClient: createTestQueryClient(),
+      });
+      await waitFor(() => expect(rendered.result.current.isPending).toBe(false));
+      return rendered;
+    });
+    expect(result.current.error).toBeNull();
+    expect(result.current.data?.commitmentsMade).toBe(27n);
   });
 
   it("preserves counts when the server cannot value funding", async () => {

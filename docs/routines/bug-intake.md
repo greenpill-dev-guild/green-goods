@@ -128,7 +128,7 @@ Green Goods uses **three PostHog projects**:
 | Project | ID | Surfaces |
 |---|---|---|
 | **App** | `163591` | Client + PWA + editorial website. Where 95%+ of bug-intake telemetry lives — `$exception`, `error_tracked`, all auth/garden/work events, `offline_connection_*`, `upload_*`, `media_upload_*`. |
-| **Admin** | `262122` | Operator cockpit. `admin_*` events plus admin-side `$exception` for the admin app. |
+| **Admin** | `262122` | Green Goods Hub. `admin_*` events plus admin-side `$exception` for the admin app. |
 | **Agent** | `262124` | Bot/messaging runtime. Telegram/WhatsApp/SMS-channel errors and lifecycle events. |
 
 A bug-intake report may resolve to any of the three projects depending on the reporter's surface. The routine should:
@@ -196,7 +196,7 @@ Sentry is the companion root-cause surface for the same three product areas. Use
 | Sentry project | Env var | Surfaces |
 |---|---|---|
 | **Client** | `SENTRY_CLIENT_PROJECT` (`green-goods-client`) | Browser/PWA/editorial runtime errors and React boundary crashes |
-| **Admin** | `SENTRY_ADMIN_PROJECT` (`green-goods-admin`) | Operator cockpit runtime errors and React boundary crashes |
+| **Admin** | `SENTRY_ADMIN_PROJECT` (`green-goods-admin`) | Green Goods Hub runtime errors and React boundary crashes |
 | **Agent** | `SENTRY_AGENT_PROJECT` (`green-goods-agent`) | Bot/API crashes, webhook failures, upload-signing/card-funding server errors |
 
 ### How Sentry complements PostHog

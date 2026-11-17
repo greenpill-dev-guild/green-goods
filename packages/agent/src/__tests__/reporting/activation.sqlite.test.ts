@@ -1,3 +1,4 @@
+import type { GrantView, ResourceView } from "@green-goods/shared/modules/agent-reporting";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { issueContinuation, requestById } from "../../services/reporting/continuations";
 import { proposeGrant } from "../../services/reporting/grant-proposal";
@@ -8,7 +9,12 @@ import { TestBrowser } from "./support/browser";
 import { setControl } from "../../services/reporting/controls";
 import { TAS } from "./support/fixtures";
 import { ADA, Harness } from "./support/harness";
-import { KERNEL, confirmedKernelReport, prepareActivation } from "./support/activation";
+import {
+  KERNEL,
+  KERNEL_PROOF,
+  confirmedKernelReport,
+  prepareActivation,
+} from "./support/activation";
 
 let harness: Harness;
 beforeEach(async () => {
@@ -67,6 +73,37 @@ describe("first-report activation authority", () => {
       submissions_reserved: 1,
       submissions_consumed: 0,
     });
+  });
+
+  it("shows no first report until the owner asks for one, so the page can offer to prepare it", async () => {
+    // The page reads a first report here as one being prepared and waits for it. Answered with the
+    // report before Prepare First Report was pressed, it waited on "loading" with no button.
+    const browser = new TestBrowser(harness.app);
+    await browser.open(latestLink(harness));
+    await browser.proveAs(KERNEL, KERNEL_PROOF);
+    await browser.access();
+    const proposed = await browser.request<{ grant: GrantView }>(
+      "POST",
+      "/messaging/execution-grants"
+    );
+    expect(proposed.status).toBe(201);
+    const { grant } = proposed.body;
+    const path = `/messaging/execution-grants/${grant.grantId}/activation`;
+
+    expect((await browser.request("GET", path)).status).toBe(404);
+    expect(row("SELECT count(*) AS operations FROM execution_operations")).toEqual({
+      operations: 0,
+    });
+
+    const started = await browser.request<{ resource: ResourceView }>("POST", path, {
+      body: { expectedVersion: grant.version, policyDigest: grant.policyDigest },
+    });
+    expect(started.status).toBe(200);
+    const operationId = started.body.resource.operation?.operationId;
+    expect(operationId).toBeTruthy();
+    const restored = await browser.request<{ resource: ResourceView }>("GET", path);
+    expect(restored.status).toBe(200);
+    expect(restored.body.resource.operation?.operationId).toBe(operationId);
   });
 
   it("recovers a lost browser callback only from the first receipt plus effective permission, without another send", async () => {

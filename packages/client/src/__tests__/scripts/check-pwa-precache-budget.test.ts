@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
+import { gzipSync } from "node:zlib";
 import { afterEach, describe, expect, it } from "vitest";
 
 interface FixtureOptions {
@@ -232,6 +233,28 @@ function runFailure(fixture: string, limits: Record<string, string>) {
   }
 }
 
+it("uses the Node gzip boundary even when Bun supplies the node shim", () => {
+  const html = Array.from(
+    { length: 1000 },
+    (_, index) => `<section data-index="${index % 17}">contribution-${index}</section>`
+  ).join("");
+  const fixture = createFixture({ html });
+  const gzipBytes = gzipSync(html).byteLength;
+  const run = (limit: number) =>
+    execFileSync("bun", ["--bun", "run", "check:pwa-precache"], {
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        ...relaxedLimits,
+        PWA_DIST_DIR: fixture,
+        PWA_SHELL_GZIP_MAX: String(limit),
+      },
+      stdio: "pipe",
+    });
+  expect(run(gzipBytes)).toContain("PWA budgets OK");
+  expect(() => run(gzipBytes - 1)).toThrow(/offline shell gzip/);
+});
+
 afterEach(() => {
   for (const directory of fixtureDirectories.splice(0)) {
     rmSync(directory, { recursive: true, force: true });
@@ -239,6 +262,27 @@ afterEach(() => {
 });
 
 describe("PWA build budgets", () => {
+  it("uses the Node gzip ceiling when invoked through Bun", () => {
+    const contents = Array.from({ length: 10000 }, (_, index) =>
+      JSON.stringify({ id: index, title: `work-${index % 79}`, value: (index * 2654435761) >>> 0 })
+    ).join("\n");
+    const fixture = createFixture({
+      shellAssets: ["/assets/compressible.js"],
+      files: { "assets/compressible.js": contents },
+    });
+    const output = execFileSync("bun", [checkerPath], {
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        ...relaxedLimits,
+        PWA_DIST_DIR: fixture,
+        PWA_SHELL_GZIP_MAX: String(gzipSync(contents).byteLength),
+      },
+      stdio: "pipe",
+    });
+    expect(output).toContain("PWA budgets OK");
+  });
+
   it.each([
     [
       "precache entry count",

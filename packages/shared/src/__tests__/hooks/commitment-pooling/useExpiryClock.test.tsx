@@ -177,15 +177,15 @@ describe("useExpiryClock", () => {
     const client = createTestQueryClient();
     client.setDefaultOptions({ queries: { retry: false, gcTime: Number.POSITIVE_INFINITY } });
     const wrapper = providers({ wallet: true, client });
-    const clock = () => useExpiryClock({ chainId: CHAIN_ID, commitments, cycleEndTimes });
-    const first = renderHook(clock, { wrapper });
+    const useClock = () => useExpiryClock({ chainId: CHAIN_ID, commitments, cycleEndTimes });
+    const first = renderHook(useClock, { wrapper });
     await vi.waitFor(() => expect(first.result.current).toBe(BigInt(chainNow)), CHAIN_READ);
     first.unmount();
 
     // Corrected while no clock surface is open, well inside the offset's 30 minutes.
     vi.setSystemTime(chainNow * 1000 + 60_000);
     mocks.getBlock.mockResolvedValue({ timestamp: BigInt(chainNow + 60) });
-    const second = renderHook(clock, { wrapper });
+    const second = renderHook(useClock, { wrapper });
     await vi.waitFor(() => expect(mocks.getBlock).toHaveBeenCalledTimes(2), CHAIN_READ);
     await vi.waitFor(() => expect(second.result.current).toBe(BigInt(chainNow + 60)), CHAIN_READ);
   });

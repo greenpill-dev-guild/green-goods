@@ -12,7 +12,7 @@ const meta: Meta<typeof AdminInputChip> = {
     docs: {
       description: {
         component:
-          "The cockpit's input chip for a choice the steward can take back out, such as a named confirmer: a 32px capsule like every chip (DL-101), an outline over the low container fill, an optional 24px avatar and a remove button. Chips flow in a wrapping row inside a named list.",
+          "The Hub's input chip for a choice the steward can take back out, such as a named confirmer: a 32px capsule like every chip (DL-101), an outline over the low container fill, an optional 24px avatar and a remove button. Chips flow in a wrapping row inside a named list.",
       },
     },
   },

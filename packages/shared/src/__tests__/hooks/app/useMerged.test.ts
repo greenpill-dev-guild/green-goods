@@ -159,7 +159,7 @@ describe("hooks/app/useMerged", () => {
   });
 
   it("handles external event subscriptions", async () => {
-    const subscribeFn = vi.fn((listener: () => void) => {
+    const subscribeFn = vi.fn((_listener: () => void) => {
       // Return unsub function
       return () => {};
     });

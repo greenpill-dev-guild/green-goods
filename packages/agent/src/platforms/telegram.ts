@@ -30,10 +30,6 @@ import type { TelegramReporting } from "./telegram-reporting";
 
 const log = loggers.platform;
 
-// ============================================================================
-// SECURITY CONSTANTS
-// ============================================================================
-
 /** Maximum file download size (20MB - Telegram's limit for bots) */
 const MAX_DOWNLOAD_SIZE_BYTES = 20 * 1024 * 1024;
 
@@ -43,10 +39,6 @@ const DOWNLOAD_TIMEOUT_MS = 30_000;
 /** Maximum photo download size (10MB) */
 const MAX_PHOTO_SIZE_BYTES = 10 * 1024 * 1024;
 
-// ============================================================================
-// TYPES
-// ============================================================================
-
 export interface TelegramConfig {
   token: string;
   webhookSecret?: string;
@@ -54,10 +46,6 @@ export interface TelegramConfig {
 }
 
 export type MessageHandler = (message: InboundMessage) => Promise<OutboundResponse>;
-
-// ============================================================================
-// MESSAGE TRANSFORMATION
-// ============================================================================
 
 function toChatContext(ctx: Context): { id: string; type: ChatType; threadId?: string } | null {
   const chat = ctx.chat;
@@ -228,10 +216,6 @@ function toTelegramReply(response: OutboundResponse): { text: string; options: R
   return { text: response.text, options };
 }
 
-// ============================================================================
-// VOICE PROCESSING
-// ============================================================================
-
 /**
  * Securely download a file with size limits and timeout.
  *
@@ -358,10 +342,6 @@ export function createVoiceProcessor(
   };
 }
 
-// ============================================================================
-// NOTIFIER
-// ============================================================================
-
 export interface Notifier {
   notify: (platform: string, platformId: string, message: string) => Promise<void>;
 }
@@ -377,10 +357,6 @@ export function createNotifier(bot: Telegraf): Notifier {
     },
   };
 }
-
-// ============================================================================
-// PHOTO PROCESSING
-// ============================================================================
 
 /**
  * Creates a photo processor with security limits.
@@ -434,10 +410,6 @@ export function createPhotoProcessor(bot: Telegraf): PhotoProcessor {
     },
   };
 }
-
-// ============================================================================
-// BOT CREATION
-// ============================================================================
 
 /**
  * Pick the right handler for an inbound message based on chat type and content.

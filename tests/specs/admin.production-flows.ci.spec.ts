@@ -1,7 +1,7 @@
 /**
  * Admin Production Flows CI Smoke Tests
  *
- * Validates that critical admin cockpit routes render without crashing:
+ * Validates that critical Hub routes render without crashing:
  * - Create garden
  * - Create assessment
  * - Garden vault

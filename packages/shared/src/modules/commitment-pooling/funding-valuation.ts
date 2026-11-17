@@ -1,4 +1,5 @@
 import { parseUnits } from "viem";
+import { withCombinedAbortSignal } from "../../utils/abort-signals";
 import { getCampaignCookieJarPayoutAsset } from "../../utils/cookie-jar-campaign";
 
 const PRICE_DECIMALS = 12;
@@ -19,22 +20,20 @@ interface ValuationReads {
 function defaultReads(signal?: AbortSignal): ValuationReads {
   const deadline = AbortSignal.timeout(30000);
   return {
-    priceAt: async (timestamp, coin) => {
-      // DefiLlama's historical endpoint returns the nearest recorded USD price.
-      // https://api-docs.defillama.com/llms-free.txt
-      const response = await fetch(
-        `https://coins.llama.fi/prices/historical/${timestamp}/${coin}`,
-        {
-          signal: AbortSignal.any([
-            deadline,
-            AbortSignal.timeout(10000),
-            ...(signal ? [signal] : []),
-          ]),
+    priceAt: async (timestamp, coin) =>
+      withCombinedAbortSignal(
+        [deadline, AbortSignal.timeout(10000), signal],
+        async (requestSignal) => {
+          // DefiLlama's historical endpoint returns the nearest recorded USD price.
+          // https://api-docs.defillama.com/llms-free.txt
+          const response = await fetch(
+            `https://coins.llama.fi/prices/historical/${timestamp}/${coin}`,
+            { signal: requestSignal }
+          );
+          if (!response.ok) throw new Error(`Historical funding price failed: ${response.status}`);
+          return response.json();
         }
-      );
-      if (!response.ok) throw new Error(`Historical funding price failed: ${response.status}`);
-      return response.json();
-    },
+      ),
   };
 }
 

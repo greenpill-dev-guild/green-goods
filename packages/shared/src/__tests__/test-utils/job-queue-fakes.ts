@@ -142,6 +142,7 @@ export function createFakeJobQueueAnalytics(): JobQueueAnalytics {
     storageWarning: vi.fn(),
     privateEvent: vi.fn(),
     processingStarted: vi.fn(),
+    jobSkipped: vi.fn(),
   };
 }
 

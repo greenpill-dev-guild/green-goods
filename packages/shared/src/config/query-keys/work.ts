@@ -5,6 +5,7 @@ function gardenSegment(gardenId: string): string {
 
 export const worksKeys = {
   all: ["greengoods", "works"] as const,
+  visibility: (chainId: number) => ["greengoods", "works", "visibility", chainId] as const,
   mine: (
     userAddress?: string,
     chainId?: number,

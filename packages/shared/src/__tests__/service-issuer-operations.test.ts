@@ -52,8 +52,10 @@ import { assertServiceActor } from "../modules/commitment-pooling/service-actor-
 import type { GraphQLReader } from "../modules/data/graphql-client";
 import { discoverIssuerVoucherSetups } from "../modules/commitment-pooling/data-voucher-service";
 
-import { ISSUER_FACTORY_ABI } from "../modules/commitment-pooling/service-issuer-deployment";
-import { verifyIssuerProxyDeployment } from "../modules/commitment-pooling/service-issuer-deployment";
+import {
+  ISSUER_FACTORY_ABI,
+  verifyIssuerProxyDeployment,
+} from "../modules/commitment-pooling/service-issuer-deployment";
 import {
   createIssuerPendingStore,
   issuerReviewFingerprint,

@@ -24,7 +24,7 @@ Root `DESIGN.md` front matter is the canonical DesignMD token source. Surface `D
 | Artifact | Role |
 |----------|------|
 | Root `DESIGN.md` | Canonical Warm Earth DesignMD front matter + creative brief |
-| `packages/admin/DESIGN.md` | Restrained steward cockpit: the shared language at a denser setting, its own dials, Plus Jakarta Sans |
+| `packages/admin/DESIGN.md` | Restrained steward workspace: the shared language at a denser setting, its own dials, Plus Jakarta Sans |
 | `packages/client/DESIGN.pwa.md` | Installed PWA field tool, Plus Jakarta Sans, bottom AppBar |
 | `packages/client/DESIGN.browser.md` | Public browser site, editorial browser treatment |
 | `docs/DESIGN.md` | Docusaurus documentation dialect, Manrope/Bricolage/IBM Plex Mono |
@@ -84,7 +84,7 @@ AI design tools should map output to these exports. Full palette lives in the pr
 
 **Admin** (`packages/admin/src/components/`):
 - Layout shell: `CanvasLayout`, `AppBar` (admin top context bar), `MainSheet`, `NavigationBar`, `FabButton` (the old side-sheet renderers are deleted: every workspace overlay is a centered `AdminDialog`; the three global AppBar surfaces render in `AdminSideSheet`)
-- Admin wrappers (the `packages/admin/src/components/Admin*.tsx` exports are the roster of record: 22 wrappers across 19 files once DL-109's code change retires `AdminSettingRow` for the shared `FactRow` and DL-119's retires `AdminButton` and `AdminIconButton`, whose call sites render the shared `Button` and `IconButton`; `AdminConfirmDialog` lives in `AdminDialog.tsx`, `AdminSelect`/`AdminTextArea` in `AdminTextField.tsx`, and `AdminLoadingScreen` and `AdminSignIn` are screens, not wrappers): `AdminCard`, `AdminCheckbox`, `AdminChoiceGroup`, `AdminConfirmDialog`, `AdminDialog`, `AdminFieldGroup`, `AdminFilterChip`, `AdminInlineField`, `AdminInputChip`, `AdminLinearProgress`, `AdminListRow`, `AdminReasonDialog`, `AdminSearchToolbar`, `AdminSelect`, `AdminSelectableCard`, `AdminSideSheet`, `AdminSortSelect`, `AdminTabRail`, `AdminTextArea`, `AdminTextField`, `AdminTooltip`, `AdminViewActions` (`AdminBadge`/`AdminFab`/`AdminListItem` deleted 2026-08-29)
+- Admin wrappers (the `packages/admin/src/components/Admin*.tsx` exports are the roster of record; `AdminConfirmDialog` lives in `AdminDialog.tsx`, `AdminSelect`/`AdminTextArea` in `AdminTextField.tsx`, and `AdminLoadingScreen` and `AdminSignIn` are screens, not wrappers): `AdminCard`, `AdminCheckbox`, `AdminChoiceGroup`, `AdminConfirmDialog`, `AdminDialog`, `AdminDialogHeader`, `AdminFieldGroup`, `AdminFilterChip`, `AdminInlineField`, `AdminInputChip`, `AdminLinearProgress`, `AdminListRow`, `AdminReasonDialog`, `AdminSearchToolbar`, `AdminSelect`, `AdminSelectableCard`, `AdminSideSheet`, `AdminSortSelect`, `AdminTabRail`, `AdminTextArea`, `AdminTextField`, `AdminTooltip`, `AdminUploadConsentDialog`, `AdminViewActions` (`AdminBadge`/`AdminFab`/`AdminListItem` deleted 2026-08-29; `AdminSettingRow`, `AdminButton` and `AdminIconButton` retired for the shared `FactRow`, `Button` and `IconButton`)
 
 **Client / shared** (`packages/shared/src/components/`, exported from `@green-goods/shared`):
 - Shell: presentation-mode loaders, `PublicShell` (browser), `PwaRuntime` / `AppShell` (installed PWA), `SiteHeader` (browser), `AppBar` (installed PWA)

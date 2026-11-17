@@ -132,6 +132,7 @@ export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceConte
         <CommunityMembersDialogs
           garden={workspace.garden}
           canManage={workspace.canManage}
+          canManageStewards={workspace.canManageStewards}
           closeMembersModal={workspace.closeMembersModal}
           isOwner={workspace.isOwner}
           roleMembers={workspace.roleMembers}

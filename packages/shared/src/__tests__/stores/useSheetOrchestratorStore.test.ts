@@ -12,8 +12,8 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   SHEET_STATE_STORAGE_KEY,
   useSheetOrchestratorStore,
+  type ViewSheetState,
 } from "../../stores/useSheetOrchestratorStore";
-import type { ViewSheetState } from "../../stores/useSheetOrchestratorStore";
 
 describe("stores/useSheetOrchestratorStore", () => {
   beforeEach(() => {

@@ -243,7 +243,7 @@ function ReviewWorkQueueList({
     id: "hub.review.work.olderNotLoaded",
     defaultMessage: "Older work isn't loaded yet.",
   });
-  // From the cockpit's desktop breakpoint each card lies wide, its mosaic on
+  // From the Hub's desktop breakpoint each card lies wide, its mosaic on
   // the left, and the grid holds two to a row at 1280px (F12).
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const cardLayout: MediaCardLayout = isDesktop ? "wide" : "stacked";

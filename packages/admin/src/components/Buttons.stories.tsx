@@ -26,7 +26,7 @@ const meta: Meta<typeof Button> = {
     docs: {
       description: {
         component:
-          "Admin views render the shared Button and IconButton directly (DL-115, DL-119). The primary fills with the workspace tone, the secondary sits on the control outline, the tertiary is text, and the danger tone marks a destructive act. The cockpit's tokens set the compact, sm and lg sizes at 28, 32 and 40px with a 44px finger box, pills, one 14px label at 500, no press scale, circles with an 18px glyph, and the neutral disabled pair.",
+          "Admin views render the shared Button and IconButton directly (DL-115, DL-119). The primary fills with the workspace tone, the secondary sits on the control outline, the tertiary is text, and the danger tone marks a destructive act. The Hub's tokens set the compact, sm and lg sizes at 28, 32 and 40px with a 44px finger box, pills, one 14px label at 500, no press scale, circles with an 18px glyph, and the neutral disabled pair.",
       },
     },
   },
@@ -71,7 +71,7 @@ export const Loading: Story = {
 
 /**
  * Glyph-only actions on the same tiers (28/32/40). The accessible name is
- * required; the cockpit gives it as the tooltip too.
+ * required; the Hub gives it as the tooltip too.
  */
 export const IconButtons: Story = {
   render: () => (
@@ -291,7 +291,7 @@ const colorParts = (color: string) => {
 };
 
 /**
- * The shared family as the cockpit draws it: every emphasis and tone at every
+ * The shared family as the Hub draws it: every emphasis and tone at every
  * tier, at rest, disabled and loading, beside the icon buttons, in every
  * workspace tone, light and dark. The play test measures it in the browser: the
  * 28 / 32 / 40px tiers with a 44px finger box, the one 14px label at 500, the
@@ -410,7 +410,7 @@ export const SharedFamilyMatrix: Story = {
 };
 
 /**
- * The cockpit's buttons keep its look whatever a call site or a shared piece
+ * The Hub's buttons keep its look whatever a call site or a shared piece
  * adds (DL-119), checked in the browser:
  * - a copy icon carrying `h-4 w-4` still draws the tier's glyph, 18px at 32px
  *   and 16px at 28px;
@@ -418,7 +418,7 @@ export const SharedFamilyMatrix: Story = {
  *   neutral pair, as the warning action on a vault position does while pending;
  * - a shared piece's own button (`data-piece-control`, here a toast's action
  *   with its narrow, wrapping label) grows to hold the whole label, where the
- *   cockpit's own button stays on its 32px tier with its 6px reserve.
+ *   Hub's own button stays on its 32px tier with its 6px reserve.
  */
 export const CallSiteClassesLose: Story = {
   tags: ["storybook-ci"],

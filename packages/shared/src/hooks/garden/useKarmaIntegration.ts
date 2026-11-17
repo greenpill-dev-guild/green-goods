@@ -31,6 +31,7 @@ import type { KarmaIntegrationStatus } from "../../types/karma";
 import { isValidAddressFormat, isZeroAddress } from "../../utils/blockchain/address";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
+import { wasAskedToReconnect } from "../../utils/errors/unsent-failures";
 import { useUser } from "../auth/useUser";
 import { useAtomicBatchRoute } from "../blockchain/useAtomicBatchRoute";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
@@ -215,11 +216,15 @@ export function useKarmaIntegration(garden?: Garden | null) {
       case "reverted":
         announceFailure(formatMessage({ id: "app.txFeedback.failed.title" }));
         return;
-      case "error":
-        announceFailure(
-          handleReconcileError(outcome.failure, { gardenAddress, showToast: false }).message
-        );
+      case "error": {
+        const { message } = handleReconcileError(outcome.failure, {
+          gardenAddress,
+          showToast: false,
+        });
+        // A wallet that has not answered was already asked to reconnect.
+        if (!wasAskedToReconnect(outcome.failure)) announceFailure(message);
         return;
+      }
       default:
         announceRecorded(outcome.recorded, outcome.notSent);
     }
@@ -278,10 +283,11 @@ export function useKarmaIntegration(garden?: Garden | null) {
     onError: (error, _variables, context) => {
       if (context?.toastId) toastService.dismiss(context.toastId);
       const parsed = handleReconcileError(error, { gardenAddress, showToast: false });
-      toastService.error({
-        title: formatMessage({ id: "hub.garden.karma.toast.reconcileError" }),
-        description: parsed.message,
-      });
+      if (!wasAskedToReconnect(error))
+        toastService.error({
+          title: formatMessage({ id: "hub.garden.karma.toast.reconcileError" }),
+          description: parsed.message,
+        });
       invalidateKarma();
       scheduleIndexerRefresh();
     },

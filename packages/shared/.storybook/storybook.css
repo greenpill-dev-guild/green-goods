@@ -218,7 +218,7 @@
 :root {
   color-scheme: light dark;
 
-  /* The website's face, as the client sets it on :root. The app and cockpit
+  /* The website's face, as the client sets it on :root. The app and the Hub
      surfaces take Plus Jakarta Sans on body and the preview (surfaces.css). */
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   font-style: normal;
@@ -546,7 +546,7 @@
    */
 
   /* Client parity (packages/client/src/styles/typography.css): headings take the
-     header colour on the client surfaces only — the cockpit has no heading or
+     header colour on the client surfaces only — the Hub has no heading or
      link colour rule, so admin stories inherit ink like production. */
   :where(:root:not([data-surface="admin"])) h1,
   :where(:root:not([data-surface="admin"])) h2,
@@ -558,7 +558,7 @@
     color: var(--color-header-text);
   }
 
-  /* Inherit each surface's face (Plus Jakarta Sans in the app and the cockpit,
+  /* Inherit each surface's face (Plus Jakarta Sans in the app and the Hub,
      Inter on the website), preserving the client cascade and the editorial
      underline field's serif. */
   *:where(:not(.gg-control[data-surface="editorial"])) {
@@ -575,7 +575,7 @@
   }
 
   /* Links rendered as shared buttons take their colour from their emphasis
-     (client typography.css); the cockpit has no global link colour at all.
+     (client typography.css); the Hub has no global link colour at all.
      This is the only link colour in the preview: an unlayered rule here would
      outrank every surface's own link, button and utility colours, turning the
      site's white navigation green and hiding the label of a link-button. A link

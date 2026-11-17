@@ -1,7 +1,8 @@
+import { useGardenMemberContributions } from "@green-goods/shared/hooks/garden/useGardenMemberContributions";
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createMemoryRouter, RouterProvider, useNavigate, useSearchParams } from "react-router-dom";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders } from "../../../__tests__/test-utils";
 import { CommunityMembersDialogs } from "./CommunityMembersDialogs";
 import { CommunityMembersTab } from "./CommunityMembersTab";
@@ -12,6 +13,24 @@ import {
   storyRoleSummary,
 } from "./communityStoryFixtures";
 
+vi.mock("@green-goods/shared/hooks/garden/useGardenMemberContributions", () => ({
+  useGardenMemberContributions: vi.fn(() => ({ canView: false, byAccount: {} })),
+}));
+vi.mock("@green-goods/shared/hooks/garden/useGardenMemberHistory", () => ({
+  useGardenMemberHistory: () => ({
+    members: [
+      {
+        garden: storyGarden.id,
+        account: storyDirectory[0].address,
+        joinedAt: Date.UTC(2026, 5, 12, 12),
+        memberSince: Date.UTC(2026, 5, 12, 12),
+        roleSince: { owner: Date.UTC(2026, 5, 12, 12) },
+      },
+    ],
+    isLoading: false,
+    isError: false,
+  }),
+}));
 vi.mock("@green-goods/shared/hooks/garden/useGardenOperations", () => ({
   useGardenOperations: () => ({ isLoading: false }),
   useAddMembersBatch: () => ({
@@ -66,6 +85,7 @@ function MembersHarness({
       <CommunityMembersDialogs
         garden={storyGarden}
         canManage
+        canManageStewards={false}
         closeMembersModal={() => navigate(`/community/members?gardenId=${storyGarden.id}`)}
         isOwner
         roleMembers={storyRoleMembers}
@@ -96,6 +116,42 @@ function renderMembers(props: Parameters<typeof MembersHarness>[0] = {}) {
 }
 
 describe("CommunityMembersTab", () => {
+  beforeEach(() => {
+    vi.mocked(useGardenMemberContributions).mockReturnValue({ canView: false, byAccount: {} });
+  });
+  it("shows contribution instead of membership in a manager's compact row", () => {
+    vi.mocked(useGardenMemberContributions).mockReturnValue({
+      canView: true,
+      byAccount: {
+        [storyDirectory[0].address.toLowerCase()]: {
+          status: "recorded",
+          at: Date.UTC(2026, 10, 15, 12),
+        },
+      },
+    });
+    renderMembers();
+    expect(screen.getByText("Contributed 11/15/2026")).toBeInTheDocument();
+    expect(screen.queryByText("Joined Jun 12, 2026")).not.toBeInTheDocument();
+    expect(useGardenMemberContributions).toHaveBeenCalledWith({
+      garden: storyGarden,
+      accounts: storyDirectory.map((entry) => entry.address),
+    });
+  });
+  it("keeps the membership row fact for non-managers even when cached contributions exist", () => {
+    vi.mocked(useGardenMemberContributions).mockReturnValue({
+      canView: false,
+      byAccount: {
+        [storyDirectory[0].address.toLowerCase()]: {
+          status: "recorded",
+          at: Date.UTC(2026, 10, 15, 12),
+        },
+      },
+    });
+    renderMembers();
+    expect(screen.queryByText(/Contributed/)).not.toBeInTheDocument();
+    expect(screen.getByText("Joined Jun 12, 2026")).toBeInTheDocument();
+  });
+
   it("keeps filters count-free, hides empty roles and puts each role count in the Members rail", () => {
     // The steward also evaluates: three role seats held by two people (DL-049).
     const roleSummary = storyRoleSummary.map((entry) =>

@@ -14,7 +14,7 @@ const meta: Meta<typeof AdminTabRail> = {
     docs: {
       description: {
         component: [
-          "**AdminTabRail** — the installed app's equal-width tabs at the cockpit's 36px height (F8).",
+          "**AdminTabRail** — the installed app's equal-width tabs at the Hub's 36px height (F8).",
           "",
           "Anatomy:",
           "- Row: equal cells on a hairline rule in the warm stone border step. Below 640px the row fills the width; from 640px each cell stops at 180px and the row keeps to the left",
@@ -274,7 +274,7 @@ export const OverflowOnAPhone: Story = {
 
 /**
  * From 640px each cell takes an equal share of the row up to 180px and the row
- * keeps to the left. The Portuguese Community row carries the cockpit's longest
+ * keeps to the left. The Portuguese Community row carries the Hub's longest
  * route label, "Coordenação"; its four cells make a 720px row. The tint and the
  * underline follow the selected tab.
  */

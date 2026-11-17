@@ -2,6 +2,7 @@ import type { Address, Hex } from "viem";
 import { assign, fromPromise, setup } from "xstate";
 
 import type { AllowlistEntry, HypercertMetadata } from "../types/hypercerts";
+import { WalletReconnectRequiredError } from "../utils/errors/unsent-failures";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Types
@@ -185,6 +186,8 @@ const mintHypercertSetup = setup({
     }),
   },
   guards: {
+    registrationNeedsWallet: ({ event }) =>
+      (event as { error?: unknown }).error instanceof WalletReconnectRequiredError,
     canRetry: ({ context }) => context.retryCount < MAX_RETRY_COUNT,
     hasInput: ({ context }) => context.input !== null,
     hasMetadataCid: ({ context }) => context.metadataCid !== null,
@@ -339,13 +342,19 @@ export const mintHypercertMachine = mintHypercertSetup.createMachine({
           target: "confirmed",
           actions: "storePoolRegistration",
         },
-        onError: {
-          // Non-blocking: mint already confirmed on-chain
-          target: "confirmed",
-          actions: "markPoolRegistrationFailed",
-        },
+        onError: [
+          { target: "awaitingRegistration", guard: "registrationNeedsWallet" },
+          {
+            // Non-blocking: mint already confirmed on-chain
+            target: "confirmed",
+            actions: "markPoolRegistrationFailed",
+          },
+        ],
       },
       // No CANCEL — the hypercert is already minted on-chain
+    },
+    awaitingRegistration: {
+      on: { RETRY: "registeringProposal" },
     },
     confirmed: {
       type: "final",

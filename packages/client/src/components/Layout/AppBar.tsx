@@ -88,7 +88,7 @@ export const AppBar = () => {
               !isActive && "text-text-soft-400"
             )}
           >
-            {/* The cockpit's active recipe in the app's green (F6): a pill behind the
+            {/* The Hub's active recipe in the app's green (F6): a pill behind the
                 active icon. Every tab holds the pill's 56px, so no tab moves when the
                 active one changes. Forced colors drop the fill, so there the pill
                 draws its outline. */}

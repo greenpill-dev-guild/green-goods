@@ -71,6 +71,7 @@ function setupDefaults(
     eligibleGardensError?: boolean;
     hasStaleBaseList?: boolean;
     isProtocolTeam?: boolean;
+    isProductLead?: boolean;
     isSteward?: boolean;
     gardens?: ReturnType<typeof makeGarden>[];
   } = {}
@@ -83,6 +84,7 @@ function setupDefaults(
     eligibleGardensError = false,
     hasStaleBaseList = false,
     isProtocolTeam = false,
+    isProductLead = false,
     isSteward = false,
     gardens = [],
   } = overrides;
@@ -94,6 +96,7 @@ function setupDefaults(
   );
   mockUseRole.mockReturnValue({
     isProtocolTeam,
+    isProductLead,
     isSteward,
     loading: roleLoading,
   });

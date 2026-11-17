@@ -138,7 +138,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
   const loginGenerationRef = useRef(0);
   // Reflects the Reown AppKit wallet modal open state.
   const walletModalOpen = useWalletModalOpen();
-  const clearRestoreAttempt = useWalletRestoreLifecycle(actor as AuthActor, snapshot, wagmiConfig);
+  const walletRestore = useWalletRestoreLifecycle(actor as AuthActor, snapshot, wagmiConfig);
   const {
     disconnectWallet,
     releaseWallet,
@@ -336,7 +336,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
     // without waiting, so the next wallet login asks for a wallet again.
     releaseWallet(session);
     if (manualWalletLoginPendingRef.current || isConnecting) void getAppKit()?.close();
-    clearRestoreAttempt();
+    walletRestore.clear();
     // The one join-request credential a browser keeps ends with the session.
     useJoinRequestCountGrantStore.getState().clearAll();
 
@@ -354,14 +354,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
         (group === "workApprovals" && source === "offline"),
     });
     queryClient.getMutationCache().clear();
-  }, [
-    actor,
-    clearRestoreAttempt,
-    releaseWallet,
-    cancelDeferredLogin,
-    isConnecting,
-    pilotEnrollment,
-  ]);
+  }, [actor, walletRestore, releaseWallet, cancelDeferredLogin, isConnecting, pilotEnrollment]);
 
   const { syncSignOut, notifySignOut } = useCrossTabSignOut(
     endSession,
@@ -596,12 +589,10 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
       authMode = "passkey";
     } else if (snapshot.matches({ authenticated: "embedded" })) {
       authMode = "embedded";
-    } else if (snapshot.matches({ authenticated: "wallet" })) {
+    } else if (snapshot.matches({ authenticated: "wallet" }) || walletRestore.state !== null) {
       authMode = "wallet";
     } else if (snapshot.matches({ restoring: "embedded" }) && snapshot.context.embeddedAddress) {
       authMode = "embedded";
-    } else if (snapshot.matches({ restoring: "wallet" }) && snapshot.context.walletAddress) {
-      authMode = "wallet";
     }
 
     // Check if authenticating
@@ -617,15 +608,16 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
       // button stays hidden with no way to recover.
       (isConnecting && walletModalOpen);
 
-    const isRestoring = snapshot.matches("restoring");
+    // A remembered wallet account is usable while its wallet is still asked (PRD-1499).
+    const waitsOnWallet = snapshot.matches("restoring") && walletRestore.state !== "restoring";
     const authenticatedSession =
       snapshot.matches("authenticated") ||
-      (snapshot.matches({ restoring: "wallet" }) && Boolean(snapshot.context.walletAddress)) ||
+      walletRestore.state !== null ||
       (snapshot.matches({ restoring: "embedded" }) && Boolean(snapshot.context.embeddedAddress));
 
     return {
       authMode,
-      isReady: !snapshot.matches("initializing") && !isRestoring,
+      isReady: !snapshot.matches("initializing") && !waitsOnWallet,
       isAuthenticated: authenticatedSession,
       isAuthenticating,
       error: snapshot.context.error,
@@ -645,13 +637,14 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
       externalWalletConnected: snapshot.context.externalWalletConnected,
       externalWalletAddress: snapshot.context.externalWalletAddress,
     };
-  }, [snapshot, isConnecting, walletModalOpen, storedCredential]);
+  }, [snapshot, walletRestore.state, isConnecting, walletModalOpen, storedCredential]);
 
   // State value — changes on auth events
   const stateValue: AuthStateValue = useMemo(
     () => ({
       walletReleaseStalled,
       walletConnectFailure,
+      walletRestore: walletRestore.state,
       authMode: computedValues.authMode,
       isReady: computedValues.isReady,
       isAuthenticated: computedValues.isAuthenticated,
@@ -670,7 +663,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
       externalWalletConnected: computedValues.externalWalletConnected,
       externalWalletAddress: computedValues.externalWalletAddress,
     }),
-    [computedValues, walletReleaseStalled, walletConnectFailure]
+    [computedValues, walletReleaseStalled, walletConnectFailure, walletRestore.state]
   );
 
   // Actions value — stable references, only changes when actor/disconnectWallet change

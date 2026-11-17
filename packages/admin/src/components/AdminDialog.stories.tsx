@@ -17,7 +17,7 @@ const meta: Meta<typeof AdminDialog> = {
     docs: {
       description: {
         component: [
-          "**AdminDialog** - the cockpit's dialog: its own surface (16dp corners,",
+          "**AdminDialog** - the Hub's dialog: its own surface (16dp corners,",
           "surface-container-high, elevation 2, 32 percent scrim) under the shared",
           "`SheetHeader` (DL-117): the 22px title, the target line, the description",
           "and the close button on the title's line, with no icon. The confirm family's",
@@ -673,7 +673,7 @@ export const MobileSheetGeometry: Story = {
     await expect(surfaceRect.right - closeRect.right).toBeLessThan(24);
     await expect(closeRect.bottom).toBeLessThanOrEqual(bodyRect.top + VIEWPORT_EDGE_TOLERANCE_PX);
     await expect(titleRect.right).toBeLessThanOrEqual(closeRect.left + VIEWPORT_EDGE_TOLERANCE_PX);
-    // The cockpit keeps its 22px dialog title in the shared header.
+    // The Hub keeps its 22px dialog title in the shared header.
     await expect(getComputedStyle(title).fontSize).toBe("22px");
 
     // The grip tops the surface, centred above the title, and marks the sheet

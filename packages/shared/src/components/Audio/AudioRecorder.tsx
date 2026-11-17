@@ -40,7 +40,7 @@ function formatTime(seconds: number): string {
  * Provides a simple amplitude level indicator during recording.
  *
  * Its controls are the shared `Button` at the `sm` size, so they take the
- * surface's corner and metric: 40px in the app, the cockpit's 32px pill in
+ * surface's corner and metric: 40px in the app, the Hub's 32px pill in
  * admin (DL-031).
  */
 export function AudioRecorder({

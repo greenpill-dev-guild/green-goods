@@ -10,8 +10,7 @@ import { createQueryPersistence } from "@green-goods/shared/config/query-persist
 import { act, fireEvent, waitFor } from "@testing-library/react";
 import { useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AdminBootServices, BootOutcome } from "@/components/Boot/bootAdmin";
-import { bootAdmin } from "@/components/Boot/bootAdmin";
+import { type AdminBootServices, type BootOutcome, bootAdmin } from "@/components/Boot/bootAdmin";
 
 function Ready({ onWorkspaceReady }: { onWorkspaceReady?: () => void }) {
   useEffect(() => onWorkspaceReady?.(), [onWorkspaceReady]);

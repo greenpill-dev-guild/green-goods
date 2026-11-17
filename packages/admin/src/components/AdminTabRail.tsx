@@ -55,7 +55,7 @@ function railOverflow(rail: HTMLElement): RailOverflow {
 }
 
 /**
- * AdminTabRail — the installed app's equal-width tabs at the cockpit's 36px
+ * AdminTabRail — the installed app's equal-width tabs at the Hub's 36px
  * height (F8).
  *
  * Anatomy:

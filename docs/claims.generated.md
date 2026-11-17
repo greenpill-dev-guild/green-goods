@@ -7,7 +7,7 @@ generated: true
 generator: scripts/quality/check-ontology.mjs
 generated_from:
   - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:8c274917d44d7db2e164ac1fabbe45f47f910e8fd49abfa1ef8204d0bd18cf4c"
+source_digest: "sha256:7ce92e2fcdf77b8122554816524d5c6853c71aa44698a5ba6ccf223931c2da9c"
 source_of_truth:
   - packages/shared/src/ontology/green-goods-projections.json
 ---
@@ -66,7 +66,7 @@ This ledger separates what people can use now from deployed protocol capability,
 
 **Audience:** steward · community · partner
 
-**Evidence:** `packages/client/src/views/Public/GardenDetail.tsx` — Release 2.0 (production v2.0.1) offers promise acts in the client app and the steward console, and the public garden page lists a pool's promises. On 2026-10-18 the production indexer returned 18 registered Arbitrum pools and 42 promises, and the pooling and settlement contracts were unpaused. G$ settlement is on in the app after release 2.0, and gardenerDeliveryEnabled() read true on 2026-10-30. (verified 2026-10-30)
+**Evidence:** `packages/client/src/views/Public/GardenDetail.tsx` — Release 2.0 (production v2.0.1) offers promise acts in the Green Goods App and the Green Goods Hub, and the public garden page lists a pool's promises. On 2026-10-18 the production indexer returned 18 registered Arbitrum pools and 42 promises, and the pooling and settlement contracts were unpaused. G$ settlement is on in the app after release 2.0, and gardenerDeliveryEnabled() read true on 2026-10-30. (verified 2026-10-30)
 
 ## in-build
 

@@ -73,7 +73,7 @@ const port = Number(flags.port ?? 6789);
 // Workspace stories shoot fullPage by default, which the design-export lane relies on.
 // Pass --route-fullpage=false for a viewport-sized shot instead: withCanvasFrame's
 // min-h-[560px] is a *min* height, so against an auto-height Storybook root the
-// cockpit's internal scroller never engages and fullPage stretches the shell to
+// Hub's internal scroller never engages and fullPage stretches the shell to
 // 2000-3000px — unfaithful to a fixed shell, and 2-3x the bytes.
 const routeFullPage = String(flags["route-fullpage"] ?? "true") !== "false";
 // --ids-file=<path> narrows the run to an explicit story-id list, for callers that

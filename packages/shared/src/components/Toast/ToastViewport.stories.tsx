@@ -1,5 +1,14 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, fn, userEvent, within } from "storybook/test";
+import { useIntl } from "react-intl";
+import { useWalletReconnectPrompt } from "../../hooks/auth/useWalletReconnectPrompt";
+import { refuseWithoutWallet } from "../../modules/auth/wallet-reconnect";
+import { wasAskedToReconnect } from "../../utils/errors/unsent-failures";
+import {
+  AuthStateContext,
+  AuthActionsContext,
+  type AuthContextType,
+} from "../../providers/authContext";
 import { ToastViewport } from "./ToastViewport";
 import { toastService } from "./toast.service";
 import { createUpdateToasts } from "./presets/update";
@@ -146,4 +155,78 @@ export const DarkMode: Story = {
     ),
   ],
   render: () => <ToastTrigger />,
+};
+
+const reconnectSession: AuthContextType = {
+  authMode: "wallet",
+  walletRestore: "restoring",
+  isReady: true,
+  isAuthenticated: true,
+  isAuthenticating: false,
+  error: null,
+  credential: null,
+  smartAccountAddress: null,
+  smartAccountClient: null,
+  resolveSmartAccountClient: null,
+  userName: null,
+  hasStoredCredential: false,
+  walletAddress: null,
+  eoaAddress: undefined,
+  embeddedAddress: null,
+  externalWalletConnected: false,
+  externalWalletAddress: null,
+  createAccount: async () => {},
+  loginWithPasskey: async () => {},
+  loginWithWallet: fn(),
+  loginWithEmbedded: () => {},
+  signOut: async () => {},
+  switchToWallet: () => {},
+  switchToPasskey: () => {},
+  retry: () => {},
+  dismissError: () => {},
+  clearPasskey: () => {},
+  disconnectWallet: async () => {},
+};
+
+function WalletReconnectToast() {
+  useWalletReconnectPrompt();
+  const { formatMessage } = useIntl();
+  return (
+    <div className="p-8">
+      <ToastViewport position="bottom-center" />
+      <button
+        type="button"
+        data-testid="wallet-act"
+        className="rounded-lg bg-information-base px-3 py-2 text-sm font-medium text-white"
+        onClick={() => {
+          try {
+            refuseWithoutWallet();
+          } catch (error) {
+            if (!wasAskedToReconnect(error)) throw error;
+          }
+        }}
+      >
+        {formatMessage({ id: "app.common.submit" })}
+      </button>
+    </div>
+  );
+}
+
+export const WalletReconnect: Story = {
+  beforeEach: () => {
+    toastService.dismissAll();
+    return () => toastService.dismissAll();
+  },
+  render: () => (
+    <AuthStateContext.Provider value={reconnectSession}>
+      <AuthActionsContext.Provider value={reconnectSession}>
+        <WalletReconnectToast />
+      </AuthActionsContext.Provider>
+    </AuthStateContext.Provider>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByTestId("wallet-act"));
+    await expect(await canvas.findByTestId("wallet-reconnect-action")).toBeVisible();
+  },
 };

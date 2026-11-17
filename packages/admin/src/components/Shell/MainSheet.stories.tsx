@@ -12,7 +12,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Admin fork of the Canvas MainSheet (Cockpit M3, finished). A transparent content zone — the linen canvas and its faint tone wash are the page ground, and route content sits directly on it. No glass, no recession.",
+          "Admin fork of the Canvas MainSheet (Hub M3, finished). A transparent content zone — the linen canvas and its faint tone wash are the page ground, and route content sits directly on it. No glass, no recession.",
       },
     },
   },

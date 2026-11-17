@@ -256,6 +256,8 @@ export const EN_REPORTING_COPY = {
     "Your publication was sent but I can't confirm it on chain yet. I won't send it twice; I'll tell you when I know.",
   "publish.unknown":
     "I didn't hear back from your wallet, so I can't tell yet whether it was sent. I won't send it again; I'm checking the chain and will tell you what I find.",
+  "publish.unconfirmed":
+    "I've checked the chain and still can't find your report, so I've stopped checking. I won't send it again. If it doesn't show in the garden, write to {support}.",
   "publish.rejected":
     "The signature was declined, so nothing was published. Here is your report again; confirm it when you're ready.",
   "publish.reverted":
@@ -315,6 +317,8 @@ export const EN_REPORTING_COPY = {
   "review.rejectedBeforeSend":
     "The signature was declined, so your review wasn't recorded. Here it is again; confirm it when you're ready.",
   "review.reverted": "Recording your review failed on chain. Check it and confirm again to retry.",
+  "review.unconfirmed":
+    "I've checked the chain and still can't find your review, so I've stopped checking. I won't send it again. If it doesn't show on the work, write to {support}.",
   "recovery.started":
     "To move your Green Goods account to this chat, open this page and verify the account you used before. The link expires in 10 minutes.",
   "recovery.code": "Enter this code on the Green Goods recovery page: {code}",

@@ -111,6 +111,9 @@ async function settle(
 export async function executeBatchOperation(input: ExecutionInput): Promise<BatchRecord> {
   const { journal, sender } = input;
   const prepared = structuredClone(input.prepared);
+  const existing = await journal.get(prepared.id);
+  // A recorded send only needs its quiet ownership check while recovery waits.
+  if (!existing || existing.status === "prepared") sender.assertReadyToSign?.();
   await owned(sender, prepared);
   const record = await journal.prepare(prepared);
   if (record.status === "confirmed") return record;

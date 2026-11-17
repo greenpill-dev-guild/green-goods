@@ -32,7 +32,14 @@ const ALLOWED_CONTRACT_EVENTS = {
     "KarmaHookFailed",
   ]),
   KarmaGAPModule: new Set(["GAPProjectCreated", "GAPProjectReset", "KarmaSyncRecorded"]),
-  HatsModule: new Set(["RoleGranted", "RoleRevoked", "KarmaHookFailed"]),
+  // Module-owned role policy and actor audit; no raw Hats or attestation indexing.
+  HatsModule: new Set([
+    "RoleGranted",
+    "RoleRevoked",
+    "ProtocolRoleHatsUpdated",
+    "RoleManaged",
+    "KarmaHookFailed",
+  ]),
   WorkApprovalResolver: new Set(["KarmaHookFailed"]),
   OctantModule: new Set([
     "VaultCreated",

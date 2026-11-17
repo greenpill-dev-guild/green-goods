@@ -12,7 +12,7 @@
  * `.gg-button[data-*]` rules that read `--gg-button-*` tokens,
  * so a surface restyles its buttons by setting tokens, not props: the app's
  * corner and weight tokens sit on `:root`, the website overrides them through
- * `:root:has([data-site="website"])`, and the cockpit sets its own, plus the
+ * `:root:has([data-site="website"])`, and the Hub sets its own, plus the
  * size metrics, in admin's `index.css`.
  *
  * A loading button stays focusable: it is `aria-disabled` and `aria-busy` and

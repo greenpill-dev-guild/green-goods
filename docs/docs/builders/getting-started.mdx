@@ -33,8 +33,8 @@ import {OnboardingProcedure} from "@site/src/components/docs";
 
 # Getting Started
 
-By the end of this page you'll have Green Goods running on your machine: the public site and
-installed-app experience and the steward cockpit, with this docs site and Storybook beside them on
+By the end of this page you'll have Green Goods running on your machine: the Green Goods Website and
+App and the Green Goods Hub, with this docs site and Storybook beside them on
 the hosted path, and a clear check at each step so you know it worked.
 
 <figure className="gg-figure">
@@ -105,8 +105,8 @@ confirm is a real production transaction, so don't confirm one while you're expl
 
    | Surface | URL |
    |---|---|
-   | Client (public site + PWA) | [https://localhost:3001](https://localhost:3001) |
-   | Admin (steward cockpit) | [https://localhost:3002](https://localhost:3002) |
+   | Client (Green Goods Website + App) | [https://localhost:3001](https://localhost:3001) |
+   | Admin (Green Goods Hub) | [https://localhost:3002](https://localhost:3002) |
    | Docs (this site) | [http://localhost:3003](http://localhost:3003) |
    | Storybook | [http://localhost:3004](http://localhost:3004) |
 
@@ -119,10 +119,10 @@ confirm is a real production transaction, so don't confirm one while you're expl
    To see the installed-app experience without connecting a wallet, open
    [https://localhost:3001/?mockAuth=steward&presentation=pwa](https://localhost:3001/?mockAuth=steward&presentation=pwa).
    Mock auth signs you in as a test steward, in the PWA presentation. It works only on localhost,
-   and it never signs a transaction. The same `?mockAuth=steward` opens the admin at
+   and it never signs a transaction. The same `?mockAuth=steward` opens the Hub at
    [https://localhost:3002/?mockAuth=steward](https://localhost:3002/?mockAuth=steward).
 
-   The [Admin package guide](./packages/admin) shows the Hub you should see for the mock steward.
+   The [Admin package guide](./packages/admin) shows the Review workspace you should see for the mock steward.
 
 6. Confirm the services respond. The launcher runs this smoke check itself once the services are
    up; rerun it by hand whenever you want. It submits no transactions:

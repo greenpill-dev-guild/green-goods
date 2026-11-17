@@ -13,7 +13,7 @@ const meta: Meta<typeof AdminCard> = {
     docs: {
       description: {
         component: [
-          "**AdminCard** — the cockpit's card on the shared card surface (`.gg-card`,",
+          "**AdminCard** — the Hub's card on the shared card surface (`.gg-card`,",
           "DL-102, DL-118). Elevated and outlined draw the installed app's card: its fill,",
           "a 1px edge, a faint shadow in light and the 24px corner. Filled keeps a tint on",
           "the same corner with no edge. Interactive cards add the neutral ink state",

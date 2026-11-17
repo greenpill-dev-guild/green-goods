@@ -5,7 +5,7 @@
  * dark-mode fixes as the runtime app.
  *
  * This file contains NO remote styling of shared components — that practice
- * ended with the Shell fork (Cockpit M3 1a, Step 1) and the removal of
+ * ended with the Shell fork (Hub M3 1a, Step 1) and the removal of
  * admin-m3-overrides.css (Step 5).
  * ============================================================================ */
 
@@ -224,7 +224,7 @@
  * Action flow phase cross-fade (qualify ↔ configure)
  * Animates only the content group — the ActionFlowShell header + footer stay
  * stationary. Reuses the route-content fade keyframe + admin motion tokens
- * (minimal-cockpit budget). Disabled under reduced motion.
+ * (minimal-chrome budget). Disabled under reduced motion.
  * ============================================================================ */
 .action-flow-fade {
   animation: var(--admin-motion-route-content-duration) var(--admin-motion-route-content-easing) both

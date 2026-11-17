@@ -2,7 +2,7 @@
   "purpose": "Reader-facing purpose and use case for every GitHub Actions workflow. The docs generator renders this with the triggers and jobs it reads from the workflow files; a workflow file without an entry, or an entry without a file, fails the generator tests.",
   "workflows": {
     ".github/workflows/admin.yml": {
-      "purpose": "Builds and tests the steward cockpit when admin code, the shared code it imports, or the shared test support changes.",
+      "purpose": "Builds and tests the Green Goods Hub when admin code, the shared code it imports, or the shared test support changes.",
       "useCase": "A change under packages/admin or the shared UI and hooks it depends on.",
       "required": false
     },
@@ -11,13 +11,18 @@
       "useCase": "Bot, webhook, or public API changes.",
       "required": false
     },
+    ".github/workflows/agents-doctor.yml": {
+      "purpose": "Checks that the agent guidance and harness files follow the shared agent kit, through the guild reusable workflow pinned to one commit for both the workflow and its script. Its checks include AGENTS.md as the guide, the CLAUDE.md import, one skills folder, valid .agents policy files, hooks that read stdin, the PR template sections, CODEOWNERS and the skill adapter. Advisory: findings never fail the job, though a crash or a runner fault shows red, and CI Gate does not wait for it.",
+      "useCase": "Changes to AGENTS.md, CLAUDE.md, .agents, .claude, .codex, CODEOWNERS or the PR template.",
+      "required": false
+    },
     ".github/workflows/ci-gate.yml": {
       "purpose": "The one required status. It derives the workflows a pull request's changed files should trigger, waits for each to register and report, and fails as soon as one fails or never shows up, so path-filtered workflows cannot silently weaken branch protection.",
       "useCase": "Every pull request on any base branch. Branch protection points here instead of at the per-package workflows.",
       "required": true
     },
     ".github/workflows/client.yml": {
-      "purpose": "Builds, tests, and runs the client Playwright project for the public site and the installed PWA.",
+      "purpose": "Builds, tests, and runs the client Playwright project for the Green Goods Website and App.",
       "useCase": "Client views, routes, service worker, PWA packaging, or the shared UI they render.",
       "required": false
     },
@@ -42,7 +47,7 @@
       "required": false
     },
     ".github/workflows/coverage-nightly.yml": {
-      "purpose": "Enforces the measured coverage floors across the packages. Pull requests run plain package tests for fast feedback; this lane measures.",
+      "purpose": "Enforces the measured coverage floors across the packages. Client and Admin pull requests hold their floors too; Shared's sharded pull request tests run plain, so this lane is its only coverage check.",
       "useCase": "Nightly at 08:43 UTC and after every push to main.",
       "required": false
     },
@@ -71,6 +76,11 @@
       "useCase": "Indexer handlers, schema, or config, or the ABIs and deployments they read.",
       "required": false
     },
+    ".github/workflows/merge-gate.yml": {
+      "purpose": "Posts the Merge Gate status, which holds a pull request into develop to its tier's proof from .agents/merge-policy.json: routine needs CI Gate alone, sensitive a marker that a fresh agent's adversarial review was addressed at the head, critical that marker and one for the selector's critical gate, each from an account with write access. The tier is the highest of the selector's risk, the policy's globs and the gate's own list, and anything the gate cannot classify is critical.",
+      "useCase": "Every pull request into develop, when CI Gate finishes and when a comment that holds or held a merge-gate marker is written, edited or deleted; any merge-gate: comment asks for a fresh decision. It blocks nothing until the develop ruleset requires the status, which is the owner's step.",
+      "required": false
+    },
     ".github/workflows/ontology.yml": {
       "purpose": "Validates the ontology sidecar against the code it anchors and keeps its generated reference pages current.",
       "useCase": "Ontology edits, the data model and entity matrix projections, or a source the sidecar points at.",
@@ -87,7 +97,7 @@
       "required": false
     },
     ".github/workflows/supply-chain-guardrails.yml": {
-      "purpose": "Four lanes over the repository's own safety surfaces: formatting on every run; the supply-chain audit of manifests, lockfiles, and the release-age rule; guidance integrity (agent guidance, skill contracts, immutable plan reports, the QA test ID ledger, test quality, and plan hub validation); and workflow performance parity, which pins the validation selector, the git hooks, and the package test configurations.",
+      "purpose": "Five lanes over the repository's own safety surfaces: formatting on every run; dead code on every run, holding knip's findings to their shrink-only baseline, since knip reads workflows, hooks and tool configs as well as code; the supply-chain audit of manifests, lockfiles, and the release-age rule; guidance integrity (agent guidance, skill contracts, immutable plan reports, the QA test ID ledger, test quality, and plan hub validation); and workflow performance parity, which pins the validation selector, the git hooks, and the package test configurations.",
       "useCase": "Dependency, lockfile, toolchain, or workflow changes; agent guidance, skills, plan hubs, and the QA catalog; the validation policy, selector, and git hooks. Each lane after formatting runs only when its own paths change.",
       "required": false
     }

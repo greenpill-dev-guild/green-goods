@@ -1225,6 +1225,42 @@ describe("GardenCommitment", () => {
     expect(mockActs.linkWork).toHaveBeenCalledWith(WORK, 1, expect.any(String));
   });
 
+  it("does not reopen selected work from a raw promise attribution fallback", () => {
+    const raw = detail({
+      requirements: [requirement(0, 44n, 2, 1)],
+      workAttributions: [attribution()],
+    });
+    mockUseController.mockReturnValue(
+      controller({
+        detail: raw,
+        works: [],
+        workVisibility: { isReady: true, isLoading: false, isVisible: () => false },
+      })
+    );
+    render();
+    expect(
+      screen.queryByRole("button", { name: "Open Prune the north beds" })
+    ).not.toBeInTheDocument();
+    expect(raw.workAttributions).toHaveLength(1);
+  });
+
+  it("reports unknown linked-work visibility without claiming the promise has no work", () => {
+    mockUseController.mockReturnValue(
+      controller({
+        detail: detail({
+          requirements: [requirement(0, 44n, 2, 1)],
+          workAttributions: [attribution()],
+        }),
+        workVisibility: { isReady: false, isLoading: false, isVisible: () => false },
+      })
+    );
+    render();
+    expect(screen.getByText("Error loading works")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Open Prune the north beds" })
+    ).not.toBeInTheDocument();
+  });
+
   it("shows linked work, opens it, and names requirement progress", async () => {
     mockUseController.mockReturnValue(
       controller({

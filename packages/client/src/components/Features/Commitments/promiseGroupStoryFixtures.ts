@@ -10,10 +10,8 @@ import {
   commitmentNeedsSeat,
   type InboxCommitment,
 } from "@green-goods/shared/commitment-pooling";
-import {
-  type DisplayGroupEntry,
-  groupCommitmentsForDisplay,
-} from "@green-goods/shared/modules/commitment-pooling/display-groups";
+import type { TakeUpGroupEntry } from "@green-goods/shared/hooks/client-ui/pool/usePromiseGroups";
+import { groupCommitmentsForDisplay } from "@green-goods/shared/modules/commitment-pooling/display-groups";
 import type { Address } from "@green-goods/shared/types/domain";
 
 const STORY_VIEWER = "0x1111111111111111111111111111111111111111" as Address;
@@ -100,7 +98,8 @@ function copy(
 }
 
 export interface StoryGroup {
-  group: DisplayGroupEntry<CommitmentReadModel>;
+  /** The set, counted as its row and page count it. */
+  group: TakeUpGroupEntry;
   sample: CommitmentReadModel;
   /** The reader's own copies, as the page lists them. */
   yours: InboxCommitment[];
@@ -108,19 +107,30 @@ export interface StoryGroup {
 
 /**
  * The set, with how many copies stand in each state. `yours` hands the reader
- * one of the in-progress or kept copies.
+ * one of the in-progress or kept copies. `requested` is how many open copies
+ * of a steward-reviewed set have a request waiting on a steward: they leave the
+ * available count, as the app's own count moves them (PRD-1492).
  */
 export function storyGroup(input: {
   available: number;
+  requested?: number;
   inProgress?: number;
   kept?: number;
   ended?: number;
   yours?: "inProgress" | "kept";
   overrides?: Partial<CommitmentReadModel>;
 }): StoryGroup {
-  const { available, inProgress = 0, kept = 0, ended = 0, yours, overrides = {} } = input;
+  const {
+    available,
+    requested = 0,
+    inProgress = 0,
+    kept = 0,
+    ended = 0,
+    yours,
+    overrides = {},
+  } = input;
   const plan: CopyState[] = [
-    ...Array<CopyState>(available).fill("available"),
+    ...Array<CopyState>(available + requested).fill("available"),
     ...Array<CopyState>(inProgress).fill("inProgress"),
     ...Array<CopyState>(kept).fill("kept"),
     ...Array<CopyState>(ended).fill("ended"),
@@ -139,7 +149,10 @@ export function storyGroup(input: {
   if (!entry || entry.kind !== "group") throw new Error("the story set must fold into a group");
   const mine = copies.filter((record) => record.leadProvider === STORY_VIEWER);
   return {
-    group: entry,
+    group: {
+      ...entry,
+      counts: { ...entry.counts, available: entry.counts.available - requested, requested },
+    },
     sample: copies[0] as CommitmentReadModel,
     yours: mine.map((commitment) => ({
       commitment,

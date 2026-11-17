@@ -47,7 +47,7 @@ export function useWorkSubmissionPresentationModel({
       title: intl.formatMessage({ id: "app.garden.upload.title", defaultMessage: "Upload Media" }),
       description: intl.formatMessage({
         id: "app.garden.submit.tab.media.instruction",
-        defaultMessage: "Please take a clear photo of the plants in the garden",
+        defaultMessage: "Add media that clearly shows the work you did.",
       }),
       required: false,
       needed: [] as string[],

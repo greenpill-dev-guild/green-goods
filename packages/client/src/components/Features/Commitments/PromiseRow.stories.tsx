@@ -136,7 +136,7 @@ export const Ask: Story = {
   },
 };
 
-/** An untaken ask past its due date says so in its pill; expiring it is the cockpit's act. */
+/** An untaken ask past its due date says so in its pill; expiring it is the Hub's act. */
 export const PastDue: Story = {
   args: { row: openAsk(), pastDue: true },
   play: async ({ canvasElement }) => {

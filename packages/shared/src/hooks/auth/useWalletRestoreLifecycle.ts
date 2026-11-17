@@ -1,10 +1,11 @@
 import { reconnect } from "@wagmi/core";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { getAuthMode } from "../../modules/auth/session";
 import { trackAuthWalletRestore } from "../../modules/app/authWalletRestoreAnalytics";
 import { logger } from "../../modules/app/logger";
 import { connectivityStore } from "../../stores/connectivity";
+import type { WalletRestoreState } from "../../types/auth";
 import type { AuthActor } from "../../workflows/authActor";
 import type { WalletConnectionType } from "../../workflows/authMachine";
 
@@ -13,6 +14,21 @@ const RESTORE_TIMEOUT_MS = 15_000;
 
 type AuthSnapshot = ReturnType<AuthActor["getSnapshot"]>;
 type WagmiConfig = Parameters<typeof reconnect>[0];
+
+/**
+ * Where a wallet account's wallet stands while it has not answered. Still
+ * asked counts only for a remembered account, the one the App opens on; with
+ * no address there is no account to open. Kept after the window, it waits for
+ * a wallet connector: an embedded one does not answer for the wallet.
+ */
+function walletRestoreOf(snapshot: AuthSnapshot): WalletRestoreState | null {
+  if (snapshot.matches({ restoring: "wallet" }))
+    return snapshot.context.walletAddress ? "restoring" : null;
+  const walletAnswered =
+    snapshot.context.externalWalletConnected &&
+    snapshot.context.externalWalletConnectionType === "wallet";
+  return snapshot.matches({ authenticated: "wallet" }) && !walletAnswered ? "failed" : null;
+}
 
 interface RestoreAttempt {
   mode: WalletConnectionType;
@@ -39,13 +55,17 @@ function canRetryConnector(): boolean {
   return canAdvanceRestoreClock();
 }
 
-/** Keeps persisted wallet intent protected while its connector hydrates. */
+/**
+ * Keeps persisted wallet intent protected while its connector hydrates. Says
+ * where the wallet stands (`state`) and forgets the attempt on sign-out (`clear`).
+ */
 export function useWalletRestoreLifecycle(
   actor: AuthActor,
   snapshot: AuthSnapshot,
   wagmiConfig: WagmiConfig
-): () => void {
+): { state: WalletRestoreState | null; clear: () => void } {
   const attemptRef = useRef<RestoreAttempt | null>(null);
+  const state = walletRestoreOf(snapshot);
   const restoringMode: WalletConnectionType | null = snapshot.matches({ restoring: "wallet" })
     ? "wallet"
     : snapshot.matches({ restoring: "embedded" })
@@ -177,13 +197,7 @@ export function useWalletRestoreLifecycle(
 
   // A wallet session kept after a timeout asks the wallet again each time the
   // app returns or comes back online, until the wallet answers or the member signs out.
-  // Only a wallet connector answers for the wallet; an embedded one does not.
-  const walletAwaitingReconnect =
-    snapshot.matches({ authenticated: "wallet" }) &&
-    !(
-      snapshot.context.externalWalletConnected &&
-      snapshot.context.externalWalletConnectionType === "wallet"
-    );
+  const walletAwaitingReconnect = state === "failed";
   const awaitedReconnectRef = useRef(false);
 
   useEffect(() => {
@@ -250,7 +264,9 @@ export function useWalletRestoreLifecycle(
     }
   }, [restoringMode, snapshot]);
 
-  return useCallback(() => {
+  const clear = useCallback(() => {
     attemptRef.current = null;
   }, []);
+  // The same object until the state moves, so a caller can depend on it.
+  return useMemo(() => ({ state, clear }), [state, clear]);
 }

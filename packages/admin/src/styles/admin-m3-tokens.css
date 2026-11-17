@@ -6,7 +6,7 @@
 
 :root {
   /* --------------------------------------------------------------------------
-   * M3 Elevation Scale — the ONE ladder (Cockpit M3 1a).
+   * M3 Elevation Scale — the ONE ladder (Hub M3 1a).
    * Levels 1 and 2 only: cards and filled buttons rest at level 1 and step to
    * level 2 on hover. Dialogs/sheets sit at level 2 over their scrim. The only
    * other sanctioned shadow is the warm ambient chrome shadow on the floating
@@ -122,7 +122,7 @@
   --m3-on-primary-container: var(--tone-on-primary-container, var(--green-900));
   /* Focus-ring convergence (PRD-644 round 2): the generic input focus rule in
    * index.css reads --focus-ring, which theme.css points at blue. In the
-   * cockpit it rides the single focus role instead; --tone-focus-ring flips
+   * Hub it rides the single focus role instead; --tone-focus-ring flips
    * per theme on its own, so one theme-agnostic line covers light and dark. */
   --focus-ring: var(--tone-focus-ring, var(--m3-primary));
 }
@@ -177,7 +177,7 @@
  * -------------------------------------------------------------------------- */
 [data-theme="dark"] {
   /* The warm dark ladder is the shared Earth ramp in theme.css (one ladder for
-   * the cockpit and the installed app, F2). M3-dark convention: HIGHER
+   * the Hub and the installed app, F2). M3-dark convention: HIGHER
    * elevation = LIGHTER. The default card (`--m3-surface-container`) sits ten
    * points of OKLCH lightness above the canvas (`--m3-surface`, 26% against
    * 16%), so card↔canvas separation comes from a lightness STEP, not a (black,
@@ -442,7 +442,7 @@
   --tone-surface-tint-color: rgb(var(--blue-500) / 5%);
 }
 
-/* Garden — Green. Uses a forest action tone for the cockpit's strongest CTA. */
+/* Garden — Green. Uses a forest action tone for the Hub's strongest CTA. */
 [data-tone="garden"] {
   /* Dual-safe forest green (light applies the dark block's dual-use rule):
    * green-600 failed as white-text fill (2.85) and as link text (2.85); the
@@ -467,7 +467,7 @@
    FAB, date-picker selected day) — those need AA contrast, and orange-600 is
    the lightest white-safe step in the ramp. The yellow separation therefore
    comes from the canvas wash, surface tint, secondary, and containers, not the
-   primary accent. The ramp is the cockpit's amber one (index.css), which covers
+   primary accent. The ramp is the Hub's amber one (index.css), which covers
    the canvas and its portals: orange-600 and -700 are #B45309 there, white at
    5.02:1, and the orange-800 hover 7.09:1. */
 [data-tone="community"] {

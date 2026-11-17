@@ -43,7 +43,7 @@ describe("PendingCard", () => {
 
     expect(screen.getByText("Mulching")).toBeInTheDocument();
     // Where it stands, then when, on one detail line; the age in its short form.
-    expect(screen.getByText("Step 2 of 4 · 3 photos")).toBeInTheDocument();
+    expect(screen.getByText("Step 2 of 4 · 3 attachments")).toBeInTheDocument();
     expect(screen.getByText("2 hr. ago")).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("Draft");
 
@@ -89,12 +89,12 @@ describe("PendingCard", () => {
     );
     renderWithIntl(card(linkIntent));
     expect(screen.getByText("For a promise")).toBeInTheDocument();
-    expect(screen.getByText("Step 2 of 4 · 3 photos")).toBeInTheDocument();
+    expect(screen.getByText("Step 2 of 4 · 3 attachments")).toBeInTheDocument();
     cleanup();
 
     renderWithIntl(card({ ...linkIntent, takesUp: true }));
     expect(screen.getByText("For a promise")).toBeInTheDocument();
-    expect(screen.getByText("Takes up an ask · Step 2 of 4 · 3 photos")).toBeInTheDocument();
+    expect(screen.getByText("Takes up an ask · Step 2 of 4 · 3 attachments")).toBeInTheDocument();
   });
 
   it("names an untitled draft and leaves the photo count out when there is none", () => {

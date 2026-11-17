@@ -1,4 +1,6 @@
+import type { WalletRestoreState } from "../../types/auth";
 import type { Address } from "../../types/domain";
+import { refuseWithoutWallet } from "./wallet-reconnect";
 
 export type AccountFactoryArgs = {
   factory?: Address;
@@ -14,8 +16,11 @@ export function createAccountMessageSigner(input: {
   authMode: "wallet" | "embedded" | "passkey" | null;
   signMessage: (args: { message: string }) => Promise<`0x${string}`>;
   account?: MessageSignerAccount;
+  /** A wallet account whose wallet has not answered is asked to reconnect instead (PRD-1499). */
+  walletRestore?: WalletRestoreState | null;
 }): (message: string) => Promise<`0x${string}`> {
   return async (message) => {
+    if (input.authMode === "wallet" && input.walletRestore) refuseWithoutWallet();
     if (input.authMode !== "passkey") return input.signMessage({ message });
     if (!input.account?.signMessage)
       throw new Error("Reconnect your passkey account before continuing.");

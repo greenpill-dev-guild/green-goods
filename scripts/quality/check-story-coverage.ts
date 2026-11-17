@@ -526,7 +526,7 @@ async function main() {
     // Candidate story paths. For visual `index.tsx` we also accept a
     // sibling named after the containing directory (e.g.
     // `views/Actions/Actions.stories.tsx` beside `views/Actions/index.tsx`),
-    // a long-standing convention in the cockpit's views.
+    // a long-standing convention in the Hub's views.
     const candidates = [join(dir, `${fileName}.stories.tsx`)];
     if (fileName === "index") {
       const dirName = basename(dir);

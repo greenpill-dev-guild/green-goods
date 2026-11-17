@@ -55,6 +55,8 @@ export interface GardenCommitmentController {
   metadata: CommitmentMetadataV1 | null;
   pool: CommitmentPoolRecord | null;
   works: Work[];
+  /** Presentation classification only; detail and decision reads retain their raw authority. */
+  workVisibility: { isReady: boolean; isLoading: boolean; isVisible: (uid: string) => boolean };
   actions: Action[];
   roles: CommitmentViewerRoles;
   seat: CommitmentSeat | null;
@@ -77,7 +79,7 @@ export interface GardenCommitmentController {
   takeUpOpen: boolean;
   /**
    * Nobody took it up and the chain's clock is known to be past its due date, so anyone may
-   * expire it; the app says so, and expiring stays the cockpit's act (DL-110 as amended).
+   * expire it; the app says so, and expiring stays the Hub's act (DL-110 as amended).
    */
   pastDue: boolean;
   /**

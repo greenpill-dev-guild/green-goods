@@ -28,8 +28,6 @@ interface FaqCategory {
   topics: string[];
 }
 
-type ProfileHelpProps = {};
-
 const GARDENER_GUIDE_URL = "https://docs.greengoods.app/community/gardener-guide";
 
 const LEARN_AND_CONNECT: readonly HelpLink[] = [
@@ -186,7 +184,7 @@ function FaqGuideLink({ href }: { href: string }) {
   );
 }
 
-export const ProfileHelp: React.FC<ProfileHelpProps> = () => {
+export const ProfileHelp: React.FC = () => {
   const intl = useIntl();
 
   return (

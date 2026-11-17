@@ -17,7 +17,8 @@ vi.mock("@/components/Cards", () => ({
 }));
 
 import enMessages from "@green-goods/shared/i18n/en";
-import type { Work } from "@green-goods/shared/types/domain";
+import { type Action, Domain, type Work } from "@green-goods/shared/types/domain";
+import { domainMaskOf } from "@green-goods/shared/utils/domain";
 import { GardenWork } from "../../components/Features/Garden/Work";
 
 afterEach(() => {
@@ -226,4 +227,42 @@ it("hides older work offline, where a wider window cannot be read", () => {
   });
 
   expect(screen.queryByRole("button", { name: "Show older work" })).toBeNull();
+});
+
+it("clears an unsupported Type choice and keeps historical work when domain support changes", () => {
+  const actions: Action[] = [
+    { id: "42161-1", title: "Planting", domain: Domain.AGRO },
+    { id: "42161-2", title: "Composting", domain: Domain.WASTE },
+    { id: "42161-3", title: "Weeding", domain: Domain.AGRO },
+  ].map((action) => ({
+    ...action,
+    slug: action.id,
+    description: "",
+    startTime: 0,
+    endTime: 0,
+    createdAt: 0,
+    capitals: [],
+    inputs: [],
+    media: [],
+  }));
+  const works = actions.map((_, index) => ({ ...savedWork(index), actionUID: index + 1 }));
+  const list = (domains: Domain[]) => (
+    <IntlProvider locale="en" messages={enMessages}>
+      <GardenWork works={works} actions={actions} domainMask={domainMaskOf(domains)} />
+    </IntlProvider>
+  );
+  const view = render(list([Domain.AGRO, Domain.WASTE]));
+  fireEvent.change(screen.getByRole("combobox", { name: "Type of work" }), {
+    target: { value: "2" },
+  });
+  expect(screen.getAllByTestId("cached-work")).toHaveLength(1);
+
+  view.rerender(list([Domain.AGRO]));
+  expect(screen.getByRole("combobox", { name: "Type of work" })).toHaveValue("all");
+  expect(screen.queryByRole("option", { name: "Composting" })).toBeNull();
+  expect(screen.getAllByTestId("cached-work")).toHaveLength(3);
+
+  view.rerender(list([Domain.AGRO, Domain.WASTE]));
+  expect(screen.getByRole("combobox", { name: "Type of work" })).toHaveValue("all");
+  expect(screen.getAllByTestId("cached-work")).toHaveLength(3);
 });

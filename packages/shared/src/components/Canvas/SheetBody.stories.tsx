@@ -18,7 +18,7 @@ const meta: Meta<typeof SheetBody> = {
           "- `flex: 1; min-height: 0; overflow-y: auto` so it grows inside the sheet's flex column",
           "- Hidden scrollbar (no scrollbar gutter)",
           "- `padded={true}` (default) applies `20px 16px` padding for form-style content",
-          "- The host sheet can retune that inset through `--gg-sheet-body-padding` (and the footer's through `--gg-sheet-footer-padding`); the cockpit's docked side sheet sets 24px sides from 640px",
+          "- The host sheet can retune that inset through `--gg-sheet-body-padding` (and the footer's through `--gg-sheet-footer-padding`); the Hub's docked side sheet sets 24px sides from 640px",
           "- `padded={false}` for edge-to-edge lists (notifications, member rosters)",
           "",
           "Compose with `<SheetFooter>` below for pinned-footer behavior.",
@@ -102,7 +102,7 @@ export const EdgeToEdgeList: Story = {
 
 /**
  * A host sheet that sets `--gg-sheet-body-padding` and `--gg-sheet-footer-padding`
- * moves both insets at once, as the cockpit's docked side sheet does at 24px so
+ * moves both insets at once, as the Hub's docked side sheet does at 24px so
  * its content lines up with its header; a host that sets nothing keeps the
  * handoff's 16px (see `PaddedDefault`).
  */

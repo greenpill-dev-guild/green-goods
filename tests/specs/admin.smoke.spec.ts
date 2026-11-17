@@ -1,11 +1,11 @@
 /**
- * Admin Cockpit Smoke Tests
+ * Green Goods Hub Smoke Tests
  *
- * Deterministic browser checks for the current admin cockpit routes.
+ * Deterministic browser checks for the current Hub routes.
  *
  * Strategy:
  * - Use the app's dev-only `mockAuth` seam instead of brittle wagmi storage injection
- * - Mock indexer gardens/actions queries so cockpit routes have stable data
+ * - Mock indexer gardens/actions queries so Hub routes have stable data
  * - Mock EAS GraphQL with empty attestations so `/review` renders predictable empty/loading states
  */
 import { expect, type Page, type Route, test } from "@playwright/test";
@@ -22,7 +22,7 @@ const MOCK_GARDENS = [
     tokenAddress: "0xabcd1234567890123456789012345678901234ef",
     tokenID: "1",
     name: "Mock Steward Garden",
-    description: "Fixture garden for admin cockpit verification",
+    description: "Fixture garden for Hub verification",
     location: "Nairobi",
     bannerImage: "",
     gardeners: ["0x2aa64E6d80390F5C017F0313cB908051BE2FD35e"],
@@ -36,7 +36,7 @@ const MOCK_GARDENS = [
     createdAt: Math.floor(Date.now() / 1000),
   },
 ];
-interface CockpitFixture {
+interface HubFixture {
   gardens?: typeof MOCK_GARDENS;
   /** Who may create gardens; the RPC mock's own list when left out. */
   allowlisted?: readonly string[];
@@ -44,7 +44,7 @@ interface CockpitFixture {
 
 // The same garden with the signed-in address as an evaluator only, and nobody allowed to create
 // gardens, so Community stays closed.
-const EVALUATOR_ONLY: CockpitFixture = {
+const EVALUATOR_ONLY: HubFixture = {
   gardens: MOCK_GARDENS.map((garden) => ({
     ...garden,
     operators: [],
@@ -80,9 +80,9 @@ function getGraphQLQueryText(request: { postData(): string | null }): string {
   return "";
 }
 
-async function mockAdminCockpitBackend(
+async function mockAdminHubBackend(
   page: Page,
-  { gardens = MOCK_GARDENS, allowlisted }: CockpitFixture = {}
+  { gardens = MOCK_GARDENS, allowlisted }: HubFixture = {}
 ) {
   const handleIndexerRoute = async (route: Route) => {
     if (route.request().method() === "OPTIONS") {
@@ -179,11 +179,11 @@ async function mockAdminCockpitBackend(
   await mockSepoliaRpc(page, { garden: gardens[0], allowlisted });
 }
 
-async function setupMockSteward(page: Page, fixture: CockpitFixture = {}) {
+async function setupMockSteward(page: Page, fixture: HubFixture = {}) {
   const helper = new AdminTestHelper(page);
   await seedAcceptedUploadTerms(page.context(), ADMIN_URL, ["steward"]);
   await helper.enableMockAuth("steward");
-  await mockAdminCockpitBackend(page, fixture);
+  await mockAdminHubBackend(page, fixture);
   return helper;
 }
 
@@ -200,7 +200,7 @@ async function waitForSignedInBoot(page: Page, helper: AdminTestHelper) {
 }
 
 test.describe.configure({ mode: "serial" });
-test.describe("Admin Cockpit", () => {
+test.describe("Green Goods Hub", () => {
   test.use({ baseURL: ADMIN_URL });
 
   test("shows the connect shell when unauthenticated", async ({ page }) => {
@@ -211,7 +211,7 @@ test.describe("Admin Cockpit", () => {
     await expect(page.getByRole("button", { name: /connect wallet/i })).toBeVisible();
   });
 
-  test("renders the work cockpit for a mocked steward", async ({ page }) => {
+  test("renders the work Hub for a mocked steward", async ({ page }) => {
     const helper = await setupMockSteward(page);
 
     await page.goto(helper.buildMockAuthPath("/review", "steward"));
@@ -237,7 +237,7 @@ test.describe("Admin Cockpit", () => {
     await expect(page.getByPlaceholder("Search submissions")).toBeVisible();
   });
 
-  test("keeps mock auth active across full reloads on other cockpit routes", async ({ page }) => {
+  test("keeps mock auth active across full reloads on other Hub routes", async ({ page }) => {
     // Two full signed-in loads, so room for both; the default 30s cut the second one short on
     // a busy machine.
     test.setTimeout(2 * SIGNED_IN_LOAD_MS);
@@ -251,7 +251,7 @@ test.describe("Admin Cockpit", () => {
 
     // Actions belongs to the Green Goods team, and this steward's garden is not the Community
     // Garden, so the route shows the Unauthorized state in place. Auth is still active: the page
-    // renders the cockpit chrome, not the connect shell.
+    // renders the Hub chrome, not the connect shell.
     await expect(page.getByText("Connect to continue")).toHaveCount(0);
     await expect(page).toHaveURL(/\/actions(?:\?.*)?$/);
     await expect(page.getByRole("heading", { name: "Unauthorized", exact: true })).toBeVisible({

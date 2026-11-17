@@ -30,7 +30,7 @@
  * ```
  */
 
-import type { SmartAccountClientResolver } from "../../types/auth";
+import type { SmartAccountClientResolver, WalletRestoreState } from "../../types/auth";
 import type { SmartAccountClient } from "permissionless";
 import { useAuth } from "./useAuth";
 import type { Address } from "../../types/domain";
@@ -70,6 +70,8 @@ export interface UseUserReturn {
   externalWalletAddress: Address | null;
   /** Primary address based on current auth mode */
   primaryAddress: Address | null;
+  /** A wallet account whose wallet has not answered yet: it can read, not sign. */
+  walletRestore: WalletRestoreState | null;
 }
 
 export function useUser(): UseUserReturn {
@@ -119,5 +121,6 @@ export function useUser(): UseUserReturn {
     externalWalletConnected,
     externalWalletAddress,
     primaryAddress,
+    walletRestore: auth.walletRestore ?? null,
   };
 }

@@ -220,7 +220,7 @@ export function selectStatusBand(input: {
   const { commitment, seat } = input;
   const phase = commitment.derivedState;
   // An untaken promise says the same two facts to every seat: that it is past due, which the
-  // cockpit acts on (DL-110 as amended), and that a take-up request still waits on a steward,
+  // Hub acts on (DL-110 as amended), and that a take-up request still waits on a steward,
   // which "Nobody has offered" used to hide.
   if (phase === "OFFERED" || phase === "REQUESTED") {
     if (input.pastDue) {

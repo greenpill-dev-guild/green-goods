@@ -52,7 +52,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Admin fork of the Canvas navigation dock (Cockpit M3, finished). Centered floating pill of 94px minimum wells that grow for localized labels; the active item carries the tone-primary-container icon pill and a weight-600 ink label — one of the three sanctioned workspace-tone uses. Material comes from the `.canvas-navigation-bar` chrome rules in admin-m3-tokens.css.",
+          "Admin fork of the Canvas navigation dock (Hub M3, finished). Centered floating pill of 94px minimum wells that grow for localized labels; the active item carries the tone-primary-container icon pill and a weight-600 ink label — one of the three sanctioned workspace-tone uses. Material comes from the `.canvas-navigation-bar` chrome rules in admin-m3-tokens.css.",
       },
     },
   },
@@ -131,7 +131,7 @@ async function expectPhoneLabelsFit(canvasElement: HTMLElement) {
   }
 }
 
-/** At 360px, the narrowest phone the cockpit supports. */
+/** At 360px, the narrowest phone the Hub supports. */
 const phone = {
   globals: { viewport: { value: "mobileSmall" } },
   args: { slots: phoneSlots },
