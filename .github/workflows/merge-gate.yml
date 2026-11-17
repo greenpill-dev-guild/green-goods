@@ -99,6 +99,8 @@ jobs:
       - name: Hold the pull request to its tier's proof
         env:
           GITHUB_TOKEN: ${{ github.token }}
+        # Assigned on its own line, so a failed rev-parse stops the step instead of hiding.
         run: |
-          export MERGE_GATE_CHECKOUT_SHA="$(git rev-parse HEAD)"
+          MERGE_GATE_CHECKOUT_SHA="$(git rev-parse HEAD)"
+          export MERGE_GATE_CHECKOUT_SHA
           node scripts/quality/merge-gate.mjs

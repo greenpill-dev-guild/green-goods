@@ -399,7 +399,7 @@ test("the workflow posts when CI Gate starts, and runs on every push to develop 
   assert.match(gate, /github\.event_name == 'push' && \(needs\.detect\.outputs\.sweep == 'true' \|\| needs\.detect\.result == 'failure'\)/);
   // The sweep reads develop's tip and compares freshness with that checkout.
   assert.match(gate, /ref: develop\n/);
-  assert.match(gate, /export MERGE_GATE_CHECKOUT_SHA="\$\(git rev-parse HEAD\)"/);
+  assert.match(gate, /\n\s+MERGE_GATE_CHECKOUT_SHA="\$\(git rev-parse HEAD\)"\n\s+export MERGE_GATE_CHECKOUT_SHA\n/);
   // Every input the gate's decision reads is critical to change.
   assert.deepEqual(GATE_INPUT_PATHS.filter((file) => !GATE_CRITICAL_PATHS.includes(file)), []);
 });
