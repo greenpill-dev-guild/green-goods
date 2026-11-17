@@ -41,7 +41,7 @@ export const GATE_CRITICAL_PATHS = [
   "scripts/quality/shared-mutation-surface.mjs",
 ];
 // What the gate's decision reads. A push to develop that changes any of them starts a sweep that
-// decides every open pull request again (the workflow's push paths list the same files).
+// decides every open pull request again (the workflow's detect job compares each push with them).
 export const GATE_INPUT_PATHS = [
   ".agents/merge-policy.json",
   ".github/workflows/merge-gate.yml",
@@ -424,6 +424,9 @@ export async function evaluate(pull, headSha, { github, cwd = repoRoot, env = pr
   }
 }
 
+// What a sweep posts before it decides; if a stopped sweep leaves it, a recheck comment decides.
+export const HOLD_DESCRIPTION = "Deciding again under a changed merge policy; comment merge-gate: recheck if this stays.";
+
 // Whether a gate input changed between two commits. A comparison GitHub cut short, or one that lists
 // no files, counts as changed; a failed lookup throws.
 async function gateInputsChanged(github, from, to) {
@@ -440,11 +443,15 @@ async function gateInputsMovedSince(github, checkout, base) {
   return tip !== checkout && gateInputsChanged(github, checkout, tip);
 }
 
-// Whether a push to develop changed what the gate reads. The workflow runs on every push, since a
-// path filter misses a file past the first 3,000 a large push changes; an unknown range sweeps.
-async function pushChangedGateInputs(github, event) {
+/**
+ * Whether a push to develop changed what the gate reads. The workflow's detect job asks on every
+ * push, since a path filter misses a file past the first 3,000 a large push changes. A force push,
+ * an unknown range, or a comparison that fails sweeps: the three-dot comparison of a rewritten
+ * history starts at the merge base, so it can miss a reverted policy.
+ */
+export async function pushChangedGateInputs(github, event) {
   const zero = /^0+$/;
-  if (!event.before || !event.after || zero.test(event.before)) return true;
+  if (event.forced || !event.before || !event.after || zero.test(event.before) || zero.test(event.after)) return true;
   return gateInputsChanged(github, event.before, event.after).catch(() => true);
 }
 
@@ -456,11 +463,18 @@ async function pushChangedGateInputs(github, event) {
 export async function main(argv = process.argv.slice(2), deps = {}) {
   const env = deps.env ?? process.env;
   const dryRun = argv[0] === "--dry-run" ? Number(argv[1]) : null;
-  if (argv.length && !(dryRun > 0 && argv.length === 2)) {
-    console.error("usage: node scripts/quality/merge-gate.mjs [--dry-run <pull request number>]");
+  const detect = argv.length === 1 && argv[0] === "--push-changed";
+  if (argv.length && !detect && !(dryRun > 0 && argv.length === 2)) {
+    console.error("usage: node scripts/quality/merge-gate.mjs [--dry-run <pull request number> | --push-changed]");
     return 2;
   }
   const github = deps.github ?? githubClient({ token: env.GITHUB_TOKEN, repository: env.GITHUB_REPOSITORY });
+  if (detect) {
+    const sweep = await pushChangedGateInputs(github, deps.event ?? JSON.parse(readFileSync(env.GITHUB_EVENT_PATH, "utf8")));
+    (deps.log ?? ((line) => console.log(line)))(sweep ? "A gate input may have changed: sweep." : "No gate input changed in this push.");
+    if (env.GITHUB_OUTPUT) appendFileSync(env.GITHUB_OUTPUT, `sweep=${sweep}\n`);
+    return 0;
+  }
   const decideHead = deps.evaluate ?? evaluate;
   const log = deps.log ?? ((line) => console.log(line));
   const summary = deps.summary ?? ((line) => env.GITHUB_STEP_SUMMARY && appendFileSync(env.GITHUB_STEP_SUMMARY, `${line}\n`));
@@ -474,12 +488,9 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
   let failed = false;
   const eventName = env.GITHUB_EVENT_NAME;
   if (!dryRun && eventName === "push") {
+    // The detect job ran only this sweep's push through pushChangedGateInputs.
     const event = deps.event ?? JSON.parse(readFileSync(env.GITHUB_EVENT_PATH, "utf8"));
     const branch = String(event.ref ?? "").replace(/^refs\/heads\//, "");
-    if (!(await pushChangedGateInputs(github, event))) {
-      log("No gate input changed in this push; nothing to decide again.");
-      return 0;
-    }
     if ((await gateInputsMovedSince(github, env.GITHUB_SHA, branch).catch(() => false)) === true) {
       log(`The gate's inputs changed on ${branch} again since this sweep checked it out; the newer sweep decides.`);
       return 0;
@@ -492,7 +503,7 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
         if (pull.state !== "open" || !bases.includes(pull.base.ref)) continue;
         await github(`statuses/${pull.head.sha}`, {
           method: "POST",
-          body: { state: "pending", context: STATUS_CONTEXT, description: "Deciding again under a changed merge policy.", target_url: runUrl },
+          body: { state: "pending", context: STATUS_CONTEXT, description: HOLD_DESCRIPTION, target_url: runUrl },
         });
       } catch (error) {
         failed = true;

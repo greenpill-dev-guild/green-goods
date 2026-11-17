@@ -8,6 +8,7 @@ import { fixtureGitEnvironment } from "../lib/dev-shared.js";
 import {
   GATE_CRITICAL_PATHS,
   GATE_INPUT_PATHS,
+  HOLD_DESCRIPTION,
   classifyChange,
   decide,
   evaluate,
@@ -21,6 +22,7 @@ import {
   materializeShared,
   policyTier,
   pullNumbers,
+  pushChangedGateInputs,
   treeEntries,
 } from "./merge-gate.mjs";
 
@@ -383,6 +385,14 @@ test("the workflow posts when CI Gate starts, and runs on every push to develop 
   assert.match(workflow, /workflow_run:\n\s+workflows: \["CI Gate"\]\n\s+types: \[requested, completed\]/);
   // No path filter: GitHub drops one for a file past the first 3,000 a push changes.
   assert.match(workflow, /push:\n\s+branches: \[develop\]\n(?!\s+paths:)/);
+  // Detection sits outside the sweeps' queue, so an ordinary push cannot cancel a sweep; the sweep
+  // runs only when detection says a gate input changed.
+  const detect = workflow.slice(workflow.indexOf("  detect:\n"), workflow.indexOf("  gate:\n"));
+  assert.match(detect, /run: node scripts\/quality\/merge-gate\.mjs --push-changed/);
+  assert.doesNotMatch(detect, /concurrency:/);
+  const gate = workflow.slice(workflow.indexOf("  gate:\n"));
+  assert.match(gate, /needs: detect/);
+  assert.match(gate, /github\.event_name == 'push' && needs\.detect\.outputs\.sweep == 'true'/);
   // Every input the gate's decision reads is critical to change.
   assert.deepEqual(GATE_INPUT_PATHS.filter((file) => !GATE_CRITICAL_PATHS.includes(file)), []);
 });
@@ -394,7 +404,7 @@ test("a sweep after a push decides each open pull request into develop and skips
   ];
   const posted = [];
   const github = async (route, request = {}) => {
-    if (request.method === "POST") return void posted.push(route);
+    if (request.method === "POST") return void posted.push([route, request.body.state, request.body.description]);
     if (route.startsWith("pulls?state=open")) return route.includes("page=1") ? pulls : [];
     const number = Number(route.match(/^pulls\/(\d+)$/)?.[1]);
     if (number) return pulls.find((pull) => pull.number === number);
@@ -412,37 +422,37 @@ test("a sweep after a push decides each open pull request into develop and skips
   };
   assert.equal(await main([], deps), 0);
   // The hold first, then the decision; the pull request into main is left alone.
-  assert.deepEqual(posted, [`statuses/${HEAD}`, `statuses/${HEAD}`]);
+  assert.deepEqual(posted, [
+    [`statuses/${HEAD}`, "pending", HOLD_DESCRIPTION],
+    [`statuses/${HEAD}`, "pending", "x"],
+  ]);
 });
 
-test("a push sweeps only when it changed a gate input, or when GitHub cannot say", async () => {
+test("a push sweeps only when it changed a gate input, was forced, or GitHub cannot say", async () => {
   const BEFORE = "a".repeat(40);
   const AFTER = "b".repeat(40);
-  const run = async (files) => {
-    const posted = [];
-    const github = async (route, request = {}) => {
-      if (request.method === "POST") return void posted.push(route);
-      if (route.startsWith("pulls?state=open")) return route.includes("page=1") ? [{ number: 3, base: { ref: "develop" } }] : [];
-      if (route === "pulls/3") return { number: 3, state: "open", base: { ref: "develop" }, head: { sha: HEAD } };
-      if (route === `compare/${BEFORE}...${AFTER}`) return files === "error" ? Promise.reject(new Error("HTTP 502")) : { files };
-      if (route.startsWith("issues/") || route.startsWith("commits/")) return [];
-      throw new Error(`unexpected ${route}`);
-    };
-    const deps = {
-      env: { GITHUB_EVENT_NAME: "push" },
-      event: { ref: "refs/heads/develop", before: BEFORE, after: AFTER },
-      github,
-      evaluate: async () => ({ decision: { state: "success", description: "ok", needed: [] }, reasons: [], markers: null, authors: new Set(), writers: new Set() }),
-      log: () => {},
-      summary: () => {},
-    };
-    assert.equal(await main([], deps), 0);
-    return posted.length;
-  };
-  assert.equal(await run([{ filename: "docs/a.md" }]), 0);
-  assert.equal(await run([{ filename: "docs/old.md", previous_filename: ".agents/merge-policy.json" }]), 2);
-  assert.equal(await run(Array.from({ length: 300 }, (_, index) => ({ filename: `docs/${index}.md` }))), 2);
-  assert.equal(await run("error"), 2);
+  const ask = (files, event = {}) =>
+    pushChangedGateInputs(async (route) => {
+      if (route !== `compare/${BEFORE}...${AFTER}`) throw new Error(`unexpected ${route}`);
+      return files === "error" ? Promise.reject(new Error("HTTP 502")) : { files };
+    }, { before: BEFORE, after: AFTER, ...event });
+  assert.equal(await ask([{ filename: "docs/a.md" }]), false);
+  assert.equal(await ask([{ filename: "docs/old.md", previous_filename: ".agents/merge-policy.json" }]), true);
+  assert.equal(await ask(Array.from({ length: 300 }, (_, index) => ({ filename: `docs/${index}.md` }))), true);
+  assert.equal(await ask(undefined), true);
+  assert.equal(await ask("error"), true);
+  assert.equal(await ask([{ filename: "docs/a.md" }], { forced: true }), true);
+  assert.equal(await ask([], { before: "0".repeat(40) }), true);
+  // The detect job writes the answer for the sweep job.
+  const folder = mkdtempSync(path.join(tmpdir(), "gg-merge-gate-detect-"));
+  try {
+    const output = path.join(folder, "output");
+    const github = async () => ({ files: [{ filename: "docs/a.md" }] });
+    assert.equal(await main(["--push-changed"], { env: { GITHUB_OUTPUT: output }, event: { before: BEFORE, after: AFTER }, github, log: () => {} }), 0);
+    assert.equal(readFileSync(output, "utf8"), "sweep=false\n");
+  } finally {
+    rmSync(folder, { recursive: true, force: true });
+  }
 });
 
 test("a run that read an older policy posts nothing, a failed freshness check holds back only success, and a sweep goes on past one failure", async () => {

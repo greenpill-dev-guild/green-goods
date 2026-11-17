@@ -11,8 +11,9 @@ name: Merge Gate
 # request's workflow granted statuses: write could still post a "Merge Gate" status itself, as it
 # could for CI Gate, and only a dedicated app identity pinned in the ruleset would stop that; the
 # same identity would close the window before this workflow first posts, while a pull request's own
-# "Merge Gate" job stands alone. Every push to develop runs it, unfiltered, since a path filter
-# misses a file past the first 3,000 a large push changes. A push that changes what the gate reads
+# "Merge Gate" job stands alone. Every push to develop starts its detect job, unfiltered, since a
+# path filter misses a file past the first 3,000 a large push changes; only a push that changed
+# what the gate reads starts a sweep, so an ordinary push never cancels one. A push that changes what the gate reads
 # holds every open pull request, then decides each again; an older run that read the previous
 # policy posts nothing. Any `merge-gate:` comment, such as
 # `merge-gate: recheck` after a pull request is retargeted, asks for a fresh decision. The job
@@ -33,15 +34,43 @@ permissions:
   statuses: write
 
 jobs:
+  # Whether a push to develop changed what the gate reads. It has no concurrency group, so an
+  # ordinary push never joins the sweeps' queue and cannot cancel a sweep a policy push started.
+  detect:
+    name: Detect a changed merge policy
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      sweep: ${{ steps.detect.outputs.sweep }}
+    steps:
+      - name: Checkout develop
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: "22.23.4"
+
+      - name: Compare the push with the gate's inputs
+        id: detect
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/quality/merge-gate.mjs --push-changed
+
   gate:
     # Not "Merge Gate": this job's own check run lands on develop's tip, and only the status it
     # posts may carry that name.
     name: Evaluate merge proof
+    needs: detect
     if: >-
-      github.event_name == 'push' ||
+      !cancelled() && (
+      (github.event_name == 'push' && needs.detect.outputs.sweep == 'true') ||
       (github.event_name == 'workflow_run' && github.event.workflow_run.event == 'pull_request') ||
       (github.event_name == 'issue_comment' && github.event.issue.pull_request &&
-        (contains(github.event.comment.body, 'merge-gate:') || contains(github.event.changes.body.from, 'merge-gate:')))
+        (contains(github.event.comment.body, 'merge-gate:') || contains(github.event.changes.body.from, 'merge-gate:'))))
     # One queue per pull request for runs that evaluate. A comment without a marker skips the job, so
     # it never takes a queue slot from a real run. A fork's CI Gate run names no pull request and
     # queues by its head, and sweeps after pushes to develop share one queue; the gate rereads each
