@@ -10,11 +10,11 @@ import { fixtureGitEnvironment } from "../lib/dev-shared.js";
 import {
   BASELINE_PATH,
   baseContext,
-  changedFiles,
   formatBaseline,
   judge,
   parseBaseline,
   parseKnipReport,
+  renamesSince,
   shrinkBaseline,
 } from "./check-knip-baseline.mjs";
 
@@ -43,29 +43,29 @@ test("knip's JSON report becomes findings by kind and file, after any lines conf
   });
   assert.equal(places.get(JSON.stringify(["exports", CARD, "b"])), 9);
   assert.throws(() => parseKnipReport("[vite-watch] only noise\n"), /no JSON report/);
+  // A kind the check does not hold fails rather than going ungated.
+  assert.throws(() => parseKnipReport(JSON.stringify({ issues: [{ file: CARD, cycles: [{ name: "a" }] }] })), /cycles, which this check does not hold/);
 });
 
 test("a finding the baseline does not name fails, even when another in the same file is gone", () => {
   const baseline = { exports: { [CARD]: ["a"] } };
   const findings = { exports: { [CARD]: ["b"] } };
-  const result = judge({ findings, baseline, changed: new Set([CARD]), places: new Map([[JSON.stringify(["exports", CARD, "b"]), 7]]) });
+  const result = judge({ findings, baseline, places: new Map([[JSON.stringify(["exports", CARD, "b"]), 7]]) });
   assert.equal(result.ok, false);
   assert.deepEqual(result.lines, [
     `new finding in ${CARD}:7: exports b`,
+    "findings that moved with a file git did not see as a rename count as new; keep the move a rename, or remove the dead code",
     `stale baseline for ${CARD}: exports a is gone; record it with \`node scripts/quality/check-knip-baseline.mjs --baseline-shrink\``,
   ]);
   assert.equal(judge({ findings: baseline, baseline }).ok, true);
 });
 
-test("a gone finding fails only in a file the change touches, and the baseline may not outgrow the base", () => {
+test("a gone finding fails wherever it is, since an import in one file clears a finding in another, and the baseline may not outgrow the base", () => {
   const baseline = { exports: { [CARD]: ["a"] }, files: { [BADGE]: [BADGE] } };
   const findings = { files: { [BADGE]: [BADGE] } };
-  const untouched = judge({ findings, baseline, changed: new Set([BADGE]) });
-  assert.equal(untouched.ok, true);
-  assert.match(untouched.notes[0], /exports a is gone, in a file this change does not touch/);
-  assert.equal(judge({ findings, baseline, changed: new Set([CARD]) }).ok, false);
-  // Unknown change (no base, or knip's inputs changed): every gone finding fails.
-  assert.equal(judge({ findings, baseline, changed: null }).ok, false);
+  assert.deepEqual(judge({ findings, baseline }).lines, [
+    `stale baseline for ${CARD}: exports a is gone; record it with \`node scripts/quality/check-knip-baseline.mjs --baseline-shrink\``,
+  ]);
   const grown = judge({ findings: baseline, baseline, previous: { exports: { [CARD]: ["a"] } } });
   assert.deepEqual(grown.lines, [`baseline grew for ${BADGE}: files ${BADGE} is not in the base branch's copy`]);
 });
@@ -74,16 +74,16 @@ test("a renamed file keeps its findings until the shrink moves them, and the shr
   const baseline = { exports: { [CARD]: ["a", "b"] } };
   const renames = new Map([[BADGE, CARD]]);
   const findings = { exports: { [BADGE]: ["a"] } };
-  const before = judge({ findings, baseline, renames, changed: new Set([CARD, BADGE]) });
+  const before = judge({ findings, baseline, renames });
   assert.equal(before.lines.some((line) => line.startsWith("new finding")), false);
   assert.equal(before.ok, false, "the old path's entries are stale until recorded");
   const next = shrinkBaseline(baseline, findings, renames);
   assert.deepEqual(next, { exports: { [BADGE]: ["a"] } });
-  assert.equal(judge({ findings, baseline: next, previous: baseline, renames, changed: new Set([CARD, BADGE]) }).ok, true);
+  assert.equal(judge({ findings, baseline: next, previous: baseline, renames }).ok, true);
   assert.throws(() => shrinkBaseline(baseline, { exports: { [CARD]: ["c"] } }), /refusing to shrink/);
 });
 
-test("a change's files come from git, and a change to knip's inputs touches every file", () => {
+test("a change's renames come from git, and the base's baseline from its base", () => {
   const root = mkdtempSync(path.join(tmpdir(), "gg-knip-changes-"));
   try {
     const env = fixtureGitEnvironment();
@@ -101,13 +101,10 @@ test("a change's files come from git, and a change to knip's inputs touches ever
     const base = git("rev-parse", "HEAD");
     git("mv", CARD, BADGE);
     write("packages/client/src/New.ts", "export {};\n");
-    const { changed, renames } = changedFiles(root, base);
-    assert.deepEqual([...renames], [[BADGE, CARD]]);
-    assert.deepEqual([...changed].sort(), ["packages/client/src/New.ts", BADGE, CARD]);
+    assert.deepEqual([...renamesSince(root, base)], [[BADGE, CARD]]);
     const context = baseContext(["--base", base], { root });
+    assert.deepEqual([...context.renames], [[BADGE, CARD]]);
     assert.deepEqual(context.previous, { exports: { [CARD]: ["a"] } });
-    write("packages/client/tsconfig.app.json", "{}\n");
-    assert.equal(changedFiles(root, base).changed, null);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

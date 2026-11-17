@@ -42,6 +42,9 @@ on:
       - "**/*.sol"
       - "**/*.ts"
       - "**/*.tsx"
+      - "**/*.mts"
+      - "**/*.cts"
+      - ".gitignore"
       - "**/*.yaml"
       - "**/*.yml"
   push:
@@ -86,6 +89,9 @@ on:
       - "**/*.sol"
       - "**/*.ts"
       - "**/*.tsx"
+      - "**/*.mts"
+      - "**/*.cts"
+      - ".gitignore"
       - "**/*.yaml"
       - "**/*.yml"
   workflow_dispatch:

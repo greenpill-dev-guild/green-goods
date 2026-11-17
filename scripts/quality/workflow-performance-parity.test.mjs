@@ -216,7 +216,7 @@ test("Supply Chain classifier routes each change class without broad fallthrough
     guidance: true,
     supply: false,
     parity: false,
-    deadcode: false,
+    deadcode: true,
   });
   assert.deepEqual(classifySupplyChainChanges(["bun.lock"]), {
     format: true,
@@ -230,7 +230,7 @@ test("Supply Chain classifier routes each change class without broad fallthrough
     guidance: false,
     supply: true,
     parity: true,
-    deadcode: false,
+    deadcode: true,
   });
   assert.deepEqual(classifySupplyChainChanges([], { workflowDispatch: true }), {
     format: true,
@@ -247,7 +247,7 @@ test("Supply Chain classifier routes each change class without broad fallthrough
       guidance: true,
       supply: false,
       parity: false,
-      deadcode: false,
+      deadcode: true,
     });
   }
   // The parity suite holds the tests for these test-quality inputs, so a change to one runs it.
@@ -266,11 +266,10 @@ test("Supply Chain classifier routes each change class without broad fallthrough
       deadcode: true,
     });
   }
-  // A change to what knip reads runs the dead-code job; prose alone does not.
-  for (const knipInput of ["knip.ts", "packages/client/tsconfig.app.json", "packages/qa/package.json", "scripts/data/knip-baseline.json"]) {
+  // Knip reads workflows, hooks and tool configs as well as code, so the dead-code job runs on every run.
+  for (const knipInput of [".husky/pre-commit", ".mcp.json", ".gitignore", "docs/docs/index.mdx"]) {
     assert.equal(classifySupplyChainChanges([knipInput]).deadcode, true, knipInput);
   }
-  assert.equal(classifySupplyChainChanges(["docs/docs/index.mdx", "scripts/data/qa-test-catalog.json"]).deadcode, false);
 });
 
 test("QA runtime and catalog changes reach the existing required behavioral job", () => {

@@ -2,10 +2,11 @@
 // Holds knip's findings (unused files, exports, types and dependencies, unlisted and unresolved
 // imports, duplicate exports) to a shrink-only baseline, the same rules as the solhint and
 // React-pattern baselines. A finding the baseline does not name fails, so dead code cannot be
-// added; a recorded finding that is gone fails in a file the change touches until
-// `--baseline-shrink` records it, so the baseline stays tight; and the baseline may not grow over
-// the base branch's copy. Findings are kept by name, not counted, so removing one unused export
-// does not make room for another.
+// added; a recorded finding that is gone fails until `--baseline-shrink` records it, so the
+// baseline stays tight; and the baseline may not grow over the base branch's copy. Findings are
+// kept by name, not counted, so removing one unused export does not make room for another. Unlike
+// solhint's warnings, knip's cross files: an import added in one file clears a finding in another,
+// so a gone finding fails wherever it is, in the change that cleared it.
 import { spawnSync } from "node:child_process";
 import { closeSync, existsSync, mkdtempSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -33,9 +34,8 @@ export const ISSUE_TYPES = [
   "catalog",
   "catalogReferences",
 ];
-// A change to these can move findings in files it does not touch: knip's configuration, the
-// lockfile that pins knip and its plugins, and the TypeScript settings that resolve imports.
-const isKnipInput = (file) => file === "knip.ts" || file === "bun.lock" || /(^|\/)tsconfig[^/]*\.json$/.test(file);
+// Report keys that are not findings.
+const NOT_FINDINGS = new Set(["file", "owners"]);
 const SHRINK_FLAG = "--baseline-shrink";
 const SHRINK_COMMAND = `node scripts/quality/check-knip-baseline.mjs ${SHRINK_FLAG}`;
 const NOTE =
@@ -66,6 +66,10 @@ export function parseKnipReport(text) {
   const findings = {};
   const places = new Map();
   for (const entry of report.issues) {
+    // A kind this check does not hold, such as cycles once knip.ts enables them, fails rather than
+    // going ungated.
+    const unknown = Object.keys(entry).filter((key) => !NOT_FINDINGS.has(key) && !ISSUE_TYPES.includes(key) && Array.isArray(entry[key]) && entry[key].length);
+    if (unknown.length) throw new Error(`knip reported ${unknown.join(", ")}, which this check does not hold; add the kind to ISSUE_TYPES`);
     for (const type of ISSUE_TYPES) {
       for (const item of entry[type] ?? []) {
         const name = nameOf(type, item);
@@ -186,27 +190,24 @@ export function formatBaseline(findings) {
   return `${lines.join("\n")}\n`;
 }
 
-/**
- * What fails, the lines that say so, and notes that do not fail. A stale entry fails only in a file
- * the change touches (`changed`; every file when the base is unknown or knip's inputs changed), so
- * two removals that merge together do not block every change. Pure, so every case can be tested.
- */
-export function judge({ findings, baseline, previous = null, renames = new Map(), changed = null, places = new Map() }) {
+/** What fails, and the lines that say so. Pure, so every case can be tested. */
+export function judge({ findings, baseline, previous = null, renames = new Map(), places = new Map() }) {
   const lines = [];
-  const notes = [];
   const { added, stale } = compareFindings(baseline, findings, renames);
   for (const { type, file, name } of added) {
     const line = places.get(JSON.stringify([type, file, name]));
     lines.push(`new finding in ${file}${line ? `:${line}` : ""}: ${type} ${name}`);
   }
+  if (added.length) {
+    lines.push("findings that moved with a file git did not see as a rename count as new; keep the move a rename, or remove the dead code");
+  }
   for (const { type, file, name } of stale) {
-    if (changed === null || changed.has(file)) lines.push(`stale baseline for ${file}: ${type} ${name} is gone; record it with \`${SHRINK_COMMAND}\``);
-    else notes.push(`stale baseline for ${file}: ${type} ${name} is gone, in a file this change does not touch; \`${SHRINK_COMMAND}\` records it`);
+    lines.push(`stale baseline for ${file}: ${type} ${name} is gone; record it with \`${SHRINK_COMMAND}\``);
   }
   for (const { type, file, name } of baselineGrowth(baseline, previous, renames)) {
     lines.push(`baseline grew for ${file}: ${type} ${name} is not in the base branch's copy`);
   }
-  return { ok: lines.length === 0, lines, notes };
+  return { ok: lines.length === 0, lines };
 }
 
 // Knip can exit before a pipe drains, so its report goes to a file. Exit 1 means findings; any
@@ -231,35 +232,22 @@ function runKnip() {
 }
 
 /**
- * The files a change touches since `ref`, as `git diff -M` sees them in `cwd`: `changed` holds every
- * path, both sides of a rename and untracked files included, and `renames` maps a new path to its
- * old one. A change to knip's inputs touches every file: `changed` is then null. A git failure
- * throws: an empty set would turn every stale entry into a note.
+ * The renames a change makes since `ref`, as `git diff -M` sees them in `cwd`: each new path maps
+ * to its old one. A git failure throws.
  */
-export function changedFiles(cwd, ref) {
-  const changed = new Set();
+export function renamesSince(cwd, ref) {
   const renames = new Map();
   const fields = runGit(cwd, ["diff", "-M", "--name-status", "-z", ref]).stdout.split("\0");
   for (let at = 0; at < fields.length && fields[at]; ) {
     const status = fields[at];
-    if (/^[RC]/.test(status)) {
-      if (status.startsWith("R")) renames.set(fields[at + 2], fields[at + 1]);
-      changed.add(fields[at + 1]).add(fields[at + 2]);
-      at += 3;
-    } else {
-      changed.add(fields[at + 1]);
-      at += 2;
-    }
+    if (status.startsWith("R")) renames.set(fields[at + 2], fields[at + 1]);
+    at += /^[RC]/.test(status) ? 3 : 2;
   }
-  for (const file of runGit(cwd, ["ls-files", "--others", "--exclude-standard", "-z"]).stdout.split("\0")) {
-    if (file) changed.add(file);
-  }
-  return { changed: [...changed].some(isKnipInput) ? null : changed, renames };
+  return renames;
 }
 
 /**
- * The base to compare the baseline with, its copy of the baseline, and the files changed and renamed
- * since. CI names the base it fetched in KNIP_BASELINE_BASE_REF; when that does not resolve, the
+ * The base to compare the baseline with, its copy of the baseline, and the renames since. CI names the base it fetched in KNIP_BASELINE_BASE_REF; when that does not resolve, the
  * growth check cannot run, so the check fails rather than pass without it. A base given with
  * `--base` takes the place of CI's. `root` is the repository to read.
  */
@@ -268,11 +256,11 @@ export function baseContext(argv, { root = repoRoot } = {}) {
   const base = resolveGitBase({ repoRoot: root, explicitBase, environmentVariables: ["KNIP_BASELINE_BASE_REF"] });
   const required = explicitBase ?? process.env.KNIP_BASELINE_BASE_REF;
   if (required && base !== required) throw new Error(`the base ${required} is not available, so the baseline cannot be compared with it`);
-  if (!base) return { base: null, previous: null, renames: new Map(), changed: null };
+  if (!base) return { base: null, previous: null, renames: new Map() };
   const ref = runGit(root, ["merge-base", "HEAD", base], { allowFailure: true }).stdout.trim() || base;
   const shown = runGit(root, ["show", `${ref}:${BASELINE_PATH}`], { allowFailure: true });
   const previous = shown.status === 0 ? parseBaseline(shown.stdout) : null;
-  return { base, previous, ...changedFiles(root, ref) };
+  return { base, previous, renames: renamesSince(root, ref) };
 }
 
 function main(argv = process.argv.slice(2)) {
@@ -293,9 +281,8 @@ function main(argv = process.argv.slice(2)) {
     console.log(`knip: ${total} finding(s) recorded in ${BASELINE_PATH}`);
     return 0;
   }
-  const { ok, lines, notes } = judge({ findings, baseline, previous: context.previous, renames: context.renames, changed: context.changed, places });
+  const { ok, lines } = judge({ findings, baseline, previous: context.previous, renames: context.renames, places });
   for (const line of lines) console.error(`knip: ${line}`);
-  for (const note of notes) console.log(`knip: note: ${note}`);
   if (ok) {
     const compared = context.previous ? `, and the baseline has not grown since ${context.base}` : "";
     console.log(`knip: ${total} finding(s), none new${compared}.`);

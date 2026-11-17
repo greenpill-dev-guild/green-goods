@@ -2460,6 +2460,7 @@
         "CLAUDE.md",
         ".github/actions/setup-js/action.yml",
         ".github/workflows/supply-chain-guardrails.yml",
+        ".gitignore",
         "yarn.lock"
       ],
       "prefixes": [
@@ -2488,6 +2489,8 @@
         ".sol",
         ".ts",
         ".tsx",
+        ".mts",
+        ".cts",
         ".yaml",
         ".yml"
       ]
