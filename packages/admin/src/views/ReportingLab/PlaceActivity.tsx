@@ -16,7 +16,7 @@ import { dayKeyOf, formatMonth, monthOf } from "./dates";
 import { describeCounts, filterSummary, formatNumber } from "./labCopy";
 import type { ReportDataset, WorkRecord } from "./model";
 import type { RecordsRequest } from "./RecordsDialog";
-import type { ReportScope } from "./scope";
+import { type ReportScope, statusMoment } from "./scope";
 import { StatusBar, StatusMarks } from "./StatusMarks";
 
 interface PlaceActivityProps {
@@ -34,12 +34,13 @@ export function PlaceActivity({ dataset, scope, records, onOpenRecords }: PlaceA
   const [highlight, setHighlight] = useState<string | null>(null);
   const { garden } = dataset;
   const monthLabel = formatMonth(scope.month, locale);
+  const at = statusMoment(scope, dataset);
   const inMonth = records.filter(
     (r) =>
       monthOf(dayKeyOf(r.submittedAt, garden.timeZone)) === scope.month &&
-      matchesStatus(r, dataset.reference, scope.status)
+      matchesStatus(r, at, scope.status)
   );
-  const summary = placeSummary(dataset, inMonth, dataset.reference);
+  const summary = placeSummary(dataset, inMonth, at);
   const max = Math.max(1, ...summary.sites.map((row) => row.records.length));
   const east = garden.sites.map((s) => s.east);
   const north = garden.sites.map((s) => s.north);
@@ -55,7 +56,7 @@ export function PlaceActivity({ dataset, scope, records, onOpenRecords }: PlaceA
       title,
       scopeLine: `${monthLabel}, ${filterSummary(scope, garden)}`,
       records: list,
-      at: dataset.reference,
+      at,
     });
 
   const row = (

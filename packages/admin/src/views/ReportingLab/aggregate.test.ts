@@ -170,6 +170,9 @@ describe("reporting lab aggregation", () => {
     expect(partial.totalAvailable).toBeNull();
     expect(partialHealth.unknown).toBeGreaterThan(0);
     expect(partialHealth.pending.every((r) => r.approvalReadable)).toBe(true);
+    // An unread month is never called healthy.
+    const older = reviewHealth(partial, partial.records, periodEnd("2025-11", partial), "2025-11");
+    expect(older.label).not.toBe("On track");
   });
 
   it("sums each asset alone, moves no balance for a plan and counts an unread entry nowhere", () => {

@@ -143,7 +143,7 @@ export function ReportsPage({
         );
         break;
       case "funding":
-        content = <FundingHistory dataset={dataset} scope={scope} />;
+        content = <FundingHistory dataset={dataset} scope={scope} role={role} />;
         break;
       case "evidence":
         content = <EvidenceOutcomes dataset={dataset} media={media} onOpenRecords={setRequest} />;

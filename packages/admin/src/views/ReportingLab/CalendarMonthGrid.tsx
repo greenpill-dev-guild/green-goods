@@ -245,8 +245,13 @@ export function CalendarMonthGrid({
                     })}
                     {item.cell.isToday ? " (today)" : ""}
                   </span>
-                  <span className="type-title-sm font-semibold tabular-nums text-text-strong">
-                    {formatNumber(item.cell.counts.total, locale)}
+                  <span className="flex items-baseline gap-1">
+                    <span className="type-title-sm font-semibold tabular-nums text-text-strong">
+                      {formatNumber(item.cell.counts.total, locale)}
+                    </span>
+                    {item.cell.state === "partial" ? (
+                      <span className="type-meta-sm text-warning-dark">+ unread</span>
+                    ) : null}
                   </span>
                 </span>
                 <span aria-hidden className="flex flex-col gap-1">

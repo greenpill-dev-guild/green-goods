@@ -110,6 +110,7 @@ export function ReviewWorkScene({ dataset, media, band, sort, openId }: ReviewWo
             defaultMessage: "Approved",
           })}
           selected={false}
+          disabled
           onToggle={() => undefined}
         />
       </div>

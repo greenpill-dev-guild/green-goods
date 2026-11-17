@@ -19,12 +19,14 @@ import { AdminCard, AdminCardBody, AdminCardHeader, AdminCardTitle } from "@/com
 import { dayKeyOf, formatDay, formatMonth, monthOf } from "./dates";
 import { type AccountBalance, directionOf, formatAmount, fundingSummary } from "./funding";
 import { plural } from "./labCopy";
-import type { LedgerEntry, ReportDataset } from "./model";
+import type { LedgerEntry, ReportDataset, ViewerRole } from "./model";
 import { periodEnd, type ReportScope, closingDay } from "./scope";
 
 interface FundingHistoryProps {
   dataset: ReportDataset;
   scope: ReportScope;
+  /** A funder sees the ledger without the accounts on the other side. */
+  role?: ViewerRole;
 }
 
 const KIND_COPY: Record<LedgerEntry["kind"], string> = {
@@ -56,7 +58,7 @@ function Steps({ account, start, end }: { account: AccountBalance; start: number
   );
 }
 
-export function FundingHistory({ dataset, scope }: FundingHistoryProps) {
+export function FundingHistory({ dataset, scope, role }: FundingHistoryProps) {
   const { locale } = useIntl();
   const { garden } = dataset;
   const at = periodEnd(scope.month, dataset);
@@ -107,7 +109,7 @@ export function FundingHistory({ dataset, scope }: FundingHistoryProps) {
       <li key={entry.id}>
         <ItemRow
           lead={{ kind: "icon", icon }}
-          title={`${KIND_COPY[entry.kind]}: ${entry.counterparty}`}
+          title={`${KIND_COPY[entry.kind]}: ${role === "funder" ? "Account hidden" : entry.counterparty}`}
           status={pill}
           details={[entry.accountLabel, { text: day(entry.on), tone: "soft" }]}
           amount={{

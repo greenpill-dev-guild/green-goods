@@ -7,7 +7,7 @@
 import { Button } from "@green-goods/shared/components/Button";
 import { useIntl } from "react-intl";
 import { AdminCard, AdminCardBody, AdminCardHeader, AdminCardTitle } from "@/components/AdminCard";
-import { measureSeries, reportWeeks } from "./aggregate";
+import { measureSeries, reportWeeks, weekNotLoaded } from "./aggregate";
 import { actionBreakdown } from "./breakdowns";
 import {
   dayKeyOf,
@@ -61,7 +61,11 @@ export function OutputTrends({
     const range = { start: firstDayOf(scope.month), end: lastDayOf(scope.month) };
     const [month] = measureSeries(dataset, monthRecords, measure, [range]);
     const missing = month.missing > 0 ? ` ${month.missing} left it empty and are not counted.` : "";
-    return `${monthLabel}: ${formatQuantity(month.reported, measure.unit, locale)} reported, ${formatQuantity(month.approved, measure.unit, locale)} approved, from ${month.records.length} records.${missing}`;
+    const partial =
+      dataset.loadedFrom !== null && weekNotLoaded(range, dataset)
+        ? ` Work before ${formatShortDay(dayKeyOf(dataset.loadedFrom, garden.timeZone), locale)} is not loaded yet, so this month may be higher.`
+        : "";
+    return `${monthLabel}: ${formatQuantity(month.reported, measure.unit, locale)} reported, ${formatQuantity(month.approved, measure.unit, locale)} approved, from ${month.records.length} records.${missing}${partial}`;
   };
 
   const chart = (measure: MeasureDef) => {

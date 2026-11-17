@@ -55,8 +55,11 @@ function moreReports(
   const inMonth = records.filter(
     (r) => monthOf(dayKeyOf(r.submittedAt, garden.timeZone)) === scope.month
   );
-  const pastDue = garden.promises.filter((p) => !p.doneOn && p.due < today).length;
-  const done = garden.promises.filter((p) => p.doneOn).length;
+  const promises = garden.promises.filter(
+    (p) => scope.windowId === "all" || p.windowId === scope.windowId
+  );
+  const pastDue = promises.filter((p) => !p.doneOn && p.due < today).length;
+  const done = promises.filter((p) => p.doneOn).length;
   const places = placeSummary(dataset, inMonth, dataset.reference);
   const people = participation(dataset, inMonth, reportWeeks(scope.month, dataset, 5));
   const funding = fundingSummary(garden, periodEnd(scope.month, dataset), scope.month);
@@ -70,9 +73,9 @@ function moreReports(
       view: "season",
       icon: RiCalendarScheduleLine,
       fact:
-        garden.promises.length === 0
+        promises.length === 0
           ? "No season or promises yet"
-          : `${done} done, ${pastDue} past due, ${garden.promises.length - done - pastDue} open`,
+          : `${done} done, ${pastDue} past due, ${promises.length - done - pastDue} open`,
     },
     {
       view: "places",

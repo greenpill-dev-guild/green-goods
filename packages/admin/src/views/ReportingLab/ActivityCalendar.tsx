@@ -215,9 +215,10 @@ export function ActivityCalendar({
               ) : undefined
             }
           >
-            The work list reads the newest 50 submissions first. Days before{" "}
-            {formatDay(loadedFrom, locale, { month: "short", day: "numeric" })} are not counted yet,
-            and that day only in part.
+            The work list reads the newest 50 submissions first.{" "}
+            {byReview
+              ? `Work submitted before ${formatDay(loadedFrom, locale, { month: "short", day: "numeric" })} is not loaded yet, so any day may be missing decisions on it.`
+              : `Days before ${formatDay(loadedFrom, locale, { month: "short", day: "numeric" })} are not counted yet, and that day only in part.`}
           </Alert>
         ) : null}
         <CalendarMonthGrid

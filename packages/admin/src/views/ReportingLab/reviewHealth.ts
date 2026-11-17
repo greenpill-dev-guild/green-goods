@@ -30,7 +30,7 @@ interface ReviewFlowWeek {
   waiting: number;
 }
 
-type ReviewHealthTone = "success" | "warning" | "error";
+type ReviewHealthTone = "success" | "warning" | "error" | "neutral";
 
 export interface ReviewHealth {
   at: number;
@@ -46,7 +46,7 @@ export interface ReviewHealth {
   detail: string;
 }
 
-function healthLabel(stalled: boolean, overWeek: number, pending: number) {
+function healthLabel(stalled: boolean, overWeek: number, pending: number, complete: boolean) {
   if (stalled) {
     return {
       tone: "error" as const,
@@ -59,6 +59,16 @@ function healthLabel(stalled: boolean, overWeek: number, pending: number) {
       tone: "warning" as const,
       label: "Needs attention",
       detail: `${overWeek} waiting over a week, while reviews still land.`,
+    };
+  }
+  if (!complete) {
+    return {
+      tone: "neutral" as const,
+      label: "Partly read",
+      detail:
+        pending === 0
+          ? "No waiting work is loaded, but older work is not read yet."
+          : "Nothing loaded has waited over a week, but older work is not read yet.",
     };
   }
   return {
@@ -80,6 +90,7 @@ export function reviewHealth(
   const pending = readable
     .filter((record) => statusAt(record, at) === "pending")
     .sort((a, b) => a.submittedAt - b.submittedAt);
+  const complete = dataset.loadedFrom === null && readable.length === known.length;
   const summary = summarizeReviewQueue(
     readable.map((record) => ({
       id: record.id,
@@ -89,10 +100,11 @@ export function reviewHealth(
         record.reviewedAt !== undefined && record.reviewedAt <= at ? record.reviewedAt : undefined,
     })),
     at,
-    { complete: dataset.loadedFrom === null && readable.length === known.length }
+    { complete }
   );
   const flow = reportWeeks(month, dataset).map((week): ReviewFlowWeek => {
-    const weekEnd = Math.min(endOfDay(week.end, dataset.garden.utcOffsetMinutes), at);
+    // The next Monday's midnight belongs to the next week, as the day-keyed series count it.
+    const weekEnd = Math.min(endOfDay(week.end, dataset.garden.utcOffsetMinutes) - 1, at);
     return {
       week,
       submitted: recordsInWeek(known, week, dataset).length,
@@ -120,6 +132,6 @@ export function reviewHealth(
     lastReviewedAt: summary.lastReviewedAt,
     medianDays:
       summary.medianReviewLatencyMs === null ? null : summary.medianReviewLatencyMs / DAY_IN_MS,
-    ...healthLabel(summary.stalled, summary.waitingOverWeekCount, pending.length),
+    ...healthLabel(summary.stalled, summary.waitingOverWeekCount, pending.length, complete),
   };
 }
