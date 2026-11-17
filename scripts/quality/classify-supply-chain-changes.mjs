@@ -87,6 +87,23 @@ const parityExact = new Set([
   "scripts/quality/check-test-utils-barrel.mjs",
 ]);
 
+// What knip reads: code, package manifests, the lockfile that pins knip and its plugins, the
+// TypeScript settings that resolve imports, knip's configuration and the dead-code check itself.
+const deadCodeExact = new Set([
+  "bun.lock",
+  "knip.ts",
+  "scripts/data/knip-baseline.json",
+  ".github/actions/setup-js/action.yml",
+  ".github/workflows/supply-chain-guardrails.yml",
+]);
+const deadCodeSource = /\.(?:ts|tsx|js|jsx|mjs|cjs|mts|cts)$/;
+const isDeadCodeInput = (path) =>
+  deadCodeExact.has(path) ||
+  deadCodeSource.test(path) ||
+  path === "package.json" ||
+  path.endsWith("/package.json") ||
+  /(^|\/)tsconfig[^/]*\.json$/.test(path);
+
 function startsWithAny(path, prefixes) {
   return prefixes.some((prefix) => path.startsWith(prefix));
 }
@@ -94,7 +111,7 @@ function startsWithAny(path, prefixes) {
 export function classifySupplyChainChanges(paths, { workflowDispatch = false } = {}) {
   const normalized = [...new Set(paths.filter(Boolean).map((path) => path.replaceAll("\\", "/")))];
   if (workflowDispatch) {
-    return { format: true, guidance: true, supply: true, parity: true };
+    return { format: true, guidance: true, supply: true, parity: true, deadcode: true };
   }
 
   return {
@@ -114,6 +131,7 @@ export function classifySupplyChainChanges(paths, { workflowDispatch = false } =
     parity: normalized.some(
       (path) => parityExact.has(path) || path.startsWith(".github/workflows/"),
     ),
+    deadcode: normalized.some(isDeadCodeInput),
   };
 }
 

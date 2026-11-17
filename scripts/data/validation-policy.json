@@ -149,7 +149,10 @@
         "scripts/harness/agent-hooks.test.mjs",
         "scripts/contracts/check-solhint-baseline.mjs",
         "scripts/contracts/check-solhint-baseline.test.mjs",
-        "scripts/data/solhint-baseline.json"
+        "scripts/data/solhint-baseline.json",
+        "scripts/quality/check-knip-baseline.mjs",
+        "scripts/quality/check-knip-baseline.test.mjs",
+        "scripts/data/knip-baseline.json"
       ]
     },
     {
@@ -1559,11 +1562,11 @@
     },
     {
       "id": "dead-code",
-      "command": "bun --bun node_modules/.bin/knip",
-      "risk": "Independently selectable repository verification must retain its behavior.",
-      "expectedSignal": "dead-code completes successfully",
+      "command": "node scripts/quality/check-knip-baseline.mjs",
+      "risk": "Knip's findings may shrink, never grow: new unused files, exports, types or dependencies fail.",
+      "expectedSignal": "knip: N finding(s), none new",
       "freshness": "exact-inputs-and-toolchain",
-      "budgetSeconds": 60,
+      "budgetSeconds": 180,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -1589,7 +1592,7 @@
     },
     {
       "id": "review-guardrails-test",
-      "command": "node scripts/dev/node-cli.js node --test scripts/harness/agent-hooks.test.mjs scripts/quality/check-codex-docs.test.mjs scripts/quality/check-guidance-links.test.mjs scripts/quality/check-skill-behavior-contracts.test.mjs scripts/quality/task-routing-contract.test.mjs scripts/quality/check-immutable-plan-reports.test.mjs scripts/quality/check-qa-id-ledger.test.mjs scripts/quality/lint-linear-issue.test.mjs scripts/design/check-guidance-examples.test.mjs scripts/contracts/check-foundry-version.test.mjs scripts/contracts/check-solidity-test-names.test.mjs scripts/contracts/check-solhint-baseline.test.mjs",
+      "command": "node scripts/dev/node-cli.js node --test scripts/harness/agent-hooks.test.mjs scripts/quality/check-codex-docs.test.mjs scripts/quality/check-guidance-links.test.mjs scripts/quality/check-skill-behavior-contracts.test.mjs scripts/quality/task-routing-contract.test.mjs scripts/quality/check-immutable-plan-reports.test.mjs scripts/quality/check-qa-id-ledger.test.mjs scripts/quality/lint-linear-issue.test.mjs scripts/design/check-guidance-examples.test.mjs scripts/contracts/check-foundry-version.test.mjs scripts/contracts/check-solidity-test-names.test.mjs scripts/contracts/check-solhint-baseline.test.mjs scripts/quality/check-knip-baseline.test.mjs",
       "risk": "Independently selectable repository verification must retain its behavior.",
       "expectedSignal": "review-guardrails-test completes successfully",
       "freshness": "exact-inputs-and-toolchain",

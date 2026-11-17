@@ -209,30 +209,35 @@ test("Supply Chain classifier routes each change class without broad fallthrough
     guidance: false,
     supply: false,
     parity: false,
+    deadcode: true,
   });
   assert.deepEqual(classifySupplyChainChanges([".claude/skills/ship/SKILL.md"]), {
     format: true,
     guidance: true,
     supply: false,
     parity: false,
+    deadcode: false,
   });
   assert.deepEqual(classifySupplyChainChanges(["bun.lock"]), {
     format: true,
     guidance: false,
     supply: true,
     parity: false,
+    deadcode: true,
   });
   assert.deepEqual(classifySupplyChainChanges([".github/workflows/design.yml"]), {
     format: true,
     guidance: false,
     supply: true,
     parity: true,
+    deadcode: false,
   });
   assert.deepEqual(classifySupplyChainChanges([], { workflowDispatch: true }), {
     format: true,
     guidance: true,
     supply: true,
     parity: true,
+    deadcode: true,
   });
   // Catalog and ledger edits reach the guidance job, where the cross-revision
   // Test ID guard runs; a data-only PR must not skip it.
@@ -242,6 +247,7 @@ test("Supply Chain classifier routes each change class without broad fallthrough
       guidance: true,
       supply: false,
       parity: false,
+      deadcode: false,
     });
   }
   // The parity suite holds the tests for these test-quality inputs, so a change to one runs it.
@@ -257,8 +263,14 @@ test("Supply Chain classifier routes each change class without broad fallthrough
       guidance: false,
       supply: false,
       parity: true,
+      deadcode: true,
     });
   }
+  // A change to what knip reads runs the dead-code job; prose alone does not.
+  for (const knipInput of ["knip.ts", "packages/client/tsconfig.app.json", "packages/qa/package.json", "scripts/data/knip-baseline.json"]) {
+    assert.equal(classifySupplyChainChanges([knipInput]).deadcode, true, knipInput);
+  }
+  assert.equal(classifySupplyChainChanges(["docs/docs/index.mdx", "scripts/data/qa-test-catalog.json"]).deadcode, false);
 });
 
 test("QA runtime and catalog changes reach the existing required behavioral job", () => {

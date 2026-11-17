@@ -102,6 +102,7 @@ jobs:
       guidance: ${{ steps.classify.outputs.guidance }}
       supply: ${{ steps.classify.outputs.supply }}
       parity: ${{ steps.classify.outputs.parity }}
+      deadcode: ${{ steps.classify.outputs.deadcode }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -163,6 +164,30 @@ jobs:
 
       - name: Check repository formatting
         run: bun run format --check
+
+  dead-code:
+    name: Dead code
+    needs: changes
+    if: needs.changes.outputs.deadcode == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup JavaScript toolchain and dependencies
+        uses: ./.github/actions/setup-js
+
+      - name: Test the knip baseline check
+        run: node --test scripts/quality/check-knip-baseline.test.mjs
+
+      # Knip's findings may shrink, never grow: see scripts/quality/check-knip-baseline.mjs.
+      - name: Hold knip's findings to their baseline
+        env:
+          KNIP_BASELINE_BASE_REF: ${{ github.event_name == 'pull_request' && (github.base_ref == 'main' && startsWith(github.head_ref, 'release/') && 'origin/develop' || format('origin/{0}', github.base_ref)) || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before || '') }}
+        run: bun run check --only dead-code
 
   audit:
     name: Supply-chain guardrails
