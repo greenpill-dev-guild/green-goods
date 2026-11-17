@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { Test, StdStorage, stdStorage } from "forge-std/Test.sol";
+import { Test } from "forge-std/Test.sol";
+import { Metadata, ArbitrableConfig, CVParams } from "../../src/interfaces/IGardensV2.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ICVStrategy } from "../../src/interfaces/ICVStrategy.sol";
 import { HatsModule } from "../../src/modules/Hats.sol";
 import { IHatsModule } from "../../src/interfaces/IHatsModule.sol";
@@ -14,6 +16,42 @@ interface IHardeningJars {
 interface IHardeningPool {
     function setAuthorizedSyncCaller(address caller, bool authorized) external;
     function isAuthorizedSyncCaller(address caller) external view returns (bool);
+    function getAllo() external view returns (address);
+    function getPoolId() external view returns (uint256);
+    function activatePoints() external;
+    function setPoolParams(
+        ArbitrableConfig calldata arbitrableConfig,
+        CVParams calldata cvParams,
+        uint256 sybilScoreThreshold,
+        address[] calldata membersToAdd,
+        address[] calldata membersToRemove,
+        address superfluidToken
+    )
+        external;
+}
+
+interface IHardeningCommunity {
+    function gardenToken() external view returns (address);
+    function getStakeAmountWithFees() external view returns (uint256);
+    function stakeAndRegisterMember(string calldata covenant) external;
+}
+
+interface IHardeningAllo {
+    function registerRecipient(uint256 poolId, bytes calldata data) external payable returns (address);
+    function allocate(uint256 poolId, bytes calldata data) external payable;
+}
+
+struct HardeningProposal {
+    uint256 poolId;
+    address beneficiary;
+    uint256 amountRequested;
+    address requestedToken;
+    Metadata metadata;
+}
+
+struct HardeningSupport {
+    uint256 proposalId;
+    int256 deltaSupport;
 }
 
 interface IHardeningForkSkip {
@@ -25,7 +63,6 @@ interface IHardeningForkSkip {
 /// @notice Exact reviewed predecessor and hardening calls through the deployed two-signature Safe.
 /// @dev Owners are explicitly impersonated on a disposable fork. This proves execution, not key possession.
 contract ArbitrumAuditHardeningForkTest is Test {
-    using stdStorage for StdStorage;
     address private constant SAFE = 0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19;
     address private constant MANAGER = 0xfBf07b2d0e5eA8249756F205e5214B9d7cDF4e66;
     address private constant HATS = 0x5b943088ecdDBF8E4ae387348A88A654aC5F7266;
@@ -130,6 +167,23 @@ contract ArbitrumAuditHardeningForkTest is Test {
         _send(
             _address(packet, ".multisend.address"), abi.encodeWithSignature("multiSend(bytes)", packed), 1, bytes32(0), true
         );
+        _restorePreviousImplementations(packet);
+        assertEq(_allGardenIdentities(inventory), identityBefore);
+        (bool afterOk, bytes memory pauseAfter) = POOLING.staticcall(abi.encodeWithSignature("paused()"));
+        assertTrue(afterOk);
+        assertEq(pauseAfter, pauseBefore);
+        for (uint256 g = 0; g < 18; g++) {
+            for (uint256 p = 0; p < 2; p++) {
+                address pool =
+                    _address(inventory, string.concat(".gardens[", vm.toString(g), "].pools[", vm.toString(p), "]"));
+                assertFalse(IHardeningPool(pool).isAuthorizedSyncCaller(HATS));
+            }
+        }
+        emit log_named_uint("recovery implementations restored", 3);
+        emit log_named_uint("recovery sync callers disabled", 36);
+    }
+
+    function _restorePreviousImplementations(string memory packet) private {
         address[3] memory proxies = [POOLING, HATS, JARS];
         address[3] memory previous = [
             _address(packet, ".previousImplementations.pooling"),
@@ -153,19 +207,6 @@ contract ArbitrumAuditHardeningForkTest is Test {
         for (uint256 i = 0; i < 3; i++) {
             _assertImplementation(proxies[i], previous[i]);
         }
-        assertEq(_allGardenIdentities(inventory), identityBefore);
-        (bool afterOk, bytes memory pauseAfter) = POOLING.staticcall(abi.encodeWithSignature("paused()"));
-        assertTrue(afterOk);
-        assertEq(pauseAfter, pauseBefore);
-        for (uint256 g = 0; g < 18; g++) {
-            for (uint256 p = 0; p < 2; p++) {
-                address pool =
-                    _address(inventory, string.concat(".gardens[", vm.toString(g), "].pools[", vm.toString(p), "]"));
-                assertFalse(IHardeningPool(pool).isAuthorizedSyncCaller(HATS));
-            }
-        }
-        emit log_named_uint("recovery implementations restored", 3);
-        emit log_named_uint("recovery sync callers disabled", 36);
     }
 
     function _allGardenIdentities(string memory inventory) private returns (bytes32 identity) {
@@ -176,8 +217,8 @@ contract ArbitrumAuditHardeningForkTest is Test {
         }
     }
 
-    /// @dev Fork-only fixture models six stale points left by previously missed hooks. It seeds
-    ///      support, not bytecode or power reads. Revocation uses the real Hats and voting registry.
+    /// @dev Real role grants, membership, proposals and allocations create six points. Disabling
+    ///      sync while removing two Hats models missed historical hooks without forging storage.
     function _assertSixStoredPointsCleared(string memory inventory) private {
         address garden = _address(inventory, ".gardens[0].garden");
         address community = _address(inventory, ".gardens[0].community");
@@ -191,8 +232,20 @@ contract ArbitrumAuditHardeningForkTest is Test {
         }
         vm.prank(MANAGER);
         HatsModule(HATS).grantRole(garden, subject, IHatsModule.GardenRole.Gardener);
+        vm.prank(MANAGER);
+        HatsModule(HATS).grantRole(garden, subject, IHatsModule.GardenRole.Steward);
+        vm.prank(MANAGER);
+        HatsModule(HATS).grantRole(garden, subject, IHatsModule.GardenRole.Community);
+        _registerFixtureMember(community, garden, subject);
         for (uint256 i = 0; i < 2; i++) {
-            firstProposalIds[i] = _seedSixProposals(pools[i], community, subject);
+            firstProposalIds[i] = _createSixSupportedProposals(pools[i], subject);
+        }
+        vm.prank(MANAGER);
+        HatsModule(HATS).revokeRole(garden, subject, IHatsModule.GardenRole.Steward);
+        vm.prank(MANAGER);
+        HatsModule(HATS).revokeRole(garden, subject, IHatsModule.GardenRole.Community);
+        vm.roll(block.number + 1_000_000);
+        for (uint256 i = 0; i < 2; i++) {
             vm.prank(SAFE);
             IHardeningPool(pools[i]).setAuthorizedSyncCaller(HATS, true);
             IHardeningForkSkip(address(vm)).cool(pools[i]);
@@ -223,60 +276,72 @@ contract ArbitrumAuditHardeningForkTest is Test {
         }
     }
 
-    function _seedSixProposals(address pool, address community, address subject) private returns (uint256 firstId) {
+    function _registerFixtureMember(address community, address garden, address subject) private {
+        IERC20 token = IERC20(IHardeningCommunity(community).gardenToken());
+        uint256 stake = IHardeningCommunity(community).getStakeAmountWithFees();
+        vm.prank(garden);
+        assertTrue(token.transfer(subject, stake));
+        vm.startPrank(subject);
+        assertTrue(token.approve(community, stake));
+        IHardeningCommunity(community).stakeAndRegisterMember("");
+        vm.stopPrank();
+    }
+
+    function _createSixSupportedProposals(address pool, address subject) private returns (uint256 firstId) {
+        _configureFixtureArbitrator(pool);
         firstId = _uint(pool, abi.encodeWithSignature("proposalCounter()")) + 1;
-        stdstore.target(pool).sig("proposalCounter()").checked_write(firstId + 5);
-        assertEq(_uint(community, abi.encodeWithSignature("enabledStrategies(address)", pool)), 1);
-        stdstore.target(community).sig("getMemberPowerInStrategy(address,address)").with_key(subject).with_key(pool)
-            .checked_write(uint256(6));
-        stdstore.target(pool).sig("totalVoterStakePct(address)").with_key(subject).checked_write(uint256(6));
-        stdstore.target(pool).sig("totalStaked()").checked_write(uint256(6));
-        stdstore.target(pool).sig("totalPointsActivated()").checked_write(uint256(6));
-        bytes32 list = _seedProposalList(pool, subject);
+        IHardeningAllo allo = IHardeningAllo(IHardeningPool(pool).getAllo());
+        uint256 poolId = IHardeningPool(pool).getPoolId();
+        vm.prank(subject);
+        IHardeningPool(pool).activatePoints();
+        HardeningSupport[] memory support = new HardeningSupport[](6);
         for (uint256 i = 0; i < 6; i++) {
             uint256 id = firstId + i;
-            vm.store(pool, bytes32(uint256(keccak256(abi.encode(list))) + i), bytes32(id));
-            // Find once: this forge-std revision keeps keys when a cached find returns early.
-            uint256 stakeSlot = stdstore.target(pool).sig("getProposalStakedAmount(uint256)").with_key(id).find();
-            vm.store(pool, bytes32(stakeSlot), bytes32(uint256(1)));
-            uint256 base = stakeSlot - 2;
-            // Verified Proposal prefix: id, request, stake, conviction, beneficiary, submitter,
-            // token, last block and status. Live getters below fail closed if that prefix changes.
-            vm.store(pool, bytes32(base), bytes32(id));
-            vm.store(pool, bytes32(base + 3), bytes32(uint256(1)));
-            vm.store(pool, bytes32(base + 4), bytes32(uint256(uint160(subject))));
-            vm.store(pool, bytes32(base + 5), bytes32(uint256(uint160(subject))));
-            vm.store(pool, bytes32(base + 7), bytes32(block.number - 1_000_000));
-            vm.store(pool, bytes32(base + 8), bytes32(uint256(1)));
-            stdstore.target(pool).sig("getProposalVoterStake(uint256,address)").with_key(id).with_key(subject)
-                .checked_write(uint256(1));
+            HardeningProposal memory proposal = HardeningProposal({
+                poolId: poolId,
+                beneficiary: subject,
+                amountRequested: 0,
+                requestedToken: address(0),
+                metadata: Metadata({ protocol: 1, pointer: "hardening-fork-only" })
+            });
+            vm.prank(subject);
+            allo.registerRecipient(poolId, abi.encode(proposal));
+            assertEq(ICVStrategy(pool).proposalCounter(), id);
+            support[i] = HardeningSupport({ proposalId: id, deltaSupport: 1 });
+        }
+        vm.prank(subject);
+        allo.allocate(poolId, abi.encode(support));
+        assertEq(_uint(pool, abi.encodeWithSignature("totalVoterStakePct(address)", subject)), 6);
+        for (uint256 i = 0; i < 6; i++) {
+            uint256 id = firstId + i;
             (address submitter, address beneficiary,,, uint256 stake, uint8 status, uint256 lastBlock,,,,,) =
                 ICVStrategy(pool).getProposal(id);
             assertEq(submitter, subject);
             assertEq(beneficiary, subject);
             assertEq(stake, 1);
             assertEq(status, 1);
-            assertEq(lastBlock, block.number - 1_000_000);
+            assertEq(lastBlock, block.number);
             assertEq(_uint(pool, abi.encodeWithSignature("getProposalVoterStake(uint256,address)", id, subject)), 1);
             assertEq(_uint(pool, abi.encodeWithSignature("voterStakedProposals(address,uint256)", subject, i)), id);
         }
     }
 
-    function _seedProposalList(address pool, address subject) private returns (bytes32) {
-        bytes memory query = abi.encodeWithSignature("voterStakedProposals(address,uint256)", subject, 0);
-        vm.record();
-        (bool exists,) = pool.staticcall(query);
-        assertFalse(exists);
-        (bytes32[] memory reads,) = vm.accesses(pool);
-        for (uint256 i = 0; i < reads.length; i++) {
-            if (reads[i] == SLOT) continue;
-            bytes32 previous = vm.load(pool, reads[i]);
-            vm.store(pool, reads[i], bytes32(uint256(6)));
-            (bool ok, bytes memory result) = pool.staticcall(query);
-            if (ok && result.length == 32) return reads[i];
-            vm.store(pool, reads[i], previous);
-        }
-        revert("could not identify the live voter proposal list");
+    /// @dev Fork-only prerequisite: production signal pools have arbitration disabled and cannot
+    ///      accept proposals. Configure the existing Gardens SafeArbitrator through the real owner
+    ///      entrypoint to exercise a populated supported pool. Neither reviewed Safe batch does this.
+    function _configureFixtureArbitrator(address pool) private {
+        assertEq(_uint(pool, abi.encodeWithSignature("proposalType()")), 0);
+        ArbitrableConfig memory arbitration = ArbitrableConfig({
+            arbitrator: 0x1c62F449058BbeeD546823A1a581D28233f7A69c,
+            tribunalSafe: SAFE,
+            submitterCollateralAmount: 0,
+            challengerCollateralAmount: 0,
+            defaultRuling: 0,
+            defaultRulingTimeout: 1 days
+        });
+        CVParams memory unchanged;
+        vm.prank(SAFE);
+        IHardeningPool(pool).setPoolParams(arbitration, unchanged, 0, new address[](0), new address[](0), address(0));
     }
 
     function _uint(address target, bytes memory query) private returns (uint256) {
