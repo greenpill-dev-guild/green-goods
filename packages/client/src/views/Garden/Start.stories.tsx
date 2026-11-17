@@ -68,20 +68,29 @@ type Story = StoryObj<typeof WorkStart>;
 
 const box = (element: Element) => element.getBoundingClientRect();
 
+/**
+ * Every tile one height, each title two lines high (a long one clipped at the second), and the
+ * line that says what the action asks for whole, never cut off by an ellipsis.
+ */
+async function expectTilesFit(canvasElement: HTMLElement) {
+  const tiles = within(canvasElement).getAllByRole("option");
+  await expect(tiles).toHaveLength(START_ACTIONS.length);
+  await expect(new Set(tiles.map((tile) => box(tile).height)).size).toBe(1);
+  for (const tile of tiles) {
+    const title = within(tile).getByRole("heading");
+    const line = Number.parseFloat(getComputedStyle(title).lineHeight);
+    await expect(box(title).height).toBeCloseTo(line * 2, 0);
+    const asksFor = tile.querySelector('[data-slot="details"] > span') as HTMLElement;
+    await expect(asksFor.scrollWidth).toBeLessThanOrEqual(asksFor.clientWidth);
+  }
+}
+
 /** Nothing owed, three domains: the garden's actions under All and a chip per domain. */
 export const NothingOwed: Story = {
   args: { start: startStepFixture({ chooseAction: fn(async () => undefined) }) },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
-    const tiles = canvas.getAllByRole("option");
-    await expect(tiles).toHaveLength(START_ACTIONS.length);
-    // Every tile one height, each title two lines high, a long one clipped at the second.
-    await expect(new Set(tiles.map((tile) => box(tile).height)).size).toBe(1);
-    for (const tile of tiles) {
-      const title = within(tile).getByRole("heading");
-      const line = Number.parseFloat(getComputedStyle(title).lineHeight);
-      await expect(box(title).height).toBeCloseTo(line * 2, 0);
-    }
+    await expectTilesFit(canvasElement);
     // The chips hold one row that slides sideways, and only sideways (DL-157).
     const chips = canvas.getByRole("group", { name: "Domains" });
     await expect(getComputedStyle(chips).touchAction).toBe("pan-x");
@@ -95,6 +104,29 @@ export const NothingOwed: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "All" }));
     await userEvent.click(canvas.getAllByRole("option")[0]);
     await expect(args.start.chooseAction).toHaveBeenCalledWith(1);
+  },
+};
+
+/** Spanish and Portuguese at a 360px phone: the longer media line still reads whole on every tile. */
+export const NothingOwedSpanish: Story = {
+  args: NothingOwed.args,
+  globals: { locale: "es", viewport: { value: "mobileSmall" } },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await canvas.findByText("Selecciona tu acción");
+    await expectTilesFit(canvasElement);
+    await expect(canvas.getAllByText("Pide 2 fotos o videos")).toHaveLength(2);
+  },
+};
+
+export const NothingOwedPortuguese: Story = {
+  args: NothingOwed.args,
+  globals: { locale: "pt", viewport: { value: "mobileSmall" } },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await canvas.findByText("Selecione sua ação");
+    await expectTilesFit(canvasElement);
+    await expect(canvas.getAllByText("Pede 2 fotos ou vídeos")).toHaveLength(2);
   },
 };
 

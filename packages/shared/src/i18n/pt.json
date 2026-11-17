@@ -744,7 +744,7 @@
   "app.actions.noResults": "Nenhuma ação corresponde aos seus filtros.",
   "app.actions.notFound": "Ação não encontrada",
   "app.actions.picker.photosOptional": "Mídia opcional",
-  "app.actions.picker.photosRequired": "{count, plural, one {# arquivo de mídia obrigatório} other {# arquivos de mídia obrigatórios}}",
+  "app.actions.picker.photosRequired": "{count, plural, one {Pede # foto ou vídeo} other {Pede # fotos ou vídeos}}",
   "app.actions.resetFilters": "Redefinir filtros",
   "app.actions.searchPlaceholder": "Pesquisar ações...",
   "app.actions.sort.default": "Ordem padrão",
