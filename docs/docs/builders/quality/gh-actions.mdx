@@ -30,7 +30,7 @@ generated_from:
   - package.json
   - scripts/data/validation-policy.json
   - scripts/data/workflow-catalog.json
-source_digest: "sha256:6a34673022c22368ea83d6329fe8697c9ae652c8052e5e5e5ca313f8a531e5e6"
+source_digest: "sha256:ead1eac74c641a8dd7433230b2b45e4bc0e64abd7f5851ec0a6fa16719203d9b"
 source_of_truth:
   - .github/workflows/admin.yml
   - .github/workflows/agent.yml
@@ -77,7 +77,7 @@ import {CopyCommand} from "@site/src/components/docs";
 | [Contracts Manual](#contracts-manual) | Runs a chosen contracts operation (fork readiness, the CI lane, or both) on demand by calling the Contracts workflow. | manual dispatch | No |
 | [Contracts Nightly](#contracts-nightly) | The deep fuzz and invariant lane: pull-request CI runs the capped test profile for speed, and this run restores full depth through the ci profile. | a schedule (`17 3 * * *` UTC); manual dispatch | No |
 | [Contracts](#contracts) | Compiles, lints, and tests the Solidity packages and the contract script suite. | pull requests that touch its paths (10 path filters); pushes to `main` and `develop` that touch its paths; a call from another workflow | No |
-| [Coverage Nightly](#coverage-nightly) | Enforces the measured coverage floors across the packages. Pull requests run plain package tests for fast feedback; this lane measures. | pushes to `main`; a schedule (`43 8 * * *` UTC); manual dispatch | No |
+| [Coverage Nightly](#coverage-nightly) | Enforces the measured coverage floors across the packages. Client and Admin pull requests hold their floors too; Shared's sharded pull request tests run plain, so this lane is its only coverage check. | pushes to `main`; a schedule (`43 8 * * *` UTC); manual dispatch | No |
 | [Dependabot Sync Publish](#dependabot-sync-publish) | Publishes repair data from a successful Dependabot Sync run. It validates the origin run, associated PR and current head, executes only trusted default-branch code, and writes a fast-forward repair commit. | completion of another workflow | No |
 | [Dependabot Sync](#dependabot-sync) | Prepares aligned root and matching workspace dependency pins, the root Bun lockfile, and generated docs on Dependabot package PRs; refreshes generated docs for pinned GitHub Actions updates. Preparation has read-only permissions and lifecycle scripts disabled. | every pull request | No |
 | [Design](#design) | Checks the design system and its voice: Storybook, story coverage, DesignMD token parity, banned vocabulary, em dashes, and brand voice parity, with optional Chromatic publishing. | pull requests that touch its paths (55 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
@@ -87,7 +87,7 @@ import {CopyCommand} from "@site/src/components/docs";
 | [Ontology](#ontology) | Validates the ontology sidecar against the code it anchors and keeps its generated reference pages current. | pull requests that touch its paths (113 path filters); pushes to `main` and `develop` that touch its paths | No |
 | [Release](#release) | Builds and publishes a tagged release. | pushed tags matching `v*.*.*` | No |
 | [Shared](#shared) | Typechecks and tests the shared package: hooks, providers, protocol modules, and UI foundations. | pull requests that touch its paths (12 path filters); pushes to `main` and `develop` that touch its paths; a schedule (`19 7 * * 1` UTC) | No |
-| [Supply Chain Guardrails](#supply-chain-guardrails) | Four lanes over the repository's own safety surfaces: formatting on every run; the supply-chain audit of manifests, lockfiles, and the release-age rule; guidance integrity (agent guidance, skill contracts, immutable plan reports, the QA test ID ledger, test quality, and plan hub validation); and workflow performance parity, which pins the validation selector, the git hooks, and the package test configurations. | pull requests that touch its paths (41 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
+| [Supply Chain Guardrails](#supply-chain-guardrails) | Five lanes over the repository's own safety surfaces: formatting on every run; dead code on every run, holding knip's findings to their shrink-only baseline, since knip reads workflows, hooks and tool configs as well as code; the supply-chain audit of manifests, lockfiles, and the release-age rule; guidance integrity (agent guidance, skill contracts, immutable plan reports, the QA test ID ledger, test quality, and plan hub validation); and workflow performance parity, which pins the validation selector, the git hooks, and the package test configurations. | pull requests that touch its paths (44 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
 
 ### Admin {#admin}
 
@@ -181,7 +181,7 @@ Compiles, lints, and tests the Solidity packages and the contract script suite.
 
 ### Coverage Nightly {#coverage-nightly}
 
-Enforces the measured coverage floors across the packages. Pull requests run plain package tests for fast feedback; this lane measures.
+Enforces the measured coverage floors across the packages. Client and Admin pull requests hold their floors too; Shared's sharded pull request tests run plain, so this lane is its only coverage check.
 
 - **Use it when:** Nightly at 08:43 UTC and after every push to main.
 - **Runs on:** pushes to `main`; a schedule (`43 8 * * *` UTC); manual dispatch.
@@ -281,11 +281,11 @@ Typechecks and tests the shared package: hooks, providers, protocol modules, and
 
 ### Supply Chain Guardrails {#supply-chain-guardrails}
 
-Four lanes over the repository's own safety surfaces: formatting on every run; the supply-chain audit of manifests, lockfiles, and the release-age rule; guidance integrity (agent guidance, skill contracts, immutable plan reports, the QA test ID ledger, test quality, and plan hub validation); and workflow performance parity, which pins the validation selector, the git hooks, and the package test configurations.
+Five lanes over the repository's own safety surfaces: formatting on every run; dead code on every run, holding knip's findings to their shrink-only baseline, since knip reads workflows, hooks and tool configs as well as code; the supply-chain audit of manifests, lockfiles, and the release-age rule; guidance integrity (agent guidance, skill contracts, immutable plan reports, the QA test ID ledger, test quality, and plan hub validation); and workflow performance parity, which pins the validation selector, the git hooks, and the package test configurations.
 
 - **Use it when:** Dependency, lockfile, toolchain, or workflow changes; agent guidance, skills, plan hubs, and the QA catalog; the validation policy, selector, and git hooks. Each lane after formatting runs only when its own paths change.
-- **Runs on:** pull requests that touch its paths (41 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch.
-- **Jobs:** `audit`, `changes`, `format`, `guidance`, `parity`.
+- **Runs on:** pull requests that touch its paths (44 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch.
+- **Jobs:** `audit`, `changes`, `dead-code`, `format`, `guidance`, `parity`.
 - **Required status:** no, but the CI Gate waits for it on a pull request that touches its paths.
 - **File:** [.github/workflows/supply-chain-guardrails.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/supply-chain-guardrails.yml)
 

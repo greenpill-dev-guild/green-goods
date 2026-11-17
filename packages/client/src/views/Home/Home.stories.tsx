@@ -10,6 +10,7 @@ import {
 } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useConvictionStrategies } from "@green-goods/shared/hooks/conviction/useConvictionStrategies";
 import { useActiveGarden } from "@green-goods/shared/hooks/garden/useActiveGarden";
+import { usePoolAccess } from "@green-goods/shared/hooks/client-ui/pool/useGardenPoolController";
 import { useAwaitingJoinRequests } from "@green-goods/shared/hooks/garden/useGardenJoinRequests";
 import { useGardenNotifications } from "@green-goods/shared/hooks/garden/useGardenNotifications";
 import { useHasRole } from "@green-goods/shared/hooks/roles/useHasRole";
@@ -185,6 +186,35 @@ export const Ready: Story = {
 /** One garden: it opened by itself, and the chip still opens the switcher. */
 export const OneGarden: Story = {
   beforeEach: homeState(activeGarden("ready", [memberGarden(AIYELOJA, ["gardener"])], AIYELOJA.id)),
+};
+
+/**
+ * Offer or Ask (DL-181): a gardener whose garden has an open pool gets the garden page's + over
+ * the journal, 16px above the bottom bar, opening the same sheet and its two doors.
+ */
+export const OfferOrAsk: Story = {
+  beforeEach: () => {
+    const resetHome = homeState(
+      activeGarden("ready", [memberGarden(AIYELOJA, ["gardener"])], AIYELOJA.id)
+    )();
+    mocked(useCommitmentPools).mockReturnValue({
+      pools: [{ poolId: 1n, garden: AIYELOJA.id.toLowerCase(), state: "OPEN", poolType: "GARDEN" }],
+      availability: { status: "available" },
+    } as unknown as ReturnType<typeof useCommitmentPools>);
+    mocked(usePoolAccess).mockReturnValue({ canCreate: true, stewardsPool: false });
+    const resetAccess = resetHookMocks(usePoolAccess);
+    return () => {
+      resetHome();
+      resetAccess();
+    };
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(await canvas.findByRole("button", { name: "Offer or Ask" }));
+    const sheet = within(await screen.findByRole("dialog", { name: "Offer or Ask" }));
+    await expect(sheet.getByRole("button", { name: /^Offer/ })).toBeVisible();
+    await expect(sheet.getByRole("button", { name: /^Ask/ })).toBeVisible();
+  },
 };
 
 /** The account's gardens are loading; the remembered garden goes straight in. */

@@ -47,7 +47,7 @@
       "required": false
     },
     ".github/workflows/coverage-nightly.yml": {
-      "purpose": "Enforces the measured coverage floors across the packages. Pull requests run plain package tests for fast feedback; this lane measures.",
+      "purpose": "Enforces the measured coverage floors across the packages. Client and Admin pull requests hold their floors too; Shared's sharded pull request tests run plain, so this lane is its only coverage check.",
       "useCase": "Nightly at 08:43 UTC and after every push to main.",
       "required": false
     },
@@ -97,7 +97,7 @@
       "required": false
     },
     ".github/workflows/supply-chain-guardrails.yml": {
-      "purpose": "Four lanes over the repository's own safety surfaces: formatting on every run; the supply-chain audit of manifests, lockfiles, and the release-age rule; guidance integrity (agent guidance, skill contracts, immutable plan reports, the QA test ID ledger, test quality, and plan hub validation); and workflow performance parity, which pins the validation selector, the git hooks, and the package test configurations.",
+      "purpose": "Five lanes over the repository's own safety surfaces: formatting on every run; dead code on every run, holding knip's findings to their shrink-only baseline, since knip reads workflows, hooks and tool configs as well as code; the supply-chain audit of manifests, lockfiles, and the release-age rule; guidance integrity (agent guidance, skill contracts, immutable plan reports, the QA test ID ledger, test quality, and plan hub validation); and workflow performance parity, which pins the validation selector, the git hooks, and the package test configurations.",
       "useCase": "Dependency, lockfile, toolchain, or workflow changes; agent guidance, skills, plan hubs, and the QA catalog; the validation policy, selector, and git hooks. Each lane after formatting runs only when its own paths change.",
       "required": false
     }

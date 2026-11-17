@@ -114,9 +114,10 @@ jobs:
       - name: Setup JavaScript toolchain and dependencies
         uses: ./.github/actions/setup-js
 
+      # With coverage, the floors in vitest.config.ts hold on every pull request, not only nightly.
       - name: Run client tests
         working-directory: packages/client
-        run: bun run test
+        run: bun run test --coverage
         env:
           CI: true
 
