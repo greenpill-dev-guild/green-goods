@@ -8,7 +8,7 @@ import { AdminFilterChip } from "../../../admin/src/components/AdminFilterChip";
 import { AdminSortSelect } from "../../../admin/src/components/AdminSortSelect";
 import { AdminTabRail } from "../../../admin/src/components/AdminTabRail";
 import { AdminTextField } from "../../../admin/src/components/AdminTextField";
-import { Page, Section, Specimen, StoryLink, TokenTable } from "./measure";
+import { Page, readToken, Section, Specimen, StoryLink, TokenTable } from "./measure";
 import { ADMIN, STORY_LINKS } from "./rules";
 
 const meta = {
@@ -245,16 +245,18 @@ export const Tokens: Story = {
     </Page>
   ),
   play: async ({ canvasElement }) => {
-    const root = getComputedStyle(document.documentElement);
-    const token = (name: string) => root.getPropertyValue(name).trim();
+    // A static build minifies 0.6875rem to .6875rem; readToken reads both spellings alike.
+    canvasElement.style.setProperty("--sb-minified-probe", ".6875rem");
+    await expect(readToken("--sb-minified-probe", canvasElement)).toBe("0.6875rem");
+    canvasElement.style.removeProperty("--sb-minified-probe");
     // Production today: the type roles at the Hub's density.
-    await expect(token("--gg-type-body-size")).toBe("0.875rem");
-    await expect(token("--gg-type-label-sm-size")).toBe("0.75rem");
-    await expect(token("--gg-type-meta-sm-size")).toBe("0.6875rem");
-    await expect(token("--radius-sm")).toBe("8px");
+    await expect(readToken("--gg-type-body-size")).toBe("0.875rem");
+    await expect(readToken("--gg-type-label-sm-size")).toBe("0.75rem");
+    await expect(readToken("--gg-type-meta-sm-size")).toBe("0.6875rem");
+    await expect(readToken("--radius-sm")).toBe("8px");
     // DL-030: the xl / 2xl radii land on the 16px page-container step.
-    await expect(token("--radius-xl")).toBe("16px");
-    await expect(token("--radius-2xl")).toBe("16px");
+    await expect(readToken("--radius-xl")).toBe("16px");
+    await expect(readToken("--radius-2xl")).toBe("16px");
     const button = within(canvasElement).getAllByRole("button", { name: "Create Garden" })[0];
     await expect(getComputedStyle(button).fontFamily.split(",")[0].replace(/["']/g, "").trim()).toBe(
       "Plus Jakarta Sans"
