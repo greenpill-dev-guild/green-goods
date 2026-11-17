@@ -487,14 +487,11 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
     : await pullNumbers(deps.event ?? JSON.parse(readFileSync(env.GITHUB_EVENT_PATH, "utf8")), env.GITHUB_EVENT_NAME, findByHead, listOpen);
   let failed = false;
   const eventName = env.GITHUB_EVENT_NAME;
+  // The commit this run's gate code and policies came from: develop's tip at checkout.
+  const checkout = env.MERGE_GATE_CHECKOUT_SHA || env.GITHUB_SHA;
   if (!dryRun && eventName === "push") {
-    // The detect job ran only this sweep's push through pushChangedGateInputs.
-    const event = deps.event ?? JSON.parse(readFileSync(env.GITHUB_EVENT_PATH, "utf8"));
-    const branch = String(event.ref ?? "").replace(/^refs\/heads\//, "");
-    if ((await gateInputsMovedSince(github, env.GITHUB_SHA, branch).catch(() => false)) === true) {
-      log(`The gate's inputs changed on ${branch} again since this sweep checked it out; the newer sweep decides.`);
-      return 0;
-    }
+    // The detect job decided this push needs a sweep. The job checked out develop's tip when it
+    // started, not the push, so whichever sweep the queue keeps read the newest policy.
     // Hold every open pull request first, so a sweep that stops part-way never leaves a success the
     // older policy granted. Holding a merge is always safe.
     for (const number of numbers) {
@@ -563,7 +560,7 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
         // and a hold could stall a pull request the newer policy passes. The sweep that change started
         // decides every open pull request, this one included, since its head predates this run. A
         // lookup that fails confirms no change, so only a success waits; a hold still posts.
-        const moved = await gateInputsMovedSince(github, env.GITHUB_SHA, pull.base.ref).catch(() => null);
+        const moved = await gateInputsMovedSince(github, checkout, pull.base.ref).catch(() => null);
         if (moved === true || (moved === null && decision.state === "success")) {
           if (moved === null) failed = true;
           const why = moved ? `the gate's inputs changed on ${pull.base.ref} since this run checked it out` : "the policy's freshness could not be checked";

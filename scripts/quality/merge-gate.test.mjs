@@ -390,9 +390,16 @@ test("the workflow posts when CI Gate starts, and runs on every push to develop 
   const detect = workflow.slice(workflow.indexOf("  detect:\n"), workflow.indexOf("  gate:\n"));
   assert.match(detect, /run: node scripts\/quality\/merge-gate\.mjs --push-changed/);
   assert.doesNotMatch(detect, /concurrency:/);
+  assert.match(detect, /if: github\.event_name == 'push'\n/);
   const gate = workflow.slice(workflow.indexOf("  gate:\n"));
   assert.match(gate, /needs: detect/);
-  assert.match(gate, /github\.event_name == 'push' && needs\.detect\.outputs\.sweep == 'true'/);
+  // !cancelled() keeps a skipped detect job (every event but a push) from skipping the gate.
+  assert.match(gate, /if: >-\n\s+!cancelled\(\) && \(/);
+  // A failed detection sweeps, as an unknown range does.
+  assert.match(gate, /github\.event_name == 'push' && \(needs\.detect\.outputs\.sweep == 'true' \|\| needs\.detect\.result == 'failure'\)/);
+  // The sweep reads develop's tip and compares freshness with that checkout.
+  assert.match(gate, /ref: develop\n/);
+  assert.match(gate, /export MERGE_GATE_CHECKOUT_SHA="\$\(git rev-parse HEAD\)"/);
   // Every input the gate's decision reads is critical to change.
   assert.deepEqual(GATE_INPUT_PATHS.filter((file) => !GATE_CRITICAL_PATHS.includes(file)), []);
 });
@@ -443,13 +450,16 @@ test("a push sweeps only when it changed a gate input, was forced, or GitHub can
   assert.equal(await ask("error"), true);
   assert.equal(await ask([{ filename: "docs/a.md" }], { forced: true }), true);
   assert.equal(await ask([], { before: "0".repeat(40) }), true);
+  assert.equal(await ask([], { after: "0".repeat(40) }), true);
   // The detect job writes the answer for the sweep job.
   const folder = mkdtempSync(path.join(tmpdir(), "gg-merge-gate-detect-"));
   try {
     const output = path.join(folder, "output");
-    const github = async () => ({ files: [{ filename: "docs/a.md" }] });
-    assert.equal(await main(["--push-changed"], { env: { GITHUB_OUTPUT: output }, event: { before: BEFORE, after: AFTER }, github, log: () => {} }), 0);
-    assert.equal(readFileSync(output, "utf8"), "sweep=false\n");
+    const answer = (filename) => async () => ({ files: [{ filename }] });
+    const detect = (filename) => main(["--push-changed"], { env: { GITHUB_OUTPUT: output }, event: { before: BEFORE, after: AFTER }, github: answer(filename), log: () => {} });
+    assert.equal(await detect("docs/a.md"), 0);
+    assert.equal(await detect(".agents/merge-policy.json"), 0);
+    assert.equal(readFileSync(output, "utf8"), "sweep=false\nsweep=true\n");
   } finally {
     rmSync(folder, { recursive: true, force: true });
   }
@@ -459,7 +469,7 @@ test("a run that read an older policy posts nothing, a failed freshness check ho
   const CHECKOUT = "c".repeat(40);
   const TIP = "d".repeat(40);
   const POLICY = ".agents/merge-policy.json";
-  const run = async ({ moved, state = "success", eventName = "issue_comment", pulls = { 3: { number: 3, state: "open", base: { ref: "develop" }, head: { sha: HEAD } } }, exit = 0 }) => {
+  const run = async ({ moved, state = "success", eventName = "issue_comment", checkout, pulls = { 3: { number: 3, state: "open", base: { ref: "develop" }, head: { sha: HEAD } } }, exit = 0 }) => {
     const posted = [];
     const github = async (route, request = {}) => {
       if (request.method === "POST") return void posted.push(route);
@@ -472,7 +482,7 @@ test("a run that read an older policy posts nothing, a failed freshness check ho
       throw new Error(`unexpected ${route}`);
     };
     const deps = {
-      env: { GITHUB_EVENT_NAME: eventName, GITHUB_SHA: CHECKOUT },
+      env: { GITHUB_EVENT_NAME: eventName, GITHUB_SHA: CHECKOUT, MERGE_GATE_CHECKOUT_SHA: checkout },
       event: eventName === "push" ? { ref: "refs/heads/develop" } : { issue: { number: 3, pull_request: {} } },
       github,
       evaluate: async () => ({ decision: { state, description: state, needed: [] }, reasons: [], markers: { reviewed: false, fullGate: false }, authors: new Set(), writers: new Set() }),
@@ -492,8 +502,10 @@ test("a run that read an older policy posts nothing, a failed freshness check ho
   // A failed comparison confirms nothing: success waits and the run reports it, but a hold still posts.
   assert.deepEqual(await run({ moved: "error", exit: 2 }), []);
   assert.deepEqual(await run({ moved: "error", state: "pending" }), [`statuses/${HEAD}`]);
-  // A sweep whose checkout a newer policy push already passed leaves everything to the newer sweep.
-  assert.deepEqual(await run({ eventName: "push", moved: [POLICY] }), []);
+  // A sweep whose checkout a newer policy push already passed holds, and leaves deciding to the
+  // sweep that push queues; one that checked out the tip decides.
+  assert.deepEqual(await run({ eventName: "push", moved: [POLICY] }), [`statuses/${HEAD}`]);
+  assert.deepEqual(await run({ eventName: "push", moved: [POLICY], checkout: TIP }), [`statuses/${HEAD}`, `statuses/${HEAD}`]);
   // Pull request 9 fails to load; 3 is held, then decided, and the run reports the failure.
   assert.deepEqual(await run({ eventName: "push", moved: [], pulls: { 3: { number: 3, state: "open", base: { ref: "develop" }, head: { sha: HEAD } }, 9: undefined }, exit: 2 }), [`statuses/${HEAD}`, `statuses/${HEAD}`]);
 });

@@ -12,10 +12,10 @@ name: Merge Gate
 # could for CI Gate, and only a dedicated app identity pinned in the ruleset would stop that; the
 # same identity would close the window before this workflow first posts, while a pull request's own
 # "Merge Gate" job stands alone. Every push to develop starts its detect job, unfiltered, since a
-# path filter misses a file past the first 3,000 a large push changes; only a push that changed
-# what the gate reads starts a sweep, so an ordinary push never cancels one. A push that changes what the gate reads
-# holds every open pull request, then decides each again; an older run that read the previous
-# policy posts nothing. Any `merge-gate:` comment, such as
+# path filter misses a file past the first 3,000 a large push changes. Only a push that changed
+# what the gate reads (or whose detection failed) starts a sweep, so an ordinary push never cancels
+# one. A sweep holds every open pull request, then decides each again from develop's tip; a run
+# that read an older policy posts nothing. Any `merge-gate:` comment, such as
 # `merge-gate: recheck` after a pull request is retargeted, asks for a fresh decision. The job
 # reads pull requests through the API and fetched objects; nothing from them is checked out or run.
 on:
@@ -41,6 +41,8 @@ jobs:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
     outputs:
       sweep: ${{ steps.detect.outputs.sweep }}
     steps:
@@ -67,7 +69,7 @@ jobs:
     needs: detect
     if: >-
       !cancelled() && (
-      (github.event_name == 'push' && needs.detect.outputs.sweep == 'true') ||
+      (github.event_name == 'push' && (needs.detect.outputs.sweep == 'true' || needs.detect.result == 'failure')) ||
       (github.event_name == 'workflow_run' && github.event.workflow_run.event == 'pull_request') ||
       (github.event_name == 'issue_comment' && github.event.issue.pull_request &&
         (contains(github.event.comment.body, 'merge-gate:') || contains(github.event.changes.body.from, 'merge-gate:'))))
@@ -82,9 +84,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      # develop's tip, not the push: a sweep the queue keeps must read the newest policy.
       - name: Checkout develop
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
+          ref: develop
           persist-credentials: false
 
       - name: Setup Node.js
@@ -95,4 +99,6 @@ jobs:
       - name: Hold the pull request to its tier's proof
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: node scripts/quality/merge-gate.mjs
+        run: |
+          export MERGE_GATE_CHECKOUT_SHA="$(git rev-parse HEAD)"
+          node scripts/quality/merge-gate.mjs
