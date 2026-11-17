@@ -10,9 +10,9 @@ import { useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminCard, AdminCardBody, AdminCardHeader, AdminCardTitle } from "@/components/AdminCard";
 import { AdminListRow } from "@/components/AdminListRow";
-import { matchesStatus, type StatusCounts } from "./aggregate";
+import { matchesStatus, type StatusCounts, weekNotLoaded } from "./aggregate";
 import { placeSummary } from "./breakdowns";
-import { dayKeyOf, formatMonth, monthOf } from "./dates";
+import { dayKeyOf, firstDayOf, formatMonth, formatShortDay, lastDayOf, monthOf } from "./dates";
 import { describeCounts, filterSummary, formatNumber } from "./labCopy";
 import type { ReportDataset, WorkRecord } from "./model";
 import type { RecordsRequest } from "./RecordsDialog";
@@ -113,6 +113,20 @@ export function PlaceActivity({ dataset, scope, records, onOpenRecords }: PlaceA
             Work shares a location only when the gardener allows it, and only roughly. Named sites
             are a proposal: today a record holds coarse coordinates and nothing more.
           </p>
+          {scope.statusAsOf === "period-end" ? (
+            <p className="mt-1 type-meta text-text-sub">
+              {`Statuses are as they stood at the end of ${monthLabel}.`}
+            </p>
+          ) : null}
+          {dataset.loadedFrom !== null &&
+          weekNotLoaded(
+            { start: firstDayOf(scope.month), end: lastDayOf(scope.month) },
+            dataset
+          ) ? (
+            <p className="mt-1 type-meta text-warning-dark">
+              {`These counts cover the work read so far, from ${formatShortDay(dayKeyOf(dataset.loadedFrom, garden.timeZone), locale)}. Older work this month is not counted yet.`}
+            </p>
+          ) : null}
         </div>
       </AdminCardHeader>
       <AdminCardBody className="flex flex-col gap-4">

@@ -69,7 +69,10 @@ export function RecordFacts({
   let reviewed = "Not reviewed yet";
   if (status === "unknown") reviewed = "The approval could not be read";
   else if (decidedByThen && record.reviewedAt !== undefined) {
-    reviewed = `${moment(record.reviewedAt)} by ${accountName(garden, record.reviewerId ?? "")}`;
+    reviewed =
+      role === "funder"
+        ? moment(record.reviewedAt)
+        : `${moment(record.reviewedAt)} by ${accountName(garden, record.reviewerId ?? "")}`;
   }
 
   return (

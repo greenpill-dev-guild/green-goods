@@ -15,7 +15,13 @@ import { AdminCard, AdminCardBody, AdminCardHeader, AdminCardTitle } from "@/com
 import { AdminDialog } from "@/components/AdminDialog";
 import { dayKeyOf, formatDay, formatShortDay, type MonthKey, monthOf } from "./dates";
 import { accountName } from "./labCopy";
-import type { PromiseItem, ReportDataset, ReportingWindow, SeasonMilestone } from "./model";
+import type {
+  PromiseItem,
+  ReportDataset,
+  ReportingWindow,
+  SeasonMilestone,
+  ViewerRole,
+} from "./model";
 import type { RecordsRequest } from "./RecordsDialog";
 import { referenceDay, type ReportScope } from "./scope";
 import { linkedWork, type TimelineItem, timelineItems, timelineSpan } from "./timeline";
@@ -28,6 +34,8 @@ interface SeasonTimelineProps {
   onOpenRecords: (request: RecordsRequest) => void;
   /** An item whose detail the screen opens on. */
   openItemId?: string;
+  /** A funder sees promises without the accounts that lead them. */
+  role?: ViewerRole;
 }
 
 function iconFor(item: TimelineItem) {
@@ -53,7 +61,10 @@ export function SeasonTimeline({
   onScopeChange,
   onOpenRecords,
   openItemId,
+  role,
 }: SeasonTimelineProps) {
+  const lead = (id: string) =>
+    role === "funder" ? "Account hidden" : accountName(dataset.garden, id);
   const { locale } = useIntl();
   const [open, setOpen] = useState<TimelineItem | null>(
     () => timelineItems(dataset).find((item) => item.id === openItemId) ?? null
@@ -130,7 +141,7 @@ export function SeasonTimeline({
       return (
         <FactList frame="inset">
           <FactRow label="Direction" value={promise.direction === "offer" ? "Offer" : "Ask"} />
-          <FactRow label="Lead" value={accountName(garden, promise.leadId)} />
+          <FactRow label="Lead" value={lead(promise.leadId)} />
           <FactRow label="Due" value={day(promise.due)} />
           <FactRow label="Done" value={promise.doneOn ? day(promise.doneOn) : "Not yet"} />
           <FactRow
@@ -238,7 +249,7 @@ export function SeasonTimeline({
                     ? `${day(item.start)} to ${day(item.end)}`
                     : `${item.kind === "promise" ? "Due" : "On"} ${day(item.start)}`,
                   item.kind === "promise"
-                    ? accountName(garden, (item.source as PromiseItem).leadId)
+                    ? lead((item.source as PromiseItem).leadId)
                     : item.kind === "window"
                       ? (item.source as ReportingWindow).kind === "season"
                         ? "Season"

@@ -15,16 +15,18 @@ import { AdminCard, AdminCardBody, AdminCardHeader, AdminCardTitle } from "@/com
 import { measureValue, statusAt } from "./aggregate";
 import { dayKeyOf, formatDay, monthOf } from "./dates";
 import { accountName, actionTitle, formatQuantity } from "./labCopy";
-import type { MediaSet, ReportDataset, WorkRecord } from "./model";
+import type { MediaSet, ReportDataset, ViewerRole, WorkRecord } from "./model";
 import type { RecordsRequest } from "./RecordsDialog";
 
 interface EvidenceOutcomesProps {
   dataset: ReportDataset;
   media: MediaSet;
   onOpenRecords: (request: RecordsRequest) => void;
+  /** A funder sees the evidence without the accounts that assessed or reviewed it. */
+  role?: ViewerRole;
 }
 
-export function EvidenceOutcomes({ dataset, media, onOpenRecords }: EvidenceOutcomesProps) {
+export function EvidenceOutcomes({ dataset, media, onOpenRecords, role }: EvidenceOutcomesProps) {
   const { locale } = useIntl();
   const { garden } = dataset;
   const { baseline, followUp } = garden;
@@ -133,7 +135,7 @@ export function EvidenceOutcomes({ dataset, media, onOpenRecords }: EvidenceOutc
               <FactRow label="Method" value={baseline.method} />
               <FactRow
                 label="Assessed by"
-                value={`${accountName(garden, baseline.authorId)}, ${day(baseline.createdOn)}`}
+                value={`${role === "funder" ? "Account hidden" : accountName(garden, baseline.authorId)}, ${day(baseline.createdOn)}`}
               />
             </FactList>
           </AdminCardBody>
@@ -202,7 +204,9 @@ export function EvidenceOutcomes({ dataset, media, onOpenRecords }: EvidenceOutc
                     title={day(dayKeyOf(record.submittedAt, garden.timeZone))}
                     status={{ label: "Approved", tone: "success" }}
                     details={[
-                      `by ${accountName(garden, record.reviewerId ?? "")}`,
+                      role === "funder"
+                        ? "Reviewer hidden"
+                        : `by ${accountName(garden, record.reviewerId ?? "")}`,
                       `${record.confidence ?? "Unrated"} confidence, ${record.method ?? "method not given"}`,
                     ]}
                     onOpen={() =>

@@ -131,6 +131,7 @@ export function ReportsPage({
             scope={scope}
             onScopeChange={onScopeChange}
             onOpenRecords={setRequest}
+            role={role}
           />
         );
         break;
@@ -146,7 +147,14 @@ export function ReportsPage({
         content = <FundingHistory dataset={dataset} scope={scope} role={role} />;
         break;
       case "evidence":
-        content = <EvidenceOutcomes dataset={dataset} media={media} onOpenRecords={setRequest} />;
+        content = (
+          <EvidenceOutcomes
+            dataset={dataset}
+            media={media}
+            onOpenRecords={setRequest}
+            role={role}
+          />
+        );
         break;
     }
   }

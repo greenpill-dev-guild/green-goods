@@ -7,8 +7,7 @@ chapters, 13 screens in the main story and 16 with See Every Step. Each screen i
 of the prototype (`packages/admin/src/views/ReportingLab/`), captured headless at 1440×900 with
 sample data fixed at Jan 16, 2026. Dashed outlines mark what the prototype adds to each shipped tab.
 
-The published copy is a private claude.ai artifact, visible to its owner until they share it:
-https://claude.ai/artifact/8fPPa4Q1MhXGsXtLHG3UC5
+The published copy is a private claude.ai artifact, visible to its owner until they share it.
 
 | File | What it holds |
 |---|---|

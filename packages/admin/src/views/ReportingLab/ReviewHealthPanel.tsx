@@ -16,6 +16,7 @@ import { accountName, formatDays, formatNumber, recordTitle, weekTicks } from ".
 import type { MediaSet, ReportDataset, ViewerRole, WorkRecord } from "./model";
 import type { RecordsRequest } from "./RecordsDialog";
 import { type AgeBandId, reviewHealth } from "./reviewHealth";
+import { weekNotLoaded } from "./aggregate";
 import { periodEnd, type ReportScope, closingDay } from "./scope";
 import { WeeklyBars } from "./WeeklyBars";
 
@@ -204,9 +205,14 @@ export function ReviewHealthPanel({
               primary: week.submitted,
               secondary: week.reviewed,
               running: week.week.end >= closingDay(at, dataset),
+              gap: weekNotLoaded(week.week, dataset) ? "Not loaded" : undefined,
             }))}
             format={(value) => formatNumber(value, locale)}
-            note={`Waiting at each week's end: ${health.flow.map((week) => week.waiting).join(", ")}.`}
+            note={`Waiting at each week's end: ${health.flow.map((week) => week.waiting).join(", ")}.${
+              dataset.loadedFrom === null
+                ? ""
+                : ` Work submitted before ${formatShortDay(dayKeyOf(dataset.loadedFrom, garden.timeZone), locale)} is not loaded yet, so these counts are low.`
+            }`}
           />
         )}
         {health.unknown > 0 ? (

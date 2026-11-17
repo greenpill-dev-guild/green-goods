@@ -30,6 +30,8 @@ export function dayRecordsRequest(
           ? byReview
             ? "No matching decisions are loaded for this day yet. Decisions on older work that is not loaded yet may be missing."
             : "No matching records are loaded for this day yet. Part of it is older than the records loaded so far."
-          : `Nothing was ${byReview ? "decided" : "submitted"} that day.`,
+          : filterSummary(scope, dataset.garden) === "All actions"
+            ? `Nothing was ${byReview ? "decided" : "submitted"} that day.`
+            : `Nothing matching these filters was ${byReview ? "decided" : "submitted"} that day.`,
   };
 }

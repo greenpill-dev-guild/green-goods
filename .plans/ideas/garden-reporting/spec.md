@@ -111,3 +111,8 @@ Placement was decided in review on 2026-11-13: each report goes into the tab it 
 
 - Risk: a report that reads a partial list presents it as a whole month.
 - Mitigation: every report states what it read, and the calendar marks unread days as not loaded.
+- Known gaps in the prototype on a partial read, to close before those reports ship: the season
+  timeline's recorded lane and a promise's linked work count only the loaded records, unmarked;
+  the overview's More Reports facts do too, and its cookie-jar balance leaves out an unreadable
+  ledger entry without saying so; the week a read starts in, while it is still running, shows as
+  in progress rather than partly loaded.
