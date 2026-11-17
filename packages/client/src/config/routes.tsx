@@ -1,7 +1,12 @@
-import { type LoaderFunctionArgs, type RouteObject, redirect } from "react-router-dom";
+import {
+  type LoaderFunctionArgs,
+  type RouteObject,
+  redirect,
+  redirectDocument,
+} from "react-router-dom";
 import type { RecoveryView } from "@/components/Errors/ErrorRecovery";
 import { RouteErrorBoundary } from "@/components/Errors/RouteErrorBoundary";
-import { APP_ROUTES, LEGACY_APP_ROUTES } from "./pwaRouting";
+import { APP_ROUTES, LEGACY_APP_ROUTES, PWA_APP_SCOPE } from "./pwaRouting";
 import { getSharedRecordPath, takePendingSharedLink } from "./sharedLink";
 import {
   requirePwaPresentationLoader,
@@ -366,6 +371,20 @@ if (!publicShell || !pwaRuntime) {
   throw new Error("Client route trees are missing their presentation roots");
 }
 
+/**
+ * A browser visit to the app's URLs is answered by the app's worker, which then
+ * keeps the page for as long as it stays in the same document, and knows it by
+ * the URL it opened with. Leaving with a new document lets go of the worker, so
+ * a tab that bounced off /home neither holds an update back nor counts as an
+ * open app window. The hash-routed IPFS build has one scope and keeps its redirect.
+ */
+function leaveForWebsite(url: URL, target: string) {
+  const inAppScope = url.pathname === PWA_APP_SCOPE || url.pathname.startsWith(`${PWA_APP_SCOPE}/`);
+  return inAppScope && import.meta.env.VITE_USE_HASH_ROUTER !== "true"
+    ? redirectDocument(target)
+    : redirect(target);
+}
+
 export const publicAppRoutes: RouteObject[] = [
   {
     ...combinedRoot,
@@ -375,7 +394,7 @@ export const publicAppRoutes: RouteObject[] = [
         path: "*",
         loader: ({ request }) => {
           const url = new URL(request.url);
-          return redirect(getSharedRecordPath(url.pathname, "gardens") ?? "/");
+          return leaveForWebsite(url, getSharedRecordPath(url.pathname, "gardens") ?? "/");
         },
       },
     ],

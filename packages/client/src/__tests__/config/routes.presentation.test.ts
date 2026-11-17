@@ -55,6 +55,23 @@ describe("presentation route trees", () => {
     expect(result).toBeInstanceOf(Response);
     expect((result as Response).headers.get("Location")).toBe("/home?presentation=pwa");
   });
+  it.each([
+    ["/home", "/", "true"],
+    ["/home/profile", "/", "true"],
+    ["/login", "/", null],
+  ])("sends a browser visit to %s on to %s, leaving the app worker's scope with a new document", async (path, location, reloadDocument) => {
+    const route = matchRoutes(publicAppRoutes, path)?.at(-1)?.route;
+    if (typeof route?.loader !== "function") throw new Error("The public catch-all has no loader");
+    const result = await route.loader({
+      request: new Request(`https://localhost:3001${path}`),
+      url: new URL(`https://localhost:3001${path}`),
+      pattern: "*",
+      params: {},
+      context: {},
+    });
+    expect((result as Response).headers.get("Location")).toBe(location);
+    expect((result as Response).headers.get("X-Remix-Reload-Document")).toBe(reloadDocument);
+  });
   it("keeps installed routes out of the public tree", () => {
     const ids = collectRouteIds(publicAppRoutes);
     expect(ids).toContain(CLIENT_ROUTE_IDS.publicHome);
