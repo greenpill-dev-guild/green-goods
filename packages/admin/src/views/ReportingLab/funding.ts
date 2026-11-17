@@ -57,7 +57,9 @@ export function fundingSummary(garden: ReportGarden, at: number, month: MonthKey
       const points: BalancePoint[] = [];
       for (const entry of own) {
         if (entry.accountLabel !== label || entry.account === "plan") continue;
-        balance += directionOf(entry) === "out" ? -entry.amount : entry.amount;
+        const direction = directionOf(entry);
+        if (direction === "none") continue;
+        balance += direction === "out" ? -entry.amount : entry.amount;
         points.push({ on: entry.on, balance });
       }
       const account = own.find((entry) => entry.accountLabel === label)?.account ?? "jar";

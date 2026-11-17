@@ -8,7 +8,7 @@
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import type { ReactNode } from "react";
 import { daysBetween, type DayKey, firstDayOf, formatDay, lastDayOf, type MonthKey } from "./dates";
-import type { ReportDataset, ReportingWindow } from "./model";
+import type { ReportDataset, ReportingWindow, WorkRecord } from "./model";
 import { referenceDay } from "./scope";
 import { deliveryByWeek, type TimelineItem } from "./timeline";
 
@@ -18,6 +18,8 @@ interface TimelineAxisProps {
   span: { start: DayKey; end: DayKey; days: number };
   month: MonthKey;
   locale: string;
+  /** The records the delivery lanes count: the selected window's, or all. */
+  records?: readonly WorkRecord[];
 }
 
 const MARK_TONE = {
@@ -37,11 +39,11 @@ function Lane({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-export function TimelineAxis({ dataset, items, span, month, locale }: TimelineAxisProps) {
+export function TimelineAxis({ dataset, items, span, month, locale, records }: TimelineAxisProps) {
   const pct = (day: DayKey) => `${(daysBetween(span.start, day) / span.days) * 100}%`;
   const width = (start: DayKey, end: DayKey) =>
     `${((daysBetween(start, end) + 1) / span.days) * 100}%`;
-  const delivery = deliveryByWeek(dataset, span);
+  const delivery = deliveryByWeek(dataset, span, records);
   const peak = Math.max(1, ...delivery.map((week) => Math.max(week.planned, week.recorded)));
   const months = Array.from(new Set(delivery.map((week) => week.week.start.slice(0, 7))));
 

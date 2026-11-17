@@ -118,7 +118,7 @@ function RecordsBody({
                 status={{ label: STATUS_COPY[status].label, tone }}
                 edge={tone}
                 details={[
-                  accountName(garden, record.accountId),
+                  role === "funder" ? "Account hidden" : accountName(garden, record.accountId),
                   { text: formatMoment(record.submittedAt, locale, garden.timeZone), tone: "soft" },
                 ]}
                 onOpen={() => setOpenId(record.id)}

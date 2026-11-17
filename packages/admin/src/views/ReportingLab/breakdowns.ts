@@ -117,9 +117,7 @@ export function participation(
   const { accounts } = dataset.garden;
   const deviceIds = new Set(accounts.filter((a) => a.kind === "shared-device").map((a) => a.id));
   const accountsIn = (from: string, to: string) =>
-    new Set(
-      recordsInWeek(dataset.records, { start: from, end: to }, dataset).map((r) => r.accountId)
-    );
+    new Set(recordsInWeek(records, { start: from, end: to }, dataset).map((r) => r.accountId));
 
   const perWeek: WeekPeople[] = weeks.map((week) => {
     const inWeek = recordsInWeek(records, week, dataset);

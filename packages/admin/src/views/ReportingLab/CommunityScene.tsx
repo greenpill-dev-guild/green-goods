@@ -159,7 +159,7 @@ export function CommunityScene({ dataset, media, view }: CommunitySceneProps) {
                   <FactList frame="inset">
                     <FactRow
                       label={formatMessage({ id: "app.treasury.totalHarvests" })}
-                      value={endowmentEntries.filter((entry) => entry.kind === "yield").length}
+                      value={garden.ledger.filter((entry) => entry.kind === "yield").length}
                     />
                     <FactRow
                       label={formatMessage({ id: "app.treasury.depositorCount" })}

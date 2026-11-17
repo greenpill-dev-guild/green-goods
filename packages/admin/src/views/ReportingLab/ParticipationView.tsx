@@ -63,6 +63,11 @@ export function ParticipationView({ dataset, scope, records, role }: Participati
             <p className="mt-1 type-body text-text-sub">
               An account or a device is not a person, and attendance is not people.
             </p>
+            {dataset.loadedFrom !== null ? (
+              <p className="mt-1 type-meta text-warning-dark">
+                {`These counts cover the work read so far, from ${formatShortDay(dayKeyOf(dataset.loadedFrom, garden.timeZone), locale)}. Older work this month is not counted yet.`}
+              </p>
+            ) : null}
           </div>
         </AdminCardHeader>
         <AdminCardBody className="flex flex-col gap-5">

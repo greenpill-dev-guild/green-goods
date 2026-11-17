@@ -63,8 +63,8 @@ export function ReviewHealthPanel({
       <ItemRow
         lead={{ kind: "photo", src: media[record.media] }}
         title={recordTitle(garden, record)}
-        status={{ label: "Pending", tone: "warning" }}
-        edge="warning"
+        status={{ label: "Pending", tone: "neutral" }}
+        edge="neutral"
         details={[
           accountName(garden, record.accountId),
           {
@@ -76,7 +76,7 @@ export function ReviewHealthPanel({
           onOpenRecords({
             title: "Waiting for Review",
             scopeLine: `Pending as of ${asOf}`,
-            records: health.pending,
+            records: listed,
             at,
             openId: record.id,
           })

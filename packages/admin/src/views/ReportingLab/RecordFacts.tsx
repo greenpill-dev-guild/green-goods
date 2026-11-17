@@ -67,7 +67,7 @@ export function RecordFacts({
 
   let reviewed = "Not reviewed yet";
   if (status === "unknown") reviewed = "The approval could not be read";
-  else if (record.reviewedAt !== undefined && record.reviewedAt <= dataset.reference) {
+  else if (record.reviewedAt !== undefined && record.reviewedAt <= at) {
     reviewed = `${moment(record.reviewedAt)} by ${accountName(garden, record.reviewerId ?? "")}`;
   }
 
@@ -88,9 +88,11 @@ export function RecordFacts({
         <FactRow
           label="Reported by"
           value={
-            account?.kind === "shared-device"
-              ? `${account.name} (shared device)`
-              : accountName(garden, record.accountId)
+            role === "funder"
+              ? "Hidden from funders"
+              : account?.kind === "shared-device"
+                ? `${account.name} (shared device)`
+                : accountName(garden, record.accountId)
           }
         />
         <FactRow

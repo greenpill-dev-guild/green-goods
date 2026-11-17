@@ -5,7 +5,13 @@
  */
 import { recordsInWeek, statusAt, type WeekRange } from "./aggregate";
 import { addDays, type DayKey, dayKeyOf, daysBetween, weekStartOf } from "./dates";
-import type { PromiseItem, ReportDataset, ReportingWindow, SeasonMilestone } from "./model";
+import type {
+  PromiseItem,
+  ReportDataset,
+  ReportingWindow,
+  SeasonMilestone,
+  WorkRecord,
+} from "./model";
 import { referenceDay } from "./scope";
 
 export type ItemTone = "success" | "warning" | "error" | "info" | "neutral";
@@ -93,13 +99,14 @@ export interface DeliveryWeek {
 /** Planned and recorded work per week: planned actions on one side, everything else on the other. */
 export function deliveryByWeek(
   dataset: ReportDataset,
-  span: { start: DayKey; end: DayKey }
+  span: { start: DayKey; end: DayKey },
+  records: readonly WorkRecord[] = dataset.records
 ): DeliveryWeek[] {
   const plannedIds = new Set(dataset.garden.actions.filter((a) => a.planned).map((a) => a.id));
   const weeks: DeliveryWeek[] = [];
   for (let start = span.start; start <= span.end; start = addDays(start, 7)) {
     const week = { start, end: addDays(start, 6) };
-    const inWeek = recordsInWeek(dataset.records, week, dataset);
+    const inWeek = recordsInWeek(records, week, dataset);
     const recorded = inWeek.filter((record) => !plannedIds.has(record.actionId));
     weeks.push({
       week,
@@ -118,6 +125,7 @@ export function linkedWork(dataset: ReportDataset, item: PromiseItem) {
   if (!item.actionId || !window) return [];
   return dataset.records.filter((record) => {
     const day = dayKeyOf(record.submittedAt, dataset.garden.timeZone);
-    return record.actionId === item.actionId && day >= window.start && day <= item.due;
+    const until = window.end < item.due ? window.end : item.due;
+    return record.actionId === item.actionId && day >= window.start && day <= until;
   });
 }

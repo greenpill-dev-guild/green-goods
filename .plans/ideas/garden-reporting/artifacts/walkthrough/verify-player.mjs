@@ -108,3 +108,4 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 1100, height: 760
 }
 await browser.close();
 console.log(problems.length === 0 ? "PLAYER OK" : `PROBLEMS\n${problems.join("\n")}`);
+if (problems.length > 0) process.exitCode = 1;

@@ -10,6 +10,7 @@ import type { ReportDataset, WorkRecord } from "./model";
 import { ageBandOf, reviewHealth } from "./reviewHealth";
 import { buildScenario } from "./scenarios";
 import { closingDay, periodEnd } from "./scope";
+import { linkedWork } from "./timeline";
 
 const garden = compostGarden();
 const at = (day: string, hour = 10) => instantAt(day, hour, 0, garden.utcOffsetMinutes);
@@ -173,6 +174,34 @@ describe("reporting lab aggregation", () => {
     expect(jar(withUnread) - jar(fundingSummary(garden, LAB_REFERENCE_MS, "2026-01"))).toBeCloseTo(
       20
     );
+
+    // An allocation moves no balance even when it names the jar rather than the plan.
+    const jarEntry = garden.ledger.find(
+      (entry) => entry.account === "jar" && entry.asset === "DAI"
+    );
+    if (!jarEntry) throw new Error("fixture has no DAI jar entry");
+    const allocatedFromJar = {
+      ...garden,
+      ledger: [
+        ...garden.ledger,
+        { ...jarEntry, id: "jar-allocation", kind: "allocation" as const, amount: 500 },
+      ],
+    };
+    expect(jar(fundingSummary(allocatedFromJar, LAB_REFERENCE_MS, "2026-01"))).toBeCloseTo(
+      jar(fundingSummary(garden, LAB_REFERENCE_MS, "2026-01"))
+    );
+  });
+
+  it("links a promise only to work inside its window, even when it falls due later", () => {
+    const data = buildScenario("learning");
+    const promise = data.garden.promises.find((item) => item.id === "p-club");
+    const window = data.garden.windows.find((item) => item.id === promise?.windowId);
+    if (!promise || !window) throw new Error("fixture has no reading-club promise");
+    expect(promise.due > window.end).toBe(true);
+    const linked = linkedWork(data, promise);
+    expect(
+      linked.every((record) => dayKeyOf(record.submittedAt, data.garden.timeZone) <= window.end)
+    ).toBe(true);
   });
 
   it("orders participation by name with shared devices last, never by volume", () => {

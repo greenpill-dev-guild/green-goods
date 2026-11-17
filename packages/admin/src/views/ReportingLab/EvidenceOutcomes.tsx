@@ -52,6 +52,12 @@ export function EvidenceOutcomes({ dataset, media, onOpenRecords }: EvidenceOutc
   const outputRecords = dataset.records.filter(
     (r) => inSeason(r) && (!measure?.actionId || r.actionId === measure.actionId)
   );
+  const emptyOf = (records: WorkRecord[]) =>
+    measure ? records.filter((r) => measureValue(r, measure) === null).length : 0;
+  const emptyNote = (records: WorkRecord[]) => {
+    const empty = emptyOf(records);
+    return empty > 0 ? `; ${empty} left it empty and are not counted` : "";
+  };
   const sum = (records: WorkRecord[]) =>
     records.reduce((total, r) => total + (measure ? (measureValue(r, measure) ?? 0) : 0), 0);
   const approved = outputRecords.filter((r) => statusAt(r, dataset.reference) === "approved");
@@ -86,7 +92,7 @@ export function EvidenceOutcomes({ dataset, media, onOpenRecords }: EvidenceOutc
                 ? formatQuantity(sum(outputRecords), measure.unit, locale)
                 : `${outputRecords.length} records`
             }
-            delta={`${outputRecords.length} records submitted${season ? ` in ${season.name}` : ""}, whatever their status`}
+            delta={`${outputRecords.length} records submitted${season ? ` in ${season.name}` : ""}, whatever their status${emptyNote(outputRecords)}`}
           />
           <StatTile
             label="Reviewed output"
@@ -95,7 +101,7 @@ export function EvidenceOutcomes({ dataset, media, onOpenRecords }: EvidenceOutc
                 ? formatQuantity(sum(approved), measure.unit, locale)
                 : `${approved.length} records`
             }
-            delta="approved by a steward; proves the work, not the outcome"
+            delta={`approved by a steward; proves the work, not the outcome${emptyNote(approved)}`}
           />
           <StatTile
             label="Measured outcome"

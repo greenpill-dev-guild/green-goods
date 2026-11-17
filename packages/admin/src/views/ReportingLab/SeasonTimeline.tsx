@@ -13,7 +13,7 @@ import { useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminCard, AdminCardBody, AdminCardHeader, AdminCardTitle } from "@/components/AdminCard";
 import { AdminDialog } from "@/components/AdminDialog";
-import { formatDay, formatShortDay } from "./dates";
+import { dayKeyOf, formatDay, formatShortDay } from "./dates";
 import { accountName } from "./labCopy";
 import type { PromiseItem, ReportDataset, ReportingWindow, SeasonMilestone } from "./model";
 import type { RecordsRequest } from "./RecordsDialog";
@@ -59,6 +59,14 @@ export function SeasonTimeline({
       ("windowId" in item.source && item.source.windowId === scope.windowId)
   );
   const span = timelineSpan(timelineItems(dataset), dataset);
+  // The delivery lanes count only the selected window's work.
+  const selected = garden.windows.find((window) => window.id === scope.windowId);
+  const windowRecords = selected
+    ? dataset.records.filter((record) => {
+        const day = dayKeyOf(record.submittedAt, garden.timeZone);
+        return day >= selected.start && day <= selected.end;
+      })
+    : dataset.records;
   const day = (value: string) =>
     formatDay(value, locale, { month: "short", day: "numeric", year: "numeric" });
   const hasPlanned = garden.actions.some((action) => action.planned);
@@ -192,6 +200,7 @@ export function SeasonTimeline({
           span={span}
           month={scope.month}
           locale={locale}
+          records={windowRecords}
         />
         <p className="type-meta text-text-sub">
           {hasPlanned

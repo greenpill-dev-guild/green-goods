@@ -55,7 +55,15 @@ function DayBody({
   if (cell.state === "not-loaded")
     return <span className="type-meta-sm text-text-soft">Not loaded</span>;
   if (cell.state === "future" || cell.state === "before-records") return null;
-  if (cell.counts.total === 0) return <span className="type-meta text-text-soft">0</span>;
+  if (cell.counts.total === 0)
+    return (
+      <span className="flex items-baseline gap-1">
+        <span className="type-meta text-text-soft">0</span>
+        {cell.state === "partial" ? (
+          <span className="type-meta-sm text-warning-dark">+ unread</span>
+        ) : null}
+      </span>
+    );
   return (
     <>
       <span className="flex items-baseline gap-1">
