@@ -12,8 +12,9 @@ interface CanvasIndexerErrorStateProps {
  * AND the role-confirmed cross-check produced no fallback gardens.
  *
  * Distinct from `CanvasGardenAccessState` — that copy implies "you don't have
- * access yet"; this copy says "we can't tell yet, the indexer is unreachable".
- * Mixing the two during an outage was the deceptive UX flagged in the audit.
+ * access yet"; this copy says "we can't tell yet". Mixing the two during an
+ * outage was the deceptive UX flagged in the audit. The copy names no source:
+ * the error covers the indexer's garden reads and the chain's role read alike.
  */
 export function CanvasIndexerErrorState({ onRetry }: CanvasIndexerErrorStateProps) {
   const { formatMessage } = useIntl();
@@ -34,7 +35,7 @@ export function CanvasIndexerErrorState({ onRetry }: CanvasIndexerErrorStateProp
         description={formatMessage({
           id: "hub.access.indexerErrorDescription",
           defaultMessage:
-            "We couldn't load gardens from the indexer. This is usually temporary. Try again in a moment.",
+            "We couldn't check your garden access. This is usually temporary. Try again in a moment.",
         })}
         action={
           <Button type="button" size="sm" onClick={onRetry}>

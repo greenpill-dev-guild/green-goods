@@ -106,6 +106,9 @@ export function useDeploymentRegistry(): DeploymentRegistryPermissions {
     enabled: !!normalizedAddress && ready,
     staleTime: STALE_TIMES.baseLists,
     networkMode: "offlineFirst",
+    // A failed read must not restart when the Hub's access gate mounts the workspace: the
+    // restart reopens the gate, which unmounts the workspace and starts the loop over (PRD-1506).
+    retryOnMount: false,
   });
 
   return {

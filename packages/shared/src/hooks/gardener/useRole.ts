@@ -80,9 +80,10 @@ export interface RoleInfo {
   stewardGardens: StewardGarden[];
   loading: boolean;
   /**
-   * True when the steward-gardens indexer query failed (network/indexer
-   * outage), as opposed to a successful query that genuinely returned none.
-   * Lets the admin distinguish a retryable error from real "no access".
+   * True when the steward-gardens indexer query or the protocol-role chain read
+   * failed, as opposed to reads that answered and genuinely found none. Lets the
+   * admin distinguish a retryable error from real "no access", so its message
+   * must not name either source.
    */
   gardensError: boolean;
   deploymentPermissions: {

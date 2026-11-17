@@ -7,9 +7,11 @@
  * if the connected user has deploy permissions.
  */
 
-import { waitFor } from "@testing-library/react";
+import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { roleKeys } from "../../../config/query-keys/identity";
 import { MOCK_ADDRESSES } from "../../test-utils/mock-factories";
+import { createTestQueryClient } from "../../test-utils/query-client";
 import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 // ============================================
@@ -293,6 +295,30 @@ describe("useDeploymentRegistry", () => {
 
       expect(result.current.error).toBe("Unknown error");
       expect(result.current.canDeploy).toBe(false);
+    });
+
+    it("keeps a failed read settled when another consumer mounts, and reads again on Try Again", async () => {
+      const queryClient = createTestQueryClient();
+      mockReadContract.mockRejectedValue(new Error("RPC connection failed"));
+      const first = renderHookWithQueryClient(() => useDeploymentRegistry(), { queryClient });
+      await waitFor(() => expect(first.result.current.error).toBe("RPC connection failed"));
+      const callsAfterFailure = mockReadContract.mock.calls.length;
+
+      // The Hub's access gate mounts the workspace, whose components read permissions again.
+      const next = renderHookWithQueryClient(() => useDeploymentRegistry(), { queryClient });
+      expect(next.result.current.loading).toBe(false);
+      await waitFor(() => expect(next.result.current.error).toBe("RPC connection failed"));
+      expect(first.result.current.loading).toBe(false);
+      expect(mockReadContract).toHaveBeenCalledTimes(callsAfterFailure);
+
+      mockReadContract
+        .mockReset()
+        .mockResolvedValueOnce(MOCK_ADDRESSES.deployer)
+        .mockResolvedValueOnce(false);
+      await act(async () => {
+        await queryClient.invalidateQueries({ queryKey: roleKeys.all });
+      });
+      await waitFor(() => expect(next.result.current.canDeploy).toBe(true));
     });
   });
 

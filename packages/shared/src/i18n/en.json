@@ -4399,7 +4399,7 @@
   "app.yield.title": "Yield Allocation",
   "app.yield.totalAllocated": "Total Yield Allocated",
   "app.yield.viewAll": "View All Allocations",
-  "hub.access.indexerErrorDescription": "We couldn't load gardens from the indexer. This is usually temporary. Try again in a moment.",
+  "hub.access.indexerErrorDescription": "We couldn't check your garden access. This is usually temporary. Try again in a moment.",
   "hub.access.indexerErrorRetry": "Try Again",
   "hub.access.indexerErrorTitle": "Can't load garden access",
   "hub.access.noGardenChip": "No garden access",
