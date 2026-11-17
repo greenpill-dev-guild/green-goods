@@ -94,7 +94,7 @@ function startsWithAny(path, prefixes) {
 export function classifySupplyChainChanges(paths, { workflowDispatch = false } = {}) {
   const normalized = [...new Set(paths.filter(Boolean).map((path) => path.replaceAll("\\", "/")))];
   if (workflowDispatch) {
-    return { format: true, guidance: true, supply: true, parity: true };
+    return { format: true, guidance: true, supply: true, parity: true, deadcode: true };
   }
 
   return {
@@ -114,6 +114,9 @@ export function classifySupplyChainChanges(paths, { workflowDispatch = false } =
     parity: normalized.some(
       (path) => parityExact.has(path) || path.startsWith(".github/workflows/"),
     ),
+    // Knip reads far more than code: workflows, hooks, MCP and tool configs, .gitignore. A finding
+    // that lands unchecked blocks the next pull request that runs it, so it runs on every run.
+    deadcode: true,
   };
 }
 

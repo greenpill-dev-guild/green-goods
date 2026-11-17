@@ -2212,7 +2212,7 @@ test("workflow mapping preserves exact live and intended trigger parity", () => 
     ["scripts/lib/env-schema.mjs", ["Admin", "Client", "Supply Chain Guardrails"]],
     ["scripts/lib/env-schema.test.mjs", ["Admin", "Client", "Supply Chain Guardrails"]],
     ["scripts/lib/env-parity.mjs", ["Admin", "Client", "Supply Chain Guardrails"]],
-    ["scripts/lib/env-parity.d.mts", ["Admin", "Client"]],
+    ["scripts/lib/env-parity.d.mts", ["Admin", "Client", "Supply Chain Guardrails"]],
     ["scripts/dev/env-check.js", ["Admin", "Client", "Supply Chain Guardrails"]],
     [
       "scripts/quality/check-source-structure.js",
