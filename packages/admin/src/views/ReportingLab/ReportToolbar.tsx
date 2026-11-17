@@ -61,15 +61,17 @@ export function ReportToolbar({ dataset, scope, onScopeChange }: ReportToolbarPr
         onChange={(value) => onScopeChange({ view: value as ReportView })}
         options={REPORT_ORDER.map((view) => ({ value: view, label: VIEW_COPY[view].title }))}
       />
-      <AdminSortSelect
-        label="Month"
-        value={scope.month}
-        onChange={(month) => onScopeChange({ month })}
-        options={availableMonths(dataset).map((month) => ({
-          value: month,
-          label: formatMonth(month, locale),
-        }))}
-      />
+      {filters.month ? (
+        <AdminSortSelect
+          label="Month"
+          value={scope.month}
+          onChange={(month) => onScopeChange({ month })}
+          options={availableMonths(dataset).map((month) => ({
+            value: month,
+            label: formatMonth(month, locale),
+          }))}
+        />
+      ) : null}
       {hasFilters ? (
         <Button
           type="button"

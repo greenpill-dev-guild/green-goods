@@ -45,7 +45,18 @@ interface GardenActivitySceneProps {
 
 function dayOpening(dataset: ReportDataset, day: DayKey | undefined, openId: string | undefined) {
   return (scope: ReportScope, locale: string): RecordsRequest | null => {
-    if (!day) return null;
+    if (!day) {
+      const record = dataset.records.find((item) => item.id === openId);
+      return record
+        ? {
+            title: record.title,
+            scopeLine: `${recordTitle(dataset.garden, record)}, from ${accountName(dataset.garden, record.accountId)}`,
+            records: [record],
+            at: dataset.reference,
+            openId: record.id,
+          }
+        : null;
+    }
     const calendar = buildCalendar({
       dataset,
       records: scopeRecords(dataset, scope),

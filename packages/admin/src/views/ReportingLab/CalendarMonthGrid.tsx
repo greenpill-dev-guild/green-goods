@@ -101,7 +101,6 @@ function agendaItems(weeks: CalendarDay[][]) {
 }
 
 const GAP_COPY: Record<string, string> = {
-  zero: "no submissions",
   "not-loaded": "not loaded",
   "before-records": "before records began",
 };
@@ -227,7 +226,7 @@ export function CalendarMonthGrid({
           item.kind === "gap" ? (
             <li key={`gap-${item.to}`} className="px-3 type-meta text-text-soft">
               {item.from === item.to ? short(item.to) : `${short(item.from)} to ${short(item.to)}`}:{" "}
-              {GAP_COPY[item.state]}
+              {item.state === "zero" ? `no ${noun}s` : GAP_COPY[item.state]}
             </li>
           ) : (
             <li key={item.cell.day}>

@@ -7,7 +7,7 @@
 import { StatTile } from "@green-goods/shared/components/Cards/StatTile";
 import { useIntl } from "react-intl";
 import { AdminCard, AdminCardBody, AdminCardHeader, AdminCardTitle } from "@/components/AdminCard";
-import { reportWeeks } from "./aggregate";
+import { reportWeeks, weekNotLoaded } from "./aggregate";
 import { participation } from "./breakdowns";
 import { dayKeyOf, formatMonth, formatShortDay, monthOf } from "./dates";
 import { formatNumber, weekTicks } from "./labCopy";
@@ -109,6 +109,7 @@ export function ParticipationView({ dataset, scope, records, role }: Participati
                 fullLabel: `Week of ${label(week.week.start)}`,
                 primary: week.accounts,
                 secondary: week.returning,
+                gap: weekNotLoaded(week.week, dataset) ? "Not loaded" : undefined,
               }))}
               format={(value) => formatNumber(value, locale)}
               note="Returning: also sent a record in the four weeks before."
@@ -121,7 +122,11 @@ export function ParticipationView({ dataset, scope, records, role }: Participati
                 ...ticks[people.perWeek.indexOf(week)],
                 fullLabel: `Week of ${label(week.week.start)}`,
                 primary: week.attendance ?? 0,
-                gap: week.attendance === null && week.accounts > 0 ? "Not recorded" : undefined,
+                gap: weekNotLoaded(week.week, dataset)
+                  ? "Not loaded"
+                  : week.attendance === null && week.accounts > 0
+                    ? "Not recorded"
+                    : undefined,
               }))}
               format={(value) => formatNumber(value, locale)}
               note="Read from attendance and cleanup records; the same person can count in several weeks."
@@ -200,9 +205,16 @@ export function ParticipationView({ dataset, scope, records, role }: Participati
                 ) : (
                   <ul className="flex flex-col gap-1 type-body text-text-sub">
                     {people.quiet.map(({ account, lastDay }) => (
-                      <li key={account.id}>
-                        <span className="font-semibold text-text-strong">{account.name}</span>, last
-                        record {lastDay ? label(lastDay) : "none"}
+                      <li key={account.id} className="flex min-w-0">
+                        <span
+                          className="min-w-0 truncate font-semibold text-text-strong"
+                          title={account.name}
+                        >
+                          {account.name}
+                        </span>
+                        <span className="shrink-0 whitespace-pre">
+                          , last record {lastDay ? label(lastDay) : "none"}
+                        </span>
                       </li>
                     ))}
                   </ul>

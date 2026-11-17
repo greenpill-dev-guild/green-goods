@@ -146,10 +146,15 @@ export function participation(
   }));
 
   const recentStart = weeks[Math.max(0, weeks.length - 3)]?.start ?? "";
+  const periodLastDay = weeks[weeks.length - 1]?.end ?? "";
   const quiet = matrix
     .filter((row) => row.account.kind === "person")
     .map((row) => {
-      const own = records.filter((record) => record.accountId === row.account.id);
+      const own = records.filter(
+        (record) =>
+          record.accountId === row.account.id &&
+          dayKeyOf(record.submittedAt, dataset.garden.timeZone) <= periodLastDay
+      );
       const last = own.length > 0 ? own[own.length - 1] : undefined;
       return {
         account: row.account,

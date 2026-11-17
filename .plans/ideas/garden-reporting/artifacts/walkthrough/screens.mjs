@@ -47,7 +47,8 @@ export const CHAPTERS = [
 ];
 
 // story: the Storybook story id. hotspot: what the steward presses to go on. back: an app
-// control that goes back a screen (a dialog's close). fresh: the parts this prototype adds.
+// control that goes back a screen (a dialog's close), never the hotspot's own control.
+// fresh: the parts this prototype adds.
 // extra: shown only in "See every step".
 export const SCREENS = [
   {
@@ -174,7 +175,6 @@ export const SCREENS = [
     title: "A promise and its work",
     caption:
       "October's transfer to the recycler was due October 31 and kept on the 30th. Its dialog lists the transfers recorded toward it and says how work is matched: by the promise's action, within its dates.",
-    back: { css: '[role="dialog"] button[aria-label="Close"]' },
     hotspot: { css: '[role="dialog"] button[aria-label="Close"]' },
     hint: "Close",
     alt: "October's transfer promise open in a dialog, with its due date and the transfer work that kept it.",
@@ -200,7 +200,6 @@ export const SCREENS = [
     title: "A week opens its records",
     caption:
       "The week of January 5 opens the sorting records behind its bar, each with its status, so the gap between reported and approved has names and dates.",
-    back: { css: '[role="dialog"] button[aria-label="Close"]' },
     hotspot: { css: '[role="dialog"] button[aria-label="Close"]' },
     hint: "Close",
     alt: "The week of January 5's sorting records in a dialog over Output Trends.",

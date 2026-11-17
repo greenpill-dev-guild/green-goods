@@ -26,6 +26,8 @@ export function dayRecordsRequest(
     emptyNote:
       cell.state === "not-loaded"
         ? "This day is older than the records loaded so far, so its work is not counted yet."
-        : `Nothing was ${byReview ? "decided" : "submitted"} that day.`,
+        : cell.state === "partial"
+          ? "No matching records are loaded for this day yet. Part of it is older than the records loaded so far."
+          : `Nothing was ${byReview ? "decided" : "submitted"} that day.`,
   };
 }

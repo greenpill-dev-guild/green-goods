@@ -33,7 +33,7 @@ interface ActivityCalendarProps {
   currentDay?: DayKey;
 }
 
-function Legend() {
+function Legend({ byReview }: { byReview: boolean }) {
   const item = "inline-flex items-center gap-1";
   return (
     <ul
@@ -56,7 +56,7 @@ function Legend() {
         <span aria-hidden className="tabular-nums text-text-soft">
           0
         </span>{" "}
-        Nothing submitted
+        Nothing {byReview ? "decided" : "submitted"}
       </li>
       <li className={item}>
         <span
@@ -228,7 +228,7 @@ export function ActivityCalendar({
           onOpenDay={openDay}
           currentDay={currentDay}
         />
-        <Legend />
+        <Legend byReview={byReview} />
       </AdminCardBody>
     </AdminCard>
   );

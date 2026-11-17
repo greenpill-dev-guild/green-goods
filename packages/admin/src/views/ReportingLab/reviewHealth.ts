@@ -89,7 +89,7 @@ export function reviewHealth(
         record.reviewedAt !== undefined && record.reviewedAt <= at ? record.reviewedAt : undefined,
     })),
     at,
-    { complete: dataset.loadedFrom === null }
+    { complete: dataset.loadedFrom === null && readable.length === known.length }
   );
   const flow = reportWeeks(month, dataset).map((week): ReviewFlowWeek => {
     const weekEnd = Math.min(endOfDay(week.end, dataset.garden.utcOffsetMinutes), at);

@@ -96,7 +96,11 @@ export function GardenHealthScene({ dataset, media }: GardenHealthSceneProps) {
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-3" aria-live="polite">
                       <StatTile
                         label={formatMessage({ id: "app.garden.detail.metric.lastActivity" })}
-                        value={relative(lastSubmitted)}
+                        value={
+                          Number.isFinite(lastSubmitted)
+                            ? relative(lastSubmitted)
+                            : formatMessage({ id: "app.garden.detail.metric.noActivity" })
+                        }
                       />
                       <StatTile
                         label={formatMessage({ id: "app.garden.detail.metric.impactVelocity" })}

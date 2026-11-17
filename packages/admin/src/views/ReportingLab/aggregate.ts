@@ -5,8 +5,10 @@
  * a week, a list and a total cannot disagree.
  */
 import {
+  addDays,
   type DayKey,
   dayKeyOf,
+  endOfDay,
   lastDayOf,
   type MonthKey,
   monthGrid,
@@ -186,8 +188,13 @@ function weekStateOf(week: WeekRange, dataset: ReportDataset): WeekState {
   if (week.start <= referenceDay(dataset) && referenceDay(dataset) <= week.end) {
     return "in-progress";
   }
-  if (dataset.loadedFrom === null) return "ok";
-  return week.start < dayKeyOf(dataset.loadedFrom, dataset.garden.timeZone) ? "not-loaded" : "ok";
+  return weekNotLoaded(week, dataset) ? "not-loaded" : "ok";
+}
+
+/** True when the week begins before the loaded records do, even partway through its first day. */
+export function weekNotLoaded(week: WeekRange, dataset: ReportDataset): boolean {
+  if (dataset.loadedFrom === null) return false;
+  return endOfDay(addDays(week.start, -1), dataset.garden.utcOffsetMinutes) < dataset.loadedFrom;
 }
 
 export function measureSeries(

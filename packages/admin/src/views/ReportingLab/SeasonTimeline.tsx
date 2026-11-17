@@ -127,7 +127,7 @@ export function SeasonTimeline({
             description="Matched by action and date in this lab; production would read the promise's own evidence links."
             value={
               promise.actionId
-                ? `${linked.length} records of its action in its window`
+                ? `${linked.length} approved records of its action in its window`
                 : "This promise links no work"
             }
             action={

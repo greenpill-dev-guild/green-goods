@@ -17,7 +17,7 @@ import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
 import { AdminSortSelect } from "@/components/AdminSortSelect";
 import { ReviewWorkCard } from "@/views/Review/components/ReviewWorkCard";
 import { monthOf } from "./dates";
-import { accountName, actionTitle, recordTitle } from "./labCopy";
+import { accountName, actionTitle, recordTitle, STATUS_COPY } from "./labCopy";
 import { LabCanvas } from "./LabCanvas";
 import { labGardens } from "./labShell";
 import type { MediaSet, ReportDataset, ViewerRole } from "./model";
@@ -181,6 +181,8 @@ export function ReviewWorkScene({ dataset, media, band, sort, openId }: ReviewWo
                   actionTitle={actionTitle(dataset.garden, record.actionId)}
                   gardenName={dataset.garden.name}
                   gardenerDisplayName={accountName(dataset.garden, record.accountId)}
+                  statusLabel={record.approvalReadable ? undefined : STATUS_COPY.unknown.label}
+                  statusTone={record.approvalReadable ? undefined : "warning"}
                   layout={isDesktop ? "wide" : "stacked"}
                   selected={open?.openId === record.id}
                   eagerImages={index < 6}

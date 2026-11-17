@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { buildCalendar, dayStateOf, measureSeries, reportWeeks, statusAt } from "./aggregate";
+import {
+  buildCalendar,
+  dayStateOf,
+  measureSeries,
+  reportWeeks,
+  statusAt,
+  weekNotLoaded,
+} from "./aggregate";
 import { participation } from "./breakdowns";
 import { dayKeyOf, instantAt } from "./dates";
 import { compostGarden } from "./fixtureCompostGarden";
@@ -87,7 +94,10 @@ describe("reporting lab aggregation", () => {
     ]);
     expect(statusAt(late, periodEnd("2025-12", data))).toBe("pending");
     expect(statusAt(late, data.reference)).toBe("approved");
-    // A month's end is midnight starting the next day; its label still names the month's last day.
+    // A review at the next month's first instant belongs to that month, not to December's close.
+    const newYear = record({ decision: "approved", reviewedAt: at("2026-01-01", 0) });
+    expect(statusAt(newYear, periodEnd("2025-12", data))).toBe("pending");
+    // The month's end label names its last day.
     expect(closingDay(periodEnd("2025-12", data), data)).toBe("2025-12-31");
     expect(closingDay(data.reference, data)).toBe("2026-01-16");
 
@@ -112,6 +122,10 @@ describe("reporting lab aggregation", () => {
         dayStateOf(day, data)
       )
     ).toEqual(["before-records", "not-loaded", "partial", "recorded", "future"]);
+    // A week whose Monday is only read from noon is not fully loaded.
+    const week = { start: "2026-01-05", end: "2026-01-11" };
+    expect(weekNotLoaded(week, dataset([], at("2026-01-05", 12)))).toBe(true);
+    expect(weekNotLoaded(week, dataset([], at("2026-01-05", 0)))).toBe(false);
   });
 
   it("keeps each measure to its own action, and a missing quantity apart from zero", () => {
@@ -192,7 +206,7 @@ describe("reporting lab aggregation", () => {
     );
   });
 
-  it("links a promise only to work inside its window, even when it falls due later", () => {
+  it("links a promise only to approved work inside its window, even when it falls due later", () => {
     const data = buildScenario("learning");
     const promise = data.garden.promises.find((item) => item.id === "p-club");
     const window = data.garden.windows.find((item) => item.id === promise?.windowId);
@@ -202,6 +216,7 @@ describe("reporting lab aggregation", () => {
     expect(
       linked.every((record) => dayKeyOf(record.submittedAt, data.garden.timeZone) <= window.end)
     ).toBe(true);
+    expect(linked.every((record) => statusAt(record, data.reference) === "approved")).toBe(true);
   });
 
   it("orders participation by name with shared devices last, never by volume", () => {

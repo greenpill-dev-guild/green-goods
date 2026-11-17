@@ -35,17 +35,17 @@ export interface ReportScope {
 /** Which shared filters each report reads; the toolbar shows only these. */
 export const VIEW_FILTERS: Record<
   ReportView,
-  { action: boolean; window: boolean; status: boolean }
+  { month: boolean; action: boolean; window: boolean; status: boolean }
 > = {
-  overview: { action: true, window: true, status: false },
-  calendar: { action: true, window: true, status: true },
-  review: { action: true, window: false, status: false },
-  outputs: { action: true, window: true, status: false },
-  season: { action: false, window: true, status: false },
-  places: { action: true, window: true, status: true },
-  people: { action: true, window: true, status: false },
-  funding: { action: false, window: false, status: false },
-  evidence: { action: false, window: false, status: false },
+  overview: { month: true, action: true, window: true, status: false },
+  calendar: { month: true, action: true, window: true, status: true },
+  review: { month: true, action: true, window: false, status: false },
+  outputs: { month: true, action: true, window: true, status: false },
+  season: { month: true, action: false, window: true, status: false },
+  places: { month: true, action: true, window: true, status: true },
+  people: { month: true, action: true, window: true, status: false },
+  funding: { month: true, action: false, window: false, status: false },
+  evidence: { month: false, action: false, window: false, status: false },
 };
 
 export function referenceDay(dataset: ReportDataset) {
@@ -78,14 +78,20 @@ export function availableMonths(dataset: ReportDataset): MonthKey[] {
   return months;
 }
 
-/** The end of the month, or the reference moment while the month is still running. */
+/**
+ * The last instant inside the month, or the reference moment while the month is still running.
+ * Callers compare inclusively, so an event at the next month's midnight stays out.
+ */
 export function periodEnd(month: MonthKey, dataset: ReportDataset): number {
-  return Math.min(endOfDay(lastDayOf(month), dataset.garden.utcOffsetMinutes), dataset.reference);
+  return Math.min(
+    endOfDay(lastDayOf(month), dataset.garden.utcOffsetMinutes) - 1,
+    dataset.reference
+  );
 }
 
 /**
- * The last day a moment covers. A month's end is the first instant of the next day, so the
- * day it closes is the one before it: "as of Dec 31", never "as of Jan 1".
+ * The last day a moment covers. A moment that sits on a day boundary closes the day before
+ * it: "as of Dec 31", never "as of Jan 1".
  */
 export function closingDay(at: number, dataset: ReportDataset) {
   return dayKeyOf(at - 1, dataset.garden.timeZone);

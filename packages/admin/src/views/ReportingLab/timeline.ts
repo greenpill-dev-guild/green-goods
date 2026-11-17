@@ -126,6 +126,11 @@ export function linkedWork(dataset: ReportDataset, item: PromiseItem) {
   return dataset.records.filter((record) => {
     const day = dayKeyOf(record.submittedAt, dataset.garden.timeZone);
     const until = window.end < item.due ? window.end : item.due;
-    return record.actionId === item.actionId && day >= window.start && day <= until;
+    return (
+      record.actionId === item.actionId &&
+      day >= window.start &&
+      day <= until &&
+      statusAt(record, dataset.reference) === "approved"
+    );
   });
 }

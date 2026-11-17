@@ -123,7 +123,7 @@ export function ReportsOverview({
       <ActivityCalendar
         variant="overview"
         dataset={dataset}
-        scope={scope}
+        scope={{ ...scope, status: "all" }}
         records={records}
         onScopeChange={onScopeChange}
         onOpenRecords={onOpenRecords}

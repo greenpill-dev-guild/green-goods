@@ -2,8 +2,9 @@
 
 ## Release Gates
 
-1. Correctness: a month's days add up to exactly the works submitted that month, in the garden's
-   own zone, and every report counts the same records.
+1. Correctness: a month's days add up to exactly the works submitted that month, in the time
+   basis review settles (the garden's zone is proposed), and reports that count the same work
+   agree once their stated filters and record types are applied.
 2. Usability: a steward finds each answer in the tab they already use, and a day, week or band
    opens the records behind its number.
 3. Regression safety: Review's review flow, the Garden Health card and the Activity Feed behave as
