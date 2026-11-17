@@ -1,7 +1,8 @@
 name: Coverage Nightly
 
-# Pull requests run plain package tests for fast feedback. This lane enforces
-# the measured coverage floors nightly and after every push to main.
+# Client and Admin pull requests already hold their coverage floors; Shared's
+# sharded PR tests run plain. This lane enforces every package's measured
+# floors nightly and after every push to main.
 on:
   schedule:
     - cron: "43 8 * * *"
