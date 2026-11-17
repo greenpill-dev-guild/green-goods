@@ -78,7 +78,7 @@
     },
     ".github/workflows/merge-gate.yml": {
       "purpose": "Posts the Merge Gate status, which holds a pull request into develop to its tier's proof from .agents/merge-policy.json: routine needs CI Gate alone, sensitive a marker that a fresh agent's adversarial review was addressed at the head, critical that marker and one for the selector's critical gate, each from an account with write access. The tier is the highest of the selector's risk, the policy's globs and the gate's own list, and anything the gate cannot classify is critical.",
-      "useCase": "Every pull request into develop, when CI Gate finishes and when a comment that holds or held a merge-gate marker is written, edited or deleted; any merge-gate: comment asks for a fresh decision. It blocks nothing until the develop ruleset requires the status, which is the owner's step.",
+      "useCase": "Every pull request into develop, when CI Gate starts and finishes and when a comment that holds or held a merge-gate marker is written, edited or deleted; any merge-gate: comment asks for a fresh decision. A push to develop that changes what the gate reads decides every open pull request again. It blocks nothing until the develop ruleset requires the status, which is the owner's step.",
       "required": false
     },
     ".github/workflows/ontology.yml": {

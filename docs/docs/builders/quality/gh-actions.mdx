@@ -30,7 +30,7 @@ generated_from:
   - package.json
   - scripts/data/validation-policy.json
   - scripts/data/workflow-catalog.json
-source_digest: "sha256:6a34673022c22368ea83d6329fe8697c9ae652c8052e5e5e5ca313f8a531e5e6"
+source_digest: "sha256:759fcc46b43c1f76c025b5590b57c81dfd0303fdd0b6d68df5d4b03cfb3b72a9"
 source_of_truth:
   - .github/workflows/admin.yml
   - .github/workflows/agent.yml
@@ -83,7 +83,7 @@ import {CopyCommand} from "@site/src/components/docs";
 | [Design](#design) | Checks the design system and its voice: Storybook, story coverage, DesignMD token parity, banned vocabulary, em dashes, and brand voice parity, with optional Chromatic publishing. | pull requests that touch its paths (55 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
 | [Docs](#docs) | Tests the docs generators, audits documentation authority, checks that generated projections and ontology pages are current, and builds the docs site. | pull requests that touch its paths (102 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
 | [Indexer](#indexer) | Builds and tests the Envio indexer handlers against the contract ABIs and deployment artifacts. | pull requests that touch its paths (10 path filters); pushes to `main` and `develop` that touch its paths | No |
-| [Merge Gate](#merge-gate) | Posts the Merge Gate status, which holds a pull request into develop to its tier's proof from .agents/merge-policy.json: routine needs CI Gate alone, sensitive a marker that a fresh agent's adversarial review was addressed at the head, critical that marker and one for the selector's critical gate, each from an account with write access. The tier is the highest of the selector's risk, the policy's globs and the gate's own list, and anything the gate cannot classify is critical. | completion of another workflow; comments on issues and pull requests | No |
+| [Merge Gate](#merge-gate) | Posts the Merge Gate status, which holds a pull request into develop to its tier's proof from .agents/merge-policy.json: routine needs CI Gate alone, sensitive a marker that a fresh agent's adversarial review was addressed at the head, critical that marker and one for the selector's critical gate, each from an account with write access. The tier is the highest of the selector's risk, the policy's globs and the gate's own list, and anything the gate cannot classify is critical. | the start and completion of another workflow; comments on issues and pull requests; pushes to `develop` that touch its paths | No |
 | [Ontology](#ontology) | Validates the ontology sidecar against the code it anchors and keeps its generated reference pages current. | pull requests that touch its paths (113 path filters); pushes to `main` and `develop` that touch its paths | No |
 | [Release](#release) | Builds and publishes a tagged release. | pushed tags matching `v*.*.*` | No |
 | [Shared](#shared) | Typechecks and tests the shared package: hooks, providers, protocol modules, and UI foundations. | pull requests that touch its paths (12 path filters); pushes to `main` and `develop` that touch its paths; a schedule (`19 7 * * 1` UTC) | No |
@@ -243,8 +243,8 @@ Builds and tests the Envio indexer handlers against the contract ABIs and deploy
 
 Posts the Merge Gate status, which holds a pull request into develop to its tier's proof from .agents/merge-policy.json: routine needs CI Gate alone, sensitive a marker that a fresh agent's adversarial review was addressed at the head, critical that marker and one for the selector's critical gate, each from an account with write access. The tier is the highest of the selector's risk, the policy's globs and the gate's own list, and anything the gate cannot classify is critical.
 
-- **Use it when:** Every pull request into develop, when CI Gate finishes and when a comment that holds or held a merge-gate marker is written, edited or deleted; any merge-gate: comment asks for a fresh decision. It blocks nothing until the develop ruleset requires the status, which is the owner's step.
-- **Runs on:** completion of another workflow; comments on issues and pull requests.
+- **Use it when:** Every pull request into develop, when CI Gate starts and finishes and when a comment that holds or held a merge-gate marker is written, edited or deleted; any merge-gate: comment asks for a fresh decision. A push to develop that changes what the gate reads decides every open pull request again. It blocks nothing until the develop ruleset requires the status, which is the owner's step.
+- **Runs on:** the start and completion of another workflow; comments on issues and pull requests; pushes to `develop` that touch its paths.
 - **Jobs:** `gate`.
 - **Required status:** no, and the CI Gate never waits for it: it has no pull request path rule.
 - **File:** [.github/workflows/merge-gate.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/merge-gate.yml)

@@ -7,6 +7,7 @@ import test from "node:test";
 import { fixtureGitEnvironment } from "../lib/dev-shared.js";
 import {
   GATE_CRITICAL_PATHS,
+  GATE_INPUT_PATHS,
   classifyChange,
   decide,
   evaluate,
@@ -153,6 +154,8 @@ test("events name their open pull requests, a fork's by its head branch", async 
   assert.deepEqual(await pullNumbers({ workflow_run: { ...run, event: "push", pull_requests: [] } }, "workflow_run", noLookup), []);
   const lookup = async (head) => (head === "someone:fix" ? [{ number: 11, head: { sha: HEAD } }, { number: 12, head: { sha: OTHER } }] : []);
   assert.deepEqual(await pullNumbers({ workflow_run: { ...run, pull_requests: [] } }, "workflow_run", lookup), [11]);
+  // A push to develop that changes the gate's inputs decides every open pull request again.
+  assert.deepEqual(await pullNumbers({ ref: "refs/heads/develop" }, "push", noLookup, async () => [3, 5]), [3, 5]);
 });
 
 test("the head's files come from the object store: export-ignore hides nothing, links and submodules stay out", () => {
@@ -191,6 +194,15 @@ test("the repository's merge policy reads as intended: release workflows critica
   assert.equal(policyTier("package.json", repositoryPolicy), "sensitive");
   assert.equal(policyTier("packages/admin/package.json", repositoryPolicy), "sensitive");
   assert.equal(policyTier("docs/docs/index.mdx", repositoryPolicy), "routine");
+  // Build configuration that changes compiled contracts is critical; other lockfiles and tool config are sensitive.
+  for (const path of ["packages/contracts/foundry.toml", "packages/contracts/remappings.txt", ".gitmodules"]) assert.equal(policyTier(path, repositoryPolicy), "critical", path);
+  // So are the production Agent's deploy and the other build and deploy inputs.
+  const sensitive = ["packages/contracts/foundry.lock", "bunfig.toml", "packages/agent/bunfig.toml", "turbo.json", "packages/client/vitest.config.ts", ".oxlintrc.json"];
+  sensitive.push("fly.toml", "packages/agent/Dockerfile", "packages/client/vercel.json", "packages/shared/tsconfig.json", "env.schema", ".husky/pre-push", "scripts/ops/vercel-ignore.mjs");
+  for (const path of sensitive) {
+    assert.equal(policyTier(path, repositoryPolicy), "sensitive", path);
+  }
+  assert.deepEqual(repositoryPolicy.requiredChecks, ["CI Gate", "Merge Gate"]);
 });
 
 test("fetching a head never turns a full clone shallow", () => {
@@ -364,4 +376,74 @@ test("evaluate reads every classification input: the merge base, Shared mutation
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+test("the workflow posts when CI Gate starts, and decides again whenever what the gate reads changes on develop", () => {
+  const workflow = readFileSync(path.join(path.dirname(new URL(import.meta.url).pathname), "../../.github/workflows/merge-gate.yml"), "utf8");
+  assert.match(workflow, /workflow_run:\n\s+workflows: \["CI Gate"\]\n\s+types: \[requested, completed\]/);
+  const pushPaths = workflow.match(/push:\n\s+branches: \[develop\]\n\s+paths:\n((?:\s+- ".+"\n)+)/)?.[1].match(/"([^"]+)"/g).map((entry) => entry.slice(1, -1));
+  // Every input the gate's decision reads, and each one is critical to change.
+  assert.deepEqual([...pushPaths].sort(), [...GATE_INPUT_PATHS].sort());
+  assert.deepEqual(GATE_INPUT_PATHS.filter((file) => !GATE_CRITICAL_PATHS.includes(file)), []);
+});
+
+test("a sweep after a push decides each open pull request into develop and skips the rest", async () => {
+  const pulls = [
+    { number: 3, state: "open", base: { ref: "develop" }, head: { sha: HEAD } },
+    { number: 4, state: "open", base: { ref: "main" }, head: { sha: OTHER } },
+  ];
+  const posted = [];
+  const github = async (route, request = {}) => {
+    if (request.method === "POST") return void posted.push(route);
+    if (route.startsWith("pulls?state=open")) return route.includes("page=1") ? pulls : [];
+    const number = Number(route.match(/^pulls\/(\d+)$/)?.[1]);
+    if (number) return pulls.find((pull) => pull.number === number);
+    if (route.startsWith("issues/")) return [];
+    if (route.startsWith("commits/")) return [];
+    throw new Error(`unexpected ${route}`);
+  };
+  const deps = {
+    env: { GITHUB_EVENT_NAME: "push" },
+    event: { ref: "refs/heads/develop" },
+    github,
+    evaluate: async () => ({ decision: { state: "pending", description: "x", needed: [] }, reasons: [], markers: { reviewed: false, fullGate: false }, authors: new Set(), writers: new Set() }),
+    log: () => {},
+    summary: () => {},
+  };
+  assert.equal(await main([], deps), 0);
+  assert.deepEqual(posted, [`statuses/${HEAD}`]);
+});
+
+test("a run never posts success over a stricter policy, and one pull request's failure leaves the rest of a sweep to decide", async () => {
+  const CHECKOUT = "c".repeat(40);
+  const TIP = "d".repeat(40);
+  const run = async ({ moved, state = "success", pulls = { 3: { number: 3, state: "open", base: { ref: "develop" }, head: { sha: HEAD } } }, exit = 0 }) => {
+    const posted = [];
+    const github = async (route, request = {}) => {
+      if (request.method === "POST") return void posted.push(route);
+      if (route.startsWith("pulls?state=open")) return route.includes("page=1") ? Object.values(pulls).map((pull) => pull ?? { number: 9, base: { ref: "develop" } }) : [];
+      const number = route.match(/^pulls\/(\d+)$/)?.[1];
+      if (number) return pulls[number] ?? Promise.reject(new Error("HTTP 502"));
+      if (route === "branches/develop") return { commit: { sha: TIP } };
+      if (route.startsWith(`compare/${CHECKOUT}...${TIP}`)) return { files: moved.map((filename) => ({ filename })) };
+      if (route.startsWith("issues/") || route.startsWith("commits/")) return [];
+      throw new Error(`unexpected ${route}`);
+    };
+    const deps = {
+      env: { GITHUB_EVENT_NAME: "push", GITHUB_SHA: CHECKOUT },
+      event: { ref: "refs/heads/develop" },
+      github,
+      evaluate: async () => ({ decision: { state, description: state, needed: [] }, reasons: [], markers: { reviewed: false, fullGate: false }, authors: new Set(), writers: new Set() }),
+      log: () => {},
+      summary: () => {},
+    };
+    assert.equal(await main([], deps), exit);
+    return posted;
+  };
+  assert.deepEqual(await run({ moved: ["docs/a.md"] }), [`statuses/${HEAD}`]);
+  assert.deepEqual(await run({ moved: [".agents/merge-policy.json"] }), []);
+  // A hold posts whatever moved: it can only be stricter than needed.
+  assert.deepEqual(await run({ moved: [".agents/merge-policy.json"], state: "pending" }), [`statuses/${HEAD}`]);
+  // Pull request 9 fails to load; 3 is still decided, and the run reports the failure.
+  assert.deepEqual(await run({ moved: [], pulls: { 3: { number: 3, state: "open", base: { ref: "develop" }, head: { sha: HEAD } }, 9: undefined }, exit: 2 }), [`statuses/${HEAD}`]);
 });

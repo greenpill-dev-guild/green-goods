@@ -3,16 +3,33 @@ name: Merge Gate
 # Posts the "Merge Gate" commit status, which holds a pull request into develop to its tier's proof
 # (scripts/quality/merge-gate.mjs): routine needs CI Gate alone, sensitive a fresh agent review
 # recorded for the head, critical that review and the critical gate. It runs from develop when CI
-# Gate finishes on a pull request, and when a comment that holds or held a marker is written,
-# edited or deleted, so a pull request cannot rewrite its own gate. Any `merge-gate:` comment, such
-# as `merge-gate: recheck` after a pull request is retargeted, asks for a fresh decision. The job
-# reads the pull request through the API and fetched objects; nothing from it is checked out or run.
+# Gate starts or finishes on a pull request, and when a comment that holds or held a marker is
+# written, edited or deleted, so a pull request cannot change the code that decides it. Starting
+# with CI Gate puts the real status on the head before anything can pass: a pull request's own job
+# named "Merge Gate" then has to pass beside it, since GitHub requires both a check and a status
+# that share a required name. It is a process check, not a boundary: a same-repository pull
+# request's workflow granted statuses: write could still post a "Merge Gate" status itself, as it
+# could for CI Gate, and only a dedicated app identity pinned in the ruleset would stop that. A push
+# to develop that changes what the gate reads decides every open pull request again, and an older
+# run never posts success over a stricter policy. Any `merge-gate:` comment, such as
+# `merge-gate: recheck` after a pull request is retargeted, asks for a fresh decision. The job
+# reads pull requests through the API and fetched objects; nothing from them is checked out or run.
 on:
   workflow_run:
     workflows: ["CI Gate"]
-    types: [completed]
+    types: [requested, completed]
   issue_comment:
     types: [created, edited, deleted]
+  push:
+    branches: [develop]
+    paths:
+      - ".agents/merge-policy.json"
+      - ".github/workflows/merge-gate.yml"
+      - "scripts/data/validation-policy.json"
+      - "scripts/lib/dev-shared.js"
+      - "scripts/quality/merge-gate.mjs"
+      - "scripts/quality/select-validation.mjs"
+      - "scripts/quality/shared-mutation-surface.mjs"
 
 permissions:
   contents: read
@@ -26,15 +43,18 @@ jobs:
     # posts may carry that name.
     name: Evaluate merge proof
     if: >-
+      github.event_name == 'push' ||
       (github.event_name == 'workflow_run' && github.event.workflow_run.event == 'pull_request') ||
       (github.event_name == 'issue_comment' && github.event.issue.pull_request &&
         (contains(github.event.comment.body, 'merge-gate:') || contains(github.event.changes.body.from, 'merge-gate:')))
     # One queue per pull request for runs that evaluate. A comment without a marker skips the job, so
     # it never takes a queue slot from a real run. A fork's CI Gate run names no pull request and
-    # queues by its head; the gate rereads the head before it posts.
+    # queues by its head, and sweeps after pushes to develop share one queue; the gate rereads each
+    # head and its writers' markers before it posts.
     concurrency:
-      group: merge-gate-${{ github.event.issue.number || github.event.workflow_run.pull_requests[0].number || github.event.workflow_run.head_sha }}
-      cancel-in-progress: false
+      group: ${{ github.event_name == 'push' && 'merge-gate-sweep' || format('merge-gate-{0}', github.event.issue.number || github.event.workflow_run.pull_requests[0].number || github.event.workflow_run.head_sha) }}
+      # A newer sweep supersedes an older one; per pull request runs all decide in turn.
+      cancel-in-progress: ${{ github.event_name == 'push' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

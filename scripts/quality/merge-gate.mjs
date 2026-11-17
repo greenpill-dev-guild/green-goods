@@ -40,6 +40,17 @@ export const GATE_CRITICAL_PATHS = [
   "scripts/quality/select-validation.mjs",
   "scripts/quality/shared-mutation-surface.mjs",
 ];
+// What the gate's decision reads. A push to develop that changes any of them starts a sweep that
+// decides every open pull request again (the workflow's push paths list the same files).
+export const GATE_INPUT_PATHS = [
+  ".agents/merge-policy.json",
+  ".github/workflows/merge-gate.yml",
+  "scripts/data/validation-policy.json",
+  "scripts/lib/dev-shared.js",
+  "scripts/quality/merge-gate.mjs",
+  "scripts/quality/select-validation.mjs",
+  "scripts/quality/shared-mutation-surface.mjs",
+];
 const SYMLINK_MODE = "120000";
 const SUBMODULE_MODE = "160000";
 // Only accounts that can push write proof. An organization's read-only members comment as MEMBER
@@ -219,8 +230,13 @@ export function decide({ tier, reasons, markers, headSha }) {
   };
 }
 
-/** The open pull requests an event concerns. `findByHead` looks a fork's pull request up by its head branch. */
-export async function pullNumbers(event, eventName, findByHead) {
+/**
+ * The open pull requests an event concerns. `findByHead` looks a fork's pull request up by its head
+ * branch; `listOpen` lists every open pull request into the gate's bases, which a push to develop
+ * that changes the gate's inputs decides again.
+ */
+export async function pullNumbers(event, eventName, findByHead, listOpen = async () => []) {
+  if (eventName === "push") return listOpen();
   if (eventName === "issue_comment") return event.issue?.pull_request ? [event.issue.number] : [];
   const run = event.workflow_run;
   if (eventName !== "workflow_run" || run?.event !== "pull_request") return [];
@@ -408,6 +424,17 @@ export async function evaluate(pull, headSha, { github, cwd = repoRoot, env = pr
   }
 }
 
+// Whether the gate's inputs changed on the base branch since this run checked it out. Such a run
+// would post an older policy's decision, so the sweep that change started decides instead. A
+// comparison GitHub cut short counts as changed.
+async function gateInputsMovedSince(github, checkout, base) {
+  if (!checkout) return false;
+  const tip = (await github(`branches/${encodeURIComponent(base)}`)).commit.sha;
+  if (tip === checkout) return false;
+  const files = (await github(`compare/${checkout}...${tip}`)).files ?? [];
+  return files.length >= 300 || files.some((entry) => GATE_INPUT_PATHS.includes(entry.filename) || GATE_INPUT_PATHS.includes(entry.previous_filename));
+}
+
 /**
  * In the workflow, decide every pull request the event concerns and post its status. With
  * `--dry-run <number>`, decide that pull request and print the decision without posting. `deps`
@@ -427,76 +454,88 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
   const bases = (env.MERGE_GATE_BASES ?? "develop").split(",").map((base) => base.trim()).filter(Boolean);
   const runUrl = `${env.GITHUB_SERVER_URL}/${env.GITHUB_REPOSITORY}/actions/runs/${env.GITHUB_RUN_ID}`;
   const findByHead = (head) => github(`pulls?state=open&head=${encodeURIComponent(head)}`);
+  const listOpen = async () => (await paginate(github, "pulls?state=open")).filter((pull) => bases.includes(pull.base.ref)).map((pull) => pull.number);
   const numbers = dryRun
     ? [dryRun]
-    : await pullNumbers(deps.event ?? JSON.parse(readFileSync(env.GITHUB_EVENT_PATH, "utf8")), env.GITHUB_EVENT_NAME, findByHead);
+    : await pullNumbers(deps.event ?? JSON.parse(readFileSync(env.GITHUB_EVENT_PATH, "utf8")), env.GITHUB_EVENT_NAME, findByHead, listOpen);
   let failed = false;
   for (const number of numbers) {
-    const pull = await github(`pulls/${number}`);
-    if (!dryRun && (pull.state !== "open" || !bases.includes(pull.base.ref))) continue;
-    // The snapshot: every read below, and the status, are for this commit only.
-    const headSha = pull.head.sha;
-    const head = headSha.slice(0, SHORT_SHA);
-    let outcome;
     try {
-      outcome = await decideHead(pull, headSha, { github });
-    } catch (error) {
-      failed = true;
-      const description = fit(printable(`Could not decide, so nothing passes: ${error.message}`), DESCRIPTION_LIMIT);
-      outcome = { decision: { state: "error", description, needed: [] }, reasons: [], markers: null };
-    }
-    const { decision } = outcome;
-    // A push, or a writer's marker written while the run read the pull request, leaves a mixed
-    // snapshot; the run for the newer state decides instead. Only a change to what the writers'
-    // markers prove counts, so nobody else's comments can stop a post. A re-read that fails confirms
-    // nothing: pending or error still posts, since holding a merge is always safe, but success does not.
-    let confirmed = true;
-    try {
-      const current = await github(`pulls/${number}`);
-      if (current.head.sha !== headSha) {
-        log(`#${number}: the head moved to ${current.head.sha.slice(0, SHORT_SHA)} while ${head} was read; nothing posted.`);
-        continue;
+      const pull = await github(`pulls/${number}`);
+      if (!dryRun && (pull.state !== "open" || !bases.includes(pull.base.ref))) continue;
+      // The snapshot: every read below, and the status, are for this commit only.
+      const headSha = pull.head.sha;
+      const head = headSha.slice(0, SHORT_SHA);
+      let outcome;
+      try {
+        outcome = await decideHead(pull, headSha, { github });
+      } catch (error) {
+        failed = true;
+        const description = fit(printable(`Could not decide, so nothing passes: ${error.message}`), DESCRIPTION_LIMIT);
+        outcome = { decision: { state: "error", description, needed: [] }, reasons: [], markers: null };
       }
-      if (outcome.markers) {
-        const reread = await paginate(github, `issues/${number}/comments`);
-        const newcomers = reread.filter((comment) => hasMarker(comment) && comment.user?.login && !outcome.authors.has(comment.user.login));
-        const writers = new Set([...outcome.writers, ...(await writersAmong(newcomers, accessLookup(github)))]);
-        const now = markersFor(reread, headSha, (login) => writers.has(login));
-        if (now.reviewed !== outcome.markers.reviewed || now.fullGate !== outcome.markers.fullGate) {
-          log(`#${number}: a writer's marker changed while ${head} was read; nothing posted.`);
+      const { decision } = outcome;
+      // A push, or a writer's marker written while the run read the pull request, leaves a mixed
+      // snapshot; the run for the newer state decides instead. Only a change to what the writers'
+      // markers prove counts, so nobody else's comments can stop a post. A re-read that fails confirms
+      // nothing: pending or error still posts, since holding a merge is always safe, but success does not.
+      let confirmed = true;
+      try {
+        const current = await github(`pulls/${number}`);
+        if (current.head.sha !== headSha) {
+          log(`#${number}: the head moved to ${current.head.sha.slice(0, SHORT_SHA)} while ${head} was read; nothing posted.`);
           continue;
         }
+        if (outcome.markers) {
+          const reread = await paginate(github, `issues/${number}/comments`);
+          const newcomers = reread.filter((comment) => hasMarker(comment) && comment.user?.login && !outcome.authors.has(comment.user.login));
+          const writers = new Set([...outcome.writers, ...(await writersAmong(newcomers, accessLookup(github)))]);
+          const now = markersFor(reread, headSha, (login) => writers.has(login));
+          if (now.reviewed !== outcome.markers.reviewed || now.fullGate !== outcome.markers.fullGate) {
+            log(`#${number}: a writer's marker changed while ${head} was read; nothing posted.`);
+            continue;
+          }
+        }
+      } catch (error) {
+        confirmed = false;
+        log(`#${number}: could not re-read the pull request (${printable(error.message)}).`);
       }
-    } catch (error) {
-      confirmed = false;
-      log(`#${number}: could not re-read the pull request (${printable(error.message)}).`);
-    }
-    if (decision.state === "success" && !confirmed) {
-      failed = true;
-      log(`#${number} at ${head}: success not posted, since the snapshot could not be confirmed.`);
-      continue;
-    }
-    const line = `#${number} at ${head}: ${decision.state}. ${decision.description}`;
-    if (!dryRun) {
-      // GitHub keeps at most 1,000 statuses for a head and context, so an unchanged decision is not
-      // posted again. A failed lookup posts anyway, so an older success never outlives its proof.
-      const latest = await github(`commits/${headSha}/statuses?per_page=100`).then(
-        (statuses) => statuses.find((status) => status.context === STATUS_CONTEXT),
-        () => undefined,
-      );
-      if (latest?.state === decision.state && latest?.description === decision.description) {
-        log(`${line} Unchanged, so not posted again.`);
+      if (decision.state === "success" && !confirmed) {
+        failed = true;
+        log(`#${number} at ${head}: success not posted, since the snapshot could not be confirmed.`);
         continue;
       }
-      await github(`statuses/${headSha}`, {
-        method: "POST",
-        body: { state: decision.state, context: STATUS_CONTEXT, description: decision.description, target_url: runUrl },
-      });
+      const line = `#${number} at ${head}: ${decision.state}. ${decision.description}`;
+      if (!dryRun) {
+        // GitHub keeps at most 1,000 statuses for a head and context, so an unchanged decision is not
+        // posted again. A failed lookup posts anyway, so an older success never outlives its proof.
+        const latest = await github(`commits/${headSha}/statuses?per_page=100`).then(
+          (statuses) => statuses.find((status) => status.context === STATUS_CONTEXT),
+          () => undefined,
+        );
+        // Only a success could carry an older, looser policy through; holding a merge is always safe.
+        if (decision.state === "success" && (await gateInputsMovedSince(github, env.GITHUB_SHA, pull.base.ref).catch(() => true))) {
+          log(`#${number}: the gate's inputs changed on ${pull.base.ref} since this run checked it out; success not posted, the sweep decides.`);
+          continue;
+        }
+        if (latest?.state === decision.state && latest?.description === decision.description) {
+          log(`${line} Unchanged, so not posted again.`);
+          continue;
+        }
+        await github(`statuses/${headSha}`, {
+          method: "POST",
+          body: { state: decision.state, context: STATUS_CONTEXT, description: decision.description, target_url: runUrl },
+        });
+      }
+      log(line);
+      summary(line);
+      for (const reason of outcome.reasons) summary(`- ${printable(reason)}`);
+      for (const marker of decision.needed) summary(`- record with: \`${marker}\``);
+    } catch (error) {
+      // One pull request's failure leaves the rest of a sweep to decide.
+      failed = true;
+      log(`#${number}: could not decide (${printable(error.message)}); left as it was.`);
     }
-    log(line);
-    summary(line);
-    for (const reason of outcome.reasons) summary(`- ${printable(reason)}`);
-    for (const marker of decision.needed) summary(`- record with: \`${marker}\``);
   }
   return failed ? 2 : 0;
 }
