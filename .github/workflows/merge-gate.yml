@@ -11,7 +11,7 @@ name: Merge Gate
 # request's workflow granted statuses: write could still post a "Merge Gate" status itself, as it
 # could for CI Gate, and only a dedicated app identity pinned in the ruleset would stop that. A push
 # to develop that changes what the gate reads decides every open pull request again, and an older
-# run never posts success over a stricter policy. Any `merge-gate:` comment, such as
+# run that read the previous policy posts nothing. Any `merge-gate:` comment, such as
 # `merge-gate: recheck` after a pull request is retargeted, asks for a fresh decision. The job
 # reads pull requests through the API and fetched objects; nothing from them is checked out or run.
 on:

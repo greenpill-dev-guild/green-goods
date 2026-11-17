@@ -426,12 +426,13 @@ export async function evaluate(pull, headSha, { github, cwd = repoRoot, env = pr
 
 // Whether the gate's inputs changed on the base branch since this run checked it out. Such a run
 // would post an older policy's decision, so the sweep that change started decides instead. A
-// comparison GitHub cut short counts as changed.
+// comparison GitHub cut short, or one that lists no files, counts as changed.
 async function gateInputsMovedSince(github, checkout, base) {
   if (!checkout) return false;
   const tip = (await github(`branches/${encodeURIComponent(base)}`)).commit.sha;
   if (tip === checkout) return false;
-  const files = (await github(`compare/${checkout}...${tip}`)).files ?? [];
+  const files = (await github(`compare/${checkout}...${tip}`)).files;
+  if (!Array.isArray(files)) return true;
   return files.length >= 300 || files.some((entry) => GATE_INPUT_PATHS.includes(entry.filename) || GATE_INPUT_PATHS.includes(entry.previous_filename));
 }
 
@@ -507,17 +508,19 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
       }
       const line = `#${number} at ${head}: ${decision.state}. ${decision.description}`;
       if (!dryRun) {
+        // A run that read an older policy posts nothing: a success could carry a looser policy through,
+        // and a hold could stall a pull request the newer policy passes. The sweep that change started
+        // decides every open pull request, this one included, since its head predates this run.
+        if (await gateInputsMovedSince(github, env.GITHUB_SHA, pull.base.ref).catch(() => true)) {
+          log(`#${number}: the gate's inputs changed on ${pull.base.ref} since this run checked it out; ${decision.state} not posted, the sweep decides.`);
+          continue;
+        }
         // GitHub keeps at most 1,000 statuses for a head and context, so an unchanged decision is not
         // posted again. A failed lookup posts anyway, so an older success never outlives its proof.
         const latest = await github(`commits/${headSha}/statuses?per_page=100`).then(
           (statuses) => statuses.find((status) => status.context === STATUS_CONTEXT),
           () => undefined,
         );
-        // Only a success could carry an older, looser policy through; holding a merge is always safe.
-        if (decision.state === "success" && (await gateInputsMovedSince(github, env.GITHUB_SHA, pull.base.ref).catch(() => true))) {
-          log(`#${number}: the gate's inputs changed on ${pull.base.ref} since this run checked it out; success not posted, the sweep decides.`);
-          continue;
-        }
         if (latest?.state === decision.state && latest?.description === decision.description) {
           log(`${line} Unchanged, so not posted again.`);
           continue;

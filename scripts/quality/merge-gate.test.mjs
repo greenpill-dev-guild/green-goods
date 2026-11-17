@@ -414,7 +414,7 @@ test("a sweep after a push decides each open pull request into develop and skips
   assert.deepEqual(posted, [`statuses/${HEAD}`]);
 });
 
-test("a run never posts success over a stricter policy, and one pull request's failure leaves the rest of a sweep to decide", async () => {
+test("a run that read an older policy posts nothing, and one pull request's failure leaves the rest of a sweep to decide", async () => {
   const CHECKOUT = "c".repeat(40);
   const TIP = "d".repeat(40);
   const run = async ({ moved, state = "success", pulls = { 3: { number: 3, state: "open", base: { ref: "develop" }, head: { sha: HEAD } } }, exit = 0 }) => {
@@ -425,7 +425,7 @@ test("a run never posts success over a stricter policy, and one pull request's f
       const number = route.match(/^pulls\/(\d+)$/)?.[1];
       if (number) return pulls[number] ?? Promise.reject(new Error("HTTP 502"));
       if (route === "branches/develop") return { commit: { sha: TIP } };
-      if (route.startsWith(`compare/${CHECKOUT}...${TIP}`)) return { files: moved.map((filename) => ({ filename })) };
+      if (route.startsWith(`compare/${CHECKOUT}...${TIP}`)) return moved === "error" ? Promise.reject(new Error("HTTP 502")) : { files: moved?.map((filename) => ({ filename })) };
       if (route.startsWith("issues/") || route.startsWith("commits/")) return [];
       throw new Error(`unexpected ${route}`);
     };
@@ -442,8 +442,12 @@ test("a run never posts success over a stricter policy, and one pull request's f
   };
   assert.deepEqual(await run({ moved: ["docs/a.md"] }), [`statuses/${HEAD}`]);
   assert.deepEqual(await run({ moved: [".agents/merge-policy.json"] }), []);
-  // A hold posts whatever moved: it can only be stricter than needed.
-  assert.deepEqual(await run({ moved: [".agents/merge-policy.json"], state: "pending" }), [`statuses/${HEAD}`]);
+  // A hold from an older policy could stall a pull request the newer one passes, so it waits for the sweep too.
+  assert.deepEqual(await run({ moved: [".agents/merge-policy.json"], state: "pending" }), []);
+  // A comparison that fails, lists no files or is cut short counts as moved.
+  assert.deepEqual(await run({ moved: "error" }), []);
+  assert.deepEqual(await run({ moved: undefined }), []);
+  assert.deepEqual(await run({ moved: Array.from({ length: 300 }, (_, index) => `docs/${index}.md`) }), []);
   // Pull request 9 fails to load; 3 is still decided, and the run reports the failure.
   assert.deepEqual(await run({ moved: [], pulls: { 3: { number: 3, state: "open", base: { ref: "develop" }, head: { sha: HEAD } }, 9: undefined }, exit: 2 }), [`statuses/${HEAD}`]);
 });
