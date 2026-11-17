@@ -65,7 +65,7 @@ export function actionBreakdown(
   });
 }
 
-export interface SiteRow {
+interface SiteRow {
   site: ReportSite;
   records: WorkRecord[];
   counts: StatusCounts;
@@ -85,7 +85,7 @@ export function placeSummary(dataset: ReportDataset, records: readonly WorkRecor
   };
 }
 
-export interface WeekPeople {
+interface WeekPeople {
   week: WeekRange;
   /** Accounts that sent at least one record this week. */
   accounts: number;

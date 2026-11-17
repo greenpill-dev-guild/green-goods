@@ -34,7 +34,7 @@ import {
 
 const ignore = () => undefined;
 
-export type ReviewStage = (typeof PIPELINE_STAGE_CONFIG)[number]["id"];
+type ReviewStage = (typeof PIPELINE_STAGE_CONFIG)[number]["id"];
 
 interface ReviewFrameProps {
   stage: ReviewStage;
@@ -200,7 +200,7 @@ export function GardenTabLayout({ main, rail }: { main: ReactNode; rail: ReactNo
   );
 }
 
-export type CommunityView = "members" | "endowment" | "payouts";
+type CommunityView = "members" | "endowment" | "payouts";
 
 interface CommunityFrameProps {
   view: CommunityView;

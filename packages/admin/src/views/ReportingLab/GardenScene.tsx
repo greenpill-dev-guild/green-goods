@@ -30,7 +30,7 @@ const TAB_REPORT: Record<GardenView, ReportView> = {
 /** The walkthrough is a steward's; the records dialog shows them the review action. */
 const STEWARD: ViewerRole = "steward";
 
-export interface GardenSceneTools {
+interface GardenSceneTools {
   scope: ReportScope;
   setScope: (patch: Partial<ReportScope>) => void;
   open: RecordsRequest | null;

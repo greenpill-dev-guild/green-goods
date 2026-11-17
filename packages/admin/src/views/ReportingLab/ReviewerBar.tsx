@@ -15,7 +15,7 @@ import { REPORT_NOTES } from "./reportNotes";
 import { SCENARIOS, type ScenarioId } from "./scenarios";
 import type { ReportView } from "./scope";
 
-export type LabPanel = "notes" | "naming" | "none";
+type LabPanel = "notes" | "naming" | "none";
 
 export interface LabControls {
   scenario: ScenarioId;

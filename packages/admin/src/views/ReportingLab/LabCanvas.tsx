@@ -12,7 +12,7 @@ import { AppBar, MainSheet } from "@/components/Shell";
 import { NavigationBar } from "@/components/Shell/NavigationBar";
 import { LAB_NAV_SLOTS, type LabGarden } from "./labShell";
 
-export type LabWorkspace = "review" | "garden" | "community";
+type LabWorkspace = "review" | "garden" | "community";
 
 interface LabCanvasProps {
   workspace: LabWorkspace;

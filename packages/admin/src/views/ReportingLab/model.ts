@@ -109,7 +109,7 @@ export interface SeasonMilestone {
   proposed: boolean;
 }
 
-export interface Baseline {
+interface Baseline {
   title: string;
   createdOn: DayKey;
   authorId: string;
@@ -126,7 +126,7 @@ export interface Baseline {
 }
 
 /** Proposed: a later observation measured against the baseline. */
-export interface FollowUp {
+interface FollowUp {
   observedOn: DayKey;
   observation: string;
   method: string;

@@ -19,7 +19,7 @@ export type ReportView =
 /** Which day a record lands on in the calendar. */
 export type GroupBy = "submitted" | "reviewed";
 /** Whether a past month shows today's statuses or the statuses it ended with. */
-export type StatusAsOf = "reference" | "period-end";
+type StatusAsOf = "reference" | "period-end";
 export type StatusFilter = "all" | StatusView;
 
 export interface ReportScope {

@@ -168,7 +168,7 @@ function appliesTo(record: WorkRecord, measure: MeasureDef) {
 }
 
 /** What a week can say: begun before records, cut by the read, or still running. */
-export type WeekState = "ok" | "before-records" | "not-loaded" | "in-progress";
+type WeekState = "ok" | "before-records" | "not-loaded" | "in-progress";
 
 export interface MeasurePoint {
   week: WeekRange;

@@ -12,7 +12,7 @@ export function directionOf(entry: LedgerEntry): "in" | "out" | "none" {
   return entry.kind === "allocation" ? "none" : "in";
 }
 
-export interface BalancePoint {
+interface BalancePoint {
   on: number;
   balance: number;
 }
@@ -24,7 +24,7 @@ export interface AccountBalance {
   points: BalancePoint[];
 }
 
-export interface AssetSummary {
+interface AssetSummary {
   asset: Asset;
   accounts: AccountBalance[];
   /** Money in and out of the asset's accounts during the month. */

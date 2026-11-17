@@ -22,7 +22,7 @@ export function ageBandOf(record: WorkRecord, at: number): AgeBandId {
   return (AGE_BANDS.find((band) => days >= band.min && days < band.max) ?? AGE_BANDS[3]).id;
 }
 
-export interface ReviewFlowWeek {
+interface ReviewFlowWeek {
   week: WeekRange;
   submitted: number;
   reviewed: number;
@@ -30,7 +30,7 @@ export interface ReviewFlowWeek {
   waiting: number;
 }
 
-export type ReviewHealthTone = "success" | "warning" | "error";
+type ReviewHealthTone = "success" | "warning" | "error";
 
 export interface ReviewHealth {
   at: number;
