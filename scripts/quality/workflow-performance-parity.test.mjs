@@ -906,17 +906,18 @@ test("Client CI keeps staged modules isolated", () => {
   assert.match(source, /name: Check staged client modules\n\s+run: bun run check --only staged-modules/);
 });
 
-test("PR Test jobs run plain tests; thresholds are enforced nightly and on main", () => {
-  for (const file of ["shared.yml", "client.yml", "admin.yml"]) {
+test("Client and Admin PR tests hold their coverage floors; sharded Shared runs plain and its floors run nightly and on main", () => {
+  const testJob = (file) => {
     const source = read(`.github/workflows/${file}`);
-    const testJob = source.slice(
-      source.indexOf("  test:"),
-      source.indexOf("  lint-", source.indexOf("  test:")),
-    );
-
-    assert.match(testJob, /run:\s*bun run test(?:\s|$)/, `${file} Test must stay plain`);
-    assert.doesNotMatch(testJob, /coverage/, `${file} Test must not collect coverage`);
+    return source.slice(source.indexOf("  test:"), source.indexOf("  lint-", source.indexOf("  test:")));
+  };
+  // A whole suite in one job can hold the package's floors on every pull request.
+  for (const file of ["client.yml", "admin.yml"]) {
+    assert.match(testJob(file), /run:\s*bun run test --coverage(?:\s|$)/, `${file} Test must hold its coverage floors`);
   }
+  // Shared's suite runs in shards, and a shard cannot meet a whole-package floor.
+  assert.match(testJob("shared.yml"), /run:\s*bun run test --shard/, "shared.yml Test stays sharded");
+  assert.doesNotMatch(testJob("shared.yml"), /coverage/, "shared.yml Test must not collect coverage per shard");
 
   const source = read(".github/workflows/coverage-nightly.yml");
   assert.match(source, /schedule:\s*\n\s*- cron:/);
