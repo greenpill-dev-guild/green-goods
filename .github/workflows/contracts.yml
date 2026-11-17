@@ -161,6 +161,19 @@ jobs:
         working-directory: packages/contracts
         run: bun run build
 
+      # Consumers import the committed ABIs, so a contract change that alters an ABI must commit it.
+      # Regenerating from the build just made, the authoritative list in script/build-abis.ts, must
+      # leave abis/ exactly as committed, with nothing new.
+      - name: Check committed ABIs are current
+        working-directory: packages/contracts
+        run: |
+          bun run build:abis
+          if [ -n "$(git status --porcelain -- abis)" ]; then
+            git status --short -- abis
+            echo "::error::Committed ABIs are stale. Run 'bun run build && bun run build:abis' in packages/contracts and commit abis/."
+            exit 1
+          fi
+
       - name: Check deployed bytecode sizes (EIP-170)
         working-directory: packages/contracts
         run: bun run check:sizes
