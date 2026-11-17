@@ -34,7 +34,8 @@ Placement was decided in review on 2026-11-13: each report goes into the tab it 
    against reviewed each week. Its age bands hand off to Review's chips.
 5. **Garden › Promises, season timeline.** The season card becomes a drawn timeline (windows,
    promise deadlines, milestones, planned against recorded work, today) over an accessible list.
-   A promise opens the work it links.
+   The list also gives each week's planned and recorded counts, since the drawing is hidden from
+   assistive technology and on narrow cards. A promise opens the work it links.
 6. **Garden › Impact, output trends.** One weekly chart per measure in its own unit, reported
    against approved. A week opens its records.
 7. **Garden › Impact, evidence and outcomes.** Activity, output and outcome kept apart: baseline,
@@ -95,7 +96,7 @@ Placement was decided in review on 2026-11-13: each report goes into the tab it 
 - Offline / sync: status as of a moment needs each decision's time, and a decision known only on
   one device has none yet.
 - Localization: the prototype's own copy is English sample text. A production slice moves new
-  strings into the shared i18n files.
+  strings into the shared i18n files, with en, es and pt messages.
 
 ## Package / Lane Mapping
 
