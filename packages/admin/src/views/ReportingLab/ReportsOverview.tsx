@@ -20,7 +20,7 @@ import { participation, placeSummary } from "./breakdowns";
 import { dayKeyOf, monthOf } from "./dates";
 import { fundingSummary, formatAmount } from "./funding";
 import { VIEW_COPY } from "./labCopy";
-import type { MediaSet, ReportDataset, WorkRecord } from "./model";
+import type { MediaSet, ReportDataset, ViewerRole, WorkRecord } from "./model";
 import { OutputTrends } from "./OutputTrends";
 import type { RecordsRequest } from "./RecordsDialog";
 import { ReviewHealthPanel } from "./ReviewHealthPanel";
@@ -35,6 +35,7 @@ interface ReportsOverviewProps {
   onScopeChange: (patch: Partial<ReportScope>) => void;
   onOpenRecords: (request: RecordsRequest) => void;
   onLoadOlder?: () => void;
+  role?: ViewerRole;
 }
 
 interface MoreReport {
@@ -112,6 +113,7 @@ export function ReportsOverview({
   onScopeChange,
   onOpenRecords,
   onLoadOlder,
+  role,
 }: ReportsOverviewProps) {
   const { locale } = useIntl();
   const open = (view: ReportView) => onScopeChange({ view });
@@ -137,6 +139,7 @@ export function ReportsOverview({
         media={media}
         onOpenRecords={onOpenRecords}
         onOpenReport={() => open("review")}
+        role={role}
       />
       <div className="xl:col-span-2">
         <OutputTrends

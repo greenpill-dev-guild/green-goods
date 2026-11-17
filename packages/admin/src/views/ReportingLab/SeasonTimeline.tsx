@@ -13,11 +13,11 @@ import { useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminCard, AdminCardBody, AdminCardHeader, AdminCardTitle } from "@/components/AdminCard";
 import { AdminDialog } from "@/components/AdminDialog";
-import { dayKeyOf, formatDay, formatShortDay } from "./dates";
+import { dayKeyOf, formatDay, formatShortDay, type MonthKey, monthOf } from "./dates";
 import { accountName } from "./labCopy";
 import type { PromiseItem, ReportDataset, ReportingWindow, SeasonMilestone } from "./model";
 import type { RecordsRequest } from "./RecordsDialog";
-import type { ReportScope } from "./scope";
+import { referenceDay, type ReportScope } from "./scope";
 import { linkedWork, type TimelineItem, timelineItems, timelineSpan } from "./timeline";
 import { TimelineAxis } from "./TimelineAxis";
 
@@ -38,6 +38,13 @@ function iconFor(item: TimelineItem) {
   ) : (
     <RiSeedlingLine className="h-6 w-6" />
   );
+}
+
+/** Keeps the month when it overlaps the window; otherwise the window's last month so far. */
+function monthInWindow(month: MonthKey, window: ReportingWindow, dataset: ReportDataset): MonthKey {
+  if (monthOf(window.start) <= month && month <= monthOf(window.end)) return month;
+  const today = referenceDay(dataset);
+  return monthOf(window.end < today ? window.end : today);
 }
 
 export function SeasonTimeline({
@@ -103,7 +110,11 @@ export function SeasonTimeline({
                 emphasis="secondary"
                 onClick={() => {
                   setOpen(null);
-                  onScopeChange({ windowId: window.id, view: "calendar" });
+                  onScopeChange({
+                    windowId: window.id,
+                    view: "calendar",
+                    month: monthInWindow(scope.month, window, dataset),
+                  });
                 }}
               >
                 Show in Calendar

@@ -76,13 +76,21 @@ export interface CalendarInput {
   status: StatusFilter;
 }
 
-export function dayStateOf(day: DayKey, dataset: ReportDataset): DayState {
+/**
+ * A day's coverage. The read is cut by submission time, so by review date any day from the cut
+ * on may still miss decisions on older, unread submissions: those days stay partial.
+ */
+export function dayStateOf(
+  day: DayKey,
+  dataset: ReportDataset,
+  groupBy: GroupBy = "submitted"
+): DayState {
   if (day < dataset.garden.recordsBegin) return "before-records";
   if (day > referenceDay(dataset)) return "future";
   if (dataset.loadedFrom === null) return "recorded";
   const loadedFromDay = dayKeyOf(dataset.loadedFrom, dataset.garden.timeZone);
   if (day < loadedFromDay) return "not-loaded";
-  return day === loadedFromDay ? "partial" : "recorded";
+  return day === loadedFromDay || groupBy === "reviewed" ? "partial" : "recorded";
 }
 
 /** The day a record lands on, or null when it has no such day (no decision yet, or unread). */
@@ -113,7 +121,7 @@ export function buildCalendar({ dataset, records, month, groupBy, at, status }: 
       return {
         day,
         inMonth: monthOf(day) === month,
-        state: dayStateOf(day, dataset),
+        state: dayStateOf(day, dataset, groupBy),
         isToday: day === today,
         counts: countStatuses(dayRecords, groupBy === "reviewed" ? dataset.reference : at),
         lateUploads: dayRecords.filter((record) => record.sentFromDeviceAt !== undefined).length,

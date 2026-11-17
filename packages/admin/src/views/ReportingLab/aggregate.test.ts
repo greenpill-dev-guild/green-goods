@@ -122,6 +122,8 @@ describe("reporting lab aggregation", () => {
         dayStateOf(day, data)
       )
     ).toEqual(["before-records", "not-loaded", "partial", "recorded", "future"]);
+    // By review date, a later day can still miss decisions on older, unread submissions.
+    expect(dayStateOf("2026-01-08", data, "reviewed")).toBe("partial");
     // A week whose Monday is only read from noon is not fully loaded.
     const week = { start: "2026-01-05", end: "2026-01-11" };
     expect(weekNotLoaded(week, dataset([], at("2026-01-05", 12)))).toBe(true);

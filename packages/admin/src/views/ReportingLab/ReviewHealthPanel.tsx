@@ -13,7 +13,7 @@ import { AdminCard, AdminCardBody, AdminCardHeader, AdminCardTitle } from "@/com
 import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { DAY_IN_MS, dayKeyOf, formatDay, formatShortDay } from "./dates";
 import { accountName, formatDays, formatNumber, recordTitle, weekTicks } from "./labCopy";
-import type { MediaSet, ReportDataset, WorkRecord } from "./model";
+import type { MediaSet, ReportDataset, ViewerRole, WorkRecord } from "./model";
 import type { RecordsRequest } from "./RecordsDialog";
 import { type AgeBandId, reviewHealth } from "./reviewHealth";
 import { periodEnd, type ReportScope, closingDay } from "./scope";
@@ -29,6 +29,8 @@ interface ReviewHealthPanelProps {
   /** In the summary, a band hands off here (to Review's Work chips) instead of opening a list. */
   onOpenBand?: (band: AgeBandId) => void;
   variant?: "summary" | "full";
+  /** A funder sees the queue without the accounts that reported it. */
+  role?: ViewerRole;
 }
 
 export function ReviewHealthPanel({
@@ -40,6 +42,7 @@ export function ReviewHealthPanel({
   onOpenReport,
   onOpenBand,
   variant = "full",
+  role,
 }: ReviewHealthPanelProps) {
   const { locale } = useIntl();
   const [band, setBand] = useState<AgeBandId | null>(null);
@@ -66,7 +69,7 @@ export function ReviewHealthPanel({
         status={{ label: "Pending", tone: "neutral" }}
         edge="neutral"
         details={[
-          accountName(garden, record.accountId),
+          role === "funder" ? "Account hidden" : accountName(garden, record.accountId),
           {
             text: `waiting ${formatDays((at - record.submittedAt) / DAY_IN_MS, locale)}`,
             tone: "soft",

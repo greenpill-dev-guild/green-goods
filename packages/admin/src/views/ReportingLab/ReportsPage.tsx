@@ -109,6 +109,7 @@ export function ReportsPage({
             media={media}
             onScopeChange={onScopeChange}
             onLoadOlder={onLoadOlder}
+            role={role}
           />
         );
         break;
@@ -118,7 +119,7 @@ export function ReportsPage({
         );
         break;
       case "review":
-        content = <ReviewHealthPanel {...shared} media={media} />;
+        content = <ReviewHealthPanel {...shared} media={media} role={role} />;
         break;
       case "outputs":
         content = <OutputTrends {...shared} />;
@@ -163,7 +164,7 @@ export function ReportsPage({
             density="inline"
             items={[
               { id: "sample", label: "Sample data" },
-              { id: "as-of", label: `As of ${asOf}` },
+              { id: "as-of", label: `Records read ${asOf}` },
               { id: "zone", label: `Times in ${dataset.garden.zoneLabel}` },
             ]}
           />
