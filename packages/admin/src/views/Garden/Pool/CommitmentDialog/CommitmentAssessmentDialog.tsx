@@ -51,11 +51,11 @@ export function CommitmentAssessmentDialog({
       tone={tone}
       target={target}
       title={formatMessage({
-        id: "cockpit.garden.pool.commitment.attach.title",
+        id: "hub.garden.pool.commitment.attach.title",
         defaultMessage: "Attach an Assessment",
       })}
       description={formatMessage({
-        id: "cockpit.garden.pool.commitment.attach.description",
+        id: "hub.garden.pool.commitment.attach.description",
         defaultMessage:
           "Only current assessments recorded for the provider garden appear here. Attaching one vouches that it applies.",
       })}
@@ -78,7 +78,7 @@ export function CommitmentAssessmentDialog({
             }}
           >
             {formatMessage({
-              id: "cockpit.garden.pool.commitment.attach.confirm",
+              id: "hub.garden.pool.commitment.attach.confirm",
               defaultMessage: "Attach",
             })}
           </Button>
@@ -90,22 +90,22 @@ export function CommitmentAssessmentDialog({
           className="h-16 rounded-[var(--m3-shape-md)] skeleton-shimmer"
           role="status"
           aria-label={formatMessage({
-            id: "cockpit.garden.pool.commitment.attach.loading",
+            id: "hub.garden.pool.commitment.attach.loading",
             defaultMessage: "Loading assessments",
           })}
         />
       ) : assessments.length === 0 ? (
         <p className="type-body text-text-soft" data-testid="attach-assessment-empty">
           {formatMessage({
-            id: "cockpit.garden.pool.commitment.attach.empty",
+            id: "hub.garden.pool.commitment.attach.empty",
             defaultMessage:
-              "No current assessment is recorded for the provider garden yet. An evaluator records one from the Hub; this promise cannot be sent for confirmation until then.",
+              "No current assessment is recorded for the provider garden yet. An evaluator records one from Review; this promise cannot be sent for confirmation until then.",
           })}
         </p>
       ) : (
         <AdminChoiceGroup
           ariaLabel={formatMessage({
-            id: "cockpit.garden.pool.commitment.attach.pick",
+            id: "hub.garden.pool.commitment.attach.pick",
             defaultMessage: "Assessment",
           })}
           value={assessmentUID}

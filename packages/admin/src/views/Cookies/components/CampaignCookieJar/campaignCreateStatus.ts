@@ -30,11 +30,11 @@ export function campaignCreateStatus(input: {
         tone: "neutral",
         busy: false,
         title: formatMessage({
-          id: "cockpit.community.cookies.status.ready.title",
+          id: "hub.community.cookies.status.ready.title",
           defaultMessage: "Creates this cookie jar on-chain",
         }),
         description: formatMessage({
-          id: "cockpit.community.cookies.status.ready.description",
+          id: "hub.community.cookies.status.ready.description",
           defaultMessage: "Check the payout and the gardens before you create it.",
         }),
       };
@@ -44,11 +44,11 @@ export function campaignCreateStatus(input: {
         tone: "info",
         busy: true,
         title: formatMessage({
-          id: "cockpit.community.cookies.status.sending.title",
+          id: "hub.community.cookies.status.sending.title",
           defaultMessage: "Creating the cookie jar",
         }),
         description: formatMessage({
-          id: "cockpit.community.cookies.status.sending.description",
+          id: "hub.community.cookies.status.sending.description",
           defaultMessage: "Approve the request when your wallet asks. This can take a minute.",
         }),
       };
@@ -59,11 +59,11 @@ export function campaignCreateStatus(input: {
             tone: "info",
             busy: false,
             title: formatMessage({
-              id: "cockpit.community.cookies.createSubmitted",
+              id: "hub.community.cookies.createSubmitted",
               defaultMessage: "Creation submitted",
             }),
             description: formatMessage({
-              id: "cockpit.community.cookies.status.submitted.description",
+              id: "hub.community.cookies.status.submitted.description",
               defaultMessage: "Paste the jar's address below once the transaction runs.",
             }),
           }
@@ -72,11 +72,11 @@ export function campaignCreateStatus(input: {
             tone: "success",
             busy: false,
             title: formatMessage({
-              id: "cockpit.community.cookies.createCompleteTitle",
+              id: "hub.community.cookies.createCompleteTitle",
               defaultMessage: "Cookie jar created",
             }),
             description: formatMessage({
-              id: "cockpit.community.cookies.status.created.description",
+              id: "hub.community.cookies.status.created.description",
               defaultMessage: "It may take a moment to show in the campaign list.",
             }),
           };

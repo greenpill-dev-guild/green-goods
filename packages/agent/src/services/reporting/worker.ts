@@ -1,4 +1,5 @@
 import { createLogger } from "../logger";
+import { captureAgentException } from "../sentry";
 import { type CoordinatorDeps, processConversation } from "./coordinator/turn";
 import { inTransaction } from "./database";
 import { conversationsWithWork, consumeInboxEvent, readInboxPayload } from "./inbox";
@@ -20,7 +21,13 @@ const log = createLogger("reporting");
  */
 export type JobOutcome =
   | { status: "done" }
-  | { status: "retry"; errorCode: string; delayMs: number };
+  | {
+      status: "retry";
+      errorCode: string;
+      delayMs: number;
+      /** Runs only if this retry spends the job's last attempt, inside the write that parks it. */
+      onParked?: () => void;
+    };
 export type JobHandler = (job: ClaimedJob) => Promise<JobOutcome>;
 
 export interface ReportingWorkerDeps extends CoordinatorDeps {
@@ -74,12 +81,68 @@ async function runJobs(deps: ReportingWorkerDeps, limit: number): Promise<number
         delayMs: 30_000,
       };
     }
-    inTransaction(deps.core.db, () => {
-      if (outcome.status === "done") completeJob(deps.core, job);
-      else retryJob(deps.core, job, outcome.errorCode, outcome.delayMs);
-    });
+    if (outcome.status === "done") {
+      inTransaction(deps.core.db, () => completeJob(deps.core, job));
+    } else {
+      const { errorCode, delayMs, onParked } = outcome;
+      const result = inTransaction(deps.core.db, () => {
+        const result = retryJob(deps.core, job, errorCode, delayMs);
+        if (result === "failed" && onParked) runParkedFollowUp(deps, job, onParked);
+        return result;
+      });
+      recordRetry(job, errorCode, delayMs, result);
+    }
   }
   return ran;
+}
+
+/**
+ * A job's last word runs in the write that parks it, so it happens exactly when the job stops for
+ * good: never for a pass another worker took over, nor for one a crash cut off before the park.
+ * A failure rolls back only the follow-up's own writes and is reported; the job stays parked.
+ */
+function runParkedFollowUp(deps: ReportingWorkerDeps, job: ClaimedJob, followUp: () => void): void {
+  try {
+    inTransaction(deps.core.db, followUp);
+  } catch {
+    // The error itself can carry addresses, hashes or links, so only the job kind is recorded.
+    log.error({ kind: job.kind }, "A parked reporting job's follow-up failed");
+    captureAgentException(new Error("A parked reporting job's follow-up failed"), {
+      source: "reporting.worker",
+      surface: "reporting",
+      metadata: { kind: job.kind },
+    });
+  }
+}
+
+/**
+ * Every retry leaves a warning, and a job that spends its last attempt leaves an error and an
+ * error event, so no job uses up its attempts without a trace. Only the kind, the error code and
+ * the attempt count are recorded: a handler's error message can carry addresses, hashes or links.
+ * A fenced result belongs to the worker that took the job over, which records its own.
+ */
+function recordRetry(
+  job: ClaimedJob,
+  errorCode: string,
+  delayMs: number,
+  result: ReturnType<typeof retryJob>
+): void {
+  const fields = {
+    kind: job.kind,
+    errorCode,
+    attempt: job.attempts,
+    maxAttempts: job.maxAttempts,
+  };
+  if (result === "retrying") {
+    log.warn({ ...fields, retryInMs: delayMs }, "Reporting job will try again");
+  } else if (result === "failed") {
+    log.error(fields, "Reporting job ran out of attempts");
+    captureAgentException(new Error("Reporting job ran out of attempts"), {
+      source: "reporting.worker",
+      surface: "reporting",
+      metadata: fields,
+    });
+  }
 }
 
 /** An unreachable indexer must not stop the queues: turns keep using the last garden list. */

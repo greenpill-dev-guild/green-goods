@@ -4,13 +4,13 @@ import { selectCanvasRouteChrome } from "../../../hooks/admin-ui/layout/useCanva
 describe("selectCanvasRouteChrome", () => {
   it.each([
     {
-      name: "Hub",
-      pathname: "/hub/work",
+      name: "Review",
+      pathname: "/review/work",
       isDesktop: true,
-      activePath: "/hub",
-      workspaceId: "hub",
-      rawWorkspaceId: "hub",
-      leftDialogTone: "hub",
+      activePath: "/review",
+      workspaceId: "review",
+      rawWorkspaceId: "review",
+      leftDialogTone: "review",
     },
     {
       name: "Garden",
@@ -43,10 +43,10 @@ describe("selectCanvasRouteChrome", () => {
       name: "desktop Profile redirect",
       pathname: "/profile",
       isDesktop: true,
-      activePath: "/hub/work",
-      workspaceId: "hub",
+      activePath: "/review/work",
+      workspaceId: "review",
       rawWorkspaceId: "profile",
-      leftDialogTone: "hub",
+      leftDialogTone: "review",
     },
     {
       name: "mobile Profile tab",
@@ -55,7 +55,7 @@ describe("selectCanvasRouteChrome", () => {
       activePath: "/profile",
       workspaceId: "profile",
       rawWorkspaceId: "profile",
-      leftDialogTone: "hub",
+      leftDialogTone: "review",
     },
   ])("maps the $name route to chrome state", ({
     pathname,

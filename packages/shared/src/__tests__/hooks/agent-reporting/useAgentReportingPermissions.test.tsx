@@ -1,7 +1,9 @@
 import { act } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { PermissionReader } from "../../../modules/agent-reporting/permission-management";
-import { permissionStorageKey } from "../../../modules/agent-reporting/permission-management";
+import {
+  type PermissionReader,
+  permissionStorageKey,
+} from "../../../modules/agent-reporting/permission-management";
 import type { TransactionSender } from "../../../modules/transactions/types";
 import { renderHookWithProviders } from "../../test-utils/render-helpers";
 

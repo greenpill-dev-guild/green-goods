@@ -40,23 +40,23 @@ export function CommitmentExpireDialog({
       target={target}
       variant="danger"
       title={formatMessage({
-        id: "cockpit.garden.pool.expire.title",
+        id: "hub.garden.pool.expire.title",
         defaultMessage: "Expire This Promise",
       })}
       description={formatMessage(
         {
-          id: "cockpit.garden.pool.expire.description",
+          id: "hub.garden.pool.expire.description",
           defaultMessage:
             "“{title}” is past due. Expiring it supersedes any waiting claims and releases what the pool reserved for it. This is final: the record stays, and members see it as expired.",
         },
         { title }
       )}
       confirmLabel={formatMessage({
-        id: "cockpit.garden.pool.expire.confirm",
+        id: "hub.garden.pool.expire.confirm",
         defaultMessage: "Expire Now",
       })}
       cancelLabel={formatMessage({
-        id: "cockpit.garden.pool.expire.keep",
+        id: "hub.garden.pool.expire.keep",
         defaultMessage: "Keep It Live",
       })}
       isLoading={isLoading}

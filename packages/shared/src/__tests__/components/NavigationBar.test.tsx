@@ -17,14 +17,14 @@ vi.mock("react-intl", () => ({
   useIntl: () => ({
     formatMessage: ({ id }: { id: string }) => {
       const messages: Record<string, string> = {
-        "cockpit.nav.mainNavigation": "Main navigation",
+        "hub.nav.mainNavigation": "Main navigation",
         "nav.dashboard": "Dashboard",
         "nav.actions": "Actions",
         "nav.gardens": "Gardens",
-        "cockpit.nav.profile": "Profile",
-        "cockpit.fab.openActions": "Open Actions",
-        "cockpit.fab.closeActions": "Close Actions",
-        "cockpit.fab.actions": "Actions",
+        "hub.nav.profile": "Profile",
+        "hub.fab.openActions": "Open Actions",
+        "hub.fab.closeActions": "Close Actions",
+        "hub.fab.actions": "Actions",
         "actions.submit": "Submit Work",
         "actions.disabled": "Disabled action",
         "actions.disabledReason": "Nothing to fund yet.",
@@ -143,7 +143,7 @@ describe("NavigationBar", () => {
           {
             id: "profile",
             label: "Profile",
-            labelId: "cockpit.nav.profile",
+            labelId: "hub.nav.profile",
             icon: StubIcon,
             path: "/profile",
             visible: true,
@@ -171,7 +171,7 @@ describe("NavigationBar", () => {
           {
             id: "profile",
             label: "Profile",
-            labelId: "cockpit.nav.profile",
+            labelId: "hub.nav.profile",
             icon: StubIcon,
             path: "/profile",
             visible: true,
@@ -313,7 +313,7 @@ describe("NavigationBar", () => {
       {
         id: "profile",
         label: "Profile",
-        labelId: "cockpit.nav.profile",
+        labelId: "hub.nav.profile",
         icon: StubIcon,
         path: "/profile",
         visible: true,
@@ -337,7 +337,7 @@ describe("NavigationBar", () => {
           {
             id: "profile",
             label: "Profile",
-            labelId: "cockpit.nav.profile",
+            labelId: "hub.nav.profile",
             icon: StubIcon,
             path: "/profile",
             visible: true,
@@ -377,7 +377,7 @@ describe("NavigationBar", () => {
           {
             id: "profile",
             label: "Profile",
-            labelId: "cockpit.nav.profile",
+            labelId: "hub.nav.profile",
             icon: StubIcon,
             path: "/profile",
             visible: true,

@@ -42,11 +42,11 @@ export function PoolTarget({ target, record, party, placement = "block" }: PoolT
   if (placement !== "block") {
     const name = target.isProtocol
       ? formatMessage({
-          id: "cockpit.garden.pool.target.protocolName",
+          id: "hub.garden.pool.target.protocolName",
           defaultMessage: "the Green Goods protocol pool",
         })
       : formatMessage(
-          { id: "cockpit.garden.pool.target.garden", defaultMessage: "{garden}’s pool" },
+          { id: "hub.garden.pool.target.garden", defaultMessage: "{garden}’s pool" },
           { garden: target.gardenName }
         );
     const kind = target.isProtocol ? "protocol" : "garden";
@@ -60,7 +60,7 @@ export function PoolTarget({ target, record, party, placement = "block" }: PoolT
           title={name}
         >
           {formatMessage(
-            { id: "cockpit.garden.pool.target.line", defaultMessage: "Writing to {target}" },
+            { id: "hub.garden.pool.target.line", defaultMessage: "Writing to {target}" },
             { target: <span className="font-semibold text-text-strong">{name}</span> }
           )}
         </p>
@@ -69,7 +69,7 @@ export function PoolTarget({ target, record, party, placement = "block" }: PoolT
     return (
       <dl data-component="PoolTarget" data-kind={kind} data-placement="rail" className="min-w-0">
         <dt className="type-label-sm text-text-soft">
-          {formatMessage({ id: "cockpit.garden.pool.target.label", defaultMessage: "Writing to" })}
+          {formatMessage({ id: "hub.garden.pool.target.label", defaultMessage: "Writing to" })}
         </dt>
         <dd className="break-words type-body font-semibold text-text-strong">{name}</dd>
       </dl>
@@ -88,21 +88,21 @@ export function PoolTarget({ target, record, party, placement = "block" }: PoolT
         <Alert
           variant="warning"
           title={formatMessage({
-            id: "cockpit.garden.pool.target.protocol",
+            id: "hub.garden.pool.target.protocol",
             defaultMessage: "Writing to the Green Goods protocol pool",
           })}
         >
           {record
             ? formatMessage(
                 {
-                  id: "cockpit.garden.pool.target.protocolRecord",
+                  id: "hub.garden.pool.target.protocolRecord",
                   defaultMessage:
                     "“{record}”, in the Green Goods Community Garden’s own pool, where the protocol’s promises live. Changes here can affect promises across gardens.",
                 },
                 { record }
               )
             : formatMessage({
-                id: "cockpit.garden.pool.target.protocolNote",
+                id: "hub.garden.pool.target.protocolNote",
                 defaultMessage:
                   "The Green Goods Community Garden’s own pool, where the protocol’s promises live. Changes here can affect promises across gardens.",
               })}
@@ -115,19 +115,19 @@ export function PoolTarget({ target, record, party, placement = "block" }: PoolT
   const name = record
     ? formatMessage(
         {
-          id: "cockpit.garden.pool.target.record",
+          id: "hub.garden.pool.target.record",
           defaultMessage: "“{record}” in {garden}’s pool",
         },
         { record, garden: target.gardenName }
       )
     : formatMessage(
-        { id: "cockpit.garden.pool.target.garden", defaultMessage: "{garden}’s pool" },
+        { id: "hub.garden.pool.target.garden", defaultMessage: "{garden}’s pool" },
         { garden: target.gardenName }
       );
   return (
     <dl data-component="PoolTarget" data-kind="garden" className="min-w-0">
       <dt className="type-label-sm text-text-soft">
-        {formatMessage({ id: "cockpit.garden.pool.target.label", defaultMessage: "Writing to" })}
+        {formatMessage({ id: "hub.garden.pool.target.label", defaultMessage: "Writing to" })}
       </dt>
       <dd className="truncate type-body font-semibold text-text-strong" title={name}>
         {name}

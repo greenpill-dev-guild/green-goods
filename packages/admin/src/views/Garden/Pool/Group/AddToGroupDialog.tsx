@@ -24,27 +24,27 @@ const COUNT_CHOICES = [1, 5, 10, 20] as const;
 /** Why an Add sent nothing, in the words the dialog shows under it. */
 const REFUSAL = {
   expired: {
-    id: "cockpit.garden.pool.add.expired",
+    id: "hub.garden.pool.add.expired",
     defaultMessage:
       "This group's deadline has passed, so nothing can join it. Start a new group instead.",
   },
   full: {
-    id: "cockpit.garden.pool.add.full",
+    id: "hub.garden.pool.add.full",
     defaultMessage:
       "{room, plural, =0 {You already hold as many offers as this pool allows at once, so none can be added now.} one {You have room for one more offer under this pool's limit. Choose fewer.} other {You have room for # more offers under this pool's limit. Choose fewer.}}",
   },
   "not-creator": {
-    id: "cockpit.garden.pool.add.notCreator",
+    id: "hub.garden.pool.add.notCreator",
     defaultMessage:
       "Only the steward who created this group can add to it. Start a new group instead.",
   },
   "no-settlement-account": {
-    id: "cockpit.garden.pool.reward.needsSettlement",
+    id: "hub.garden.pool.reward.needsSettlement",
     defaultMessage:
       "A reward is paid through this garden's settlement account, which isn't active.",
   },
   blocked: {
-    id: "cockpit.garden.pool.reward.blocked",
+    id: "hub.garden.pool.reward.blocked",
     defaultMessage: "Nothing could be sent from here. Check your wallet, then try again.",
   },
 } as const;
@@ -132,38 +132,38 @@ export function AddToGroupDialog({
   const sends = retrying ? adding.retryCount : count;
   const from = (value: number, to: number) =>
     formatMessage(
-      { id: "cockpit.garden.pool.add.fromTo", defaultMessage: "{from} → {to}" },
+      { id: "hub.garden.pool.add.fromTo", defaultMessage: "{from} → {to}" },
       { from: value, to: to }
     );
   const upTo = (copies: number) =>
     formatMessage(
-      { id: "cockpit.garden.pool.reward.upTo", defaultMessage: "up to {amount}" },
+      { id: "hub.garden.pool.reward.upTo", defaultMessage: "up to {amount}" },
       { amount: formatUsd((rewardCents ?? 0n) * BigInt(copies), locale) }
     );
   const added = validCount ? count : 0;
   const summary: Array<[string, string]> = [
     [
       formatMessage({
-        id: "cockpit.garden.pool.add.inGroup",
+        id: "hub.garden.pool.add.inGroup",
         defaultMessage: "Promises in the group",
       }),
       from(counts.published, counts.published + added),
     ],
     [
       formatMessage({
-        id: "cockpit.garden.pool.add.available",
+        id: "hub.garden.pool.add.available",
         defaultMessage: "Available to take up",
       }),
       from(counts.available, counts.available + added),
     ],
     [
       formatMessage({
-        id: "cockpit.garden.pool.add.others",
+        id: "hub.garden.pool.add.others",
         defaultMessage: "In progress, kept, ended",
       }),
       formatMessage(
         {
-          id: "cockpit.garden.pool.add.othersValue",
+          id: "hub.garden.pool.add.othersValue",
           defaultMessage: "{inProgress}, {kept}, {ended} · unchanged",
         },
         { inProgress: counts.inProgress, kept: counts.kept, ended: counts.ended }
@@ -173,11 +173,11 @@ export function AddToGroupDialog({
       ? ([
           [
             formatMessage({
-              id: "cockpit.garden.pool.reward.allKept",
+              id: "hub.garden.pool.reward.allKept",
               defaultMessage: "Reward if all are kept",
             }),
             formatMessage(
-              { id: "cockpit.garden.pool.reward.totalFromTo", defaultMessage: "{from} → {to}" },
+              { id: "hub.garden.pool.reward.totalFromTo", defaultMessage: "{from} → {to}" },
               { from: upTo(counts.published), to: upTo(counts.published + added) }
             ),
           ],
@@ -228,18 +228,18 @@ export function AddToGroupDialog({
             ? status.phase === "partial"
               ? formatMessage(
                   {
-                    id: "cockpit.garden.pool.seed.tryAgainCount",
+                    id: "hub.garden.pool.seed.tryAgainCount",
                     defaultMessage: "Try Again ({count})",
                   },
                   { count: sends }
                 )
               : formatMessage({
-                  id: "cockpit.garden.pool.setup.retry",
+                  id: "hub.garden.pool.setup.retry",
                   defaultMessage: "Try Again",
                 })
             : formatMessage(
                 {
-                  id: "cockpit.garden.pool.add.submit",
+                  id: "hub.garden.pool.add.submit",
                   defaultMessage: "{count, plural, one {Add Promise} other {Add # Promises}}",
                 },
                 { count: validCount ? count : 1 }
@@ -259,7 +259,7 @@ export function AddToGroupDialog({
       tone="garden"
       preventClose={status.busy}
       title={formatMessage({
-        id: "cockpit.garden.pool.add.title",
+        id: "hub.garden.pool.add.title",
         defaultMessage: "Add to This Group",
       })}
       target={
@@ -289,7 +289,7 @@ export function AddToGroupDialog({
         >
           <AdminCardTitle as="h4" id={`${fieldsetId}-count`}>
             {formatMessage({
-              id: "cockpit.garden.pool.add.countTitle",
+              id: "hub.garden.pool.add.countTitle",
               defaultMessage: "Promises to add",
             })}
           </AdminCardTitle>
@@ -305,13 +305,13 @@ export function AddToGroupDialog({
           </div>
           <AdminTextField
             label={formatMessage({
-              id: "cockpit.garden.pool.seed.promisesField",
+              id: "hub.garden.pool.seed.promisesField",
               defaultMessage: "Promises",
             })}
             value={String(count)}
             onChange={(event) => setCount(Number(event.target.value))}
             helperText={formatMessage({
-              id: "cockpit.garden.pool.add.countHint",
+              id: "hub.garden.pool.add.countHint",
               defaultMessage:
                 "Each one is taken up and kept on its own, like the rest of the group.",
             })}
@@ -320,7 +320,7 @@ export function AddToGroupDialog({
                 ? undefined
                 : formatMessage(
                     {
-                      id: "cockpit.garden.pool.seed.error.countTooMany",
+                      id: "hub.garden.pool.seed.error.countTooMany",
                       defaultMessage: "Create {max, number} promises or fewer at once.",
                     },
                     { max: MAX_COMMITMENT_SET_SIZE }
@@ -333,7 +333,7 @@ export function AddToGroupDialog({
         <section className="space-y-2">
           <AdminCardTitle as="h4">
             {formatMessage({
-              id: "cockpit.garden.pool.add.sameAs",
+              id: "hub.garden.pool.add.sameAs",
               defaultMessage: "Same as the group",
             })}
           </AdminCardTitle>

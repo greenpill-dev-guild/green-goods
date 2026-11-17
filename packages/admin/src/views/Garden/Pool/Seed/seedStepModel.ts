@@ -61,17 +61,17 @@ export function seedBlockedReason(input: {
 }): { id: string; defaultMessage: string } | null {
   if (!input.poolOpen)
     return defineMessage({
-      id: "cockpit.garden.pool.seed.blocked.poolClosed",
+      id: "hub.garden.pool.seed.blocked.poolClosed",
       defaultMessage: "Open the pool before seeding into it.",
     });
   if (input.capacityOver)
     return defineMessage({
-      id: "cockpit.garden.pool.seed.blocked.capacity",
+      id: "hub.garden.pool.seed.blocked.capacity",
       defaultMessage: "That is more offers than this pool has room for.",
     });
   if (input.priceUnavailable)
     return defineMessage({
-      id: "cockpit.garden.pool.seed.blocked.price",
+      id: "hub.garden.pool.seed.blocked.price",
       defaultMessage: "A reward is in dollars, and today's G$ price can't be read to convert it.",
     });
   return null;
@@ -152,63 +152,63 @@ interface SeedErrorMessage {
  */
 const SEED_ERROR_MESSAGES = {
   titleRequired: {
-    id: "cockpit.garden.pool.seed.error.titleRequired",
+    id: "hub.garden.pool.seed.error.titleRequired",
     defaultMessage: "Give it a name.",
   },
   titleTooLong: {
-    id: "cockpit.garden.pool.seed.error.titleTooLong",
+    id: "hub.garden.pool.seed.error.titleTooLong",
     defaultMessage: "Shorten the title to {max, number} characters or fewer.",
     values: { max: COMMITMENT_TITLE_MAX_LENGTH },
   },
   unitRequired: {
-    id: "cockpit.garden.pool.seed.error.unitRequired",
+    id: "hub.garden.pool.seed.error.unitRequired",
     defaultMessage: "Say what you are counting.",
   },
   unitTooLong: {
-    id: "cockpit.garden.pool.seed.error.unitTooLong",
+    id: "hub.garden.pool.seed.error.unitTooLong",
     defaultMessage: "Shorten the unit to {max, number} characters or fewer.",
     values: { max: COMMITMENT_UNIT_LABEL_MAX_LENGTH },
   },
   noteTooLong: {
-    id: "cockpit.garden.pool.seed.error.noteTooLong",
+    id: "hub.garden.pool.seed.error.noteTooLong",
     defaultMessage: "Shorten the note to {max, number} characters or fewer.",
     values: { max: COMMITMENT_NOTE_MAX_LENGTH },
   },
   confirmersTooMany: {
-    id: "cockpit.garden.pool.seed.error.confirmersTooMany",
+    id: "hub.garden.pool.seed.error.confirmersTooMany",
     defaultMessage: "That is more confirmers than one promise can name.",
   },
   thresholdAtLeastOne: {
-    id: "cockpit.garden.pool.seed.error.thresholdAtLeastOne",
+    id: "hub.garden.pool.seed.error.thresholdAtLeastOne",
     defaultMessage: "At least one confirmation is needed.",
   },
   thresholdAboveGroup: {
-    id: "cockpit.garden.pool.seed.error.thresholdAboveGroup",
+    id: "hub.garden.pool.seed.error.thresholdAboveGroup",
     defaultMessage: "That asks for more confirmations than there are named confirmers.",
   },
   considerationSource: {
-    id: "cockpit.garden.pool.seed.error.considerationSource",
+    id: "hub.garden.pool.seed.error.considerationSource",
     defaultMessage: "Name the address the payout comes from.",
   },
   considerationToken: {
-    id: "cockpit.garden.pool.seed.error.considerationToken",
+    id: "hub.garden.pool.seed.error.considerationToken",
     defaultMessage: "Name the token address.",
   },
   considerationAmount: {
-    id: "cockpit.garden.pool.seed.error.considerationAmount",
+    id: "hub.garden.pool.seed.error.considerationAmount",
     defaultMessage: "Enter an amount above zero.",
   },
   countAtLeastOne: {
-    id: "cockpit.garden.pool.seed.error.countAtLeastOne",
+    id: "hub.garden.pool.seed.error.countAtLeastOne",
     defaultMessage: "Create at least one promise.",
   },
   countTooMany: {
-    id: "cockpit.garden.pool.seed.error.countTooMany",
+    id: "hub.garden.pool.seed.error.countTooMany",
     defaultMessage: "Create {max, number} promises or fewer at once.",
     values: { max: MAX_COMMITMENT_SET_SIZE },
   },
   considerationUsd: {
-    id: "cockpit.garden.pool.seed.error.considerationUsd",
+    id: "hub.garden.pool.seed.error.considerationUsd",
     defaultMessage: "Enter an amount in dollars above zero, like 5.00.",
   },
 } satisfies Record<keyof typeof COMMITMENT_COMPOSER_ERROR_IDS, SeedErrorMessage>;
@@ -224,39 +224,39 @@ const SEED_ERROR_DESCRIPTOR_BY_ID = new Map<string, SeedErrorMessage>(
       [
         "That action is already listed",
         {
-          id: "cockpit.garden.pool.seed.error.actionDuplicate",
+          id: "hub.garden.pool.seed.error.actionDuplicate",
           defaultMessage: "That action is already listed",
         },
       ],
       [
         "Enter a whole count",
         {
-          id: "cockpit.garden.pool.seed.error.actionCountWhole",
+          id: "hub.garden.pool.seed.error.actionCountWhole",
           defaultMessage: "Enter a whole count",
         },
       ],
       [
         "Add at least one action",
         {
-          id: "cockpit.garden.pool.seed.error.actionRequired",
+          id: "hub.garden.pool.seed.error.actionRequired",
           defaultMessage: "Add at least one action",
         },
       ],
       [
         "Choose an action",
-        { id: "cockpit.garden.pool.seed.error.actionChoose", defaultMessage: "Choose an action" },
+        { id: "hub.garden.pool.seed.error.actionChoose", defaultMessage: "Choose an action" },
       ],
       [
         "Needs a count of at least 1",
         {
-          id: "cockpit.garden.pool.seed.error.actionCount",
+          id: "hub.garden.pool.seed.error.actionCount",
           defaultMessage: "Needs a count of at least 1",
         },
       ],
       [
         "That count is too large",
         {
-          id: "cockpit.garden.pool.seed.error.actionCountLarge",
+          id: "hub.garden.pool.seed.error.actionCountLarge",
           defaultMessage: "That count is too large",
         },
       ],
@@ -287,11 +287,11 @@ export function buildSeedCycleOptions(input: {
 }): SeedCycleOption[] {
   const { season, campaigns, cycleNames, formatMessage } = input;
   const seasonKind = formatMessage({
-    id: "cockpit.garden.pool.cycle.season",
+    id: "hub.garden.pool.cycle.season",
     defaultMessage: "Season",
   });
   const campaignKind = formatMessage({
-    id: "cockpit.garden.pool.cycle.campaign",
+    id: "hub.garden.pool.cycle.campaign",
     defaultMessage: "Campaign",
   });
   return [
@@ -310,7 +310,7 @@ export function buildSeedCycleOptions(input: {
     {
       value: "0",
       label: formatMessage({
-        id: "cockpit.garden.pool.seed.cycleless",
+        id: "hub.garden.pool.seed.cycleless",
         defaultMessage: "No cycle (runs on its own)",
       }),
     },
@@ -365,42 +365,42 @@ export function buildSeedStepConfigs(formatMessage: FormatMessage): ActionFlowSt
   return [
     {
       id: "what",
-      title: formatMessage({ id: "cockpit.garden.pool.seed.step.what", defaultMessage: "What" }),
+      title: formatMessage({ id: "hub.garden.pool.seed.step.what", defaultMessage: "What" }),
       description: formatMessage({
-        id: "cockpit.garden.pool.seed.step.whatPromiseHint",
+        id: "hub.garden.pool.seed.step.whatPromiseHint",
         defaultMessage: "The kind of promise, in its words",
       }),
     },
     {
       id: "howMuch",
       title: formatMessage({
-        id: "cockpit.garden.pool.seed.step.howMuch",
+        id: "hub.garden.pool.seed.step.howMuch",
         defaultMessage: "How Much",
       }),
       description: formatMessage({
-        id: "cockpit.garden.pool.seed.step.howManyHint",
+        id: "hub.garden.pool.seed.step.howManyHint",
         defaultMessage: "How many, what each asks, and the team",
       }),
     },
     {
       id: "proof",
       title: formatMessage({
-        id: "cockpit.garden.pool.seed.step.proof",
+        id: "hub.garden.pool.seed.step.proof",
         defaultMessage: "Proof & Confirmation",
       }),
       description: formatMessage({
-        id: "cockpit.garden.pool.seed.step.proofHint",
+        id: "hub.garden.pool.seed.step.proofHint",
         defaultMessage: "Who confirms, how it's claimed",
       }),
     },
     {
       id: "review",
       title: formatMessage({
-        id: "cockpit.garden.pool.seed.step.review",
+        id: "hub.garden.pool.seed.step.review",
         defaultMessage: "Review",
       }),
       description: formatMessage({
-        id: "cockpit.garden.pool.seed.step.reviewHint",
+        id: "hub.garden.pool.seed.step.reviewHint",
         defaultMessage: "Sectioned check, then seed",
       }),
     },

@@ -81,7 +81,7 @@ const meta: Meta<typeof ActionPicker> = {
     docs: {
       description: {
         component:
-          "Choosing the action a work answers, one picker on both surfaces: media cards with the action's banner (its photo, or its domain's gradient), the domain on the banner, a one-line title and what the action asks for. One listbox with one tab stop: the arrow keys and Home and End move, Space, Enter or a press chooses, and the chosen card takes the 3px border in the focus role. The installed app lays the cards in a row that scrolls sideways; the cockpit in a grid.",
+          "Choosing the action a work answers, one picker on both surfaces: media cards with the action's banner (its photo, or its domain's gradient), the domain on the banner, a one-line title and what the action asks for. One listbox with one tab stop: the arrow keys and Home and End move, Space, Enter or a press chooses, and the chosen card takes the 3px border in the focus role. The installed app lays the cards in a row that scrolls sideways; the Hub in a grid.",
       },
     },
   },
@@ -116,8 +116,8 @@ export const InTheApp: Story = {
   },
 };
 
-/** The cockpit: a grid, two to a row once the flow dialog is wide enough. */
-export const InTheCockpit: Story = {
+/** The Hub: a grid, two to a row once the flow dialog is wide enough. */
+export const InTheHub: Story = {
   args: { layout: "grid", value: null },
   parameters: { surface: "admin" },
   // storybook-quality-allow state-harness: Picker owns the choice while rendering the real ActionPicker.

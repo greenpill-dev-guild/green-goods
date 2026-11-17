@@ -13,7 +13,12 @@ import { inTransaction } from "./database";
 import type { ClaimedJob } from "./jobs";
 import { participantWriter } from "./notify";
 import { operationSubject } from "./operation-subjects";
-import { type OperationRecord, operationById, setOperationState } from "./operations";
+import {
+  type OperationRecord,
+  operationById,
+  operationForSubject,
+  setOperationState,
+} from "./operations";
 import { audit } from "./participants";
 import { publicationRecords } from "./publication-records";
 import type { ReportingCore } from "./runtime";
@@ -284,6 +289,85 @@ function revert(deps: ReconciliationDeps, operation: OperationRecord): void {
   );
 }
 
+/** The audit record of a chain check that ended without finding what it looked for. */
+const CHECK_STOPPED = "reconciliation_stopped";
+/** The audit record of chain evidence a later check found for an attempt whose check had stopped. */
+const FOUND_AFTER_STOP = "reconciliation_found_after_stop";
+
+/** Whether the latest record for the operation's current attempt says its check stopped. */
+function attemptCheckStopped(core: ReportingCore, operation: OperationRecord): boolean {
+  const latest = core.db
+    .query(
+      `SELECT kind FROM audit_events
+       WHERE subject_kind = 'operation' AND subject_id = $id AND kind IN ($stopped, $found)
+         AND json_extract(detail_json, '$.attemptVersion') = $attemptVersion
+       ORDER BY created_at DESC, rowid DESC LIMIT 1`
+    )
+    .get({
+      id: operation.id,
+      stopped: CHECK_STOPPED,
+      found: FOUND_AFTER_STOP,
+      attemptVersion: operation.attemptVersion,
+    }) as { kind: string } | null;
+  return latest?.kind === CHECK_STOPPED;
+}
+
+/**
+ * The check's last attempt found nothing it can stand behind. Nothing is sent again and the
+ * reservation stays, so an operator replay can still find a late publication; what changes is that
+ * the person hears it ended, once, instead of waiting on a promise that nothing will keep. It runs
+ * as the worker parks the job. The record and the notice belong to the operation's current
+ * attempt: an operation is reused for its next attempt, which gets a check and a notice of its own.
+ */
+function stopChecking(core: ReportingCore, operationId: string, reason: string): void {
+  const operation = operationById(core, operationId);
+  if (operation?.state !== "reconciling") return;
+  // A late wallet report starts a second check beside the first: the last one to run out speaks.
+  const stillChecking = core.db
+    .query(
+      `SELECT 1 FROM processing_jobs WHERE kind = 'reconcile_operation' AND subject_id = $id
+         AND state IN ('pending', 'leased') LIMIT 1`
+    )
+    .get({ id: operation.id });
+  if (stillChecking) return;
+  const { attemptVersion } = operation;
+  audit(core, CHECK_STOPPED, { kind: "operation", id: operation.id }, { reason, attemptVersion });
+  const subject = operationSubject(core, operation);
+  if (!subject) return;
+  participantWriter(core, {
+    participantId: subject.participantId,
+    conversationId: subject.conversationId,
+    dedupePrefix: `unconfirmed:${operation.id}:${attemptVersion}`,
+  })?.say(subject.kind === "review" ? "review.unconfirmed" : "publish.unconfirmed");
+}
+
+/**
+ * A replayed check that finds the transaction mined, or matching attestations, overrides the
+ * attempt's earlier stop, so replies agree with what the chat has just said about it.
+ */
+function foundAfterStop(core: ReportingCore, operation: OperationRecord, evidence: string): void {
+  if (!attemptCheckStopped(core, operation)) return;
+  const { attemptVersion } = operation;
+  audit(
+    core,
+    FOUND_AFTER_STOP,
+    { kind: "operation", id: operation.id },
+    { evidence, attemptVersion }
+  );
+}
+
+/**
+ * Whether the chain check for the current attempt at a report or a decision ended without finding
+ * it, so replies say that rather than that it is being published or recorded.
+ */
+export function chainCheckStopped(
+  core: ReportingCore,
+  subject: { draftId: string } | { reviewIntentId: string }
+): boolean {
+  const operation = operationForSubject(core, subject);
+  return operation?.state === "reconciling" && attemptCheckStopped(core, operation);
+}
+
 export async function reconcileOperation(
   deps: ReconciliationDeps,
   job: ClaimedJob
@@ -292,11 +376,18 @@ export async function reconcileOperation(
   const operation = operationById(core, job.subjectId);
   const envelope = operation?.envelope;
   if (!operation || !envelope || operation.state !== "reconciling") return { status: "done" };
+  // If a retry spends the job's last attempt, the worker parks it and the check stops there.
+  const stopped = (reason: string) => () => stopChecking(core, operation.id, reason);
   let resolution: Resolution;
   try {
     resolution = await resolve(deps, operation, envelope);
   } catch {
-    return { status: "retry", errorCode: "dependency_unavailable", delayMs: 30_000 };
+    return {
+      status: "retry",
+      errorCode: "dependency_unavailable",
+      delayMs: 30_000,
+      onParked: stopped("dependency_unavailable"),
+    };
   }
   return inTransaction(core.db, (): JobOutcome => {
     const current = operationById(core, operation.id);
@@ -306,7 +397,9 @@ export async function reconcileOperation(
         publish(deps, current, envelope, resolution.verified);
         return { status: "done" };
       case "confirmed":
+        // The person already has the transaction's link; only its attestation is still unread.
         announceConfirmed(core, current, envelope, resolution.transactionHash);
+        foundAfterStop(core, current, "transaction_mined");
         return { status: "retry", errorCode: "attestation_pending", delayMs: 30_000 };
       case "reverted":
         revert(deps, current);
@@ -319,9 +412,24 @@ export async function reconcileOperation(
           { kind: "operation", id: current.id },
           { reason: resolution.reason }
         );
-        return { status: "retry", errorCode: resolution.reason, delayMs: 5 * 60_000 };
+        if (resolution.reason === "multiple_matches")
+          foundAfterStop(core, current, "multiple_matches");
+        return {
+          status: "retry",
+          errorCode: resolution.reason,
+          delayMs: 5 * 60_000,
+          // Two matching attestations mean it was published; that one is for an operator to settle.
+          ...(resolution.reason === "multiple_matches"
+            ? {}
+            : { onParked: stopped(resolution.reason) }),
+        };
       case "pending":
-        return { status: "retry", errorCode: "receipt_pending", delayMs: 30_000 };
+        return {
+          status: "retry",
+          errorCode: "receipt_pending",
+          delayMs: 30_000,
+          onParked: stopped("receipt_pending"),
+        };
     }
   });
 }

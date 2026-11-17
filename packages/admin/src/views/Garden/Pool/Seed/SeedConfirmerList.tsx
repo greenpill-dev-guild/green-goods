@@ -71,11 +71,11 @@ export function SeedConfirmerList({
       success: false,
       error: CONFIRMER_ADDRESS_PATTERN.test(address.trim())
         ? formatMessage({
-            id: "cockpit.garden.pool.seed.confirmerAlready",
+            id: "hub.garden.pool.seed.confirmerAlready",
             defaultMessage: "Already named.",
           })
         : formatMessage({
-            id: "cockpit.garden.pool.seed.error.confirmerAddress",
+            id: "hub.garden.pool.seed.error.confirmerAddress",
             defaultMessage: "Enter a confirmer's own name or address.",
           }),
     };
@@ -96,7 +96,7 @@ export function SeedConfirmerList({
     >
       <AdminCardTitle as="h4" id={titleId}>
         {formatMessage({
-          id: "cockpit.garden.pool.seed.confirmers",
+          id: "hub.garden.pool.seed.confirmers",
           defaultMessage: "Confirmers",
         })}
       </AdminCardTitle>
@@ -104,15 +104,15 @@ export function SeedConfirmerList({
         {chosen.length === 0
           ? values.direction === "REQUEST"
             ? formatMessage({
-                id: "cockpit.garden.pool.seed.confirmersDefaultRequest",
+                id: "hub.garden.pool.seed.confirmersDefaultRequest",
                 defaultMessage: "Nobody named: you confirm it yourself, as the one asking.",
               })
             : formatMessage({
-                id: "cockpit.garden.pool.seed.confirmersDefaultOffer",
+                id: "hub.garden.pool.seed.confirmersDefaultOffer",
                 defaultMessage: "Nobody named: whoever takes this up confirms it.",
               })
           : formatMessage({
-              id: "cockpit.garden.pool.seed.confirmersNamed",
+              id: "hub.garden.pool.seed.confirmersNamed",
               defaultMessage:
                 "A named group. The lead and every contributor are excluded by the contract.",
             })}
@@ -121,7 +121,7 @@ export function SeedConfirmerList({
         <div
           role="list"
           aria-label={formatMessage({
-            id: "cockpit.garden.pool.seed.confirmersChosen",
+            id: "hub.garden.pool.seed.confirmersChosen",
             defaultMessage: "Chosen confirmers",
           })}
           className="flex flex-wrap gap-2"
@@ -136,7 +136,7 @@ export function SeedConfirmerList({
                   disabled={busy}
                   removeLabel={formatMessage(
                     {
-                      id: "cockpit.garden.pool.seed.confirmerRemove",
+                      id: "hub.garden.pool.seed.confirmerRemove",
                       defaultMessage: "Remove {name}",
                     },
                     { name }
@@ -151,23 +151,23 @@ export function SeedConfirmerList({
       <div className="flex items-end gap-2">
         <AdminTextField
           label={formatMessage({
-            id: "cockpit.garden.pool.seed.confirmerAddLabel",
+            id: "hub.garden.pool.seed.confirmerAddLabel",
             defaultMessage: "Add a confirmer",
           })}
           value={entry.input}
           onChange={(event) => entry.setInput(event.target.value)}
           placeholder={formatMessage({
-            id: "cockpit.garden.pool.seed.confirmerPlaceholder",
+            id: "hub.garden.pool.seed.confirmerPlaceholder",
             defaultMessage: "A name.eth or an address",
           })}
           helperText={
             entry.resolvingEns
               ? formatMessage({
-                  id: "cockpit.garden.pool.seed.confirmerResolving",
+                  id: "hub.garden.pool.seed.confirmerResolving",
                   defaultMessage: "Looking up that name…",
                 })
               : formatMessage({
-                  id: "cockpit.garden.pool.seed.confirmerHint",
+                  id: "hub.garden.pool.seed.confirmerHint",
                   defaultMessage: "Names like lina.eth resolve to their account.",
                 })
           }
@@ -193,7 +193,7 @@ export function SeedConfirmerList({
           disabled={busy || entry.trimmedInput.length === 0}
         >
           {formatMessage({
-            id: "cockpit.garden.pool.seed.confirmerAdd",
+            id: "hub.garden.pool.seed.confirmerAdd",
             defaultMessage: "Add",
           })}
         </Button>
@@ -202,7 +202,7 @@ export function SeedConfirmerList({
         <div className="flex flex-wrap items-center gap-2" data-testid="seed-confirmer-suggestions">
           <span className="type-label-sm text-text-soft">
             {formatMessage({
-              id: "cockpit.garden.pool.seed.fromThisGarden",
+              id: "hub.garden.pool.seed.fromThisGarden",
               defaultMessage: "From this garden",
             })}
           </span>
@@ -228,12 +228,12 @@ export function SeedConfirmerList({
             >
               {showAll
                 ? formatMessage({
-                    id: "cockpit.garden.pool.seed.fewerMembers",
+                    id: "hub.garden.pool.seed.fewerMembers",
                     defaultMessage: "Fewer",
                   })
                 : formatMessage(
                     {
-                      id: "cockpit.garden.pool.seed.allMembers",
+                      id: "hub.garden.pool.seed.allMembers",
                       defaultMessage: "All {count} members",
                     },
                     { count: offered.length }
@@ -245,7 +245,7 @@ export function SeedConfirmerList({
       {chosen.length > 0 ? (
         <AdminTextField
           label={formatMessage({
-            id: "cockpit.garden.pool.seed.threshold",
+            id: "hub.garden.pool.seed.threshold",
             defaultMessage: "How many must confirm",
           })}
           value={String(values.confirmationThreshold)}
@@ -258,7 +258,7 @@ export function SeedConfirmerList({
           error={errorOf("confirmationThreshold")}
           helperText={formatMessage(
             {
-              id: "cockpit.garden.pool.seed.thresholdOfNamed",
+              id: "hub.garden.pool.seed.thresholdOfNamed",
               defaultMessage:
                 "Of {count} named. The lead and every contributor are excluded by the contract.",
             },

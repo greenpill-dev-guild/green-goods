@@ -88,7 +88,7 @@ function fixture() {
 }
 
 /**
- * A steward's Submit in the admin cockpit from a passkey or embedded account:
+ * A steward's Submit in the Hub from a passkey or embedded account:
  * no offline queue, the submission retained, and the send made by the queue's
  * own processing. Only the executor, where the account signs, is a stand-in.
  */

@@ -87,7 +87,7 @@ Replace weak types (`any`, escape-hatch `unknown`, `as` assertions, `@ts-ignore`
 
 ### Agent 6: Defensive Code Removal
 
-Remove error handling that hides failures (empty catches, log-only catches, catch-and-return-default, fake-success paths). KEEP: `parseContractError()` + `USER_FRIENDLY_ERRORS`, `createMutationErrorHandler()` in shared mutation hooks, error boundaries with user feedback, genuine boundary input handling. Rules: never swallow errors in mutation/transaction paths; `logger` from shared, not `console.log`.
+Remove error handling that hides failures (empty catches, log-only catches, catch-and-return-default, fake-success paths). KEEP: `parseContractError()` and its toast formatters, `createMutationErrorHandler()` in shared mutation hooks, error boundaries with user feedback, genuine boundary input handling. Rules: never swallow errors in mutation/transaction paths; `logger` from shared, not `console.log`.
 
 ### Agent 7: Legacy & Deprecated Code
 
@@ -286,6 +286,6 @@ Combine both: `/clean --scope shared --agents 1,2,5`
 
 - `audit` — Find problems (read-only). Use when you want a report, not fixes.
 - `review` — Review specific changes. Use when reviewing a PR or recent commits.
-- `plan` (`teams.md` § Part 11) — canonical reference for the `dispatch-codex-lane.sh` pattern that the Codex final review reuses.
+- `plan` (`.agents/adapter.md` § plan, **Teams**) — canonical reference for the `dispatch-codex-lane.sh` pattern that the Codex final review reuses.
 
 Recommended flow: `clean` assessment -> approve numbered finding IDs -> targeted implementation -> Codex final review -> `review` the changes.

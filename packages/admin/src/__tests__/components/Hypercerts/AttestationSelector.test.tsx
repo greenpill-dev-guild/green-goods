@@ -301,7 +301,7 @@ describe("components/Hypercerts/AttestationSelector", () => {
 
       expect(
         screen.getByText(
-          "No approved, unbundled attestations are available yet. Approve work in Hub before creating a hypercert."
+          "No approved, unbundled attestations are available yet. Approve work in Review before creating a hypercert."
         )
       ).toBeInTheDocument();
     });

@@ -11,7 +11,7 @@ import { AdminDialog, ADMIN_FLOW_DIALOG_CLASS } from "@/components/AdminDialog";
 import { DiscardChangesDialog } from "@/components/DiscardChangesDialog";
 import { SubmitWorkFlow, type SubmitWorkLayout } from "./components/SubmitWorkFlow";
 
-function parseHubContext(search: string) {
+function parseReviewContext(search: string) {
   const params = new URLSearchParams(search);
   const view = params.get("view");
   const sort = params.get("sort");
@@ -53,7 +53,7 @@ export default function SubmitWork() {
   // A finished send lands on Work, which lists it, and replaces the flow's entry
   // so Back cannot reopen it.
   const finish = useCallback(
-    () => navigate(adminRoutes.hub(parseHubContext(location.search)), { replace: true }),
+    () => navigate(adminRoutes.review(parseReviewContext(location.search)), { replace: true }),
     [navigate, location.search]
   );
   const [panelDirty, setPanelDirty] = useState(false);

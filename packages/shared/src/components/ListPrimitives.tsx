@@ -49,7 +49,7 @@ const PLACEMENT_CLASSES: Record<NonNullable<EmptyStateProps["placement"]>, strin
  * The state block: what stands in for a list, a tab, a panel or a screen that is empty, loading,
  * failed or not ready. One anatomy on both surfaces (a round icon tile, the title, one
  * description and the surface's own action) whose sizes come from the type roles, so the app
- * draws it at its 16px density and the cockpit at its 14px one. The tile's calm color is the
+ * draws it at its 16px density and the Hub at its 14px one. The tile's calm color is the
  * surface's to set (`.gg-state-mark` in theme.css).
  */
 export function EmptyState({

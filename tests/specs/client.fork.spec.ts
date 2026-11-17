@@ -20,10 +20,6 @@ import { TEST_URLS } from "../helpers/test-utils";
 
 const CLIENT_URL = TEST_URLS.client;
 
-// ============================================================================
-// TEST SETUP
-// ============================================================================
-
 let anvilContext: AnvilForkContext;
 let snapshotId: string;
 
@@ -70,10 +66,6 @@ test.beforeEach(async () => {
   }
 });
 
-// ============================================================================
-// FORK TESTS
-// ============================================================================
-
 test.describe("Fork Integration Tests", () => {
   test.use({ baseURL: CLIENT_URL });
 
@@ -83,7 +75,6 @@ test.describe("Fork Integration Tests", () => {
       expect(anvilContext).toBeDefined();
       expect(anvilContext.deployment.gardenToken).toBeDefined();
 
-      // Read current block
       const blockNumber = await anvilContext.publicClient.getBlockNumber();
       expect(blockNumber).toBeGreaterThan(0);
       console.log(`   Block number: ${blockNumber}`);
@@ -100,7 +91,6 @@ test.describe("Fork Integration Tests", () => {
     test("can create a garden on fork", async () => {
       expect(anvilContext).toBeDefined();
 
-      // Create a garden
       const garden = await createGarden(anvilContext, {
         name: "E2E Test Garden",
         description: "Garden created during E2E test",
@@ -125,7 +115,6 @@ test.describe("Fork Integration Tests", () => {
     test("snapshot/revert provides test isolation", async () => {
       expect(anvilContext).toBeDefined();
 
-      // Get initial balance
       const initialBalance = await anvilContext.publicClient.getBalance({
         address: anvilContext.accounts.gardener1.address,
       });
@@ -158,7 +147,6 @@ test.describe("Fork Integration Tests", () => {
 
   test.describe("Client with Fork Backend", () => {
     test("caller-managed client can load", async ({ page }) => {
-      // Navigate to client
       await page.goto("/");
       await page.waitForLoadState("domcontentloaded");
 
@@ -179,7 +167,6 @@ test.describe("Fork Integration Tests", () => {
     test("can join an existing garden", async () => {
       expect(anvilContext).toBeDefined();
 
-      // Create a garden
       const garden = await createGarden(anvilContext, {
         name: "Gardener Test Garden",
         description: "Testing gardener addition",

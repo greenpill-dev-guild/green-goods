@@ -660,7 +660,7 @@ test("personas page gives each persona a section, its journey, and the surfaces 
     assert.ok(rendered.includes(`| [${persona.display}](#${persona.id}) |`), persona.id);
   }
   // "Works in" is the union of the surfaces the persona's own interactions name, not a naming rule.
-  assert.match(rendered, /^\| \[Gardener\]\(#gardener\) \| [^|]+ \| Client app, Messaging agent \|$/m);
+  assert.match(rendered, /^\| \[Gardener\]\(#gardener\) \| [^|]+ \| Green Goods App, Messaging agent \|$/m);
   // Every interaction in the projection data is on the page.
   for (const journey of readJson(REPO_ROOT, projectionData).persona_journeys) {
     for (const engagement of journey.engagements) {
@@ -697,7 +697,7 @@ test("glossary leads with plain entries for the everyday terms and keeps every a
     assert.match(everyday.text, new RegExp(`^### .+ \\{#${anchor}\\}$`, "m"), anchor);
   }
   // Secondary published fragments must land on a definition, not an empty footer anchor.
-  assert.match(rendered, /<a id="pwa-progressive-web-app"><\/a>\s+### Installed app \{#pwa\}/);
+  assert.match(rendered, /<a id="pwa-progressive-web-app"><\/a>\s+### Green Goods App \{#pwa\}/);
   assert.match(rendered, /<TermAnchor id="smart-account-account-abstraction" to="\/reference\/ontology#smart-account" \/>/);
   // An entry is the term's plain-language record. Its formal definition stays in the tables.
   const sidecar = readJson(REPO_ROOT, "packages/shared/src/ontology/green-goods-ontology.json");
@@ -1129,6 +1129,7 @@ test("workflow catalog covers every workflow file, only CI Gate is required, and
   assert.match(section("CI Gate"), /Required status:\*\* yes, branch protection waits for it\./);
   assert.match(section("Dependabot Sync"), /CI Gate waits for same-repository pull requests authored by `dependabot\[bot\]`/);
   assert.match(section("Dependabot Sync Publish"), /Runs on:\*\* completion of another workflow/);
+  assert.match(section("Merge Gate"), /Runs on:\*\* completion of another workflow; comments on issues and pull requests/);
 });
 
 test("workflow inventory reads display name, sorted jobs, and triggers from the YAML", (t) => {

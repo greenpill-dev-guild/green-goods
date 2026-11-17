@@ -1,0 +1,661 @@
+{
+  "version": 1,
+  "note": "Shrink-only: knip's findings per kind and file. Entries may be removed, never added; record removals with `node scripts/quality/check-knip-baseline.mjs --baseline-shrink`.",
+  "findings": {
+    "binaries": {
+      "packages/agent/src/__tests__/reporting/audio.test.ts": ["ffmpeg"],
+      "packages/contracts/package.json": ["anvil"],
+      "packages/contracts/script/deploy/anvil.ts": ["anvil"],
+      "packages/contracts/script/deploy/badge-locks.ts": ["forge"],
+      "packages/contracts/script/deploy/badge-schemas.ts": ["forge"],
+      "packages/contracts/script/deploy/commitment-schemas.ts": ["cast", "forge"],
+      "packages/contracts/script/deploy/core.ts": ["forge"],
+      "packages/contracts/script/deploy/gardens.ts": ["forge"],
+      "packages/contracts/script/deploy/goods.ts": ["forge"],
+      "packages/contracts/script/deploy/greenwill.ts": ["cast", "forge"],
+      "packages/contracts/script/deploy/hats.ts": ["forge"],
+      "packages/contracts/script/deploy/octant-factory.ts": ["forge"],
+      "packages/contracts/script/deploy/pooling-configure.ts": ["cast", "forge"],
+      "packages/contracts/script/deploy/release.ts": ["forge"],
+      "packages/contracts/script/marketplace-readiness.ts": ["cast"],
+      "packages/contracts/script/migrate-action-instructions-v2.ts": ["cast"],
+      "packages/contracts/script/migrate-vaults.ts": ["cast", "forge"],
+      "packages/contracts/script/release-operator.ts": ["cast"],
+      "packages/contracts/script/repair-octant-assets.ts": ["forge"],
+      "packages/contracts/script/settlement/dual-chain-courier.ts": ["anvil", "worker"],
+      "packages/contracts/script/upgrade-ens-receiver.ts": ["forge"],
+      "packages/contracts/script/upgrade.ts": ["cast", "forge"],
+      "packages/contracts/script/utils/cast-env.ts": ["cast"],
+      "packages/contracts/script/utils/ens-sponsor.ts": ["cast"],
+      "packages/contracts/script/utils/fork-shards.mjs": ["forge"],
+      "packages/contracts/script/utils/isolated-fork.fixtures.ts": ["anvil"],
+      "packages/contracts/script/utils/isolated-fork.ts": ["anvil"],
+      "packages/contracts/script/utils/keystore-session.test.ts": ["cast"],
+      "packages/contracts/script/utils/post-deploy-verify.ts": ["cast"],
+      "packages/contracts/script/utils/source-upgrade-batch-binary.fixtures.ts": ["anvil"],
+      "packages/contracts/script/utils/source-upgrade-safe-signing.test.ts": ["cast"],
+      "packages/contracts/script/utils/update-action-metadata.ts": ["cast", "forge"],
+      "scripts/contracts/check-foundry-version.mjs": ["forge"],
+      "scripts/dev/env-sync.js": ["op"],
+      "scripts/dev/tunnel.js": ["cloudflared"],
+      "scripts/harness/agent-hooks.test.mjs": ["jq"],
+      "scripts/mcp/brave-devtools.mjs": ["mise"],
+      "tests/fixtures/anvil-fork.ts": ["anvil"]
+    },
+    "dependencies": {
+      "docs/package.json": ["@docusaurus/core", "@docusaurus/faster"],
+      "packages/admin/package.json": ["@tanstack/react-query-persist-client"],
+      "packages/client/package.json": ["@radix-ui/react-slot", "react-device-frameset"]
+    },
+    "devDependencies": {
+      "docs/package.json": ["@tinacms/cli"],
+      "package.json": ["@google/design.md", "@lhci/cli", "turbo"],
+      "packages/admin/package.json": ["abitype"],
+      "packages/contracts/package.json": ["solhint"],
+      "packages/indexer/package.json": ["c8"]
+    },
+    "duplicates": {
+      "packages/admin/src/__tests__/test-utils.tsx": ["render = renderWithProviders"],
+      "packages/client/src/views/Home/Garden/Commitment/GardenCommitment.tsx": [
+        "GardenCommitment = default"
+      ],
+      "packages/client/src/views/Home/Garden/Compose/ComposeCommitment.tsx": [
+        "ComposeCommitment = default"
+      ],
+      "packages/client/src/views/Home/Garden/PromiseGroup/GardenPromiseGroup.tsx": [
+        "GardenPromiseGroup = default"
+      ],
+      "packages/client/src/views/Home/Garden/Proof/ProofComposer.tsx": ["ProofComposer = default"],
+      "packages/contracts/script/deploy/badge-locks.ts": ["default = deployBadgeLocks"],
+      "packages/contracts/script/deploy/badge-schemas.ts": ["default = deployBadgeSchemas"],
+      "packages/shared/src/__tests__/test-utils/render-helpers.tsx": [
+        "renderWithProviders = renderWithQuery"
+      ],
+      "packages/shared/src/utils/blockchain/abis/yield.ts": [
+        "YIELD_RESOLVER_ABI = YIELD_SPLITTER_ABI"
+      ],
+      "packages/shared/src/utils/navigation/admin-routes.ts": [
+        "ADMIN_GARDEN_ID_PARAM = ADMIN_GARDEN_SHARE_PARAM"
+      ]
+    },
+    "exports": {
+      "docs/scripts/developer-guides.mjs": [
+        "developerGuidePaths",
+        "headingIds",
+        "validateCommandArguments"
+      ],
+      "docs/scripts/llms.mjs": [
+        "brandKitMarkdown",
+        "designTokensMarkdown",
+        "revenueExplorerMarkdown",
+        "rolePathsMarkdown",
+        "stewardPathMarkdown"
+      ],
+      "packages/admin/src/components/Assessment/CreateAssessmentSteps/shared.tsx": [
+        "DOMAIN_GUIDANCE"
+      ],
+      "packages/admin/src/components/Garden/manageRolesStoryFixtures.ts": ["NEWCOMER"],
+      "packages/admin/src/components/Layout/index.ts": [
+        "CanvasLayout",
+        "CanvasRouteContent",
+        "CanvasRouteErrorState",
+        "CanvasRouteFrame",
+        "CanvasRouteHeader",
+        "CanvasWorkspaceLoadingState",
+        "CanvasWorkspaceSelectionGate",
+        "CanvasWorkspaceSelectionState",
+        "CommandPalette",
+        "ConnectShell",
+        "PageHeader"
+      ],
+      "packages/admin/src/components/Shell/index.ts": ["FabButton"],
+      "packages/admin/src/components/Vault/ImpactFunders.tsx": ["ImpactFunders"],
+      "packages/admin/src/components/Vault/index.ts": ["FunderRow", "ImpactFunders"],
+      "packages/admin/src/views/Cookies/components/CampaignCookieJar/GardenSelector.tsx": [
+        "EnsAddressText"
+      ],
+      "packages/admin/src/views/Cookies/components/CampaignCookieJar/index.ts": [
+        "CampaignCookieJarCreateWorkspace"
+      ],
+      "packages/admin/src/views/Garden/Pool/SetupFlow/setupFlowModel.ts": ["DAY"],
+      "packages/admin/src/views/Review/components/index.ts": [
+        "CookieJarDepositModal",
+        "CookieJarPayoutPanel",
+        "CookieJarWithdrawModal",
+        "MediaEvidence",
+        "ReviewAssessmentInspector",
+        "ReviewAssessmentList",
+        "ReviewHypercertList",
+        "ReviewWorkQueue",
+        "ReviewWorkbenchSkeletonRows"
+      ],
+      "packages/agent/src/__tests__/reporting/support/fixtures.ts": ["ACTION_REGISTRY", "weeding"],
+      "packages/agent/src/handlers/index.ts": [
+        "handleApprove",
+        "handleCancelSubmission",
+        "handleConfirmSubmission",
+        "handleHelp",
+        "handleJoin",
+        "handlePending",
+        "handleReject",
+        "handleStart",
+        "handleStatus",
+        "handleTextSubmission",
+        "handleVoiceSubmission"
+      ],
+      "packages/agent/src/services/ai.ts": ["transcribe"],
+      "packages/agent/src/services/blockchain.ts": ["getChainId", "isGardener"],
+      "packages/agent/src/services/errors.ts": [
+        "AuthorizationError",
+        "ExternalServiceError",
+        "ValidationError"
+      ],
+      "packages/agent/src/services/pinata-upload-signer.ts": [
+        "DEFAULT_PINATA_UPLOADS_API_BASE_URL"
+      ],
+      "packages/agent/src/services/reporting/inbox.ts": ["payloadContext"],
+      "packages/client/src/__tests__/test-utils.tsx": [
+        "MOCK_ADDRESSES",
+        "MOCK_TX_HASH",
+        "TestWrapper",
+        "createMockSmartAccountClient",
+        "mock",
+        "render"
+      ],
+      "packages/client/src/components/Cards/Card.tsx": [
+        "CardContent",
+        "CardDescription",
+        "CardFooter",
+        "CardHeader",
+        "CardTitle"
+      ],
+      "packages/client/src/components/Cards/index.ts": [
+        "CardContent",
+        "CardDescription",
+        "CardFooter",
+        "CardHeader",
+        "CardTitle"
+      ],
+      "packages/client/src/components/Communication/Badge/Badge.tsx": ["badgeVariants"],
+      "packages/client/src/components/Inputs/Select/Select.tsx": [
+        "SelectGroup",
+        "SelectLabel",
+        "SelectScrollDownButton",
+        "SelectScrollUpButton",
+        "SelectSeparator"
+      ],
+      "packages/client/src/config/index.ts": ["clientIpfsInitialization"],
+      "packages/client/src/config/ipfs.ts": ["clientIpfsInitialization"],
+      "packages/client/src/views/Home/Garden/Commitment/ConfirmSheet.tsx": [
+        "Provenance",
+        "selectConfirmCast"
+      ],
+      "packages/client/src/views/Home/WalletSheet/Send/validation.ts": ["validateSendAmount"],
+      "packages/client/src/views/Public/AgentReporting/failures.ts": ["CAUTIONS"],
+      "packages/contracts/script/cli/operations.mjs": [
+        "PACKAGE_ROOT",
+        "resolveMintingTransaction",
+        "validateSourceUpgradeMode"
+      ],
+      "packages/contracts/script/deploy/badge-locks.ts": ["default", "deployBadgeLocks"],
+      "packages/contracts/script/deploy/badge-schemas.ts": ["default", "deployBadgeSchemas"],
+      "packages/contracts/script/deploy/commitment-schemas.ts": ["deriveFrozenSchemaPlanInputs"],
+      "packages/contracts/script/deploy/garden-account-relay.ts": [
+        "adoptRelayBoundary",
+        "executeRelayBoundary",
+        "main",
+        "verifyDeployedRelay"
+      ],
+      "packages/contracts/script/deploy/garden-roles.ts": [
+        "executeEnableBoundary",
+        "executeRolesBoundary",
+        "loadRolesCheckpoint",
+        "verifyDeployedRoles"
+      ],
+      "packages/contracts/script/deploy/garden-routes.ts": [
+        "executeRouteBoundary",
+        "verifyConfiguredRoutes"
+      ],
+      "packages/contracts/script/settlement/dual-chain-courier.ts": ["decodeTuple"],
+      "packages/indexer/scripts/indexing-boundary-rules.mjs": ["PINNED_POOLING_CONTRACTS_BY_CHAIN"],
+      "packages/qa/runs.ts": [
+        "BUILD_SURFACES",
+        "ENVIRONMENTS",
+        "LEGACY_RUN_LABEL",
+        "MAX_LABEL_LENGTH"
+      ],
+      "packages/qa/store.ts": ["acquireStoreLock", "readText"],
+      "packages/shared/.storybook/clientJourneyFixtures.ts": ["SUMMER_2026"],
+      "packages/shared/.storybook/decorators.tsx": ["surfaceForTitle"],
+      "packages/shared/.storybook/design-system/measure.tsx": [
+        "describeMany",
+        "describeMeasurement",
+        "gradeMany",
+        "useLiveMeasurement",
+        "useLiveMeasurements"
+      ],
+      "packages/shared/.storybook/notificationFixtures.ts": ["AMA", "KOFI"],
+      "packages/shared/.storybook/submitWorkFixtures.ts": ["SEEDLING_INTENT", "SEEDLING_PROMISE"],
+      "packages/shared/.storybook/voucherBookingFixtures.ts": ["VOUCHER_STORY_HOME_GARDEN"],
+      "packages/shared/.storybook/voucherMemberRewardFixtures.ts": ["MEMBER_REWARD_TITLE"],
+      "packages/shared/src/__tests__/test-utils/video-fixtures.ts": ["RECORDER_DETAILS"],
+      "packages/shared/src/components/Cards/WorkCard/index.ts": ["WorkCardSkeleton"],
+      "packages/shared/src/components/Dialog/index.ts": ["SheetHeader", "SheetHeading"],
+      "packages/shared/src/components/TranslationBadge.tsx": ["UnsupportedTranslationNotice"],
+      "packages/shared/src/lib/hypercerts/index.ts": [
+        "DEFAULT_PROTOCOL_VERSION",
+        "HYPERCERTS_MODULE_ABI",
+        "MARKETPLACE_ADAPTER_ABI",
+        "TRANSFER_MANAGER_ABI",
+        "aggregateOutcomeMetrics",
+        "allowlistEntrySchema",
+        "allowlistSchema",
+        "deriveWorkTimeframe",
+        "generateProof",
+        "greenGoodsExtensionSchema",
+        "outcomeMetricsSchema",
+        "propertyDefinitionSchema",
+        "scopeDefinitionSchema",
+        "timeframeDefinitionSchema",
+        "verifyProof"
+      ],
+      "packages/shared/src/modules/app/error-tracking.ts": ["getTimeSincePageLoad"],
+      "packages/shared/src/modules/commitment-pooling/data-commitments.ts": ["mapWorkAttribution"],
+      "packages/shared/src/modules/commitment-pooling/data-settlement-chain-mappers.ts": ["count"],
+      "packages/shared/src/modules/commitment-pooling/data.ts": [
+        "createCommitmentPoolingReadRepository",
+        "mapClaim",
+        "mapCommitmentsWithCycleState",
+        "mapWorkAttribution",
+        "rowsByIds"
+      ],
+      "packages/shared/src/modules/data/eas-work-list.ts": ["getWorkApprovalsForWorks"],
+      "packages/shared/src/modules/data/eas.ts": ["EASFetchError", "getWorkApprovalsForWorks"],
+      "packages/shared/src/modules/data/hypercerts-metadata.ts": [
+        "getString",
+        "getStringArray",
+        "isRecord"
+      ],
+      "packages/shared/src/modules/data/hypercerts.ts": [
+        "getAttestationsByUIDs",
+        "getHypercertClaims",
+        "getHypercertMetadataFromIpfs",
+        "normalizeHypercertStatus",
+        "parseMetadataPayload"
+      ],
+      "packages/shared/src/modules/data/ipfs/index.ts": ["tryParseJson"],
+      "packages/shared/src/modules/garden/journal.ts": ["gardenActivity"],
+      "packages/shared/src/modules/marketplace/index.ts": ["getOrderNonces"],
+      "packages/shared/src/modules/work/wallet-submission/index.ts": ["WorkSubmissionError"],
+      "packages/shared/src/utils/blockchain/abis.ts": [
+        "AGGREGATOR_V3_ABI",
+        "ERC20_BALANCE_ABI",
+        "ERC20_TRANSFER_ABI",
+        "GARDEN_ACCOUNT_TOKEN_ABI",
+        "GARDEN_TOKEN_MODULES_ABI",
+        "HATS_MODULE_ABI",
+        "HATS_MODULE_CONVICTION_ABI",
+        "HYPERCERT_SIGNAL_POOL_ABI",
+        "JUICEBOX_ABI",
+        "STRATEGY_ABI",
+        "WETH_DEPOSIT_ABI",
+        "YIELD_SPLITTER_ABI"
+      ],
+      "packages/shared/src/utils/blockchain/abis/index.ts": [
+        "AGGREGATOR_V3_ABI",
+        "ERC20_BALANCE_ABI",
+        "ERC20_TRANSFER_ABI",
+        "GARDEN_ACCOUNT_TOKEN_ABI",
+        "GARDEN_TOKEN_MODULES_ABI",
+        "HATS_MODULE_ABI",
+        "HATS_MODULE_CONVICTION_ABI",
+        "HYPERCERT_SIGNAL_POOL_ABI",
+        "JUICEBOX_ABI",
+        "STRATEGY_ABI",
+        "WETH_DEPOSIT_ABI",
+        "YIELD_SPLITTER_ABI"
+      ],
+      "packages/shared/src/utils/blockchain/abis/yield.ts": ["JUICEBOX_ABI"],
+      "packages/shared/src/utils/conviction/index.ts": ["percentToPoints", "pointsToPercent"],
+      "tests/fixtures/anvil-fork.ts": [
+        "ANVIL_TIMEOUTS",
+        "FORK_CONFIG",
+        "TEST_ACCOUNTS",
+        "normalizeForkAccounts",
+        "parseEther"
+      ],
+      "tests/helpers/mock-backend.ts": ["encodeAddressResult"]
+    },
+    "files": {
+      "docs/scripts/vercel-build.mjs": ["docs/scripts/vercel-build.mjs"],
+      "docs/tina/config.ts": ["docs/tina/config.ts"],
+      "packages/admin/src/components/Hypercerts/address.typecheck.ts": [
+        "packages/admin/src/components/Hypercerts/address.typecheck.ts"
+      ],
+      "packages/agent/scripts/run-coverage.mjs": ["packages/agent/scripts/run-coverage.mjs"],
+      "packages/client/scripts/check-pwa-precache-budget.mjs": [
+        "packages/client/scripts/check-pwa-precache-budget.mjs"
+      ],
+      "packages/client/src/App.tsx": ["packages/client/src/App.tsx"],
+      "packages/client/src/config/address.typecheck.ts": [
+        "packages/client/src/config/address.typecheck.ts"
+      ],
+      "packages/contracts/script/cli/execute.d.mts": [
+        "packages/contracts/script/cli/execute.d.mts"
+      ],
+      "packages/contracts/script/cli/migration.mjs": [
+        "packages/contracts/script/cli/migration.mjs"
+      ],
+      "packages/contracts/script/cli/open-minting.mjs": [
+        "packages/contracts/script/cli/open-minting.mjs"
+      ],
+      "packages/contracts/script/cli/operations.d.mts": [
+        "packages/contracts/script/cli/operations.d.mts"
+      ],
+      "packages/contracts/script/cli/operations.node-check.mjs": [
+        "packages/contracts/script/cli/operations.node-check.mjs"
+      ],
+      "packages/contracts/script/cli/read-cache.mjs": [
+        "packages/contracts/script/cli/read-cache.mjs"
+      ],
+      "packages/contracts/script/deploy/clc-release.ts": [
+        "packages/contracts/script/deploy/clc-release.ts"
+      ],
+      "packages/contracts/script/deploy/hats-delegation-release.ts": [
+        "packages/contracts/script/deploy/hats-delegation-release.ts"
+      ],
+      "packages/contracts/script/deploy/live-pilot-package.ts": [
+        "packages/contracts/script/deploy/live-pilot-package.ts"
+      ],
+      "packages/contracts/script/deploy/single-attestation-policy.ts": [
+        "packages/contracts/script/deploy/single-attestation-policy.ts"
+      ],
+      "packages/contracts/script/deploy/source-upgrade-release.ts": [
+        "packages/contracts/script/deploy/source-upgrade-release.ts"
+      ],
+      "packages/contracts/script/deploy/steward-safe-release.ts": [
+        "packages/contracts/script/deploy/steward-safe-release.ts"
+      ],
+      "packages/contracts/script/utils/fork-shards.d.mts": [
+        "packages/contracts/script/utils/fork-shards.d.mts"
+      ],
+      "packages/contracts/script/utils/package-commands.d.mts": [
+        "packages/contracts/script/utils/package-commands.d.mts"
+      ],
+      "packages/shared/scripts/simulate-upload-all.ts": [
+        "packages/shared/scripts/simulate-upload-all.ts"
+      ],
+      "scripts/lib/browser-support.d.mts": ["scripts/lib/browser-support.d.mts"],
+      "tests/helpers/test-config.ts": ["tests/helpers/test-config.ts"]
+    },
+    "types": {
+      "packages/admin/src/components/AdminChoiceGroup.tsx": ["AdminChoiceOption"],
+      "packages/admin/src/components/AdminSortSelect.tsx": ["AdminSortOption"],
+      "packages/admin/src/components/AdminTabRail.tsx": ["AdminTab"],
+      "packages/admin/src/components/Boot/bootAdmin.tsx": [
+        "BootDiagnostics",
+        "BootFailure",
+        "BootStage"
+      ],
+      "packages/admin/src/components/Garden/RoleRemovalReview.tsx": ["ReviewPair"],
+      "packages/admin/src/components/Hypercerts/HypercertWizard/index.tsx": [
+        "HypercertCompletionData"
+      ],
+      "packages/admin/src/components/Layout/CanvasRouteState.tsx": ["CanvasWorkspaceOption"],
+      "packages/admin/src/components/Layout/index.ts": ["CanvasWorkspaceOption"],
+      "packages/admin/src/components/Shell/index.ts": [
+        "AppBarProps",
+        "FabButtonProps",
+        "MainSheetProps"
+      ],
+      "packages/admin/src/views/Garden/Pool/Group/AddToGroupDialog.tsx": ["AddToGroupCounts"],
+      "packages/admin/src/views/Garden/Pool/Group/editRewardStatus.ts": ["EditRewardPhase"],
+      "packages/admin/src/views/Garden/Pool/Seed/SeedStepReview.tsx": ["SeedReviewCapacity"],
+      "packages/admin/src/views/Garden/Pool/Seed/seedStatus.ts": ["SeedPhase"],
+      "packages/admin/src/views/Review/components/ReviewWorkCard.tsx": ["ReviewWorkCardStatusTone"],
+      "packages/agent/src/api/http/server.types.ts": ["UploadSigningConfig"],
+      "packages/agent/src/api/server.ts": [
+        "ThirdwebCheckoutClientConfig",
+        "ThirdwebCheckoutResult",
+        "UploadSigningConfig"
+      ],
+      "packages/agent/src/handlers/index.ts": ["GroupCaptureHandler"],
+      "packages/agent/src/services/account-signatures.ts": ["AccountSignatureVerificationInput"],
+      "packages/agent/src/services/db/passkey-directory.ts": ["PasskeySource"],
+      "packages/agent/src/services/passkey-directory.ts": [
+        "PasskeyRelyingParty",
+        "VerifiedPasskeyRegistration"
+      ],
+      "packages/agent/src/services/reporting/browser-access.ts": ["ChallengeState"],
+      "packages/agent/src/services/reporting/chain.ts": ["ReceiptLog"],
+      "packages/agent/src/services/reporting/execution.ts": ["OutcomeResponse"],
+      "packages/agent/src/services/reporting/grants-store.ts": ["GrantState"],
+      "packages/agent/src/services/reporting/media-intake.ts": ["AssetKind"],
+      "packages/agent/src/services/reporting/media/detect.ts": ["UnsupportedReason"],
+      "packages/agent/src/services/reporting/media/extract.ts": ["MediaFact"],
+      "packages/agent/src/services/reporting/media/tables.ts": ["TableCell"],
+      "packages/agent/src/services/reporting/operation-subjects.ts": [
+        "ReopenReason",
+        "SubjectEvent"
+      ],
+      "packages/agent/src/services/reporting/reviews.ts": ["ReviewLifecycle"],
+      "packages/agent/src/services/reporting/transport.ts": ["DeliveryStatus", "OutboundChoice"],
+      "packages/agent/src/services/saved-offers.ts": ["SavedOffersOwnerSession"],
+      "packages/agent/src/services/subscriptions.ts": ["SubscriberInput", "SubscriptionStatus"],
+      "packages/agent/src/types.ts": [
+        "ChatContext",
+        "RateLimitResult",
+        "ResponseAttachment",
+        "ResponseButton",
+        "SessionUpdate"
+      ],
+      "packages/client/src/components/Cards/Card.tsx": ["CardVariantProps"],
+      "packages/client/src/components/Cards/index.ts": [
+        "CardRootProps",
+        "CardVariantProps",
+        "DraftCardProps",
+        "MinimalWorkCardProps"
+      ],
+      "packages/client/src/components/Communication/Badge/Badge.tsx": [
+        "BadgeProps",
+        "BadgeVariantProps"
+      ],
+      "packages/client/src/components/Display/Carousel/Carousel.tsx": ["CarouselApi"],
+      "packages/client/src/components/Display/Image/ImageWithFallback.tsx": [
+        "ImageWithFallbackProps"
+      ],
+      "packages/client/src/components/Display/ImagePreviewDialog.tsx": ["ImagePreviewDialogProps"],
+      "packages/client/src/components/Display/index.ts": ["ImagePreviewDialogProps"],
+      "packages/client/src/components/Errors/ErrorRecovery.tsx": ["RecoveryFrameProps"],
+      "packages/client/src/components/Features/Commitments/CommitmentStateLadder.tsx": ["TabCopy"],
+      "packages/client/src/components/Inputs/Select/FormSelect.tsx": [
+        "FormSelectOption",
+        "FormSelectProps"
+      ],
+      "packages/client/src/components/Inputs/TextField/Input.tsx": ["FormInputProps"],
+      "packages/client/src/components/Inputs/TextField/Text.tsx": ["FormTextProps"],
+      "packages/client/src/components/Layout/Splash.tsx": ["LoadingState"],
+      "packages/client/src/components/Navigation/Tabs/index.ts": ["StandardTabsProps"],
+      "packages/client/src/components/Public/PublicCookieJarCard.tsx": ["CookieJarBucket"],
+      "packages/client/src/components/Public/PublicFooter.tsx": ["PublicFooterVariant"],
+      "packages/client/src/components/Public/Vault/VaultCheckoutShell.tsx": ["CheckoutMethod"],
+      "packages/client/src/components/Public/atoms/EditorialAtoms.tsx": ["EditorialHeadingSize"],
+      "packages/client/src/components/Public/atoms/EditorialReadDeeper.tsx": ["ReadDeeperLink"],
+      "packages/client/src/components/Public/atoms/index.ts": [
+        "EditorialDividerProps",
+        "EditorialDomainChipProps",
+        "EditorialGhostButtonProps",
+        "EditorialGhostLinkProps",
+        "EditorialHeadingProps",
+        "EditorialHeadingSize",
+        "EditorialKickerProps",
+        "EditorialLedeProps",
+        "EditorialLinkArrowProps",
+        "EditorialMetaRowProps",
+        "EditorialNumeralProps",
+        "EditorialPrimaryButtonProps",
+        "EditorialPrimaryLinkProps",
+        "EditorialReadDeeperProps",
+        "EditorialSelectProps",
+        "EditorialSkeletonProps",
+        "EditorialTermTooltipProps",
+        "EditorialTitleAccentProps",
+        "EditorialTitleLineProps",
+        "ReadDeeperLink"
+      ],
+      "packages/client/src/components/Sheets/AppSheet.tsx": ["AppSheetHeaderProps"],
+      "packages/client/src/content/publicCuration.ts": ["CuratedGardenKey"],
+      "packages/client/src/sw/shell.ts": ["ShellManifest"],
+      "packages/client/src/views/Home/Garden/Commitment/ConfirmSheet.tsx": [
+        "ConfirmCast",
+        "ConfirmPhase"
+      ],
+      "packages/client/src/views/Home/Garden/Commitment/JoinToAct.tsx": ["JoinToActMode"],
+      "packages/client/src/views/Home/Garden/Commitment/serviceRewards.ts": ["ServiceRewardRow"],
+      "packages/client/src/views/Home/WalletSheet/Send/types.ts": [
+        "RecipientSource",
+        "SendStep",
+        "SendableToken"
+      ],
+      "packages/client/src/views/Home/homeGardens.ts": ["MemberRole"],
+      "packages/client/src/views/Public/gardenQueryResolution.ts": ["ResolutionStatus"],
+      "packages/client/vite/pwa-shell.ts": ["PwaShellAssetsManifest"],
+      "packages/contracts/script/deploy/garden-account-relay.ts": [
+        "PlannedRelayTransaction",
+        "RelayCheckpointEntry"
+      ],
+      "packages/contracts/script/deploy/garden-roles.ts": [
+        "GardenRolesEnablePlan",
+        "GardenRolesPlan",
+        "RecoveryApproval",
+        "RolesCheckpoint",
+        "RolesCheckpointEntry",
+        "RolesTransactionKind"
+      ],
+      "packages/contracts/script/deploy/garden-routes.ts": [
+        "GardenRoutesPlan",
+        "RoutesCheckpointEntry"
+      ],
+      "packages/contracts/script/deploy/garden-safe-owners.ts": [
+        "FinalSafeEntry",
+        "GardenInventoryEntry"
+      ],
+      "packages/contracts/script/settlement/dual-chain-courier.ts": ["DeliveryReceipt"],
+      "packages/extension/src/graph/synthetic.ts": ["EdgeKind"],
+      "packages/extension/src/model/packet.ts": ["PacketTarget", "SourceChunk"],
+      "packages/extension/src/model/validate.ts": ["Proposal", "RejectedProposal"],
+      "packages/extension/src/webmcp/probe.ts": ["ToolSummary"],
+      "packages/qa/runs.ts": ["RunWindow"],
+      "packages/shared/.storybook/decorators.tsx": ["StorySurface"],
+      "packages/shared/.storybook/design-system/measure.tsx": ["SpecimenTarget", "SurfaceId"],
+      "packages/shared/src/components/Dialog/index.ts": ["SheetHeaderProps", "SheetHeadingProps"],
+      "packages/shared/src/config/query-keys/public.ts": ["PublicVolumeOptions"],
+      "packages/shared/src/config/query-persistence-legacy.ts": ["LegacySnapshotRecord"],
+      "packages/shared/src/hooks/assessment/useCreateAssessmentWorkflow.ts": [
+        "AssessmentDraftRecord"
+      ],
+      "packages/shared/src/hooks/client-ui/work/useStartStep.ts": ["StartScreen"],
+      "packages/shared/src/hooks/commitment-pooling/useCommitmentViewerRoles.ts": [
+        "ClaimGardenOption"
+      ],
+      "packages/shared/src/hooks/garden/useCreateGardenWorkflow.ts": ["GardenDraft"],
+      "packages/shared/src/hooks/garden/useGardenSetup.ts": ["GardenSetupFix"],
+      "packages/shared/src/hooks/hypercerts/services/index.ts": ["MintServiceDeps"],
+      "packages/shared/src/hooks/vault/useOctantVaultProjectSupportMetric.ts": [
+        "OctantVaultProjectSupportMetricUnavailableReason"
+      ],
+      "packages/shared/src/hooks/work/useWorkSubmissionFlow.ts": ["UploadWorkOptions"],
+      "packages/shared/src/hooks/yield/summary.ts": ["YieldAssetSummary"],
+      "packages/shared/src/lib/hypercerts/index.ts": ["MerkleLeaf", "MerkleTree"],
+      "packages/shared/src/lib/hypercerts/merkle.ts": ["MerkleLeaf"],
+      "packages/shared/src/modules/app/crash-reports.ts": ["CrashReport"],
+      "packages/shared/src/modules/app/share-target.ts": ["ShareTargetFileEntry"],
+      "packages/shared/src/modules/app/telemetry-sink.ts": ["RecordedEventTiming"],
+      "packages/shared/src/modules/app/update-handover.ts": ["UpdateDeferralReason"],
+      "packages/shared/src/modules/commitment-pooling/creation-send.ts": ["CreationQueue"],
+      "packages/shared/src/modules/commitment-pooling/data-service-access.ts": [
+        "ServiceClaimObservation",
+        "ServiceOfferObservation"
+      ],
+      "packages/shared/src/modules/commitment-pooling/data.ts": ["CommitmentPoolingReadRepository"],
+      "packages/shared/src/modules/commitment-pooling/demo/demo-world.ts": [
+        "DemoEvidenceAttribution"
+      ],
+      "packages/shared/src/modules/commitment-pooling/group-additions.ts": ["GroupTemplateTerms"],
+      "packages/shared/src/modules/commitment-pooling/group-browsing.ts": [
+        "GroupTakeUpAct",
+        "GroupTakeUpHold"
+      ],
+      "packages/shared/src/modules/commitment-pooling/read-repository.ts": [
+        "CommitmentPoolingReadRepository"
+      ],
+      "packages/shared/src/modules/commitment-pooling/seed-tray.ts": ["SeedRowStatus"],
+      "packages/shared/src/modules/commitment-pooling/voucher-console.ts": [
+        "VoucherAskSetup",
+        "VoucherBookingService",
+        "VoucherBookingStage",
+        "VoucherReturnBasis",
+        "VoucherTermsVersion",
+        "VoucherVisitReport"
+      ],
+      "packages/shared/src/modules/commitment-pooling/voucher-outcomes.ts": ["VoucherIssuerName"],
+      "packages/shared/src/modules/data/hypercerts.ts": ["BundledAttestationInfo"],
+      "packages/shared/src/modules/data/ipfs/index.ts": [
+        "GetFileByHashOptions",
+        "IpfsConfig",
+        "IpfsInitStatus"
+      ],
+      "packages/shared/src/modules/data/ipfs/pinata.ts": ["PinataUploadResponse"],
+      "packages/shared/src/modules/garden/campaign-jar-sync-batch.ts": ["CampaignJarSyncStep"],
+      "packages/shared/src/modules/garden/create-garden-command.ts": ["GardenNameFunding"],
+      "packages/shared/src/modules/garden/journal.ts": ["TakePartRow"],
+      "packages/shared/src/modules/garden/update-garden-command.ts": ["GardenUpdateValue"],
+      "packages/shared/src/modules/job-queue/db.ts": ["JobFilter"],
+      "packages/shared/src/modules/job-queue/job-media-conversion.ts": ["MediaConversionMeta"],
+      "packages/shared/src/modules/job-queue/ports.ts": ["StorageQuotaSnapshot"],
+      "packages/shared/src/modules/offline-content/scheduler.ts": ["OfflineMediaPort"],
+      "packages/shared/src/modules/transactions/act-phase.ts": ["ActPhaseReportEvent"],
+      "packages/shared/src/modules/transactions/batch-types.ts": ["BatchVerification"],
+      "packages/shared/src/modules/transactions/index.ts": [
+        "BroadcastConfirmation",
+        "BroadcastReference",
+        "TransactionSendOptions"
+      ],
+      "packages/shared/src/modules/vault-crowdfunding/index.ts": ["OctantVaultAssetDisplayPolicy"],
+      "packages/shared/src/modules/work/send-with-checkpoint.ts": ["RecordSend"],
+      "packages/shared/src/modules/work/stranded-intent.ts": ["StrandedIntentDependencies"],
+      "packages/shared/src/modules/work/upload-kinds.ts": ["PreparedAs"],
+      "packages/shared/src/modules/work/upload-state.ts": ["QueuedUploadState"],
+      "packages/shared/src/modules/work/wallet-submission/index.ts": [
+        "OnProgressCallback",
+        "SubmissionPhase",
+        "WalletSubmissionStage"
+      ],
+      "packages/shared/src/modules/work/wallet-submission/types.ts": ["OnProgressCallback"],
+      "packages/shared/src/stores/useActionRegistrationStore.ts": ["ActionRegistrationSubmission"],
+      "packages/shared/src/utils/conviction/derivation.ts": ["ConvictionDerivationInput"],
+      "packages/shared/src/utils/conviction/index.ts": [
+        "ConvictionDerivationInput",
+        "ConvictionSignedDelta"
+      ],
+      "tests/fixtures/anvil-config.ts": ["TestAccount", "TestAccountName"],
+      "tests/fixtures/anvil-fork.ts": ["DeploymentArtifact"],
+      "tests/fixtures/contract-helpers.ts": ["Capital"],
+      "tests/fixtures/playwright-services.ts": ["PlaywrightApp"]
+    },
+    "unlisted": {
+      "docs/src/theme/Mermaid/index.tsx": ["@docusaurus/ErrorBoundary"],
+      "docs/tina/collections.test.ts": ["@tinacms/mdx"],
+      "scripts/docs/mermaid-parse.test.mjs": ["mermaid"]
+    },
+    "unresolved": {
+      "packages/contracts/script/deploy/release.test.ts": ["script/deploy.ts"],
+      "packages/contracts/script/deploy/release.ts": ["script/release-verify.ts"],
+      "packages/contracts/script/utils/fork-shards.mjs": ["script/utils/build-target.ts"],
+      "packages/contracts/script/utils/post-deploy-verify.ts": [
+        "script/utils/envio-integration.ts"
+      ],
+      "packages/contracts/script/utils/upgrade.test.ts": ["script/upgrade.ts"]
+    }
+  }
+}

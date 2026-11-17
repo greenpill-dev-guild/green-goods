@@ -26,7 +26,7 @@ import type { Address } from "../types/domain";
 import { renderHookWithProviders } from "./test-utils/render-helpers";
 
 const send = vi.hoisted(() => ({
-  script: (copy: CreationCopy): Partial<SeedCopyProgress> => ({ status: "created" }),
+  script: (_copy: CreationCopy): Partial<SeedCopyProgress> => ({ status: "created" }),
   calls: [] as CreationCopy[][],
   oneByOne: [] as boolean[],
 }));

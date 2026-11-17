@@ -28,7 +28,7 @@ function lazyView(loader: () => Promise<{ default: ComponentType }>): LazyRoute 
   return async () => ({ Component: (await loader()).default });
 }
 
-const hubView = lazyView(() => import("@/views/Hub"));
+const reviewView = lazyView(() => import("@/views/Review"));
 const gardenView = lazyView(() => import("@/views/Garden"));
 const communityView = lazyView(() => import("@/views/Community"));
 const actionsView = lazyView(() => import("@/views/Actions"));
@@ -73,9 +73,25 @@ function AssessmentRecordRedirect() {
   const location = useLocation();
   return (
     <Navigate
-      to={{ pathname: adminRoutes.hubAssessDetail(assessmentId), search: location.search }}
+      to={{ pathname: adminRoutes.reviewAssessDetail(assessmentId), search: location.search }}
       replace
     />
+  );
+}
+
+/** Review's routes lived under /hub until 2026-11-14 (PRD-1485). */
+const LEGACY_REVIEW_ROOT = /^\/hub(?=\/|$)/;
+
+/**
+ * Sends every /hub address to the same place under /review, its path after /hub, search and hash
+ * kept, so bookmarks, notification links and links from the App, the bot and the docs keep
+ * working. Review's own redirects then take over (a retired History link lands on Work). It
+ * redirects persistently because the garden sync rewrites the address while Review loads.
+ */
+function LegacyReviewRedirect() {
+  const { pathname, search, hash } = useLocation();
+  return (
+    <PersistentRedirect to={`${pathname.replace(LEGACY_REVIEW_ROOT, "/review")}${search}${hash}`} />
   );
 }
 
@@ -96,36 +112,40 @@ const governanceRoute: Pick<RouteObject, "lazy" | "element"> = GOVERNANCE_ENABLE
 
 export const adminCanvasRoutes: RouteObject[] = [
   {
-    path: "hub",
+    path: "hub/*",
+    element: <LegacyReviewRedirect />,
+  },
+  {
+    path: "review",
     children: [
       {
         index: true,
-        element: <IndexRedirect kind="hub" />,
+        element: <IndexRedirect kind="review" />,
       },
       {
         // The create flows are route items that open over the active stage now
         // (DL-140); saved links open each over its own stage. Keep this flattened
         // before /work/:workId so it cannot be interpreted as a work id.
         path: "work/submit",
-        element: <PreserveSearchRedirect pathname="/hub/work" item={SUBMIT_WORK_ROUTE_ITEM} />,
+        element: <PreserveSearchRedirect pathname="/review/work" item={SUBMIT_WORK_ROUTE_ITEM} />,
       },
       {
         path: "work",
         children: [
           {
             index: true,
-            lazy: hubView,
+            lazy: reviewView,
           },
           {
             path: ":workId",
-            lazy: hubView,
+            lazy: reviewView,
           },
         ],
       },
       {
         path: "assess/create",
         element: (
-          <PreserveSearchRedirect pathname="/hub/assess" item={CREATE_ASSESSMENT_ROUTE_ITEM} />
+          <PreserveSearchRedirect pathname="/review/assess" item={CREATE_ASSESSMENT_ROUTE_ITEM} />
         ),
       },
       {
@@ -133,18 +153,18 @@ export const adminCanvasRoutes: RouteObject[] = [
         children: [
           {
             index: true,
-            lazy: hubView,
+            lazy: reviewView,
           },
           {
             path: ":assessmentId",
-            lazy: hubView,
+            lazy: reviewView,
           },
         ],
       },
       {
         path: "certify/create",
         element: (
-          <PreserveSearchRedirect pathname="/hub/certify" item={CREATE_HYPERCERT_ROUTE_ITEM} />
+          <PreserveSearchRedirect pathname="/review/certify" item={CREATE_HYPERCERT_ROUTE_ITEM} />
         ),
       },
       {
@@ -154,11 +174,11 @@ export const adminCanvasRoutes: RouteObject[] = [
         children: [
           {
             index: true,
-            lazy: hubView,
+            lazy: reviewView,
           },
           {
             path: ":commitmentId",
-            lazy: hubView,
+            lazy: reviewView,
           },
         ],
       },
@@ -167,7 +187,7 @@ export const adminCanvasRoutes: RouteObject[] = [
         children: [
           {
             index: true,
-            lazy: hubView,
+            lazy: reviewView,
           },
           {
             path: ":assessmentId",
@@ -177,16 +197,16 @@ export const adminCanvasRoutes: RouteObject[] = [
       },
       {
         // The History stage is retired (2026-08-25 AD-3); saved deep links
-        // land on the Hub's default stage instead of a 404.
+        // land on Review's default stage instead of a 404.
         path: "history",
         children: [
           {
             index: true,
-            element: <PreserveSearchRedirect pathname="/hub" />,
+            element: <PreserveSearchRedirect pathname="/review" />,
           },
           {
             path: ":historyEventId",
-            element: <PreserveSearchRedirect pathname="/hub" />,
+            element: <PreserveSearchRedirect pathname="/review" />,
           },
         ],
       },
@@ -399,7 +419,7 @@ export const adminCanvasRoutes: RouteObject[] = [
   },
   {
     path: "actions",
-    element: <RequireProtocolTeam loadingFallback={<RoleGateSkeleton />} />,
+    element: <RequireProtocolTeam loadingFallback={<RoleGateSkeleton />} allowProductLead />,
     children: [
       { index: true, lazy: actionsView },
       { path: "create", lazy: actionsView },

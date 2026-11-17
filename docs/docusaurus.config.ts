@@ -593,7 +593,7 @@ const config: Config = {
         },
         {
           href: 'https://admin.greengoods.app',
-          label: 'Admin',
+          label: 'Hub',
           position: 'right',
         },
       ],

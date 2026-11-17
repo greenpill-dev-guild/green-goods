@@ -2,16 +2,8 @@ import { type BrowserContext, type Page } from "@playwright/test";
 import { WORK_UPLOAD_POLICY_VERSION } from "../../packages/shared/src/modules/work/upload-policy";
 import { type MockClientBackendOptions, mockClientBackend } from "./mock-backend";
 
-// ============================================================================
-// TYPES
-// ============================================================================
-
 /** `operator` is the steward role's former name; DevAuthProvider still resolves it. */
 export type AdminMockRole = "deployer" | "steward" | "operator" | "user" | "disconnected";
-
-// ============================================================================
-// CONSTANTS
-// ============================================================================
 
 // In CI, Vite skips mkcert and runs on HTTP instead of HTTPS
 const isCI = process.env.CI === "true";
@@ -67,10 +59,6 @@ export async function seedAcceptedUploadTerms(
   };
   await context.setStorageState({ cookies: [], origins: [origin] });
 }
-
-// ============================================================================
-// CLIENT AUTH HELPERS
-// ============================================================================
 
 /**
  * Client CI mock-auth and legacy wallet-storage helpers.
@@ -193,14 +181,12 @@ export async function setupAuthenticatedClient(
   return Object.assign(helper, { backend: scenario });
 }
 
-// ============================================================================
 // ADMIN AUTH HELPERS (Dev mockAuth)
-// ============================================================================
 
 /**
  * Helper for admin app testing with deterministic dev auth.
  *
- * Prefer `mockAuth` URL/session overrides for cockpit verification.
+ * Prefer `mockAuth` URL/session overrides for the Hub verification.
  * NOTE: For multi-tab tests, use the context parameter to ensure
  * the init script applies to all pages in the context.
  */
@@ -240,7 +226,7 @@ export class AdminTestHelper {
     }
   }
 
-  async goToCockpit(path: string = "/hub", role: AdminMockRole = "steward") {
+  async goToHub(path: string = "/review", role: AdminMockRole = "steward") {
     await this.page.goto(this.buildMockAuthPath(path, role));
     await this.page.waitForLoadState("domcontentloaded");
   }

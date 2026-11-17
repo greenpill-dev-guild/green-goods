@@ -11,9 +11,7 @@ function markKarmaDetailsPending(garden: Garden, timestamp: number): Garden {
   };
 }
 
-// ============================================================================
 // GARDEN TOKEN EVENT HANDLERS
-// ============================================================================
 
 // Register new GardenAccount contracts when gardens are minted
 indexer.contractRegister(
@@ -53,9 +51,7 @@ indexer.onEvent({ contract: "GardenToken", event: "GardenMinted" }, async ({ eve
   context.Garden.set(gardenEntity);
 });
 
-// ============================================================================
 // GARDEN ACCOUNT EVENT HANDLERS
-// ============================================================================
 
 // Handler for the NameUpdated event
 indexer.onEvent({ contract: "GardenAccount", event: "NameUpdated" }, async ({ event, context }) => {

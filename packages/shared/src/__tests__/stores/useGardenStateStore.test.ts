@@ -5,7 +5,7 @@
  * Tests the Zustand store for per-garden UI state with sessionStorage persistence.
  */
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import {
   ALL_GARDENS_KEY,
   GARDEN_STATE_STORAGE_KEY,
@@ -74,7 +74,7 @@ describe("stores/useGardenStateStore", () => {
   it("persists non-shareable workspace state per garden and workspace", () => {
     const store = useGardenStateStore.getState();
 
-    store.setGardenWorkspaceState("garden-a", "hub", {
+    store.setGardenWorkspaceState("garden-a", "review", {
       activeMode: "history",
       search: "mulch",
     });
@@ -82,29 +82,29 @@ describe("stores/useGardenStateStore", () => {
       activeMode: "members",
       search: "alex",
     });
-    store.setGardenWorkspaceState("garden-b", "hub", {
+    store.setGardenWorkspaceState("garden-b", "review", {
       activeMode: "work",
       search: "solar",
     });
 
-    expect(useGardenStateStore.getState().getGardenWorkspaceState("garden-a", "hub")).toMatchObject(
-      {
-        activeMode: "history",
-        search: "mulch",
-      }
-    );
+    expect(
+      useGardenStateStore.getState().getGardenWorkspaceState("garden-a", "review")
+    ).toMatchObject({
+      activeMode: "history",
+      search: "mulch",
+    });
     expect(
       useGardenStateStore.getState().getGardenWorkspaceState("garden-a", "community")
     ).toMatchObject({
       activeMode: "members",
       search: "alex",
     });
-    expect(useGardenStateStore.getState().getGardenWorkspaceState("garden-b", "hub")).toMatchObject(
-      {
-        activeMode: "work",
-        search: "solar",
-      }
-    );
+    expect(
+      useGardenStateStore.getState().getGardenWorkspaceState("garden-b", "review")
+    ).toMatchObject({
+      activeMode: "work",
+      search: "solar",
+    });
   });
 
   it("normalizes legacy persisted state without workspace buckets", () => {
@@ -122,7 +122,7 @@ describe("stores/useGardenStateStore", () => {
 
     const workspaceState = useGardenStateStore
       .getState()
-      .getGardenWorkspaceState("garden-legacy", "hub");
+      .getGardenWorkspaceState("garden-legacy", "review");
 
     expect(workspaceState).toEqual({
       activeMode: "",
@@ -134,13 +134,13 @@ describe("stores/useGardenStateStore", () => {
     });
 
     expect(() =>
-      useGardenStateStore.getState().setGardenWorkspaceState("garden-legacy", "hub", {
+      useGardenStateStore.getState().setGardenWorkspaceState("garden-legacy", "review", {
         search: "soil",
       })
     ).not.toThrow();
 
     expect(
-      useGardenStateStore.getState().getGardenWorkspaceState("garden-legacy", "hub").search
+      useGardenStateStore.getState().getGardenWorkspaceState("garden-legacy", "review").search
     ).toBe("soil");
   });
 

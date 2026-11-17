@@ -84,6 +84,7 @@ export function useGardenDetailData(id: string | undefined) {
   const canManage = garden ? gardenPermissions.canManageGarden(garden) : false;
   const canReview = garden ? gardenPermissions.canReviewGarden(garden) : false;
   const canManageRoles = garden ? gardenPermissions.canAddMembers(garden) : false;
+  const canManageStewards = garden ? gardenPermissions.canManageStewards(garden) : false;
   const isOwner = garden ? gardenPermissions.isOwnerOfGarden(garden) : false;
 
   const vaultGardenAddress = id && isAddress(id) ? id : undefined;
@@ -215,13 +216,14 @@ export function useGardenDetailData(id: string | undefined) {
     isBaseListError: isError || eligibleGardenBaseListError,
     fetching,
     error,
-    // A failed garden list read fails every Hub tab, so their refresh rereads it.
+    // A failed garden list read fails every Review tab, so their refresh rereads it.
     refreshGardens,
     gardensFetching,
     gardenId,
     canManage,
     canReview,
     canManageRoles,
+    canManageStewards,
     isOwner,
     assessments,
     fetchingAssessments,

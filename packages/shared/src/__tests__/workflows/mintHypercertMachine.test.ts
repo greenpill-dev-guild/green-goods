@@ -6,7 +6,7 @@
  */
 
 import type { Address, Hex } from "viem";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { createActor, fromPromise } from "xstate";
 
 // Custom waitFor that doesn't require DOM (for pure XState tests)

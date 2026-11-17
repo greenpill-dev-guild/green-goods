@@ -23,7 +23,7 @@ export function CampaignDetailsSection(props: CampaignCookieJarCreateFormProps) 
         <AdminTextField
           id="campaign-cookie-jar-title"
           label={formatMessage({
-            id: "cockpit.community.cookies.campaignName",
+            id: "hub.community.cookies.campaignName",
             defaultMessage: "Campaign name",
           })}
           value={campaignTitle}
@@ -32,7 +32,7 @@ export function CampaignDetailsSection(props: CampaignCookieJarCreateFormProps) 
         <AdminTextArea
           id="campaign-cookie-jar-description"
           label={formatMessage({
-            id: "cockpit.community.cookies.campaignDescription",
+            id: "hub.community.cookies.campaignDescription",
             defaultMessage: "Campaign description",
           })}
           value={campaignDescription}
@@ -51,7 +51,7 @@ export function CampaignDetailsSection(props: CampaignCookieJarCreateFormProps) 
         <div className="rounded-[var(--m3-shape-md)] border border-stroke-soft bg-bg-white-0 p-3">
           <p className="type-label-sm text-text-strong">
             {formatMessage({
-              id: "cockpit.community.cookies.generatedCampaignLink",
+              id: "hub.community.cookies.generatedCampaignLink",
               defaultMessage: "Campaign page",
             })}
           </p>

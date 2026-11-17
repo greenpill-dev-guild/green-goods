@@ -75,6 +75,14 @@ function coverageGlobFloors(packageName) {
   return Object.fromEntries(entries);
 }
 
+test("the Agents Doctor caller runs the doctor script from the guild commit it pins the workflow to", () => {
+  const workflow = read(".github/workflows/agents-doctor.yml");
+  const pinned = workflow.match(/uses: greenpill-dev-guild\/\.github\/\.github\/workflows\/agents-doctor\.yml@([0-9a-f]{40})\b/)?.[1];
+  assert.ok(pinned, "the caller pins the guild workflow to a full SHA");
+  // Without doctor-ref the script floats on the guild's main; with another SHA it drifts from the workflow.
+  assert.equal(workflow.match(/^\s*doctor-ref: ([0-9a-f]{40})\s*$/m)?.[1], pinned);
+});
+
 test("shared JS setup pins the toolchain and installs from the frozen lockfile", () => {
   const action = read(".github/actions/setup-js/action.yml");
 
@@ -201,30 +209,35 @@ test("Supply Chain classifier routes each change class without broad fallthrough
     guidance: false,
     supply: false,
     parity: false,
+    deadcode: true,
   });
   assert.deepEqual(classifySupplyChainChanges([".claude/skills/ship/SKILL.md"]), {
     format: true,
     guidance: true,
     supply: false,
     parity: false,
+    deadcode: true,
   });
   assert.deepEqual(classifySupplyChainChanges(["bun.lock"]), {
     format: true,
     guidance: false,
     supply: true,
     parity: false,
+    deadcode: true,
   });
   assert.deepEqual(classifySupplyChainChanges([".github/workflows/design.yml"]), {
     format: true,
     guidance: false,
     supply: true,
     parity: true,
+    deadcode: true,
   });
   assert.deepEqual(classifySupplyChainChanges([], { workflowDispatch: true }), {
     format: true,
     guidance: true,
     supply: true,
     parity: true,
+    deadcode: true,
   });
   // Catalog and ledger edits reach the guidance job, where the cross-revision
   // Test ID guard runs; a data-only PR must not skip it.
@@ -234,6 +247,7 @@ test("Supply Chain classifier routes each change class without broad fallthrough
       guidance: true,
       supply: false,
       parity: false,
+      deadcode: true,
     });
   }
   // The parity suite holds the tests for these test-quality inputs, so a change to one runs it.
@@ -249,7 +263,12 @@ test("Supply Chain classifier routes each change class without broad fallthrough
       guidance: false,
       supply: false,
       parity: true,
+      deadcode: true,
     });
+  }
+  // Knip reads workflows, hooks and tool configs as well as code, so the dead-code job runs on every run.
+  for (const knipInput of [".husky/pre-commit", ".mcp.json", ".gitignore", "docs/docs/index.mdx"]) {
+    assert.equal(classifySupplyChainChanges([knipInput]).deadcode, true, knipInput);
   }
 });
 
@@ -898,17 +917,18 @@ test("Client CI keeps staged modules isolated", () => {
   assert.match(source, /name: Check staged client modules\n\s+run: bun run check --only staged-modules/);
 });
 
-test("PR Test jobs run plain tests; thresholds are enforced nightly and on main", () => {
-  for (const file of ["shared.yml", "client.yml", "admin.yml"]) {
+test("Client and Admin PR tests hold their coverage floors; sharded Shared runs plain and its floors run nightly and on main", () => {
+  const testJob = (file) => {
     const source = read(`.github/workflows/${file}`);
-    const testJob = source.slice(
-      source.indexOf("  test:"),
-      source.indexOf("  lint-", source.indexOf("  test:")),
-    );
-
-    assert.match(testJob, /run:\s*bun run test(?:\s|$)/, `${file} Test must stay plain`);
-    assert.doesNotMatch(testJob, /coverage/, `${file} Test must not collect coverage`);
+    return source.slice(source.indexOf("  test:"), source.indexOf("  lint-", source.indexOf("  test:")));
+  };
+  // A whole suite in one job can hold the package's floors on every pull request.
+  for (const file of ["client.yml", "admin.yml"]) {
+    assert.match(testJob(file), /run:\s*bun run test --coverage(?:\s|$)/, `${file} Test must hold its coverage floors`);
   }
+  // Shared's suite runs in shards, and a shard cannot meet a whole-package floor.
+  assert.match(testJob("shared.yml"), /run:\s*bun run test --shard/, "shared.yml Test stays sharded");
+  assert.doesNotMatch(testJob("shared.yml"), /coverage/, "shared.yml Test must not collect coverage per shard");
 
   const source = read(".github/workflows/coverage-nightly.yml");
   assert.match(source, /schedule:\s*\n\s*- cron:/);

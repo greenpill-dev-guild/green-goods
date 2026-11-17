@@ -70,7 +70,7 @@ export function SetupFlowFooter({
           onClick={onDone}
           className="w-full sm:w-auto"
         >
-          {formatMessage({ id: "cockpit.garden.pool.setup.done.close", defaultMessage: "Done" })}
+          {formatMessage({ id: "hub.garden.pool.setup.done.close", defaultMessage: "Done" })}
         </Button>
       ) : (
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
@@ -99,7 +99,7 @@ export function SetupFlowFooter({
                 className="w-full sm:w-auto"
               >
                 {formatMessage({
-                  id: "cockpit.garden.pool.setup.retry",
+                  id: "hub.garden.pool.setup.retry",
                   defaultMessage: "Try Again",
                 })}
               </Button>
@@ -115,16 +115,16 @@ export function SetupFlowFooter({
               >
                 {intent === "first-run"
                   ? formatMessage({
-                      id: "cockpit.garden.pool.setup.openAll",
+                      id: "hub.garden.pool.setup.openAll",
                       defaultMessage: "Set Up and Open",
                     })
                   : isCampaign
                     ? formatMessage({
-                        id: "cockpit.garden.pool.setup.openCampaign",
+                        id: "hub.garden.pool.setup.openCampaign",
                         defaultMessage: "Open Campaign",
                       })
                     : formatMessage({
-                        id: "cockpit.garden.pool.setup.openSeason",
+                        id: "hub.garden.pool.setup.openSeason",
                         defaultMessage: "Open to the Garden",
                       })}
               </Button>

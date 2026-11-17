@@ -364,7 +364,7 @@ describe("public garden impact API", () => {
   });
 
   it("evicts the least recently used completed value", async () => {
-    let now = 0;
+    const now = 0;
     const cache = new PublicGardenImpactCache({ now: () => now, ttlMs: 100, maxEntries: 2 });
     const loadA = vi.fn(async () => snapshot(1));
     const loadB = vi.fn(async () => snapshot(2));

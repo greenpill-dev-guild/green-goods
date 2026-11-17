@@ -148,7 +148,7 @@ export function selectCommitmentSeat(input: {
  * else whoever asked. Null when nobody is there yet, the zero address included.
  *
  * The provider is the lead provider once one is set: on a request taken up as a garden
- * claim, the counterparty is the garden's account, not the person (the cockpit's
+ * claim, the counterparty is the garden's account, not the person (the Hub's
  * CommitmentPeople reads it the same way).
  */
 export function selectCommitmentOtherParty(input: {

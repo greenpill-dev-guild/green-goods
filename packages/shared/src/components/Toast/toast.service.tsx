@@ -133,7 +133,7 @@ const STATUS_ARIA_ROLE: Record<ToastStatus, "status" | "alert"> = {
 };
 
 // The shared Button carries its own finger box (48px in the app, 44px in the
-// cockpit; DL-031), so the action keeps the surface's sm height and only widens
+// Hub; DL-031), so the action keeps the surface's sm height and only widens
 // to a 44px minimum for one-word labels. Its green is text on a surface, so it
 // takes the text role (DL-053): the action fill green read 3.45:1 on the dark
 // toast.

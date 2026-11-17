@@ -31,6 +31,7 @@ import type { KarmaIntegrationStatus } from "../../types/karma";
 import { isValidAddressFormat, isZeroAddress } from "../../utils/blockchain/address";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
+import { wasAskedToReconnect } from "../../utils/errors/unsent-failures";
 import { useUser } from "../auth/useUser";
 import { useAtomicBatchRoute } from "../blockchain/useAtomicBatchRoute";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
@@ -182,7 +183,7 @@ export function useKarmaIntegration(garden?: Garden | null) {
   });
   const announceFailure = (description: string) =>
     toastService.error({
-      title: formatMessage({ id: "cockpit.garden.karma.toast.reconcileError" }),
+      title: formatMessage({ id: "hub.garden.karma.toast.reconcileError" }),
       description,
     });
   /** Only what the chain recorded counts: a landed transaction can still carry a failed sync. */
@@ -190,15 +191,12 @@ export function useKarmaIntegration(garden?: Garden | null) {
     const failed = recorded.filter((call) => !call.synced).length;
     if (failed === 0 && notSent === 0) {
       toastService.success({
-        title: formatMessage({ id: "cockpit.garden.karma.toast.reconcileComplete" }),
+        title: formatMessage({ id: "hub.garden.karma.toast.reconcileComplete" }),
       });
       return;
     }
     announceFailure(
-      formatMessage(
-        { id: "cockpit.garden.karma.toast.recordedFailures" },
-        { failed: failed + notSent }
-      )
+      formatMessage({ id: "hub.garden.karma.toast.recordedFailures" }, { failed: failed + notSent })
     );
   };
   const announce = (outcome: KarmaReconcileOutcome) => {
@@ -209,7 +207,7 @@ export function useKarmaIntegration(garden?: Garden | null) {
         queryClient.setQueryData(overCeilingsKey, true);
         toastService.info({
           title: formatMessage({ id: "app.txFeedback.overCeilings.title" }),
-          message: formatMessage({ id: "cockpit.garden.karma.toast.needsMoreSignatures" }),
+          message: formatMessage({ id: "hub.garden.karma.toast.needsMoreSignatures" }),
         });
         return;
       case "declined":
@@ -218,11 +216,15 @@ export function useKarmaIntegration(garden?: Garden | null) {
       case "reverted":
         announceFailure(formatMessage({ id: "app.txFeedback.failed.title" }));
         return;
-      case "error":
-        announceFailure(
-          handleReconcileError(outcome.failure, { gardenAddress, showToast: false }).message
-        );
+      case "error": {
+        const { message } = handleReconcileError(outcome.failure, {
+          gardenAddress,
+          showToast: false,
+        });
+        // A wallet that has not answered was already asked to reconnect.
+        if (!wasAskedToReconnect(outcome.failure)) announceFailure(message);
         return;
+      }
       default:
         announceRecorded(outcome.recorded, outcome.notSent);
     }
@@ -264,7 +266,7 @@ export function useKarmaIntegration(garden?: Garden | null) {
       await queryClient.cancelQueries({ queryKey: holdKey });
       return {
         toastId: toastService.loading({
-          title: formatMessage({ id: "cockpit.garden.karma.toast.reconciling" }),
+          title: formatMessage({ id: "hub.garden.karma.toast.reconciling" }),
         }),
       };
     },
@@ -273,7 +275,7 @@ export function useKarmaIntegration(garden?: Garden | null) {
       if (run.batched) announce(run.outcome);
       else
         toastService.success({
-          title: formatMessage({ id: "cockpit.garden.karma.toast.reconcileSuccess" }),
+          title: formatMessage({ id: "hub.garden.karma.toast.reconcileSuccess" }),
         });
       invalidateKarma();
       scheduleIndexerRefresh();
@@ -281,10 +283,11 @@ export function useKarmaIntegration(garden?: Garden | null) {
     onError: (error, _variables, context) => {
       if (context?.toastId) toastService.dismiss(context.toastId);
       const parsed = handleReconcileError(error, { gardenAddress, showToast: false });
-      toastService.error({
-        title: formatMessage({ id: "cockpit.garden.karma.toast.reconcileError" }),
-        description: parsed.message,
-      });
+      if (!wasAskedToReconnect(error))
+        toastService.error({
+          title: formatMessage({ id: "hub.garden.karma.toast.reconcileError" }),
+          description: parsed.message,
+        });
       invalidateKarma();
       scheduleIndexerRefresh();
     },

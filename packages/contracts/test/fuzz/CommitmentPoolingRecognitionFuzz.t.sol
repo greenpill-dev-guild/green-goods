@@ -22,6 +22,12 @@ import { CommitmentPoolingFixture } from "../helpers/CommitmentPoolingFixture.so
 ///      construction. Acceptance alone would be circular — so
 ///      `testFuzzTheCanonicalVectorIsTheOnlyOneAccepted` proves the module rejects every
 ///      one-bps perturbation, which is what makes the acceptance above mean something.
+///
+///      The default caps keep the local push gate inside its budget. A default line applies to every
+///      profile, so the test and ci lines restore those profiles' foundry.toml values.
+/// forge-config: default.fuzz.runs = 96
+/// forge-config: test.fuzz.runs = 1000
+/// forge-config: ci.fuzz.runs = 10000
 contract CommitmentPoolingRecognitionFuzzTest is CommitmentPoolingFixture {
     /// @dev Bounded well under MAX_CONTRIBUTORS_PER_COMMITMENT (40) because every credit costs a
     ///      real link + approve round trip; `CommitmentPoolingBounds.t.sol` covers the ceiling.
@@ -44,7 +50,6 @@ contract CommitmentPoolingRecognitionFuzzTest is CommitmentPoolingFixture {
     // ─────────────────────────────
 
     /// @notice Every canonical vector totals exactly 10,000 bps, for every reachable input.
-    /// forge-config: default.fuzz.runs = 96
     function testFuzzCanonicalVectorTotalsExactlyTenThousand(
         uint8 rawCount,
         uint256 creditSeed,
@@ -69,7 +74,6 @@ contract CommitmentPoolingRecognitionFuzzTest is CommitmentPoolingFixture {
     /// @dev The two passes are computed independently and never pooled. Within each, the remainder
     ///      is strictly smaller than the row count, so a row can pick up at most 1 from each — a
     ///      row receiving 2 from one pass would mean the remainder leaked across rows.
-    /// forge-config: default.fuzz.runs = 96
     function testFuzzNoRowGainsMoreThanOneExtraBpsPerPass(uint8 rawCount, uint256 creditSeed, uint16 rawEqualBps) public {
         (uint256 commitmentId, uint16 equalBps) = _fulfilledFuzzCommitment(rawCount, creditSeed, rawEqualBps);
         ICommitmentPoolingModule.RecognitionEntry[] memory entries = _canonicalEntries(equalBps);
@@ -92,7 +96,6 @@ contract CommitmentPoolingRecognitionFuzzTest is CommitmentPoolingFixture {
     // ───────────────────────
 
     /// @notice Equal-pass remainders go to the lowest addresses, in order and without gaps.
-    /// forge-config: default.fuzz.runs = 96
     function testFuzzEqualPassRemaindersGoToTheLowestAddresses(
         uint8 rawCount,
         uint256 creditSeed,
@@ -125,7 +128,6 @@ contract CommitmentPoolingRecognitionFuzzTest is CommitmentPoolingFixture {
     /// @dev Asserted as an ordering property over the accepted vector: every row that received the
     ///      bonus must rank at or above every row that did not. That is a different statement from
     ///      the loop that produced it, so a shared off-by-one would not satisfy both.
-    /// forge-config: default.fuzz.runs = 96
     function testFuzzVerifiedRemaindersFollowFractionalOrderThenAddress(
         uint8 rawCount,
         uint256 creditSeed,
@@ -176,7 +178,6 @@ contract CommitmentPoolingRecognitionFuzzTest is CommitmentPoolingFixture {
     ///      that accepted anything summing to 10,000 would pass them all. This covers the WEIGHTS;
     ///      `testFuzzRejectsEveryMalformedVectorShape` covers the vector's shape, which is a
     ///      separate family of defect (order, duplicates, length) that reweighting cannot express.
-    /// forge-config: default.fuzz.runs = 96
     function testFuzzTheCanonicalVectorIsTheOnlyOneAccepted(
         uint8 rawCount,
         uint256 creditSeed,
@@ -217,7 +218,6 @@ contract CommitmentPoolingRecognitionFuzzTest is CommitmentPoolingFixture {
     ///      `_readCanonicalCredits` survived the whole fuzz suite. Order, duplication, and length
     ///      are the three ways a caller can misdescribe the roster while every weight still looks
     ///      canonical.
-    /// forge-config: default.fuzz.runs = 96
     function testFuzzRejectsEveryMalformedVectorShape(uint8 rawCount, uint256 creditSeed, uint16 rawEqualBps) public {
         (uint256 commitmentId, uint16 equalBps) = _fulfilledFuzzCommitment(rawCount, creditSeed, rawEqualBps);
         ICommitmentPoolingModule.RecognitionEntry[] memory canonical = _canonicalEntries(equalBps);

@@ -64,7 +64,7 @@ export function VaultActionRouteDialog({ action, gardenAddress }: VaultActionRou
         title={formatMessage({ id: "public.fund.endowmentPause.title" })}
         actions={
           <Button type="button" emphasis="primary" size="sm" onClick={handleClose}>
-            {formatMessage({ id: "cockpit.community.endowment" })}
+            {formatMessage({ id: "hub.community.endowment" })}
           </Button>
         }
       >

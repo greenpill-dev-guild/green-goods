@@ -1,10 +1,11 @@
 /** @vitest-environment happy-dom */
 import { onlineManager, QueryClient } from "@tanstack/react-query";
-import { cleanup, waitFor } from "@testing-library/react";
+import { act, cleanup, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const seams = vi.hoisted(() => ({
+  visibilityRequired: false,
   completions: vi.fn(() => [] as unknown[]),
   retire: vi.fn(async () => {}),
   list: vi.fn(),
@@ -13,6 +14,15 @@ const seams = vi.hoisted(() => ({
   mine: vi.fn(),
   images: vi.fn(),
   preview: vi.fn((_file: File, _owner: string, _identity: string) => "blob:restored-evidence"),
+  /** Live views of the job store open now; `storeChanged` has each answer again. */
+  storeViews: new Set<() => void>(),
+  storeChanged() {
+    for (const answer of this.storeViews) answer();
+  },
+}));
+vi.mock("../../../modules/work/work-visibility", async (original) => ({
+  ...(await original<typeof import("../../../modules/work/work-visibility")>()),
+  hasWorkVisibilityExclusions: () => seams.visibilityRequired,
 }));
 vi.mock("../../../modules/job-queue/work-completions", () => ({
   retireWorkCompletionSnapshots: seams.retire,
@@ -45,6 +55,19 @@ vi.mock("../../../modules/job-queue/db", () => ({
       subscribe: (observer: { next: (rows: unknown[]) => void }) => {
         queueMicrotask(() => observer.next(seams.completions()));
         return { unsubscribe() {} };
+      },
+    }),
+    // Like the live view of the store, it answers with the jobs the queue holds now, and again
+    // after every write, whoever made it.
+    observeJobs: (filter: { userAddress: string; kind?: string; synced?: boolean }) => ({
+      subscribe: (observer: { next: (jobs: unknown[]) => void }) => {
+        const answer = () =>
+          void Promise.resolve(
+            seams.jobs(filter.userAddress, { kind: filter.kind, synced: filter.synced })
+          ).then((jobs) => observer.next((jobs as unknown[] | undefined) ?? []));
+        seams.storeViews.add(answer);
+        queueMicrotask(answer);
+        return { unsubscribe: () => seams.storeViews.delete(answer) };
       },
     }),
   },
@@ -105,6 +128,7 @@ function mount() {
 }
 beforeEach(() => {
   vi.clearAllMocks();
+  seams.visibilityRequired = false;
   Object.defineProperty(navigator, "onLine", { configurable: true, value: false });
   onlineManager.setOnline(false);
   client = new QueryClient({
@@ -126,6 +150,42 @@ afterEach(() => {
   onlineManager.setOnline(true);
 });
 describe("offline work reading", () => {
+  it("keeps saved exclusions across offline list, personal work and queue projections", async () => {
+    const hidden = { ...cachedWork, id: `0x${"a".repeat(64)}`, approval: undefined };
+    const visible = { ...cachedWork, id: `0x${"b".repeat(64)}`, approval: null };
+    client.setQueryData(worksKeys.visibility(11155111), {
+      chainId: 11155111,
+      excludedWorkUIDs: [hidden.id],
+      excludedApprovalUIDs: [],
+    });
+    client.setQueryData(worksKeys.online(garden, 11155111), [hidden, visible]);
+    seams.jobs.mockResolvedValue([queuedJob]);
+    const { result } = mount();
+    await waitFor(() => expect(result.current.works.map((row) => row.id)).toContain(queuedJob.id));
+    expect(result.current.works.map((row) => row.id)).toEqual(
+      expect.arrayContaining([visible.id, queuedJob.id])
+    );
+    expect(result.current.works.map((row) => row.id)).not.toContain(hidden.id);
+    expect(result.current.onlineCount).toBe(1);
+    expect(result.current.hasUnknownStatuses).toBe(false);
+    expect(result.current.refreshWarning).toBe(false);
+    expect(client.getQueryData(worksKeys.online(garden, 11155111))).toEqual([hidden, visible]);
+    expect(seams.list).not.toHaveBeenCalled();
+  });
+
+  it("keeps unsent work while an old offline cache waits for its first visibility snapshot", async () => {
+    seams.visibilityRequired = true;
+    const hidden = { ...cachedWork, id: `0x${"a".repeat(64)}` };
+    client.setQueryData(worksKeys.online(garden, 11155111), [hidden]);
+    seams.jobs.mockResolvedValue([queuedJob]);
+    const { result } = mount();
+    await waitFor(() => expect(result.current.works.map((row) => row.id)).toEqual([queuedJob.id]));
+    expect(result.current.availability).toBe("partial");
+    expect(result.current.readThisSession).toBe(false);
+    expect(result.current.hasUnknownStatuses).toBe(true);
+    expect(client.getQueryData(worksKeys.online(garden, 11155111))).toEqual([hidden]);
+  });
+
   it("renders cached work while a refreshing read waits on its approvals", async () => {
     onlineManager.setOnline(true);
     // Stale enough to refresh on mount, so the hanging read is genuinely in flight.
@@ -148,6 +208,32 @@ describe("offline work reading", () => {
     await waitFor(() =>
       expect(result.current.works.map((work) => work.id)).toContain("local-work")
     );
+  });
+  it("follows a queued work as preparation records its answer, which no queue event announces", async () => {
+    // Preparation saves what it found under its claim and emits nothing. A read refreshed only
+    // by queue events kept the work's page on Preparing uploads after it was ready (PRD-1488).
+    seams.jobs.mockResolvedValue([queuedJob]);
+    const { result, unmount } = mount();
+    const queued = () =>
+      JSON.parse(result.current.works.find((work) => work.id === "local-work")?.metadata ?? "{}");
+    await waitFor(() => expect(queued().submissionState).toBe("preparing"));
+
+    const answer = (preparation: Record<string, unknown>) => {
+      seams.jobs.mockResolvedValue([{ ...queuedJob, meta: { preparation } }]);
+      act(() => seams.storeChanged());
+    };
+    answer({ status: "ready", checkedAt: "2026-11-14T00:04:27.400Z" });
+    await waitFor(() => expect(queued().submissionState).toBe("ready"));
+    answer({ status: "blocked", reason: "NotGardenMember", checkedAt: "2026-11-14T00:05:00.000Z" });
+    await waitFor(() =>
+      expect(queued()).toMatchObject({
+        submissionState: "blocked",
+        blockedReason: "NotGardenMember",
+      })
+    );
+
+    unmount();
+    expect(seams.storeViews.size).toBe(0);
   });
   it("records the cold-cache paused state that the garden route currently labels success", async () => {
     seams.list.mockRejectedValue(new TypeError("Failed to fetch"));

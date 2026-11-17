@@ -546,7 +546,7 @@ describe("CanvasLayout", () => {
   });
 
   it.each([
-    "/hub",
+    "/review",
     "/garden",
     "/community",
   ])("redirects %s to home after the wallet loses every eligible garden", async (route) => {
@@ -582,8 +582,8 @@ describe("CanvasLayout", () => {
   });
 
   it.each([
-    ["/hub/work/attestation-1", "/hub"],
-    ["/hub/work/submit", "/hub"],
+    ["/review/work/attestation-1", "/review"],
+    ["/review/work/submit", "/review"],
     ["/community/endowment/vault", "/community"],
     ["/garden/impact/hypercerts/hc-123", "/garden"],
     ["/actions/action-1", "/actions"],
@@ -598,35 +598,35 @@ describe("CanvasLayout", () => {
     expect(screen.getByTestId("active-path")).toHaveTextContent(expectedActivePath);
   });
 
-  it("keeps NavigationBar props stable across Hub tab route changes", async () => {
+  it("keeps NavigationBar props stable across Review tab route changes", async () => {
     const router = createMemoryRouter([{ path: "*", element: <CanvasLayout /> }], {
-      initialEntries: ["/hub/work"],
+      initialEntries: ["/review/work"],
     });
 
     renderWithProviders(<RouterProvider router={router} />);
 
-    expect(screen.getByTestId("active-path")).toHaveTextContent("/hub");
+    expect(screen.getByTestId("active-path")).toHaveTextContent("/review");
     expect(mockNavigationBarProps).toHaveBeenCalledTimes(1);
     const firstProps = mockNavigationBarProps.mock.calls[0]?.[0];
 
     await act(async () => {
-      await router.navigate("/hub/assess");
+      await router.navigate("/review/assess");
     });
     await act(async () => {
-      await router.navigate("/hub/certify");
+      await router.navigate("/review/certify");
     });
     await act(async () => {
-      await router.navigate("/hub/confirm");
+      await router.navigate("/review/confirm");
     });
 
-    expect(screen.getByTestId("active-path")).toHaveTextContent("/hub");
+    expect(screen.getByTestId("active-path")).toHaveTextContent("/review");
     expect(mockNavigationBarProps).toHaveBeenCalledTimes(1);
     expect(mockNavigationBarProps.mock.calls[0]?.[0].slots).toBe(firstProps.slots);
-    expect(mockNavigationBarProps.mock.calls[0]?.[0].activePath).toBe("/hub");
+    expect(mockNavigationBarProps.mock.calls[0]?.[0].activePath).toBe("/review");
     expect(mockNavigationBarProps.mock.calls[0]?.[0].onNavigate).toBe(firstProps.onNavigate);
   });
 
-  // One chip on both surfaces: the cockpit's avatar is the garden's banner too (DL-124).
+  // One chip on both surfaces: the Hub's avatar is the garden's banner too (DL-124).
   it("hands the chip the selected garden's banner for its avatar", () => {
     mockEligibleAdminGardens.current = {
       ...mockEligibleAdminGardens.current,
@@ -637,7 +637,7 @@ describe("CanvasLayout", () => {
     };
 
     renderWithProviders(
-      <MemoryRouter initialEntries={["/hub"]}>
+      <MemoryRouter initialEntries={["/review"]}>
         <CanvasLayout />
       </MemoryRouter>
     );
@@ -655,7 +655,7 @@ describe("CanvasLayout", () => {
 
   it("renders AppBar above the main workspace and keeps NavigationBar pure", () => {
     renderWithProviders(
-      <MemoryRouter initialEntries={["/hub"]}>
+      <MemoryRouter initialEntries={["/review"]}>
         <CanvasLayout />
       </MemoryRouter>
     );
@@ -705,7 +705,7 @@ describe("CanvasLayout", () => {
 
     renderWithProviders(
       <MemoryRouter
-        initialEntries={["/hub/work?gardenAddress=0x1111111111111111111111111111111111111111"]}
+        initialEntries={["/review/work?gardenAddress=0x1111111111111111111111111111111111111111"]}
       >
         <CanvasLayout />
       </MemoryRouter>
@@ -733,7 +733,7 @@ describe("CanvasLayout", () => {
     });
 
     renderWithProviders(
-      <MemoryRouter initialEntries={["/hub"]}>
+      <MemoryRouter initialEntries={["/review"]}>
         <CanvasLayout />
       </MemoryRouter>
     );
@@ -764,7 +764,7 @@ describe("CanvasLayout", () => {
     const user = userEvent.setup();
 
     renderWithProviders(
-      <MemoryRouter initialEntries={["/hub"]}>
+      <MemoryRouter initialEntries={["/review"]}>
         <CanvasLayout />
       </MemoryRouter>
     );
@@ -797,7 +797,7 @@ describe("CanvasLayout", () => {
     const user = userEvent.setup();
 
     renderWithProviders(
-      <MemoryRouter initialEntries={["/hub"]}>
+      <MemoryRouter initialEntries={["/review"]}>
         <CanvasLayout />
       </MemoryRouter>
     );
@@ -813,7 +813,7 @@ describe("CanvasLayout", () => {
     const user = userEvent.setup();
 
     renderWithProviders(
-      <MemoryRouter initialEntries={["/hub"]}>
+      <MemoryRouter initialEntries={["/review"]}>
         <CanvasLayout />
       </MemoryRouter>
     );
@@ -843,7 +843,7 @@ describe("CanvasLayout", () => {
     const user = userEvent.setup();
 
     renderWithProviders(
-      <MemoryRouter initialEntries={["/hub"]}>
+      <MemoryRouter initialEntries={["/review"]}>
         <CanvasLayout />
       </MemoryRouter>
     );
@@ -860,7 +860,7 @@ describe("CanvasLayout", () => {
     useSheetOrchestratorStore.getState().openSheet("right", "legacy-right-panel");
 
     renderWithProviders(
-      <MemoryRouter initialEntries={["/hub"]}>
+      <MemoryRouter initialEntries={["/review"]}>
         <CanvasLayout />
       </MemoryRouter>
     );
@@ -871,9 +871,9 @@ describe("CanvasLayout", () => {
     expect(screen.queryByTestId("admin-side-sheet-content")).not.toBeInTheDocument();
   });
 
-  it("rings the skip link in the cockpit's focus role, not the browser's own ring", () => {
+  it("rings the skip link in the Hub's focus role, not the browser's own ring", () => {
     renderWithProviders(
-      <MemoryRouter initialEntries={["/hub"]}>
+      <MemoryRouter initialEntries={["/review"]}>
         <CanvasLayout />
       </MemoryRouter>
     );
@@ -888,7 +888,7 @@ describe("CanvasLayout", () => {
 
   it("does not apply pl-20 padding on main content", () => {
     renderWithProviders(
-      <MemoryRouter initialEntries={["/hub"]}>
+      <MemoryRouter initialEntries={["/review"]}>
         <CanvasLayout />
       </MemoryRouter>
     );
@@ -900,7 +900,7 @@ describe("CanvasLayout", () => {
 
   it("applies bottom padding for nav clearance", () => {
     renderWithProviders(
-      <MemoryRouter initialEntries={["/hub"]}>
+      <MemoryRouter initialEntries={["/review"]}>
         <CanvasLayout />
       </MemoryRouter>
     );
@@ -911,7 +911,7 @@ describe("CanvasLayout", () => {
 
   it("takes its side gutter and width cap from the shell tokens, never a fixed value", () => {
     renderWithProviders(
-      <MemoryRouter initialEntries={["/hub"]}>
+      <MemoryRouter initialEntries={["/review"]}>
         <CanvasLayout />
       </MemoryRouter>
     );
@@ -942,7 +942,7 @@ describe("CanvasLayout", () => {
   });
 });
 
-function renderCanvasShell(initialEntry = "/hub/work") {
+function renderCanvasShell(initialEntry = "/review/work") {
   const router = createMemoryRouter([{ path: "*", element: <CanvasShell /> }], {
     initialEntries: [initialEntry],
   });
@@ -964,7 +964,7 @@ describe("CanvasShell access states", () => {
   it("renders the shared disconnected state for direct canvas bookmarks", () => {
     mockAdminAccessState.current = { status: "disconnected" };
 
-    renderCanvasShell("/hub/work");
+    renderCanvasShell("/review/work");
 
     expect(screen.getByRole("button", { name: /connect wallet/i })).toBeInTheDocument();
     expect(screen.getByTestId("top-context-bar")).toBeInTheDocument();
@@ -975,17 +975,17 @@ describe("CanvasShell access states", () => {
     const signOut = vi.fn();
     mockAdminAccessState.current = { status: "embedded-wallet", signOut };
 
-    renderCanvasShell("/hub/work");
+    renderCanvasShell("/review/work");
 
     expect(screen.getByTestId("wallet-required-shell")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /sign out & connect wallet/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /sign out & sign in again/i })).toBeInTheDocument();
     expect(screen.queryByText("Page Transition")).not.toBeInTheDocument();
   });
 
   it("renders the shared no-access state for direct canvas bookmarks", () => {
     mockAdminAccessState.current = { status: "no-access", canCreateGarden: false };
 
-    renderCanvasShell("/hub/work");
+    renderCanvasShell("/review/work");
 
     expect(screen.getByTestId("canvas-no-garden-access")).toBeInTheDocument();
     expect(screen.queryByText("Page Transition")).not.toBeInTheDocument();
@@ -994,7 +994,7 @@ describe("CanvasShell access states", () => {
   it("renders the shared indexer-error state for direct canvas bookmarks", () => {
     mockAdminAccessState.current = { status: "indexer-error" };
 
-    renderCanvasShell("/hub/work");
+    renderCanvasShell("/review/work");
 
     expect(screen.getByTestId("canvas-indexer-error")).toBeInTheDocument();
     expect(screen.queryByText("Page Transition")).not.toBeInTheDocument();
@@ -1004,13 +1004,13 @@ describe("CanvasShell access states", () => {
     // The act is sent from a dialog that closes as soon as it lands, so anything
     // mounted there is gone before the indexer catches up. The shell outlives it.
     // What the refresh does is proven in shared's commitment-completion-refresh test.
-    renderCanvasShell("/hub/work");
+    renderCanvasShell("/review/work");
 
     expect(mockCommitmentCompletionRefresh).toHaveBeenCalled();
   });
 
   it("keeps CanvasLayout as the ready shell for direct canvas bookmarks", () => {
-    renderCanvasShell("/hub/work");
+    renderCanvasShell("/review/work");
 
     expect(mockEnsureBaseLists).toHaveBeenCalled();
     expect(screen.getByText("Page Transition")).toBeInTheDocument();

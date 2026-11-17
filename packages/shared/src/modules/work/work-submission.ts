@@ -144,7 +144,7 @@ export async function submitApprovalToQueue(
  */
 export interface ValidateWorkContextOptions extends WorkAttachmentPolicy {
   audioNotes?: File[];
-  /** Minimum required images (from action config). Defaults to 0 if not provided. */
+  /** Minimum required photos or videos (from action config). Defaults to 0. */
   minRequired?: number;
 }
 
@@ -183,8 +183,8 @@ export function validateWorkSubmissionContext(
   const messages: Record<string, string> = {
     "photos-required":
       minRequired === 1
-        ? "At least one image is required"
-        : `At least ${minRequired} images are required`,
+        ? "At least one media item is required"
+        : `At least ${minRequired} media items are required`,
     "media-count": "You can upload up to 10 photos and videos",
     "media-type": "Only JPEG, PNG, WebP, MP4, and WebM are supported",
     "media-size": "Photos must be 10MB or smaller; videos must be 20MB or smaller",

@@ -45,7 +45,7 @@ export interface VoucherActDialogProps
 }
 
 /**
- * One voucher act on the cockpit's confirm dialog (V5): busy while the act
+ * One voucher act on the Hub's confirm dialog (V5): busy while the act
  * runs, closed when it lands, and kept open saying it didn't go through, with
  * the confirm offered again, when it fails. The body ends with who signs.
  */
@@ -75,7 +75,7 @@ export function VoucherActDialog({
       confirmLabel={
         failed
           ? formatMessage({
-              id: "cockpit.garden.pool.approvals.retry",
+              id: "hub.garden.pool.approvals.retry",
               defaultMessage: "Try Again",
             })
           : confirmLabel

@@ -134,6 +134,7 @@ vi.mock("../../modules/app/analytics-events", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../modules/app/analytics-events")>()),
   trackWorkSubmissionStarted: vi.fn(),
   trackWorkSubmissionSuccess: vi.fn(),
+  trackWorkSubmissionOffline: vi.fn(),
   trackWorkSubmissionFailed: vi.fn(),
   trackWorkWalletRequestStarted: vi.fn(),
   trackWorkWalletRequestExpired: vi.fn(),
@@ -205,6 +206,9 @@ import { toastService, walletProgressToasts, workToasts } from "../../components
 import { worksKeys } from "../../config/query-keys/work";
 import { useWorkMutation } from "../../hooks/work/useWorkMutation";
 import {
+  trackWorkSubmissionFailed,
+  trackWorkSubmissionOffline,
+  trackWorkSubmissionSuccess,
   trackWorkWalletRequestExpired,
   trackWorkWalletRequestStarted,
 } from "../../modules/app/analytics-events";
@@ -623,6 +627,62 @@ describe("hooks/work/useWorkMutation", () => {
     });
     expect(onSuccess).not.toHaveBeenCalled();
     expect(workMutationStoreMocks.setSubmissionCompleted).not.toHaveBeenCalled();
+    // The screen moved on, but the Submit still has its ending on record (PRD-1495).
+    expect(trackWorkSubmissionSuccess).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ authMode: "wallet", wasOffline: false })
+    );
+  });
+
+  it("keeps a Submit's success when its record cannot be made", async () => {
+    // The record runs inside the mutation's callbacks, where a throw would turn success into failure.
+    vi.mocked(trackWorkSubmissionSuccess).mockImplementationOnce(() => {
+      throw new Error("record failed");
+    });
+    mock(submitWorkDirectly).mockResolvedValue(MOCK_TX_HASH);
+    const onSuccess = vi.fn();
+    const onError = vi.fn();
+    const { result } = renderHook(
+      () => useWorkMutation({ ...defaultOptions, onSuccess, onError }),
+      { wrapper: createWrapper() }
+    );
+
+    await act(async () => {
+      await result.current.mutateAsync({ draft: createMockWorkDraft(), images: [] });
+    });
+
+    expect(trackWorkSubmissionSuccess).toHaveBeenCalledOnce();
+    expect(onSuccess).toHaveBeenCalledWith(MOCK_TX_HASH);
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it("records a Submit that failed after the person left the flow, without telling them", async () => {
+    let fail!: (error: Error) => void;
+    vi.mocked(submitWorkDirectly).mockReturnValueOnce(
+      new Promise((_resolve, reject) => {
+        fail = reject;
+      })
+    );
+    const onError = vi.fn();
+    workMutationStoreMocks.activeDraftId = "original-draft";
+    const { result } = renderHook(() => useWorkMutation({ ...defaultOptions, onError }), {
+      wrapper: createWrapper(),
+    });
+    let submitting!: Promise<unknown>;
+    act(() => {
+      submitting = result.current.mutateAsync({ draft: createMockWorkDraft(), images: [] });
+    });
+    await waitFor(() => expect(submitWorkDirectly).toHaveBeenCalled());
+    workMutationStoreMocks.activeDraftId = "different-draft";
+    await act(async () => {
+      const rejected = expect(submitting).rejects.toThrow("execution reverted");
+      fail(new Error("execution reverted"));
+      await rejected;
+    });
+
+    expect(trackWorkSubmissionFailed).toHaveBeenCalledOnce();
+    expect(onError).not.toHaveBeenCalled();
+    expect(walletProgressToasts.error).not.toHaveBeenCalled();
+    expect(toastService.error).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -1005,6 +1065,11 @@ describe("hooks/work/useWorkMutation", () => {
 
       expect(txHash).toMatch(/^0xoffline_/);
       expect(txHash?.startsWith("0xoffline_")).toBe(true);
+      // Saved for later is not a success: the queue sends it (PRD-1495).
+      expect(trackWorkSubmissionOffline).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({ reason: "offline" })
+      );
+      expect(trackWorkSubmissionSuccess).not.toHaveBeenCalled();
     });
   });
 

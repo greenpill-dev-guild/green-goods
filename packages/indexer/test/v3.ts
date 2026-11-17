@@ -262,6 +262,8 @@ export const GreenWill = createContract("GreenWill", [
   "BadgeIssued",
 ] as const);
 export const HatsModule = createContract("HatsModule", [
+  "ProtocolRoleHatsUpdated",
+  "RoleManaged",
   "RoleGranted",
   "RoleRevoked",
   "KarmaHookFailed",

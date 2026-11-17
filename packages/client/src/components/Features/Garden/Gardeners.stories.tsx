@@ -1,3 +1,4 @@
+import { useGardenMemberContributions } from "@green-goods/shared/hooks/garden/useGardenMemberContributions";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
 import { useGardenMemberHistory } from "@green-goods/shared/hooks/garden/useGardenMemberHistory";
@@ -38,6 +39,7 @@ const meta: Meta<typeof GardenGardeners> = {
     withSignedOutAuth,
   ],
   beforeEach: () => {
+    mocked(useGardenMemberContributions).mockReturnValue({ canView: false, byAccount: {} });
     mocked(useGardenMemberHistory).mockReturnValue({
       members: members.map((member) => ({
         garden: JOURNEY_GARDEN_RECORD.id,
@@ -65,7 +67,8 @@ const meta: Meta<typeof GardenGardeners> = {
       useEnsName,
       useGreenGoodsEnsName,
       useResolvedProfileAvatar,
-      useGardenMemberHistory
+      useGardenMemberHistory,
+      useGardenMemberContributions
     );
   },
   play: async ({ canvasElement }) => {
@@ -148,5 +151,29 @@ export const IdentityStates: Story = {
     // A garden's join date is independent of the first gardener role held anywhere.
     await expect(canvas.getAllByText("Joined Jun 12, 2026")).toHaveLength(3);
     await expectItemRowsFit(canvasElement);
+  },
+};
+
+/** Synthetic members: the contribution date, an empty history and an unavailable read. */
+export const Contributions: Story = {
+  args: { members: members.slice(0, 3) },
+  beforeEach: () => {
+    mocked(useGardenMemberContributions).mockReturnValue({
+      canView: true,
+      byAccount: {
+        [members[0].account.toLowerCase()]: { status: "recorded", at: Date.UTC(2026, 10, 15, 12) },
+        [members[1].account.toLowerCase()]: { status: "none" },
+        [members[2].account.toLowerCase()]: { status: "unavailable" },
+      },
+    });
+    return resetHookMocks(useGardenMemberContributions);
+  },
+  play: undefined,
+};
+export const ContributionDetails: Story = {
+  ...Contributions,
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getAllByRole("button", { name: /Gardener 1/ })[0]);
+    await waitFor(() => expect(within(document.body).getByRole("dialog")).toBeVisible());
   },
 };

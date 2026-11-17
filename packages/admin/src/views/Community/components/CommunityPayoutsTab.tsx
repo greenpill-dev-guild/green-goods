@@ -19,7 +19,7 @@ import {
   CampaignCookieJarCreateDialog,
   CampaignCookieJarPanel,
 } from "@/views/Cookies/components/CampaignCookieJar";
-import { CookieJarPayoutPanel } from "@/views/Hub/components/CookieJarPayoutPanel";
+import { CookieJarPayoutPanel } from "@/views/Review/components/CookieJarPayoutPanel";
 
 export type CommunityPayoutsTabProps = Pick<
   CommunityWorkspace,
@@ -78,7 +78,7 @@ export function CommunityPayoutsTab({
             <section
               ref={campaignJarsRef}
               aria-label={formatMessage({
-                id: "cockpit.community.cookies.title",
+                id: "hub.community.cookies.title",
                 defaultMessage: "Campaign Cookie Jars",
               })}
               data-region="campaign-cookie-jars"
@@ -95,7 +95,7 @@ export function CommunityPayoutsTab({
                     onClick={() => navigate(campaignJarsRoute(CREATE_CAMPAIGN_JAR_ROUTE_ITEM))}
                   >
                     {formatMessage({
-                      id: "cockpit.community.cookies.create",
+                      id: "hub.community.cookies.create",
                       defaultMessage: "Create Cookie Jar",
                     })}
                   </Button>
@@ -114,7 +114,7 @@ export function CommunityPayoutsTab({
               <AdminCard variant="elevated" className="space-y-3">
                 <AdminCardTitle>
                   {formatMessage({
-                    id: "cockpit.community.payouts.readiness",
+                    id: "hub.community.payouts.readiness",
                     defaultMessage: "Payout readiness",
                   })}
                 </AdminCardTitle>

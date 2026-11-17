@@ -62,7 +62,7 @@ export function VoucherApproveDialog({
           tone={tone}
           title={formatMessage(
             {
-              id: "cockpit.garden.pool.voucher.approve.title",
+              id: "hub.garden.pool.voucher.approve.title",
               defaultMessage: "Approve {name}’s Booking?",
             },
             { name }
@@ -71,11 +71,11 @@ export function VoucherApproveDialog({
           confirmLabel={
             ask?.issuer.execution === "safe-file"
               ? formatMessage({
-                  id: "cockpit.garden.pool.voucher.live.download",
+                  id: "hub.garden.pool.voucher.live.download",
                   defaultMessage: "Download Safe File",
                 })
               : formatMessage({
-                  id: "cockpit.garden.pool.voucher.approve.confirm",
+                  id: "hub.garden.pool.voucher.approve.confirm",
                   defaultMessage: "Approve Booking",
                 })
           }
@@ -89,12 +89,12 @@ export function VoucherApproveDialog({
             <FactList frame="card">
               <FactRow
                 label={formatMessage({
-                  id: "cockpit.garden.pool.voucher.fact.vouchers",
+                  id: "hub.garden.pool.voucher.fact.vouchers",
                   defaultMessage: "Vouchers",
                 })}
                 value={formatMessage(
                   {
-                    id: "cockpit.garden.pool.voucher.vouchers",
+                    id: "hub.garden.pool.voucher.vouchers",
                     defaultMessage:
                       "{count, plural, one {# {issuer} voucher} other {# {issuer} vouchers}}",
                   },
@@ -106,7 +106,7 @@ export function VoucherApproveDialog({
               />
               <FactRow
                 label={formatMessage({
-                  id: "cockpit.garden.pool.voucher.fact.from",
+                  id: "hub.garden.pool.voucher.fact.from",
                   defaultMessage: "From",
                 })}
                 valueTitle={ask.buyer}
@@ -114,14 +114,14 @@ export function VoucherApproveDialog({
                   <FactValue
                     value={formatMessage(
                       {
-                        id: "cockpit.garden.pool.voucher.fact.fromValue",
+                        id: "hub.garden.pool.voucher.fact.fromValue",
                         defaultMessage: "{name}’s account",
                       },
                       { name }
                     )}
                     note={formatMessage(
                       {
-                        id: "cockpit.garden.pool.voucher.fact.fromNote",
+                        id: "hub.garden.pool.voucher.fact.fromNote",
                         defaultMessage: "{address}, the same address on every network",
                       },
                       { address: shortAddress(ask.buyer) }
@@ -131,7 +131,7 @@ export function VoucherApproveDialog({
               />
               <FactRow
                 label={formatMessage({
-                  id: "cockpit.garden.pool.voucher.fact.acceptBy",
+                  id: "hub.garden.pool.voucher.fact.acceptBy",
                   defaultMessage: "Accept by",
                 })}
                 valueTitle={exactTime(intl, setup.acceptBy * 1000)}
@@ -143,7 +143,7 @@ export function VoucherApproveDialog({
                         ? undefined
                         : formatMessage(
                             {
-                              id: "cockpit.garden.pool.voucher.fact.acceptByNote",
+                              id: "hub.garden.pool.voucher.fact.acceptByNote",
                               defaultMessage:
                                 "{days, plural, one {# day} other {# days}} from agreeing, under your terms",
                             },
@@ -155,12 +155,12 @@ export function VoucherApproveDialog({
               />
               <FactRow
                 label={formatMessage({
-                  id: "cockpit.garden.pool.voucher.fact.terms",
+                  id: "hub.garden.pool.voucher.fact.terms",
                   defaultMessage: "Terms",
                 })}
                 value={formatMessage(
                   {
-                    id: "cockpit.garden.pool.voucher.version",
+                    id: "hub.garden.pool.voucher.version",
                     defaultMessage: "Version {version}",
                   },
                   { version: ask.agreed.revision.toString() }
@@ -172,14 +172,14 @@ export function VoucherApproveDialog({
             variant="info"
             title={formatMessage(
               {
-                id: "cockpit.garden.pool.voucher.approve.noteTitle",
+                id: "hub.garden.pool.voucher.approve.noteTitle",
                 defaultMessage: "Approving lets {name} deposit",
               },
               { name }
             )}
           >
             {formatMessage({
-              id: "cockpit.garden.pool.voucher.approve.noteBody",
+              id: "hub.garden.pool.voucher.approve.noteBody",
               defaultMessage:
                 "It isn’t acceptance. You accept after the deposit is confirmed on Green Goods.",
             })}
@@ -240,13 +240,13 @@ export function VoucherAcceptDialog({
           onClose={onClose}
           tone={tone}
           title={formatMessage(
-            { id: "cockpit.garden.pool.voucher.accept.title", defaultMessage: "Accept {name}?" },
+            { id: "hub.garden.pool.voucher.accept.title", defaultMessage: "Accept {name}?" },
             { name }
           )}
           description={title}
           target={<PoolTarget target={target} />}
           confirmLabel={formatMessage(
-            { id: "cockpit.garden.pool.voucher.accept.confirm", defaultMessage: "Accept {name}" },
+            { id: "hub.garden.pool.voucher.accept.confirm", defaultMessage: "Accept {name}" },
             { name }
           )}
           confirmDisabled={disabled || !checks?.ready}
@@ -254,7 +254,7 @@ export function VoucherAcceptDialog({
             if (ask) await onAccept(ask, now);
           }}
           note={formatMessage({
-            id: "cockpit.garden.pool.voucher.wallet",
+            id: "hub.garden.pool.voucher.wallet",
             defaultMessage: "Your wallet will ask you to approve.",
           })}
           progress={
@@ -262,7 +262,7 @@ export function VoucherAcceptDialog({
               phase={phase}
               chainId={chainId}
               confirmed={formatMessage({
-                id: "cockpit.garden.pool.voucher.accepted",
+                id: "hub.garden.pool.voucher.accepted",
                 defaultMessage: "Accepted",
               })}
             />
@@ -274,21 +274,21 @@ export function VoucherAcceptDialog({
           <Alert
             variant="info"
             title={formatMessage({
-              id: "cockpit.garden.pool.voucher.accept.noteTitle",
+              id: "hub.garden.pool.voucher.accept.noteTitle",
               defaultMessage: "Accepting starts the booking",
             })}
           >
             {ask?.issuer.kind === "individual"
               ? formatMessage(
                   {
-                    id: "cockpit.garden.pool.voucher.accept.noteBodyMember",
+                    id: "hub.garden.pool.voucher.accept.noteBodyMember",
                     defaultMessage:
                       "You accept as the pool’s steward. {issuer}’s approval was required first; you couldn’t give it for them.",
                   },
                   { issuer: ask.issuer.name }
                 )
               : formatMessage({
-                  id: "cockpit.garden.pool.voucher.accept.noteBody",
+                  id: "hub.garden.pool.voucher.accept.noteBody",
                   defaultMessage:
                     "Starting follows on the voucher network. It doesn’t mean the service was delivered.",
                 })}

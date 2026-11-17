@@ -324,6 +324,7 @@ const sheetRows = (sheet: HTMLElement) =>
 describe("Home journal", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
     useUIStore.setState({
       isCommitmentsSheetOpen: false,
       commitmentsSheetOpening: undefined,
@@ -350,6 +351,8 @@ describe("Home journal", () => {
       render(<RecentActivity gardenId={GARDEN} />);
 
       expect(screen.getByRole("heading", { level: 2, name: "Recent Activity" })).toBeVisible();
+      // PRD-1492: a new steward could not tell whether these were their own works or the garden's.
+      expect(screen.getByText("Everyone's work in this garden")).toBeVisible();
       const rows = screen.getAllByRole("button", {
         name: /Compost turn|Seed library|Fence repair/,
       });
@@ -438,6 +441,8 @@ describe("Home journal", () => {
       render(<RecentActivity gardenId={GARDEN} />);
 
       expect(screen.getByText(/^Offline · Saved /)).toBeVisible();
+      // Whose work it is still says so beside the saved copy's note.
+      expect(screen.getByText("Everyone's work in this garden")).toBeVisible();
       expect(screen.getAllByRole("button", { name: /Seed library/ })).toHaveLength(1);
     });
   });
@@ -916,6 +921,38 @@ describe("Home journal", () => {
       within(screen.getByRole("heading", { name: "About This Garden" }).closest("section")!)
         .getAllByRole("button")
         .map((row) => row.querySelector(".gg-item-row-title")?.textContent);
+
+    it.each([
+      "stewards",
+      "owners",
+    ] as const)("links the configured Hub from About for the selected garden's %s", (role) => {
+      vi.stubEnv("VITE_ADMIN_APP_URL", "  https://hub.example.test  ");
+      mocks.account = ME;
+      renderAbout(garden({ [role]: [ME] }));
+
+      const about = screen.getByRole("heading", { name: "About This Garden" }).closest("section")!;
+      const hub = within(about).getByRole("link", { name: /Green Goods Hub/ });
+      expect(hub).toHaveAttribute("href", "https://hub.example.test");
+      expect(hub).toHaveAttribute("target", "_blank");
+      expect(hub).toHaveAttribute("rel", "noopener noreferrer");
+    });
+
+    it("does not expose the Hub from another garden's stewardship or an evaluator role", () => {
+      vi.stubEnv("VITE_ADMIN_APP_URL", "https://hub.example.test");
+      mocks.account = ME;
+      mocks.evaluatorOnChain = true;
+      renderAbout(garden({ stewards: [NEIGHBOUR], gardeners: [ME] }), ["steward"]);
+
+      expect(screen.queryByRole("link", { name: /Green Goods Hub/ })).toBeNull();
+    });
+
+    it.each(["", "   "])("omits the Hub when its build URL is %j", (hubUrl) => {
+      vi.stubEnv("VITE_ADMIN_APP_URL", hubUrl);
+      mocks.account = ME;
+      renderAbout(garden({ owners: [ME] }));
+
+      expect(screen.queryByRole("link", { name: /Green Goods Hub/ })).toBeNull();
+    });
 
     it("gives a gardener Insights, Gardeners and Share, and never Endowment", () => {
       mocks.account = NEIGHBOUR;

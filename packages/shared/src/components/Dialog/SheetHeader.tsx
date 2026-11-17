@@ -12,7 +12,7 @@
  * `PwaSheet` renders it under the grip (`SheetGrip`) and, through
  * `dragHandlers`, makes the title block part of the grip's grab area
  * (DL-033); the centered `DialogShell` and `ConfirmDialog` render it at the
- * top of their Radix surface, and the cockpit's `AdminDialog` and
+ * top of their Radix surface, and the Hub's `AdminDialog` and
  * `AdminSideSheet` below 640px, passing the Radix title and description
  * primitives through `titleAs` / `descriptionAs` so Radix keeps naming the
  * dialog.
@@ -25,7 +25,7 @@
  * description sizes sit in `@layer components`, which is why consumers must
  * not carry unlayered element type rules. A surface sets its own title size
  * through `--gg-sheet-title-size` and `--gg-sheet-title-line` (DL-031); the
- * cockpit keeps its 22px dialog title.
+ * Hub keeps its 22px dialog title.
  *
  * @module components/Dialog/SheetHeader
  */
@@ -46,7 +46,7 @@ export interface SheetGripProps {
 
 /**
  * SheetGrip — the short pill at the top of every bottom sheet (DL-028).
- * `PwaSheet` binds its drag gesture to it (DL-033); the cockpit's dialogs show
+ * `PwaSheet` binds its drag gesture to it (DL-033); the Hub's dialogs show
  * it below 640px without a gesture, as the mark of a sheet.
  */
 export function SheetGrip({ testId, dragHandlers }: SheetGripProps) {

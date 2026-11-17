@@ -24,8 +24,12 @@ import {
   reviewBudget,
   signaturesForReviews,
 } from "../../modules/work/review-chain";
-import type { Address, WorkApprovalDraft } from "../../types/domain";
-import { Confidence, VerificationMethod } from "../../types/domain";
+import {
+  type Address,
+  type WorkApprovalDraft,
+  Confidence,
+  VerificationMethod,
+} from "../../types/domain";
 import { simulateTransaction } from "../../utils/blockchain/simulation";
 import { encodeWorkApprovalData } from "../../utils/eas/encoders";
 import { parseAndFormatError } from "../../utils/errors/contract-errors";

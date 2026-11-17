@@ -25,7 +25,7 @@ That's it: seven scheduled cadences, all cloud routines hosted at [claude.ai/cod
 | Routine | Connectors | Why each |
 |---|---|---|
 | `bug-intake` | Google Drive, Linear, PostHog, Vercel; Sentry-ready when connector/API access exists | Drive = meeting-note intake · Linear = Customer Need (raw signal) + linked Issue surface (accepted bug or tracking Issue) · PostHog = telemetry/product-impact enrichment · Sentry = stack/release/root-cause enrichment · Vercel = deploy correlation (commit + diff that shipped within 48h before each report) |
-| `health-watch` | Google Calendar, Linear, PostHog, Vercel; Sentry-ready when connector/API access exists | Calendar = context that adjusts severity · Linear = accepted operational health Issues (Product) · PostHog = client-side `$exception` spike detection + error correlation · Sentry = release regression and agent/API crash context · Vercel = deploy/runtime/web-vitals signal feeding `activity:build` Issues. Also probes the agent's unauthenticated `/health` via `BOT_API_URL` (env var, not a connector). |
+| `health-watch` | Google Calendar, Linear, PostHog, Vercel; Sentry-ready when connector/API access exists | Calendar = context that adjusts severity · Linear = accepted operational health Issues (Product) · PostHog = client-side `$exception` spike detection + error correlation · Sentry = release regression and agent/API crash context · Vercel = deploy/runtime/web-vitals signal feeding `activity:build` Issues. Also probes the agent's unauthenticated `/health` via `BOT_API_URL` (env var, not a connector). Reads each scheduled CI lane's latest run from GitHub's public REST API, with no token and no connector. |
 | `growth-pulse` | Google Calendar, Linear, PostHog | Calendar = WoW context · Linear = accepted-anomaly Issue surface (Product) · PostHog = product/growth metrics via curated questions. Drive and Miro are intentionally not wired here; Vercel is also intentionally not wired because Vercel Web Analytics overlaps with PostHog and would create dual-source drift. |
 | `sync-triage-pulse` | Google Drive, Linear, PostHog, Vercel | Drive = the Gemini notes of the Monday Engineering Sync and the Wednesday Build Sync · Linear = Backlog tracking Issues, plus Customer Needs (raw signal, unprojected) for items that relay customer or telemetry signal (routed per Project routing) · PostHog = per-surface telemetry cross-reference · Vercel = deploy correlation gated on PostHog-matched items only (anchored to `first_seen`, skipped for items without telemetry signal). |
 | `release-prep` | GitHub (read-only), Linear (read-only) | GitHub = open PRs + commit ranges (`main..develop`, plus hotfixes on `main` not yet merged back) + existing releases/tags · Linear = the active release project: its name sets the version, its targetDate drives the self-gating window (brief posts at target − 3 days), and its `QA complete` milestone is the release gate. No Drive/PostHog — a pure readiness draft; reads the release runbook from `develop`. |
@@ -41,10 +41,10 @@ Gmail is intentionally NOT wired on any GG routine (personal-inbox pollution ris
 | `#bug-report` (DISCORD_BUGS_CHANNEL_ID) | bug-intake (Phase 1 ingest source + in-thread acks on reporters' messages) | dedicated bug-report feed |
 | `#product` (DISCORD_PRODUCT_CHANNEL_ID) | bug-intake (digest, quiet run = one line), sync-triage-pulse (Mon and Wed pre-stage summary, no-sync = one line) | user-facing concerns + ideas |
 | `#growth` (DISCORD_GROWTH_CHANNEL_ID) | growth-pulse (weekly digest highlights, with a 🎯 Grant line in grant-relevant weeks) | growth / funnel / retention / action-template pulse and grant signals; the channel was named `#funding` until growth and funding merged, and the guild's grant-scout posts there too |
-| `#engineering` (DISCORD_ENGINEERING_CHANNEL_ID) | health-watch (one-line green; breakdown on change; @mention red only) | operational health status — engineering-focused (indexer / Vercel / contracts / agent uptime / client errors) |
+| `#engineering` (DISCORD_ENGINEERING_CHANNEL_ID) | health-watch (one-line green; breakdown on change; @mention red only) | operational health status — engineering-focused (indexer / Vercel / contracts / agent uptime / client errors / scheduled CI lanes) |
 | `#research` (DISCORD_RESEARCH_CHANNEL_ID) | research-synthesis (Sat digest; the input channel for research links, filed onto threads with one line each in the Linear document *Research threads*) and, once its spec lands, research-week (Mon pointer line to that document) | researcher-facing state of the agenda tracks: what moved, what is blocked and on whom, and where to read the threads; names and organisations stay in Linear |
 
-`#engineering` is health-watch's home channel (operational health status — indexer / Vercel / contracts / agent uptime / client errors). Other code-local engineering signals still come from the user reading PRs and Linear, not from a routine.
+`#engineering` is health-watch's home channel (operational health status: indexer / Vercel / contracts / agent uptime / client errors / scheduled CI lanes). Other code-local engineering signals, pull-request CI included, still come from the user reading PRs and Linear, not from a routine.
 
 ## Notification policy
 
@@ -127,7 +127,7 @@ Green Goods uses three PostHog projects (org-level connector scope, switch-proje
 | Project | ID | Surfaces | Used by |
 |---|---|---|---|
 | **App** | `163591` | Client + PWA + editorial website (single ingest target — editorial-to-PWA lineage stays a within-project query) | `growth-pulse` (primary), `bug-intake` (primary), `sync-triage-pulse` (PWA/website-surface items), `health-watch` (errors) |
-| **Admin** | `262122` | Operator cockpit / admin web app | `growth-pulse` (`actions.template-creation-rate` only), `bug-intake` (admin-route reports), `sync-triage-pulse` (admin-surface items) |
+| **Admin** | `262122` | Green Goods Hub (steward web app) | `growth-pulse` (`actions.template-creation-rate` only), `bug-intake` (admin-route reports), `sync-triage-pulse` (admin-surface items) |
 | **Agent** | `262124` | Bot/messaging runtime (Telegram + future WhatsApp/SMS) | `bug-intake` (Telegram-source reports) |
 
 The PostHog connector is the primary access path. The connector key has a project scope set per-project at OAuth time — confirm with `switch-project` + a 1-event test query before assuming a routine can read a given project. A routine that returns zero events on a known-busy project (e.g., App over 30d) should treat the result as a wiring failure (out-of-scope or wrong project ID), not a real anomaly.
@@ -137,7 +137,7 @@ Cloud routines set the project ID env vars below and reference the right one per
 | Variable | Value | Used for |
 |---|---|---|
 | `POSTHOG_PROJECT_ID_APP` | `163591` | App/client/PWA/editorial queries |
-| `POSTHOG_PROJECT_ID_ADMIN` | `262122` | Admin cockpit queries |
+| `POSTHOG_PROJECT_ID_ADMIN` | `262122` | Hub queries |
 | `POSTHOG_PROJECT_ID_AGENT` | `262124` | Agent/bot-channel queries |
 
 Do not add `POSTHOG_PROJECT_API_KEY`, single-project `POSTHOG_PROJECT_ID`, or `POSTHOG_HOST` to the active Claude routine env unless you are deliberately enabling the local fallback script. Those variables belong to `scripts/agents/posthog-query.ts` for non-Claude/Codex/local fallback reads; connector-backed routines should only need the connector plus the three project IDs above.
@@ -190,7 +190,7 @@ These routines write to Linear:
 
 - `bug-intake` writes a **Customer Need** for every validated report and a linked **Issue** for every record: a `Todo` accepted-bug Issue for committed product work, otherwise a `Backlog` tracking Issue. A meeting-note item from an internal speaker gets the Issue alone unless telemetry backs it, per [routing rule 2](../../.claude/context/linear-routing-rules.md#invariant-rules).
 - `growth-pulse` writes **Issues** for accepted growth/strategy anomalies (funnel, retention, dormancy) once they cross the anomaly threshold.
-- `health-watch` writes **Issues** for accepted operational health work (indexer, Vercel deploy/runtime, contracts) once a 🔴 anomaly is confirmed.
+- `health-watch` writes **Issues** for accepted operational health work (indexer, Vercel deploy/runtime, contracts, a red scheduled CI lane) once a 🔴 anomaly is confirmed.
 - `sync-triage-pulse` writes Backlog tracking **Issues** and, for items that relay customer or telemetry signal, the linked **Customer Needs** (pre-stage from the notes of the Monday Engineering Sync and the Wednesday Build Sync, label `source:sync-triage-pulse` + `session:<YYYY-MM-DD>`). It never creates `Todo` Issues; the interactive `/qa-triage` skill promotes tracking Issues with human judgment in the loop.
 - `research-synthesis` writes **status updates** on each agenda track's named surface (a project or initiative status update, only for a track that moved that week, with the previous `health` carried forward and never set by the routine, ending with the implementable-when bars met), up to three **comments** on anchor issues, at most one Research **Issue** in `Triage` when no open Research issue covers an agenda track's open question, one refresh of the Research-team **document** *Research agenda · pending edits* (its proposed agenda edits as checkboxes, plus candidate tracks and questions), and at most one **comment** per run on the Growth issue *Research → growth radar* naming the partner, pitch, grant-fit or product opportunities the week's evidence supports. It never changes state, priority, labels, assignees, dates, or health on any team, never creates or edits a Growth issue, and never edits the agenda file; the `research-agenda` skill applies the ticked edits.
 

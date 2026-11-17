@@ -191,7 +191,7 @@ One name for a garden's approved work records wherever the website labels or cou
 ## Typography
 
 - **Fraunces** (serif) is reserved for editorial route heroes, large stat numbers, and garden story headings. Local font faces are declared in `packages/client/index.html`, with WOFF2 files and licenses in `packages/client/public/fonts/`; resolved by Tailwind's `font-serif` utility through `--font-serif` in shared `theme.css`.
-- **Inter** carries body, nav, cards, buttons, and dialogs on the public website, including a public page opened inside the installed app. The installed app itself reads in Plus Jakarta Sans, the cockpit's face (DL-096; `DESIGN.pwa.md` § The Field Tool).
+- **Inter** carries body, nav, cards, buttons, and dialogs on the public website, including a public page opened inside the installed app. The installed app itself reads in Plus Jakarta Sans, the Hub's face (DL-096; `DESIGN.pwa.md` § The Field Tool).
 - Editorial headlines scale to magazine sizes (text-3xl → text-5xl); body stays restrained.
 - The home page and the four navigation pages (Gardens, Impact, Fund, Actions) open on a hero title of three lines at every width. Their English titles are written as three `<line>` segments in the catalog and rendered with `EditorialTitleLine`, because the card's measure alone lets a small copy edit change the count. Keep each line within the desktop card, 456px at 60px type. Spanish and Portuguese titles are longer and wrap on their own.
 
@@ -245,7 +245,7 @@ Pairing rule: keep Inter as the sans companion; **never** pair two serifs on the
 
 ## Buttons and Fields
 
-The public site uses the same button and field system as the installed app (DL-024):
+The Green Goods Website uses the same button and field system as the installed app (DL-024):
 
 - **Actions** come from the shared `Button`, `IconButton`, and `Chip`. Every button is a capsule with a semibold label, whatever its emphasis or size, and keeps that shape while pressed (DL-026, DL-089); a text action (arrow links such as `Show more entries`) has no container, a close is a circle, and a filter chip is a capsule. The vault and cookie flows follow the same rule: square surfaces, capsule buttons.
 - **Editorial atoms** (`EditorialPrimaryButton`, `EditorialGhostButton`, their link variants, and `EditorialDomainChip`) are thin wrappers over the shared primitives that pass `size` through and add only the dialect's colors: the warm linen secondary, the walnut-surface secondary, and each domain's ink on an active filter chip.
@@ -282,5 +282,5 @@ The public site uses the same button and field system as the installed app (DL-0
 - Show `Connect Wallet` as a public header CTA.
 - Imply Donate is tax-deductible, charitable, nonprofit-backed, or a legal receipt.
 - Promise card payments before the provider proof registry confirms the exact tuple is `live`.
-- Make the public site feel like an admin dashboard or KPI grid.
+- Make the Green Goods Website feel like an admin dashboard or KPI grid.
 - Carry raw receipt tokens into analytics, query params, JSON bodies, or server-rendered URLs.

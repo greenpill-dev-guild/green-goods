@@ -1,6 +1,11 @@
 import { connectivityStore } from "../../stores/connectivity";
 import { useIntl } from "react-intl";
-import { showWorkSubmissionFailure } from "./workSubmissionFeedback";
+import {
+  recordWorkSubmissionFailure,
+  recordWorkSubmissionOutcome,
+  recordWorkSubmissionStart,
+  showWorkSubmissionFailure,
+} from "./workSubmissionFeedback";
 import { createDraftUploadPersistence } from "../../modules/work/draft-upload";
 import { WorkTransactionReverted } from "../../modules/work/work-confirmation";
 import { draftDB } from "../../modules/job-queue/draft-db";
@@ -15,11 +20,7 @@ import {
   workToasts,
 } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
-import {
-  trackWorkSubmissionStarted,
-  trackWorkSubmissionSuccess,
-  trackWorkWalletRequestStarted,
-} from "../../modules/app/analytics-events";
+import { trackWorkWalletRequestStarted } from "../../modules/app/analytics-events";
 import { addBreadcrumb } from "../../modules/app/error-tracking";
 import {
   hasRecordedSend,
@@ -272,7 +273,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         assertWorkUploadConsent(receipt, userAddress);
         origin.uploadConsent = receipt;
         if (variables.beforeAdmission && !(await variables.beforeAdmission()))
-          throw new UploadPolicyCancelledError();
+          throw new UploadPolicyCancelledError("before-admission");
         if (!ownsFlow(origin)) throw new UploadPolicyCancelledError();
       }
       const workSubmissionJourneyId = origin.journeyId;
@@ -297,7 +298,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         imageCount: variables?.images.length ?? 0,
         workSubmissionJourneyId,
       });
-      trackWorkSubmissionStarted({
+      recordWorkSubmissionStart({
         actionUID: actionUID ?? 0,
         authMode,
         imageCount: variables?.images.length ?? 0,
@@ -366,9 +367,11 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
     },
     onSuccess: (txHash, variables) => {
       const origin = origins.current.get(variables);
-      if (!origin || !ownsFlow(origin)) return;
+      if (!origin || !ownsSession(origin)) return;
+      // The ending is recorded even when the person has left the flow (PRD-1495).
+      recordWorkSubmissionOutcome(origin, txHash, options);
+      if (!ownsFlow(origin)) return;
       const isOfflineHash = typeof txHash === "string" && isOfflineTxHash(txHash);
-      const workSubmissionJourneyId = origin.journeyId;
 
       const awaiting = origin.outcome?.kind === "awaiting-confirmation";
       // A send on record whose check could not run now says so, not that it is being checked.
@@ -393,17 +396,6 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
           title: intl.formatMessage({ id: "app.offline.degraded" }),
           message: intl.formatMessage({ id: "app.work.queuedConnectionUnconfirmed" }),
           context: "work",
-        });
-
-      // Confirmation checks have not established a successful submission yet.
-      if (!awaiting)
-        trackWorkSubmissionSuccess({
-          actionUID: actionUID ?? 0,
-          authMode,
-          wasOffline: isOfflineHash,
-          workSubmissionJourneyId,
-          chainId,
-          submissionPhase: "success",
         });
 
       if (completeClientFlow) {
@@ -445,8 +437,11 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
     },
     onError: (error: unknown, variables, context) => {
       const origin = origins.current.get(variables);
-      if (!origin || !ownsFlow(origin)) return;
+      if (!origin || !ownsSession(origin)) return;
+      // The ending is recorded even when the person has left the flow (PRD-1495).
+      if (!ownsFlow(origin)) return recordWorkSubmissionFailure(error, options, origin, variables);
       if (error instanceof UploadPolicyCancelledError) {
+        recordWorkSubmissionFailure(error, options, origin, variables);
         onError?.(error);
         return;
       }

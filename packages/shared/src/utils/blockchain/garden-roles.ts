@@ -151,7 +151,7 @@ export const GARDEN_ROLE_I18N_KEYS: Record<GardenRole, { singular: string; plura
 } as const;
 
 /**
- * Why the cockpit will not offer to remove one role from one person, or null when it will.
+ * Why the Hub will not offer to remove one role from one person, or null when it will.
  *
  * - `no-access`: the viewer is neither an owner nor a steward of the garden.
  * - `own-access`: the viewer's own Owner or Steward role; giving up your own access is not a
@@ -163,7 +163,7 @@ export const GARDEN_ROLE_I18N_KEYS: Record<GardenRole, { singular: string; plura
  * - `last-owner`: the garden's only Owner role. A garden keeps at least one owner.
  *
  * `owner-only` and `owner-steward` follow the garden's role ranks; `own-access` and
- * `last-owner` are the cockpit's own guards against locking a garden out of its management.
+ * `last-owner` are the Hub's own guards against locking a garden out of its management.
  */
 export type GardenRoleRemovalBlock =
   | "no-access"
@@ -173,11 +173,12 @@ export type GardenRoleRemovalBlock =
   | "last-owner";
 
 export interface GardenRoleRemovalInput {
-  /** Who is looking: the account the cockpit signs with. */
+  /** Who is looking: the account the Hub signs with. */
   viewer?: string | null;
   viewerIsOwner: boolean;
   /** Owners and stewards manage roles. */
   viewerCanManage: boolean;
+  viewerCanManageStewards?: boolean;
   person: string;
   /** Every role the person holds in the garden. */
   personRoles: readonly GardenRole[];
@@ -190,14 +191,17 @@ export function gardenRoleRemovalBlock({
   viewer,
   viewerIsOwner,
   viewerCanManage,
+  viewerCanManageStewards = false,
   person,
   personRoles,
   role,
   ownerCount,
 }: GardenRoleRemovalInput): GardenRoleRemovalBlock | null {
-  if (!viewerCanManage && !viewerIsOwner) return "no-access";
+  if (!viewerCanManage && !viewerIsOwner && !(role === "steward" && viewerCanManageStewards))
+    return "no-access";
   const isSelf = Boolean(viewer) && viewer?.toLowerCase() === person.toLowerCase();
   if (isSelf && (role === "owner" || role === "steward")) return "own-access";
+  if (role === "steward" && viewerCanManageStewards) return null;
   if (!viewerIsOwner) {
     if (personRoles.includes("owner")) return "owner-only";
     if (role === "steward") return "owner-steward";

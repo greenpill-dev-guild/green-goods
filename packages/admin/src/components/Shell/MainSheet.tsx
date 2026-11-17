@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 
 // ----------------------------------------------------------------------------
-// Admin fork of the shared Canvas MainSheet (Cockpit M3, finished — 1a).
+// Admin fork of the shared Canvas MainSheet (Hub M3, finished — 1a).
 //
 // The content zone is transparent: the linen canvas and its faint tone wash
 // are the page ground, and route content (headers, tab rail, cards) sits

@@ -47,15 +47,15 @@ describe("ImpactTab", () => {
     expect(screen.queryByRole("link", { name: "View All" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Create Hypercert" })).toHaveAttribute(
       "href",
-      expect.stringMatching(/^\/hub\/certify\?.*item=create-hypercert/)
+      expect.stringMatching(/^\/review\/certify\?.*item=create-hypercert/)
     );
     expect(screen.getByRole("link", { name: "Create Assessment" })).toHaveAttribute(
       "href",
-      expect.stringMatching(/^\/hub\/assess\?.*item=create-assessment/)
+      expect.stringMatching(/^\/review\/assess\?.*item=create-assessment/)
     );
   });
 
-  it("keeps the Hub links from viewers who cannot create", () => {
+  it("keeps the Review links from viewers who cannot create", () => {
     renderImpact({ canReview: false, canCertify: false });
 
     expect(screen.queryByRole("link", { name: "Create Hypercert" })).not.toBeInTheDocument();

@@ -31,7 +31,7 @@
       "scenario": "Full review decision path completes with actions visible",
       "preconditions": ["Steward session; at least one pending submission in the selected garden"],
       "steps": [
-        "Open /hub/work",
+        "Open /review/work",
         "Open a pending submission",
         "Inspect evidence media",
         "Choose a confidence level (none is chosen at first) and enter feedback",
@@ -49,10 +49,10 @@
         "A commitment waiting for that garden's confirmation and marked Ready to confirm; the confirming account is not a contributor"
       ],
       "steps": [
-        "Open Hub → Confirm and press Confirm Kept… on the commitment's row",
+        "Open Review → Confirm and press Confirm Kept… on the commitment's row",
         "Read the review",
         "Press Confirm Kept and confirm in the wallet",
-        "Read Hub → Confirm and the commitment afterwards"
+        "Read Review → Confirm and the commitment afterwards"
       ],
       "expected": "Before anything is sent, the review names the commitment, the garden's pool it lives in, and who kept it, and says either that this confirmation closes it as kept for everyone or which confirmation of how many it is, and that it cannot be undone; confirming is one transaction; the commitment then reads Kept and leaves the queue, or its row shows one more confirmation",
       "role": "steward"
@@ -310,7 +310,7 @@
       "role": "steward"
     },
     "ADM-202": {
-      "scenario": "Resolve a steward request and verify confirmed cockpit access",
+      "scenario": "Resolve a steward request and verify confirmed Hub access",
       "preconditions": [
         "ADM-201 pending request",
         "Authorized independent reviewer and requester using separate accounts",
@@ -319,7 +319,7 @@
       "steps": [
         "Open the steward-access queue and approve the request",
         "Wait for the role receipt and request resolution",
-        "As the requester, refresh and enter the cockpit; compare with an ordinary membership request"
+        "As the requester, refresh and enter the Hub; compare with an ordinary membership request"
       ],
       "expected": "Approval assigns the steward role, not ordinary membership. Access opens only after confirmed authority; a pending or failed role assignment is not reported as access granted.",
       "role": "steward"
@@ -391,11 +391,11 @@
         "Required participants: steward and reporter."
       ],
       "steps": [
-        "Find the same Work and evidence in the cockpit",
+        "Find the same Work and evidence in the Hub",
         "Approve or reject with feedback and wait for confirmation",
         "As the reporter, read the resulting status in chat and the app"
       ],
-      "expected": "The independent review and feedback agree across chat, app and cockpit. A Work receipt is not confused with review approval or payout.",
+      "expected": "The independent review and feedback agree across chat, App and Hub. A Work receipt is not confused with review approval or payout.",
       "role": "steward"
     },
     "AGT-002": {
@@ -706,8 +706,8 @@
       }
     },
     "steward-access": {
-      "label": "Steward access: request, role and cockpit",
-      "summary": "Use separate requester and reviewer accounts. A pending request grants no privileges; verify the confirmed role before entering the cockpit.",
+      "label": "Steward access: request, role and Hub",
+      "summary": "Use separate requester and reviewer accounts. A pending request grants no privileges; verify the confirmed role before entering the Hub.",
       "lanes": {
         "requester": {
           "label": "Requester",
@@ -726,7 +726,7 @@
           "handoff": "The reviewer sees the pending request for the same account and garden; the requester still has no steward access."
         },
         "ADM-202": {
-          "handoff": "The requester refreshes and verifies the confirmed role and cockpit access in the intended garden."
+          "handoff": "The requester refreshes and verifies the confirmed role and Hub access in the intended garden."
         }
       }
     },
@@ -748,7 +748,7 @@
       },
       "steps": {
         "AGT-002": {
-          "handoff": "The independent reviewer finds the same published Work and evidence in the cockpit before reviewing."
+          "handoff": "The independent reviewer finds the same published Work and evidence in the Hub before reviewing."
         },
         "AGT-003": {
           "handoff": "The reporter sees the confirmed review result for the same Work in both chat and the app."

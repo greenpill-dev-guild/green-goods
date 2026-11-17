@@ -26,7 +26,7 @@ const meta: Meta<typeof ConfirmKeptDialog> = {
     docs: {
       description: {
         component:
-          "The review before a commitment is confirmed as kept, shared by Hub → Confirm and the commitment inspector: the commitment, the garden's pool it lives in, who kept it, and whether this confirmation closes it for good. A single confirmation cannot be taken back either, so both cases say so.",
+          "The review before a commitment is confirmed as kept, shared by Review → Confirm and the commitment inspector: the commitment, the garden's pool it lives in, who kept it, and whether this confirmation closes it for good. A single confirmation cannot be taken back either, so both cases say so.",
       },
     },
   },
@@ -34,7 +34,7 @@ const meta: Meta<typeof ConfirmKeptDialog> = {
     open: true,
     onClose: () => undefined,
     onConfirm: async () => undefined,
-    tone: "hub",
+    tone: "review",
     chainId: DEFAULT_CHAIN_ID,
     poolGarden: STORY_GARDEN,
     title: "Repair tool handles",
@@ -46,7 +46,7 @@ const meta: Meta<typeof ConfirmKeptDialog> = {
   decorators: [
     withSeededQueryClient(SEEDS),
     (Story) => (
-      <div className="p-4" data-tone="hub">
+      <div className="p-4" data-tone="review">
         <Story />
       </div>
     ),

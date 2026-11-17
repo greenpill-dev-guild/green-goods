@@ -285,7 +285,7 @@ collect_usage_hits() {
 }
 
 # ----------------------------------------------------------------------------
-# Admin cockpit invariant sweep (Cockpit M3 1a
+# Hub invariant sweep (Hub M3 1a
 # packages/admin/DESIGN.md § Invariants; audited 2026-08-29, PRD-644 round 2)
 #
 # Four invariants the raw-literal pattern cannot see because they ride semantic
@@ -302,7 +302,7 @@ collect_usage_hits() {
 #   4. State text — text/icons take -dark steps; text-*-base only renders
 #      safely via an unlayered index.css backstop nothing else protects.
 # Scope is packages/admin/src only: the client PWA legitimately uses lift/press
-# card physics and its own shadows — these are cockpit rules. Hits merge into
+# card physics and its own shadows — these are Hub rules. Hits merge into
 # the same audited baseline (expiry + stale detection) as the raw sweep.
 # ----------------------------------------------------------------------------
 ADMIN_OFF_LADDER_SHADOW="(^|[^[:alnum:]_-])${TW_VARIANT_PREFIX}shadow-(xs|sm|md|lg|xl|2xl|inner|regular-[a-z0-9-]+)${TW_CLASS_BOUNDARY}"
@@ -328,7 +328,7 @@ collect_admin_invariant_hits() {
 # ----------------------------------------------------------------------------
 # Admin wrapper-adoption sweep (DL-011/012 adoption program, 2026-08-30 audit)
 #
-# The cockpit control surface is the 21-wrapper Admin* family. Three bypass
+# The Hub control surface is the 21-wrapper Admin* family. Three bypass
 # classes were found at scale by the post-DL-011/012 adoption audit
 # (design-system-alignment-review hub; see .plans/ARCHIVE.md) and burn down
 # through the same audited baseline as the raw sweep:
@@ -340,7 +340,7 @@ collect_admin_invariant_hits() {
 #      choices ride AdminFilterChip/AdminChoiceGroup/AdminSelectableCard,
 #      tabs ride AdminTabRail. (m3-state-layer row/card buttons are folded
 #      into the baseline until a dedicated row primitive exists.)
-#   3. Legacy shared Card renders (the retired shared `Card`) — cockpit cards
+#   3. Legacy shared Card renders (the retired shared `Card`) — Hub cards
 #      are AdminCard, which renders the shared card surface `.gg-card` (DL-102,
 #      DL-118); the pattern matches a `<Card` render, never that class.
 # Scope is packages/admin/src production code only; tests and stories are
@@ -390,7 +390,7 @@ collect_admin_wrapper_bypass_hits() {
 # Tests are excluded from both.
 # ----------------------------------------------------------------------------
 # Named Tailwind sizes, arbitrary px/rem/em or `length:` sizes (text-[13px]), and
-# every other font-size utility the shared theme or the cockpit defines: the retired
+# every other font-size utility the shared theme or the Hub defines: the retired
 # Material and named classes, and the shared scale's paragraph, subheading, title-h,
 # label-xl/xs and doc sizes.
 ADMIN_RAW_TYPE_SIZE_PATTERN="(^|[^[:alnum:]_-])${TW_VARIANT_PREFIX}(text-((xs|sm|base|lg|xl|[2-9]xl)|\[([0-9.]+(px|rem|em)|length:[^]]+)\])|text-(display|headline|title|body|label|paragraph|subheading)-(2xs|xs|sm|md|lg|xl)|text-title-h[1-6]|text-doc-(label|paragraph)|(label|body)-(md|sm|xs)|subheading-(2xs|xs|sm))${TW_CLASS_BOUNDARY}"
@@ -425,12 +425,12 @@ collect_admin_view_m3_colour_hits() {
 }
 
 # ----------------------------------------------------------------------------
-# Shared retired type-name sweep (app and cockpit unification, step 1)
+# Shared retired type-name sweep (app and Hub unification, step 1)
 #
 # Shared components and their stories take their size from the type roles too,
 # so the names the roles retired fail here: the Material text-display-*,
 # text-headline-*, text-title-*, text-body-*, and text-label-* aliases (gone from
-# the cockpit's theme), the label-*, body-*, and subheading-* classes (gone with
+# the Hub's theme), the label-*, body-*, and subheading-* classes (gone with
 # admin-type.css), and the shared scale's sizes (text-paragraph-*,
 # text-subheading-*, text-title-h*, text-label-xl/xs, text-doc-*). The scale keeps
 # its tokens and its cn() registration while the app's own views still use it,
@@ -494,7 +494,7 @@ if [[ -n "$NEW_USAGE" ]]; then
   echo "$NEW_USAGE" | sed 's/^/  /'
   echo
   echo "Use Warm Earth tokens instead: --spring-*, --color-*, --radius-*, --color-material-*, --blur-material-*, and semantic utility aliases."
-  echo "For packages/admin hits, the cockpit invariants also apply: text size via the type-* roles (never a raw text-* size, a retired label-*, body-*, text-title-*, text-body-* or text-label-* name, or another shared-scale size such as text-paragraph-* or text-title-h*), depth via --m3-elevation-0/1/2 (never bare shadow-*), hover/press via elevation or the 8% ink layer (never scale/translate), focus rings via --tone-focus-ring only, and state text via text-*-dark (never text-*-base)."
+  echo "For packages/admin hits, the Hub invariants also apply: text size via the type-* roles (never a raw text-* size, a retired label-*, body-*, text-title-*, text-body-* or text-label-* name, or another shared-scale size such as text-paragraph-* or text-title-h*), depth via --m3-elevation-0/1/2 (never bare shadow-*), hover/press via elevation or the 8% ink layer (never scale/translate), focus rings via --tone-focus-ring only, and state text via text-*-dark (never text-*-base)."
   echo "For packages/shared hits, text size comes from the type-* roles too: never a retired label-*, body-*, subheading-*, text-title-*, text-body-* or text-label-* name, or a shared-scale size such as text-paragraph-* or text-title-h*."
   echo "If this is intentional legacy debt, migrate it or add an audited baseline entry in $USAGE_BASELINE."
   exit 1
@@ -535,7 +535,7 @@ if [[ -n "$ADMIN_CHROME_VIOLATIONS" ]]; then
 fi
 
 # ----------------------------------------------------------------------------
-# Retired cockpit buttons (DL-119)
+# Retired Hub buttons (DL-119)
 #
 # Admin views render the shared Button and IconButton directly. AdminButton and
 # AdminIconButton, the adapters DL-115 put in front of them, are gone: this sweep
@@ -559,7 +559,7 @@ if [[ -n "$RETIRED_ADMIN_BUTTON_HITS" ]]; then
   echo "❌ AdminButton and AdminIconButton are retired (DL-119):"
   echo "$RETIRED_ADMIN_BUTTON_HITS" | sed 's/^/  /'
   echo
-  echo "Admin views render the shared Button (emphasis primary / secondary / tertiary, tone danger, size compact / sm / lg) and IconButton directly; the cockpit's tokens in packages/admin/src/index.css set their look."
+  echo "Admin views render the shared Button (emphasis primary / secondary / tertiary, tone danger, size compact / sm / lg) and IconButton directly; the Hub's tokens in packages/admin/src/index.css set their look."
   exit 1
 fi
 
@@ -713,15 +713,15 @@ fi
 #     Anchor `{` to end-of-line so the single-line wash assignments
 #     (`[data-tone="X"] { --tone-canvas: … }`) are excluded — only the multi-line
 #     `--tone-*` definition blocks count.
-LIGHT_TONE_BLOCKS="$(grep -cE '^\[data-tone="(hub|garden|community|actions|home)"\] \{ *$' "$ADMIN_TONE_CSS" || true)"
-DARK_TONE_BLOCKS="$(grep -cE '^\[data-theme="dark"\] \[data-tone="(hub|garden|community|actions|home)"\] \{ *$' "$ADMIN_TONE_CSS" || true)"
+LIGHT_TONE_BLOCKS="$(grep -cE '^\[data-tone="(review|garden|community|actions|home)"\] \{ *$' "$ADMIN_TONE_CSS" || true)"
+DARK_TONE_BLOCKS="$(grep -cE '^\[data-theme="dark"\] \[data-tone="(review|garden|community|actions|home)"\] \{ *$' "$ADMIN_TONE_CSS" || true)"
 if [[ "$LIGHT_TONE_BLOCKS" -lt 5 || "$DARK_TONE_BLOCKS" -ne "$LIGHT_TONE_BLOCKS" ]]; then
   echo "❌ Dark tone parity drift in $ADMIN_TONE_CSS: ${LIGHT_TONE_BLOCKS} light [data-tone] blocks vs ${DARK_TONE_BLOCKS} dark blocks (expected 5 each)."
   echo "   Every workspace tone must define a deliberate [data-theme=\"dark\"] [data-tone=\"…\"] block, not inherit the light values."
   exit 1
 fi
 
-# (2) The single elevation ladder (Cockpit M3 1a: levels 1 and 2 only) must
+# (2) The single elevation ladder (Hub M3 1a: levels 1 and 2 only) must
 #     have a [data-theme="dark"] override per level in admin-m3-tokens.css.
 #     The old parallel --elevation-* ladder in index.css is deleted; this guard
 #     also fails if it reappears.
@@ -756,7 +756,7 @@ check_dark_elevation "$ADMIN_M3_TOKENS" "--m3-elevation"
 
 if grep -qE '^[[:space:]]*--elevation-[0-9]:' "$ADMIN_INDEX_CSS"; then
   echo "❌ Competing elevation ladder reintroduced: --elevation-N found in $ADMIN_INDEX_CSS."
-  echo "   The cockpit has ONE ladder — --m3-elevation-0/1/2 in $ADMIN_M3_TOKENS (plus the warm chrome shadow)."
+  echo "   The Hub has ONE ladder — --m3-elevation-0/1/2 in $ADMIN_M3_TOKENS (plus the warm chrome shadow)."
   exit 1
 fi
 
@@ -770,7 +770,7 @@ SHADOW_CLASS_REDEFINITION="$(grep -RnE '^[[:space:]]*(\[[^]]+\][[:space:]]*)*\.s
 if [[ -n "$SHADOW_CLASS_REDEFINITION" ]]; then
   echo "❌ Parallel shadow ladder reintroduced — .shadow-* class definitions found in admin CSS:"
   echo "$SHADOW_CLASS_REDEFINITION" | sed 's/^/  /'
-  echo "   Depth in the cockpit is shadow-[var(--m3-elevation-0/1/2)] plus --admin-chrome-shadow on floating nav/FAB chrome; do not redefine Tailwind shadow utility classes."
+  echo "   Depth in the Hub is shadow-[var(--m3-elevation-0/1/2)] plus --admin-chrome-shadow on floating nav/FAB chrome; do not redefine Tailwind shadow utility classes."
   exit 1
 fi
 
@@ -783,9 +783,9 @@ echo "✅ workspace tone propagation guard: --m3-primary re-declared at .admin-m
 echo "✅ DesignMD radius outputs present in $GENERATED_CSS."
 echo "✅ admin M3 variable usages resolve to defined tokens."
 echo "✅ no new raw cubic-bezier, duration, color, radius literals, or primitive palette utilities outside token-definition or audited baseline files."
-echo "✅ retired cockpit button sweep passed: no AdminButton or AdminIconButton in admin or shared code, stories or tests (DL-119)."
+echo "✅ retired Hub button sweep passed: no AdminButton or AdminIconButton in admin or shared code, stories or tests (DL-119)."
 echo "✅ admin Controlled Chrome guard passed: glass/blur/gradients stay in approved shell CSS."
-echo "✅ admin cockpit invariant sweep passed: off-ladder shadows, hover/press transforms, alias focus rings, and text-*-base stay within the audited baseline."
+echo "✅ Hub invariant sweep passed: off-ladder shadows, hover/press transforms, alias focus rings, and text-*-base stay within the audited baseline."
 echo "✅ admin wrapper-adoption sweep passed: shared field primitives, raw <button> elements, and legacy Card renders stay within the audited baseline."
 echo "✅ admin type-scale and view-colour sweep passed: no raw text sizes, and raw --m3-* colours stay in the Admin* primitives, the shell, and ActionFlowShell (D32)."
 echo "✅ shared type-name sweep passed: packages/shared uses the type-* roles, with no retired Material, named, or shared-scale type names."

@@ -75,7 +75,7 @@ describe("getGardenHypercerts read failures", () => {
     };
   }
 
-  // The Hub and the garden Impact tab say "none yet" for an empty list and
+  // Review and the garden Impact tab say "none yet" for an empty list and
   // "could not load" for a failed read. A failure that resolved to an empty list
   // told a steward the garden had no hypercerts during an indexer outage.
   it("tells a failed read from a garden with no hypercerts", async () => {

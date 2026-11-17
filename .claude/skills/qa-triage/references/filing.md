@@ -97,7 +97,7 @@ Severity defaults for the Defects row:
 - `P2` — ideas, polish, non-blocking.
 - `P3` — speculative or hypothetical.
 
-Surface vocabulary on the Defects row: `Public Website | PWA iOS | PWA Android | Admin Dashboard | Cross Surface | Docs`.
+Surface vocabulary on the Defects row: `Green Goods Website | Green Goods App iOS | Green Goods App Android | Green Goods Hub | Cross Surface | Docs`.
 
 ## Phase 6 — Confirm & write to Linear + QA Sheet
 

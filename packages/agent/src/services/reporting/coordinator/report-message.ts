@@ -13,7 +13,7 @@ import {
   lifecycleState,
 } from "./draft-commit";
 import { promptNextStep } from "./prompting";
-import { handleReportCommand } from "./report-commands";
+import { frozenReply, handleReportCommand } from "./report-commands";
 import {
   apply,
   applyInterpretation,
@@ -88,7 +88,7 @@ export function handleReportMessage(
     commitLifecycle(core, draft, [{ type: "DEFERRED_INPUT", sourceId: sourceEntryId }], {
       participantAction: true,
     });
-    writer.say("report.frozen");
+    writer.say(frozenReply(core, draft));
     return;
   }
   if (!draft) {

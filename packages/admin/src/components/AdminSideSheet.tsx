@@ -25,9 +25,9 @@ export interface AdminSideSheetProps {
    * escaping CanvasLayout's `[data-tone]` scope, so the per-view accent
    * (`--tone-*`) is otherwise unset inside the sheet. The three global
    * surfaces are account chrome, not workspace content — they pass the
-   * neutral steward "hub" accent.
+   * neutral steward "review" accent.
    */
-  tone?: "hub" | "garden" | "community" | "actions" | "home";
+  tone?: "review" | "garden" | "community" | "actions" | "home";
 }
 
 const closeButtonClasses = cn(
@@ -80,7 +80,7 @@ export function AdminSideSheet({
   preventClose = false,
   onKeyDown,
   className,
-  tone = "hub",
+  tone = "review",
 }: AdminSideSheetProps) {
   const { formatMessage } = useIntl();
   const closeLabel = formatMessage({ id: "app.common.close" });

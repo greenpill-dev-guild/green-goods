@@ -24,7 +24,7 @@ export type OpenDialog =
   | null;
 
 /** The panel's workspace tone, forwarded to every dialog it opens. */
-export type CommitmentDialogTone = "garden" | "hub" | "community";
+export type CommitmentDialogTone = "garden" | "review" | "community";
 
 /** The confirmation path when the ordinary one is unreachable, else null. */
 export type FallbackPath = "POOL_FALLBACK" | "PROTOCOL_FALLBACK" | null;
@@ -74,27 +74,27 @@ export function stageLabels(
     open:
       direction === "REQUEST"
         ? formatMessage({
-            id: "cockpit.garden.pool.commitment.stage.requested",
+            id: "hub.garden.pool.commitment.stage.requested",
             defaultMessage: "Asked",
           })
         : formatMessage({
-            id: "cockpit.garden.pool.commitment.stage.offered",
+            id: "hub.garden.pool.commitment.stage.offered",
             defaultMessage: "Offered",
           }),
     accepted: formatMessage({
-      id: "cockpit.garden.pool.commitment.stage.accepted",
+      id: "hub.garden.pool.commitment.stage.accepted",
       defaultMessage: "Accepted",
     }),
     proof: formatMessage({
-      id: "cockpit.garden.pool.commitment.stage.proof",
+      id: "hub.garden.pool.commitment.stage.proof",
       defaultMessage: "Proof in",
     }),
     ready: formatMessage({
-      id: "cockpit.garden.pool.commitment.stage.ready",
+      id: "hub.garden.pool.commitment.stage.ready",
       defaultMessage: "Ready",
     }),
     kept: formatMessage({
-      id: "cockpit.garden.pool.commitment.stage.kept",
+      id: "hub.garden.pool.commitment.stage.kept",
       defaultMessage: "Kept",
     }),
   };
@@ -103,80 +103,80 @@ export function stageLabels(
 /** One timeline entry in member words, or the raw type lowered when unknown. */
 export function eventLabel(event: CommitmentEventRecord, formatMessage: FormatMessage): string {
   const labels: Record<string, { id: string; defaultMessage: string }> = {
-    CREATED: { id: "cockpit.garden.pool.commitment.event.created", defaultMessage: "Created" },
+    CREATED: { id: "hub.garden.pool.commitment.event.created", defaultMessage: "Created" },
     CLAIM_REQUESTED: {
-      id: "cockpit.garden.pool.commitment.event.claimRequested",
+      id: "hub.garden.pool.commitment.event.claimRequested",
       defaultMessage: "Asked to take it up",
     },
     CLAIM_DECLINED: {
-      id: "cockpit.garden.pool.commitment.event.claimDeclined",
+      id: "hub.garden.pool.commitment.event.claimDeclined",
       defaultMessage: "Request declined",
     },
-    ACCEPTED: { id: "cockpit.garden.pool.commitment.event.accepted", defaultMessage: "Taken up" },
+    ACCEPTED: { id: "hub.garden.pool.commitment.event.accepted", defaultMessage: "Taken up" },
     CONTRIBUTOR_ADDED: {
-      id: "cockpit.garden.pool.commitment.event.contributorAdded",
+      id: "hub.garden.pool.commitment.event.contributorAdded",
       defaultMessage: "Joined the team",
     },
     CONTRIBUTOR_REMOVED: {
-      id: "cockpit.garden.pool.commitment.event.contributorRemoved",
+      id: "hub.garden.pool.commitment.event.contributorRemoved",
       defaultMessage: "Left the team",
     },
     CONTRIBUTOR_ROSTER_FROZEN: {
-      id: "cockpit.garden.pool.commitment.event.rosterFrozen",
+      id: "hub.garden.pool.commitment.event.rosterFrozen",
       defaultMessage: "Team settled",
     },
     WORK_LINKED: {
-      id: "cockpit.garden.pool.commitment.event.workLinked",
+      id: "hub.garden.pool.commitment.event.workLinked",
       defaultMessage: "Work linked",
     },
     WORK_UNLINKED: {
-      id: "cockpit.garden.pool.commitment.event.workUnlinked",
+      id: "hub.garden.pool.commitment.event.workUnlinked",
       defaultMessage: "Work unlinked",
     },
     APPROVED_WORK_COUNTED: {
-      id: "cockpit.garden.pool.commitment.event.workApproved",
+      id: "hub.garden.pool.commitment.event.workApproved",
       defaultMessage: "Work approved",
     },
     EVIDENCE_ATTACHED: {
-      id: "cockpit.garden.pool.commitment.event.evidence",
+      id: "hub.garden.pool.commitment.event.evidence",
       defaultMessage: "Proof added",
     },
     ASSESSMENT_ATTACHED: {
-      id: "cockpit.garden.pool.commitment.event.assessment",
+      id: "hub.garden.pool.commitment.event.assessment",
       defaultMessage: "Assessment attached",
     },
     READY_FOR_CONFIRMATION: {
-      id: "cockpit.garden.pool.commitment.event.ready",
+      id: "hub.garden.pool.commitment.event.ready",
       defaultMessage: "Sent for confirmation",
     },
     CONFIRMATION_RECORDED: {
-      id: "cockpit.garden.pool.commitment.event.confirmation",
+      id: "hub.garden.pool.commitment.event.confirmation",
       defaultMessage: "Confirmation recorded",
     },
-    FULFILLED: { id: "cockpit.garden.pool.commitment.event.fulfilled", defaultMessage: "Kept" },
+    FULFILLED: { id: "hub.garden.pool.commitment.event.fulfilled", defaultMessage: "Kept" },
     CANCELLED: {
-      id: "cockpit.garden.pool.commitment.event.cancelled",
+      id: "hub.garden.pool.commitment.event.cancelled",
       defaultMessage: "Canceled",
     },
-    EXPIRED: { id: "cockpit.garden.pool.commitment.event.expired", defaultMessage: "Expired" },
+    EXPIRED: { id: "hub.garden.pool.commitment.event.expired", defaultMessage: "Expired" },
     DISPUTED: {
-      id: "cockpit.garden.pool.commitment.event.disputed",
+      id: "hub.garden.pool.commitment.event.disputed",
       defaultMessage: "Under review by stewards",
     },
     DISPUTE_RESOLVED: {
-      id: "cockpit.garden.pool.commitment.event.disputeResolved",
+      id: "hub.garden.pool.commitment.event.disputeResolved",
       defaultMessage: "Review resolved",
     },
     CONSIDERATION_DECLARED: {
-      id: "cockpit.garden.pool.commitment.event.consideration",
+      id: "hub.garden.pool.commitment.event.consideration",
       defaultMessage: "Reward declared",
     },
     CONSIDERATION_PAID: {
-      id: "cockpit.garden.pool.commitment.event.considerationPaid",
+      id: "hub.garden.pool.commitment.event.considerationPaid",
       defaultMessage: "Payout recorded",
     },
     CONFIRMER_RULE_SET: {
-      id: "cockpit.garden.pool.commitment.event.confirmerRule",
+      id: "hub.garden.pool.commitment.event.confirmerRule",
       defaultMessage: "Confirmers set",
     },
   };
@@ -191,13 +191,13 @@ export function railLabel(
 ): string {
   return rail === "ARBITRUM_EXTERNAL"
     ? formatMessage({
-        id: "cockpit.garden.pool.seed.rail.external",
+        id: "hub.garden.pool.seed.rail.external",
         defaultMessage: "External payout record",
       })
     : rail === "CELO_SETTLEMENT"
       ? formatMessage({
-          id: "cockpit.garden.pool.seed.rail.celo",
+          id: "hub.garden.pool.seed.rail.celo",
           defaultMessage: "Celo G$ settlement",
         })
-      : formatMessage({ id: "cockpit.garden.pool.seed.rail.none", defaultMessage: "None" });
+      : formatMessage({ id: "hub.garden.pool.seed.rail.none", defaultMessage: "None" });
 }

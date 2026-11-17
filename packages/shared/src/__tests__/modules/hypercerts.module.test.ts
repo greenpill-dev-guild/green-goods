@@ -5,8 +5,7 @@ import {
   filterAttestationsByAssessment,
   prefillMetadataFromAssessment,
 } from "../../modules/data/hypercerts";
-import type { GardenAssessment } from "../../types/domain";
-import { CynefinPhase, Domain } from "../../types/domain";
+import { type GardenAssessment, CynefinPhase, Domain } from "../../types/domain";
 import type { EASGardenAssessment } from "../../types/eas-responses";
 import type { HypercertAttestation } from "../../types/hypercerts";
 

@@ -22,14 +22,14 @@ const meta: Meta<typeof AdminViewActions> = {
 export default meta;
 type Story = StoryObj<typeof AdminViewActions>;
 
-/** The Hub trio with a different tab active per story — positions identical,
+/** Review's trio with a different tab active per story — positions identical,
  *  only the fill moves. */
-function hubTrio(activeId: "submit-work" | "create-assessment" | "create-hypercert" | "none") {
+function reviewTrio(activeId: "submit-work" | "create-assessment" | "create-hypercert" | "none") {
   return [
     {
       id: "submit-work",
       label: "Submit Work",
-      labelId: "cockpit.hub.action.submitWork",
+      labelId: "hub.review.action.submitWork",
       icon: RiAddLine,
       onClick: fn(),
       variant: (activeId === "submit-work" ? "primary" : "secondary") as "primary" | "secondary",
@@ -38,7 +38,7 @@ function hubTrio(activeId: "submit-work" | "create-assessment" | "create-hyperce
     {
       id: "create-assessment",
       label: "Create Assessment",
-      labelId: "cockpit.hub.action.createAssessment",
+      labelId: "hub.review.action.createAssessment",
       icon: RiCheckLine,
       onClick: fn(),
       variant: (activeId === "create-assessment" ? "primary" : "secondary") as
@@ -49,7 +49,7 @@ function hubTrio(activeId: "submit-work" | "create-assessment" | "create-hyperce
     {
       id: "create-hypercert",
       label: "Create Hypercert",
-      labelId: "cockpit.hub.action.createHypercert",
+      labelId: "hub.review.action.createHypercert",
       icon: RiMedalLine,
       onClick: fn(),
       variant: (activeId === "create-hypercert" ? "primary" : "secondary") as
@@ -61,27 +61,27 @@ function hubTrio(activeId: "submit-work" | "create-assessment" | "create-hyperce
 }
 
 export const WorkTabActive: Story = {
-  args: { items: hubTrio("submit-work") },
+  args: { items: reviewTrio("submit-work") },
 };
 
 export const CertifyTabActive: Story = {
-  args: { items: hubTrio("create-hypercert") },
+  args: { items: reviewTrio("create-hypercert") },
 };
 
-/** The Hub is a review surface: its trio renders outlined, and Submit Work,
+/** Review is a review surface: its trio renders outlined, and Submit Work,
  *  the declared primary, still sorts rightmost and fills the FAB (DL-043). */
-export const HubTrioOutlined: Story = {
+export const ReviewTrioOutlined: Story = {
   args: {
-    items: hubTrio("none").map((action) =>
+    items: reviewTrio("none").map((action) =>
       action.id === "submit-work" ? { ...action, primary: true } : action
     ),
   },
 };
 
-/** Read surfaces (Hub History, Garden Activity…) keep the trio outlined —
+/** Read surfaces (Review's retired History, Garden Activity…) keep the trio outlined —
  *  no filled action, no FAB on mobile. */
 export const ReadSurfaceAllOutlined: Story = {
-  args: { items: hubTrio("none") },
+  args: { items: reviewTrio("none") },
 };
 
 export const WithGhostLink: Story = {
@@ -90,19 +90,19 @@ export const WithGhostLink: Story = {
       {
         id: "view-public",
         label: "View Public",
-        labelId: "cockpit.garden.action.viewPublic",
+        labelId: "hub.garden.action.viewPublic",
         icon: RiExternalLinkLine,
         onClick: fn(),
         variant: "ghost",
       },
-      ...hubTrio("submit-work").slice(0, 2),
+      ...reviewTrio("submit-work").slice(0, 2),
     ],
   },
 };
 
 export const DisabledAction: Story = {
   args: {
-    items: hubTrio("submit-work").map((action) =>
+    items: reviewTrio("submit-work").map((action) =>
       action.id === "create-assessment" ? { ...action, disabled: true } : action
     ),
   },

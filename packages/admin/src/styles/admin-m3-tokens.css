@@ -6,7 +6,7 @@
 
 :root {
   /* --------------------------------------------------------------------------
-   * M3 Elevation Scale — the ONE ladder (Cockpit M3 1a).
+   * M3 Elevation Scale — the ONE ladder (Hub M3 1a).
    * Levels 1 and 2 only: cards and filled buttons rest at level 1 and step to
    * level 2 on hover. Dialogs/sheets sit at level 2 over their scrim. The only
    * other sanctioned shadow is the warm ambient chrome shadow on the floating
@@ -122,7 +122,7 @@
   --m3-on-primary-container: var(--tone-on-primary-container, var(--green-900));
   /* Focus-ring convergence (PRD-644 round 2): the generic input focus rule in
    * index.css reads --focus-ring, which theme.css points at blue. In the
-   * cockpit it rides the single focus role instead; --tone-focus-ring flips
+   * Hub it rides the single focus role instead; --tone-focus-ring flips
    * per theme on its own, so one theme-agnostic line covers light and dark. */
   --focus-ring: var(--tone-focus-ring, var(--m3-primary));
 }
@@ -155,7 +155,7 @@
  * -------------------------------------------------------------------------- */
 :is(
   [data-tone="home"],
-  [data-tone="hub"],
+  [data-tone="review"],
   [data-tone="garden"],
   [data-tone="community"],
   [data-tone="cookies"],
@@ -177,7 +177,7 @@
  * -------------------------------------------------------------------------- */
 [data-theme="dark"] {
   /* The warm dark ladder is the shared Earth ramp in theme.css (one ladder for
-   * the cockpit and the installed app, F2). M3-dark convention: HIGHER
+   * the Hub and the installed app, F2). M3-dark convention: HIGHER
    * elevation = LIGHTER. The default card (`--m3-surface-container`) sits ten
    * points of OKLCH lightness above the canvas (`--m3-surface`, 26% against
    * 16%), so card↔canvas separation comes from a lightness STEP, not a (black,
@@ -419,14 +419,14 @@
 
 /* ============================================================================
  * WORKSPACE TONAL PALETTES — M3-style per-workspace color roles
- * hub=blue, garden=green, community=orange, actions=red.
+ * review=blue, garden=green, community=orange, actions=red.
  *
  * Route color is environmental: canvas tint, focus, hairlines, and one filled
  * action role. Dense surfaces remain solid and readable.
  * ============================================================================ */
 
-/* Hub — Blue. `--tone-action` stays deep so filled actions keep white text. */
-[data-tone="hub"] {
+/* Review — Blue. `--tone-action` stays deep so filled actions keep white text. */
+[data-tone="review"] {
   --tone-primary: var(--blue-600);
   --tone-on-primary: 255 255 255;
   --tone-action: var(--blue-700);
@@ -442,7 +442,7 @@
   --tone-surface-tint-color: rgb(var(--blue-500) / 5%);
 }
 
-/* Garden — Green. Uses a forest action tone for the cockpit's strongest CTA. */
+/* Garden — Green. Uses a forest action tone for the Hub's strongest CTA. */
 [data-tone="garden"] {
   /* Dual-safe forest green (light applies the dark block's dual-use rule):
    * green-600 failed as white-text fill (2.85) and as link text (2.85); the
@@ -467,7 +467,7 @@
    FAB, date-picker selected day) — those need AA contrast, and orange-600 is
    the lightest white-safe step in the ramp. The yellow separation therefore
    comes from the canvas wash, surface tint, secondary, and containers, not the
-   primary accent. The ramp is the cockpit's amber one (index.css), which covers
+   primary accent. The ramp is the Hub's amber one (index.css), which covers
    the canvas and its portals: orange-600 and -700 are #B45309 there, white at
    5.02:1, and the orange-800 hover 7.09:1. */
 [data-tone="community"] {
@@ -541,13 +541,13 @@
  * text — NOT in the primary fill, which would break the text usages above.
  * Every block keeps --tone-on-surface-accent (gate; the bright tone-TEXT role).
  * All ratios verified against the warm card surface (32 25 19). */
-[data-theme="dark"][data-tone="hub"],
+[data-theme="dark"][data-tone="review"],
 /* DL-009 (2026-08-29): dark filled actions are TONAL — the −200 fill with −900
  * ink, hover one step LIGHTER (−100), per the M3-dark convention (filled
  * surfaces go light, text goes deep; higher = lighter). The pre-DL-009 deep
  * fill + white text pair is retired in dark. Measured fill/hover ratios noted
  * per tone; community is the tightest at 4.58 and still clears AA. */
-[data-theme="dark"] [data-tone="hub"] {
+[data-theme="dark"] [data-tone="review"] {
   --tone-primary: var(--blue-200);
   --tone-on-primary: var(--blue-900);
   /* DL-009 tonal: fill 7.81:1 · hover 8.88:1 */

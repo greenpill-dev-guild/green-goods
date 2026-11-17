@@ -261,11 +261,11 @@ export function useCampaignCookieJarSync(jarAddress: Address | undefined) {
     /** What the dialog shows while held. Spread it onto `TxHoldFeedback`. */
     holdFeedback: hold
       ? {
-          title: formatMessage({ id: "cockpit.community.cookies.hold.title" }),
-          message: formatMessage({ id: "cockpit.community.cookies.hold.body" }),
+          title: formatMessage({ id: "hub.community.cookies.hold.title" }),
+          message: formatMessage({ id: "hub.community.cookies.hold.body" }),
           detail: hold.onChain
             ? formatMessage(
-                { id: "cockpit.community.cookies.hold.onChain" },
+                { id: "hub.community.cookies.hold.onChain" },
                 {
                   granted: hold.onChain.granted,
                   grantTotal: hold.grant.length,

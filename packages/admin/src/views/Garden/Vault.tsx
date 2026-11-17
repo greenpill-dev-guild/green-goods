@@ -122,7 +122,7 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
   }, [formatMessage, routeState?.returnLabelId, routeState?.returnTo]);
   const treasuryBackLink = contextualBackLink ?? {
     to: adminRoutes.communityEndowment(gardenRouteContext),
-    label: formatMessage({ id: "cockpit.community.endowment" }),
+    label: formatMessage({ id: "hub.community.endowment" }),
   };
 
   if (gardensLoading) {
@@ -134,7 +134,7 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
       <CanvasRouteFrame>
         <CanvasRouteHeader
           maxWidthClassName="max-w-6xl"
-          title={formatMessage({ id: "cockpit.community.endowment" })}
+          title={formatMessage({ id: "hub.community.endowment" })}
           description={formatMessage({ id: "app.treasury.loadingGarden" })}
           backLink={treasuryBackLink}
         />
@@ -151,7 +151,7 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
       <CanvasRouteFrame>
         <CanvasRouteHeader
           maxWidthClassName="max-w-6xl"
-          title={formatMessage({ id: "cockpit.community.endowment" })}
+          title={formatMessage({ id: "hub.community.endowment" })}
           description={formatMessage({ id: "app.treasury.gardenNotFound" })}
           backLink={treasuryBackLink}
         />
@@ -296,8 +296,8 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
     <CanvasRouteFrame>
       <CanvasRouteHeader
         maxWidthClassName="max-w-6xl"
-        title={formatMessage({ id: "cockpit.community.endowment" })}
-        description={formatMessage({ id: "cockpit.community.endowment.description" })}
+        title={formatMessage({ id: "hub.community.endowment" })}
+        description={formatMessage({ id: "hub.community.endowment.description" })}
         backLink={treasuryBackLink}
         sticky
       />

@@ -15,9 +15,9 @@ export const PROFILE_SHEET_CONTENT_ID = "profile";
 export const SETTINGS_SHEET_CONTENT_ID = "settings";
 export const NOTIFICATIONS_SHEET_CONTENT_ID = "notifications";
 
-export const WORK_DETAIL_CONTENT_ID_PREFIX = "hub:work-detail:";
-export const CERTIFICATION_CONTENT_ID_PREFIX = "hub:certify:";
-export const SUBMIT_WORK_CONTENT_ID = "hub:submit-work";
+export const WORK_DETAIL_CONTENT_ID_PREFIX = "review:work-detail:";
+export const CERTIFICATION_CONTENT_ID_PREFIX = "review:certify:";
+export const SUBMIT_WORK_CONTENT_ID = "review:submit-work";
 export const ACTION_CREATE_CONTENT_ID = "actions:create";
 const ACTION_DETAIL_CONTENT_ID_PREFIX = "actions:detail:";
 const ACTION_EDIT_CONTENT_ID_PREFIX = "actions:edit:";
@@ -26,17 +26,17 @@ export const ADMIN_RIGHT_SHEET_REGISTRY = {
   [PROFILE_SHEET_CONTENT_ID]: {
     id: PROFILE_SHEET_CONTENT_ID,
     side: "right",
-    title: { id: "cockpit.profile.title", defaultMessage: "Profile" },
+    title: { id: "hub.profile.title", defaultMessage: "Profile" },
   },
   [SETTINGS_SHEET_CONTENT_ID]: {
     id: SETTINGS_SHEET_CONTENT_ID,
     side: "right",
-    title: { id: "cockpit.settings.title", defaultMessage: "Settings" },
+    title: { id: "hub.settings.title", defaultMessage: "Settings" },
   },
   [NOTIFICATIONS_SHEET_CONTENT_ID]: {
     id: NOTIFICATIONS_SHEET_CONTENT_ID,
     side: "right",
-    title: { id: "cockpit.notifications.title", defaultMessage: "Notifications" },
+    title: { id: "hub.notifications.title", defaultMessage: "Notifications" },
   },
 } satisfies Record<string, AdminRightSheetRegistryEntry>;
 
@@ -100,7 +100,7 @@ const ADMIN_ROUTE_SHEET_REGISTRY: RouteSheetRegistryEntry[] = [
     kind: "exact",
     id: SUBMIT_WORK_CONTENT_ID,
     side: "left",
-    isRestorable: (pathname) => pathname === "/hub/work/submit",
+    isRestorable: (pathname) => pathname === "/review/work/submit",
   },
   {
     kind: "prefix",
@@ -108,7 +108,7 @@ const ADMIN_ROUTE_SHEET_REGISTRY: RouteSheetRegistryEntry[] = [
     side: "left",
     parse: parseWorkDetailContentId,
     isRestorable: (workId, pathname) =>
-      pathname.startsWith("/hub/work/") && getLastPathSegment(pathname) === workId,
+      pathname.startsWith("/review/work/") && getLastPathSegment(pathname) === workId,
   },
   {
     kind: "prefix",
@@ -116,7 +116,7 @@ const ADMIN_ROUTE_SHEET_REGISTRY: RouteSheetRegistryEntry[] = [
     side: "left",
     parse: parseCertificationContentId,
     isRestorable: (assessmentId, pathname) =>
-      pathname.startsWith("/hub/assess/") && getLastPathSegment(pathname) === assessmentId,
+      pathname.startsWith("/review/assess/") && getLastPathSegment(pathname) === assessmentId,
   },
   {
     kind: "exact",
@@ -166,9 +166,10 @@ export function isActionsRouteSheetContentId(contentId: string | null) {
 }
 
 // Sheets of retired surfaces: persisted workspace state can outlive a release,
-// so ids under these prefixes must never restore (the Hub History stage
-// retired 2026-08-25; its routes redirect and its inspector is gone).
-const RETIRED_SHEET_CONTENT_ID_PREFIXES = ["hub:history:"];
+// so ids under these prefixes must never restore. Every hub: id is retired: the
+// History stage retired 2026-08-25 (its routes redirect and its inspector is
+// gone), and the Review workspace's ids took the review: prefix on 2026-11-14.
+const RETIRED_SHEET_CONTENT_ID_PREFIXES = ["hub:"];
 
 export function isRouteSheetRestorable(contentId: string | null, pathname: string) {
   if (contentId && RETIRED_SHEET_CONTENT_ID_PREFIXES.some((p) => contentId.startsWith(p))) {

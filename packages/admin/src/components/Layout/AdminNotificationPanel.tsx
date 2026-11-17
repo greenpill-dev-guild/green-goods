@@ -121,7 +121,7 @@ export function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => v
       {
         id: "needs-attention",
         title: formatMessage({
-          id: "cockpit.notifications.needsAttention",
+          id: "hub.notifications.needsAttention",
           defaultMessage: "Needs attention",
         }),
         items: alertItems,
@@ -129,7 +129,7 @@ export function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => v
       {
         id: "recent-activity",
         title: formatMessage({
-          id: "cockpit.notifications.recentActivity",
+          id: "hub.notifications.recentActivity",
           defaultMessage: "Recent activity",
         }),
         items: activityItems,
@@ -148,7 +148,7 @@ export function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => v
 
   const scopeLabel = selectedGarden
     ? formatMessage(
-        { id: "cockpit.notifications.scope", defaultMessage: "Updates for {garden}" },
+        { id: "hub.notifications.scope", defaultMessage: "Updates for {garden}" },
         { garden: selectedGarden.name }
       )
     : undefined;

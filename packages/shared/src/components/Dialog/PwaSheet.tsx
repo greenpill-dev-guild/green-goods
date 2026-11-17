@@ -29,7 +29,7 @@
  * a consumer's `panelClassName` utilities and unlayered package CSS still
  * override them; inline `panelStyle` wins over everything. The surface's
  * material (fill, hairline, top corners, shadow) is the shared
- * `[data-sheet-surface]` rule, which the cockpit's dialogs also carry below
+ * `[data-sheet-surface]` rule, which the Hub's dialogs also carry below
  * 640px, and the grip is the shared `SheetGrip`.
  *
  * Open/close uses named CSS keyframes (`dialogSlideInFromBottom` /

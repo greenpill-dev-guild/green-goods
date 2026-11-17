@@ -8,7 +8,6 @@
  * Tests the action operations hook that manages ActionRegistry contract calls
  */
 
-import { QueryClient } from "@tanstack/react-query";
 import { act, renderHook as renderBareHook } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { createElement } from "react";

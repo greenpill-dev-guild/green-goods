@@ -82,7 +82,7 @@ export const StateCatalog: Story = {
 export const ToneMatrix: Story = {
   render: () => (
     <div className="grid max-w-3xl gap-4 md:grid-cols-2">
-      {(["hub", "garden", "community", "actions"] as const).map((tone) => (
+      {(["review", "garden", "community", "actions"] as const).map((tone) => (
         <div
           key={tone}
           data-tone={tone}

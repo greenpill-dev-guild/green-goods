@@ -39,7 +39,7 @@ const meta = {
   render: (args) => <FooterAt {...args} />,
   decorators: [
     (Story) => (
-      <div className="max-w-2xl p-4" data-tone="hub">
+      <div className="max-w-2xl p-4" data-tone="review">
         <Story />
       </div>
     ),

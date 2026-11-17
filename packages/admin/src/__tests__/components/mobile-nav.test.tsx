@@ -197,12 +197,12 @@ describe("Mobile Navigation", () => {
 
   it("renders Profile as a real mobile navigation item", () => {
     renderWithProviders(
-      <MemoryRouter initialEntries={["/hub"]}>
+      <MemoryRouter initialEntries={["/review"]}>
         <CanvasLayout />
       </MemoryRouter>
     );
 
-    expect(screen.getByTestId("nav-item-hub")).toHaveTextContent("Hub");
+    expect(screen.getByTestId("nav-item-review")).toHaveTextContent("Review");
     expect(screen.getByTestId("nav-item-garden")).toHaveTextContent("Garden");
     expect(screen.getByTestId("nav-item-community")).toHaveTextContent("Community");
     expect(screen.getByTestId("nav-item-profile")).toHaveTextContent("Profile");
@@ -218,12 +218,12 @@ describe("Mobile Navigation", () => {
     });
 
     renderWithProviders(
-      <MemoryRouter initialEntries={["/hub"]}>
+      <MemoryRouter initialEntries={["/review"]}>
         <CanvasLayout />
       </MemoryRouter>
     );
 
-    expect(screen.getByTestId("nav-item-hub")).toBeInTheDocument();
+    expect(screen.getByTestId("nav-item-review")).toBeInTheDocument();
     expect(screen.getByTestId("nav-item-profile")).toBeInTheDocument();
     expect(screen.queryByTestId("nav-item-garden")).not.toBeInTheDocument();
     expect(screen.queryByTestId("nav-item-community")).not.toBeInTheDocument();
@@ -252,7 +252,7 @@ describe("Mobile Navigation", () => {
     });
 
     renderWithProviders(
-      <MemoryRouter initialEntries={["/hub"]}>
+      <MemoryRouter initialEntries={["/review"]}>
         <CanvasLayout />
       </MemoryRouter>
     );
@@ -267,7 +267,7 @@ describe("Mobile Navigation", () => {
 
   it("keeps navigation visible for authenticated users", () => {
     renderWithProviders(
-      <MemoryRouter initialEntries={["/hub"]}>
+      <MemoryRouter initialEntries={["/review"]}>
         <CanvasLayout />
       </MemoryRouter>
     );

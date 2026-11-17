@@ -454,7 +454,7 @@ describe("useDeploymentRegistry", () => {
         // An RPC that answers with an error page parses to a code, which would read as a refusal.
         when: "the check itself cannot run",
         reverted: false,
-        says: "cockpit.community.gardenCreators.checkFailed",
+        says: "hub.community.gardenCreators.checkFailed",
       },
     ])("never opens the wallet when $when", async ({ reverted, says }) => {
       registryAnswers({ canManage: true, allowlist: [creator] });

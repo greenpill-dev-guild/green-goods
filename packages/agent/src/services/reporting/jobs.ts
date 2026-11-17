@@ -135,15 +135,18 @@ export function completeJob(core: ReportingCore, job: ClaimedJob): boolean {
   );
 }
 
-/** Schedules another attempt, or parks the job as failed once its budget is spent. */
+/**
+ * Schedules another attempt, or parks the job as failed once its budget is spent. Records nothing
+ * and returns "fenced" when another worker has taken the job over since this one claimed it.
+ */
 export function retryJob(
   core: ReportingCore,
   job: ClaimedJob,
   errorCode: string,
   delayMs: number
-): "retrying" | "failed" {
+): "retrying" | "failed" | "fenced" {
   const failed = job.attempts >= job.maxAttempts;
-  core.db
+  const update = core.db
     .query(
       `UPDATE processing_jobs
        SET state = $state, lease_holder = NULL, run_after = $runAfter, last_error_code = $code, updated_at = $now
@@ -158,6 +161,7 @@ export function retryJob(
       code: errorCode,
       now: core.clock.now(),
     });
+  if (update.changes !== 1) return "fenced";
   return failed ? "failed" : "retrying";
 }
 

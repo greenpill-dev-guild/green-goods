@@ -93,7 +93,7 @@ export const Loading: Story = {
   },
 };
 
-/** Nothing yet: no View All, and each list points to where its items are made in the Hub. */
+/** Nothing yet: no View All, and each list points to where its items are made in Review. */
 export const Empty: Story = {
   args: {
     assessments: [],

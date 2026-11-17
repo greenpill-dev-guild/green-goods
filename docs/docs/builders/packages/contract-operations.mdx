@@ -8,7 +8,7 @@ generated: true
 generator: scripts/docs/generate.mjs
 generated_from:
   - packages/contracts/script/cli/operations.mjs
-source_digest: "sha256:bc52d9d4d50323838abdc7d55474f80d4c01bb12a6b8764cd32cb0537bbb1d91"
+source_digest: "sha256:7b539a9a6a5abfbbbb902547983b420e74d530b5c477841e505fbbfdf29fe569"
 source_of_truth:
   - packages/contracts/script/cli/operations.mjs
 ---
@@ -18,7 +18,7 @@ import {CopyCommand} from "@site/src/components/docs";
 
 # Contract operations
 
-Generated from the package-owned CLI definitions: 98 operations in 15 groups. Every command runs as `bun run contracts -- <command>` from the repository root; `bun run contracts -- help` lists them and `--help` after any command explains it. Deployments, upgrades, migrations, and repairs require an explicit network and execution mode.
+Generated from the package-owned CLI definitions: 99 operations in 15 groups. Every command runs as `bun run contracts -- <command>` from the repository root; `bun run contracts -- help` lists them and `--help` after any command explains it. Deployments, upgrades, migrations, and repairs require an explicit network and execution mode.
 
 `--explain --json` describes resolution without credentials, service access, or execution. Broadcasts require release authorization. Planning, compilation, simulation, and upload can write artifacts. Read the owning runbook before executing an operation.
 
@@ -135,7 +135,7 @@ No options beyond the command itself.
 |---|---|---|
 | <CopyCommand command="bun run contracts -- status --network &lt;network&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | none |
 
-### Release (12)
+### Release (13)
 
 Run a release session step by step with its transaction boundaries.
 
@@ -167,6 +167,12 @@ Options: `--recover-lock`, `--manifest <value>`, `--plan <value>`, `--receipts <
 | Command | Networks | Modes |
 |---|---|---|
 | <CopyCommand command="bun run contracts -- release downstream --mode &lt;mode&gt;" /> | not network-scoped | simulate, broadcast, verify |
+
+Options: `--output <value>`, `--safe-nonce <value>`, `--block <value>`, `--plan <value>`.
+
+| Command | Networks | Modes |
+|---|---|---|
+| <CopyCommand command="bun run contracts -- release hats-delegation --mode &lt;mode&gt;" /> | not network-scoped | preflight, plan, verify |
 
 Options: `--stage <value>`, `--commit <value> (required)`.
 

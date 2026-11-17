@@ -32,6 +32,7 @@ import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useGardens } from "../blockchain/useBaseLists";
 import { useActiveGarden } from "../garden/useActiveGarden";
 import { useResolvedProfileAvatar } from "../profile/useProfileAvatar";
+import { workVisibilityQuery } from "../work/useWorkVisibility";
 import {
   networkInformation,
   type NetworkInformationLike,
@@ -115,7 +116,17 @@ export function useOfflineContentPreparation(chainId = DEFAULT_CHAIN_ID): void {
       dataSaver: () => Boolean(networkInformation()?.saveData),
       cellular: () => isCellular(networkInformation()),
       mediaReady: isMediaWorkerReady,
-      fetchWorks: (garden, take) => readWorkList({ garden, chainId, take }),
+      fetchWorks: async (garden, take) => {
+        const query = workVisibilityQuery(chainId);
+        const visibility = await client.fetchQuery(query);
+        try {
+          await persistPreparedQuery(client, query.queryKey);
+        } catch (error) {
+          reportOfflineStorageFailure();
+          throw error;
+        }
+        return readWorkList({ garden, chainId, take, visibility });
+      },
       readMetadata: readWorkMetadata,
       media: {
         isCached: isMediaCached,

@@ -59,7 +59,7 @@ export function SetupProgressList({
       testId="pool-setup-writes"
       chainId={chainId}
       label={formatMessage({
-        id: "cockpit.garden.pool.setup.writes",
+        id: "hub.garden.pool.setup.writes",
         defaultMessage: "What your wallet will sign",
       })}
       rows={rows.map((row, index) => {

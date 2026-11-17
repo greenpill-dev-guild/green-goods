@@ -31,7 +31,7 @@ generated_from:
   - packages/shared/src/public-contracts/routes.ts
   - packages/shared/src/public-contracts/saved-offers/types.ts
   - packages/shared/src/public-contracts/voucher-awards.ts
-source_digest: "sha256:7602c60dc61b3fadf0b0cd7091ae8ba7a84be56b3633f527a7eaf05f1a01a63b"
+source_digest: "sha256:7e4b40f9c15a0450bb5e1aed5cbab043f558b2adf55150d3afee35713c037809"
 source_of_truth:
   - packages/admin/package.json
   - packages/agent/package.json
@@ -109,7 +109,7 @@ The route constants are exported by these Shared files:
 
 ## Package exports
 
-540 export specifiers across 2 packages. A specifier is the import path; the target is the file it resolves to.
+542 export specifiers across 2 packages. A specifier is the import path; the target is the file it resolves to.
 
 ### @green-goods/contracts
 
@@ -120,14 +120,14 @@ The route constants are exported by these Shared files:
 
 ### @green-goods/shared
 
-538 specifiers. Open a group to see its specifiers.
+540 specifiers. Open a group to see its specifiers.
 
 | Group | Specifiers |
 |---|---|
 | `./__tests__` | 5 |
-| `./components` | 76 |
+| `./components` | 77 |
 | `./config` | 16 |
-| `./hooks` | 265 |
+| `./hooks` | 266 |
 | `./i18n` | 8 |
 | `./modules` | 58 |
 | `./providers` | 8 |
@@ -152,9 +152,9 @@ The route constants are exported by these Shared files:
 </details>
 
 <details>
-<summary>`./components` (76)</summary>
+<summary>`./components` (77)</summary>
 
-**`./components`** (14)
+**`./components`** (15)
 
 | Specifier | Target |
 |---|---|
@@ -165,6 +165,7 @@ The route constants are exported by these Shared files:
 | `./components/Chip` | `./src/components/Chip.tsx` |
 | `./components/DomainBadge` | `./src/components/DomainBadge.tsx` |
 | `./components/FileUploadField` | `./src/components/FileUploadField.tsx` |
+| `./components/GardenContributionDate` | `./src/components/GardenContributionDate.tsx` |
 | `./components/GardenMembershipDates` | `./src/components/GardenMembershipDates.tsx` |
 | `./components/HydrationFallback` | `./src/components/HydrationFallback.tsx` |
 | `./components/IconButton` | `./src/components/IconButton.tsx` |
@@ -337,7 +338,7 @@ The route constants are exported by these Shared files:
 </details>
 
 <details>
-<summary>`./hooks` (265)</summary>
+<summary>`./hooks` (266)</summary>
 
 **`./hooks`** (2)
 
@@ -373,11 +374,6 @@ The route constants are exported by these Shared files:
 | `./hooks/admin-ui/garden/useGardenWorkspaceController` | `./src/hooks/admin-ui/garden/useGardenWorkspaceController.ts` |
 | `./hooks/admin-ui/garden/useResolvedWorkDetail` | `./src/hooks/admin-ui/garden/useResolvedWorkDetail.ts` |
 | `./hooks/admin-ui/garden/useSubmitWorkController` | `./src/hooks/admin-ui/garden/useSubmitWorkController.ts` |
-| `./hooks/admin-ui/hub/hub.utils` | `./src/hooks/admin-ui/hub/hub.utils.ts` |
-| `./hooks/admin-ui/hub/hub.workbenchModel` | `./src/hooks/admin-ui/hub/hub.workbenchModel.ts` |
-| `./hooks/admin-ui/hub/useCreateAssessmentController` | `./src/hooks/admin-ui/hub/useCreateAssessmentController.ts` |
-| `./hooks/admin-ui/hub/useCreateHypercertController` | `./src/hooks/admin-ui/hub/useCreateHypercertController.ts` |
-| `./hooks/admin-ui/hub/useHubWorkbenchController` | `./src/hooks/admin-ui/hub/useHubWorkbenchController.ts` |
 | `./hooks/admin-ui/hypercerts/types` | `./src/hooks/admin-ui/hypercerts/types.ts` |
 | `./hooks/admin-ui/hypercerts/useWizardData` | `./src/hooks/admin-ui/hypercerts/useWizardData.ts` |
 | `./hooks/admin-ui/layout/accountSheet.events` | `./src/hooks/admin-ui/layout/accountSheet.events.ts` |
@@ -395,12 +391,17 @@ The route constants are exported by these Shared files:
 | `./hooks/admin-ui/pool/useCommitmentDialogController` | `./src/hooks/admin-ui/pool/useCommitmentDialogController.ts` |
 | `./hooks/admin-ui/pool/useCommitmentSettlementController` | `./src/hooks/admin-ui/pool/useCommitmentSettlementController.ts` |
 | `./hooks/admin-ui/pool/useEditReward` | `./src/hooks/admin-ui/pool/useEditReward.ts` |
-| `./hooks/admin-ui/pool/useHubConfirmQueueController` | `./src/hooks/admin-ui/pool/useHubConfirmQueueController.ts` |
 | `./hooks/admin-ui/pool/usePoolConsoleController` | `./src/hooks/admin-ui/pool/usePoolConsoleController.ts` |
 | `./hooks/admin-ui/pool/useProtocolFundingOperationsController` | `./src/hooks/admin-ui/pool/useProtocolFundingOperationsController.ts` |
+| `./hooks/admin-ui/pool/useReviewConfirmQueueController` | `./src/hooks/admin-ui/pool/useReviewConfirmQueueController.ts` |
 | `./hooks/admin-ui/pool/useSeedTray` | `./src/hooks/admin-ui/pool/useSeedTray.ts` |
 | `./hooks/admin-ui/pool/useSettlementOperationsController` | `./src/hooks/admin-ui/pool/useSettlementOperationsController.ts` |
 | `./hooks/admin-ui/pool/useWaitingForApproval` | `./src/hooks/admin-ui/pool/useWaitingForApproval.ts` |
+| `./hooks/admin-ui/review/review.utils` | `./src/hooks/admin-ui/review/review.utils.ts` |
+| `./hooks/admin-ui/review/review.workbenchModel` | `./src/hooks/admin-ui/review/review.workbenchModel.ts` |
+| `./hooks/admin-ui/review/useCreateAssessmentController` | `./src/hooks/admin-ui/review/useCreateAssessmentController.ts` |
+| `./hooks/admin-ui/review/useCreateHypercertController` | `./src/hooks/admin-ui/review/useCreateHypercertController.ts` |
+| `./hooks/admin-ui/review/useReviewWorkbenchController` | `./src/hooks/admin-ui/review/useReviewWorkbenchController.ts` |
 | `./hooks/admin-ui/useAdminAccessState` | `./src/hooks/admin-ui/useAdminAccessState.ts` |
 | `./hooks/admin-ui/useAdminUploadPolicy` | `./src/hooks/admin-ui/useAdminUploadPolicy.ts` |
 | `./hooks/admin-ui/useCanvasChromeProbe` | `./src/hooks/admin-ui/useCanvasChromeProbe.ts` |
@@ -558,7 +559,7 @@ The route constants are exported by these Shared files:
 | `./hooks/ens/useProtocolMemberStatus` | `./src/hooks/ens/useProtocolMemberStatus.ts` |
 | `./hooks/ens/useSlugAvailability` | `./src/hooks/ens/useSlugAvailability.ts` |
 
-**`./hooks/garden`** (24)
+**`./hooks/garden`** (25)
 
 | Specifier | Target |
 |---|---|
@@ -574,6 +575,7 @@ The route constants are exported by these Shared files:
 | `./hooks/garden/useGardenDomains` | `./src/hooks/garden/useGardenDomains.ts` |
 | `./hooks/garden/useGardenJoinRequests` | `./src/hooks/garden/useGardenJoinRequests.ts` |
 | `./hooks/garden/useGardenJournal` | `./src/hooks/garden/useGardenJournal.ts` |
+| `./hooks/garden/useGardenMemberContributions` | `./src/hooks/garden/useGardenMemberContributions.ts` |
 | `./hooks/garden/useGardenMemberHistory` | `./src/hooks/garden/useGardenMemberHistory.ts` |
 | `./hooks/garden/useGardenNotifications` | `./src/hooks/garden/useGardenNotifications.ts` |
 | `./hooks/garden/useGardenOperations` | `./src/hooks/garden/useGardenOperations.ts` |

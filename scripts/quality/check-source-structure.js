@@ -31,6 +31,7 @@ const ALLOWED_TOP_LEVEL_DIRECTORIES = {
   contracts: new Set([
     "accounts",
     "interfaces",
+    "lib",
     "libraries",
     "markets",
     "mocks",
@@ -119,9 +120,8 @@ function isDeclarationOnlySolidityInterface(filePath) {
 export const FROZEN_ALLOWLIST = {
   "packages/admin/src/components/Action/ActionTranslationEditor.tsx": 746,
   "packages/admin/src/components/Garden/GardenSettingsEditor.tsx": 626,
-  "packages/agent/src/handlers/index.ts": 508,
-  "packages/agent/src/platforms/telegram.ts": 590,
-  "packages/agent/src/services/blockchain.ts": 627,
+  "packages/agent/src/platforms/telegram.ts": 552,
+  "packages/agent/src/services/blockchain.ts": 604,
   "packages/client/src/components/Sheets/ConvictionSheet.tsx": 569,
   "packages/client/src/components/Public/PublicCookieJarCard.tsx": 756,
   "packages/client/src/components/Public/PublicEndowmentPanel.tsx": 719,
@@ -135,6 +135,8 @@ export const FROZEN_ALLOWLIST = {
   "packages/client/src/views/Garden/Media.tsx": 720,
   "packages/client/src/views/Public/Fund.tsx": 775,
   "packages/client/src/views/Public/Impact.tsx": 627,
+  "packages/contracts/src/lib/Settlement/LifecycleLib.sol": 699,
+  "packages/contracts/src/lib/Settlement/PlanLib.sol": 908,
   "packages/contracts/src/modules/Gardens.sol": 914,
   "packages/contracts/src/modules/Hats.sol": 851,
   "packages/contracts/src/modules/Octant.sol": 769,
@@ -144,13 +146,13 @@ export const FROZEN_ALLOWLIST = {
   "packages/shared/src/hooks/app/useServiceWorkerUpdate.ts": 568,
   "packages/shared/src/hooks/cookie-jar/useCampaignCookieJar.ts": 727,
   "packages/shared/src/hooks/index.ts": 604,
-  "packages/shared/src/hooks/work/useWorkMutation.ts": 528,
+  "packages/shared/src/hooks/work/useWorkMutation.ts": 522,
   "packages/shared/src/index.ts": 1418,
-  "packages/shared/src/modules/app/analytics-events.ts": 507,
+  "packages/shared/src/modules/app/analytics-events.ts": 504,
   "packages/shared/src/modules/app/posthog.ts": 553,
   "packages/shared/src/modules/data/marketplace.ts": 550,
   "packages/shared/src/modules/job-queue/db.ts": 536,
-  "packages/shared/src/providers/Auth.tsx": 730,
+  "packages/shared/src/providers/Auth.tsx": 723,
   "packages/shared/src/public-contracts/index.ts": 582,
   "packages/shared/src/types/domain.ts": 614,
   "packages/shared/src/utils/action/translations.ts": 564,
@@ -253,8 +255,10 @@ function isPackageSourcePath(filePath) {
   return /^packages\/[^/]+\/src\//.test(filePath);
 }
 
+// Only generated and third-party code is out of scope; first-party `lib` folders (the contracts
+// libraries, Shared's lib) are ordinary source.
 function isGeneratedOrVendoredPath(filePath) {
-  return /(^|\/)(node_modules|generated|lib|vendor)(\/|$)/.test(filePath);
+  return /(^|\/)(node_modules|generated|vendor)(\/|$)/.test(filePath);
 }
 
 function isTestOrStoryPath(filePath) {

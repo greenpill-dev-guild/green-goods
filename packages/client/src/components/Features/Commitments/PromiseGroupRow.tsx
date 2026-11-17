@@ -1,8 +1,5 @@
-import type {
-  DisplayGroupCounts,
-  DisplayGroupEntry,
-} from "@green-goods/shared/modules/commitment-pooling/display-groups";
-import type { CommitmentReadModel } from "@green-goods/shared/commitment-pooling";
+import type { GroupTakeUpCounts } from "@green-goods/shared/hooks/client-ui/pool/usePromiseGroupController";
+import type { TakeUpGroupEntry } from "@green-goods/shared/hooks/client-ui/pool/usePromiseGroups";
 import { CommitmentRow } from "@green-goods/shared/components/Cards/CommitmentRow/CommitmentRow";
 import { formatCommitmentUnits } from "@green-goods/shared/i18n/commitmentUnits";
 import { type IntlShape, useIntl } from "react-intl";
@@ -11,12 +8,14 @@ import { promiseDueDetail } from "./presentation";
 
 /**
  * A group's counts, availability first: "4 available · 3 in progress · 3 kept".
+ * Copies with a request waiting on a steward follow availability, since no
+ * second ask goes to them: "None available · 1 waiting on a steward" (PRD-1492).
  * Counts that can't be read say so, alone, rather than reading as none or
  * standing on a read that failed (PRD-1029 c9).
  */
 function groupCountsParts(
   intl: Pick<IntlShape, "formatMessage">,
-  counts: DisplayGroupCounts,
+  counts: GroupTakeUpCounts,
   { unknown = false }: { unknown?: boolean } = {}
 ): string[] {
   const { formatMessage } = intl;
@@ -26,6 +25,11 @@ function groupCountsParts(
       ? formatMessage({ id: "app.pool.group.counts.available" }, { count: counts.available })
       : formatMessage({ id: "app.pool.group.counts.none" }),
   ];
+  if (counts.requested > 0) {
+    parts.push(
+      formatMessage({ id: "app.pool.group.counts.requested" }, { count: counts.requested })
+    );
+  }
   if (counts.inProgress > 0) {
     parts.push(
       formatMessage({ id: "app.pool.group.counts.inProgress" }, { count: counts.inProgress })
@@ -42,14 +46,15 @@ function groupCountsParts(
 
 export function groupCountsText(
   intl: Pick<IntlShape, "formatMessage">,
-  counts: DisplayGroupCounts,
+  counts: GroupTakeUpCounts,
   options: { unknown?: boolean } = {}
 ): string {
   return groupCountsParts(intl, counts, options).join(" · ");
 }
 
 export interface PromiseGroupRowProps {
-  group: DisplayGroupEntry<CommitmentReadModel>;
+  /** The group, counted as its page counts it (`groupTakeUpCounts`). */
+  group: TakeUpGroupEntry;
   /** The promises' shared name, once their metadata has resolved. */
   title?: string | null;
   /** The last read of the pool failed, so the counts may be out of date. */

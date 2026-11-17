@@ -31,7 +31,7 @@ export function CommitmentSettlementFacts({
       ? settlement.beneficiaryGarden
         ? formatMessage(
             {
-              id: "cockpit.garden.pool.settlement.fact.recipientGarden",
+              id: "hub.garden.pool.settlement.fact.recipientGarden",
               defaultMessage: "{garden} · Safe {safe}",
             },
             {
@@ -44,7 +44,7 @@ export function CommitmentSettlementFacts({
         : "—"
       : formatMessage(
           {
-            id: "cockpit.garden.pool.settlement.fact.recipientMembers",
+            id: "hub.garden.pool.settlement.fact.recipientMembers",
             defaultMessage: "{count, plural, one {# contributor} other {# contributors}}",
           },
           {
@@ -57,40 +57,40 @@ export function CommitmentSettlementFacts({
     kind === "GARDEN_BENEFICIARY"
       ? settlement.beneficiaryAccount?.active
         ? formatMessage({
-            id: "cockpit.garden.pool.settlement.destination.safeActive",
+            id: "hub.garden.pool.settlement.destination.safeActive",
             defaultMessage: "Beneficiary Safe registered and active",
           })
         : formatMessage({
-            id: "cockpit.garden.pool.settlement.destination.safeInactive",
+            id: "hub.garden.pool.settlement.destination.safeInactive",
             defaultMessage: "Beneficiary Safe is missing or inactive",
           })
       : settlement.chain?.gardenerDeliveryEnabled
         ? formatMessage({
-            id: "cockpit.garden.pool.settlement.destination.deliveryOn",
+            id: "hub.garden.pool.settlement.destination.deliveryOn",
             defaultMessage: "Gardener delivery is on",
           })
         : formatMessage({
-            id: "cockpit.garden.pool.settlement.destination.deliveryOff",
+            id: "hub.garden.pool.settlement.destination.deliveryOff",
             defaultMessage: "Gardener delivery is off",
           });
 
   const capLine =
     cap === null || amount === null
       ? formatMessage({
-          id: "cockpit.garden.pool.settlement.cap.unknown",
+          id: "hub.garden.pool.settlement.cap.unknown",
           defaultMessage: "Cap not read",
         })
       : amount <= cap
         ? formatMessage(
             {
-              id: "cockpit.garden.pool.settlement.cap.within",
+              id: "hub.garden.pool.settlement.cap.within",
               defaultMessage: "{cap} · within cap",
             },
             { cap: formatGdollar(cap, locale) }
           )
         : formatMessage(
             {
-              id: "cockpit.garden.pool.settlement.cap.exceeded",
+              id: "hub.garden.pool.settlement.cap.exceeded",
               defaultMessage: "{cap} · amount exceeds the cap",
             },
             { cap: formatGdollar(cap, locale) }
@@ -98,12 +98,12 @@ export function CommitmentSettlementFacts({
 
   const readiness = !snapshot
     ? formatMessage({
-        id: "cockpit.garden.pool.settlement.readiness.unread",
+        id: "hub.garden.pool.settlement.readiness.unread",
         defaultMessage: "Not read yet",
       })
     : snapshot.settlementReadiness === "ready"
       ? formatMessage({
-          id: "cockpit.garden.pool.settlement.readiness.ready",
+          id: "hub.garden.pool.settlement.readiness.ready",
           defaultMessage: "Ready",
         })
       : snapshot.settlementUnavailableReasons
@@ -114,7 +114,7 @@ export function CommitmentSettlementFacts({
     <FactList frame="inset" data-component="CommitmentSettlementFacts">
       {fact(
         formatMessage({
-          id: "cockpit.garden.pool.settlement.fact.kind",
+          id: "hub.garden.pool.settlement.fact.kind",
           defaultMessage: "Payout kind",
         }),
         kind ? payoutKindLabel(kind, intl) : "—",
@@ -122,13 +122,13 @@ export function CommitmentSettlementFacts({
       )}
       {fact(
         formatMessage({
-          id: "cockpit.garden.pool.settlement.fact.payer",
+          id: "hub.garden.pool.settlement.fact.payer",
           defaultMessage: "Paid from",
         }),
         settlement.payerGarden
           ? formatMessage(
               {
-                id: "cockpit.garden.pool.settlement.fact.payerSafe",
+                id: "hub.garden.pool.settlement.fact.payerSafe",
                 defaultMessage: "{garden} · Safe {safe}",
               },
               {
@@ -141,7 +141,7 @@ export function CommitmentSettlementFacts({
       )}
       {fact(
         formatMessage({
-          id: "cockpit.garden.pool.settlement.fact.recipient",
+          id: "hub.garden.pool.settlement.fact.recipient",
           defaultMessage: "Paid to",
         }),
         recipient,
@@ -149,7 +149,7 @@ export function CommitmentSettlementFacts({
       )}
       {fact(
         formatMessage({
-          id: "cockpit.garden.pool.settlement.fact.amount",
+          id: "hub.garden.pool.settlement.fact.amount",
           defaultMessage: "Amount",
         }),
         formatGdollar(amount, locale),
@@ -157,7 +157,7 @@ export function CommitmentSettlementFacts({
       )}
       {fact(
         formatMessage({
-          id: "cockpit.garden.pool.settlement.fact.destination",
+          id: "hub.garden.pool.settlement.fact.destination",
           defaultMessage: "Destination",
         }),
         destination,
@@ -165,7 +165,7 @@ export function CommitmentSettlementFacts({
       )}
       {fact(
         formatMessage({
-          id: "cockpit.garden.pool.settlement.fact.cap",
+          id: "hub.garden.pool.settlement.fact.cap",
           defaultMessage: "Per-transfer cap",
         }),
         capLine,
@@ -173,7 +173,7 @@ export function CommitmentSettlementFacts({
       )}
       {fact(
         formatMessage({
-          id: "cockpit.garden.pool.settlement.fact.readiness",
+          id: "hub.garden.pool.settlement.fact.readiness",
           defaultMessage: "Fees and route",
         }),
         readiness,
@@ -181,13 +181,13 @@ export function CommitmentSettlementFacts({
       )}
       {fact(
         formatMessage({
-          id: "cockpit.garden.pool.settlement.fact.plan",
+          id: "hub.garden.pool.settlement.fact.plan",
           defaultMessage: "Payout plan",
         }),
         settlement.plan
           ? formatMessage(
               {
-                id: "cockpit.garden.pool.settlement.plan.id",
+                id: "hub.garden.pool.settlement.plan.id",
                 defaultMessage: "Plan #{id} · {status}",
               },
               {
@@ -196,7 +196,7 @@ export function CommitmentSettlementFacts({
               }
             )
           : formatMessage({
-              id: "cockpit.garden.pool.settlement.plan.none",
+              id: "hub.garden.pool.settlement.plan.none",
               defaultMessage: "Not created yet",
             }),
         "plan"

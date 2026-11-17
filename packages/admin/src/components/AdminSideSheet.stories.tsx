@@ -86,7 +86,7 @@ function OpenSideSheet({ children }: { children?: ReactNode }) {
   return (
     <div className="flex min-h-56 items-center justify-center rounded-[var(--m3-shape-lg)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface-container-lowest))] p-6 type-meta text-[rgb(var(--m3-on-surface-variant))]">
       Side sheet renders open (portaled to the document body).
-      <AdminSideSheet open onOpenChange={() => undefined} title="Notifications" tone="hub">
+      <AdminSideSheet open onOpenChange={() => undefined} title="Notifications" tone="review">
         {children ?? <SheetBody padded>{SAMPLE_ROWS}</SheetBody>}
       </AdminSideSheet>
     </div>
@@ -223,7 +223,7 @@ function SideSheetPreview() {
       <Button type="button" emphasis="primary" size="sm" onClick={() => setOpen(true)}>
         Open side sheet
       </Button>
-      <AdminSideSheet open={open} onOpenChange={setOpen} title="Settings" tone="hub">
+      <AdminSideSheet open={open} onOpenChange={setOpen} title="Settings" tone="review">
         <SheetBody padded>
           <p className="type-body text-text-sub">
             Escape, the scrim, and the close button all close the sheet.

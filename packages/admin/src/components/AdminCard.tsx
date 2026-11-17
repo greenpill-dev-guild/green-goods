@@ -62,15 +62,15 @@ export interface AdminCardProps
 // ============================================================================
 
 /**
- * AdminCard — the cockpit's card, on the shared card surface (F7).
+ * AdminCard — the Hub's card, on the shared card surface (F7).
  *
  * - elevated and outlined: the card surface, the installed app's card: its fill,
  *   a 1px edge, a faint shadow and the 24px corner
  * - filled: a tinted card on the same corner, with no edge and no shadow
  *
  * The interactive prop adds the neutral ink state layer and cursor-pointer.
- * The name and props stay for the cockpit's call sites while the card itself is
- * the shared `.gg-card`; its cockpit values (fill, edge) are tokens in the
+ * The name and props stay for the Hub's call sites while the card itself is
+ * the shared `.gg-card`; its Hub values (fill, edge) are tokens in the
  * unlayered `:root` block of `index.css` (DL-118).
  */
 export function AdminCard({

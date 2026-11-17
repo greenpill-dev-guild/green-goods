@@ -41,13 +41,13 @@ const meta = {
     docs: {
       description: {
         component:
-          "Every admin button, icon button, field, chip, tab, choice, card, checkbox, switch, search, sort, and close control on one page, rendered from the real Admin* primitives with the cockpit's own tokens (Plus Jakarta Sans, the M3 type scale, the admin radius set) and measured live against the DL-011 compact metric and Rule 18. A red chip is a live shortfall against the cockpit rules.",
+          "Every admin button, icon button, field, chip, tab, choice, card, checkbox, switch, search, sort, and close control on one page, rendered from the real Admin* primitives with the Hub's own tokens (Plus Jakarta Sans, the M3 type scale, the admin radius set) and measured live against the DL-011 compact metric and Rule 18. A red chip is a live shortfall against the Hub rules.",
       },
     },
   },
   decorators: [
     (Story) => (
-      <div className="admin-m3" data-tone="hub" data-workspace="hub">
+      <div className="admin-m3" data-tone="review" data-workspace="review">
         <Story />
       </div>
     ),
@@ -70,7 +70,7 @@ const ICON_STYLES = [
   { label: "primary", emphasis: "primary" },
   { label: "tertiary danger", emphasis: "tertiary", tone: "danger" },
 ] as const;
-/** The cockpit's tiers on the shared sizes its tokens set (DL-031). */
+/** The Hub's tiers on the shared sizes its tokens set (DL-031). */
 const SHARED_SIZE = { sm: "compact", md: "sm", lg: "lg" } as const;
 const SIZE_LABEL: Record<AdminSize, string> = {
   sm: "compact · 28",
@@ -84,7 +84,7 @@ function ButtonSections() {
       <Section
         id="buttons"
         title="Button"
-        lede="The shared Button at the cockpit's density: a pill at every size with one 14px label and a 44px finger box (DL-012, DL-030), no press morph (DL-115, DL-119)."
+        lede="The shared Button at the Hub's density: a pill at every size with one 14px label and a 44px finger box (DL-012, DL-030), no press morph (DL-115, DL-119)."
       >
         {ADMIN_SIZES.map((size) => (
           <Row key={size}>
@@ -488,7 +488,7 @@ function Chrome() {
           ]}
           wide
         >
-          <div className="storybook-canvas-frame" data-workspace="hub" style={{ width: "100%" }}>
+          <div className="storybook-canvas-frame" data-workspace="review" style={{ width: "100%" }}>
             <AppBar
               gardenChip={
                 <GardenChip
@@ -519,7 +519,7 @@ function Chrome() {
 export const Buttons: Story = {
   render: () => (
     <Page
-      title="Admin cockpit · Components"
+      title="Hub · Components"
       lede="Every Admin* control with its live geometry, graded against the DL-011 compact metric and Rule 18."
     >
       <ButtonSections />
@@ -532,7 +532,7 @@ export const Buttons: Story = {
 
 /**
  * AdminDialog's close button: the shared header's 40px circle, with the 44px
- * finger box (DL-030) its `::after` draws from the cockpit's hit token (DL-117).
+ * finger box (DL-030) its `::after` draws from the Hub's hit token (DL-117).
  */
 export const DialogCloseButton: Story = {
   tags: ["storybook-ci"],
@@ -543,7 +543,7 @@ export const DialogCloseButton: Story = {
         onOpenChange={() => undefined}
         title="Close button"
         description="The close affordance is the 40px circle on the title's line."
-        tone="hub"
+        tone="review"
         actions={<Button type="button" size="sm">Done</Button>}
       >
         <Specimen
@@ -580,7 +580,7 @@ export const DialogCloseButton: Story = {
 export const SideSheetCloseButton: Story = {
   render: () => (
     <div style={{ minHeight: 480 }}>
-      <AdminSideSheet open onOpenChange={() => undefined} title="Notifications" tone="hub">
+      <AdminSideSheet open onOpenChange={() => undefined} title="Notifications" tone="review">
         <Specimen
           title="close"
           targets={[

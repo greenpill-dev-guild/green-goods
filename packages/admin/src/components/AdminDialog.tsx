@@ -60,10 +60,10 @@ export interface AdminDialogProps {
    * (`--tone-*`) is otherwise unset inside the dialog; the component defaults
    * to the neutral `home` (stone) tone so an untoned portal reads calm rather
    * than brand green. Passing the workspace re-establishes its tone in-portal —
-   * the action flows do, so Hub flows read blue, Garden green, etc. Consumers
+   * the action flows do, so Review flows read blue, Garden green, etc. Consumers
    * must read `--tone-action` / `--tone-on-surface-accent` (not `--m3-primary`).
    */
-  tone?: "hub" | "garden" | "community" | "actions" | "home";
+  tone?: "review" | "garden" | "community" | "actions" | "home";
 }
 
 export interface AdminConfirmDialogProps {
@@ -330,7 +330,7 @@ export function AdminDialog({
           }}
         >
           {/* Below 640px the sheet's grip tops the surface. It marks the
-              sheet only: the cockpit's sheet does not drag. */}
+              sheet only: the Hub's sheet does not drag. */}
           {rendersAsSheet ? <SheetGrip /> : null}
 
           {/* Close button - absolute top-right for palette and flow, under the

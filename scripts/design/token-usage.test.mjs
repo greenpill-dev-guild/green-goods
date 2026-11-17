@@ -45,7 +45,7 @@ function collect(root, name = "collect_admin_invariant_hits", { scanner = filter
   });
 }
 
-test("cockpit token sweep ignores the original comment-only failure", () => {
+test("Hub token sweep ignores the original comment-only failure", () => {
   fixture("// The old story looked for `.text-primary-base` links.\nexport const ok = 'text-primary-dark';\n", (root) => {
     const result = collect(root);
     assert.ok([0, 1].includes(result.status), result.stderr);
@@ -53,7 +53,7 @@ test("cockpit token sweep ignores the original comment-only failure", () => {
   });
 });
 
-test("cockpit sweep rejects real forbidden classes alongside comments", () => {
+test("Hub sweep rejects real forbidden classes alongside comments", () => {
   fixture("const view = <div className=\"text-primary-base\" />; // text-error-base\n", (root) => {
     const result = collect(root);
     assert.equal(result.status, 0, result.stderr);

@@ -64,14 +64,14 @@ export function seedStatusView(input: {
         tone: "neutral",
         title: formatMessage(
           {
-            id: "cockpit.garden.pool.seed.status.ready",
+            id: "hub.garden.pool.seed.status.ready",
             defaultMessage:
               "{total, plural, one {Creates one promise} other {Creates # separate promises}}",
           },
           { total }
         ),
         description: formatMessage({
-          id: "cockpit.garden.pool.seed.status.readyHint",
+          id: "hub.garden.pool.seed.status.readyHint",
           defaultMessage: "Each one is taken up, proven and confirmed on its own.",
         }),
       };
@@ -84,14 +84,14 @@ export function seedStatusView(input: {
         progress: state.progress,
         title: formatMessage(
           {
-            id: "cockpit.garden.pool.seed.status.sending",
+            id: "hub.garden.pool.seed.status.sending",
             defaultMessage: "Confirm in your wallet ({current} of {total})",
           },
           { current: state.current, total: state.total }
         ),
         description: formatMessage(
           {
-            id: "cockpit.garden.pool.seed.status.sendingHint",
+            id: "hub.garden.pool.seed.status.sendingHint",
             defaultMessage:
               "{created} created so far. This wallet asks once per promise; declining one skips only that one.",
           },
@@ -106,14 +106,14 @@ export function seedStatusView(input: {
         busy: true,
         title: formatMessage(
           {
-            id: "cockpit.garden.pool.seed.status.confirming",
+            id: "hub.garden.pool.seed.status.confirming",
             defaultMessage:
               "{count, plural, one {Creating the promise} other {Creating # promises}}",
           },
           { count: state.inRequest }
         ),
         description: formatMessage({
-          id: "cockpit.garden.pool.seed.status.confirmingHint",
+          id: "hub.garden.pool.seed.status.confirmingHint",
           defaultMessage: "Your wallet approved. Waiting for confirmation…",
         }),
       };
@@ -127,7 +127,7 @@ export function seedStatusView(input: {
           state.requests > 1
             ? formatMessage(
                 {
-                  id: "cockpit.garden.pool.seed.status.askingOf",
+                  id: "hub.garden.pool.seed.status.askingOf",
                   defaultMessage:
                     "{count, plural, one {Approve in your wallet: one promise ({current} of {requests})} other {Approve in your wallet: # promises in one request ({current} of {requests})}}",
                 },
@@ -135,7 +135,7 @@ export function seedStatusView(input: {
               )
             : formatMessage(
                 {
-                  id: "cockpit.garden.pool.seed.status.asking",
+                  id: "hub.garden.pool.seed.status.asking",
                   defaultMessage:
                     "{count, plural, one {Approve in your wallet} other {Approve in your wallet: # promises in one request}}",
                 },
@@ -143,7 +143,7 @@ export function seedStatusView(input: {
               ),
         description: formatMessage(
           {
-            id: "cockpit.garden.pool.seed.status.askingHint",
+            id: "hub.garden.pool.seed.status.askingHint",
             defaultMessage:
               "{count, plural, one {It is created once your wallet approves.} other {They are created together: all #, or none if the wallet declines.}}",
           },
@@ -157,11 +157,11 @@ export function seedStatusView(input: {
         tone: "warning",
         retry: state.retry,
         title: formatMessage({
-          id: "cockpit.garden.pool.seed.status.unconfirmed",
+          id: "hub.garden.pool.seed.status.unconfirmed",
           defaultMessage: "The request didn't finish",
         }),
         description: formatMessage({
-          id: "cockpit.garden.pool.seed.status.unconfirmedHint",
+          id: "hub.garden.pool.seed.status.unconfirmedHint",
           defaultMessage:
             "Some may have been created anyway. Try Again finishes them without creating any twice.",
         }),
@@ -174,24 +174,24 @@ export function seedStatusView(input: {
         tone: "error",
         retry: state.retry,
         title: formatMessage({
-          id: "cockpit.garden.pool.seed.status.nothing",
+          id: "hub.garden.pool.seed.status.nothing",
           defaultMessage: "Nothing was created",
         }),
         description:
           state.phase === "declined"
             ? formatMessage({
-                id: "cockpit.garden.pool.seed.status.declinedHint",
+                id: "hub.garden.pool.seed.status.declinedHint",
                 defaultMessage:
                   "Your wallet declined the request. Your answers are still here, and Try Again asks once more.",
               })
             : state.overCeilings
               ? formatMessage({
-                  id: "cockpit.garden.pool.seed.status.overCeilingsHint",
+                  id: "hub.garden.pool.seed.status.overCeilingsHint",
                   defaultMessage:
                     "These promises can't share one signature right now, so nothing was sent. Your answers are still here, and Try Again asks for each one on its own.",
                 })
               : formatMessage({
-                  id: "cockpit.garden.pool.seed.status.refusedHint",
+                  id: "hub.garden.pool.seed.status.refusedHint",
                   defaultMessage:
                     "The request didn't go through. Your answers are still here; check them, then Try Again.",
                 }),
@@ -205,7 +205,7 @@ export function seedStatusView(input: {
         retry: state.notSent,
         title: formatMessage(
           {
-            id: "cockpit.garden.pool.seed.status.partial",
+            id: "hub.garden.pool.seed.status.partial",
             defaultMessage:
               "{created} created · {notSent} didn't send{later, plural, =0 {} one { · # waits} other { · # wait}}",
           },
@@ -213,7 +213,7 @@ export function seedStatusView(input: {
         ),
         description: formatMessage(
           {
-            id: "cockpit.garden.pool.seed.status.partialHint",
+            id: "hub.garden.pool.seed.status.partialHint",
             defaultMessage:
               "Try Again ({notSent}) sends only the ones that didn't send, with the same answers and deadline.{later, plural, =0 {} one { The one that waits is on the Promises tab.} other { The ones that wait are on the Promises tab.}}",
           },
@@ -228,14 +228,14 @@ export function seedStatusView(input: {
         progress: state.progress,
         title: formatMessage(
           {
-            id: "cockpit.garden.pool.seed.status.finishLater",
+            id: "hub.garden.pool.seed.status.finishLater",
             defaultMessage: "{created} created · {later} didn't send",
           },
           { created: state.created, later: state.later }
         ),
         description: formatMessage(
           {
-            id: "cockpit.garden.pool.seed.status.finishLaterHint",
+            id: "hub.garden.pool.seed.status.finishLaterHint",
             defaultMessage:
               "{later, plural, one {Finish creating the last one from the Promises tab when you're ready.} other {Finish creating the last # from the Promises tab when you're ready.}}",
           },
@@ -250,7 +250,7 @@ export function seedStatusView(input: {
         progress: state.progress,
         title: formatMessage(
           {
-            id: "cockpit.garden.pool.seed.status.created",
+            id: "hub.garden.pool.seed.status.created",
             defaultMessage:
               "{count, plural, one {The promise is created} other {# promises created}}",
           },
@@ -258,13 +258,13 @@ export function seedStatusView(input: {
         ),
         description: grouped
           ? formatMessage({
-              id: "cockpit.garden.pool.seed.status.createdGroup",
+              id: "hub.garden.pool.seed.status.createdGroup",
               defaultMessage:
                 "Gardeners can take them up now. They show as one group on the Promises tab.",
             })
           : formatMessage(
               {
-                id: "cockpit.garden.pool.seed.status.createdHint",
+                id: "hub.garden.pool.seed.status.createdHint",
                 defaultMessage:
                   "{count, plural, one {Gardeners can take it up now.} other {Gardeners can take them up now.}}",
               },

@@ -1,7 +1,5 @@
 import { createHash } from "node:crypto";
 import { isIP } from "node:net";
-import { PUBLIC_AGENT_ROUTES } from "@green-goods/shared/public-contracts";
-import { getPath } from "hono/utils/url";
 
 export type PublicRouteClass =
   | "subscribe"
@@ -295,26 +293,11 @@ export function resolveAllowedOrigins(
   return new Set(LOCAL_DEVELOPMENT_PUBLIC_ORIGINS);
 }
 
-function isGreenGoodsVercelPreviewOrigin(origin: string): boolean {
-  try {
-    const { hostname, protocol } = new URL(origin);
-    if (protocol !== "https:") return false;
-    return /^green-goods(?:-[a-z0-9-]+)?-greenpilldevguild\.vercel\.app$/.test(
-      hostname.toLowerCase()
-    );
-  } catch {
-    return false;
-  }
-}
-
+// Every public route, the passkey directory included, answers only the configured origins. There
+// is no exception for Vercel previews: Vercel hands out `.vercel.app` names first come, first
+// served, so a hostname that looks like ours proves nothing about who owns it. List a preview's
+// origin in AGENT_ALLOWED_ORIGINS to let it in.
 export function isOriginAllowed(request: Request, allowedOrigins: Set<string>): boolean {
-  if (allowedOrigins.size === 0) return false;
   const origin = normalizePublicOrigin(request.headers.get("origin"));
-  // Directory RPCs and their preflight use only the configured list. Other public APIs retain
-  // their preview exception; sharing an RP domain never approves a site for the directory.
-  const isPasskeyDirectory = getPath(request) === PUBLIC_AGENT_ROUTES.passkeyDirectory;
-  return (
-    origin !== "none" &&
-    (allowedOrigins.has(origin) || (!isPasskeyDirectory && isGreenGoodsVercelPreviewOrigin(origin)))
-  );
+  return origin !== "none" && allowedOrigins.has(origin);
 }

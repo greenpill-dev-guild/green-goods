@@ -270,6 +270,8 @@ describe("config/passkeyServer", () => {
         "https://www.greengoods.app",
         "https://beta.greengoods.app",
         "https://beta.admin.greengoods.app",
+        "https://hub.greengoods.app",
+        "https://beta.hub.greengoods.app",
       ]) {
         expect(
           classifyPasskeyCeremonyContext({
@@ -310,7 +312,7 @@ describe("config/passkeyServer", () => {
       expect(
         classifyPasskeyCeremonyContext({
           env: { PROD: true },
-          location: locationFor("https://green-goods-abc123-greenpilldevguild.vercel.app"),
+          location: locationFor("https://green-goods-abc123-greengoods.vercel.app"),
         })
       ).toMatchObject({
         supported: false,

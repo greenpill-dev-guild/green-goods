@@ -11,7 +11,7 @@ const meta: Meta<typeof VoucherActDialog> = {
     docs: {
       description: {
         component:
-          "The shell every voucher act's dialog shares (PRD-1297 surface 6, dial V5): the cockpit's confirm dialog, busy while its act runs, closed when the act lands, and kept open with Try Again and a line saying nothing changed when it fails. The body ends with who signs: the wallet's prompt, or the Safe's signature count read from the Safe.",
+          "The shell every voucher act's dialog shares (PRD-1297 surface 6, dial V5): the Hub's confirm dialog, busy while its act runs, closed when the act lands, and kept open with Try Again and a line saying nothing changed when it fails. The body ends with who signs: the wallet's prompt, or the Safe's signature count read from the Safe.",
       },
     },
   },

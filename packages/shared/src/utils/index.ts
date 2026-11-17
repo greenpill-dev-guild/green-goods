@@ -357,7 +357,7 @@ export type { ReviewQueueSummary, ReviewQueueWork } from "./garden-detail";
 export type {
   AdminCommunityRouteContext,
   AdminGardenRouteContext,
-  AdminHubRouteContext,
+  AdminReviewRouteContext,
   AdminSearchValue,
   AdminSignalPoolType,
   AdminWorkspaceId,

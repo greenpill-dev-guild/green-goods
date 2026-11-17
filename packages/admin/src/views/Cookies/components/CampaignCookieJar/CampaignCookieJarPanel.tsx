@@ -154,7 +154,7 @@ export function CampaignCookieJarPanel({ headerAction }: CampaignCookieJarPanelP
           currentMetadata?.title ??
           selectedCampaign.title ??
           formatMessage({
-            id: "cockpit.community.cookies.untitledCampaign",
+            id: "hub.community.cookies.untitledCampaign",
             defaultMessage: "Campaign cookie jar",
           }),
         slug: currentMetadata?.slug ?? selectedCampaign.slug,
@@ -247,7 +247,7 @@ export function CampaignCookieJarPanel({ headerAction }: CampaignCookieJarPanelP
     selectedCampaign?.title ??
     selectedCampaign?.label ??
     formatMessage({
-      id: "cockpit.community.cookies.untitledCampaign",
+      id: "hub.community.cookies.untitledCampaign",
       defaultMessage: "Campaign cookie jar",
     });
 
@@ -273,7 +273,7 @@ export function CampaignCookieJarPanel({ headerAction }: CampaignCookieJarPanelP
           syncSignatures === null
             ? null
             : formatMessage(
-                { id: "cockpit.community.cookies.signatureCount" },
+                { id: "hub.community.cookies.signatureCount" },
                 { count: syncSignatures }
               ),
         syncHold: sync.holdFeedback,

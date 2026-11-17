@@ -38,7 +38,7 @@ export interface AdminInlineFieldProps {
  * Label and supporting text are the family's: the shared field title and
  * message line (`gg-field-label`, `gg-field-message`), the same error color
  * (`--m3-error`) and `role="alert"`, so an inline field's error never looks
- * like a different design system. The message line reserves the cockpit's
+ * like a different design system. The message line reserves the Hub's
  * message lines, so a validation message never nudges the button row.
  */
 export function AdminInlineField({

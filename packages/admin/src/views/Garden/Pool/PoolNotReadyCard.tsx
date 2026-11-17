@@ -26,11 +26,11 @@ export function PoolNotReadyCard({
       <EmptyState
         icon={<RiSeedlingLine />}
         title={formatMessage({
-          id: "cockpit.garden.pool.notReady.title",
+          id: "hub.garden.pool.notReady.title",
           defaultMessage: "This garden isn’t taking promises yet",
         })}
         description={formatMessage({
-          id: "cockpit.garden.pool.notReady.body",
+          id: "hub.garden.pool.notReady.body",
           defaultMessage:
             "Neighbors can offer help and ask for it here once you’ve set up how this pool works.",
         })}
@@ -44,14 +44,14 @@ export function PoolNotReadyCard({
               disabled={!isOnline}
             >
               {formatMessage({
-                id: "cockpit.garden.pool.act.setUp",
+                id: "hub.garden.pool.act.setUp",
                 defaultMessage: "Set Up Promises",
               })}
             </Button>
             {isOnline ? null : (
               <p className="type-meta text-warning-dark" role="status">
                 {formatMessage({
-                  id: "cockpit.garden.pool.offline",
+                  id: "hub.garden.pool.offline",
                   defaultMessage:
                     "Needs a connection. Pool changes are sent right away, not queued.",
                 })}

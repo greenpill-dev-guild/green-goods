@@ -27,8 +27,8 @@
   scrollbar-width: none;
   -ms-overflow-style: none; /* IE and Edge */
 
-  /* The public website reads in Inter; the installed app takes the cockpit's
-     face (below), so the app and the cockpit share one family (DL-096). */
+  /* The public website reads in Inter; the installed app takes the Hub's
+     face (below), so the app and the Hub share one family (DL-096). */
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   font-style: normal;
   font-weight: 400;

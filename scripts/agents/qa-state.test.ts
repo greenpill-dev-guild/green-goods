@@ -14,7 +14,7 @@ import { loadCatalog, type CatalogCase } from "./qa-workbook-build";
 function makeCase(overrides: Partial<CatalogCase> = {}): CatalogCase {
   return {
     id: "PUB-014",
-    tab: "Public Website",
+    tab: "Green Goods Website",
     platform: "Desktop Browser",
     priority: "P0",
     area: "Funding",

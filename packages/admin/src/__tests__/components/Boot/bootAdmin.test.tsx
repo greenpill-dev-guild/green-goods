@@ -10,8 +10,7 @@ import { createQueryPersistence } from "@green-goods/shared/config/query-persist
 import { act, fireEvent, waitFor } from "@testing-library/react";
 import { useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AdminBootServices, BootOutcome } from "@/components/Boot/bootAdmin";
-import { bootAdmin } from "@/components/Boot/bootAdmin";
+import { type AdminBootServices, type BootOutcome, bootAdmin } from "@/components/Boot/bootAdmin";
 
 function Ready({ onWorkspaceReady }: { onWorkspaceReady?: () => void }) {
   useEffect(() => onWorkspaceReady?.(), [onWorkspaceReady]);
@@ -375,7 +374,7 @@ describe("bootAdmin", () => {
     const card = container.querySelector('[data-component="AdminBootRecovery"]');
     expect(card).not.toBeNull();
     expect(card?.getAttribute("role")).toBe("alert");
-    expect(container.textContent).toContain("Green Goods Admin could not start");
+    expect(container.textContent).toContain("Green Goods Hub could not start");
     expect(container.textContent).toContain("Failed to fetch dynamically imported module");
     expect(container.querySelector("button")).not.toBeNull();
     expect(result.diagnostics.failures).toEqual([expect.objectContaining({ stage: "load-root" })]);
@@ -424,7 +423,7 @@ describe("bootAdmin", () => {
     });
 
     const card = container.querySelector('[data-component="AdminBootRecovery"]');
-    expect(card?.textContent).toContain("O Green Goods Admin não conseguiu iniciar");
+    expect(card?.textContent).toContain("O Green Goods Hub não conseguiu iniciar");
     expect(card?.getAttribute("lang")).toBe("pt");
   });
 });

@@ -36,12 +36,12 @@ export default function CreateGarden() {
           id: "admin.gardens.createGarden",
           defaultMessage: "Create Garden",
         })}
-        description={intl.formatMessage({ id: "cockpit.garden.createDescription" })}
+        description={intl.formatMessage({ id: "hub.garden.createDescription" })}
         variant="canvas"
         backLink={{
           to: adminRoutes.garden(),
           label: intl.formatMessage({
-            id: "cockpit.nav.garden",
+            id: "hub.nav.garden",
             defaultMessage: "Garden",
           }),
         }}

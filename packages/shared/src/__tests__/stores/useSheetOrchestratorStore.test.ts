@@ -12,8 +12,8 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   SHEET_STATE_STORAGE_KEY,
   useSheetOrchestratorStore,
+  type ViewSheetState,
 } from "../../stores/useSheetOrchestratorStore";
-import type { ViewSheetState } from "../../stores/useSheetOrchestratorStore";
 
 describe("stores/useSheetOrchestratorStore", () => {
   beforeEach(() => {
@@ -154,10 +154,10 @@ describe("stores/useSheetOrchestratorStore", () => {
 
   it("setScrollPosition saves scroll for path", () => {
     act(() => {
-      useSheetOrchestratorStore.getState().setScrollPosition("/hub", 350);
+      useSheetOrchestratorStore.getState().setScrollPosition("/review", 350);
     });
 
-    const saved = useSheetOrchestratorStore.getState().viewStates["/hub"];
+    const saved = useSheetOrchestratorStore.getState().viewStates["/review"];
     expect(saved).toBeDefined();
     expect(saved!.scrollPosition).toBe(350);
   });
@@ -235,11 +235,11 @@ describe("stores/useSheetOrchestratorStore", () => {
       useSheetOrchestratorStore.getState().openSheet("right", "work-detail");
     });
     act(() => {
-      useSheetOrchestratorStore.getState().saveViewState("/hub");
+      useSheetOrchestratorStore.getState().saveViewState("/review");
     });
 
     const gardensState = useSheetOrchestratorStore.getState().restoreViewState("/gardens");
-    const workState = useSheetOrchestratorStore.getState().restoreViewState("/hub");
+    const workState = useSheetOrchestratorStore.getState().restoreViewState("/review");
 
     expect(gardensState!.sheetOpen).toBe("left");
     expect(gardensState!.sheetContentId).toBe("garden-create");

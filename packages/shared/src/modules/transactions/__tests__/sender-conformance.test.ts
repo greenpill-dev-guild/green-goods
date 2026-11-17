@@ -4,12 +4,12 @@ import {
   createFakeSmartAccountClient,
   createFakeWagmiDeps,
   createMockContractCall,
+  fakePreparedUserOperation,
 } from "../../../__tests__/test-utils/transaction-fakes";
 import {
   describeConformance,
   type ConformanceLaw,
 } from "../../../__tests__/test-utils/conformance";
-import { fakePreparedUserOperation } from "../../../__tests__/test-utils/transaction-fakes";
 import { expect, vi } from "vitest";
 import type { Hex } from "viem";
 import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";

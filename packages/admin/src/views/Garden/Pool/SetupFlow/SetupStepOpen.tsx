@@ -83,25 +83,25 @@ export function SetupStepOpen({
             intent === "first-run"
               ? formatMessage(
                   {
-                    id: "cockpit.garden.pool.setup.done.firstRun",
+                    id: "hub.garden.pool.setup.done.firstRun",
                     defaultMessage: "{garden} is taking promises",
                   },
                   { garden: gardenName }
                 )
               : isCampaign
                 ? formatMessage({
-                    id: "cockpit.garden.pool.setup.done.campaign",
+                    id: "hub.garden.pool.setup.done.campaign",
                     defaultMessage: "The campaign is open",
                   })
                 : formatMessage({
-                    id: "cockpit.garden.pool.setup.done.season",
+                    id: "hub.garden.pool.setup.done.season",
                     defaultMessage: "The season is open",
                   })
           }
         >
           {formatMessage(
             {
-              id: "cockpit.garden.pool.setup.done.body",
+              id: "hub.garden.pool.setup.done.body",
               defaultMessage:
                 "“{name}” is open. Neighbors can offer help, ask for it, and take each other up.",
             },
@@ -123,19 +123,19 @@ export function SetupStepOpen({
   if (intent === "first-run") {
     summaryRows.push([
       formatMessage({
-        id: "cockpit.garden.pool.settings.purpose",
+        id: "hub.garden.pool.settings.purpose",
         defaultMessage: "What this pool is for",
       }),
       purpose.trim(),
     ]);
     summaryRows.push([
       formatMessage({
-        id: "cockpit.garden.pool.status.cap",
+        id: "hub.garden.pool.status.cap",
         defaultMessage: "Promise limit",
       }),
       formatMessage(
         {
-          id: "cockpit.garden.pool.status.capValue",
+          id: "hub.garden.pool.status.capValue",
           defaultMessage: "{count} per person at once",
         },
         { count: cap.trim() }
@@ -144,22 +144,22 @@ export function SetupStepOpen({
   }
   summaryRows.push([
     isCampaign
-      ? formatMessage({ id: "cockpit.garden.pool.cycle.campaign", defaultMessage: "Campaign" })
-      : formatMessage({ id: "cockpit.garden.pool.cycle.season", defaultMessage: "Season" }),
+      ? formatMessage({ id: "hub.garden.pool.cycle.campaign", defaultMessage: "Campaign" })
+      : formatMessage({ id: "hub.garden.pool.cycle.season", defaultMessage: "Season" }),
     cycle ? cycleLabel : `${cycleLabel} · ${startDate} – ${endDate}`,
   ]);
   summaryRows.push([
-    formatMessage({ id: "cockpit.garden.pool.setup.step.split", defaultMessage: "The Split" }),
-    `${formatMessage({ id: "cockpit.garden.pool.split.gardeners", defaultMessage: "Gardeners" })} ${allocation.gardeners} · ${formatMessage({ id: "cockpit.garden.pool.split.treasury", defaultMessage: "Treasury" })} ${allocation.treasury} · ${formatMessage({ id: "cockpit.garden.pool.split.steward", defaultMessage: "Steward" })} ${allocation.steward} · ${formatMessage({ id: "cockpit.garden.pool.split.evaluator", defaultMessage: "Evaluator" })} ${allocation.evaluator} · ${formatMessage({ id: "cockpit.garden.pool.split.community", defaultMessage: "Community" })} ${allocation.community} · ${formatMessage({ id: "cockpit.garden.pool.split.funder", defaultMessage: "Funder" })} ${allocation.funder}`,
+    formatMessage({ id: "hub.garden.pool.setup.step.split", defaultMessage: "The Split" }),
+    `${formatMessage({ id: "hub.garden.pool.split.gardeners", defaultMessage: "Gardeners" })} ${allocation.gardeners} · ${formatMessage({ id: "hub.garden.pool.split.treasury", defaultMessage: "Treasury" })} ${allocation.treasury} · ${formatMessage({ id: "hub.garden.pool.split.steward", defaultMessage: "Steward" })} ${allocation.steward} · ${formatMessage({ id: "hub.garden.pool.split.evaluator", defaultMessage: "Evaluator" })} ${allocation.evaluator} · ${formatMessage({ id: "hub.garden.pool.split.community", defaultMessage: "Community" })} ${allocation.community} · ${formatMessage({ id: "hub.garden.pool.split.funder", defaultMessage: "Funder" })} ${allocation.funder}`,
   ]);
   summaryRows.push([
     formatMessage({
-      id: "cockpit.garden.pool.split.recognition",
+      id: "hub.garden.pool.split.recognition",
       defaultMessage: "Gardeners' part",
     }),
     formatMessage(
       {
-        id: "cockpit.garden.pool.setup.recognitionSummary",
+        id: "hub.garden.pool.setup.recognitionSummary",
         defaultMessage: "{equal} % taking part · {verified} % proven contribution",
       },
       { equal: recognition.equal, verified: recognition.verified }
@@ -178,7 +178,7 @@ export function SetupStepOpen({
     if (phase === "stopped") {
       return formatMessage(
         {
-          id: "cockpit.garden.pool.setup.live.stopped",
+          id: "hub.garden.pool.setup.live.stopped",
           defaultMessage: "Stopped with {done} of {total} changes done.",
         },
         { done: doneCount, total: rows.length }
@@ -204,7 +204,7 @@ export function SetupStepOpen({
         {batched && phase === "ready" ? (
           <p className="type-meta text-text-soft">
             {formatMessage({
-              id: "cockpit.garden.pool.setup.promptBatched",
+              id: "hub.garden.pool.setup.promptBatched",
               defaultMessage:
                 "Changes with the same number are approved together, in one transaction.",
             })}
@@ -223,24 +223,24 @@ export function SetupStepOpen({
         <Alert variant="info">
           {intent === "first-run"
             ? formatMessage({
-                id: "cockpit.garden.pool.setup.openNoteFirstRun",
+                id: "hub.garden.pool.setup.openNoteFirstRun",
                 defaultMessage:
                   "Opening records how this pool works, then opens the pool and its first season together. Neighbors can make and take up promises straight away.",
               })
             : isCampaign
               ? formatMessage({
-                  id: "cockpit.garden.pool.setup.openNoteCampaign",
+                  id: "hub.garden.pool.setup.openNoteCampaign",
                   defaultMessage:
                     "The pool is already open, so this only starts the campaign. It runs alongside the season.",
                 })
               : poolStatus === "ready"
                 ? formatMessage({
-                    id: "cockpit.garden.pool.setup.openNoteGuard",
+                    id: "hub.garden.pool.setup.openNoteGuard",
                     defaultMessage:
                       "The pool is set up and opens with this season: two changes in order, the pool first, then the season with its split.",
                   })
                 : formatMessage({
-                    id: "cockpit.garden.pool.setup.openNoteSeason",
+                    id: "hub.garden.pool.setup.openNoteSeason",
                     defaultMessage:
                       "Opening tells the whole garden the season has begun. From that moment neighbors can offer help, ask for it, and take each other up.",
                   })}
@@ -249,7 +249,7 @@ export function SetupStepOpen({
       {phase === "running" ? (
         <p className="type-meta text-text-soft">
           {formatMessage({
-            id: "cockpit.garden.pool.setup.keepOpen",
+            id: "hub.garden.pool.setup.keepOpen",
             defaultMessage:
               "Keep this open until every change is done. If you leave, what is done stays done, and you can finish from the Promises tab.",
           })}
@@ -259,12 +259,12 @@ export function SetupStepOpen({
         <Alert variant="error">
           {pinFailure === "charter"
             ? formatMessage({
-                id: "cockpit.garden.pool.setup.pinFailedCharter",
+                id: "hub.garden.pool.setup.pinFailedCharter",
                 defaultMessage:
                   "The agreement could not be stored, so nothing was sent. Your words are still here; try again.",
               })
             : formatMessage({
-                id: "cockpit.garden.pool.setup.pinFailedCycle",
+                id: "hub.garden.pool.setup.pinFailedCycle",
                 defaultMessage:
                   "The name could not be stored, so nothing was sent. It is still here; try again.",
               })}
@@ -276,7 +276,7 @@ export function SetupStepOpen({
       {!isOnline ? (
         <Alert variant="warning">
           {formatMessage({
-            id: "cockpit.garden.pool.offline",
+            id: "hub.garden.pool.offline",
             defaultMessage: "Needs a connection. Pool changes are sent right away, not queued.",
           })}
         </Alert>

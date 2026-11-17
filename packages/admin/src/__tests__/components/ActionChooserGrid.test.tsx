@@ -65,7 +65,7 @@ const ACTIONS: Action[] = [
 ];
 
 describe("ActionChooserGrid", () => {
-  it("titles canonical actions in the cockpit's words across all four domains", () => {
+  it("titles canonical actions in the Hub's words across all four domains", () => {
     render(
       <IntlProvider locale="pt" messages={ptMessages}>
         <ActionChooserGrid

@@ -1,6 +1,6 @@
 /**
  * The state block (`EmptyState`): each surface passes its own action, so the
- * shared Button never renders in the cockpit (Rule 18); a failure is announced
+ * shared Button never renders in the Hub (Rule 18); a failure is announced
  * and a calm state is not; and a page can name itself by the state's title.
  *
  * @vitest-environment happy-dom

@@ -4,7 +4,7 @@
  *
  * Root mounts the toast viewport beside the routed canvas, outside the canvas's
  * `[data-tone]`. The viewport carries the route's workspace tone itself, so a
- * toast's action draws the cockpit's focus ring rather than the generic blue.
+ * toast's action draws the Hub's focus ring rather than the generic blue.
  */
 
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -16,6 +16,9 @@ vi.mock("@green-goods/shared/hooks/analytics/useAnalyticsIdentity", () => ({
 }));
 vi.mock("@green-goods/shared/hooks/analytics/usePageView", () => ({
   usePageView: () => undefined,
+}));
+vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
+  useWalletReconnectPrompt: () => undefined,
 }));
 vi.mock("@green-goods/shared/providers/App", () => ({
   useApp: () => ({ locale: "en" }),
@@ -41,7 +44,7 @@ function renderAt(path: string) {
 describe("Root", () => {
   it.each([
     ["/", "home"],
-    ["/hub/work", "hub"],
+    ["/review/work", "review"],
     ["/garden/0x1234567890123456789012345678901234567890/work", "garden"],
     ["/community", "community"],
   ])("gives the toasts on %s the %s workspace's tone", (path, tone) => {

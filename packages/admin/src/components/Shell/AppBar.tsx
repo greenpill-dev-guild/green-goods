@@ -13,7 +13,7 @@ import type React from "react";
 import { useIntl } from "react-intl";
 
 // ----------------------------------------------------------------------------
-// Admin fork of the shared Canvas AppBar (Cockpit M3, finished — 1a).
+// Admin fork of the shared Canvas AppBar (Hub M3, finished — 1a).
 //
 // Forked so the bar's styling lives in admin's own JSX, ending the remote
 // overrides in admin-m3-overrides.css. Behavior (slots, refresh registration,
@@ -161,7 +161,7 @@ export function AppBar({
               <button
                 type="button"
                 onClick={sheetContext.onBack}
-                aria-label={formatMessage({ id: "cockpit.topBar.back", defaultMessage: "Back" })}
+                aria-label={formatMessage({ id: "hub.topBar.back", defaultMessage: "Back" })}
                 className={ICON_BTN}
                 data-component="AppBar"
                 data-slot="back-button"
@@ -185,7 +185,7 @@ export function AppBar({
             <TopBarIconButton
               slot="refresh-button"
               tooltip={formatMessage({
-                id: "cockpit.topBar.refresh",
+                id: "hub.topBar.refresh",
                 defaultMessage: "Refresh",
               })}
               onClick={refreshAction.onRefresh}
@@ -201,7 +201,7 @@ export function AppBar({
             <TopBarIconButton
               slot="search-button"
               tooltip={formatMessage({
-                id: "cockpit.topBar.openSearch",
+                id: "hub.topBar.openSearch",
                 defaultMessage: "Open Search",
               })}
               onClick={onOpenSearch}
@@ -217,7 +217,7 @@ export function AppBar({
             <TopBarIconButton
               slot="notifications-button"
               tooltip={formatMessage({
-                id: "cockpit.topBar.notifications",
+                id: "hub.topBar.notifications",
                 defaultMessage: "Notifications",
               })}
               onClick={onOpenNotifications}
@@ -231,7 +231,7 @@ export function AppBar({
             <TopBarIconButton
               slot="settings-button"
               tooltip={formatMessage({
-                id: "cockpit.topBar.openSettings",
+                id: "hub.topBar.openSettings",
                 defaultMessage: "Open Settings",
               })}
               onClick={onOpenSettings}
@@ -245,7 +245,7 @@ export function AppBar({
             <TopBarIconButton
               slot="profile-button"
               tooltip={formatMessage({
-                id: "cockpit.topBar.openProfile",
+                id: "hub.topBar.openProfile",
                 defaultMessage: "Profile",
               })}
               onClick={onOpenProfile}

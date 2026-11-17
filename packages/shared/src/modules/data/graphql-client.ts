@@ -4,6 +4,7 @@ import { GraphQLClient, type RequestDocument } from "graphql-request";
 import { getEasGraphqlUrl, getIndexerUrl } from "../../config/blockchain";
 import { trackGraphQLError } from "../app/error-tracking";
 import { connectivityStore } from "../../stores/connectivity";
+import { withCombinedAbortSignal } from "../../utils/abort-signals";
 
 /** Vite environment interface for indexer URL access */
 interface ViteEnv {
@@ -105,11 +106,13 @@ export class GQLClient implements GraphQLReader {
       // Cast to RequestDocument for graphql-request compatibility.
       // TypedDocumentNode is a subtype that includes the same runtime structure.
       const data = await withTimeout(
-        this.client.request<TData>({
-          document: document as RequestDocument,
-          variables,
-          signal: signal ? AbortSignal.any([controller.signal, signal]) : controller.signal,
-        }),
+        withCombinedAbortSignal([controller.signal, signal], (requestSignal) =>
+          this.client.request<TData>({
+            document: document as RequestDocument,
+            variables,
+            signal: requestSignal,
+          })
+        ),
         GRAPHQL_TIMEOUT_MS,
         operationName,
         signal

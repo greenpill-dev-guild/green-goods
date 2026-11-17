@@ -344,7 +344,7 @@ const PHONE_QUEUE = storyPoolConsole({
 });
 
 /**
- * The cockpit's phone columns (296, 336 and 366px: a 320, 360 and 390px screen less the
+ * The Hub's phone columns (296, 336 and 366px: a 320, 360 and 390px screen less the
  * shell's 12px phone gutters) in English, Spanish and Portuguese. A row's act is its icon
  * there, and a queued row's two acts stack, so every row keeps its pill and its due date
  * whole beside the tile and the acts, and every act keeps its whole finger box in the row.

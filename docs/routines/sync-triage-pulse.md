@@ -83,7 +83,7 @@ Use the curated questions from [`posthog-questions.md`](./posthog-questions.md).
 Cross-project routing:
 
 - Client PWA / website surface → App project (`POSTHOG_PROJECT_ID_APP` = `163591`)
-- Admin Dashboard surface → Admin project (`POSTHOG_PROJECT_ID_ADMIN` = `262122`)
+- Green Goods Hub surface → Admin project (`POSTHOG_PROJECT_ID_ADMIN` = `262122`)
 - Docs / unknown surface → no enrichment
 
 Only safe-summary fields cross into the Customer Need body. Replay URLs, session IDs, distinct IDs, wallet addresses, reporter identifiers stay private. (The QA Sheet's session-ID/replay-URL exception applies only to the interactive `/qa-triage` skill writing to that Sheet — it does NOT apply to this routine. The routine writes nothing to the Sheet and never carries those fields.)
@@ -107,7 +107,7 @@ Only safe-summary fields cross into the Customer Need body. Replay URLs, session
 Read the notes and extract one structured item per discussed bug/idea/feedback/question. Use the same item types and surface vocabulary as the interactive skill (see [`.claude/skills/qa-triage/SKILL.md`](../../.claude/skills/qa-triage/SKILL.md) § Phase 2):
 
 - Item type: `bug | idea | feedback | question`
-- Surface: `Public Website | PWA iOS | PWA Android | Admin Dashboard | Cross Surface | Docs | unknown`
+- Surface: `Green Goods Website | Green Goods App iOS | Green Goods App Android | Green Goods Hub | Cross Surface | Docs | unknown`
 - Each item carries: one-liner, verbatim quote, speaker (or `anonymous`), optional linked Test ID
 
 Engineering Sync items are often engineering-internal: a flaky check, a tooling gap, a refactor the team agreed it needs. Extract them like any other item. Unless one is a defect, type it `idea` or `feedback`, so it lands as an `activity:maintenance` tracking Issue.

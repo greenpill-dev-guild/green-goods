@@ -10,8 +10,7 @@ import {
   PRODUCTION_ARTIFACT_ROOT,
   type ReleaseLock,
 } from "../utils/release-manifest";
-import type { ReleaseTransactionBoundary } from "../utils/release-plan";
-import { buildStageTransactionPlan } from "../utils/release-plan";
+import { type ReleaseTransactionBoundary, buildStageTransactionPlan } from "../utils/release-plan";
 import { retryRpcAvailability } from "../utils/rpc-retry";
 import {
   assertCheckpointReceiptBlock,

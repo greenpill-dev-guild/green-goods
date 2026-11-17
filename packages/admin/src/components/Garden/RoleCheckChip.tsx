@@ -32,7 +32,7 @@ export function RoleCheckChip({
       data-component="RoleCheckChip"
       data-checked={checked || undefined}
       className={cn(
-        // A 32px capsule with the cockpit's 44px finger box (`before`), like its other chips.
+        // A 32px capsule with the Hub's 44px finger box (`before`), like its other chips.
         "relative inline-flex min-h-8 items-center gap-2 whitespace-nowrap rounded-full bg-bg-white py-1 type-label-sm transition-colors",
         "before:absolute before:inset-x-0 before:-inset-y-1.5 before:content-['']",
         "has-focus-visible:ring-2 has-focus-visible:ring-[rgb(var(--tone-focus-ring,var(--primary-base)))] has-focus-visible:ring-offset-2",

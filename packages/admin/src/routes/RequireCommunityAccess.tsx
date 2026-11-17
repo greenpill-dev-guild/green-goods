@@ -12,5 +12,5 @@ export default function RequireCommunityAccess({
   const { showCommunity, isLoading } = useEffectiveToolbarPermissions();
 
   if (isLoading) return loadingFallback;
-  return showCommunity ? <Outlet /> : <PersistentRedirect to={adminRoutes.hub()} />;
+  return showCommunity ? <Outlet /> : <PersistentRedirect to={adminRoutes.review()} />;
 }

@@ -17,7 +17,7 @@ describe("attemptChunkAutoRecovery", () => {
     reload.mockClear();
     Object.defineProperty(window, "location", {
       configurable: true,
-      value: { ...window.location, pathname: "/hub/assess/create", reload },
+      value: { ...window.location, pathname: "/review/assess/create", reload },
     });
   });
 
@@ -40,7 +40,7 @@ describe("attemptChunkAutoRecovery", () => {
     expect(attemptChunkAutoRecovery()).toBe(true);
     Object.defineProperty(window, "location", {
       configurable: true,
-      value: { ...window.location, pathname: "/hub/work/submit", reload },
+      value: { ...window.location, pathname: "/review/work/submit", reload },
     });
     expect(attemptChunkAutoRecovery()).toBe(true);
     expect(reload).toHaveBeenCalledTimes(2);
