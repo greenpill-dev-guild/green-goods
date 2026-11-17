@@ -424,16 +424,28 @@ export async function evaluate(pull, headSha, { github, cwd = repoRoot, env = pr
   }
 }
 
+// Whether a gate input changed between two commits. A comparison GitHub cut short, or one that lists
+// no files, counts as changed; a failed lookup throws.
+async function gateInputsChanged(github, from, to) {
+  const files = (await github(`compare/${from}...${to}`)).files;
+  if (!Array.isArray(files)) return true;
+  return files.length >= 300 || files.some((entry) => GATE_INPUT_PATHS.includes(entry.filename) || GATE_INPUT_PATHS.includes(entry.previous_filename));
+}
+
 // Whether the gate's inputs changed on the base branch since this run checked it out. Such a run
-// would post an older policy's decision, so the sweep that change started decides instead. A
-// comparison GitHub cut short, or one that lists no files, counts as changed.
+// would post an older policy's decision, so the sweep that change started decides instead.
 async function gateInputsMovedSince(github, checkout, base) {
   if (!checkout) return false;
   const tip = (await github(`branches/${encodeURIComponent(base)}`)).commit.sha;
-  if (tip === checkout) return false;
-  const files = (await github(`compare/${checkout}...${tip}`)).files;
-  if (!Array.isArray(files)) return true;
-  return files.length >= 300 || files.some((entry) => GATE_INPUT_PATHS.includes(entry.filename) || GATE_INPUT_PATHS.includes(entry.previous_filename));
+  return tip !== checkout && gateInputsChanged(github, checkout, tip);
+}
+
+// Whether a push to develop changed what the gate reads. The workflow runs on every push, since a
+// path filter misses a file past the first 3,000 a large push changes; an unknown range sweeps.
+async function pushChangedGateInputs(github, event) {
+  const zero = /^0+$/;
+  if (!event.before || !event.after || zero.test(event.before)) return true;
+  return gateInputsChanged(github, event.before, event.after).catch(() => true);
 }
 
 /**
@@ -460,6 +472,34 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
     ? [dryRun]
     : await pullNumbers(deps.event ?? JSON.parse(readFileSync(env.GITHUB_EVENT_PATH, "utf8")), env.GITHUB_EVENT_NAME, findByHead, listOpen);
   let failed = false;
+  const eventName = env.GITHUB_EVENT_NAME;
+  if (!dryRun && eventName === "push") {
+    const event = deps.event ?? JSON.parse(readFileSync(env.GITHUB_EVENT_PATH, "utf8"));
+    const branch = String(event.ref ?? "").replace(/^refs\/heads\//, "");
+    if (!(await pushChangedGateInputs(github, event))) {
+      log("No gate input changed in this push; nothing to decide again.");
+      return 0;
+    }
+    if ((await gateInputsMovedSince(github, env.GITHUB_SHA, branch).catch(() => false)) === true) {
+      log(`The gate's inputs changed on ${branch} again since this sweep checked it out; the newer sweep decides.`);
+      return 0;
+    }
+    // Hold every open pull request first, so a sweep that stops part-way never leaves a success the
+    // older policy granted. Holding a merge is always safe.
+    for (const number of numbers) {
+      try {
+        const pull = await github(`pulls/${number}`);
+        if (pull.state !== "open" || !bases.includes(pull.base.ref)) continue;
+        await github(`statuses/${pull.head.sha}`, {
+          method: "POST",
+          body: { state: "pending", context: STATUS_CONTEXT, description: "Deciding again under a changed merge policy.", target_url: runUrl },
+        });
+      } catch (error) {
+        failed = true;
+        log(`#${number}: could not hold before the sweep (${printable(error.message)}).`);
+      }
+    }
+  }
   for (const number of numbers) {
     try {
       const pull = await github(`pulls/${number}`);
@@ -510,9 +550,13 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
       if (!dryRun) {
         // A run that read an older policy posts nothing: a success could carry a looser policy through,
         // and a hold could stall a pull request the newer policy passes. The sweep that change started
-        // decides every open pull request, this one included, since its head predates this run.
-        if (await gateInputsMovedSince(github, env.GITHUB_SHA, pull.base.ref).catch(() => true)) {
-          log(`#${number}: the gate's inputs changed on ${pull.base.ref} since this run checked it out; ${decision.state} not posted, the sweep decides.`);
+        // decides every open pull request, this one included, since its head predates this run. A
+        // lookup that fails confirms no change, so only a success waits; a hold still posts.
+        const moved = await gateInputsMovedSince(github, env.GITHUB_SHA, pull.base.ref).catch(() => null);
+        if (moved === true || (moved === null && decision.state === "success")) {
+          if (moved === null) failed = true;
+          const why = moved ? `the gate's inputs changed on ${pull.base.ref} since this run checked it out` : "the policy's freshness could not be checked";
+          log(`#${number}: ${why}; ${decision.state} not posted.`);
           continue;
         }
         // GitHub keeps at most 1,000 statuses for a head and context, so an unchanged decision is not

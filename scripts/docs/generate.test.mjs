@@ -1129,7 +1129,7 @@ test("workflow catalog covers every workflow file, only CI Gate is required, and
   assert.match(section("CI Gate"), /Required status:\*\* yes, branch protection waits for it\./);
   assert.match(section("Dependabot Sync"), /CI Gate waits for same-repository pull requests authored by `dependabot\[bot\]`/);
   assert.match(section("Dependabot Sync Publish"), /Runs on:\*\* completion of another workflow/);
-  assert.match(section("Merge Gate"), /Runs on:\*\* the start and completion of another workflow; comments on issues and pull requests; pushes to `develop` that touch its paths/);
+  assert.match(section("Merge Gate"), /Runs on:\*\* the start and completion of another workflow; comments on issues and pull requests; pushes to `develop`/);
 });
 
 test("workflow inventory reads display name, sorted jobs, and triggers from the YAML", (t) => {

@@ -378,12 +378,12 @@ test("evaluate reads every classification input: the merge base, Shared mutation
   }
 });
 
-test("the workflow posts when CI Gate starts, and decides again whenever what the gate reads changes on develop", () => {
+test("the workflow posts when CI Gate starts, and runs on every push to develop to decide whether to sweep", () => {
   const workflow = readFileSync(path.join(path.dirname(new URL(import.meta.url).pathname), "../../.github/workflows/merge-gate.yml"), "utf8");
   assert.match(workflow, /workflow_run:\n\s+workflows: \["CI Gate"\]\n\s+types: \[requested, completed\]/);
-  const pushPaths = workflow.match(/push:\n\s+branches: \[develop\]\n\s+paths:\n((?:\s+- ".+"\n)+)/)?.[1].match(/"([^"]+)"/g).map((entry) => entry.slice(1, -1));
-  // Every input the gate's decision reads, and each one is critical to change.
-  assert.deepEqual([...pushPaths].sort(), [...GATE_INPUT_PATHS].sort());
+  // No path filter: GitHub drops one for a file past the first 3,000 a push changes.
+  assert.match(workflow, /push:\n\s+branches: \[develop\]\n(?!\s+paths:)/);
+  // Every input the gate's decision reads is critical to change.
   assert.deepEqual(GATE_INPUT_PATHS.filter((file) => !GATE_CRITICAL_PATHS.includes(file)), []);
 });
 
@@ -411,13 +411,45 @@ test("a sweep after a push decides each open pull request into develop and skips
     summary: () => {},
   };
   assert.equal(await main([], deps), 0);
-  assert.deepEqual(posted, [`statuses/${HEAD}`]);
+  // The hold first, then the decision; the pull request into main is left alone.
+  assert.deepEqual(posted, [`statuses/${HEAD}`, `statuses/${HEAD}`]);
 });
 
-test("a run that read an older policy posts nothing, and one pull request's failure leaves the rest of a sweep to decide", async () => {
+test("a push sweeps only when it changed a gate input, or when GitHub cannot say", async () => {
+  const BEFORE = "a".repeat(40);
+  const AFTER = "b".repeat(40);
+  const run = async (files) => {
+    const posted = [];
+    const github = async (route, request = {}) => {
+      if (request.method === "POST") return void posted.push(route);
+      if (route.startsWith("pulls?state=open")) return route.includes("page=1") ? [{ number: 3, base: { ref: "develop" } }] : [];
+      if (route === "pulls/3") return { number: 3, state: "open", base: { ref: "develop" }, head: { sha: HEAD } };
+      if (route === `compare/${BEFORE}...${AFTER}`) return files === "error" ? Promise.reject(new Error("HTTP 502")) : { files };
+      if (route.startsWith("issues/") || route.startsWith("commits/")) return [];
+      throw new Error(`unexpected ${route}`);
+    };
+    const deps = {
+      env: { GITHUB_EVENT_NAME: "push" },
+      event: { ref: "refs/heads/develop", before: BEFORE, after: AFTER },
+      github,
+      evaluate: async () => ({ decision: { state: "success", description: "ok", needed: [] }, reasons: [], markers: null, authors: new Set(), writers: new Set() }),
+      log: () => {},
+      summary: () => {},
+    };
+    assert.equal(await main([], deps), 0);
+    return posted.length;
+  };
+  assert.equal(await run([{ filename: "docs/a.md" }]), 0);
+  assert.equal(await run([{ filename: "docs/old.md", previous_filename: ".agents/merge-policy.json" }]), 2);
+  assert.equal(await run(Array.from({ length: 300 }, (_, index) => ({ filename: `docs/${index}.md` }))), 2);
+  assert.equal(await run("error"), 2);
+});
+
+test("a run that read an older policy posts nothing, a failed freshness check holds back only success, and a sweep goes on past one failure", async () => {
   const CHECKOUT = "c".repeat(40);
   const TIP = "d".repeat(40);
-  const run = async ({ moved, state = "success", pulls = { 3: { number: 3, state: "open", base: { ref: "develop" }, head: { sha: HEAD } } }, exit = 0 }) => {
+  const POLICY = ".agents/merge-policy.json";
+  const run = async ({ moved, state = "success", eventName = "issue_comment", pulls = { 3: { number: 3, state: "open", base: { ref: "develop" }, head: { sha: HEAD } } }, exit = 0 }) => {
     const posted = [];
     const github = async (route, request = {}) => {
       if (request.method === "POST") return void posted.push(route);
@@ -430,8 +462,8 @@ test("a run that read an older policy posts nothing, and one pull request's fail
       throw new Error(`unexpected ${route}`);
     };
     const deps = {
-      env: { GITHUB_EVENT_NAME: "push", GITHUB_SHA: CHECKOUT },
-      event: { ref: "refs/heads/develop" },
+      env: { GITHUB_EVENT_NAME: eventName, GITHUB_SHA: CHECKOUT },
+      event: eventName === "push" ? { ref: "refs/heads/develop" } : { issue: { number: 3, pull_request: {} } },
       github,
       evaluate: async () => ({ decision: { state, description: state, needed: [] }, reasons: [], markers: { reviewed: false, fullGate: false }, authors: new Set(), writers: new Set() }),
       log: () => {},
@@ -441,13 +473,17 @@ test("a run that read an older policy posts nothing, and one pull request's fail
     return posted;
   };
   assert.deepEqual(await run({ moved: ["docs/a.md"] }), [`statuses/${HEAD}`]);
-  assert.deepEqual(await run({ moved: [".agents/merge-policy.json"] }), []);
+  assert.deepEqual(await run({ moved: [POLICY] }), []);
   // A hold from an older policy could stall a pull request the newer one passes, so it waits for the sweep too.
-  assert.deepEqual(await run({ moved: [".agents/merge-policy.json"], state: "pending" }), []);
-  // A comparison that fails, lists no files or is cut short counts as moved.
-  assert.deepEqual(await run({ moved: "error" }), []);
+  assert.deepEqual(await run({ moved: [POLICY], state: "pending" }), []);
+  // A comparison that lists no files or is cut short counts as moved.
   assert.deepEqual(await run({ moved: undefined }), []);
   assert.deepEqual(await run({ moved: Array.from({ length: 300 }, (_, index) => `docs/${index}.md`) }), []);
-  // Pull request 9 fails to load; 3 is still decided, and the run reports the failure.
-  assert.deepEqual(await run({ moved: [], pulls: { 3: { number: 3, state: "open", base: { ref: "develop" }, head: { sha: HEAD } }, 9: undefined }, exit: 2 }), [`statuses/${HEAD}`]);
+  // A failed comparison confirms nothing: success waits and the run reports it, but a hold still posts.
+  assert.deepEqual(await run({ moved: "error", exit: 2 }), []);
+  assert.deepEqual(await run({ moved: "error", state: "pending" }), [`statuses/${HEAD}`]);
+  // A sweep whose checkout a newer policy push already passed leaves everything to the newer sweep.
+  assert.deepEqual(await run({ eventName: "push", moved: [POLICY] }), []);
+  // Pull request 9 fails to load; 3 is held, then decided, and the run reports the failure.
+  assert.deepEqual(await run({ eventName: "push", moved: [], pulls: { 3: { number: 3, state: "open", base: { ref: "develop" }, head: { sha: HEAD } }, 9: undefined }, exit: 2 }), [`statuses/${HEAD}`, `statuses/${HEAD}`]);
 });
