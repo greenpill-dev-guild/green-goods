@@ -206,13 +206,13 @@ describe("garden join request public contract", () => {
 
   it("reads a damaged authorization as absent instead of throwing", () => {
     const sent = encodeGardenJoinAuthorization(proof);
+    // Two kinds of damage no header survives: being cut short, and a character base64url never has.
+    const foreign = ["é", "中", "🌱", ":", '"', "\\", "\u0000"] as const;
     forSeededCases((source) => {
-      const cut = source.int(0, sent.length);
-      const damaged = `${sent.slice(0, cut)}${source.text(AWKWARD_TEXT, 6)}${sent.slice(cut + source.int(0, 3))}`;
-      expect(() => decodeGardenJoinAuthorization(damaged)).not.toThrow();
-      if (!damaged.startsWith("GG-JoinProof ")) {
-        expect(decodeGardenJoinAuthorization(damaged)).toBeNull();
-      }
+      const cut = source.int(0, sent.length - 1);
+      expect(decodeGardenJoinAuthorization(sent.slice(0, cut))).toBeNull();
+      const spoiled = `${sent.slice(0, cut)}${source.pick(foreign)}${sent.slice(cut + source.int(0, 3))}`;
+      expect(decodeGardenJoinAuthorization(spoiled)).toBeNull();
     });
   });
 

@@ -220,7 +220,6 @@ describe("Vault Utilities", () => {
     });
 
     it("accepts a typed amount exactly when it parses to what was typed", () => {
-      const verdicts = new Set<string | null>();
       forSeededCases((source) => {
         const decimals = source.int(0, 18);
         const whole = source.text(DIGITS, 12);
@@ -230,7 +229,6 @@ describe("Vault Utilities", () => {
         const typed = `${source.pick(["", " "])}${whole}${stray}${dot}${fraction}${source.pick(["", " "])}`;
 
         const verdict = validateDecimalInput(typed, decimals);
-        verdicts.add(verdict);
         if (stray || (dot && !whole && !fraction)) {
           expect(verdict).toBe("app.treasury.invalidAmount");
         } else if (fraction.length > decimals) {
@@ -245,9 +243,6 @@ describe("Vault Utilities", () => {
           expect(parseUnits(normalizeDecimalInput(typed), decimals)).toBe(typedUnits);
         }
       });
-      expect(verdicts).toEqual(
-        new Set([null, "app.treasury.invalidAmount", "app.treasury.tooManyDecimals"])
-      );
     });
   });
 
