@@ -47,7 +47,7 @@
       "required": false
     },
     ".github/workflows/coverage-nightly.yml": {
-      "purpose": "Enforces the measured coverage floors across the packages. Pull requests run plain package tests for fast feedback; this lane measures.",
+      "purpose": "Enforces the measured coverage floors across the packages. Client and Admin pull requests hold their floors too; Shared's sharded pull request tests run plain, so this lane is its only coverage check.",
       "useCase": "Nightly at 08:43 UTC and after every push to main.",
       "required": false
     },
