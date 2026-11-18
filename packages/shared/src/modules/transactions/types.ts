@@ -91,7 +91,8 @@ export interface TransactionSendOptions {
    * it passes, the send rejects with `ReceiptWaitLimitError`: the transaction went
    * out and may still land. Without it the wait lasts until the receipt arrives.
    * The wallet and embedded senders honor it. A passkey send keeps its own
-   * 120 second limit and ends with the same error when it passes.
+   * 120 second limit; given this option, it ends with the same error when that
+   * limit passes, and without it, with viem's timeout as before.
    */
   receiptWaitLimitMs?: number;
 }

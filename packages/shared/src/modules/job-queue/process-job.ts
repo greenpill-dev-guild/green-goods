@@ -255,7 +255,7 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
         await sender.assertOwnership?.(address, chainId);
       };
       // A send on record that outlasts its limit is confirmed from that record later. A kind
-      // that keeps no record waits as long as it takes: its answer is the only proof it went.
+      // that keeps no record gets no limit from the queue: its answer is the only proof it went.
       const receiptWaitLimitMs = recordsSends(job.kind) ? deps.config.receiptWaitLimitMs : 0;
       guardedSender.sendContractCall = async (call, options = {}) => {
         try {

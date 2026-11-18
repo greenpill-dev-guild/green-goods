@@ -454,10 +454,18 @@ const laws: ConformanceLaw<SenderCase>[] = [
       await expect(sent).rejects.toBeInstanceOf(ReceiptWaitLimitError);
       await expect(sent).rejects.toMatchObject({ limitMs: 120_000 });
       expect(harness.trace.slice(-2)).toEqual(["broadcast", "receipt"]);
-      if (expectations.receiptWaitLimit === "own") return;
+
+      const unlimited = make({ receiptNeverComes: true });
+      if (expectations.receiptWaitLimit === "own") {
+        // A caller that asked for no limit keeps the sender's own timeout, which error copy
+        // reads as a timeout rather than an unknown failure.
+        await expect(unlimited.sender.sendContractCall(createMockContractCall())).rejects.toThrow(
+          WaitForUserOperationReceiptTimeoutError
+        );
+        return;
+      }
 
       // Without a limit nothing changes: the wait is the caller's to end.
-      const unlimited = make({ receiptNeverComes: true });
       await expect(unlimited.sender.sendContractCall(createMockContractCall())).rejects.toThrow(
         "waited for a receipt with no limit"
       );

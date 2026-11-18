@@ -170,7 +170,7 @@ export function trackJobSkipped(
 }
 
 /**
- * Track a send whose receipt did not come within the queue's limit (PRD-1495). It went out and
+ * Track a send whose receipt did not come within the queue's limit (PRD-1550). It went out and
  * may still land, so the job waits as still confirming. Nothing names the send or whose it is.
  */
 export function trackReceiptWaitLimitReached(
