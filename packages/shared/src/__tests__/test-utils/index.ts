@@ -14,6 +14,7 @@ export * from "./transaction-fakes";
 export * from "./job-queue-fakes";
 export * from "./commitment-pooling-fixtures";
 export * from "./controller-fixtures";
+export { AIYELOJA_TEST_POOL } from "./aiyeloja-test-pool";
 export { describeConformance, type ConformanceLaw } from "./conformance";
 export { createSharedBarrelMock } from "./shared-barrel-mock";
 export * from "./render-helpers";

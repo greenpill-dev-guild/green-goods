@@ -15,6 +15,10 @@ import { voucherDigest } from "./voucher-release";
 export const GARDEN_MAX_FEE = 2_000_000_000n;
 export const GARDEN_PRIORITY_FEE = 1_000_000_000n;
 export const GARDEN_NATIVE_BUDGET = 100_000_000_000_000_000n;
+// Receipt recovery is shared by garden releases; admission and issuer policy remain separate.
+type ProxyDeploymentPlan = Pick<CLCGardenPlan, "sourceCommit"> & {
+  transactions: (Omit<CLCGardenPlan["transactions"][number], "component"> & { component: string })[];
+};
 export interface GardenExecutionJournal {
   schemaVersion: 1;
   kind: "CLC_GARDEN_DEPLOYMENT_EXECUTION";
@@ -39,7 +43,7 @@ function equal(actual: unknown, expected: unknown, label: string): void {
   if (String(actual).toLowerCase() !== String(expected).toLowerCase())
     throw new Error(`Garden execution ${label} mismatch`);
 }
-export function gardenExecutionJournal(plan: CLCGardenPlan): GardenExecutionJournal {
+export function gardenExecutionJournal(plan: ProxyDeploymentPlan): GardenExecutionJournal {
   return {
     schemaVersion: 1,
     kind: "CLC_GARDEN_DEPLOYMENT_EXECUTION",
@@ -54,7 +58,7 @@ export function gardenExecutionJournal(plan: CLCGardenPlan): GardenExecutionJour
 }
 export function validateGardenExecutionJournal(
   value: unknown,
-  plan: CLCGardenPlan,
+  plan: ProxyDeploymentPlan,
 ): asserts value is GardenExecutionJournal {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Invalid garden journal");
   const journal = value as GardenExecutionJournal;
@@ -206,7 +210,7 @@ export function gardenRegistration(
 /** Explicit replacement recovery still proves the exact planned sender, nonce, target, value and calldata. */
 export async function recoverGardenExecutionJournal(
   provider: JsonRpcProvider,
-  plan: CLCGardenPlan,
+  plan: ProxyDeploymentPlan,
   journal: GardenExecutionJournal,
   supplied: unknown = { transactions: {} },
 ) {
@@ -248,7 +252,7 @@ export async function recoverGardenExecutionJournal(
 }
 export async function verifyGardenExecutionReceipts(
   provider: JsonRpcProvider,
-  plan: CLCGardenPlan,
+  plan: ProxyDeploymentPlan,
   journal: GardenExecutionJournal,
 ) {
   validateGardenExecutionJournal(journal, plan);

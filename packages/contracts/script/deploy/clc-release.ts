@@ -16,6 +16,14 @@ import { CONFIG_ROOT, CONTRACTS_ROOT, getFoundryOutDir } from "../utils/paths";
 import { writeReleaseJsonAtomic } from "../utils/release-artifacts";
 import { releaseJsonPath, releaseRevision } from "../utils/release-inputs";
 
+import {
+  inspectCLCAiyelojaManifest,
+  buildCLCAiyelojaPlan,
+  validateCLCAiyelojaPlan,
+  aiyelojaSafeUpload,
+} from "../utils/clc-aiyeloja-release";
+import { simulateCLCAiyelojaPlan } from "../utils/clc-aiyeloja-simulation";
+
 async function main() {
   const { values } = parseArgs({
     strict: true,
@@ -61,6 +69,70 @@ async function main() {
   };
   if (!values.preflight) checkRevision();
   const base: unknown = JSON.parse(readFileSync(manifestPath, "utf8"));
+  if ((base as { schemaVersion?: unknown })?.schemaVersion === 4) {
+    if (membersPath || receiptsPath)
+      throw new Error("Aiyeloja test fixtures belong to their own manifest; resume through downstream verify");
+    const manifest = inspectCLCAiyelojaManifest(base);
+    if (values.preflight) {
+      console.log(
+        JSON.stringify(
+          {
+            state: "preflight",
+            kind: manifest.kind,
+            chainId: 100,
+            safe: manifest.safe,
+            newPools: 1,
+            tokens: manifest.tokens.length,
+            appActivationIncluded: false,
+            liveBroadcast: false,
+          },
+          null,
+          2,
+        ),
+      );
+      return;
+    }
+    if (!revision) throw new Error("Aiyeloja requires a committed revision");
+    const planned = buildCLCAiyelojaPlan(manifest, revision);
+    if (values["plan-only"]) {
+      const output =
+        requestedOutput ?? releaseJsonPath(directory, `.generated/clc-release/${planned.releaseId}.plan.json`);
+      checkOutput(output);
+      checkRevision();
+      writeReleaseJsonAtomic(output, planned);
+      for (const batch of planned.batches) {
+        const file = releaseJsonPath(directory, `.generated/clc-release/${planned.releaseId}.${batch.name}.json`);
+        checkOutput(file);
+        writeReleaseJsonAtomic(file, aiyelojaSafeUpload(batch));
+      }
+      console.log(
+        JSON.stringify(
+          {
+            state: "planned",
+            output,
+            factoryCalls: planned.transactions.length,
+            safeBatches: planned.batches.length,
+            liveBroadcast: false,
+          },
+          null,
+          2,
+        ),
+      );
+      return;
+    }
+    if (!planPath) throw new Error("Aiyeloja simulation requires its exact bound plan");
+    const plan: unknown = JSON.parse(readFileSync(planPath, "utf8"));
+    validateCLCAiyelojaPlan(plan, manifest, revision);
+    execFileSync("bun", ["run", "check:foundry-version"], { cwd: CONTRACTS_ROOT, stdio: "pipe" });
+    const result = await simulateCLCAiyelojaPlan(plan, manifest, new NetworkManager().getRpcUrl("gnosis"));
+    checkRevision();
+    const output =
+      requestedOutput ?? releaseJsonPath(directory, `.generated/clc-release/${planned.releaseId}.simulation.json`);
+    checkOutput(output);
+    writeReleaseJsonAtomic(output, result);
+    console.log(JSON.stringify({ state: "simulated", output, liveBroadcast: false }, null, 2));
+    return;
+  }
   if ((base as { schemaVersion?: unknown })?.schemaVersion === 3) {
     if (membersPath) throw new Error("Garden extension members belong in its manifest");
     const inspected = inspectCLCGardenManifest(base);
