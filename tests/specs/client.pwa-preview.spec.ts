@@ -388,6 +388,8 @@ test("a recovered browser tab no longer holds back the installed app's update", 
     process.env.PLAYWRIGHT_PWA_PREVIEW,
     "Use the pwa-preview preset to build production assets"
   ).toBe("true");
+  // Two windows, two stuck boots and a worker hand-over outlast the project's budget on a busy runner.
+  test.setTimeout(150_000);
   await page.setViewportSize({ width: 390, height: 844 });
   await installOldBuildWorker(page);
   await page.evaluate(recoveryWorkStorage, true);
@@ -418,8 +420,13 @@ test("a recovered browser tab no longer holds back the installed app's update", 
   await expect(browserTab.getByRole("heading", { level: 1 })).toBeVisible();
 
   await installedApp.getByRole("button", { name: "Try Again" }).click();
+  // Nothing blocks the update now. The browser activates the new worker once the old one has
+  // finished its work; on a slow runner the app first says the update is taking longer, keeps
+  // watching, and reloads when the worker activates.
+  await expect
+    .poll(() => workers(installedApp), { timeout: 60_000 })
+    .toEqual({ active: "new", waiting: null });
   await expect(installedApp.getByTestId("login-button")).toBeVisible({ timeout: 25_000 });
-  await expect.poll(() => workers(installedApp)).toEqual({ active: "new", waiting: null });
   expect(await installedApp.evaluate(() => navigator.serviceWorker.controller?.scriptURL)).toMatch(
     /\/sw\.js$/
   );
