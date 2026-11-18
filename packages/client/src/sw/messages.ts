@@ -161,11 +161,18 @@ export function createMessageHandler({ scope, shell, media, work }: MessageDepen
             // worker is the newer build, so the request reaches a profile
             // whose stuck page still runs the older boot screen.
             const outgoing = scope.registration.waiting ? scope.registration.active : null;
-            outgoing?.postMessage({ type: SW_MESSAGE.PREPARE_TO_ACTIVATE_UPDATE });
+            const tellOutgoing = (type: ServiceWorkerMessage["type"]) => {
+              try {
+                outgoing?.postMessage({ type });
+              } catch {
+                // A browser that cannot message another worker hands over as it did before.
+              }
+            };
+            tellOutgoing(SW_MESSAGE.PREPARE_TO_ACTIVATE_UPDATE);
             try {
               await scope.skipWaiting();
             } catch (error) {
-              outgoing?.postMessage({ type: SW_MESSAGE.RESUME_BACKGROUND_WORK });
+              tellOutgoing(SW_MESSAGE.RESUME_BACKGROUND_WORK);
               throw error;
             }
             reply({ status: "requested" });

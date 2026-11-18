@@ -302,6 +302,16 @@ describe("client public service worker migration", () => {
     await waitUntil.mock.calls[2][0];
     expect(postMessage).toHaveBeenLastCalledWith({ status: "failed" });
     expect(outgoing.postMessage).toHaveBeenLastCalledWith({ type: "RESUME_BACKGROUND_WORK" });
+
+    // A browser that cannot message another worker still gets the update, as before.
+    clients.matchAll.mockResolvedValueOnce([boot]);
+    outgoing.postMessage.mockImplementationOnce(() => {
+      throw new Error("unsupported");
+    });
+    listeners.message[0](event);
+    await waitUntil.mock.calls[3][0];
+    expect(self.skipWaiting).toHaveBeenCalledTimes(3);
+    expect(postMessage).toHaveBeenLastCalledWith({ status: "requested" });
   });
 
   it("skips production shell population for the Vite development worker", async () => {
