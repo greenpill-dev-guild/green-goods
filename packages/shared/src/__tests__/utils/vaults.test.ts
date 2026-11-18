@@ -1,3 +1,4 @@
+import { parseUnits } from "viem";
 import { describe, expect, it } from "vitest";
 import { isZeroAddress, ZERO_ADDRESS } from "../../utils/blockchain/address";
 import { getEthUsdFeedAddress } from "../../utils/blockchain/price-feeds";
@@ -13,6 +14,7 @@ import {
   summarizeNetDepositsByAsset,
   validateDecimalInput,
 } from "../../utils/blockchain/vaults";
+import { DIGITS, forSeededCases } from "../test-utils/seeded-cases";
 
 const ARB_WETH = "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1";
 const ARB_DAI = "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1";
@@ -216,6 +218,32 @@ describe("Vault Utilities", () => {
     it("returns null when decimals are under limit", () => {
       expect(validateDecimalInput("1.12", 6)).toBeNull();
     });
+
+    it("accepts a typed amount exactly when it parses to what was typed", () => {
+      forSeededCases((source) => {
+        const decimals = source.int(0, 18);
+        const whole = source.text(DIGITS, 12);
+        const stray = source.pick(["", "", "", "-", "e", ","]);
+        const dot = source.pick(["", "."]);
+        const fraction = dot ? source.text(DIGITS, decimals + 2) : "";
+        const typed = `${source.pick(["", " "])}${whole}${stray}${dot}${fraction}${source.pick(["", " "])}`;
+
+        const verdict = validateDecimalInput(typed, decimals);
+        if (stray || (dot && !whole && !fraction)) {
+          expect(verdict).toBe("app.treasury.invalidAmount");
+        } else if (fraction.length > decimals) {
+          expect(verdict).toBe("app.treasury.tooManyDecimals");
+        } else {
+          expect(verdict).toBeNull();
+          // Nothing typed is no amount; anything else accepted must lose no digit.
+          if (!whole && !fraction) return;
+          const typedUnits =
+            BigInt(whole || "0") * 10n ** BigInt(decimals) +
+            BigInt(fraction.padEnd(decimals, "0") || "0");
+          expect(parseUnits(normalizeDecimalInput(typed), decimals)).toBe(typedUnits);
+        }
+      });
+    });
   });
 
   describe("normalizeDecimalInput", () => {
@@ -334,6 +362,22 @@ describe("Vault Utilities", () => {
     it("keeps tiny non-zero balances visible without the dust indicator", () => {
       expect(formatTokenAmount(1n, 18, 4, EN)).toBe("0.000000000000000001");
       expect(formatTokenAmount(12n, 8, 4, EN)).toBe("0.00000012");
+    });
+
+    it("never shows more than the amount, and hides less than one shown unit", () => {
+      forSeededCases((source) => {
+        const decimals = source.int(0, 18);
+        const shownDigits = source.int(1, 8);
+        const amount = BigInt(source.text(DIGITS, 30) || "0");
+
+        const shown = formatTokenAmount(amount, decimals, shownDigits, EN);
+        const readBack = parseUnits(shown.replace(/,/g, ""), decimals);
+
+        expect(readBack).toBeLessThanOrEqual(amount);
+        expect(amount - readBack).toBeLessThan(10n ** BigInt(Math.max(decimals - shownDigits, 0)));
+        // A balance that exists never reads as nothing.
+        expect(readBack === 0n).toBe(amount === 0n);
+      });
     });
   });
 });

@@ -245,7 +245,7 @@ export function useWorkUploads(options: { inScope?: GardenScopeFilter } = {}): W
       if (appCodeRecovery.report(error)) return;
       toastService.error({
         id: "work-uploads",
-        title: formatMessage({ id: "app.uploads.failedTitle" }),
+        title: formatMessage({ id: "app.uploads.notSentTitle" }),
         message: formatMessage({ id: "app.uploads.failedMessage" }),
         context: "work uploads",
         error,

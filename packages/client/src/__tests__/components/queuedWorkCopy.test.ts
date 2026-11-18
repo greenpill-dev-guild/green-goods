@@ -121,7 +121,7 @@ describe("blockedReasonMessage", () => {
     // check that just passed.
     [
       "reverted",
-      "This upload didn't go through. Your media is saved; try again when you're ready.",
+      "Your work didn't send. Your media is still saved, so try again when you're ready.",
     ],
   ])("explains %s", (reason, text) => {
     expect(textOf(blockedReasonMessage(reason))).toBe(text);
@@ -151,7 +151,7 @@ describe("queuedWorkExplanation", () => {
     ["retry-required", "Your media stays saved. Choose Upload now when you’re ready to try again."],
     [
       "reverted",
-      "This upload didn't go through. Your media is saved; try again when you're ready.",
+      "Your work didn't send. Your media is still saved, so try again when you're ready.",
     ],
     ["awaiting-confirmation", messages["app.work.confirmationExplanation"]],
     ["checking-submission", messages["app.work.checkingSubmissionInfo"]],

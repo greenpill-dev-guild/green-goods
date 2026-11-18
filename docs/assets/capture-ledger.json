@@ -576,22 +576,22 @@
     {
       "page": "docs/docs/community/gardener-guide/commitments.mdx",
       "images": ["/img/screenshots/guide-promise-choose.webp"],
-      "recorded_at": "2026-10-17",
+      "recorded_at": "2026-11-16",
       "proof_class": "Storybook",
-      "engine": "Chromium in-app browser",
+      "engine": "Headless Chromium (Playwright)",
       "data": "Fictional garden/account/work records; write callbacks are local stubs.",
       "capture_name": "promise-choose",
       "width": 480,
       "height": 900,
-      "sha256": "ab47eabf1f9a647c9d6567bb08a6fe4c7a47f2d521258f52627233738949f9d0",
-      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "sha256": "a2d62ee2eac351531a0f5780735d33d3443ff07560566edbaf6cf3415ecd469e",
+      "source_revision": "9195d6d0f plus the Home Offer or Ask stories (DL-181)",
       "status": "current",
-      "story_id": "client-commitments-gardenpool--chooser",
+      "story_id": "client-pwa-home--offer-or-ask-open",
       "viewport": {
         "width": 480,
         "height": 900
       },
-      "framing": "Actual component bounds or complete phone viewport; no UI compositing"
+      "framing": "Complete phone viewport at 1x; no UI compositing"
     },
     {
       "page": "docs/docs/community/gardener-guide/commitments.mdx",

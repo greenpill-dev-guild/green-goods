@@ -76,13 +76,19 @@ export interface RoleInfo {
   isAgent: boolean;
   isTechnicalDeployer: boolean;
   protocolRolesError: boolean;
+  /**
+   * The deployment registry has never answered, so `isDeployer` is unknown rather than false. A
+   * failed refresh over an earlier answer keeps that answer and does not set this.
+   */
+  deploymentPermissionsError: boolean;
   isSteward: boolean;
   stewardGardens: StewardGarden[];
   loading: boolean;
   /**
-   * True when the steward-gardens indexer query failed (network/indexer
-   * outage), as opposed to a successful query that genuinely returned none.
-   * Lets the admin distinguish a retryable error from real "no access".
+   * True when the steward-gardens indexer query or the protocol-role chain read
+   * failed, as opposed to reads that answered and genuinely found none. Lets the
+   * admin distinguish a retryable error from real "no access", so its message
+   * must not name either source.
    */
   gardensError: boolean;
   deploymentPermissions: {
@@ -121,6 +127,11 @@ export function useRole(): RoleInfo {
     staleTime: STALE_TIMES.baseLists,
     // Offline-first: prefer cached data
     networkMode: "offlineFirst",
+    // As with the deployment registry: a read with no answer, restarted by a mount or a window
+    // focus, reopens the Hub's access gate and loops it. Try Again and a reconnect read it again,
+    // and an answer, once there is one, still refreshes on focus.
+    retryOnMount: false,
+    refetchOnWindowFocus: (query) => query.state.data !== undefined,
   });
 
   const fences = useSyncExternalStore(
@@ -151,6 +162,7 @@ export function useRole(): RoleInfo {
     isAgent: protocolRoles.agents,
     isTechnicalDeployer: protocolRoles.deployer,
     protocolRolesError: protocolRoles.isError,
+    deploymentPermissionsError: deploymentRegistry.error !== undefined,
     isSteward,
     stewardGardens,
     loading: !ready || isFetching || deploymentRegistry.loading || protocolRoles.isLoading,

@@ -32,6 +32,13 @@ export interface EligibleAdminGardensResult {
    */
   isError: boolean;
   /**
+   * True when the chain read of garden-creation permission failed. Kept out of
+   * `isError`, which the garden context treats as terminal: a steward whose
+   * gardens loaded can work without it. With no eligible garden, though, it
+   * cannot be told apart from no access, so the access gate offers a retry.
+   */
+  deploymentPermissionsError: boolean;
+  /**
    * True when `useRole` reports steward gardens that the base list does not
    * yet expose (cache lag, indexer drift, or an outage). Consumers can use
    * this to keep the user on the canvas instead of redirecting to no-access.
@@ -90,6 +97,7 @@ export function useEligibleAdminGardens(): EligibleAdminGardensResult {
     stewardGardens,
     loading: roleLoading,
     gardensError: roleGardensError,
+    deploymentPermissionsError,
   } = useRole();
   const lastGardenIdsByScope = useAdminStore((state) => state.lastGardenIdsByScope);
 
@@ -202,6 +210,7 @@ export function useEligibleAdminGardens(): EligibleAdminGardensResult {
     // retryable for normal stewards, but should not block the deployer-only
     // create-garden path when no garden exists yet.
     isError: baseListError || (roleGardensError && role !== "deployer"),
+    deploymentPermissionsError,
     hasStaleBaseList,
   };
 }

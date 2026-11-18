@@ -6,6 +6,7 @@ import {
   validateCreateGardenJoinRequest,
   validateGardenJoinProofEnvelope,
 } from "../../public-contracts/join-requests";
+import { AWKWARD_TEXT, forSeededCases } from "../test-utils/seeded-cases";
 
 const garden = "0x1111111111111111111111111111111111111111" as const;
 const account = "0x2222222222222222222222222222222222222222" as const;
@@ -182,6 +183,56 @@ describe("garden join request public contract", () => {
     const authorization = encodeGardenJoinAuthorization(proof);
     expect(authorization.startsWith("GG-JoinProof ")).toBe(true);
     expect(decodeGardenJoinAuthorization(authorization)).toEqual(proof);
+  });
+
+  it("round-trips whatever text a proof carries, in characters a header accepts", () => {
+    forSeededCases((source) => {
+      const text = () => source.text(AWKWARD_TEXT, 24);
+      const carried = {
+        ...proof,
+        requestId: text(),
+        cursor: text(),
+        readSelf: {
+          audience: text(),
+          content: { displayName: text(), note: text(), requestedVia: "garden_detail" as const },
+        },
+      };
+
+      const authorization = encodeGardenJoinAuthorization(carried);
+      expect(authorization).toMatch(/^GG-JoinProof [A-Za-z0-9_-]+$/);
+      expect(decodeGardenJoinAuthorization(authorization)).toEqual(carried);
+    });
+  });
+
+  it("reads a damaged authorization as absent instead of throwing", () => {
+    const sent = encodeGardenJoinAuthorization(proof);
+    // Two kinds of damage no header survives: being cut short, and a character base64url never has.
+    const foreign = ["é", "中", "🌱", ":", '"', "\\", "\u0000"] as const;
+    forSeededCases((source) => {
+      const cut = source.int(0, sent.length - 1);
+      expect(decodeGardenJoinAuthorization(sent.slice(0, cut))).toBeNull();
+      const spoiled = `${sent.slice(0, cut)}${source.pick(foreign)}${sent.slice(cut + source.int(0, 3))}`;
+      expect(decodeGardenJoinAuthorization(spoiled)).toBeNull();
+    });
+  });
+
+  it("keeps each piece of user text on its own line of the signed message", () => {
+    const lineCount = (message: string) => message.split(/\r\n|\r|\n/).length;
+    const plain = lineCount(
+      buildGardenJoinProofMessage(
+        { ...proof, requestId: "a", cursor: "a" },
+        { displayName: "a", note: "a", reason: "a" }
+      )
+    );
+    forSeededCases((source) => {
+      const text = () => source.text(AWKWARD_TEXT, 24);
+      // An empty request ID or cursor has no line of its own, so these two never start empty.
+      const message = buildGardenJoinProofMessage(
+        { ...proof, requestId: `a${text()}`, cursor: `a${text()}` },
+        { displayName: text(), note: text(), reason: text() }
+      );
+      expect(lineCount(message)).toBe(plain);
+    });
   });
 
   it("signs an explicit audience and bounded normalized content for status recovery", () => {

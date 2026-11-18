@@ -11,6 +11,8 @@ type Tone = "success" | "info" | "error";
 type Message = { id: string; values?: { count: number } };
 
 const UPLOADED_TITLE = "app.uploads.uploadedTitle";
+/** A failure after some items went: it names the part that did not, so it never denies what did. */
+const PARTLY_SENT_TITLE = "app.uploads.partlySentTitle";
 
 /** Tone, title and message for each way a tap ends, before what went or was flagged changes the message. */
 const TOASTS: Record<Exclude<UploadOutcome["status"], "declined">, [Tone, string, string]> = {
@@ -25,7 +27,7 @@ const TOASTS: Record<Exclude<UploadOutcome["status"], "declined">, [Tone, string
     "app.uploads.sendUnconfirmedTitle",
     "app.uploads.sendUnconfirmedMessage",
   ],
-  failed: ["error", "app.uploads.failedTitle", "app.uploads.failedMessage"],
+  failed: ["error", "app.uploads.notSentTitle", "app.uploads.failedMessage"],
 };
 
 /** `undefined` when nothing should be said: the person declined, and nothing had gone. */
@@ -51,7 +53,7 @@ export function uploadOutcomeToast(
     flagged > 0 && (outcome.status === "uploaded" || outcome.status === "nothing-sent");
   return {
     tone,
-    title: title === UPLOADED_TITLE ? uploaded : { id: title },
+    title: title === UPLOADED_TITLE ? uploaded : { id: stoppedPartway ? PARTLY_SENT_TITLE : title },
     message: stoppedPartway
       ? { id: "app.uploads.partlySentMessage", values: { count: sent } }
       : needsAttention

@@ -19,6 +19,7 @@ import {
   CommitmentDialogUnavailable,
 } from "./CommitmentDialogStates";
 import { CommitmentFacts } from "./CommitmentFacts";
+import { CommitmentProof } from "./CommitmentProof";
 import {
   CommitmentDeclineClaimDialog,
   CommitmentFallbackDialog,
@@ -177,6 +178,11 @@ function CommitmentRecord({
       />
 
       <CommitmentFacts commitment={commitment} detail={detail} />
+
+      <CommitmentProof
+        attributions={detail?.evidenceAttributions ?? []}
+        recordedCount={commitment.evidenceCount}
+      />
 
       {voucherOutcomes ? <CommitmentVoucherOutcomes outcomes={voucherOutcomes} /> : null}
 

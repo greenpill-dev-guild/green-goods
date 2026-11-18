@@ -231,6 +231,34 @@ describe("useRole", () => {
     expect(result.current.loading).toBe(false);
   });
 
+  it("keeps a failed steward-gardens read settled when another consumer mounts or the tab regains focus", async () => {
+    vi.spyOn(logger, "error").mockImplementation(() => {});
+    mocks.query.mockResolvedValue({ error: new Error("Indexer unavailable") });
+    const first = renderRole();
+    await waitFor(() => expect(first.result.current.gardensError).toBe(true));
+    const callsAfterFailure = mocks.query.mock.calls.length;
+
+    // The Hub's access gate mounts the workspace, whose components read roles again.
+    const next = renderRole();
+    expect(next.result.current.loading).toBe(false);
+    act(() => {
+      queryClient.getQueryCache().onFocus();
+    });
+    expect(first.result.current.loading).toBe(false);
+    expect(mocks.query).toHaveBeenCalledTimes(callsAfterFailure);
+  });
+
+  it("reports an unread deployment registry apart from the garden reads", async () => {
+    mocks.registry = { ...mocks.registry, error: "RPC connection failed" } as typeof mocks.registry;
+    const { result } = renderRole();
+    await waitFor(() => expect(result.current.role).toBe("steward"));
+    expect(result.current).toMatchObject({
+      isDeployer: false,
+      deploymentPermissionsError: true,
+      gardensError: false,
+    });
+  });
+
   it("distinguishes an indexer outage from no access and recovers on refetch", async () => {
     vi.spyOn(logger, "error").mockImplementation(() => {});
     mocks.query.mockResolvedValueOnce({ error: new Error("Indexer unavailable") });

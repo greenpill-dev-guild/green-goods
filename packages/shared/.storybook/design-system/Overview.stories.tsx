@@ -8,7 +8,7 @@ import { Button } from "../../src/components/Button";
 import { Chip } from "../../src/components/Chip";
 import { TextInput } from "../../src/components/Form/ControlPrimitives";
 import { IconButton } from "../../src/components/IconButton";
-import { Page, Row, Section, Specimen, StoryLink, TokenTable } from "./measure";
+import { Page, Row, readToken, Section, Specimen, StoryLink, TokenTable } from "./measure";
 import { ADMIN, APP, STORY_LINKS, WEBSITE } from "./rules";
 
 const meta = {
@@ -324,11 +324,9 @@ export const ThreeSystems: Story = {
     await expect(getComputedStyle(adminLabel).fontSize).toBe("14px");
     await expect(getComputedStyle(adminLabel).fontWeight).toBe("500");
     const scope = column("admin") as HTMLElement;
-    await expect(getComputedStyle(scope).getPropertyValue("--radius-xl").trim()).toBe("16px");
-    await expect(getComputedStyle(scope).getPropertyValue("--radius-2xl").trim()).toBe("16px");
-    await expect(getComputedStyle(scope).getPropertyValue("--gg-type-meta-sm-size").trim()).toBe(
-      "0.6875rem"
-    );
+    await expect(readToken("--radius-xl", scope)).toBe("16px");
+    await expect(readToken("--radius-2xl", scope)).toBe("16px");
+    await expect(readToken("--gg-type-meta-sm-size", scope)).toBe("0.6875rem");
 
     // The measurement chips settle once fonts are ready.
     await waitFor(async () => {

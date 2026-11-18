@@ -1,15 +1,12 @@
 import { Alert } from "@green-goods/shared/components/Alert";
 import { AudioPlayer } from "@green-goods/shared/components/Audio/AudioPlayer";
 import { Button } from "@green-goods/shared/components/Button";
-import { ImagePreviewDialog } from "@green-goods/shared/components/Dialog/ImagePreviewDialog";
-import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageWithFallback";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
 import type { PublishedWorkDocument } from "@green-goods/shared/modules/work/media-processing";
-import { RiExternalLinkLine, RiFileTextLine, RiImageLine, RiZoomInLine } from "@remixicon/react";
-import { useState } from "react";
+import { RiImageLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { imagePreviewLabels } from "@/components/imagePreviewLabels";
+import { EvidenceDocumentList, EvidencePhotoGrid } from "@/components/Evidence/EvidenceMedia";
 
 interface MediaEvidenceProps {
   /** IPFS CIDs for photo/video media */
@@ -41,16 +38,7 @@ export function MediaEvidence({
   onRetryEvidence,
   actionTitle,
 }: MediaEvidenceProps) {
-  const { formatMessage, formatNumber } = useIntl();
-  const sizeOf = (bytes: number) =>
-    bytes >= 1024 * 1024
-      ? formatNumber(bytes / (1024 * 1024), {
-          style: "unit",
-          unit: "megabyte",
-          maximumFractionDigits: 1,
-        })
-      : formatNumber(Math.max(1, Math.round(bytes / 1024)), { style: "unit", unit: "kilobyte" });
-  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
+  const { formatMessage } = useIntl();
 
   const resolvedMedia = media.map((cid) => resolveIPFSUrl(cid));
 
@@ -62,30 +50,13 @@ export function MediaEvidence({
 
       {/* Photo grid */}
       {resolvedMedia.length > 0 ? (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {resolvedMedia.map((src, index) => (
-            <Button
-              key={src}
-              type="button"
-              emphasis="tertiary"
-              size="compact"
-              onClick={() => setPreviewIndex(index)}
-              className="group relative aspect-square h-auto max-h-none min-w-0 overflow-hidden rounded-lg border border-stroke-soft bg-bg-weak p-0"
-              aria-label={`View ${actionTitle ? `${actionTitle} ` : ""}photo ${index + 1} of ${resolvedMedia.length}`}
-            >
-              <ImageWithFallback
-                src={src}
-                alt={`${actionTitle ?? "Work"} evidence ${index + 1}`}
-                className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                fallbackClassName="h-full w-full"
-                loading="lazy"
-              />
-              <div className="absolute inset-0 flex items-center justify-center bg-static-black/0 transition-colors group-hover:bg-static-black/20">
-                <RiZoomInLine className="h-6 w-6 text-static-white opacity-0 transition-opacity group-hover:opacity-100" />
-              </div>
-            </Button>
-          ))}
-        </div>
+        <EvidencePhotoGrid
+          sources={resolvedMedia}
+          photoLabel={(index) =>
+            `View ${actionTitle ? `${actionTitle} ` : ""}photo ${index + 1} of ${resolvedMedia.length}`
+          }
+          photoAlt={(index) => `${actionTitle ?? "Work"} evidence ${index + 1}`}
+        />
       ) : !documents?.length && !audioNoteCids?.length && !evidenceState ? (
         // Only when the work holds nothing at all: documents and voice notes are evidence too.
         <EmptyState
@@ -148,42 +119,9 @@ export function MediaEvidence({
           <h4 className="type-label-sm text-text-sub">
             {formatMessage({ id: "admin.work.documents", defaultMessage: "Documents" })}
           </h4>
-          <ul className="space-y-2">
-            {documents.map((document, index) => (
-              <li
-                key={`${index}:${document.cid}`}
-                className="flex items-center gap-3 rounded-lg border border-stroke-soft p-3"
-              >
-                <RiFileTextLine className="h-5 w-5 shrink-0 text-text-sub" aria-hidden="true" />
-                <div className="min-w-0 flex-1">
-                  <a
-                    href={resolveIPFSUrl(document.cid)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title={document.name}
-                    className="flex items-center gap-1 type-label-sm text-primary-dark underline-offset-4 hover:underline"
-                  >
-                    <span className="truncate">{document.name}</span>
-                    <RiExternalLinkLine className="h-4 w-4 shrink-0" aria-hidden="true" />
-                  </a>
-                  {document.size > 0 ? (
-                    <p className="type-meta text-text-sub">{sizeOf(document.size)}</p>
-                  ) : null}
-                </div>
-              </li>
-            ))}
-          </ul>
+          <EvidenceDocumentList documents={documents} />
         </div>
       )}
-
-      {/* Full-featured image preview dialog */}
-      <ImagePreviewDialog
-        labels={imagePreviewLabels(formatMessage)}
-        isOpen={previewIndex !== null}
-        onClose={() => setPreviewIndex(null)}
-        images={resolvedMedia}
-        initialIndex={previewIndex ?? 0}
-      />
     </div>
   );
 }

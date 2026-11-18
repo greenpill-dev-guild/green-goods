@@ -53,6 +53,11 @@ export async function runGardenDownstream(options: GardenDownstreamOptions) {
   const planPath = releaseJsonPath(directory, options.plan);
   const receiptPath = options.receipts ? releaseJsonPath(directory, options.receipts) : null;
   const read = (file: string): unknown => JSON.parse(fs.readFileSync(file, "utf8"));
+  if ((read(manifestPath) as { schemaVersion?: number })?.schemaVersion === 4) {
+    const { runCLCAiyelojaDownstream } = await import("./clc-aiyeloja-downstream");
+    await runCLCAiyelojaDownstream(options);
+    return;
+  }
   const revision = releaseRevision(CONTRACTS_ROOT, manifestPath);
   const manifest = inspectCLCGardenManifest(read(manifestPath)).manifest;
   const plan: unknown = read(planPath);
