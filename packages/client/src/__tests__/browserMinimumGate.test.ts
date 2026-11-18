@@ -131,7 +131,7 @@ afterEach(() => {
   for (const name of ["data-browser-update", "data-boot-presentation", "data-boot-hero"]) {
     document.documentElement.removeAttribute(name);
   }
-  document.getElementById("browser-update-styles")?.remove();
+  for (const style of document.querySelectorAll("#browser-update-styles")) style.remove();
 });
 
 describe("browser minimum gate", () => {
@@ -362,6 +362,19 @@ describe("browser minimum gate", () => {
     expect(document.getElementById("browser-update")?.getAttribute("lang")).toBe("en");
     expect(document.querySelector(".browser-update-safe")).toBeNull();
     expect(local.requests).toEqual([]);
+
+    // The dev tunnel (scripts/dev/tunnel.js) is a development host too.
+    const tunnel = standInBrowser({
+      missing: ["registered-properties"],
+      hostname: "quiet-river-1234.trycloudflare.com",
+    });
+    browserMinimumGate(tunnel.window, {
+      surface: "hub",
+      logo: "/logo.png",
+      minimum: MINIMUM,
+      telemetry: TELEMETRY,
+    });
+    expect(tunnel.requests).toEqual([]);
 
     const keyless = standInBrowser({ missing: ["media-query-ranges"] });
     browserMinimumGate(keyless.window, {

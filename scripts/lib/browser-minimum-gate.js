@@ -226,7 +226,7 @@ function browserMinimumGate(window, options) {
       host === "0.0.0.0" ||
       host === "::1" ||
       host === "[::1]" ||
-      host.slice(-17) === ".trycloudflare.com"
+      host.slice(-18) === ".trycloudflare.com"
     );
   }
 }
