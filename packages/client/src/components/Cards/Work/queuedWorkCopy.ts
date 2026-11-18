@@ -55,7 +55,7 @@ const ACTION_ENDED = {
 const CONFIRMATION_FAILED = {
   id: "app.work.confirmationFailed",
   defaultMessage:
-    "This upload didn't go through. Your media is saved; try again when you're ready.",
+    "Your work didn't send. Your media is still saved, so try again when you're ready.",
 } satisfies MessageDescriptor;
 
 /** Why the chain would refuse an item, by the resolver error it would revert with. */

@@ -66,12 +66,16 @@ export const Checking: Story = {
   },
 };
 
-/** A steward-reviewed group (c3b): it asks for one nobody has asked for yet, and holds nothing. */
+/**
+ * A steward-reviewed group (c3b): it requests one nobody has requested yet, and holds nothing.
+ * "Request" is only what waits on a steward's yes (DL-175), so the title and copy say it too.
+ */
 export const AskInAReviewedGroup: Story = {
   args: { approvalGated: true, actLabelId: "app.pool.group.act.askToTakeUpOne" },
   play: async () => {
+    await expect(await screen.findByText("Request to Take Up One of These Promises")).toBeVisible();
     await expect(
-      await screen.findByText("Asking holds nothing for you.", { exact: false })
+      screen.getByText("Requesting holds nothing for you.", { exact: false })
     ).toBeVisible();
     await expect(screen.getByRole("button", { name: "Request to Take Up One" })).toBeEnabled();
   },

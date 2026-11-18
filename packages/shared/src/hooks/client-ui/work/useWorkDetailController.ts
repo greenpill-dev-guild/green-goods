@@ -225,7 +225,7 @@ export function useWorkDetailController() {
         toastService.error({
           title: intl.formatMessage({
             id: "app.home.work.retryFailed",
-            defaultMessage: "Upload failed",
+            defaultMessage: "Didn't send",
           }),
           message:
             result.error ||
