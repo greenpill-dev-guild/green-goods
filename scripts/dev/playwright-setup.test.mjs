@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
@@ -9,7 +9,11 @@ import { load } from "js-yaml";
 const root = resolve(import.meta.dirname, "../..");
 const action = load(readFileSync(join(root, ".github/actions/setup-playwright/action.yml"), "utf8"));
 const install = action.runs.steps.find((step) => step.name === "Install Playwright Chromium and system dependencies");
-const restore = action.runs.steps.find((step) => step.uses?.startsWith("actions/cache/restore@"));
+const stage = action.runs.steps.find((step) => step.name === "Stage system packages for the cache");
+// GitHub runs `shell: bash` steps with these flags.
+const GITHUB_BASH = ["--noprofile", "--norc", "-e", "-o", "pipefail", "-c"];
+// The ~21 MB package cache normally restores in seconds; @actions/cache bounds each 4 MB block itself.
+const CACHE_RESTORE_ALLOWANCE_SECONDS = 60;
 const AZURE_MIRROR = "http://azure.archive.ubuntu.com/ubuntu/";
 const AWS_MIRROR = "http://us-east-2.ec2.archive.ubuntu.com/ubuntu/";
 
@@ -48,7 +52,7 @@ process.exit(command==='install-deps'&&attempt<=Number(process.env.TEST_DEP_FAIL
     chmodSync(join(bin, name), 0o755);
   }
   try {
-    const result = spawnSync("bash", ["-e", "-c", install.run.replace("/etc/apt/apt-mirrors.txt", '"$TEST_MIRRORS"')], {
+    const result = spawnSync("bash", [...GITHUB_BASH, install.run.replace("/etc/apt/apt-mirrors.txt", '"$TEST_MIRRORS"')], {
       cwd: fixture,
       encoding: "utf8",
       env: {
@@ -85,6 +89,7 @@ test("a timed-out dependency attempt repairs dpkg and leaves either cloud's regi
     assert.ok(result.calls[0].mirrors.startsWith(mirror));
     assert.equal(result.calls[2].mirrors, "https://archive.ubuntu.com/ubuntu/\tpriority:1\nhttp://security.ubuntu.com/ubuntu/\tpriority:2\n");
     assert.deepEqual(result.calls[1], { command: "dpkg", privileged: true, argv: "--configure -a" });
+    assert.ok(result.budgets.includes(`1:--kill-after=${install.env.REPAIR_KILL_GRACE}:${install.env.REPAIR_TIMEOUT}`));
     assert.match(result.stdout, /attempt 1 failed or timed out/);
     assert.ok(result.stdout.includes(`instead of ${mirror.replace(/\/ubuntu\/$/, "")}`));
   }
@@ -109,19 +114,51 @@ test("exhausted dependency setup stops before browser download with infrastructu
 test("timeout and retry budgets remain inside every caller's action deadline", () => {
   const seconds = value => Number(String(value).replace(/s$/, ""));
   const attempts = Number(install.env.MAX_ATTEMPTS);
-  const restoreBound = Number(restore.env.SEGMENT_DOWNLOAD_TIMEOUT_MINS) * 60;
-  assert.ok(restoreBound > 0, "the cache restore needs its own download bound");
-  const repairBound = (attempts - 1) * (seconds(install.env.REPAIR_TIMEOUT) + 5);
-  const worstCase = restoreBound + repairBound + 2 * (attempts * (seconds(install.env.ATTEMPT_TIMEOUT) + seconds(install.env.KILL_GRACE)) + (attempts - 1) * seconds(install.env.RETRY_BACKOFF));
+  const repairBound = (attempts - 1) * (seconds(install.env.REPAIR_TIMEOUT) + seconds(install.env.REPAIR_KILL_GRACE));
+  const worstCase = CACHE_RESTORE_ALLOWANCE_SECONDS + repairBound + 2 * (attempts * (seconds(install.env.ATTEMPT_TIMEOUT) + seconds(install.env.KILL_GRACE)) + (attempts - 1) * seconds(install.env.RETRY_BACKOFF));
+  let callers = 0;
   for (const file of ["design.yml", "admin.yml", "client.yml"]) {
     const workflow = load(readFileSync(join(root, ".github/workflows", file), "utf8"));
     for (const job of Object.values(workflow.jobs)) {
       for (const step of job.steps ?? []) {
         if (step.uses !== "./.github/actions/setup-playwright") continue;
+        callers++;
         assert.ok(worstCase < step["timeout-minutes"] * 60, `${file} installer budget exceeds caller deadline`);
       }
     }
   }
+  assert.equal(callers, 3);
+});
+
+test("the package cache keeps only installed versions and is skipped when there are none", () => {
+  const fixture = mkdtempSync(join(tmpdir(), "playwright stage-"));
+  try {
+    const bin = join(fixture, "bin");
+    const archives = join(fixture, "archives");
+    const packageCache = join(fixture, "package-cache");
+    mkdirSync(bin);
+    mkdirSync(archives);
+    mkdirSync(packageCache);
+    writeFileSync(join(packageCache, "restored-from-older-key.deb"), "");
+    const installed = "fonts-unifont\t1:15.1.01-1build1\tall\nxfonts-utils\t1:7.7+6build3\tamd64\n";
+    writeFileSync(join(bin, "dpkg-query"), `#!/bin/sh\nprintf '${installed}' | awk -F'\\t' '{print $1"_"$2"_"$3".deb"}'\n`);
+    chmodSync(join(bin, "dpkg-query"), 0o755);
+    const stageWith = (debs) => {
+      for (const name of readdirSync(archives)) rmSync(join(archives, name));
+      for (const name of debs) writeFileSync(join(archives, name), name);
+      return spawnSync("bash", [...GITHUB_BASH, stage.run], {
+        cwd: fixture, encoding: "utf8",
+        env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, PACKAGE_CACHE: packageCache, APT_ARCHIVES: archives },
+      });
+    };
+    const staged = stageWith(["fonts-unifont_1%3a15.1.01-1build1_all.deb", "fonts-unifont_1%3a15.0.0-1_all.deb", "xfonts-utils_1%3a7.7+6build3_amd64.deb"]);
+    assert.equal(staged.status, 0, staged.stderr);
+    assert.deepEqual(readdirSync(packageCache).sort(), ["fonts-unifont_1%3a15.1.01-1build1_all.deb", "xfonts-utils_1%3a7.7+6build3_amd64.deb"]);
+    const empty = stageWith(["fonts-unifont_1%3a15.0.0-1_all.deb"]);
+    assert.equal(empty.status, 0, empty.stderr);
+    assert.throws(() => readdirSync(packageCache), /ENOENT/);
+  } finally { rmSync(fixture, { recursive: true, force: true }); }
+  assert.equal(stage["continue-on-error"], true);
 });
 
 test("Storybook produces and retains its own PWA audit even when a check fails", () => {

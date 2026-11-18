@@ -49,13 +49,15 @@ runs:
           echo "key=$os_prefix$playwright_version-${ImageVersion:-unknown}"
         } >> "$GITHUB_OUTPUT"
 
-    # A stalled restore is a cache miss, not a failure: the segment timeout
-    # bounds it, and the install below falls back to the mirror.
+    # A failed restore is a cache miss, not a failure: the install below falls
+    # back to the mirror. The ~21 MB archive normally restores in seconds, and
+    # @actions/cache gives up on each 4 MB block after 30s and five retries.
+    # The save runs in this action's post step at the end of the job, outside
+    # the caller's setup timeout, and only when the job succeeded without an
+    # exact key match.
     - name: Restore cached system packages
       id: apt-cache
-      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
-      env:
-        SEGMENT_DOWNLOAD_TIMEOUT_MINS: "1"
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
       with:
         path: ${{ steps.apt-cache-key.outputs.dir }}
         key: ${{ steps.apt-cache-key.outputs.key }}
@@ -69,17 +71,20 @@ runs:
     # Retry budget must stay under the caller's `timeout-minutes`, which covers
     # this whole action. `--kill-after` extends each attempt, so one attempt costs
     # up to ATTEMPT_TIMEOUT + KILL_GRACE, and a dependency retry first spends up
-    # to REPAIR_TIMEOUT + 5s repairing dpkg. Worst case is the cache restore
-    # timing out, then one leg nearly exhausting its budget before succeeding,
-    # then the other failing outright:
+    # to REPAIR_TIMEOUT + REPAIR_KILL_GRACE repairing dpkg. Worst case is one
+    # leg nearly exhausting its budget before succeeding, then the other failing
+    # outright, plus a 60s allowance for a slow cache restore:
     #   60 + (180 + 35 + 30 + 149) + (2*180 + 30) = 844s, against a 900s cap.
     # Keep that inequality true if any value here or `timeout-minutes` changes.
+    # A cache service that stalls past its own retries can exceed the
+    # allowance; the caller's timeout then reports the stall.
     - name: Install Playwright Chromium and system dependencies
       shell: bash
       env:
         ATTEMPT_TIMEOUT: 150s
         KILL_GRACE: 30s
         REPAIR_TIMEOUT: 30s
+        REPAIR_KILL_GRACE: 5s
         RETRY_BACKOFF: 30
         MAX_ATTEMPTS: 2
         PACKAGE_CACHE: ${{ steps.apt-cache-key.outputs.dir }}
@@ -90,8 +95,8 @@ runs:
           # An attempt killed while dpkg unpacks leaves it interrupted, and every
           # later apt-get refuses to run until `dpkg --configure -a` finishes the
           # job (Storybook run 44221461566 failed its retry this way).
-          sudo timeout --kill-after=5s "$REPAIR_TIMEOUT" dpkg --configure -a ||
-            echo "::warning::dpkg --configure -a did not finish within ${REPAIR_TIMEOUT}"
+          sudo timeout --kill-after="$REPAIR_KILL_GRACE" "$REPAIR_TIMEOUT" dpkg --configure -a ||
+            echo "::warning::dpkg --configure -a failed or ran past ${REPAIR_TIMEOUT}"
           # The runner's regional mirror (Azure's or AWS's) can keep transferring
           # data below the throughput needed to finish within the attempt budget.
           # Retry on Ubuntu's own archive.
@@ -120,8 +125,10 @@ runs:
           echo "::error title=Playwright environment setup::${label} failed after ${MAX_ATTEMPTS} bounded attempts; browser tests have not started"
           return 1
         }
-        # apt reuses a .deb already in its archive directory when the size and
-        # hash match the index, so seeded packages are not downloaded again.
+        # apt reuses a .deb already in its archive directory when its file name
+        # and size match the index, without hashing it again, so the cache is
+        # trusted like the runner image. Other branches restore only entries
+        # saved by runs on develop, which run reviewed code.
         shopt -s nullglob
         cached=("$PACKAGE_CACHE"/*.deb)
         if [ "${#cached[@]}" -gt 0 ]; then
@@ -136,31 +143,36 @@ runs:
         retry "playwright install-deps" prepare_dependency_retry sudo timeout --kill-after="$KILL_GRACE" "$ATTEMPT_TIMEOUT" "$PLAYWRIGHT_NODE_BINARY" "$PLAYWRIGHT_CLI" install-deps chromium
         retry "playwright install chromium" : timeout --kill-after="$KILL_GRACE" "$ATTEMPT_TIMEOUT" bunx playwright install chromium
 
-    # Save only after a successful install that missed the exact key, so the
-    # cache holds a complete package set for this runner image.
+    # Runs only after a successful install that missed the exact key. Only the
+    # package versions now installed are kept, so entries restored from an
+    # older key don't carry superseded packages forward. Staging only feeds
+    # the cache, so its failure never fails the job.
     - name: Stage system packages for the cache
-      id: apt-cache-stage
       if: steps.apt-cache.outputs.cache-hit != 'true'
+      continue-on-error: true
       shell: bash
       env:
         PACKAGE_CACHE: ${{ steps.apt-cache-key.outputs.dir }}
         APT_ARCHIVES: /var/cache/apt/archives
       run: |
         shopt -s nullglob
-        downloaded=("$APT_ARCHIVES"/*.deb)
-        if [ "${#downloaded[@]}" -eq 0 ]; then
-          echo "apt kept no packages to cache"
+        installed="$(mktemp)"
+        # apt names an archive <package>_<version>_<arch>.deb, with an epoch's
+        # colon written as %3a.
+        dpkg-query -W -f='${Package}_${Version}_${Architecture}.deb\n' | sed 's/:/%3a/g' > "$installed"
+        keep=()
+        for deb in "$APT_ARCHIVES"/*.deb; do
+          if grep -qxF "$(basename "$deb")" "$installed"; then
+            keep+=("$deb")
+          fi
+        done
+        # With nothing to keep, leave no directory: the post step then skips
+        # the save instead of storing an empty entry under this key.
+        rm -rf "$PACKAGE_CACHE"
+        if [ "${#keep[@]}" -eq 0 ]; then
+          echo "No installed packages to cache"
           exit 0
         fi
-        rm -rf "$PACKAGE_CACHE"
         mkdir -p "$PACKAGE_CACHE"
-        cp "${downloaded[@]}" "$PACKAGE_CACHE"/
-        echo "Staged ${#downloaded[@]} packages ($(du -sh "$PACKAGE_CACHE" | cut -f1)) for the cache"
-        echo "ready=true" >> "$GITHUB_OUTPUT"
-
-    - name: Save system packages to the cache
-      if: steps.apt-cache-stage.outputs.ready == 'true'
-      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
-      with:
-        path: ${{ steps.apt-cache-key.outputs.dir }}
-        key: ${{ steps.apt-cache-key.outputs.key }}
+        cp "${keep[@]}" "$PACKAGE_CACHE"/
+        echo "Staged ${#keep[@]} installed packages ($(du -sh "$PACKAGE_CACHE" | cut -f1)) for the cache"
