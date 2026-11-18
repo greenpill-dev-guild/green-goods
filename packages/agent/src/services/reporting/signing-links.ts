@@ -25,8 +25,9 @@ const WAITING_FOR_SIGNATURE = new Set(["awaitingWallet", "grantChoice"]);
 
 /**
  * When the last way to sign this report from a link already sent closes: the latest open link,
- * or a page opened from any of them. A page outlives a link that has since been replaced, so pages
- * count whatever their link's state. Null when nothing is open.
+ * or a page opened from any of them. An owner signing page outlives a link that has since been
+ * replaced and can still sign. A permission page whose link a later answer in the chat revoked
+ * cannot: its proposal is refused and its permission retired. Null when nothing is open.
  */
 function signingOpenUntil(core: ReportingCore, draftId: string): number | null {
   const row = core.db
@@ -39,7 +40,7 @@ function signingOpenUntil(core: ReportingCore, draftId: string): number | null {
          SELECT s.expires_at FROM app_access_grants s
          JOIN continuation_requests r ON r.id = s.request_id
          WHERE r.resource_id = $draft AND r.purpose IN ${SIGNING_PURPOSES} AND s.state = 'active'
-           AND s.expires_at > $now
+           AND s.expires_at > $now AND NOT (r.purpose = 'grant_reporting' AND r.state = 'revoked')
        )`
     )
     .get({ draft: draftId, now: core.clock.now() }) as { until: number | null } | null;

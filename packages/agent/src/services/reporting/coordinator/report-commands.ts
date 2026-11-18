@@ -260,10 +260,11 @@ export function handleReportCommand(
       if (!draft) return writer.say("report.noStatus");
       const stopped = chainCheckStopped(core, { draftId: draft.id });
       if (stopped) return writer.say(stopped);
-      // An open question about how to publish is what the report waits on, link or no link.
-      const choosing = ctx.prompt?.kind === "grant_choice";
-      if (!choosing && signingLinkLapsed(core, draft)) return writer.say("publish.linkExpired");
+      // An open question about how to publish is what the report waits on, link or no link, while
+      // the report is still at that choice. A permission page can move it on without an answer.
       const lifecycle = lifecycleState(draft);
+      const choosing = ctx.prompt?.kind === "grant_choice" && lifecycle === "grantChoice";
+      if (!choosing && signingLinkLapsed(core, draft)) return writer.say("publish.linkExpired");
       // After the choice, a report waits on the page its link opens.
       const state =
         lifecycle === "grantChoice" && !choosing && signingLinkOpen(core, draft.id)
