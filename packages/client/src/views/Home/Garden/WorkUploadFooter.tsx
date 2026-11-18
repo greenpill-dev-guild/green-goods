@@ -1,7 +1,7 @@
 import { Button } from "@green-goods/shared/components/Button";
 import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
+import type { useWorkDetailController } from "@green-goods/shared/hooks/client-ui/work/useWorkDetailController";
 import type { ItemPreparation } from "@green-goods/shared/hooks/work/useWorkUploads";
-import type { JobSendPhase } from "@green-goods/shared/modules/job-queue/ports";
 import type { Work } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { type FC, useState } from "react";
@@ -19,7 +19,7 @@ export interface WorkUploadFooterProps {
   onRetry: () => void;
   isRetrying: boolean;
   /** Where that send stands while it runs: the wallet is asked, then the chain confirms. */
-  sendStage?: JobSendPhase["stage"] | null;
+  sendStage?: ReturnType<typeof useWorkDetailController>["sendStage"];
   onTryAgain: () => void;
   isTryingAgain: boolean;
   onDiscard: () => Promise<void>;
