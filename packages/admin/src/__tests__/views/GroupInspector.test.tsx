@@ -42,6 +42,8 @@ const [GROUP] = groupCommitmentsForDisplay({
 function inspector(
   overrides: {
     canEditReward?: boolean;
+    canEditConfirmers?: boolean;
+    isOnline?: boolean;
     canSeedMore?: boolean;
     waitingOnYou?: ReadonlySet<string>;
   } = {}
@@ -51,6 +53,7 @@ function inspector(
     onOpenCommitment: vi.fn(),
     onSeedMore: vi.fn(),
     onEditReward: vi.fn(),
+    onEditConfirmers: vi.fn(),
   };
   renderWithProviders(
     <GroupInspector
@@ -62,6 +65,8 @@ function inspector(
       terms={[["Asks for", "1 survey · The pool asks"]]}
       rewarded
       canEditReward={overrides.canEditReward ?? false}
+      canEditConfirmers={overrides.canEditConfirmers}
+      isOnline={overrides.isOnline}
       canSeedMore={overrides.canSeedMore}
       events={STORY_GROUP_EVENTS}
       waitingOnYou={overrides.waitingOnYou ?? new Set()}
@@ -140,6 +145,15 @@ describe("GroupInspector", () => {
     fireEvent.click(screen.getByRole("button", { name: "Edit Reward" }));
     expect(onEditReward).toHaveBeenCalled();
     expect(screen.getByText("Edit Reward is open until one of this group is kept.")).toBeVisible();
+  });
+
+  it("holds both edits while offline, since they are sent right away, and says why", () => {
+    inspector({ canEditReward: true, canEditConfirmers: true, isOnline: false });
+    expect(screen.getByRole("button", { name: "Edit Reward" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Edit Confirmers" })).toBeDisabled();
+    expect(
+      screen.getByText("Needs a connection. Pool changes are sent right away, not queued.")
+    ).toBeVisible();
   });
 });
 
@@ -285,6 +299,42 @@ describe("the group's reward line", () => {
     // Without the set's reward record, the amount reads at today's rate, with no day.
     expect(rewardOf(null, groupSetAt(GROUP.children, STORY_GROUP_EVENTS))).toMatch(
       /^about \$[\d.,]+ each in G\$, paid once it’s kept \([\d,]+ G\$\)$/
+    );
+  });
+});
+
+describe("the group's confirmers line", () => {
+  const intl = createIntl({ locale: "en", messages: {} });
+  const ANA = "0x2222222222222222222222222222222222222222" as const;
+  const OLD = "0x3333333333333333333333333333333333333333" as const;
+  const NEW = "0x4444444444444444444444444444444444444444" as const;
+  const copyOf = (onchainState: "REQUESTED" | "ACCEPTED", confirmers: `0x${string}`[]) => ({
+    ...GROUP.children[0]!,
+    onchainState,
+    confirmers,
+    confirmationThreshold: 1,
+  });
+  const line = (children: ReturnType<typeof copyOf>[]) =>
+    groupTerms({
+      intl,
+      children,
+      metadata: null,
+      reward: groupReward(children, new Map()),
+      price: STORY_PRICE_STATE,
+      setAt: null,
+      now: 0,
+    }).find(([label]) => label === "Claim mode · confirmers")?.[1];
+
+  it("reads the accounts, so a swap that reached only some available copies shows", () => {
+    // Both read "Named group · 1 of 2", but only one names the new account.
+    expect(line([copyOf("REQUESTED", [ANA, NEW]), copyOf("REQUESTED", [ANA, OLD])])).toBe(
+      "Open · Not the same on every available one"
+    );
+  });
+
+  it("names the available copies' rule when only taken ones differ", () => {
+    expect(line([copyOf("REQUESTED", [ANA, NEW]), copyOf("ACCEPTED", [ANA, OLD])])).toBe(
+      "Open · Named group · 1 of 2 for available ones; taken ones keep theirs"
     );
   });
 });

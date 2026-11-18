@@ -28,6 +28,13 @@ export {
   selectVoucherAskStage,
   UNAVAILABLE_VOUCHER_CONSOLE,
 } from "./voucher-console";
+// So is the confirmer rule a steward can rewrite on copies nobody has taken (Edit Confirmers).
+export {
+  type ConfirmerEditCopy,
+  type ConfirmerRule,
+  confirmerRuleError,
+  sameConfirmerRule,
+} from "./confirmer-edit";
 export type {
   IssuerSafeThreshold,
   VoucherAcceptanceChecks,

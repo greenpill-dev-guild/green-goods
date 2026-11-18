@@ -19,6 +19,7 @@ export function CommitmentActions({
   onOpenDialog,
   onSeedAnother,
   onEditReward,
+  onEditConfirmers,
   sendPhase,
   chainId,
 }: {
@@ -38,6 +39,8 @@ export function CommitmentActions({
   onSeedAnother?: () => void;
   /** Change the reward while nobody has taken the promise (PRD-1022 D14); only a steward gets it. */
   onEditReward?: () => void;
+  /** Change who confirms while nobody has taken the promise; only a steward gets it. */
+  onEditConfirmers?: () => void;
   /** Where Send for Confirmation stands, followed from the wallet to the chain. */
   sendPhase: CommitmentDialogController["sendPhase"];
   chainId: number;
@@ -69,6 +72,20 @@ export function CommitmentActions({
             {formatMessage({
               id: "hub.garden.pool.reward.title",
               defaultMessage: "Edit Reward",
+            })}
+          </Button>
+        ) : null}
+        {onEditConfirmers ? (
+          <Button
+            type="button"
+            emphasis="tertiary"
+            size="compact"
+            disabled={actDisabled}
+            onClick={onEditConfirmers}
+          >
+            {formatMessage({
+              id: "hub.garden.pool.confirmers.title",
+              defaultMessage: "Edit Confirmers",
             })}
           </Button>
         ) : null}

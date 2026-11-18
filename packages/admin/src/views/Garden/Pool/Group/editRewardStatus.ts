@@ -38,6 +38,17 @@ export interface EditRewardStatus {
 
 const IN_FLIGHT = new Set<RewardEditProgress["status"]>(["waiting", "wallet", "confirming"]);
 
+/**
+ * How many copies a batching wallet is asked about now: the one bundle it
+ * holds, never every copy, since above 50 the copies go in several requests.
+ */
+export function copiesInRequest(copies: readonly Pick<RewardEditProgress, "status">[]): number {
+  const asked = copies.filter(
+    (copy) => copy.status === "wallet" || copy.status === "confirming"
+  ).length;
+  return asked > 0 ? asked : copies.length;
+}
+
 export function editRewardStatus(input: {
   mode: CreationSendMode | null;
   isSending: boolean;
@@ -127,6 +138,7 @@ export function editRewardStatus(input: {
       };
     }
     const confirming = copies[at]?.status === "confirming";
+    const inRequest = copiesInRequest(copies);
     return confirming
       ? {
           phase: "confirming",
@@ -140,7 +152,7 @@ export function editRewardStatus(input: {
               defaultMessage:
                 "{count, plural, one {Changing the reward} other {Changing # rewards}}",
             },
-            { count: copies.length }
+            { count: inRequest }
           ),
           description: formatMessage({
             id: "hub.garden.pool.reward.confirmingHint",
@@ -159,7 +171,7 @@ export function editRewardStatus(input: {
               defaultMessage:
                 "{count, plural, one {Approve in your wallet} other {Approve in your wallet: # rewards in one request}}",
             },
-            { count: copies.length }
+            { count: inRequest }
           ),
           description: formatMessage(
             {
@@ -167,7 +179,7 @@ export function editRewardStatus(input: {
               defaultMessage:
                 "{count, plural, one {It changes once your wallet approves.} other {They change together: all #, or none if the wallet declines.}}",
             },
-            { count: copies.length }
+            { count: inRequest }
           ),
         };
   }
