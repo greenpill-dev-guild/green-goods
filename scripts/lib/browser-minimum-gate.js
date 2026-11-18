@@ -120,10 +120,10 @@ function browserMinimumGate(window, options) {
     logo.setAttribute("width", "819");
     logo.setAttribute("height", "464");
     append(content, "h1", null, copy.title).id = "browser-update-title";
+    // What the App holds on the phone is safe while the app and its data remain: said first.
+    if (surface === "app") append(content, "p", "browser-update-safe", copy.safe);
     // A reporting page was opened from a chat link, so its reader opens the link again.
     append(content, "p", "browser-update-lede", surface === "signing" ? copy.ledeLink : copy.lede);
-    // What the App holds on the phone is safe, and stays safe while the app and its data remain.
-    if (surface === "app") append(content, "p", "browser-update-safe", copy.safe);
     var steps = append(content, "ul", "browser-update-steps");
     for (var step = 0; step < copy.steps.length; step += 1) {
       var item = append(steps, "li", null);
@@ -288,8 +288,8 @@ var STYLES =
   "#browser-update .browser-update-content { width: 100%; max-width: 28rem; margin: auto; }" +
   "#browser-update .browser-update-logo { display: block; width: auto; height: 56px; margin-bottom: 32px; }" +
   "#browser-update h1 { font-size: 24px; font-weight: 600; line-height: 32px; }" +
-  "#browser-update .browser-update-lede { margin-top: 12px; }" +
-  "#browser-update .browser-update-safe { margin-top: 8px; }" +
+  "#browser-update .browser-update-safe, #browser-update .browser-update-lede { margin-top: 12px; }" +
+  "#browser-update .browser-update-safe + .browser-update-lede { margin-top: 8px; }" +
   "#browser-update .browser-update-steps { margin-top: 24px; list-style: none; border-top: 1px solid #e7e5e4; }" +
   "#browser-update .browser-update-steps li { display: block; padding: 12px 0; border-bottom: 1px solid #e7e5e4; }" +
   "#browser-update .browser-update-steps strong { display: block; font-size: 14px; font-weight: 600; line-height: 20px; }" +

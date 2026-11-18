@@ -207,10 +207,12 @@ describe("browser minimum gate", () => {
     expect(screen?.querySelector("h1")?.textContent).toBe(
       "Actualiza tu navegador para usar Green\u00a0Goods"
     );
-    // The App says its saved work is safe before anything else.
-    expect(screen?.querySelector(".browser-update-safe")?.textContent).toBe(
+    // The App says its saved work is safe before it says what to do.
+    const safe = screen?.querySelector(".browser-update-safe");
+    expect(safe?.textContent).toBe(
       "Lo que guardaste sigue en este teléfono. Mantén la app instalada y no borres sus datos."
     );
+    expect(safe?.nextElementSibling?.className).toBe("browser-update-lede");
     expect(screen?.querySelectorAll("li")).toHaveLength(3);
     expect(screen?.querySelector("img")?.getAttribute("src")).toBe("/icon.png");
 

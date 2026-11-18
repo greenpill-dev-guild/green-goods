@@ -9,8 +9,9 @@ import { expect, test } from "@playwright/test";
 import { emulateChrome101, UPDATE_SCREEN_TITLE } from "../helpers/browser-minimum";
 import { TEST_URLS } from "../helpers/test-utils";
 
-// A cold dev server compiles the website's modules on its first load, which can take a busy CI
-// runner most of a minute (client.session-navigation.ci.spec.ts), so the website gets that long.
+// A cold dev server compiles the app's modules on its first load, which can take a busy CI runner
+// most of a minute (client.session-navigation.ci.spec.ts). Page loads wait for them, and the
+// configured 30s navigation timeout would cut that short, so each wait names its own.
 const COLD_START_MS = 60_000;
 test.describe.configure({ timeout: COLD_START_MS + 30_000 });
 
@@ -19,11 +20,11 @@ test.describe("Browser minimum", () => {
 
   test("the App below the minimum shows the update screen and does not start", async ({ page }) => {
     await emulateChrome101(page);
-    await page.goto("/home?presentation=pwa");
+    await page.goto("/home?presentation=pwa", { timeout: COLD_START_MS });
 
     await expect(page.getByRole("heading", { name: UPDATE_SCREEN_TITLE })).toBeVisible();
     await expect(page.locator("#browser-update")).toHaveAttribute("data-surface", "app");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("networkidle", { timeout: COLD_START_MS });
     // A started app would have drawn into #root and sent /home on to /home/login.
     await expect(page.locator("#root")).toBeEmpty();
     expect(new URL(page.url()).pathname).toBe("/home");
@@ -31,7 +32,7 @@ test.describe("Browser minimum", () => {
 
   test("a reporting page below the minimum shows the update screen", async ({ page }) => {
     await emulateChrome101(page);
-    await page.goto("/agent/reporting/permissions");
+    await page.goto("/agent/reporting/permissions", { timeout: COLD_START_MS });
 
     await expect(page.getByRole("heading", { name: UPDATE_SCREEN_TITLE })).toBeVisible();
     await expect(page.locator("#browser-update")).toHaveAttribute("data-surface", "signing");
@@ -39,7 +40,7 @@ test.describe("Browser minimum", () => {
 
   test("the website stays open below the minimum", async ({ page }) => {
     await emulateChrome101(page);
-    await page.goto("/");
+    await page.goto("/", { timeout: COLD_START_MS });
 
     await expect(page.locator("#root")).not.toBeEmpty({ timeout: COLD_START_MS });
     await expect(page.locator("#browser-update")).toHaveCount(0);
