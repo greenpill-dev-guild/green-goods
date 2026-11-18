@@ -176,7 +176,7 @@ export function useWorkDetailController() {
    * (DL-177). A send the queue gave up on already raised the queue's own failure toast; this one
    * takes its place under the same id, so the page shows one toast that points at the page's own
    * Upload now. A send the queue held without failing is not called a failure: one whose answer
-   * was lost is being checked, and any other waits for what this page now names.
+   * was lost is being checked, and any other is not sent yet and still saved.
    */
   const reportUploadNowOutcome = ({ error, skipped }: { error?: string; skipped?: boolean }) => {
     if (skipped) {
@@ -226,13 +226,21 @@ export function useWorkDetailController() {
         await jobQueue.retryJob(takeUp.id);
         const taken = await jobQueue.processJob(takeUp.id, { transactionSender, explicit: true });
         if (!taken.success) {
-          if (isCancelledTxError(taken.error) || taken.error === "send-cancelled") return;
+          // A wallet that has not answered was already asked to reconnect by its own prompt.
+          if (
+            isCancelledTxError(taken.error) ||
+            taken.error === "send-cancelled" ||
+            taken.error === WALLET_RECONNECT_REQUIRED
+          )
+            return;
           if (taken.error === "offline" || taken.error === "connection-unconfirmed") {
             reportNotSent();
             return;
           }
-          // Still on its way (membership being read, a send awaiting its receipt) or refused.
+          // Still on its way (membership being read, a send awaiting its receipt) or refused. A
+          // take-up the queue gave up on raised the queue's own toast; this one takes its place.
           toastService[taken.skipped ? "info" : "error"]({
+            id: "take-up",
             title: intl.formatMessage({
               id: taken.skipped
                 ? "app.home.work.takeUpQueued.title"

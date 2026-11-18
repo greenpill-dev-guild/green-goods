@@ -485,8 +485,8 @@ describe("useWorkDetailController", () => {
       }
 
       expect(toastService.error).not.toHaveBeenCalled();
-      // A lost answer is being checked; a held send waits for what the page names; a wallet that
-      // has not answered was asked by its own reconnect prompt, so it adds nothing.
+      // A lost answer is being checked; any other held send is not sent yet and still saved; a
+      // wallet that has not answered was asked by its own reconnect prompt, so it adds nothing.
       expect(vi.mocked(toastService.info).mock.calls.map(([toast]) => toast)).toEqual([
         expect.objectContaining({
           id: "work-upload",
@@ -555,9 +555,39 @@ describe("useWorkDetailController", () => {
         expect(vi.mocked(jobQueue.processJob).mock.calls.map(([jobId]) => jobId)).toEqual([
           "take-up",
         ]);
+        // In the queue's take-up slot, so the queue's own toast for it is replaced, not doubled.
         expect(toastService.error).toHaveBeenCalledWith(
-          expect.objectContaining({ title: "app.garden.takeUp.failed.title" })
+          expect.objectContaining({ id: "take-up", title: "app.garden.takeUp.failed.title" })
         );
+      } finally {
+        confirm.mockRestore();
+      }
+    });
+
+    it("says nothing of a take-up held for a wallet that has not answered: its prompt asked", async () => {
+      mocks.sender = { authMode: "wallet" };
+      const { jobQueue } = await import("../../../modules/job-queue/default-instance");
+      const { toastService } = await import("../../../components/Toast/toast.service");
+      const { connectivityStore } = await import("../../../stores/connectivity");
+      const confirm = vi.spyOn(connectivityStore, "confirmOnline").mockResolvedValue(true);
+      vi.mocked(jobQueue.getJobs).mockResolvedValue(chain());
+      vi.mocked(jobQueue.processJob).mockResolvedValue({
+        success: false,
+        error: "wallet-reconnect-required",
+        skipped: true,
+      });
+      try {
+        const { result } = renderHook(() => useWorkDetailController(), { wrapper: RouterWrapper });
+
+        await act(async () => {
+          await result.current.retry();
+        });
+
+        expect(vi.mocked(jobQueue.processJob).mock.calls.map(([jobId]) => jobId)).toEqual([
+          "take-up",
+        ]);
+        expect(toastService.info).not.toHaveBeenCalled();
+        expect(toastService.error).not.toHaveBeenCalled();
       } finally {
         confirm.mockRestore();
       }

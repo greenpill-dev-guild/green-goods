@@ -120,9 +120,11 @@ describe("blockedReasonMessage", () => {
     // to blame. Saying the record won't accept it would contradict the per-item
     // check that just passed.
     [
-      "reverted",
+      "batch-reverted",
       "Your work didn't send. Your media is still saved, so try again when you're ready.",
     ],
+    // A check that refused this item alone.
+    ["reverted", "Can't upload: the garden record won't accept it"],
   ])("explains %s", (reason, text) => {
     expect(textOf(blockedReasonMessage(reason))).toBe(text);
   });

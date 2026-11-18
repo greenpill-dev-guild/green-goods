@@ -20,12 +20,14 @@ const TAKE_UP_REQUEST_LINES = [
   "app.compose.claimMode.APPROVAL_GATED.body",
   "app.home.attention.takeUp",
   "app.home.notifications.event.takeUpRequested",
+  "app.commitment.join.serviceUnavailable",
+  "app.voucher.rw.sh.consent",
 ];
 
 const locales: Array<{ locale: string; messages: LocaleCatalog; asked: RegExp }> = [
   { locale: "en", messages: en, asked: /\bask/i },
-  { locale: "es", messages: es, asked: /\bp[ei]d[ií]/i },
-  { locale: "pt", messages: pt, asked: /\bp[ei]d[ie]/i },
+  { locale: "es", messages: es, asked: /\bp[ei]d/i },
+  { locale: "pt", messages: pt, asked: /\bp(?:[ei]d|eç)/i },
 ];
 
 describe("a take-up request is called a request (DL-175)", () => {

@@ -56,7 +56,7 @@ export const DeclinedGardenRequest: Story = {
   },
 };
 
-/** The reader's own request, accepted: Portuguese names it a solicitação, not a pedido. */
+/** The reader's own request, accepted. */
 export const AcceptedRequest: Story = {
   args: {
     request: claimFixture({ claimant: STEWARD, requestedBy: STEWARD, state: "ACCEPTED" }),

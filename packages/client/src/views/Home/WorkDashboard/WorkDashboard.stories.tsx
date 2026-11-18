@@ -119,7 +119,7 @@ const SEND_GAVE_UP: PendingWorkFixture = {
     gaveUp("job-mulch", "Mulching", 4, { submissionState: "reverted" }),
     gaveUp("job-seedling", "Seedling Transplant", 5, {
       submissionState: "blocked",
-      blockedReason: "reverted",
+      blockedReason: "batch-reverted",
     }),
   ],
   drafts: [],

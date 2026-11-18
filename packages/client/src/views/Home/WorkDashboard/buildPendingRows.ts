@@ -109,8 +109,11 @@ function didntSendCard(base: Pick<RowCard, "title" | "meta" | "marker">, intl: I
   } satisfies RowCard;
 }
 
-/** Upload all's mark for an item whose batch reverted: blocked so it is not resent unchanged. */
-const BATCH_REVERTED = "reverted";
+/**
+ * Upload all's mark for an item whose batch reverted: blocked so it is not resent unchanged. A
+ * check that refuses one item alone records "reverted" instead, and reads as the record refusing it.
+ */
+const BATCH_REVERTED = "batch-reverted";
 
 /**
  * Your own work: on this phone it says where its upload stands, the way its
