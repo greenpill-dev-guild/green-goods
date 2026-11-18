@@ -42,6 +42,8 @@ const mocks = vi.hoisted(() => ({
   changes: [] as Array<{ ids: bigint[]; amount: bigint }>,
   /** Which copies the wallet leaves unchanged on the next change. */
   unchanged: new Set<bigint>(),
+  /** Which copies the wallet declines on the next confirmer change. */
+  declined: new Set<bigint>(),
   added: [] as number[],
   outcome: "sent" as AddToGroupOutcome,
   /** A name's lookup, left open until the test lands it. */
@@ -110,11 +112,14 @@ vi.mock("@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController", asyn
           rule: { confirmers: [...rule.confirmers], threshold: rule.threshold },
         });
         const ended = targets.map(({ commitmentId }) =>
-          mocks.unchanged.has(commitmentId)
-            ? ({ commitmentId, status: "not-changed", miss: "failed", txHash: null } as const)
-            : ({ commitmentId, status: "changed", txHash: null } as const)
+          mocks.declined.has(commitmentId)
+            ? ({ commitmentId, status: "not-changed", miss: "declined", txHash: null } as const)
+            : mocks.unchanged.has(commitmentId)
+              ? ({ commitmentId, status: "not-changed", miss: "failed", txHash: null } as const)
+              : ({ commitmentId, status: "changed", txHash: null } as const)
         );
         mocks.unchanged.clear();
+        mocks.declined.clear();
         setCopies(ended);
         return ended.some((copy) => copy.status !== "changed") ? "left" : "changed";
       },
@@ -506,6 +511,7 @@ describe("Edit Confirmers", () => {
   beforeEach(() => {
     mocks.confirmerChanges = [];
     mocks.unchanged.clear();
+    mocks.declined.clear();
     mocks.lookup = null;
   });
 
@@ -569,12 +575,19 @@ describe("Edit Confirmers", () => {
 
     const retry = await within(dialog()).findByRole("button", { name: "Try Again (1)" });
     expect(confirmers().getByLabelText(/^add a confirmer/i)).toBeDisabled();
+    // A Try Again the wallet declines outright still leaves copy 3 on the new rule.
+    mocks.declined.add(4n);
     fireEvent.click(retry);
-    await waitFor(() => expect(mocks.confirmerChanges).toHaveLength(2));
-    expect(mocks.confirmerChanges[1]).toEqual({
-      copies: [[4n, false]],
-      rule: { confirmers: [LINA, NEW], threshold: 1 },
-    });
+    const again = await within(dialog()).findByRole("button", { name: "Try Again" });
+    expect(confirmers().getByLabelText(/^add a confirmer/i)).toBeDisabled();
+    fireEvent.click(again);
+    await waitFor(() => expect(mocks.confirmerChanges).toHaveLength(3));
+    for (const sent of mocks.confirmerChanges.slice(1)) {
+      expect(sent).toEqual({
+        copies: [[4n, false]],
+        rule: { confirmers: [LINA, NEW], threshold: 1 },
+      });
+    }
   });
 
   it("waits for a name still being looked up, then saves it with the rest", async () => {

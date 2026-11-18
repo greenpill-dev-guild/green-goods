@@ -119,6 +119,12 @@ export function GroupDialogs({
     viewer,
     now: Date.now(),
   });
+  // An edit whose copies were all taken meanwhile has nothing left to change: back to the inspector.
+  const shown =
+    (step === "edit-reward" && !canEditReward) ||
+    (step === "edit-confirmers" && !confirmerEdit.open)
+      ? "inspect"
+      : step;
   const done = (message: string) => {
     toastService.success({ title: message });
     setStep("inspect");
@@ -127,7 +133,7 @@ export function GroupDialogs({
   return (
     <>
       <GroupInspector
-        open={step === "inspect"}
+        open={shown === "inspect"}
         onClose={onClose}
         group={group}
         title={title}
@@ -192,7 +198,7 @@ export function GroupDialogs({
           offerRoom={first.direction === "OFFER" ? room : null}
         />
       ) : null}
-      {step === "edit-reward" && canEditReward && reward.currentWei !== null ? (
+      {shown === "edit-reward" && reward.currentWei !== null ? (
         <EditRewardDialog
           open
           onClose={() => setStep("inspect")}
@@ -223,7 +229,7 @@ export function GroupDialogs({
           settlementActive={Boolean(settlement.detail?.account?.active)}
         />
       ) : null}
-      {step === "edit-confirmers" && confirmerEdit.open ? (
+      {shown === "edit-confirmers" && confirmerEdit.open ? (
         <EditConfirmersDialog
           open
           onClose={() => setStep("inspect")}

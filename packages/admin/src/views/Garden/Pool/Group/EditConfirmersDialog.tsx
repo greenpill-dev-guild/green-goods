@@ -96,8 +96,12 @@ export function EditConfirmersDialog({
     taken,
     formatMessage,
   });
-  // Once any copy may carry the new rule, the rest must get the same one.
-  const locked = status.phase === "partial" || status.phase === "unconfirmed";
+  // Once any copy may carry the new rule, the rest must get the same one, even
+  // after a later Try Again is declined or refused outright.
+  const mayHaveChanged = status.phase === "partial" || status.phase === "unconfirmed";
+  const [ruleKept, setRuleKept] = useState(false);
+  if (mayHaveChanged && !ruleKept) setRuleKept(true);
+  const locked = ruleKept || mayHaveChanged;
   const retrying = status.retry.length > 0;
   const draft: ConfirmerRule = { confirmers: confirmers as Address[], threshold };
   const now: ConfirmerRule = {
