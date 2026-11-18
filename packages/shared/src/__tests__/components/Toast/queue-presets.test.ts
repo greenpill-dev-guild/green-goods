@@ -102,23 +102,32 @@ describe("queue failure toast", () => {
     expect(error.mock.lastCall?.[0].action).toBeUndefined();
   });
 
-  it("gives a background send that gave up the same name, Didn't send, as the work page's retry", () => {
+  it("gives every failed send one name, Didn't send, in every language (DL-177)", () => {
     const error = vi.spyOn(toastService, "error").mockReturnValue("job-queue-flush");
     const catalogs = { en, es, pt };
 
     for (const [locale, messages] of Object.entries(catalogs)) {
-      toastsIn(locale, messages).syncError();
+      const toasts = toastsIn(locale, messages);
+      toasts.syncError();
+      toasts.retryFailed();
     }
 
     expect(error.mock.calls.map(([shown]) => shown.title)).toEqual([
       "Didn't send",
+      "Didn't send",
+      "No se envió",
       "No se envió",
       "Não enviou",
+      "Não enviou",
     ]);
+    // The work page's Upload now and Upload all's two failures say it as the queue's toast does.
     for (const messages of Object.values(catalogs)) {
-      expect(messages["app.home.work.retryFailed"]).toBe(
-        messages["app.toast.queue.jobFailed.title"]
-      );
+      const name = messages["app.toast.queue.jobFailed.title"];
+      expect([
+        messages["app.home.work.retryFailed"],
+        messages["app.uploads.revertedTitle"],
+        messages["app.uploads.failedTitle"],
+      ]).toEqual([name, name, name]);
     }
   });
 });

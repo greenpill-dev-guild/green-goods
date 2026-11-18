@@ -44,9 +44,8 @@ type Story = StoryObj<typeof TakeUpOneSheet>;
 export const Ready: Story = {
   args: { reward: "$5.00, paid in G$ after it's kept" },
   play: async ({ args }) => {
-    await expect(
-      await screen.findByText("The app picks which one.", { exact: false })
-    ).toBeVisible();
+    await expect(await screen.findByText("Take Up One of These Promises")).toBeVisible();
+    await expect(screen.getByText("The app picks which one.", { exact: false })).toBeVisible();
     await expect(screen.getByText("$5.00, paid in G$ after it's kept")).toBeVisible();
     const act = screen.getByRole("button", { name: "Take Up One" });
     await expect(act.getBoundingClientRect().bottom).toBeLessThanOrEqual(

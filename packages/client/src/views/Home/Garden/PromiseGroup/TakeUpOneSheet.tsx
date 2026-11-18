@@ -9,7 +9,7 @@ import { AppSheet } from "@/components/Sheets/AppSheet";
 export interface TakeUpOneSheetProps {
   open: boolean;
   onClose: () => void;
-  /** A steward-reviewed group takes a request; an open one takes up. */
+  /** In a steward-reviewed group the member requests one; in an open one they take it up. */
   approvalGated: boolean;
   /** The act's own words, the same as the page's bar. */
   actLabelId: string;

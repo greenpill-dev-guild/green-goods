@@ -253,8 +253,8 @@ export function useWorkDetailController() {
     } catch (error) {
       toastService.error({
         title: intl.formatMessage({
-          id: "app.home.work.retryError",
-          defaultMessage: "Couldn't send your work",
+          id: "app.home.work.retryFailed",
+          defaultMessage: "Didn't send",
         }),
         message:
           error instanceof Error

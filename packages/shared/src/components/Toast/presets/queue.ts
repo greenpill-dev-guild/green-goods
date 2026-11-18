@@ -22,7 +22,7 @@ const queueDefaults = {
     review: "Review",
   },
   retryFailed: {
-    title: "Couldn't send it",
+    title: "Didn't send",
     message: "It's still saved on this device. You can try again.",
   },
   stillQueued: {
