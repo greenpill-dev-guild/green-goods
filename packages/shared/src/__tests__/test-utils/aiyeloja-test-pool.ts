@@ -51,8 +51,10 @@ export const AIYELOJA_TEST_POOL = {
     ProxyComponent,
     DeployedProxy
   >,
-  vouchers: Object.fromEntries(vouchers.map((id) => [id, pin(`fixture:${id}`)])) as Record<
-    VoucherId,
-    DeployedProxy
-  >,
+  vouchers: Object.fromEntries(
+    vouchers.map((id) => {
+      const symbol = record.contracts.find((c) => c.component === `fixture:${id}`)?.symbol;
+      return [id, { ...pin(`fixture:${id}`), symbol: symbol ?? "" }];
+    })
+  ) as Record<VoucherId, DeployedProxy & { symbol: string }>,
 } as const;
