@@ -517,7 +517,9 @@ describe("Edit Confirmers", () => {
 
   function renderConfirmers() {
     const onChanged = vi.fn();
-    renderWithProviders(
+    const dialogWith = (
+      available: { commitmentId: bigint; protocolFallbackEnabled: boolean }[]
+    ) => (
       <EditConfirmersDialog
         open
         onClose={vi.fn()}
@@ -525,16 +527,27 @@ describe("Edit Confirmers", () => {
         chainId={42161}
         garden={GARDEN}
         title="Climate course check-ins"
-        available={[
-          { commitmentId: 3n, protocolFallbackEnabled: true },
-          { commitmentId: 4n, protocolFallbackEnabled: false },
-        ]}
+        available={available}
         current={{ confirmers: [OLD, LINA], confirmationThreshold: 1 }}
         direction="REQUEST"
         taken={2}
       />
     );
-    return { onChanged };
+    const { rerender } = renderWithProviders(
+      dialogWith([
+        { commitmentId: 3n, protocolFallbackEnabled: true },
+        { commitmentId: 4n, protocolFallbackEnabled: false },
+      ])
+    );
+    return {
+      onChanged,
+      nowAvailable: (copies: bigint[]) =>
+        rerender(
+          dialogWith(
+            copies.map((commitmentId) => ({ commitmentId, protocolFallbackEnabled: true }))
+          )
+        ),
+    };
   }
   const confirmers = () => within(screen.getByTestId("seed-confirmers"));
   const change = () =>
@@ -590,7 +603,7 @@ describe("Edit Confirmers", () => {
     }
   });
 
-  it("waits for a name still being looked up, then saves it with the rest", async () => {
+  it("waits for a typed name to be added and looked up, then saves it with the rest", async () => {
     let land: (address: string) => void = () => undefined;
     mocks.lookup = new Promise((resolve) => {
       land = resolve;
@@ -601,6 +614,11 @@ describe("Edit Confirmers", () => {
     fireEvent.change(confirmers().getByLabelText(/^add a confirmer/i), {
       target: { value: "new.eth" },
     });
+    // Typed but not added: saving now would leave the replacement out.
+    expect(change()).toBeDisabled();
+    expect(
+      within(dialog()).getByText("Select Add to include the name you typed, or clear the field.")
+    ).toBeVisible();
     fireEvent.click(confirmers().getByRole("button", { name: "Add" }));
     await waitFor(() => expect(change()).toBeDisabled());
 
@@ -637,6 +655,20 @@ describe("Edit Confirmers", () => {
       title: `Approve in your wallet: ${count} promises in one request`,
       description: `They change together: all ${count}, or none if the wallet declines.`,
     });
+  });
+
+  it("finishes when the copy a Try Again would send was taken meanwhile", async () => {
+    mocks.unchanged.add(4n);
+    const { onChanged, nowAvailable } = renderConfirmers();
+    swapOldForNew();
+    fireEvent.click(change());
+    await within(dialog()).findByRole("button", { name: "Try Again (1)" });
+
+    // Someone takes copy 4: it keeps the confirmers it was taken up with.
+    nowAvailable([3n]);
+    fireEvent.click(within(dialog()).getByRole("button", { name: "Done" }));
+    expect(onChanged).toHaveBeenCalledWith(1);
+    expect(mocks.confirmerChanges).toHaveLength(1);
   });
 
   it("holds a threshold no named group could reach, and says why", () => {

@@ -5060,6 +5060,7 @@
   "hub.garden.pool.confirmers.changed": "{count, plural, one {Confirmadores cambiados} other {Confirmadores cambiados en # promesas}}",
   "hub.garden.pool.confirmers.changedHint": "Quien acepte una a partir de ahora tendrá estos confirmadores.",
   "hub.garden.pool.confirmers.unchanged": "Cambia la lista o el número para guardar.",
+  "hub.garden.pool.confirmers.unadded": "Selecciona Añadir para incluir el nombre que escribiste o borra el campo.",
   "hub.garden.pool.confirmers.fromTo": "{from} → {to}",
   "hub.garden.pool.confirmers.takenKeep": "Sin cambios, como se asumieron",
   "hub.garden.pool.confirmers.change": "{count, plural, one {Cambiar confirmadores} other {Cambiar confirmadores en # promesas}}",

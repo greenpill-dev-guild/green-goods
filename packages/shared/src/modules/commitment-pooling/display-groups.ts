@@ -286,7 +286,8 @@ function materialTermsKey(
  * What an open record shares with its identical copies, or null when it has its own row.
  *
  * Copies made apart have no group id between them, so a list goes by this instead (DL-150):
- * the same state and the same words and material terms, judged as copies made together are.
+ * the same state and the same words and material terms, confirmers included, though copies
+ * made together leave those out so an edited group stays one row.
  * Once one is taken up it is nobody's copy. Words not read yet are still one document under
  * one CID, so those copies fold under it; words this build can't read stay an ordinary row.
  */

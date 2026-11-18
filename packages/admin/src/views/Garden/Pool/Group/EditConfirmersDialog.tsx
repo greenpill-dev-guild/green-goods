@@ -16,7 +16,11 @@ import { FlowStatusRow } from "@/components/Layout/FlowStatusRow";
 import { GardenPoolTarget } from "../PoolTarget";
 import { ConfirmerGroupEditor } from "../Seed/SeedConfirmerList";
 import { seedMembers } from "../Seed/seedStepModel";
-import { confirmerRuleMessage, editConfirmersStatus } from "./editConfirmersStatus";
+import {
+  confirmerRuleMessage,
+  editConfirmersStatus,
+  editConfirmersSummary,
+} from "./editConfirmersStatus";
 import { confirmerRuleText, confirmersSplitText } from "./groupTerms";
 
 /** Copies a batching wallet changes per request, as Shared sends them (`sendConfirmerEdit`). */
@@ -77,8 +81,8 @@ export function EditConfirmersDialog({
   const [confirmers, setConfirmersState] = useState<string[]>(() => [...current.confirmers]);
   const [threshold, setThreshold] = useState(() => current.confirmationThreshold ?? 1);
   const [error, setError] = useState<string | null>(null);
-  // A name still being looked up isn't in the list yet, so saving waits for it.
-  const [adding, setAdding] = useState(false);
+  // A typed name or address isn't in the list until it's added, so saving waits for it.
+  const [pending, setPending] = useState(false);
   // The latest list, for a name that resolves after other changes.
   const latest = useRef<string[]>(confirmers);
   // The rule of the first change, kept for every Try Again.
@@ -102,7 +106,11 @@ export function EditConfirmersDialog({
   const [ruleKept, setRuleKept] = useState(false);
   if (mayHaveChanged && !ruleKept) setRuleKept(true);
   const locked = ruleKept || mayHaveChanged;
-  const retrying = status.retry.length > 0;
+  // Copies taken since a change missed them keep the rule they were taken up with.
+  const retryTargets = available.filter((copy) => status.retry.includes(copy.commitmentId));
+  const retrying = retryTargets.length > 0;
+  const finished =
+    status.phase === "changed" || (status.retry.length > 0 && !retrying && available.length > 0);
   const draft: ConfirmerRule = { confirmers: confirmers as Address[], threshold };
   const now: ConfirmerRule = {
     confirmers: current.confirmers,
@@ -119,16 +127,13 @@ export function EditConfirmersDialog({
           defaultMessage: "Change the list or the number to save.",
         })
       : null);
-  const count = retrying ? status.retry.length : available.length;
+  const count = retrying ? retryTargets.length : available.length;
 
   const change = async () => {
     setError(null);
     const rule = locked && sent.current ? sent.current : draft;
     sent.current = rule;
-    const targets = retrying
-      ? available.filter((copy) => status.retry.includes(copy.commitmentId))
-      : available;
-    const outcome = await edit.change(targets, rule);
+    const outcome = await edit.change(retrying ? retryTargets : available, rule);
     if (outcome === "changed") onChanged(available.length);
     if (outcome === "blocked") {
       setError(
@@ -140,41 +145,19 @@ export function EditConfirmersDialog({
     }
   };
 
-  const summary: Array<[string, string]> = [
-    [
-      formatMessage(
-        { id: "hub.garden.pool.reward.availableRow", defaultMessage: "{count} available" },
-        { count: available.length }
-      ),
-      formatMessage(
-        { id: "hub.garden.pool.confirmers.fromTo", defaultMessage: "{from} → {to}" },
-        {
-          // After a change that didn't finish, the copies don't share one rule to name.
-          from: mixed
-            ? confirmersSplitText(formatMessage)
-            : confirmerRuleText(formatMessage, current),
-          to: ruleError
-            ? "—"
-            : confirmerRuleText(formatMessage, {
-                confirmers: draft.confirmers,
-                confirmationThreshold: draft.threshold,
-              }),
-        }
-      ),
-    ],
-  ];
-  if (taken > 0) {
-    summary.push([
-      formatMessage(
-        { id: "hub.garden.pool.reward.takenRow", defaultMessage: "{count} taken" },
-        { count: taken }
-      ),
-      formatMessage({
-        id: "hub.garden.pool.confirmers.takenKeep",
-        defaultMessage: "Unchanged, as taken up",
-      }),
-    ]);
-  }
+  const summary = editConfirmersSummary({
+    available: available.length,
+    taken,
+    // After a change that didn't finish, the copies don't share one rule to name.
+    from: mixed ? confirmersSplitText(formatMessage) : confirmerRuleText(formatMessage, current),
+    to: ruleError
+      ? "—"
+      : confirmerRuleText(formatMessage, {
+          confirmers: draft.confirmers,
+          confirmationThreshold: draft.threshold,
+        }),
+    formatMessage,
+  });
 
   const note =
     status.phase === "asking"
@@ -185,6 +168,12 @@ export function EditConfirmersDialog({
       : status.busy
         ? null
         : (error ??
+          (pending
+            ? formatMessage({
+                id: "hub.garden.pool.confirmers.unadded",
+                defaultMessage: "Select Add to include the name you typed, or clear the field.",
+              })
+            : null) ??
           blocked ??
           (edit.mode === "one-by-one"
             ? formatMessage(
@@ -212,62 +201,56 @@ export function EditConfirmersDialog({
                   { requests: Math.ceil(count / PER_APPROVAL) }
                 )));
 
-  const footer =
-    status.phase === "changed" ? (
-      <Button
-        type="button"
-        emphasis="primary"
-        size="sm"
-        onClick={() => onChanged(available.length)}
-      >
-        {formatMessage({ id: "app.common.done", defaultMessage: "Done" })}
-      </Button>
-    ) : (
-      <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
-        <p className="min-w-0 type-meta text-text-soft sm:flex-1">
-          {note ? <span role="status">{note}</span> : null}
-        </p>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-          <Button
-            type="button"
-            emphasis="tertiary"
-            size="sm"
-            onClick={onClose}
-            disabled={status.busy}
-          >
-            {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-          </Button>
-          <Button
-            type="button"
-            emphasis="primary"
-            size="sm"
-            onClick={() => void change()}
-            disabled={status.busy || adding || (!locked && Boolean(blocked))}
-            loading={status.busy}
-            className="w-full sm:w-auto"
-          >
-            {retrying
-              ? status.phase === "partial"
-                ? formatMessage(
-                    {
-                      id: "hub.garden.pool.seed.tryAgainCount",
-                      defaultMessage: "Try Again ({count})",
-                    },
-                    { count }
-                  )
-                : formatMessage({ id: "hub.garden.pool.setup.retry", defaultMessage: "Try Again" })
-              : formatMessage(
+  const footer = finished ? (
+    <Button type="button" emphasis="primary" size="sm" onClick={() => onChanged(available.length)}>
+      {formatMessage({ id: "app.common.done", defaultMessage: "Done" })}
+    </Button>
+  ) : (
+    <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
+      <p className="min-w-0 type-meta text-text-soft sm:flex-1">
+        {note ? <span role="status">{note}</span> : null}
+      </p>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+        <Button
+          type="button"
+          emphasis="tertiary"
+          size="sm"
+          onClick={onClose}
+          disabled={status.busy}
+        >
+          {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
+        </Button>
+        <Button
+          type="button"
+          emphasis="primary"
+          size="sm"
+          onClick={() => void change()}
+          disabled={status.busy || pending || (!locked && Boolean(blocked))}
+          loading={status.busy}
+          className="w-full sm:w-auto"
+        >
+          {retrying
+            ? status.phase === "partial"
+              ? formatMessage(
                   {
-                    id: "hub.garden.pool.confirmers.change",
-                    defaultMessage:
-                      "{count, plural, one {Change Confirmers} other {Change Confirmers on # Promises}}",
+                    id: "hub.garden.pool.seed.tryAgainCount",
+                    defaultMessage: "Try Again ({count})",
                   },
                   { count }
-                )}
-          </Button>
-        </div>
+                )
+              : formatMessage({ id: "hub.garden.pool.setup.retry", defaultMessage: "Try Again" })
+            : formatMessage(
+                {
+                  id: "hub.garden.pool.confirmers.change",
+                  defaultMessage:
+                    "{count, plural, one {Change Confirmers} other {Change Confirmers on # Promises}}",
+                },
+                { count }
+              )}
+        </Button>
       </div>
-    );
+    </div>
+  );
 
   return (
     <AdminDialog
@@ -332,7 +315,7 @@ export function EditConfirmersDialog({
           }
           busy={status.busy || locked}
           members={members}
-          onAddingChange={setAdding}
+          onPendingChange={setPending}
         />
       </div>
     </AdminDialog>

@@ -54,6 +54,42 @@ export function confirmerRuleMessage(
   }
 }
 
+/** The summary's rows: the available copies' rule before and after, and the taken ones kept. */
+export function editConfirmersSummary(input: {
+  available: number;
+  taken: number;
+  from: string;
+  to: string;
+  formatMessage: FormatMessage;
+}): Array<[string, string]> {
+  const { available, taken, from, to, formatMessage } = input;
+  const rows: Array<[string, string]> = [
+    [
+      formatMessage(
+        { id: "hub.garden.pool.reward.availableRow", defaultMessage: "{count} available" },
+        { count: available }
+      ),
+      formatMessage(
+        { id: "hub.garden.pool.confirmers.fromTo", defaultMessage: "{from} → {to}" },
+        { from, to }
+      ),
+    ],
+  ];
+  if (taken > 0) {
+    rows.push([
+      formatMessage(
+        { id: "hub.garden.pool.reward.takenRow", defaultMessage: "{count} taken" },
+        { count: taken }
+      ),
+      formatMessage({
+        id: "hub.garden.pool.confirmers.takenKeep",
+        defaultMessage: "Unchanged, as taken up",
+      }),
+    ]);
+  }
+  return rows;
+}
+
 const IN_FLIGHT = new Set<ConfirmerEditProgress["status"]>(["waiting", "wallet", "confirming"]);
 
 export function editConfirmersStatus(input: {
