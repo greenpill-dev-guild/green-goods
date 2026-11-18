@@ -1,9 +1,11 @@
+import { parseCommitmentEvidenceDocument } from "@green-goods/shared/commitment-pooling";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import type { Meta, StoryObj } from "@storybook/react";
 import type { QueryKey } from "@tanstack/react-query";
 import { expect, within } from "storybook/test";
 import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../../../shared/.storybook/adminFixtures";
+import { FIXTURE_WORK_MEDIA } from "../../../../../../shared/.storybook/fixtures";
 import {
   withAdminIdentity,
   withRouter,
@@ -21,10 +23,49 @@ import { CommitmentDialogPanel } from "./index";
 // roster and timeline without steward acts.
 const dialog = storyCommitmentDialog();
 const cycleId = dialog.commitment?.cycleId ?? 0n;
+// The proof behind the record, as a gateway read returns it, so its photos and documents
+// list in the dialog: one proof with a photo, a PDF and a Word file, one with a note.
+const PROOF_CID = "bafy-story-dialog-proof";
+const NOTE_PROOF_CID = "bafy-story-dialog-note";
+const lead = dialog.commitment?.leadProvider ?? null;
+const detail = dialog.detail
+  ? {
+      ...dialog.detail,
+      evidenceAttributions: [
+        { cid: PROOF_CID, contributor: lead, attacher: lead, createdAt: 1_700_000_000 },
+        { cid: NOTE_PROOF_CID, contributor: lead, attacher: lead, createdAt: 1_699_900_000 },
+      ],
+    }
+  : null;
 const COMMITMENT_STORY_SEEDS: ReadonlyArray<readonly [QueryKey, unknown]> = [
   ...STORYBOOK_ADMIN_SHELL_SEEDS,
   ...POOL_STORY_SEEDS,
-  [queryKeys.commitmentPooling.commitment(DEFAULT_CHAIN_ID, 2n), dialog.detail],
+  [queryKeys.commitmentPooling.commitment(DEFAULT_CHAIN_ID, 2n), detail],
+  [
+    queryKeys.commitmentPooling.evidence(PROOF_CID),
+    parseCommitmentEvidenceDocument({
+      version: 1,
+      media: [{ cid: FIXTURE_WORK_MEDIA[0], mime: "image/jpeg", kind: "photo" }],
+      documents: [
+        {
+          cid: "bafkreigh2akiscaildcqabsyg3dfr6chu3fgpregiymsck7e7aqa4s52zy",
+          mime: "application/pdf",
+          name: "qa-report.pdf",
+          size: 1024,
+        },
+        {
+          cid: "bafkreibm6jg3ux5qumhcn2b3flc3tyu6dmlb4xa7u5bf44yegnrjhc4yeq",
+          mime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          name: "qa-log.docx",
+          size: 1024,
+        },
+      ],
+    }),
+  ],
+  [
+    queryKeys.commitmentPooling.evidence(NOTE_PROOF_CID),
+    parseCommitmentEvidenceDocument({ version: 1, note: "Handles sanded and oiled." }),
+  ],
   [
     queryKeys.commitmentPooling.activity(DEFAULT_CHAIN_ID, {
       chainId: DEFAULT_CHAIN_ID,
@@ -76,6 +117,7 @@ export const Detail: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(await canvas.findByText("Proof added")).toBeVisible();
+    await expect(canvas.getByRole("link", { name: /qa-report\.pdf/ })).toBeVisible();
   },
 };
 
