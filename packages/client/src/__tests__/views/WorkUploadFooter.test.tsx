@@ -102,9 +102,18 @@ describe("WorkUploadFooter", () => {
     expect(screen.getByRole("button", { name: "Discard" })).toBeEnabled();
   });
 
-  it("holds discard while an explicit send is active", () => {
+  it("offers no discard while an explicit send is active", () => {
     renderFooter(queuedWork("ready"), { isRetrying: true });
-    expect(screen.getByRole("button", { name: "Discard" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
+  });
+
+  it("says on Upload now when the wallet is asked and when the send is confirming", () => {
+    renderFooter(queuedWork("ready"), { isRetrying: true, sendStage: "wallet" });
+    expect(screen.getByRole("button", { name: "Confirm in your wallet" })).toBeInTheDocument();
+    cleanup();
+
+    renderFooter(queuedWork("retry-required"), { isRetrying: true, sendStage: "confirming" });
+    expect(screen.getByRole("button", { name: "Confirming…" })).toBeInTheDocument();
   });
 
   it("does not offer signing while a photo is still preparing", () => {

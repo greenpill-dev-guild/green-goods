@@ -127,6 +127,7 @@ lands.
 | `work_submission_failed` | The Submit failed. `parsed_error_family: UserRejected` marks a cancel, a declined Terms prompt included. |
 | `offline_job_started` | The queue starts a try: a send, or the check of a send already on record (`confirming`). `explicit` when a person's tap asked for it. |
 | `offline_job_skipped` | A started try ended with nothing sent and no answer, or a tap the queue could not act on. `reason` is a code such as `awaiting-confirmation`, `offline` or `wallet-reconnect-required`. |
+| `offline_job_receipt_wait_limit` | A queued send went out but its receipt did not come within the queue's limit (`limit_ms`), so the job waits as still confirming. `job_kind`, `explicit` and `auth_mode` say what was sent and how. |
 | `offline_job_processed` | A queued job reached the chain. |
 | `offline_job_failed` | A try failed and will be retried; `offline_job_permanently_failed` when it will not be. |
 | `queued_upload_started`, `queued_upload_finished` | An Upload all or Upload now tap, and how it ended (`status`, `sent`, `flagged`). |

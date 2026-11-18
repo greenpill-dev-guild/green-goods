@@ -1,5 +1,6 @@
 import { Button } from "@green-goods/shared/components/Button";
 import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
+import type { useWorkDetailController } from "@green-goods/shared/hooks/client-ui/work/useWorkDetailController";
 import type { ItemPreparation } from "@green-goods/shared/hooks/work/useWorkUploads";
 import type { Work } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
@@ -17,6 +18,8 @@ export interface WorkUploadFooterProps {
   /** Upload now, or a check on a work that was already sent. */
   onRetry: () => void;
   isRetrying: boolean;
+  /** Where that send stands while it runs: the wallet is asked, then the chain confirms. */
+  sendStage?: ReturnType<typeof useWorkDetailController>["sendStage"];
   onTryAgain: () => void;
   isTryingAgain: boolean;
   onDiscard: () => Promise<void>;
@@ -26,7 +29,8 @@ export interface WorkUploadFooterProps {
 /**
  * The acts for the gardener's own queued work, fixed under its page (D24): two
  * equal halves on one row, Discard on the left and the primary on the right,
- * or one full-width act when discarding isn't safe. Waiting work uploads here;
+ * or one full-width act when discarding isn't safe, as while a send runs and its
+ * button says whether the wallet is asked or the chain is confirming. Waiting work uploads here;
  * work that needs attention is tried again; failed work uploads again; work
  * already sent is checked again. Work being prepared spins only while
  * preparation is on it: a try that failed is tried again here, and a wait on
@@ -40,6 +44,7 @@ export const WorkUploadFooter: FC<WorkUploadFooterProps> = ({
   onPrepareNow,
   onRetry,
   isRetrying,
+  sendStage = null,
   onTryAgain,
   isTryingAgain,
   onDiscard,
@@ -49,10 +54,30 @@ export const WorkUploadFooter: FC<WorkUploadFooterProps> = ({
   const [confirmingDiscard, setConfirmingDiscard] = useState(false);
   const state = readQueuedWorkState(work.metadata);
   const group = workUploadGroup(state.submissionState);
-  const canDiscard = canDiscardQueuedWork(state.submissionState, {
-    isOnline,
-    preparationWaiting: preparation !== "working",
-  });
+  // Discarding is never safe while a send runs, so that send's one act takes the whole row,
+  // with room to say where it stands.
+  const canDiscard =
+    !isRetrying &&
+    canDiscardQueuedWork(state.submissionState, {
+      isOnline,
+      preparationWaiting: preparation !== "working",
+    });
+
+  // While a send runs, its button says where it stands: before the wallet is asked, the work's
+  // media are still uploading.
+  const stageLabel = !isRetrying
+    ? null
+    : sendStage === "wallet"
+      ? intl.formatMessage({
+          id: "app.home.work.sendStage.wallet",
+          defaultMessage: "Confirm in your wallet",
+        })
+      : sendStage === "confirming"
+        ? intl.formatMessage({
+            id: "app.home.work.sendStage.confirming",
+            defaultMessage: "Confirming…",
+          })
+        : null;
 
   const primary = (() => {
     switch (group) {
@@ -118,17 +143,21 @@ export const WorkUploadFooter: FC<WorkUploadFooterProps> = ({
             className="w-full"
             data-testid="work-send-now"
           >
-            {group === "sent"
-              ? intl.formatMessage({ id: "app.uploads.checkAgain", defaultMessage: "Check again" })
-              : isRetrying
+            {stageLabel ??
+              (group === "sent"
                 ? intl.formatMessage({
-                    id: "app.home.work.uploading",
-                    defaultMessage: "Uploading...",
+                    id: "app.uploads.checkAgain",
+                    defaultMessage: "Check again",
                   })
-                : intl.formatMessage({
-                    id: "app.home.work.uploadNow",
-                    defaultMessage: "Upload now",
-                  })}
+                : isRetrying
+                  ? intl.formatMessage({
+                      id: "app.home.work.uploading",
+                      defaultMessage: "Uploading...",
+                    })
+                  : intl.formatMessage({
+                      id: "app.home.work.uploadNow",
+                      defaultMessage: "Upload now",
+                    }))}
           </Button>
         );
       default:
@@ -141,7 +170,8 @@ export const WorkUploadFooter: FC<WorkUploadFooterProps> = ({
             className="w-full"
             data-testid="work-send-now"
           >
-            {intl.formatMessage({ id: "app.home.work.uploadNow", defaultMessage: "Upload now" })}
+            {stageLabel ??
+              intl.formatMessage({ id: "app.home.work.uploadNow", defaultMessage: "Upload now" })}
           </Button>
         );
     }
@@ -166,7 +196,7 @@ export const WorkUploadFooter: FC<WorkUploadFooterProps> = ({
               tone="danger"
               size="lg"
               className="w-full"
-              disabled={isRetrying || isTryingAgain || isDiscarding}
+              disabled={isTryingAgain || isDiscarding}
               onClick={() => setConfirmingDiscard(true)}
               data-testid="work-discard"
             >

@@ -61,6 +61,7 @@ import {
 import { assertLocalArbitrumForkWallet } from "./local-fork-safety";
 import {
   type AtomicBatchOptions,
+  asReceiptWaitLimit,
   TransactionReplacementError,
   assertTypedDataChain,
   TransactionRevertedError,
@@ -83,6 +84,8 @@ export interface WalletSenderDeps extends WalletBatchDeps {
     params: {
       hash: Hex;
       chainId?: number;
+      /** Milliseconds; rejects with viem's timeout error when it passes. */
+      timeout?: number;
       onReplaced?: (replacement: { reason: "cancelled" | "replaced" | "repriced" }) => void;
     }
   ) => Promise<{ status: string; transactionHash?: Hex }>;
@@ -290,20 +293,23 @@ export class WalletSender implements TransactionSender {
       return { hash: hash as Hex, sponsored: false, confirmation: "pending" };
     }
 
-    // Wait for on-chain confirmation and verify the tx was not reverted
+    // Wait for on-chain confirmation, within the send's limit when it set one,
+    // and verify the tx was not reverted.
+    const limitMs = options.receiptWaitLimitMs;
     let invalidReplacement: "cancelled" | "replaced" | undefined;
     let receipt: Awaited<ReturnType<NonNullable<WalletSenderDeps["waitForTransactionReceipt"]>>>;
     try {
       receipt = await this.deps.waitForTransactionReceipt!(this.config, {
         hash,
         chainId,
+        ...(limitMs ? { timeout: limitMs } : {}),
         onReplaced: ({ reason }) => {
           if (reason !== "repriced") invalidReplacement = reason;
         },
       });
     } catch (error) {
       if (invalidReplacement) throw new TransactionReplacementError(invalidReplacement);
-      throw error;
+      throw asReceiptWaitLimit(error, limitMs);
     }
     if (invalidReplacement) throw new TransactionReplacementError(invalidReplacement);
     if (receipt.status === "reverted") {

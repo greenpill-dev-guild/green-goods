@@ -8,6 +8,7 @@
  * `onPhase` is report-only: it hears the wallet being asked and the broadcast,
  * after the executor's own checkpoints, and a report that throws is logged and
  * ignored. Without it the executor's send options reach the wallet untouched.
+ * The queue's receipt limit reaches only a send whose broadcast it keeps on record.
  */
 
 import { describe, expect, it, vi } from "vitest";
@@ -137,5 +138,22 @@ describe("send phase reports", () => {
     const options = wallet.sendContractCall.mock.calls[0]?.[1];
     expect(options?.onBeforeBroadcast).toBe(checkpoints.onBeforeBroadcast);
     expect(options?.onBroadcast).toBe(checkpoints.onBroadcast);
+  });
+
+  it("limits the receipt wait only of a send whose broadcast the queue keeps on record", async () => {
+    // A creation keeps no record: past a limit it would read as failed and could be sent twice.
+    for (const [kind, limit] of [
+      ["claim", 120_000],
+      ["commitment", undefined],
+    ] as const) {
+      const { queue } = setup({
+        store: createInMemoryJobQueueStore([{ ...queuedJob(), kind }]),
+        executors: sendingExecutor({}),
+      });
+      const wallet = walletSender();
+
+      await queue.processJob("job-1", { transactionSender: wallet.sender });
+      expect(wallet.sendContractCall.mock.calls[0]?.[1]?.receiptWaitLimitMs).toBe(limit);
+    }
   });
 });
