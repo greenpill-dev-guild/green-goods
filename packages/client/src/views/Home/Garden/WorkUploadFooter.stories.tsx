@@ -47,6 +47,7 @@ const withLocale: Decorator = (Story, context) => {
 
 /**
  * The work detail footer for queued work at phone width: waiting work can upload directly,
+ * and while it sends the button says whether the wallet is asked or the chain is confirming;
  * work that needs attention can be tried again or discarded, a failed upload keeps Upload now,
  * and a sent work can be checked again. Work being prepared spins only while preparation is on
  * it; a failed try offers Try Again, and a wait on the connection leaves Discard.
@@ -112,6 +113,16 @@ export const BlockedPortuguese: Story = {
 
 export const SendFailed: Story = {
   args: { work: queuedWork("retry-required") },
+};
+
+/** Upload now is waiting on the wallet: the button says so instead of "Uploading...". */
+export const SendingAtWallet: Story = {
+  args: { work: queuedWork("ready"), isRetrying: true, sendStage: "wallet" },
+};
+
+/** The wallet sent it and the chain is confirming; past 120 seconds the work reads as Sent. */
+export const SendingConfirming: Story = {
+  args: { work: queuedWork("ready"), isRetrying: true, sendStage: "confirming" },
 };
 
 export const Sent: Story = {

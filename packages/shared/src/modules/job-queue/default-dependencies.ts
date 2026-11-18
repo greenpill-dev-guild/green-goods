@@ -3,6 +3,7 @@ import { getOntologyChainMaturity } from "../../ontology/query";
 import { connectivityStore } from "../../stores/connectivity";
 import type { ApprovalJobPayload, Job, WorkJobPayload } from "../../types/job-queue";
 import { isZeroAddress } from "../../utils/blockchain/address";
+import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { scheduleTask, yieldToMain } from "../../utils/scheduler";
 import { getStorageQuota } from "../../utils/storage/quota";
@@ -35,6 +36,7 @@ import {
   trackJobSkipped,
   trackJobStarted,
   trackPrivateQueueEvent,
+  trackReceiptWaitLimitReached,
   trackStorageWarning,
 } from "./job-analytics";
 import { executeApprovalJob } from "./approval-executor";
@@ -134,6 +136,7 @@ export function createDefaultJobQueueDependencies(): JobQueueDependencies {
       privateEvent: trackPrivateQueueEvent,
       processingStarted: trackJobStarted,
       jobSkipped: trackJobSkipped,
+      receiptWaitLimitReached: trackReceiptWaitLimitReached,
     },
     quota: { get: getStorageQuota },
     scheduler: {
@@ -164,6 +167,7 @@ export function createDefaultJobQueueDependencies(): JobQueueDependencies {
       defaultChainId: DEFAULT_CHAIN_ID,
       maxRetries: MAX_RETRIES,
       storageQuotaCacheTTL: 30_000,
+      receiptWaitLimitMs: TX_RECEIPT_TIMEOUT_MS,
     },
     lifecycle: {
       attach(cleanup) {

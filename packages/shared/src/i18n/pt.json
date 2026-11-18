@@ -3070,6 +3070,8 @@
   "app.home.work.retryMetadataLoad": "Tentar carregar detalhes novamente",
   "app.home.work.retrySuccess": "Seu trabalho foi enviado",
   "app.home.work.retrySuccessMessage": "Salvo no registro do jardim.",
+  "app.home.work.sendStage.confirming": "Confirmando…",
+  "app.home.work.sendStage.wallet": "Confirme na sua carteira",
   "app.home.work.share": "Compartilhar",
   "app.home.work.shareFailed": "Falha ao compartilhar",
   "app.home.work.submittedForReview": "Enviado para revisão",

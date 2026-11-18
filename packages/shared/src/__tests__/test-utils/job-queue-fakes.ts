@@ -143,6 +143,7 @@ export function createFakeJobQueueAnalytics(): JobQueueAnalytics {
     privateEvent: vi.fn(),
     processingStarted: vi.fn(),
     jobSkipped: vi.fn(),
+    receiptWaitLimitReached: vi.fn(),
   };
 }
 
@@ -210,7 +211,12 @@ export function createJobQueueDependencies(
     connectivity: createFakeJobQueueConnectivity(),
     backgroundSync: createFakeBackgroundSync(),
     clock: createFakeJobQueueClock(),
-    config: { defaultChainId: 11155111, maxRetries: 5, storageQuotaCacheTTL: 30_000 },
+    config: {
+      defaultChainId: 11155111,
+      maxRetries: 5,
+      storageQuotaCacheTTL: 30_000,
+      receiptWaitLimitMs: 120_000,
+    },
     lifecycle: { attach: vi.fn(() => () => undefined) },
     logger: { debug: vi.fn(), warn: vi.fn() },
     ...overrides,

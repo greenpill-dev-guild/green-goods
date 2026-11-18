@@ -36,6 +36,7 @@ import {
 } from "./chain-guard";
 import { assertLocalArbitrumForkWallet } from "./local-fork-safety";
 import {
+  asReceiptWaitLimit,
   TransactionReplacementError,
   assertTypedDataChain,
   TransactionRevertedError,
@@ -57,6 +58,8 @@ export interface EmbeddedSenderDeps {
     params: {
       hash: Hex;
       chainId?: number;
+      /** Milliseconds; rejects with viem's timeout error when it passes. */
+      timeout?: number;
       onReplaced?: (replacement: { reason: "cancelled" | "replaced" | "repriced" }) => void;
     }
   ) => Promise<{ status: string; transactionHash?: Hex }>;
@@ -190,14 +193,21 @@ export class EmbeddedSender implements TransactionSender {
     await options.onBroadcastReference?.({ kind: "transaction", hash: hash as `0x${string}` });
     await options.onBroadcast?.(hash as `0x${string}`);
 
+    const limitMs = options.receiptWaitLimitMs;
     let invalidReplacement: "cancelled" | "replaced" | undefined;
-    const receipt = await this.deps.waitForTransactionReceipt!(this.config, {
-      hash,
-      chainId,
-      onReplaced: ({ reason }) => {
-        if (reason !== "repriced") invalidReplacement = reason;
-      },
-    });
+    let receipt: Awaited<ReturnType<NonNullable<EmbeddedSenderDeps["waitForTransactionReceipt"]>>>;
+    try {
+      receipt = await this.deps.waitForTransactionReceipt!(this.config, {
+        hash,
+        chainId,
+        ...(limitMs ? { timeout: limitMs } : {}),
+        onReplaced: ({ reason }) => {
+          if (reason !== "repriced") invalidReplacement = reason;
+        },
+      });
+    } catch (error) {
+      throw asReceiptWaitLimit(error, limitMs);
+    }
     if (invalidReplacement) throw new TransactionReplacementError(invalidReplacement);
     if (receipt.status === "reverted") {
       throw new TransactionRevertedError(hash, "Transaction reverted on-chain");
