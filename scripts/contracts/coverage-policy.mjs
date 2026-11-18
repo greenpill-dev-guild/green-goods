@@ -189,6 +189,11 @@ function describeLocalFailure(log) {
   const timeout = /^TIMEOUT after (\d+)s$/m.exec(log);
   if (timeout) return `forge coverage timed out after ${timeout[1]}s`;
 
+  const killed = /^KILLED by signal \(exit (\d+)\)/m.exec(log);
+  if (killed) {
+    return `forge coverage was killed by a signal (exit ${killed[1]}) before the audit's timeout; an out-of-memory kill looks like this`;
+  }
+
   const compile = /^Error: Compiler run failed:\r?\n(?:Error: )?(.*)(?:\r?\n\s*--> (\S+))?/m.exec(log);
   if (compile) {
     const location = compile[2] ? ` at ${compile[2].replace(/:$/, "")}` : "";
@@ -216,7 +221,11 @@ function readLog(filePath) {
 const args = parseArgs(process.argv);
 const localOk = args["local-ok"] === "true";
 const localError = args["local-error"] ?? "";
-const localFailure = localOk ? "" : describeLocalFailure(readLog(args["local-log"]));
+// The runner passes a log only when forge coverage itself failed; any other local failure, such as a
+// missing lcov.info after a clean run, is already named by --local-error.
+const failedCommandLog = args["failed-command-log"];
+let localFailure = "";
+if (!localOk) localFailure = failedCommandLog ? describeLocalFailure(readLog(failedCommandLog)) : localError;
 
 function shortfall(label, summary, target) {
   const misses = [];

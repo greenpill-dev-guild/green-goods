@@ -9,19 +9,20 @@ import { fileURLToPath } from "node:url";
 
 const POLICY = path.join(path.dirname(fileURLToPath(import.meta.url)), "coverage-policy.mjs");
 
-function runPolicy({ localOk, lcov = "", log = "" }) {
+// `log` stands for the log of a forge coverage command that failed; the runner passes none otherwise.
+function runPolicy({ localOk, lcov = "", log, localError = localOk ? "" : "Local coverage command failed or timed out." }) {
   const dir = mkdtempSync(path.join(tmpdir(), "coverage-policy-"));
   try {
     const file = (name) => path.join(dir, name);
     writeFileSync(file("lcov.info"), lcov);
-    writeFileSync(file("coverage-local.log"), log);
+    if (log !== undefined) writeFileSync(file("coverage-local.log"), log);
     const result = spawnSync(
       process.execPath,
       [
         POLICY,
-        ...["--local-lcov", file("lcov.info"), "--local-log", file("coverage-local.log")],
+        ...["--local-lcov", file("lcov.info"), "--failed-command-log", log === undefined ? "" : file("coverage-local.log")],
         ...["--summary-md", file("summary.md"), "--summary-json", file("summary.json")],
-        ...["--local-ok", String(localOk), "--local-error", localOk ? "" : "Local coverage command failed or timed out."],
+        ...["--local-ok", String(localOk), "--local-error", localError],
       ],
       { encoding: "utf8" },
     );
@@ -36,9 +37,7 @@ function runPolicy({ localOk, lcov = "", log = "" }) {
   }
 }
 
-function assertFailureNamed(logLines, reason) {
-  const result = runPolicy({ localOk: false, log: logLines.join("\n") });
-
+function assertNamedFailure(result, reason) {
   assert.equal(result.status, 1);
   assert.ok(result.stdout.endsWith(`Coverage failure: ${reason}\nCoverage status: FAIL\n`), result.stdout);
   assert.ok(result.md.includes(`- Reason: ${reason}\n`));
@@ -46,6 +45,10 @@ function assertFailureNamed(logLines, reason) {
   // Unmeasured gates must not read as 100% coverage.
   assert.ok(!result.md.includes("(0/0)"));
   assert.match(result.md, /\| not measured \| not measured \| line >= 80%, branch >= 65% \| FAIL \|/);
+}
+
+function assertFailureNamed(logLines, reason) {
+  assertNamedFailure(runPolicy({ localOk: false, log: logLines.join("\n") }), reason);
 }
 
 // Log shapes come from real runs: the stack-too-deep build is Coverage Nightly run 43757620707,
@@ -93,6 +96,18 @@ test("tests that fail under coverage are each named once, by suite", () => {
 
 test("a run the audit's timeout stopped names the timeout", () => {
   assertFailureNamed(["Compiling 578 files with Solc 0.8.28", "TIMEOUT after 5100s"], "forge coverage timed out after 5100s");
+});
+
+test("a kill the audit's watchdog did not send is not reported as a timeout", () => {
+  assertFailureNamed(
+    ["Compiling 578 files with Solc 0.8.28", "KILLED by signal (exit 137) before the 5100s timeout"],
+    "forge coverage was killed by a signal (exit 137) before the audit's timeout; an out-of-memory kill looks like this",
+  );
+});
+
+test("a clean forge run that wrote no LCOV keeps the runner's own error", () => {
+  const localError = "Expected lcov.info after local coverage run";
+  assertNamedFailure(runPolicy({ localOk: false, localError }), localError);
 });
 
 test("a log with no known failure pattern quotes its last line", () => {
