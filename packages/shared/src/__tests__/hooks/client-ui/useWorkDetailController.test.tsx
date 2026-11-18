@@ -412,6 +412,34 @@ describe("useWorkDetailController", () => {
     }
   });
 
+  it("names an Upload now that failed Didn't send, whether the send returned or threw (DL-177)", async () => {
+    mocks.sender = { authMode: "passkey" };
+    const { jobQueue } = await import("../../../modules/job-queue/default-instance");
+    const { toastService } = await import("../../../components/Toast/toast.service");
+    const { connectivityStore } = await import("../../../stores/connectivity");
+    const confirm = vi.spyOn(connectivityStore, "confirmOnline").mockResolvedValue(true);
+    try {
+      const { result } = renderHook(() => useWorkDetailController(), { wrapper: RouterWrapper });
+
+      vi.mocked(jobQueue.processJob).mockResolvedValueOnce({ success: false, error: "reverted" });
+      await act(async () => {
+        await result.current.retry();
+      });
+      vi.mocked(jobQueue.processJob).mockRejectedValueOnce(new Error("send threw"));
+      await act(async () => {
+        await result.current.retry();
+      });
+
+      // This file's formatter returns a message's English fallback where the call gives one.
+      expect(vi.mocked(toastService.error).mock.calls.map(([shown]) => shown.title)).toEqual([
+        "Didn't send",
+        "Didn't send",
+      ]);
+    } finally {
+      confirm.mockRestore();
+    }
+  });
+
   describe("Upload now on a work whose promise is still being taken up (decision 18)", () => {
     const chain = () => {
       const { claim, work } = queuedTakeUpChain();
