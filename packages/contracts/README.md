@@ -58,6 +58,10 @@ The CLI owns operation-specific signer defaults, credential handling, and mandat
 Changing a network does not authorize a broadcast. Transactions on Arbitrum, Celo, and Ethereum
 mainnet affect live funds and state; review the operation and obtain release authorization first.
 
+Every garden launch also needs the [conviction sync authorization and readback](docs/conviction-sync-launch.md)
+before conviction voting is considered ready. Pool creation alone does not grant the Hats module
+permission to synchronize voting power.
+
 ## Deployment and upgrades
 
 Release operators need the configured Foundry keystore, target-chain RPC, and capabilities named by

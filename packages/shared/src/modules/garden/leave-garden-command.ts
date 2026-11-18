@@ -5,6 +5,7 @@ import { logger } from "../app/logger";
 import { HATS_MODULE_ABI } from "../../utils/blockchain/abis/hats";
 import { fetchHatsModuleAddress } from "../../utils/blockchain/garden-hats";
 import { simulateGardenLeave } from "./garden-leave-availability";
+import { GARDEN_ROLE_GAS_HEADROOM_PERCENT } from "./role-gas-headroom";
 import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { reconcileTransaction, sendCheckpointedCall } from "../transactions/confirmation";
 import { waitForReceipt } from "../transactions/receipt-wait";
@@ -126,6 +127,7 @@ export function createDefaultLeaveGardenPorts(input: {
           address,
           abi: HATS_MODULE_ABI,
           functionName: "leaveGarden",
+          gasHeadroomPercent: GARDEN_ROLE_GAS_HEADROOM_PERCENT,
           args: [command.gardenAddress],
           account: command.userAddress,
           chainId: command.chainId,

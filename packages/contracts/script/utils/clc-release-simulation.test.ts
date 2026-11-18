@@ -1,9 +1,10 @@
-import { Interface, zeroPadValue } from "ethers";
+import { Interface, JsonRpcProvider, zeroPadValue } from "ethers";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import draft from "../../config/clc-pilot-release.json";
 import { buildCLCPilotPlan, CLC_TIMELOCK_SOURCE, type CLCPilotManifest } from "./clc-release";
 import { simulateCLCPilotPlan, verifyTechSunAuthority } from "./clc-release-simulation";
 import { createIsolatedSeed } from "./isolated-fork.fixtures";
+import { startIsolatedFork } from "./isolated-fork";
 import type { VoucherArtifact } from "./voucher-release";
 
 const observed = vi.hoisted(() => ({ forks: [] as Array<{ stopped: boolean; exited: boolean }> }));
@@ -186,5 +187,30 @@ describe("CLC owned-fork deployment refusal and cleanup", () => {
       zeroPadValue(guard, 32),
     ]);
     await expect(verifyTechSunAuthority(seed.client, safe)).rejects.toThrow("reviewed HSG module proxy");
+  });
+  it("reads current synthetic upstream code when its pinned block has not advanced", async () => {
+    const chainId = 31338;
+    const account = address(73);
+    const codes = ["0x60016000f3", "0x60026000f3"];
+    const upstream = await createIsolatedSeed(chainId);
+    try {
+      await upstream.client.send("evm_mine", []);
+      for (const code of codes) {
+        await upstream.client.send("anvil_setCode", [account, code]);
+        expect(await upstream.client.getCode(account)).toBe(code);
+        expect(await upstream.client.getBlockNumber()).toBe(1);
+        const fork = await startIsolatedFork(upstream.url, chainId);
+        const client = new JsonRpcProvider(fork.rpc, undefined, { cacheTimeout: -1, batchStallTime: 0 });
+        try {
+          expect(await client.getCode(account)).toBe(code);
+        } finally {
+          client.destroy();
+          await fork.stop();
+        }
+      }
+      expect(await upstream.client.getCode(account)).toBe(codes[1]);
+    } finally {
+      await upstream.stop();
+    }
   });
 });

@@ -1,5 +1,5 @@
 name: Setup Playwright Chromium
-description: Install Playwright's Chromium browser and system dependencies with bounded, retried network access
+description: Install Playwright's Chromium browser and system dependencies from a package cache, with bounded, retried network access
 
 runs:
   using: composite
@@ -11,39 +11,105 @@ runs:
     # output for 28m47s until the 30-minute job timeout killed it. The same step
     # normally finishes in ~22s. Bounding the transfer turns a silent 30-minute
     # hang into a fast failure that the retry below usually recovers on its own.
-    - name: Bound apt network access
+    #
+    # `APT::Get::Upgrade "false"` keeps the libraries the runner image already
+    # ships. install-deps names every library on its command line, so each
+    # Ubuntu update to one of them was downloaded on every run until the image
+    # caught up: the 2026-11-17 mesa update added 11 MB to every setup. Only
+    # missing packages (fonts, on ubuntu-24.04) are fetched now, which keeps the
+    # package cache below valid for a whole runner image.
+    - name: Configure apt for Playwright system dependencies
       shell: bash
       run: |
-        sudo tee /etc/apt/apt.conf.d/99-green-goods-timeouts >/dev/null <<'EOF'
+        sudo tee /etc/apt/apt.conf.d/99-green-goods-playwright >/dev/null <<'EOF'
         Acquire::http::Timeout "20";
         Acquire::https::Timeout "20";
         Acquire::Retries "2";
+        APT::Get::Upgrade "false";
+        APT::Keep-Downloaded-Packages "true";
         EOF
+
+    # Since 2026-11-17 some ubuntu-24.04 jobs run on AWS and download from
+    # us-east-2.ec2.archive.ubuntu.com, which can serve the font packages at
+    # tens of kB/s: 19 of 19 setup failures on 17 and 18 November were on that
+    # mirror. Keeping the .deb files in the Actions cache means a slow mirror
+    # only costs time when the runner image or Playwright version changes.
+    # The image and Playwright version together fix which packages are
+    # missing, so they key the cache.
+    - name: Key the system package cache
+      id: apt-cache-key
+      shell: bash
+      run: |
+        playwright_version="$(node -p 'require("@playwright/test/package.json").version')"
+        os_prefix="playwright-apt-v1-${ImageOS:-unknown}-${RUNNER_ARCH}-"
+        {
+          echo "dir=$HOME/.cache/green-goods-playwright-apt"
+          echo "os-prefix=$os_prefix"
+          echo "prefix=$os_prefix$playwright_version-"
+          echo "key=$os_prefix$playwright_version-${ImageVersion:-unknown}"
+        } >> "$GITHUB_OUTPUT"
+
+    # A failed restore is a cache miss, not a failure: the install below falls
+    # back to the mirror. The ~21 MB archive normally restores in seconds. The
+    # cache service downloads through the Azure SDK, where
+    # SEGMENT_DOWNLOAD_TIMEOUT_MINS is the only bound on a stalled download
+    # (600s by default). It does not cover the cache lookup before the
+    # download, which has its own retries. The save runs in this action's post step at the end
+    # of the job, outside the caller's setup timeout, and only when the job
+    # succeeded without an exact key match.
+    - name: Restore cached system packages
+      id: apt-cache
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+      env:
+        SEGMENT_DOWNLOAD_TIMEOUT_MINS: "1"
+      with:
+        path: ${{ steps.apt-cache-key.outputs.dir }}
+        key: ${{ steps.apt-cache-key.outputs.key }}
+        restore-keys: |
+          ${{ steps.apt-cache-key.outputs.prefix }}
+          ${{ steps.apt-cache-key.outputs.os-prefix }}
 
     # Split from the browser download so the log names which half stalled: the
     # apt leg (system libraries) or the CDN leg (Chromium itself).
     #
     # Retry budget must stay under the caller's `timeout-minutes`, which covers
     # this whole action. `--kill-after` extends each attempt, so one attempt costs
-    # up to ATTEMPT_TIMEOUT + KILL_GRACE. Worst case is one leg nearly exhausting
-    # its budget before succeeding, then the other failing outright:
-    #   (180 + 30 + 149) + (2*180 + 30) = 749s, against a 900s cap.
+    # up to ATTEMPT_TIMEOUT + KILL_GRACE, and a dependency retry first spends up
+    # to REPAIR_TIMEOUT + REPAIR_KILL_GRACE repairing dpkg. Worst case is one
+    # leg nearly exhausting its budget before succeeding, then the other failing
+    # outright, after a cache download that ran into its 60s segment timeout:
+    #   60 + (180 + 35 + 30 + 149) + (2*180 + 30) = 844s, against a 900s cap.
     # Keep that inequality true if any value here or `timeout-minutes` changes.
+    # A cache lookup that stalls past its own retries is outside this sum; the
+    # caller's timeout then reports the stall.
     - name: Install Playwright Chromium and system dependencies
       shell: bash
       env:
         ATTEMPT_TIMEOUT: 150s
         KILL_GRACE: 30s
+        REPAIR_TIMEOUT: 30s
+        REPAIR_KILL_GRACE: 5s
         RETRY_BACKOFF: 30
         MAX_ATTEMPTS: 2
+        PACKAGE_CACHE: ${{ steps.apt-cache-key.outputs.dir }}
+        APT_ARCHIVES: /var/cache/apt/archives
       run: |
-        use_ubuntu_archive() {
-          local mirrors=/etc/apt/apt-mirrors.txt
+        prepare_dependency_retry() {
+          local mirrors=/etc/apt/apt-mirrors.txt mirror
+          # An attempt killed while dpkg unpacks leaves it interrupted, and every
+          # later apt-get refuses to run until `dpkg --configure -a` finishes the
+          # job (Storybook run 44221461566 failed its retry this way).
+          sudo timeout --kill-after="$REPAIR_KILL_GRACE" "$REPAIR_TIMEOUT" dpkg --configure -a ||
+            echo "::warning::dpkg --configure -a failed or ran past ${REPAIR_TIMEOUT}"
+          # The runner's regional mirror (Azure's or AWS's) can keep transferring
+          # data below the throughput needed to finish within the attempt budget.
+          # Retry on Ubuntu's own archive.
           if [ -f "$mirrors" ]; then
-            # The Azure mirror can keep transferring data below the throughput
-            # needed to finish within the attempt budget. Retry on Ubuntu's archive.
-            sudo sed -i -E 's#^https?://azure\.archive\.ubuntu\.com/ubuntu/?([[:space:]]|$)#https://archive.ubuntu.com/ubuntu/\1#' "$mirrors"
-            echo 'Retrying system dependencies via the Ubuntu archive'
+            mirror="$(grep -oE '^https?://[^/[:space:]]+\.archive\.ubuntu\.com' "$mirrors" | head -n 1 || true)"
+            if [ -n "$mirror" ]; then
+              sudo sed -i -E 's#^https?://[^/[:space:]]+\.archive\.ubuntu\.com/ubuntu/?([[:space:]]|$)#https://archive.ubuntu.com/ubuntu/\1#' "$mirrors"
+              echo "Retrying system dependencies via the Ubuntu archive instead of ${mirror}"
+            fi
           fi
         }
         retry() {
@@ -63,10 +129,58 @@ runs:
           echo "::error title=Playwright environment setup::${label} failed after ${MAX_ATTEMPTS} bounded attempts; browser tests have not started"
           return 1
         }
+        # apt reuses a .deb already in its archive directory when its file name
+        # and size match the index, without hashing it again, so the cache is
+        # trusted like the runner image. A run restores only entries saved by
+        # this repository's runs: its own branch's or pull request's, or its
+        # base or default branch's.
+        shopt -s nullglob
+        cached=("$PACKAGE_CACHE"/*.deb)
+        if [ "${#cached[@]}" -gt 0 ]; then
+          sudo cp "${cached[@]}" "$APT_ARCHIVES"/
+          echo "Seeded apt with ${#cached[@]} cached packages"
+        fi
         PLAYWRIGHT_NODE_BINARY="$(command -v node)"
         PLAYWRIGHT_CLI="$(node -p 'require("node:path").join(require("node:path").dirname(require.resolve("@playwright/test/package.json")), "cli.js")')"
         # The timeout must own the same privilege as apt's children. With sudo
         # inside an unprivileged timeout, timed-out root children can retain
         # the dpkg lock. This targets only this attempt's process group.
-        retry "playwright install-deps" use_ubuntu_archive sudo timeout --kill-after="$KILL_GRACE" "$ATTEMPT_TIMEOUT" "$PLAYWRIGHT_NODE_BINARY" "$PLAYWRIGHT_CLI" install-deps chromium
+        retry "playwright install-deps" prepare_dependency_retry sudo timeout --kill-after="$KILL_GRACE" "$ATTEMPT_TIMEOUT" "$PLAYWRIGHT_NODE_BINARY" "$PLAYWRIGHT_CLI" install-deps chromium
         retry "playwright install chromium" : timeout --kill-after="$KILL_GRACE" "$ATTEMPT_TIMEOUT" bunx playwright install chromium
+
+    # Runs only after a successful install that missed the exact key. Only the
+    # package versions now installed are kept, so entries restored from an
+    # older key don't carry superseded packages forward. Staging only feeds
+    # the cache, so its failure never fails the job.
+    - name: Stage system packages for the cache
+      if: steps.apt-cache.outputs.cache-hit != 'true'
+      continue-on-error: true
+      shell: bash
+      env:
+        PACKAGE_CACHE: ${{ steps.apt-cache-key.outputs.dir }}
+        APT_ARCHIVES: /var/cache/apt/archives
+      run: |
+        shopt -s nullglob
+        # Start empty, and empty again on any error, so a failed stage leaves
+        # nothing (not a restored older set) for the post step to save.
+        rm -rf "$PACKAGE_CACHE"
+        trap 'rm -rf "$PACKAGE_CACHE"' ERR
+        installed="$(mktemp)"
+        # apt names an archive <package>_<version>_<arch>.deb, with an epoch's
+        # colon written as %3a.
+        dpkg-query -W -f='${Package}_${Version}_${Architecture}.deb\n' | sed 's/:/%3a/g' > "$installed"
+        keep=()
+        for deb in "$APT_ARCHIVES"/*.deb; do
+          if grep -qxF "$(basename "$deb")" "$installed"; then
+            keep+=("$deb")
+          fi
+        done
+        # With nothing to keep, leave no directory: the post step then skips
+        # the save instead of storing an empty entry under this key.
+        if [ "${#keep[@]}" -eq 0 ]; then
+          echo "No installed packages to cache"
+          exit 0
+        fi
+        mkdir -p "$PACKAGE_CACHE"
+        cp "${keep[@]}" "$PACKAGE_CACHE"/
+        echo "Staged ${#keep[@]} installed packages ($(du -sh "$PACKAGE_CACHE" | cut -f1)) for the cache"

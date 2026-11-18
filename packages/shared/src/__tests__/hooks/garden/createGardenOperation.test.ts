@@ -212,13 +212,16 @@ describe("createGardenOperation", () => {
       );
     });
 
-    it("sends the call through the auth-mode-aware transaction sender", async () => {
+    it.each([
+      "add",
+      "remove",
+    ] as const)("sends %s through the auth-mode-aware sender with role gas headroom", async (operationType) => {
       const sender = createMockSender();
       const executeWithToast = createMockExecuteWithToast();
 
       const operation = createGardenOperation(
         GARDEN_ID,
-        createConfig(),
+        createConfig({ operationType }),
         sender,
         USER_ADDRESS,
         CHAIN_ID,
@@ -232,7 +235,8 @@ describe("createGardenOperation", () => {
         expect.objectContaining({
           chainId: CHAIN_ID,
           account: USER_ADDRESS,
-          functionName: "grantRole",
+          functionName: operationType === "add" ? "grantRole" : "revokeRole",
+          gasHeadroomPercent: 10,
         }),
         expect.objectContaining({ assertOwnership: expect.any(Function) })
       );
@@ -532,10 +536,14 @@ describe("createGardenOperation", () => {
       // A real wallet sender, with only the wallet and the RPC behind its receipt wait stubbed.
       const wallet = createFakeWagmiDeps();
       wallet.getAccount = () => ({ address: USER_ADDRESS });
+      const estimateGas = vi.fn(async () => 2_300_000n);
       const remove = createGardenOperation(
         GARDEN_ID,
         createConfig({ operationType: "remove" }),
-        new WalletSender(wallet.config, wallet.writeContractAsync, undefined, wallet),
+        new WalletSender(wallet.config, wallet.writeContractAsync, undefined, {
+          ...wallet,
+          estimateGas,
+        }),
         USER_ADDRESS,
         CHAIN_ID,
         createMockExecuteWithToast(),
@@ -553,6 +561,9 @@ describe("createGardenOperation", () => {
       const lost = await remove(TARGET_ADDRESS);
       expect(lost.success).toBe(false);
       expect(lost.error).not.toHaveProperty("cannotLand");
+      expect(wallet.writeContractAsync).toHaveBeenCalledWith(
+        expect.objectContaining({ gas: 2_530_000n })
+      );
 
       // Its receipt showed a revert.
       wallet.waitForTransactionReceipt.mockResolvedValueOnce({ status: "reverted" });
@@ -560,6 +571,11 @@ describe("createGardenOperation", () => {
 
       // The wallet would not change network, so nothing reached it.
       wallet.ensureWalletChain.mockRejectedValueOnce(new Error("Network switch rejected"));
+      expect((await remove(TARGET_ADDRESS)).error?.cannotLand).toBe(true);
+      expect(wallet.writeContractAsync).toHaveBeenCalledTimes(2);
+
+      // A gas quote failure happens before any wallet prompt, so no retry can duplicate a send.
+      estimateGas.mockRejectedValueOnce(new Error("Gas reader unavailable"));
       expect((await remove(TARGET_ADDRESS)).error?.cannotLand).toBe(true);
       expect(wallet.writeContractAsync).toHaveBeenCalledTimes(2);
     });

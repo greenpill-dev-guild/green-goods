@@ -6967,18 +6967,45 @@
       "scenario": "Start a season and open it to the garden",
       "preconditions": ["Steward with manage rights on a garden with a pool"],
       "steps": [
-        "Press Start Season, complete the cycle form, and confirm its ordered wallet prompts",
+        "Press Start Season, complete the cycle form, and read how many times the flow says the wallet will ask",
+        "Confirm its ordered wallet prompts",
         "Read the opened season in the cycles list",
         "Read the completed flow before closing it",
         "Read the Pool tab in the app"
       ],
-      "expected": "The flow seeds and opens the season in order; on a legacy passkey opening the seeded season goes in one prompt, while a plain wallet confirms each step in turn; the cycles list shows its dates and Open state, and the app's seasons and campaigns rail shows it as open",
-      "evidence": "Screenshots of the cycles list and the app's rail",
+      "expected": "Before anything is sent, the flow says 'Your wallet will ask you twice, one after the other.' on a legacy passkey: the first prompt seeds the season (and opens the pool when it isn't open yet), and the second opens the season, because only the seeding receipt names the new season. A plain wallet confirms each write in turn: twice on an open pool, three times on one that isn't open yet. The flow seeds and opens the season in order; the cycles list shows its dates and Open state, and the app's seasons and campaigns rail shows it as open. A declined second prompt leaves the season seeded, ready for ADM-209",
+      "evidence": "Screenshots of the prompt count, the cycles list and the app's rail",
       "role": "steward",
       "tags": ["garden-pool", "cycle", "tx"],
       "requiresProduction": false,
       "status": "active",
       "source": "qa-runs-catalog-third-pass-2026-09-07"
+    },
+    {
+      "id": "ADM-209",
+      "tab": "Green Goods Hub",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Garden · Pool",
+      "scenario": "Open an already seeded season with Open to the Garden",
+      "preconditions": [
+        "Steward with manage rights on a garden whose pool is open and holds a seeded season, such as one left by declining the second prompt of Set Up and Open or Start Season",
+        "A legacy passkey on Arbitrum, or a plain wallet"
+      ],
+      "steps": [
+        "Open /garden/pool and find the seeded season's row",
+        "Press Open to the Garden, set the split and recognition terms, and read how many times the flow says the wallet will ask",
+        "Confirm the wallet prompt",
+        "Read the season's row and the Pool tab in the app"
+      ],
+      "expected": "The row reads 'nobody can commit yet' and offers Open to the Garden. The flow shows opening the pool as already done and says 'Your wallet will ask you once.' on every wallet; the one prompt carries one call. The season opens with exactly the split and recognition terms entered, the row shows its dates and Open state, and the app's seasons and campaigns rail shows it as open",
+      "evidence": "Screenshots of the seeded row, the prompt count, and the opened season with its terms",
+      "role": "steward",
+      "tags": ["garden-pool", "cycle", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "prd-1428"
     },
     {
       "id": "ADM-058",

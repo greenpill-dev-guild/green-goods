@@ -3,7 +3,8 @@ import { execFileSync } from "node:child_process";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import draft from "../../config/steward-safe-release.json";
 import { createIsolatedSeed } from "./isolated-fork.fixtures";
-import { CONTRACTS_ROOT, getFoundryOutDir } from "./paths";
+import { CONTRACTS_ROOT } from "./paths";
+import { withProductionArtifacts } from "./production-artifacts.fixtures";
 import { buildStewardPlan, loadStewardArtifacts, type StewardManifest } from "./steward-safe-release";
 import { simulateStewardNetwork } from "./steward-safe-simulation";
 
@@ -24,18 +25,20 @@ const manifest: StewardManifest = {
 let seed: Awaited<ReturnType<typeof createIsolatedSeed>>;
 let artifacts: ReturnType<typeof loadStewardArtifacts>;
 beforeAll(async () => {
-  const result = execFileSync(
-    "bun",
-    ["--no-env-file", "run", "contracts", "--", "release", "steward-safe", "--mode", "preflight"],
-    { cwd: CONTRACTS_ROOT, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 },
-  );
-  expect(JSON.parse(result)).toMatchObject({
-    state: "preflight",
-    buildProfile: "production",
-    authorityEnabled: false,
-    liveBroadcast: false,
+  await withProductionArtifacts(({ out, env }) => {
+    const result = execFileSync(
+      "bun",
+      ["--no-env-file", "run", "contracts", "--", "release", "steward-safe", "--mode", "preflight"],
+      { cwd: CONTRACTS_ROOT, env, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 },
+    );
+    expect(JSON.parse(result)).toMatchObject({
+      state: "preflight",
+      buildProfile: "production",
+      authorityEnabled: false,
+      liveBroadcast: false,
+    });
+    artifacts = loadStewardArtifacts(out);
   });
-  artifacts = loadStewardArtifacts(getFoundryOutDir("production"));
   seed = await createIsolatedSeed(42161);
   await seed.client.send("anvil_setNonce", [manifest.networks.arbitrum.deployer, "0x1"]);
   await seed.client.send("anvil_setCode", [manifest.networks.arbitrum.router, "0x600160005260206000f3"]);

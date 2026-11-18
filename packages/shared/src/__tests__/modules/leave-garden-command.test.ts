@@ -156,6 +156,26 @@ describe("departure submission recovery", () => {
 });
 
 describe("default departure sender ownership", () => {
+  it("gives the departure sender gas headroom without changing recovery's receipt-first behavior", async () => {
+    const p = ports();
+    const sendContractCall = vi.fn().mockResolvedValue({ hash: "0x123", sponsored: false });
+    const defaults = createDefaultLeaveGardenPorts({
+      transactionSender: {
+        authMode: "wallet",
+        supportsBatching: false,
+        supportsSponsorship: false,
+        sendContractCall,
+      },
+      assertOwnership: () => {},
+      pending: p.pending,
+      confirmed: p.confirmed,
+    });
+    await defaults.send(command, moduleAddress);
+    expect(sendContractCall).toHaveBeenCalledWith(
+      expect.objectContaining({ functionName: "leaveGarden", gasHeadroomPercent: 10 }),
+      expect.any(Object)
+    );
+  });
   it.each([
     "module",
     "simulation",
