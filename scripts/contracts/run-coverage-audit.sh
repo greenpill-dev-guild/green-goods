@@ -18,6 +18,7 @@ run_with_timeout() {
     local log_file="$2"
     shift 2
     # Only the watchdog writes this marker, so another kill (such as out of memory) is not a timeout.
+    # Each note below starts on a new line, in case forge died mid-line.
     local timeout_marker="$log_file.timed-out"
     rm -f "$timeout_marker"
 
@@ -40,12 +41,12 @@ run_with_timeout() {
 
     if [[ -f "$timeout_marker" ]]; then
         rm -f "$timeout_marker"
-        echo "TIMEOUT after ${timeout_seconds}s" >>"$log_file"
+        printf '\nTIMEOUT after %ss\n' "$timeout_seconds" >>"$log_file"
         return 124
     fi
 
     if [[ "$cmd_exit" -eq 143 || "$cmd_exit" -eq 137 ]]; then
-        echo "KILLED by signal (exit ${cmd_exit}) before the ${timeout_seconds}s timeout" >>"$log_file"
+        printf '\nKILLED by signal (exit %s) before the %ss timeout\n' "$cmd_exit" "$timeout_seconds" >>"$log_file"
     fi
 
     return "$cmd_exit"

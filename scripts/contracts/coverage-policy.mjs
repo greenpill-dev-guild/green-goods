@@ -171,6 +171,7 @@ function failingTests(log) {
 
   const failures = [];
   let suite = "";
+  let awaitingName = false;
   for (const line of section.split(/\r?\n/)) {
     const header = /^Encountered \d+ failing tests? in \S+:(\w+)$/.exec(line);
     if (header) {
@@ -178,10 +179,28 @@ function failingTests(log) {
       continue;
     }
     // Greedy up to the last "] name(" so a reason or counterexample in the brackets is skipped.
-    const failure = /^\[FAIL.*\] (\w+)\(/.exec(line);
-    if (failure) failures.push(suite ? `${suite}.${failure[1]}` : failure[1]);
+    // An invariant failure prints "[FAIL: reason]", its call sequence, then " name(...)" on a line of its own.
+    const name = /^\[FAIL.*\] (\w+)\(/.exec(line)?.[1] ?? (awaitingName ? /^ (\w+)\(/.exec(line)?.[1] : undefined);
+    if (name) {
+      failures.push(suite ? `${suite}.${name}` : name);
+      awaitingName = false;
+    } else if (line.startsWith("[FAIL")) {
+      awaitingName = true;
+    }
   }
   return failures;
+}
+
+// Solc lists warnings in the same block as the error, so take the first line that is an error.
+function compileError(log) {
+  const lines = log.split(/\r?\n/);
+  const start = lines.indexOf("Error: Compiler run failed:");
+  if (start === -1) return null;
+  const index = lines.findIndex((line, i) => i > start && /^Error\b/.test(line));
+  if (index === -1) return "the coverage build did not compile; the log names no error line";
+  const message = lines[index].replace(/^Error: /, "").trim();
+  const location = /^\s*--> (\S+?):?$/.exec(lines[index + 1] ?? "")?.[1];
+  return truncate(`the coverage build did not compile: ${message}${location ? ` at ${location}` : ""}`);
 }
 
 // A failed forge coverage run leaves every gate at 0/0, so name what stopped it.
@@ -194,11 +213,8 @@ function describeLocalFailure(log) {
     return `forge coverage was killed by a signal (exit ${killed[1]}) before the audit's timeout; an out-of-memory kill looks like this`;
   }
 
-  const compile = /^Error: Compiler run failed:\r?\n(?:Error: )?(.*)(?:\r?\n\s*--> (\S+))?/m.exec(log);
-  if (compile) {
-    const location = compile[2] ? ` at ${compile[2].replace(/:$/, "")}` : "";
-    return truncate(`the coverage build did not compile: ${compile[1].trim()}${location}`);
-  }
+  const compile = compileError(log);
+  if (compile) return compile;
 
   const failures = failingTests(log);
   if (failures.length > 0) {

@@ -66,14 +66,22 @@ test("a coverage build that does not compile names the compiler error", () => {
   );
 });
 
-test("a compile error with a source location names the file and line", () => {
+test("a compile error after a warning names the error and its file and line", () => {
   assertFailureNamed(
-    ["Error: Compiler run failed:", "Error (2314): Expected ';' but got '}'", " --> test/unit/Broken.t.sol:12:5:", "   |"],
-    "the coverage build did not compile: Error (2314): Expected ';' but got '}' at test/unit/Broken.t.sol:12:5",
+    [
+      "Error: Compiler run failed:",
+      "Warning (2519): This declaration shadows an existing declaration.",
+      " --> test/unit/Broken.t.sol:8:9:",
+      "   |",
+      "Error (7576): Undeclared identifier.",
+      " --> test/unit/Broken.t.sol:12:5:",
+      "   |",
+    ],
+    "the coverage build did not compile: Error (7576): Undeclared identifier. at test/unit/Broken.t.sol:12:5",
   );
 });
 
-test("tests that fail under coverage are each named once, by suite", () => {
+test("tests that fail under coverage are each named once, by suite, invariants included", () => {
   assertFailureNamed(
     [
       "Ran 3 tests for test/unit/VoucherEntitlement.t.sol:VoucherEntitlementTest",
@@ -87,10 +95,17 @@ test("tests that fail under coverage are each named once, by suite", () => {
       "[FAIL: CommitmentFundingNotInState(3, 1)] testConsumeWithoutDeposit() (gas: 91200)",
       "[FAIL: assertion failed: [1, 2] != [1]; counterexample: calldata=0x01 args=[7]] testFuzz_deposit(uint256) (runs: 3, μ: 1, ~: 1)",
       "",
-      "Encountered a total of 3 failing tests, 2251 tests succeeded",
+      "Encountered 1 failing test in test/invariant/RoleHierarchy.t.sol:RoleHierarchyInvariant",
+      "[FAIL: operator without owner]",
+      "\t[Sequence] (original: 2, shrunk: 1)",
+      "\t\tsender=0x0000000000000000000000000000000000001a2B addr=[test/invariant/RoleHierarchy.t.sol:Handler] calldata=grant(uint256) args=[1]",
+      " invariant_operatorHasOwner() (runs: 1, calls: 1, reverts: 0)",
+      "",
+      "Encountered a total of 4 failing tests, 2250 tests succeeded",
     ],
-    "3 tests failed under coverage: VoucherEntitlementTest.testVoucherEntitlement_upgradeCannotChangeLocalChainIdentity, " +
-      "PersonalServicePurchaseTest.testConsumeWithoutDeposit, PersonalServicePurchaseTest.testFuzz_deposit",
+    "4 tests failed under coverage: VoucherEntitlementTest.testVoucherEntitlement_upgradeCannotChangeLocalChainIdentity, " +
+      "PersonalServicePurchaseTest.testConsumeWithoutDeposit, PersonalServicePurchaseTest.testFuzz_deposit, " +
+      "RoleHierarchyInvariant.invariant_operatorHasOwner",
   );
 });
 
