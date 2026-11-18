@@ -237,8 +237,9 @@ export function useWorkDetailController() {
             reportNotSent();
             return;
           }
-          // Still on its way (membership being read, a send awaiting its receipt) or refused. A
-          // take-up the queue gave up on raised the queue's own toast; this one takes its place.
+          // Still on its way (membership being read, a send awaiting its receipt) or refused. It
+          // shares the queue's take-up slot, so a take-up the queue gave up on shows one toast,
+          // whichever of the two lands last.
           toastService[taken.skipped ? "info" : "error"]({
             id: "take-up",
             title: intl.formatMessage({
