@@ -115,7 +115,7 @@ test("timeout and retry budgets remain inside every caller's action deadline", (
   const attempts = Number(install.env.MAX_ATTEMPTS);
   const repairBound = (attempts - 1) * (seconds(install.env.REPAIR_TIMEOUT) + seconds(install.env.REPAIR_KILL_GRACE));
   // The cache service downloads through the Azure SDK, whose stall bound is this segment timeout.
-  const restoreBound = Number(restore.env.SEGMENT_DOWNLOAD_TIMEOUT_MINS) * 60;
+  const restoreBound = Number(restore.env?.SEGMENT_DOWNLOAD_TIMEOUT_MINS) * 60;
   assert.ok(restoreBound > 0, "the cache restore needs a segment timeout");
   const worstCase = restoreBound + repairBound + 2 * (attempts * (seconds(install.env.ATTEMPT_TIMEOUT) + seconds(install.env.KILL_GRACE)) + (attempts - 1) * seconds(install.env.RETRY_BACKOFF));
   let callers = 0;
@@ -164,6 +164,13 @@ test("the package cache keeps only installed versions and is skipped when there 
     writeFileSync(join(bin, "dpkg-query"), "#!/bin/sh\nexit 2\n");
     const failed = stageWith(["fonts-unifont_1%3a15.1.01-1build1_all.deb"]);
     assert.notEqual(failed.status, 0);
+    assert.throws(() => readdirSync(packageCache), /ENOENT/);
+    // A copy that fails partway must not leave its partial set to be saved.
+    writeFileSync(join(bin, "dpkg-query"), `#!/bin/sh\nprintf '${installed}' | awk -F'\\t' '{print $1"_"$2"_"$3".deb"}'\n`);
+    writeFileSync(join(bin, "cp"), '#!/bin/sh\ndest=$(eval echo \\${$#})\n/bin/cp "$1" "$dest"\nexit 1\n');
+    chmodSync(join(bin, "cp"), 0o755);
+    const partial = stageWith(["fonts-unifont_1%3a15.1.01-1build1_all.deb", "xfonts-utils_1%3a7.7+6build3_amd64.deb"]);
+    assert.notEqual(partial.status, 0);
     assert.throws(() => readdirSync(packageCache), /ENOENT/);
   } finally { rmSync(fixture, { recursive: true, force: true }); }
   assert.equal(stage["continue-on-error"], true);

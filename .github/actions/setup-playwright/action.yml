@@ -53,7 +53,8 @@ runs:
     # back to the mirror. The ~21 MB archive normally restores in seconds. The
     # cache service downloads through the Azure SDK, where
     # SEGMENT_DOWNLOAD_TIMEOUT_MINS is the only bound on a stalled download
-    # (600s by default). The save runs in this action's post step at the end
+    # (600s by default). It does not cover the cache lookup before the
+    # download, which has its own retries. The save runs in this action's post step at the end
     # of the job, outside the caller's setup timeout, and only when the job
     # succeeded without an exact key match.
     - name: Restore cached system packages
@@ -79,6 +80,8 @@ runs:
     # outright, after a cache download that ran into its 60s segment timeout:
     #   60 + (180 + 35 + 30 + 149) + (2*180 + 30) = 844s, against a 900s cap.
     # Keep that inequality true if any value here or `timeout-minutes` changes.
+    # A cache lookup that stalls past its own retries is outside this sum; the
+    # caller's timeout then reports the stall.
     - name: Install Playwright Chromium and system dependencies
       shell: bash
       env:
@@ -128,8 +131,9 @@ runs:
         }
         # apt reuses a .deb already in its archive directory when its file name
         # and size match the index, without hashing it again, so the cache is
-        # trusted like the runner image. A pull request restores entries saved
-        # by its own runs or by runs on develop; develop restores only its own.
+        # trusted like the runner image. A run restores only entries saved by
+        # this repository's runs: its own branch's or pull request's, or its
+        # base or default branch's.
         shopt -s nullglob
         cached=("$PACKAGE_CACHE"/*.deb)
         if [ "${#cached[@]}" -gt 0 ]; then
