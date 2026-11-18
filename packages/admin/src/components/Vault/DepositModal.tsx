@@ -303,44 +303,42 @@ export function DepositModal({
           />
 
           <div>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
-              <AdminTextField
-                id="deposit-amount"
-                className="min-w-0 flex-1"
-                label={formatMessage({ id: "app.treasury.depositAmount" })}
-                required
-                ref={amountField.ref}
-                name={amountField.name}
-                onBlur={amountField.onBlur}
-                value={amount}
-                onChange={(event) => amountField.onChange(event)}
-                placeholder="0.0"
-                disabled={!decimalsReady || depositMutation.isPending}
-                error={amountError ? formatMessage({ id: amountError }) : undefined}
-                helperText={`${formatMessage({ id: "app.treasury.walletBalance" })}: ${
-                  balance
-                    ? `${formatTokenAmount(balance.value, balance.decimals)} ${balance.symbol}`
-                    : "--"
-                }`}
-                inputProps={{ inputMode: "decimal" }}
-              />
-              <Button
-                type="button"
-                emphasis="secondary"
-                size="compact"
-                className="w-full sm:mt-8 sm:w-auto"
-                onClick={() => {
-                  if (!balance) return;
-                  form.setValue("amount", formatUnits(balance.value, balance.decimals), {
-                    shouldDirty: true,
-                    shouldValidate: true,
-                  });
-                }}
-                disabled={!decimalsReady || depositMutation.isPending}
-              >
-                {formatMessage({ id: "app.treasury.max" })}
-              </Button>
-            </div>
+            <AdminTextField
+              id="deposit-amount"
+              label={formatMessage({ id: "app.treasury.depositAmount" })}
+              required
+              ref={amountField.ref}
+              name={amountField.name}
+              onBlur={amountField.onBlur}
+              value={amount}
+              onChange={(event) => amountField.onChange(event)}
+              placeholder="0.0"
+              disabled={!decimalsReady || depositMutation.isPending}
+              error={amountError ? formatMessage({ id: amountError }) : undefined}
+              helperText={`${formatMessage({ id: "app.treasury.walletBalance" })}: ${
+                balance
+                  ? `${formatTokenAmount(balance.value, balance.decimals)} ${balance.symbol}`
+                  : "--"
+              }`}
+              inputProps={{ inputMode: "decimal" }}
+              action={
+                <Button
+                  type="button"
+                  emphasis="secondary"
+                  size="compact"
+                  onClick={() => {
+                    if (!balance) return;
+                    form.setValue("amount", formatUnits(balance.value, balance.decimals), {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    });
+                  }}
+                  disabled={!decimalsReady || depositMutation.isPending}
+                >
+                  {formatMessage({ id: "app.treasury.max" })}
+                </Button>
+              }
+            />
             {!decimalsReady && selectedVault && (
               <p className="mt-1 type-body text-warning-dark" role="alert">
                 {formatMessage({

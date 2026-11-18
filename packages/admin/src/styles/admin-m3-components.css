@@ -107,10 +107,13 @@
   }
 }
 
-/* The confirm family hosts the shared action bar in the dialog's own footer bar,
- * which pads it and draws its hairline, the way DialogShell and ConfirmDialog
- * set the bar's padding from their own selectors (DL-117). */
+/* A dialog hosts the shared action bar in its own footer bar, which pads it and
+ * draws its hairline, the way DialogShell and ConfirmDialog set the bar's
+ * padding from their own selectors (DL-117). The bar fills that row, so a note
+ * takes the start and the actions keep to the end. */
 [data-component="AdminDialog"] [data-slot="actions"] > [data-component="SheetActions"] {
+  flex: 1 1 auto;
+  min-width: 0;
   padding: 0;
   background-color: transparent;
 }

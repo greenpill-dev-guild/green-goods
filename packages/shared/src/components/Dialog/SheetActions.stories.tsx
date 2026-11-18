@@ -82,7 +82,9 @@ export const PhoneStack: Story = {
     await expect(primary.height).toBeGreaterThanOrEqual(MIN_TOUCH_TARGET_PX);
 
     await userEvent.click(within(document.body).getByRole("button", { name: "Not Yet" }));
-    await expect(args.secondary?.onClick).toHaveBeenCalled();
+    // This story passes one outlined action, not the several an inspector may.
+    const notYet = args.secondary && "label" in args.secondary ? args.secondary : undefined;
+    await expect(notYet?.onClick).toHaveBeenCalled();
   },
 };
 
@@ -176,5 +178,37 @@ export const WideRow: Story = {
     // Right-aligned: the primary ends at the bar's inner edge, not stretched across it.
     await expect(frame.right - primary.right).toBeLessThan(32);
     await expect(primary.width).toBeLessThan(frame.width / 2);
+  },
+};
+
+/** A note about the actions: above them on a phone, at the start of the row from 640px. */
+export const WithNote: Story = {
+  args: {
+    note: "Your wallet will ask you 3 times, one after another.",
+    primary: { label: "Change Confirmers on 3 Promises", onClick: fn() },
+    secondary: { label: "Cancel", onClick: fn() },
+  },
+};
+
+/** Ways on with no main one, such as an inspector's edits: several outlined actions in reading order. */
+export const SeveralOutlined: Story = {
+  args: {
+    note: "Edit Reward is open until one of this group is kept.",
+    primary: undefined,
+    secondary: [
+      { label: "Edit Reward", onClick: fn() },
+      { label: "Edit Confirmers", onClick: fn() },
+      { label: "Seed More Like This", onClick: fn() },
+    ],
+  },
+};
+
+/** Back and the way on share a row at every width; a note keeps its own line above them on a phone. */
+export const StepsWithNote: Story = {
+  args: {
+    layout: "steps",
+    note: "Your wallet will ask you once, for all 2.",
+    primary: { label: "Add 2 Promises", onClick: fn() },
+    secondary: { label: "Back", onClick: fn() },
   },
 };

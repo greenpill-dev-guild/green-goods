@@ -30,6 +30,26 @@ describe("AdminTextField", () => {
     expect(box?.nextElementSibling).toHaveAttribute("data-region", "supporting-line");
   });
 
+  it("lays an action in the control's own row, centred on it, above the message line", () => {
+    render(
+      <AdminTextField
+        label="Add a confirmer"
+        helperText="Names like lina.eth resolve to their account."
+        action={<button type="button">Add</button>}
+      />
+    );
+
+    const box = screen
+      .getByRole("textbox", { name: "Add a confirmer" })
+      .closest('[data-region="field-container"]');
+    const row = box?.parentElement;
+    expect(row).toHaveAttribute("data-region", "control-row");
+    expect(row).toHaveClass("items-center");
+    expect(screen.getByRole("button", { name: "Add" }).parentElement).toBe(box?.nextElementSibling);
+    // The message line runs under both, so it never pushes the action off the control.
+    expect(row?.nextElementSibling).toHaveAttribute("data-region", "supporting-line");
+  });
+
   it("shows a placeholder at rest, since no label rests inside the field", () => {
     render(<AdminTextField label="Search" placeholder="Search by title" />);
 
