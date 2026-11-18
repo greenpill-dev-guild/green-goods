@@ -80,11 +80,26 @@ export function forSeededCases(check: (source: CaseSource) => void, cases = DEFA
     try {
       check(source);
     } catch (error) {
-      // Keep the assertion's own diff; only say which generated case produced it.
-      if (error instanceof Error) {
-        error.message = `Seeded case ${index} of ${cases} (GG_PROPERTY_SEED=${seed}): ${error.message}`;
-      }
-      throw error;
+      throw withCaseNamed(error, `Seeded case ${index} of ${cases} (GG_PROPERTY_SEED=${seed})`);
     }
   }
+}
+
+/**
+ * Says which generated case failed. An assertion keeps its own error, and so its diff, with the
+ * label put before its message. An error whose message can't be set, such as the DOMException
+ * `btoa` throws, and a thrown value that isn't an error are wrapped, with the original as cause.
+ */
+function withCaseNamed(error: unknown, label: string): unknown {
+  if (!(error instanceof Error)) {
+    return new Error(`${label}: ${String(error)}`, { cause: error });
+  }
+  const labelled = `${label}: ${error.message}`;
+  try {
+    error.message = labelled;
+  } catch {
+    // A getter-only message refuses the assignment; the wrap below keeps the label.
+  }
+  if (error.message === labelled) return error;
+  return new Error(`${label}: ${error.name}: ${error.message}`, { cause: error });
 }
