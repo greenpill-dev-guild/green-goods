@@ -1,4 +1,5 @@
-import { RiMailLine, RiSearchLine } from "@remixicon/react";
+import { Button } from "@green-goods/shared/components/Button";
+import { RiAddLine, RiMailLine, RiSearchLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { withAdminPrimitiveFrame } from "../../../shared/.storybook/decorators";
@@ -31,6 +32,35 @@ export const Default: Story = {
   render: (args) => (
     <div className="max-w-sm">
       <AdminTextField {...args} />
+    </div>
+  ),
+};
+
+/**
+ * A button that acts on what the field holds sits in the control's own row,
+ * centred on it at both field heights, with the message line under both.
+ */
+export const WithAction: Story = {
+  args: {
+    label: "Add a confirmer",
+    placeholder: "A name.eth or an address",
+    helperText: "Names like lina.eth resolve to their account.",
+  },
+  render: (args) => (
+    <div className="max-w-md">
+      <AdminTextField
+        {...args}
+        action={
+          <Button
+            type="button"
+            emphasis="secondary"
+            size="compact"
+            leadingIcon={<RiAddLine className="h-4 w-4" aria-hidden="true" />}
+          >
+            Add
+          </Button>
+        }
+      />
     </div>
   ),
 };

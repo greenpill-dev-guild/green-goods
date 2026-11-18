@@ -1,4 +1,4 @@
-import { Button } from "@green-goods/shared/components/Button";
+import { SheetActions } from "@green-goods/shared/components/Dialog/SheetActions";
 import { RiRefreshLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { AdminLinearProgress } from "@/components/AdminLinearProgress";
@@ -51,98 +51,76 @@ export function SetupFlowFooter({
   onDone,
 }: SetupFlowFooterProps) {
   const { formatMessage } = useIntl();
+  // While it sends, the bar's note is the progress; otherwise why Next is held.
+  const note = submitting ? (
+    <AdminLinearProgress ariaLabel={title} value={progress} />
+  ) : !complete && !canContinue && blockedReason ? (
+    <span role="status">{blockedReason}</span>
+  ) : undefined;
+
+  if (complete) {
+    return (
+      <SheetActions
+        note={note}
+        primary={{
+          label: formatMessage({ id: "hub.garden.pool.setup.done.close", defaultMessage: "Done" }),
+          onClick: onDone,
+        }}
+      />
+    );
+  }
+
   return (
-    <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
-      <div className="min-w-0 sm:flex-1" aria-live="polite">
-        {submitting ? (
-          <AdminLinearProgress ariaLabel={title} value={progress} />
-        ) : !complete && !canContinue && blockedReason ? (
-          <p role="status" className="type-meta text-text-soft">
-            {blockedReason}
-          </p>
-        ) : null}
-      </div>
-      {complete ? (
-        <Button
-          type="button"
-          emphasis="primary"
-          size="sm"
-          onClick={onDone}
-          className="w-full sm:w-auto"
-        >
-          {formatMessage({ id: "hub.garden.pool.setup.done.close", defaultMessage: "Done" })}
-        </Button>
-      ) : (
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-          <Button
-            type="button"
-            emphasis={stepIndex === 0 ? "tertiary" : "secondary"}
-            size="sm"
-            onClick={onBack}
-            disabled={submitting}
-            className="self-start sm:self-auto"
-          >
-            {stepIndex === 0
-              ? formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })
-              : formatMessage({ id: "app.common.back", defaultMessage: "Back" })}
-          </Button>
-          {isLast ? (
-            retryable ? (
-              <Button
-                type="button"
-                emphasis="primary"
-                size="sm"
-                leadingIcon={<RiRefreshLine className="h-[18px] w-[18px]" aria-hidden="true" />}
-                onClick={onRetry}
-                disabled={submitting || !isOnline}
-                loading={submitting}
-                className="w-full sm:w-auto"
-              >
-                {formatMessage({
+    <SheetActions
+      layout="steps"
+      note={note}
+      primary={
+        !isLast
+          ? {
+              label: formatMessage({ id: "app.common.next", defaultMessage: "Next" }),
+              onClick: onNext,
+              disabled: !canContinue,
+            }
+          : retryable
+            ? {
+                label: formatMessage({
                   id: "hub.garden.pool.setup.retry",
                   defaultMessage: "Try Again",
-                })}
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                emphasis="primary"
-                size="sm"
-                onClick={onSubmit}
-                disabled={!canContinue || (failed && !retryable)}
-                loading={submitting}
-                className="w-full sm:w-auto"
-              >
-                {intent === "first-run"
-                  ? formatMessage({
-                      id: "hub.garden.pool.setup.openAll",
-                      defaultMessage: "Set Up and Open",
-                    })
-                  : isCampaign
+                }),
+                icon: <RiRefreshLine className="h-[18px] w-[18px]" aria-hidden="true" />,
+                onClick: onRetry,
+                disabled: submitting || !isOnline,
+                loading: submitting,
+              }
+            : {
+                label:
+                  intent === "first-run"
                     ? formatMessage({
-                        id: "hub.garden.pool.setup.openCampaign",
-                        defaultMessage: "Open Campaign",
+                        id: "hub.garden.pool.setup.openAll",
+                        defaultMessage: "Set Up and Open",
                       })
-                    : formatMessage({
-                        id: "hub.garden.pool.setup.openSeason",
-                        defaultMessage: "Open to the Garden",
-                      })}
-              </Button>
-            )
-          ) : (
-            <Button
-              type="button"
-              emphasis="primary"
-              size="sm"
-              onClick={onNext}
-              disabled={!canContinue}
-              className="w-full sm:w-auto"
-            >
-              {formatMessage({ id: "app.common.next", defaultMessage: "Next" })}
-            </Button>
-          )}
-        </div>
-      )}
-    </div>
+                    : isCampaign
+                      ? formatMessage({
+                          id: "hub.garden.pool.setup.openCampaign",
+                          defaultMessage: "Open Campaign",
+                        })
+                      : formatMessage({
+                          id: "hub.garden.pool.setup.openSeason",
+                          defaultMessage: "Open to the Garden",
+                        }),
+                onClick: onSubmit,
+                disabled: !canContinue || (failed && !retryable),
+                loading: submitting,
+              }
+      }
+      secondary={{
+        label:
+          stepIndex === 0
+            ? formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })
+            : formatMessage({ id: "app.common.back", defaultMessage: "Back" }),
+        onClick: onBack,
+        disabled: submitting,
+      }}
+    />
   );
 }

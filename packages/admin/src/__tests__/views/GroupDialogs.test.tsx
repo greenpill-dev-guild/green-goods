@@ -566,6 +566,10 @@ describe("Edit Confirmers", () => {
     // It starts at the rule they have, which would change nothing.
     expect(change()).toBeDisabled();
     swapOldForNew();
+    // The group is still "1 of 2", so the summary names who the change adds and removes.
+    expect(screen.getByTestId("edit-confirmers")).toHaveTextContent(
+      /Adds.*0x44.*444.*Removes.*0x33.*333/
+    );
     fireEvent.click(change());
 
     await waitFor(() => expect(onChanged).toHaveBeenCalledWith(2));
@@ -655,6 +659,29 @@ describe("Edit Confirmers", () => {
       title: `Approve in your wallet: ${count} promises in one request`,
       description: `They change together: all ${count}, or none if the wallet declines.`,
     });
+  });
+
+  it("names the whole new group when the available copies share no one rule to compare with", () => {
+    renderWithProviders(
+      <EditConfirmersDialog
+        open
+        onClose={vi.fn()}
+        onChanged={vi.fn()}
+        chainId={42161}
+        garden={GARDEN}
+        title="Climate course check-ins"
+        available={[{ commitmentId: 3n, protocolFallbackEnabled: true }]}
+        current={{ confirmers: [OLD, LINA], confirmationThreshold: 1 }}
+        mixed
+        direction="REQUEST"
+        taken={0}
+      />
+    );
+    const summary = screen.getByTestId("edit-confirmers");
+    expect(summary).toHaveTextContent(
+      /Not the same on every available one.*Names.*0x33.*333.*0x22.*222/
+    );
+    expect(summary).not.toHaveTextContent(/Adds|Removes/);
   });
 
   it("finishes when the copy a Try Again would send was taken meanwhile", async () => {

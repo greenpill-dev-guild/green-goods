@@ -390,21 +390,25 @@ export function SeedStepHowMuch({
                     )
                   }
                   inputProps={{ inputMode: "numeric" }}
-                  className="w-24"
+                  // Room for the count and the row's Remove beside it.
+                  className="w-36"
                   disabled={busy}
+                  action={
+                    <Button
+                      type="button"
+                      emphasis="tertiary"
+                      size="compact"
+                      aria-label={formatMessage({
+                        id: "app.common.remove",
+                        defaultMessage: "Remove",
+                      })}
+                      onClick={() => requirements.remove(index)}
+                      disabled={busy}
+                    >
+                      <RiCloseLine className="h-4 w-4" />
+                    </Button>
+                  }
                 />
-                {/* Lifted over the fields' reserved supporting line, so it lines up with them. */}
-                <Button
-                  type="button"
-                  emphasis="tertiary"
-                  size="compact"
-                  className="mb-9"
-                  aria-label={formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
-                  onClick={() => requirements.remove(index)}
-                  disabled={busy}
-                >
-                  <RiCloseLine className="h-4 w-4" />
-                </Button>
               </div>
             ))}
             <Button

@@ -97,36 +97,34 @@ export function TeamStep() {
 
       {/* Stewards section — shown first since they have broader permissions */}
       <div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
-          <AdminTextField
-            id="create-garden-steward-address"
-            className="min-w-0 flex-1"
-            inputProps={{ className: "font-mono" }}
-            label={formatMessage({
-              id: "app.roles.steward.plural",
-              defaultMessage: "Stewards",
-            })}
-            value={stewardInput.input}
-            onChange={(event) => stewardInput.setInput(event.target.value)}
-            placeholder={formatMessage({
-              id: "admin.team.addressPlaceholder",
-              defaultMessage: "0x... or vitalik.eth",
-            })}
-            error={stewardInput.error || undefined}
-            helperText={stewardInput.trimmedInput ? addHint : " "}
-          />
-          <Button
-            type="button"
-            emphasis="secondary"
-            size="compact"
-            className="mt-1.5 sm:mt-7.5"
-            onClick={stewardInput.handleAdd}
-            disabled={stewardInput.shouldResolveEns && stewardInput.resolvingEns}
-            leadingIcon={<RiAddLine className="h-4 w-4" aria-hidden="true" />}
-          >
-            {formatMessage({ id: "app.common.add", defaultMessage: "Add" })}
-          </Button>
-        </div>
+        <AdminTextField
+          id="create-garden-steward-address"
+          inputProps={{ className: "font-mono" }}
+          label={formatMessage({
+            id: "app.roles.steward.plural",
+            defaultMessage: "Stewards",
+          })}
+          value={stewardInput.input}
+          onChange={(event) => stewardInput.setInput(event.target.value)}
+          placeholder={formatMessage({
+            id: "admin.team.addressPlaceholder",
+            defaultMessage: "0x... or vitalik.eth",
+          })}
+          error={stewardInput.error || undefined}
+          helperText={stewardInput.trimmedInput ? addHint : " "}
+          action={
+            <Button
+              type="button"
+              emphasis="secondary"
+              size="compact"
+              onClick={stewardInput.handleAdd}
+              disabled={stewardInput.shouldResolveEns && stewardInput.resolvingEns}
+              leadingIcon={<RiAddLine className="h-4 w-4" aria-hidden="true" />}
+            >
+              {formatMessage({ id: "app.common.add", defaultMessage: "Add" })}
+            </Button>
+          }
+        />
         {stewardInput.shouldResolveEns && (
           <p className="mt-1 type-body text-text-soft">
             {stewardInput.resolvingEns ? (
@@ -173,33 +171,31 @@ export function TeamStep() {
 
       {/* Gardeners section */}
       <div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
-          <AdminTextField
-            id="create-garden-gardener-address"
-            className="min-w-0 flex-1"
-            inputProps={{ className: "font-mono" }}
-            label={formatMessage({ id: "app.roles.gardener.plural", defaultMessage: "Gardeners" })}
-            value={gardenerInput.input}
-            onChange={(event) => gardenerInput.setInput(event.target.value)}
-            placeholder={formatMessage({
-              id: "admin.team.addressPlaceholder",
-              defaultMessage: "0x... or vitalik.eth",
-            })}
-            error={gardenerInput.error || undefined}
-            helperText={gardenerInput.trimmedInput ? addHint : " "}
-          />
-          <Button
-            type="button"
-            emphasis="secondary"
-            size="compact"
-            className="mt-1.5 sm:mt-7.5"
-            onClick={gardenerInput.handleAdd}
-            disabled={gardenerInput.shouldResolveEns && gardenerInput.resolvingEns}
-            leadingIcon={<RiAddLine className="h-4 w-4" aria-hidden="true" />}
-          >
-            {formatMessage({ id: "app.common.add", defaultMessage: "Add" })}
-          </Button>
-        </div>
+        <AdminTextField
+          id="create-garden-gardener-address"
+          inputProps={{ className: "font-mono" }}
+          label={formatMessage({ id: "app.roles.gardener.plural", defaultMessage: "Gardeners" })}
+          value={gardenerInput.input}
+          onChange={(event) => gardenerInput.setInput(event.target.value)}
+          placeholder={formatMessage({
+            id: "admin.team.addressPlaceholder",
+            defaultMessage: "0x... or vitalik.eth",
+          })}
+          error={gardenerInput.error || undefined}
+          helperText={gardenerInput.trimmedInput ? addHint : " "}
+          action={
+            <Button
+              type="button"
+              emphasis="secondary"
+              size="compact"
+              onClick={gardenerInput.handleAdd}
+              disabled={gardenerInput.shouldResolveEns && gardenerInput.resolvingEns}
+              leadingIcon={<RiAddLine className="h-4 w-4" aria-hidden="true" />}
+            >
+              {formatMessage({ id: "app.common.add", defaultMessage: "Add" })}
+            </Button>
+          }
+        />
         {gardenerInput.shouldResolveEns && (
           <p className="mt-1 type-body text-text-soft">
             {gardenerInput.resolvingEns ? (
