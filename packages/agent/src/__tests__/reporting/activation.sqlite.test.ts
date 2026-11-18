@@ -516,6 +516,38 @@ describe("an Allow reporting in chat link that expires unused", () => {
     expect(await harness.say(ADA, "STATUS")).toEqual([LINK_EXPIRED]);
   });
 
+  it("lets a choice asked again by RETRY stand instead of the old link's expiry notice", async () => {
+    // The owner asks again before ever opening the permission link, and hasn't answered yet.
+    await harness.say(ADA, "RETRY");
+    harness.clock.advance(harness.core.settings.linkChallengeTtlMs);
+    await harness.drain();
+    expect(sent()).not.toContain(LINK_EXPIRED);
+    expect(await harness.say(ADA, "STATUS")).toEqual([
+      "Your report for TAS is waiting for you to choose how to publish it.",
+    ]);
+  });
+
+  it("closes the chat's open choice once the permission page prepares the first report", async () => {
+    const { browser, grant } = await openPermissionPage();
+    await harness.say(ADA, "RETRY");
+    const started = await browser.request(
+      "POST",
+      `/messaging/execution-grants/${grant.grantId}/activation`,
+      { body: { expectedVersion: grant.version, policyDigest: grant.policyDigest } }
+    );
+    expect(started.status).toBe(200);
+    await harness.drain();
+    expect(
+      row(
+        "SELECT count(*) AS n FROM conversation_prompts WHERE state = 'open' AND kind = 'grant_choice'"
+      )
+    ).toEqual({ n: 0 });
+    // A tap on that question's old button no longer claims there is no report.
+    expect(await harness.press(ADA, "Allow reporting in chat")).not.toContain(
+      "You don't have a report in progress. Describe your work to start one."
+    );
+  });
+
   it("after the first report is prepared, RETRY sends a page to sign that report with the passkey", async () => {
     // Prepare First Report is pressed, then the page is closed before anything is sent.
     const { browser, grant } = await openPermissionPage();

@@ -6,6 +6,7 @@ import { DraftContentUnavailableError, type DraftRecord, loadDraft } from "./dra
 import type { ClaimedJob } from "./jobs";
 import { conversationRealm, participantWriter } from "./notify";
 import type { OperationRecord } from "./operations";
+import { openPrompt } from "./prompts";
 import { accountById, participantEpoch } from "./participants";
 import type { ReportingCore } from "./runtime";
 import type { JobOutcome } from "./worker";
@@ -134,6 +135,10 @@ export function watchSigningLinkJob(core: ReportingCore, job: ClaimedJob): JobOu
     const draft = waitingDraft(core, draftId, request.resourceRevision);
     if (!draft || lapseAlreadyTold(core, draft.conversationId, request.expiresAt))
       return { status: "done" };
+    // A choice asked again by RETRY is what the report waits on now, as STATUS says; its answer
+    // brings a new link, watched on its own.
+    const prompt = openPrompt(core, draft.conversationId);
+    if (prompt?.kind === "grant_choice" && prompt.subjectId === draft.id) return { status: "done" };
     participantWriter(core, {
       participantId: draft.participantId,
       conversationId: draft.conversationId,

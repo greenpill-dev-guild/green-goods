@@ -189,6 +189,8 @@ export function announceStillConfirming(
   operation: OperationRecord,
   job: ClaimedJob
 ): void {
+  // On the check's last pass the stop speaks instead; both at once would contradict each other.
+  if (job.attempts >= job.maxAttempts) return;
   const attempt = latestAttempt(core, operation.id);
   if (attempt?.state !== "broadcast" || attempt.reasonCode === "callback_missing") return;
   // Once the chat has said the transaction is confirmed, "still being confirmed" would undercut it.

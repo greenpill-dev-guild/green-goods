@@ -614,6 +614,46 @@ describe("owner publication", () => {
     expect(await harness.say(ADA, "STATUS")).toEqual([ATTESTATION_UNREAD]);
   });
 
+  it("does not say a send is still confirming on the pass that ends the check", async () => {
+    await confirmLinkAndPublish(harness);
+    const { browser, view, envelope } = await openSigningPage(harness);
+    const attempt = await reserve(browser, view, envelope);
+    const hash = send(envelope);
+    harness.chain.hidden.add(hash);
+    await reportOutcome(browser, view, envelope, attempt.body.attemptId, {
+      kind: "broadcast",
+      transactionHash: hash,
+    });
+    await harness.drain();
+    // The check gets one more pass, two minutes in, as an operator replay does.
+    harness.core.db
+      .query(
+        "UPDATE processing_jobs SET max_attempts = attempts + 1 WHERE kind = 'reconcile_operation'"
+      )
+      .run();
+    harness.clock.advance(120_000);
+    await harness.drain();
+    expect(sentTexts()).toContain(CHECK_STOPPED);
+    expect(sentTexts()).not.toContain(STILL_CONFIRMING);
+  });
+
+  it("still tells a person who stopped the assistant how a send already made ended", async () => {
+    await confirmLinkAndPublish(harness);
+    const { browser, view, envelope } = await openSigningPage(harness);
+    const attempt = await reserve(browser, view, envelope);
+    const hash = send(envelope);
+    harness.chain.attestationsUnread = true;
+    await reportOutcome(browser, view, envelope, attempt.body.attemptId, {
+      kind: "broadcast",
+      transactionHash: hash,
+    });
+    await harness.drain();
+    expect(sentTexts().at(-1)).toContain("The transaction is confirmed.");
+    await harness.say(ADA, "STOP");
+    await exhaustChainCheck();
+    expect(sentTexts()).toContain(ATTESTATION_UNREAD);
+  });
+
   it("says once, two minutes into the check, that a reported send is still confirming", async () => {
     await confirmLinkAndPublish(harness);
     const { browser, view, envelope } = await openSigningPage(harness);

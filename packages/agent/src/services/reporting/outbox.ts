@@ -96,7 +96,13 @@ const CONSENT_EXEMPT = new Set([
   "publish.unknown",
   "publish.uncertain",
   "publish.reverted",
+  "publish.stillConfirming",
+  "publish.unconfirmed",
+  "publish.attestationUnread",
   "review.recorded",
+  "review.stillConfirming",
+  "review.unconfirmed",
+  "review.attestationUnread",
 ]);
 
 interface OutboxRow {
