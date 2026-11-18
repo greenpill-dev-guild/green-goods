@@ -174,6 +174,7 @@ export const SHARD_ORDER = ["arbitrum", "settlement-lane", "sepolia", "ethereum"
 // Fork files deliberately outside every shard. Each needs a reason; anything else must join a shard.
 export const MANUAL_FORK_FILES = {
   "test/fork/CeloHats.t.sol": "Legacy unpinned probe of Celo Hats tree 31; it reads the latest block and skips without CELO_RPC_URL.",
+  "test/fork/ArbitrumHatsProtocolDelegation.t.sol": "PRD-615 release proof requires a reviewed current-state block and private exact Safe packet/prerequisite files; run explicitly before packet approval, with the seven-call rehearsal recorded in private release evidence.",
 };
 
 function loadEnv() {

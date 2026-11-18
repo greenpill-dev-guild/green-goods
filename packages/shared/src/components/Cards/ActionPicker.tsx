@@ -1,6 +1,6 @@
 /**
  * ActionPicker — choosing the action a work answers, one picker on the installed app and the
- * cockpit (step 16 of the app and cockpit unification).
+ * Hub (step 16 of the app and Hub unification).
  *
  * Each action is a media card with its banner: the action's own picture, or its domain's
  * gradient when it has none, with the domain as the mark on the banner (an action whose domain
@@ -9,7 +9,7 @@
  * are one listbox (`MediaCardPicker`): one tab stop, the arrow keys move, Space, Enter or a
  * press chooses.
  * The surface titles each action in the reader's language before passing it, because the app
- * and the cockpit localize canonical actions differently.
+ * and the Hub localize canonical actions differently.
  *
  * @module components/Cards/ActionPicker
  */
@@ -38,7 +38,7 @@ export interface ActionPickerProps {
   /** Names the group for assistive technology. */
   label: string;
   /**
-   * `row` where the picker scrolls sideways; `grid` in the cockpit; `tiles` on the installed
+   * `row` where the picker scrolls sideways; `grid` in the Hub; `tiles` on the installed
    * app's Start step, two to a row with two-line titles.
    */
   layout: ActionPickerLayout;

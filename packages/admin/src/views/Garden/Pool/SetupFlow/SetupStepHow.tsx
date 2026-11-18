@@ -26,7 +26,7 @@ export function SetupStepHow({
       <AdminTextArea
         id={purposeId}
         label={formatMessage({
-          id: "cockpit.garden.pool.settings.purpose",
+          id: "hub.garden.pool.settings.purpose",
           defaultMessage: "What this pool is for",
         })}
         value={purpose}
@@ -35,7 +35,7 @@ export function SetupStepHow({
         required
         disabled={disabled}
         placeholder={formatMessage({
-          id: "cockpit.garden.pool.setup.purposePlaceholder",
+          id: "hub.garden.pool.setup.purposePlaceholder",
           defaultMessage:
             "Neighbors offer help and ask for it: rides, tools, workshops, garden work. Promises are kept in the open and confirmed by the person they were made to.",
         })}
@@ -44,13 +44,13 @@ export function SetupStepHow({
       />
       <AdminTextField
         label={formatMessage({
-          id: "cockpit.garden.pool.settings.cap",
+          id: "hub.garden.pool.settings.cap",
           defaultMessage: "How many promises one person can hold at once",
         })}
         value={cap}
         onChange={(event) => onCapChange(event.target.value)}
         helperText={formatMessage({
-          id: "cockpit.garden.pool.settings.capHelp",
+          id: "hub.garden.pool.settings.capHelp",
           defaultMessage: "A safety limit so nobody over-commits. 24 suits most gardens.",
         })}
         inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}

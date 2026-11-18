@@ -14,7 +14,7 @@ export interface TransferReviewDialogProps {
   recipient: string;
   /** The pool and record this disbursement belongs to, when opened from an inspector. */
   target?: ReactNode;
-  tone: "garden" | "hub" | "community";
+  tone: "garden" | "review" | "community";
   isLoading: boolean;
   onClose: () => void;
   onConfirm: () => Promise<unknown>;
@@ -46,7 +46,7 @@ export function TransferReviewDialog({
     if (review.act === "dispatch") {
       return formatMessage(
         {
-          id: "cockpit.garden.pool.settlement.review.dispatchBody",
+          id: "hub.garden.pool.settlement.review.dispatchBody",
           defaultMessage:
             "Dispatch disbursement {id} for {amount} to {recipient} over CCIP to Celo.",
         },
@@ -56,7 +56,7 @@ export function TransferReviewDialog({
     if (review.act === "retry") {
       return formatMessage(
         {
-          id: "cockpit.garden.pool.settlement.review.retryBody",
+          id: "hub.garden.pool.settlement.review.retryBody",
           defaultMessage: "Resend the same command for disbursement {id}: {amount} to {recipient}.",
         },
         { id, amount: formatGdollar(amount, locale), recipient }
@@ -64,7 +64,7 @@ export function TransferReviewDialog({
     }
     return formatMessage(
       {
-        id: "cockpit.garden.pool.settlement.review.requeueBody",
+        id: "hub.garden.pool.settlement.review.requeueBody",
         defaultMessage:
           "Start a new attempt for failed disbursement {id}: {amount} to {recipient}.",
       },
@@ -79,13 +79,13 @@ export function TransferReviewDialog({
       tone={tone}
       variant="warning"
       title={formatMessage({
-        id: "cockpit.garden.pool.settlement.review.title",
+        id: "hub.garden.pool.settlement.review.title",
         defaultMessage: "Review Before Sending",
       })}
       target={target}
       description={body()}
       confirmLabel={formatMessage({
-        id: "cockpit.garden.pool.settlement.review.confirm",
+        id: "hub.garden.pool.settlement.review.confirm",
         defaultMessage: "Send Transaction",
       })}
       cancelLabel={formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}

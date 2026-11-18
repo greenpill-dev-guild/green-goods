@@ -33,7 +33,8 @@ interface SubmissionGardenOptions {
  * (`resolveSubmissionGarden`). Only a garden the account can submit work to counts as the active
  * one, so an evaluator-only garden is never chosen. It also says whether the Start step can leave
  * the garden question out, and which garden the flow names under its steps: the submission
- * garden while it is not the active one, and not before the active garden is known.
+ * garden from the first step, the active one included (PRD-1492), and not before the active
+ * garden is known, so an earlier visit's garden never shows for a moment.
  */
 export function useSubmissionGarden({
   gardens,
@@ -84,10 +85,7 @@ export function useSubmissionGarden({
   ]);
 
   const activeGardenKnown = activeGarden.status !== "loading" || activeGarden.gardenId !== null;
-  const named =
-    gardenAddress && activeGardenKnown && !compareAddresses(gardenAddress, activeGarden.gardenId)
-      ? gardenAddress
-      : null;
+  const named = gardenAddress && activeGardenKnown ? gardenAddress : null;
   const listed = named
     ? (gardens.find((garden) => compareAddresses(garden.id, named)) ??
       chainGardens.find((garden) => compareAddresses(garden.id, named)) ??
@@ -97,7 +95,7 @@ export function useSubmissionGarden({
   const { data: record } = useGardenRecord(named, { enabled: Boolean(named) && !listed });
 
   return {
-    /** The submission garden the flow names under its steps: set only while it is not the active one. */
+    /** The submission garden the flow names under its steps, once the active garden is known. */
     namedSubmissionGarden: named ? (listed ?? record ?? null) : null,
     /** The flow's garden can take the chosen action, so the Start step leaves the garden out. */
     submissionGardenSettled: isSubmissionGardenSettled({

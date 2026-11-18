@@ -203,19 +203,19 @@ describe("Toolbar Visibility", () => {
     };
 
     renderWithProviders(
-      <MemoryRouter initialEntries={["/hub"]}>
+      <MemoryRouter initialEntries={["/review"]}>
         <CanvasLayout />
       </MemoryRouter>
     );
 
     expect(screen.getByTestId("navigation-bar")).toBeInTheDocument();
-    expect(screen.getByTestId("nav-hub")).toBeInTheDocument();
+    expect(screen.getByTestId("nav-review")).toBeInTheDocument();
     expect(screen.getByTestId("nav-garden")).toBeInTheDocument();
     expect(screen.getByTestId("nav-community")).toBeInTheDocument();
     expect(screen.getByTestId("nav-actions")).toBeInTheDocument();
   });
 
-  it("evaluator sees only Hub plus the mobile Profile route", () => {
+  it("evaluator sees only Review plus the mobile Profile route", () => {
     mockPermissions.current = {
       showWork: true,
       showGarden: false,
@@ -225,19 +225,19 @@ describe("Toolbar Visibility", () => {
     };
 
     renderWithProviders(
-      <MemoryRouter initialEntries={["/hub"]}>
+      <MemoryRouter initialEntries={["/review"]}>
         <CanvasLayout />
       </MemoryRouter>
     );
 
-    expect(screen.getByTestId("nav-hub")).toBeInTheDocument();
+    expect(screen.getByTestId("nav-review")).toBeInTheDocument();
     expect(screen.getByTestId("nav-profile")).toBeInTheDocument();
     expect(screen.queryByTestId("nav-garden")).not.toBeInTheDocument();
     expect(screen.queryByTestId("nav-community")).not.toBeInTheDocument();
     expect(screen.queryByTestId("nav-actions")).not.toBeInTheDocument();
   });
 
-  it("steward sees Hub + Garden + Community", () => {
+  it("steward sees Review + Garden + Community", () => {
     mockPermissions.current = {
       showWork: true,
       showGarden: true,
@@ -247,12 +247,12 @@ describe("Toolbar Visibility", () => {
     };
 
     renderWithProviders(
-      <MemoryRouter initialEntries={["/hub"]}>
+      <MemoryRouter initialEntries={["/review"]}>
         <CanvasLayout />
       </MemoryRouter>
     );
 
-    expect(screen.getByTestId("nav-hub")).toBeInTheDocument();
+    expect(screen.getByTestId("nav-review")).toBeInTheDocument();
     expect(screen.getByTestId("nav-garden")).toBeInTheDocument();
     expect(screen.getByTestId("nav-community")).toBeInTheDocument();
     expect(screen.getByTestId("nav-profile")).toBeInTheDocument();
@@ -270,7 +270,7 @@ describe("Toolbar Visibility", () => {
     };
 
     const { rerender } = renderWithProviders(
-      <MemoryRouter initialEntries={["/hub"]}>
+      <MemoryRouter initialEntries={["/review"]}>
         <CanvasLayout />
       </MemoryRouter>
     );
@@ -287,12 +287,12 @@ describe("Toolbar Visibility", () => {
     };
 
     rerender(
-      <MemoryRouter initialEntries={["/hub"]}>
+      <MemoryRouter initialEntries={["/review"]}>
         <CanvasLayout />
       </MemoryRouter>
     );
 
-    expect(screen.getByTestId("nav-hub")).toBeInTheDocument();
+    expect(screen.getByTestId("nav-review")).toBeInTheDocument();
     expect(screen.getByTestId("nav-profile")).toBeInTheDocument();
     expect(screen.queryByTestId("nav-garden")).not.toBeInTheDocument();
     expect(screen.queryByTestId("nav-community")).not.toBeInTheDocument();
@@ -308,7 +308,7 @@ describe("Toolbar Visibility", () => {
     };
 
     renderWithProviders(
-      <MemoryRouter initialEntries={["/hub"]}>
+      <MemoryRouter initialEntries={["/review"]}>
         <CanvasLayout />
       </MemoryRouter>
     );
@@ -316,7 +316,7 @@ describe("Toolbar Visibility", () => {
     const nav = screen.getByTestId("navigation-bar");
     const navLinks = nav.querySelectorAll("a");
     expect(navLinks).toHaveLength(3);
-    expect(navLinks[0]).toHaveTextContent("Hub");
+    expect(navLinks[0]).toHaveTextContent("Review");
     expect(navLinks[1]).toHaveTextContent("Actions");
     expect(navLinks[2]).toHaveTextContent("Profile");
   });

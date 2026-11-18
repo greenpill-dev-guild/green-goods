@@ -1,5 +1,5 @@
 /**
- * CommitmentRow — one promise in a list, the same on the installed app and the cockpit.
+ * CommitmentRow — one promise in a list, the same on the installed app and the Hub.
  *
  * It is the shared item row led by the promise's direction: a seedling for an offer, a
  * helping hand for a request, named for screen readers, so no detail repeats it. Copies made

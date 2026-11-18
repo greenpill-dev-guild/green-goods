@@ -27,7 +27,7 @@ import {
   stepLabel,
 } from "./commitmentSettlementPresentation";
 
-type Tone = "garden" | "hub" | "community";
+type Tone = "garden" | "review" | "community";
 
 export interface CommitmentSettlementProps {
   settlement: CommitmentSettlementController;
@@ -116,7 +116,7 @@ export function CommitmentSettlement({ settlement, tone, target }: CommitmentSet
     // The panel's status line says whether it landed or is waiting on a Safe.
     toastService.success({
       title: formatMessage({
-        id: "cockpit.garden.pool.settlement.toast.sent",
+        id: "hub.garden.pool.settlement.toast.sent",
         defaultMessage: "Settlement step sent",
       }),
       message: `${actionStep(action, intl)} · ${hash.slice(0, 10)}…`,
@@ -130,7 +130,7 @@ export function CommitmentSettlement({ settlement, tone, target }: CommitmentSet
     }
     return formatMessage(
       {
-        id: "cockpit.garden.pool.settlement.fact.recipientMembers",
+        id: "hub.garden.pool.settlement.fact.recipientMembers",
         defaultMessage: "{count, plural, one {# contributor} other {# contributors}}",
       },
       { count: settlement.rows.length }
@@ -151,13 +151,13 @@ export function CommitmentSettlement({ settlement, tone, target }: CommitmentSet
         <div>
           <AdminCardTitle as="h4" id="commitment-settlement-title">
             {formatMessage({
-              id: "cockpit.garden.pool.settlement.title",
+              id: "hub.garden.pool.settlement.title",
               defaultMessage: "G$ Payout",
             })}
           </AdminCardTitle>
           <p className="mt-1 type-body text-text-soft">
             {formatMessage({
-              id: "cockpit.garden.pool.settlement.description",
+              id: "hub.garden.pool.settlement.description",
               defaultMessage:
                 "Paid from the paying garden's Celo Safe in the order the settlement module accepts: plan, finalize, prepare, dispatch, acknowledgment.",
             })}
@@ -166,7 +166,7 @@ export function CommitmentSettlement({ settlement, tone, target }: CommitmentSet
         {workflow.complete ? (
           <StatusBadge variant="success" size="sm">
             {formatMessage({
-              id: "cockpit.garden.pool.settlement.complete",
+              id: "hub.garden.pool.settlement.complete",
               defaultMessage: "Payout complete",
             })}
           </StatusBadge>
@@ -193,14 +193,14 @@ export function CommitmentSettlement({ settlement, tone, target }: CommitmentSet
                   onClick={() => void settlement.refetch()}
                 >
                   {formatMessage({
-                    id: "cockpit.garden.pool.settlement.retry",
+                    id: "hub.garden.pool.settlement.retry",
                     defaultMessage: "Read Again",
                   })}
                 </Button>
               }
             >
               {formatMessage({
-                id: "cockpit.garden.pool.settlement.readError",
+                id: "hub.garden.pool.settlement.readError",
                 defaultMessage: "Couldn't read the settlement module",
               })}
             </Alert>
@@ -209,7 +209,7 @@ export function CommitmentSettlement({ settlement, tone, target }: CommitmentSet
           <ol
             className="space-y-1"
             aria-label={formatMessage({
-              id: "cockpit.garden.pool.settlement.steps",
+              id: "hub.garden.pool.settlement.steps",
               defaultMessage: "Sequence",
             })}
             data-testid="settlement-steps"
@@ -240,7 +240,7 @@ export function CommitmentSettlement({ settlement, tone, target }: CommitmentSet
             <Alert
               variant="warning"
               title={formatMessage({
-                id: "cockpit.garden.pool.settlement.blocked.title",
+                id: "hub.garden.pool.settlement.blocked.title",
                 defaultMessage: "Why this cannot run yet",
               })}
             >
@@ -265,23 +265,23 @@ export function CommitmentSettlement({ settlement, tone, target }: CommitmentSet
             >
               {settlement.lastAct.phase === "signing"
                 ? formatMessage({
-                    id: "cockpit.garden.pool.settlement.status.signing",
+                    id: "hub.garden.pool.settlement.status.signing",
                     defaultMessage:
                       "Waiting for the wallet to sign and the transaction to confirm…",
                   })
                 : settlement.lastAct.phase === "confirmed"
                   ? formatMessage({
-                      id: "cockpit.garden.pool.settlement.status.confirmed",
+                      id: "hub.garden.pool.settlement.status.confirmed",
                       defaultMessage: "Confirmed on chain. Settlement state was read back.",
                     })
                   : settlement.lastAct.phase === "proposed"
                     ? formatMessage({
-                        id: "cockpit.garden.pool.settlement.status.proposed",
+                        id: "hub.garden.pool.settlement.status.proposed",
                         defaultMessage:
                           "Sent to your Safe. This step reopens once the chain shows it ran.",
                       })
                     : formatMessage({
-                        id: "cockpit.garden.pool.settlement.status.failed",
+                        id: "hub.garden.pool.settlement.status.failed",
                         defaultMessage:
                           "The transaction failed or was rejected. Nothing changed on chain.",
                       })}
@@ -298,7 +298,7 @@ export function CommitmentSettlement({ settlement, tone, target }: CommitmentSet
                 onClick={() => void settlement.refetch()}
               >
                 {formatMessage({
-                  id: "cockpit.garden.pool.settlement.retry",
+                  id: "hub.garden.pool.settlement.retry",
                   defaultMessage: "Read Again",
                 })}
               </Button>
@@ -330,7 +330,7 @@ export function CommitmentSettlement({ settlement, tone, target }: CommitmentSet
         tone={tone}
         variant="warning"
         title={formatMessage({
-          id: "cockpit.garden.pool.settlement.review.title",
+          id: "hub.garden.pool.settlement.review.title",
           defaultMessage: "Review Before Sending",
         })}
         target={target}
@@ -338,7 +338,7 @@ export function CommitmentSettlement({ settlement, tone, target }: CommitmentSet
           review
             ? formatMessage(
                 {
-                  id: "cockpit.garden.pool.settlement.review.body",
+                  id: "hub.garden.pool.settlement.review.body",
                   defaultMessage:
                     "{step} for {amount} from {payer} to {recipient}. One transaction; the chain is read back after it confirms.",
                 },
@@ -352,7 +352,7 @@ export function CommitmentSettlement({ settlement, tone, target }: CommitmentSet
             : undefined
         }
         confirmLabel={formatMessage({
-          id: "cockpit.garden.pool.settlement.review.confirm",
+          id: "hub.garden.pool.settlement.review.confirm",
           defaultMessage: "Send Transaction",
         })}
         cancelLabel={formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}

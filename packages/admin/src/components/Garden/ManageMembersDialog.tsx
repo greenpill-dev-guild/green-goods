@@ -1,3 +1,5 @@
+import { useGardenMemberContributions } from "@green-goods/shared/hooks/garden/useGardenMemberContributions";
+import { useGardenMemberHistory } from "@green-goods/shared/hooks/garden/useGardenMemberHistory";
 import { Button } from "@green-goods/shared/components/Button";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
@@ -12,6 +14,7 @@ import { useIntl } from "react-intl";
 import { AdminDialog, type AdminDialogProps } from "../AdminDialog";
 import { DiscardChangesDialog } from "../DiscardChangesDialog";
 import { FlowStatusRow } from "../Layout/FlowStatusRow";
+import { ManageRolesSelectionSummary } from "./ManageRolesSelectionSummary";
 import { ManageRolesFilters } from "./ManageRolesFilters";
 import { ManageRolesPersonRow } from "./ManageRolesPersonRow";
 import { MemberNameReaders, withMemberName } from "./MemberNames";
@@ -40,6 +43,8 @@ import { type ReviewPairStatus, RoleRemovalReview } from "./RoleRemovalReview";
 
 export interface ManageMembersDialogProps {
   open: boolean;
+  gardenAddress?: Address;
+  onAddRole?: (address: Address) => void;
   /** The person a directory row opened it for: the list starts with just them. */
   initialMember?: Address;
   onClose: () => void;
@@ -48,7 +53,9 @@ export interface ManageMembersDialogProps {
   canManage: boolean;
   /** An owner removes any role; a steward never changes an owner or another steward's Steward role. */
   viewerIsOwner: boolean;
-  /** The account the cockpit signs with, so its own Owner and Steward roles stay out of reach. */
+  viewerCanManageStewards?: boolean;
+  allowedRoles?: readonly GardenRole[];
+  /** The account the Hub signs with, so its own Owner and Steward roles stay out of reach. */
   viewerAddress?: Address | null;
   /** The garden every change applies to, named under the title (Interface Principles 4, 9). */
   gardenName: string;
@@ -57,7 +64,7 @@ export interface ManageMembersDialogProps {
   isLoading: boolean;
   /** Reads and removes person-and-role pairs on chain. */
   removal: RoleRemovalApi;
-  /** A run or a check ended somewhere other than a clean removal, so the roster may be behind. */
+  /** A run/check finished; indexed membership history may still lag the chain. */
   onRosterStale?: () => void;
   /** Opens Add Members, with the person this dialog is showing when it shows one. */
   onAddMembers: (prefill?: Address) => void;
@@ -69,24 +76,21 @@ export interface ManageMembersDialogProps {
 const NOTHING_PICKED: ReadonlySet<GardenRole> = new Set();
 
 /**
- * Manage Roles: the one place a steward changes who holds which role in the garden.
- *
- * One row per person with a check chip for each role they hold (DL-049); a checked chip picks
- * that person-and-role pair for removal. Search and filters change what shows, never what is
- * picked, and the footer counts the picks in roles and people and says how many are out of
- * view. Review opens in the same shell at the same size, names the garden under the title,
- * reads every pair on chain again, and lists what each person loses and keeps. Its confirm is
- * the flow's one destructive button. Each pair takes its own signature; the run shows each
- * landing in place and ends on a result that says what landed before it offers anything again.
- * What each step shows and offers lives in `manageRoles` and `manageRolesReview`.
+ * Pick person-and-role pairs, review live membership, and remove the permitted pairs.
+ * Filters preserve selections. Each signature and its outcome remain visible; failed or
+ * uncertain removals stay available for reconciliation through manageRolesReview.
  */
 export function ManageMembersDialog({
   open,
+  gardenAddress,
+  onAddRole,
   initialMember,
   onClose,
   roleMembers,
   canManage,
   viewerIsOwner,
+  viewerCanManageStewards = false,
+  allowedRoles,
   viewerAddress,
   gardenName,
   chainId = DEFAULT_CHAIN_ID,
@@ -98,6 +102,18 @@ export function ManageMembersDialog({
   tone,
 }: ManageMembersDialogProps) {
   const { formatMessage } = useIntl();
+  const history = useGardenMemberHistory({ garden: open ? gardenAddress : undefined, chainId });
+  const contributions = useGardenMemberContributions({
+    garden: gardenAddress
+      ? { id: gardenAddress, chainId, owners: roleMembers.owner, stewards: roleMembers.steward }
+      : undefined,
+    accounts: Object.values(roleMembers).flat(),
+    enabled: open,
+  });
+  const historyByAccount = useMemo(
+    () => new Map(history.members.map((member) => [member.account.toLowerCase(), member])),
+    [history.members]
+  );
   const [filter, setFilter] = useState<RoleFilter>("all");
   const [search, setSearch] = useState("");
   const [scopedTo, setScopedTo] = useState<Address | null>(initialMember ?? null);
@@ -105,7 +121,7 @@ export function ManageMembersDialog({
   const [review, setReview] = useState<ReviewState | null>(null);
   const [names, setNames] = useState<ReadonlyMap<string, string>>(() => new Map());
   // Who signs, with what rights: a review is never signed by an account that did not make it.
-  const signer = `${viewerAddress?.toLowerCase() ?? ""}:${viewerIsOwner}:${canManage}`;
+  const signer = `${viewerAddress?.toLowerCase() ?? ""}:${viewerIsOwner}:${canManage}:${viewerCanManageStewards}:${allowedRoles?.join(",")}`;
   const [shownFor, setShownFor] = useState({ open, initialMember, signer });
   // Async answers belong to the review that asked; a newer opening or review drops them.
   const reviewToken = useRef(0);
@@ -140,7 +156,13 @@ export function ManageMembersDialog({
 
   const { people, blocked } = useMemo(() => {
     const roster = peopleFromRoster(roleMembers);
-    const viewer = { address: viewerAddress, isOwner: viewerIsOwner, canManage };
+    const viewer = {
+      address: viewerAddress,
+      isOwner: viewerIsOwner,
+      canManage,
+      canManageStewards: viewerCanManageStewards,
+      allowedRoles,
+    };
     const ownerCount = roleMembers.owner?.length ?? 0;
     return {
       people: roster,
@@ -151,7 +173,7 @@ export function ManageMembersDialog({
         ])
       ),
     };
-  }, [canManage, roleMembers, viewerAddress, viewerIsOwner]);
+  }, [canManage, roleMembers, viewerAddress, viewerIsOwner, viewerCanManageStewards, allowedRoles]);
   const view = chooseView({
     people,
     blocked,
@@ -213,7 +235,6 @@ export function ManageMembersDialog({
       setReview((current) => current && withPairsStatus(current, [row], status, reason));
     };
     setReview((current) => current && startRun(current, pairs));
-    let clean = false;
     let settled: RolePair[] = [];
     try {
       const outcomes = await removal.remove(pairs, {
@@ -225,7 +246,6 @@ export function ManageMembersDialog({
             outcome.status === "refused" || outcome.status === "failed" ? outcome.reason : undefined
           ),
       });
-      clean = outcomes.every((outcome) => outcome.status === "removed");
       settled = settledPairs(pairs, outcomes);
     } catch (error) {
       // The run itself broke: whatever had not settled may or may not have landed.
@@ -236,7 +256,7 @@ export function ManageMembersDialog({
     setReview((current) => current && { ...current, phase: "done" });
     // Settled pairs leave the picks; a declined or unsent one stays picked for Back.
     setSelected((current) => withPicks(current, settled, false));
-    if (!clean) onRosterStale?.();
+    onRosterStale?.();
   };
 
   const checkAgain = async (pairs: RolePair[]) => {
@@ -343,43 +363,18 @@ export function ManageMembersDialog({
     );
   }
 
-  let summary: ReactNode = moment?.note ?? null;
-  if (!review && canManage) {
-    summary =
-      picks.length === 0 ? (
-        formatMessage({ id: "admin.manageRoles.selectHint" })
-      ) : (
-        <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <span className="text-text-strong">
-            {formatMessage(
-              { id: "admin.manageRoles.selection" },
-              { roles: picks.length, people: view.pickedRoles.size }
-            )}
-          </span>
-          {view.hiddenPicks > 0 ? (
-            <>
-              <span>
-                {formatMessage(
-                  { id: "admin.manageRoles.selectionHidden" },
-                  { count: view.hiddenPicks }
-                )}
-              </span>
-              <Button type="button" emphasis="tertiary" size="compact" onClick={showPicked}>
-                {formatMessage({ id: "admin.manageRoles.showSelected" })}
-              </Button>
-            </>
-          ) : null}
-          <Button
-            type="button"
-            emphasis="tertiary"
-            size="compact"
-            onClick={() => setSelected(new Map())}
-          >
-            {formatMessage({ id: "admin.manageRoles.clearSelection" })}
-          </Button>
-        </span>
-      );
-  }
+  const summary =
+    !review && canManage ? (
+      <ManageRolesSelectionSummary
+        roles={picks.length}
+        people={view.pickedRoles.size}
+        hidden={view.hiddenPicks}
+        onShow={showPicked}
+        onClear={() => setSelected(new Map())}
+      />
+    ) : (
+      (moment?.note ?? null)
+    );
 
   const viewerKey = viewerAddress?.toLowerCase();
 
@@ -393,7 +388,7 @@ export function ManageMembersDialog({
         height="stable"
         tone={tone}
         title={formatMessage({
-          id: review ? "admin.manageRoles.reviewTitle" : "cockpit.community.members.manageRoles",
+          id: review ? "admin.manageRoles.reviewTitle" : "hub.community.members.manageRoles",
         })}
         target={gardenName}
         description={
@@ -470,6 +465,14 @@ export function ManageMembersDialog({
                       selected={view.pickedRoles.get(key) ?? NOTHING_PICKED}
                       onToggle={(role, checked) => toggle(person, role, checked)}
                       readOnly={readOnly}
+                      history={historyByAccount.get(key)}
+                      historyLoading={history.isLoading}
+                      historyError={history.isError}
+                      contribution={
+                        contributions.canView ? contributions.byAccount[key] : undefined
+                      }
+                      onAddRole={onAddRole ? () => onAddRole(person.address) : undefined}
+                      addRoleDisabled={picks.length > 0}
                       disabled={busy}
                     />
                   );

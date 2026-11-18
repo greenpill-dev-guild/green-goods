@@ -49,6 +49,7 @@ export function useVoucherAwards(reserve?: Address | null) {
         assertCurrent();
         return createAccountMessageSigner({
           authMode: auth.authMode,
+          walletRestore: auth.walletRestore,
           signMessage: current.current.signMessageAsync,
           account: accountClient?.account,
         })(message);

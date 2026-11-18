@@ -101,6 +101,7 @@ export function useCommunityWorkspaceController() {
     error,
     gardenId,
     canManage,
+    canManageStewards,
     isOwner,
     community,
     communityLoading,
@@ -141,9 +142,19 @@ export function useCommunityWorkspaceController() {
         Boolean(selectedGarden),
         navigate,
         { gardenAddress: selectedGardenAddress },
-        hasPayoutJar
+        hasPayoutJar,
+        canManage || canManageStewards
       ),
-    [canManage, hasPayoutJar, isOwner, mode, navigate, selectedGarden, selectedGardenAddress]
+    [
+      canManage,
+      canManageStewards,
+      hasPayoutJar,
+      isOwner,
+      mode,
+      navigate,
+      selectedGarden,
+      selectedGardenAddress,
+    ]
   );
   const { desktopActions } = useViewActions({
     actions: viewActions,
@@ -242,6 +253,7 @@ export function useCommunityWorkspaceController() {
     allocationsLoading,
     allocationsUnread,
     canManage,
+    canManageStewards,
     clearSection,
     closeMembersModal,
     community,

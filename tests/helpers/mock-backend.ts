@@ -95,6 +95,10 @@ const multicallAbi = parseAbi([
 ]);
 const evaluatorAbi = parseAbi(["function isEvaluator(address) view returns (bool)"]);
 const operatorAbi = parseAbi(["function isOperator(address) view returns (bool)"]);
+const protocolRolesAbi = parseAbi([
+  "function protocolRoleHats() view returns (uint256,uint256,uint256,uint256)",
+  "function hats() view returns (address)",
+]);
 
 export interface MockRpcRead {
   name: string;
@@ -177,6 +181,21 @@ function buildRpcResponse(
       const key = `rpc: ${declaredRead.name}`;
       requests.set(key, (requests.get(key) ?? 0) + 1);
       result = declaredRead.result;
+    } else if (
+      target === deployment.hatsModule.toLowerCase() &&
+      data === encodeFunctionData({ abi: protocolRolesAbi, functionName: "protocolRoleHats" })
+    ) {
+      // Default browser fixtures grant no protocol role; scenarios can declare their own reads.
+      result = encodeFunctionResult({
+        abi: protocolRolesAbi,
+        functionName: "protocolRoleHats",
+        result: [0n, 0n, 0n, 0n],
+      });
+    } else if (
+      target === deployment.hatsModule.toLowerCase() &&
+      data === encodeFunctionData({ abi: protocolRolesAbi, functionName: "hats" })
+    ) {
+      result = encodeAddressResult("0x3333333333333333333333333333333333333333");
     } else if (target === "0xca11bde05977b3631167028862be2a173976ca11" && !nested) {
       const decoded = decodeFunctionData({ abi: multicallAbi, data: data as `0x${string}` });
       check(decoded.functionName === "aggregate3" && decoded.args[0].length > 0, "RPC multicall");
@@ -499,6 +518,7 @@ export async function mockClientBackend(page: Page, options: MockClientBackendOp
         const expectedFields: Record<string, string[]> = {
           Gardens: ["Garden", "GardenDomains"],
           Gardeners: ["Gardener"],
+          GardenMemberHistory: ["GardenRoleEvent"],
           Actions: ["Action"],
           GetStewardGardens: ["Garden"],
           Garden: ["Garden", "GardenDomains"],
@@ -518,10 +538,44 @@ export async function mockClientBackend(page: Page, options: MockClientBackendOp
           `${name} fields`
         );
         check(
-          (name === "Actions" ? v.where?.chainId?._eq : v.chainId) === 11155111,
+          (["Actions", "GardenMemberHistory"].includes(name)
+            ? v.where?.chainId?._eq
+            : v.chainId) === 11155111,
           `${name} chainId must be 11155111`
         );
         switch (name) {
+          case "GardenMemberHistory":
+            check(
+              Object.keys(v.where).every((key) => ["chainId", "garden", "account"].includes(key)) &&
+                (v.where.garden || v.where.account),
+              "GardenMemberHistory scope"
+            );
+            for (const [field, addresses] of [
+              ["garden", [garden.id, garden.tokenAddress]],
+              ["account", allowedAddresses],
+            ] as const) {
+              const filter = v.where[field];
+              if (filter !== undefined) {
+                check(
+                  filter &&
+                    Object.keys(filter).length === 1 &&
+                    addresses.some(
+                      (address) => address.toLowerCase() === filter._eq?.toLowerCase()
+                    ),
+                  `GardenMemberHistory ${field}`
+                );
+              }
+            }
+            check(
+              Number.isInteger(v.limit) &&
+                v.limit > 0 &&
+                Number.isInteger(v.offset) &&
+                v.offset >= 0,
+              "GardenMemberHistory pagination"
+            );
+            // This scenario deliberately has no indexed role events, so dates remain unknown.
+            data = { GardenRoleEvent: [] };
+            break;
           case "Gardens":
             data = { Garden: [garden], GardenDomains: [{ garden: garden.id, domainMask: 2 }] };
             break;

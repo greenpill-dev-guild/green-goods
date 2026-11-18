@@ -8,7 +8,7 @@ import { Button } from "../../src/components/Button";
 import { Chip } from "../../src/components/Chip";
 import { TextInput } from "../../src/components/Form/ControlPrimitives";
 import { IconButton } from "../../src/components/IconButton";
-import { Page, Row, Section, Specimen, StoryLink, TokenTable } from "./measure";
+import { Page, Row, readToken, Section, Specimen, StoryLink, TokenTable } from "./measure";
 import { ADMIN, APP, STORY_LINKS, WEBSITE } from "./rules";
 
 const meta = {
@@ -22,7 +22,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "The three button and control systems side by side, rendered from the real components and measured live: the installed app and public website share one primitive family with one corner per surface (DL-026: the 16px field corner in the app, DL-029; the capsule on the website, DL-089), and the admin cockpit keeps its M3 pills on the DL-011 / DL-030 compact metric. Each specimen reads its own height, corner, label size, weight, font, and hit area from the browser and grades them against that surface's rules.",
+          "The three button and control systems side by side, rendered from the real components and measured live: the installed app and public website share one primitive family with one corner per surface (DL-026: the 16px field corner in the app, DL-029; the capsule on the website, DL-089), and the Hub keeps its M3 pills on the DL-011 / DL-030 compact metric. Each specimen reads its own height, corner, label size, weight, font, and hit area from the browser and grades them against that surface's rules.",
       },
     },
   },
@@ -149,7 +149,7 @@ function ClientColumn({ surface }: { surface: "app" | "website" }) {
 function AdminColumn() {
   return (
     <Column surface="admin" title={ADMIN.name} rules={ADMIN.rules}>
-      <div className="admin-m3" data-tone="hub">
+      <div className="admin-m3" data-tone="review">
         <Row>
           <Specimen title="Filled / outlined / text · md" expect={ADMIN.button("md")} wide>
             <Button type="button" size="sm">Create Garden</Button>
@@ -221,7 +221,7 @@ function AdminColumn() {
   );
 }
 
-/** Reads from the admin column, so the values are the cockpit's, not the app root's. */
+/** Reads from the admin column, so the values are the Hub's, not the app root's. */
 function AdminTokens() {
   return (
     <div style={{ marginTop: 14 }}>
@@ -241,13 +241,13 @@ function AdminTokens() {
   );
 }
 
-/** Every column at once. The admin column sets its own scope, so its tokens read as the cockpit resolves them. */
+/** Every column at once. The admin column sets its own scope, so its tokens read as the Hub resolves them. */
 export const ThreeSystems: Story = {
   tags: ["storybook-ci"],
   render: () => (
     <Page
       title="Button and control systems"
-      lede="Three surfaces, two systems. The installed app and the public website share the shared Button, IconButton, Chip, and field primitives and differ only in the corner and label weight the surface sets (16px like the fields in the app, a capsule on the website); the admin cockpit renders the same Button and IconButton as pills on its compact metric (DL-119). Every specimen below is the real component measured in this browser."
+      lede="Three surfaces, two systems. The installed app and the public website share the shared Button, IconButton, Chip, and field primitives and differ only in the corner and label weight the surface sets (16px like the fields in the app, a capsule on the website); the Hub renders the same Button and IconButton as pills on its compact metric (DL-119). Every specimen below is the real component measured in this browser."
     >
       <Section title="Side by side">
         <div className="sb-ds-columns">
@@ -258,7 +258,7 @@ export const ThreeSystems: Story = {
       </Section>
       <Section
         title="Where to go deeper"
-        lede="Foundations and Components per surface are the canonical pages and read green while a system holds. Admin · Shared pieces measures the shared components the cockpit renders on the cockpit's own metric (DL-031)."
+        lede="Foundations and Components per surface are the canonical pages and read green while a system holds. Admin · Shared pieces measures the shared components the Hub renders on the Hub's own metric (DL-031)."
       >
         <div className="sb-ds-links">
           <StoryLink id="design-system-app-foundations--tokens">App · Foundations</StoryLink>
@@ -286,7 +286,7 @@ export const ThreeSystems: Story = {
     const column = (surface: string) =>
       canvasElement.querySelector<HTMLElement>(`[data-column="${surface}"]`);
 
-    // Installed app: the 16px field corner, weight 500, the cockpit's
+    // Installed app: the 16px field corner, weight 500, the Hub's
     // Plus Jakarta Sans (DL-029, DL-096).
     const app = within(column("app") as HTMLElement);
     const appPrimary = app.getAllByRole("button", { name: "Create Garden" })[0];
@@ -308,7 +308,7 @@ export const ThreeSystems: Story = {
     await expect(first(getComputedStyle(editorial).fontFamily)).toBe("Fraunces");
     await expect(px(getComputedStyle(editorial).borderTopLeftRadius)).toBe(0);
 
-    // Admin cockpit (DL-030): one 14px label at every size, Plus Jakarta Sans,
+    // Hub (DL-030): one 14px label at every size, Plus Jakarta Sans,
     // 32px pills, the 14px field label above the box (F3), and xl / 2xl on the 16px step.
     const admin = within(column("admin") as HTMLElement);
     const adminMd = admin.getAllByRole("button", { name: "Create Garden" })[0];
@@ -324,11 +324,9 @@ export const ThreeSystems: Story = {
     await expect(getComputedStyle(adminLabel).fontSize).toBe("14px");
     await expect(getComputedStyle(adminLabel).fontWeight).toBe("500");
     const scope = column("admin") as HTMLElement;
-    await expect(getComputedStyle(scope).getPropertyValue("--radius-xl").trim()).toBe("16px");
-    await expect(getComputedStyle(scope).getPropertyValue("--radius-2xl").trim()).toBe("16px");
-    await expect(getComputedStyle(scope).getPropertyValue("--gg-type-meta-sm-size").trim()).toBe(
-      "0.6875rem"
-    );
+    await expect(readToken("--radius-xl", scope)).toBe("16px");
+    await expect(readToken("--radius-2xl", scope)).toBe("16px");
+    await expect(readToken("--gg-type-meta-sm-size", scope)).toBe("0.6875rem");
 
     // The measurement chips settle once fonts are ready.
     await waitFor(async () => {

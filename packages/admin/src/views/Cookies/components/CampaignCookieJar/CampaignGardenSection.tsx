@@ -29,7 +29,7 @@ export function CampaignGardenSection(props: CampaignCookieJarCreateFormProps) {
         <p className="mt-3 type-meta text-error-dark">
           {formatMessage(
             {
-              id: "cockpit.community.cookies.missingStewardsSummary",
+              id: "hub.community.cookies.missingStewardsSummary",
               defaultMessage:
                 "{count, plural, one {# selected garden has no steward} other {# selected gardens have no steward}}.",
             },

@@ -1,13 +1,13 @@
 /**
  * FactList and FactRow — the facts about one thing, the same on the installed app and the
- * cockpit (DL-109): a label beside its value, in divided rows. A review before a send, a
+ * Hub (DL-109): a label beside its value, in divided rows. A review before a send, a
  * record's details and a settings list all draw them.
  *
  * A list's labels share one column, as wide as its longest label up to 40%, in the quieter
  * ink, so the values line up and read first (Interface Principle 11); a value wraps rather
  * than being cut. Each surface sets the
  * density through its type roles: the label on `type-label-sm` and the value on `type-body`
- * (14px and 16px in the app, 12px and 14px in the cockpit), so the components take no
+ * (14px and 16px in the app, 12px and 14px in the Hub), so the components take no
  * density prop.
  *
  * A row's one action, when it has one, takes the right slot: a setting's control, a

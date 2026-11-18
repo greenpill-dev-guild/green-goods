@@ -8,9 +8,7 @@ import {
   normalizeAddress,
 } from "./shared";
 
-// ============================================================================
 // ACTION REGISTRY EVENT HANDLERS
-// ============================================================================
 
 // Handler for the ActionRegistered event
 indexer.onEvent(

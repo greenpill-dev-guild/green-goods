@@ -1,6 +1,6 @@
 # Green Goods E2E Tests
 
-The root Playwright suite covers the client PWA and admin cockpit. The source of truth is
+The root Playwright suite covers the client PWA and Hub. The source of truth is
 [`playwright.config.ts`](../playwright.config.ts); the root scripts in [`package.json`](../package.json)
 are the supported entrypoints. `scripts/dev/test-e2e.js` owns E2E preset dispatch and qualification.
 
@@ -134,7 +134,7 @@ cases do not prove browser-to-fork-to-indexer integration or authenticated-sessi
   connector restoration. The `passkey-mock` project owns real
   virtual-WebAuthn ceremonies against strict local substitutes. Mock logout proves the profile
   control and test-session transition, not a real wallet disconnect.
-- Admin cockpit specs use deterministic `sessionStorage` mock auth plus GraphQL route interception.
+- Hub specs use deterministic `sessionStorage` mock auth plus GraphQL route interception.
   Mock both `**/api/graphql` and `**/v1/graphql` when the test can traverse the Vite proxy.
 - Browser automation here is clean-room test evidence. Label it as such; root
   `AGENTS.md § Browser Evidence` names the wallet, passkey, session, and installed-PWA surfaces that
@@ -150,9 +150,10 @@ managed services.
 The `passkey-mock` project also starts the Agent's loopback reporting driver on port 3016
 (`packages/agent/src/__tests__/reporting/driver`) and points the Client's `/api/messaging` proxy at
 it. The driver serves the Client's origin only, and the test profile ignores a
-`REPORTING_AGENT_URL` from the root `.env`, so a running Agent is never behind a test. The Client
-workflow does not run on Agent-only changes, so a driver or ceremony API change that breaks these
-journeys shows on the next Client or Shared pull request.
+`REPORTING_AGENT_URL` from the root `.env`, so a running Agent is never behind a test. Agent source
+changes also select the passkey browser check and start the Client workflow. This includes the
+driver's transitive runtime and API dependencies, so an Agent-only change gets browser integration
+proof on its own pull request.
 
 The deterministic browser-test chain is Sepolia (`VITE_CHAIN_ID=11155111`). Local URLs are HTTPS
 outside CI and HTTP in CI.

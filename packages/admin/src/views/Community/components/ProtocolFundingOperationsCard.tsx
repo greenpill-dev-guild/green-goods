@@ -77,7 +77,7 @@ export function ProtocolFundingOperationsCard({
   const amountError =
     amount.length > 0 && amountValue === null
       ? formatMessage({
-          id: "cockpit.community.protocolFunding.amount.invalid",
+          id: "hub.community.protocolFunding.amount.invalid",
           defaultMessage: "Enter an amount greater than zero.",
         })
       : exceededLimit
@@ -102,7 +102,7 @@ export function ProtocolFundingOperationsCard({
     // The status line says whether it went out or is waiting on a Safe.
     toastService.success({
       title: formatMessage({
-        id: "cockpit.community.protocolFunding.submitted",
+        id: "hub.community.protocolFunding.submitted",
         defaultMessage: "Transaction submitted",
       }),
       message: `${identifier.slice(0, 10)}…`,
@@ -119,13 +119,13 @@ export function ProtocolFundingOperationsCard({
         <div>
           <AdminCardTitle>
             {formatMessage({
-              id: "cockpit.community.protocolFunding.title",
+              id: "hub.community.protocolFunding.title",
               defaultMessage: "Fund a Garden",
             })}
           </AdminCardTitle>
           <p className="mt-1 max-w-2xl type-body text-text-soft">
             {formatMessage({
-              id: "cockpit.community.protocolFunding.description",
+              id: "hub.community.protocolFunding.description",
               defaultMessage:
                 "Queue a discretionary protocol Safe top-up to a registered garden Safe. This does not fulfill or alter a promise.",
             })}
@@ -136,14 +136,14 @@ export function ProtocolFundingOperationsCard({
       {operations.sourceFunding.isError ? (
         <Alert variant="error">
           {formatMessage({
-            id: "cockpit.community.protocolFunding.readError",
+            id: "hub.community.protocolFunding.readError",
             defaultMessage: "Couldn't read protocol funding",
           })}
         </Alert>
       ) : !limitsRead && !operations.sourceFunding.isLoading ? (
         <Alert variant="warning">
           {formatMessage({
-            id: "cockpit.community.protocolFunding.limitsUnread",
+            id: "hub.community.protocolFunding.limitsUnread",
             defaultMessage:
               "The protocol Safe's balance and limits haven't been read, so nothing can be queued or dispatched. Refresh to try again.",
           })}
@@ -155,7 +155,7 @@ export function ProtocolFundingOperationsCard({
           <div className="grid gap-3 @[560px]:grid-cols-2">
             <AdminSelect
               label={formatMessage({
-                id: "cockpit.community.protocolFunding.garden",
+                id: "hub.community.protocolFunding.garden",
                 defaultMessage: "Receiving garden",
               })}
               value={targetGarden ?? ""}
@@ -165,7 +165,7 @@ export function ProtocolFundingOperationsCard({
               error={
                 recipientInactive
                   ? formatMessage({
-                      id: "cockpit.garden.pool.settlement.blocker.beneficiary-account-inactive",
+                      id: "hub.garden.pool.settlement.blocker.beneficiary-account-inactive",
                       defaultMessage: "The receiving garden has no active settlement account.",
                     })
                   : undefined
@@ -173,7 +173,7 @@ export function ProtocolFundingOperationsCard({
             >
               <option value="">
                 {formatMessage({
-                  id: "cockpit.community.protocolFunding.garden.placeholder",
+                  id: "hub.community.protocolFunding.garden.placeholder",
                   defaultMessage: "Select a garden",
                 })}
               </option>
@@ -185,7 +185,7 @@ export function ProtocolFundingOperationsCard({
             </AdminSelect>
             <AdminTextField
               label={formatMessage({
-                id: "cockpit.community.protocolFunding.amount",
+                id: "hub.community.protocolFunding.amount",
                 defaultMessage: "Amount (G$)",
               })}
               value={amount}
@@ -198,7 +198,7 @@ export function ProtocolFundingOperationsCard({
           <FactList frame="inset">
             <FactRow
               label={formatMessage({
-                id: "cockpit.community.protocolFunding.source",
+                id: "hub.community.protocolFunding.source",
                 defaultMessage: "Protocol Safe",
               })}
               value={
@@ -210,7 +210,7 @@ export function ProtocolFundingOperationsCard({
             />
             <FactRow
               label={formatMessage({
-                id: "cockpit.community.protocolFunding.recipient",
+                id: "hub.community.protocolFunding.recipient",
                 defaultMessage: "Receiving Safe",
               })}
               value={
@@ -221,7 +221,7 @@ export function ProtocolFundingOperationsCard({
             />
             <FactRow
               label={formatMessage({
-                id: "cockpit.community.protocolFunding.allowance",
+                id: "hub.community.protocolFunding.allowance",
                 defaultMessage: "Safe allowance remaining",
               })}
               value={
@@ -232,7 +232,7 @@ export function ProtocolFundingOperationsCard({
             />
             <FactRow
               label={formatMessage({
-                id: "cockpit.community.protocolFunding.periodAllowance",
+                id: "hub.community.protocolFunding.periodAllowance",
                 defaultMessage: "Period allowance remaining",
               })}
               value={
@@ -243,7 +243,7 @@ export function ProtocolFundingOperationsCard({
             />
             <FactRow
               label={formatMessage({
-                id: "cockpit.community.protocolFunding.cap",
+                id: "hub.community.protocolFunding.cap",
                 defaultMessage: "Per-transfer cap",
               })}
               value={
@@ -262,7 +262,7 @@ export function ProtocolFundingOperationsCard({
               onClick={() => setConfirmQueue(true)}
             >
               {formatMessage({
-                id: "cockpit.community.protocolFunding.review",
+                id: "hub.community.protocolFunding.review",
                 defaultMessage: "Review Seed or Top-Up…",
               })}
             </Button>
@@ -271,7 +271,7 @@ export function ProtocolFundingOperationsCard({
       ) : (
         <p className="type-meta text-text-soft" data-testid="protocol-funding-unavailable">
           {formatMessage({
-            id: "cockpit.community.protocolFunding.unavailable",
+            id: "hub.community.protocolFunding.unavailable",
             defaultMessage:
               "Only a protocol steward or the settlement module owner can queue garden funding.",
           })}
@@ -291,23 +291,23 @@ export function ProtocolFundingOperationsCard({
         >
           {operations.lastAct.phase === "signing"
             ? formatMessage({
-                id: "cockpit.community.protocolFunding.status.signing",
+                id: "hub.community.protocolFunding.status.signing",
                 defaultMessage: "Waiting for wallet approval…",
               })
             : operations.lastAct.phase === "failed"
               ? formatMessage({
-                  id: "cockpit.community.protocolFunding.status.failed",
+                  id: "hub.community.protocolFunding.status.failed",
                   defaultMessage:
                     "The transaction failed or was rejected. Nothing changed on chain.",
                 })
               : operations.lastAct.phase === "proposed"
                 ? formatMessage({
-                    id: "cockpit.community.protocolFunding.status.proposed",
+                    id: "hub.community.protocolFunding.status.proposed",
                     defaultMessage:
                       "Sent to your Safe. Queuing and dispatching stay closed until the chain shows it ran. If your Safe rejected it, reload this page.",
                   })
                 : formatMessage({
-                    id: "cockpit.community.protocolFunding.status.submitted",
+                    id: "hub.community.protocolFunding.status.submitted",
                     defaultMessage: "Submitted. Refresh to follow the indexed settlement state.",
                   })}
         </p>
@@ -319,12 +319,12 @@ export function ProtocolFundingOperationsCard({
         tone="community"
         variant="warning"
         title={formatMessage({
-          id: "cockpit.community.protocolFunding.confirm.title",
+          id: "hub.community.protocolFunding.confirm.title",
           defaultMessage: "Queue Protocol Funding?",
         })}
         description={formatMessage(
           {
-            id: "cockpit.community.protocolFunding.confirm.body",
+            id: "hub.community.protocolFunding.confirm.body",
             defaultMessage:
               "Queue {amount} from the protocol Safe to {garden}. The module derives the registered recipient Safe and canonical G$.",
           },
@@ -334,7 +334,7 @@ export function ProtocolFundingOperationsCard({
           }
         )}
         confirmLabel={formatMessage({
-          id: "cockpit.community.protocolFunding.confirm.action",
+          id: "hub.community.protocolFunding.confirm.action",
           defaultMessage: "Queue Seed or Top-Up",
         })}
         cancelLabel={formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
@@ -352,7 +352,7 @@ export function ProtocolFundingOperationsCard({
         ) : !limitsRead ? (
           <Alert variant="error">
             {formatMessage({
-              id: "cockpit.community.protocolFunding.limitsUnread",
+              id: "hub.community.protocolFunding.limitsUnread",
               defaultMessage:
                 "The protocol Safe's balance and limits haven't been read, so nothing can be queued or dispatched. Refresh to try again.",
             })}
@@ -388,16 +388,16 @@ export function ProtocolFundingOperationsCard({
         tone="community"
         variant="danger"
         title={formatMessage({
-          id: "cockpit.community.protocolFunding.cancel.title",
+          id: "hub.community.protocolFunding.cancel.title",
           defaultMessage: "Cancel This Funding Transfer?",
         })}
         description={formatMessage({
-          id: "cockpit.community.protocolFunding.cancel.body",
+          id: "hub.community.protocolFunding.cancel.body",
           defaultMessage:
             "Cancellation closes this queued or failed transfer. No G$ is delivered to the garden.",
         })}
         confirmLabel={formatMessage({
-          id: "cockpit.community.protocolFunding.cancel.action",
+          id: "hub.community.protocolFunding.cancel.action",
           defaultMessage: "Cancel Transfer",
         })}
         isLoading={operations.isActing}

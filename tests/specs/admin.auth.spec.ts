@@ -17,12 +17,12 @@ test.describe("Admin Authentication", () => {
     await mockSepoliaRpc(context);
   });
 
-  test("renders the current hub connect shell without mock auth", async ({ page }) => {
+  test("renders the current Hub connect shell without mock auth", async ({ page }) => {
     const helper = new AdminTestHelper(page);
-    await page.goto("/hub", { waitUntil: "domcontentloaded", timeout: 45000 });
+    await page.goto("/review", { waitUntil: "domcontentloaded", timeout: 45000 });
     await helper.waitForPageLoad();
 
-    await expect(page).toHaveURL(/\/hub(?:\?.*)?$/);
+    await expect(page).toHaveURL(/\/review(?:\?.*)?$/);
     await expect(page.getByRole("heading", { name: "Connect to continue" })).toBeVisible({
       timeout: 15000,
     });
@@ -32,7 +32,7 @@ test.describe("Admin Authentication", () => {
   test("introduces the upload terms once and lets a new Admin member skip", async ({ page }) => {
     test.setTimeout(150_000);
     const helper = new AdminTestHelper(page);
-    await page.goto(helper.buildMockAuthPath("/hub", "steward"));
+    await page.goto(helper.buildMockAuthPath("/review", "steward"));
     const terms = page.getByRole("dialog", { name: "Before You Share" });
     await expect(terms).toBeVisible({ timeout: 60000 });
     await expect(terms.getByRole("button", { name: "Agree and Continue" })).toBeDisabled();
@@ -48,7 +48,7 @@ test.describe("Admin Authentication", () => {
       await seedAcceptedUploadTerms(context, ADMIN_URL, ["steward", "deployer"]);
     });
 
-    // Each test boots the signed-in cockpit one to three times. A boot shows "Opening your
+    // Each test boots the signed-in the Hub one to three times. A boot shows "Opening your
     // workspace…" for 10 to 20 seconds on a quiet clean-room dev server, and the first also
     // compiles the signed-in module graph, which the global warm-up (a signed-out boot) never
     // reaches. On a busy machine a boot outlasts the helper's 30s wait for `main`, so every
@@ -69,7 +69,7 @@ test.describe("Admin Authentication", () => {
     test("maintains mock auth state across page reloads", async ({ page }) => {
       const helper = new AdminTestHelper(page);
 
-      await page.goto(helper.buildMockAuthPath("/hub", "steward"), {
+      await page.goto(helper.buildMockAuthPath("/review", "steward"), {
         waitUntil: "domcontentloaded",
         timeout: 45000,
       });
@@ -78,7 +78,7 @@ test.describe("Admin Authentication", () => {
 
       // DevAuthProvider persists the URL role, so the unparameterized reload
       // remains authenticated as the mocked steward.
-      await page.goto("/hub", { waitUntil: "domcontentloaded", timeout: 45000 });
+      await page.goto("/review", { waitUntil: "domcontentloaded", timeout: 45000 });
       await waitForSignedInBoot(page, helper);
       await page.reload({ waitUntil: "domcontentloaded", timeout: 45000 });
       await waitForSignedInBoot(page, helper);
@@ -87,14 +87,16 @@ test.describe("Admin Authentication", () => {
       await expect(page.locator("#root")).not.toBeEmpty();
     });
 
-    test("uses the persisted deployer mock role on the canonical hub route", async ({ page }) => {
+    test("uses the persisted deployer mock role on the canonical Review route", async ({
+      page,
+    }) => {
       const helper = new AdminTestHelper(page);
 
       await helper.enableMockAuth("deployer");
-      await page.goto("/hub", { waitUntil: "domcontentloaded", timeout: 45000 });
+      await page.goto("/review", { waitUntil: "domcontentloaded", timeout: 45000 });
       await waitForSignedInBoot(page, helper);
 
-      await expect(page).toHaveURL(/\/hub(?:\?.*)?$/);
+      await expect(page).toHaveURL(/\/review(?:\?.*)?$/);
       await expect(page.getByText("Connect to continue")).toHaveCount(0);
       await expect
         .poll(() => page.evaluate(() => window.sessionStorage.getItem("greengoods_dev_mock_auth")))
@@ -104,14 +106,14 @@ test.describe("Admin Authentication", () => {
     test("can disconnect mock auth through the dev-auth URL", async ({ page }) => {
       const helper = new AdminTestHelper(page);
 
-      await page.goto(helper.buildMockAuthPath("/hub", "steward"), {
+      await page.goto(helper.buildMockAuthPath("/review", "steward"), {
         waitUntil: "domcontentloaded",
         timeout: 45000,
       });
       await waitForSignedInBoot(page, helper);
       await expect(page.getByText("Connect to continue")).toHaveCount(0);
 
-      await page.goto(helper.buildMockAuthPath("/hub", "disconnected"), {
+      await page.goto(helper.buildMockAuthPath("/review", "disconnected"), {
         waitUntil: "domcontentloaded",
         timeout: 45000,
       });
@@ -134,18 +136,17 @@ test.describe("Admin Authentication", () => {
       // Context-level mock auth applies to every page created in this context.
       await helper1.enableMockAuth("steward");
 
-      await page1.goto("/hub", { waitUntil: "domcontentloaded", timeout: 45000 });
+      await page1.goto("/review", { waitUntil: "domcontentloaded", timeout: 45000 });
       await waitForSignedInBoot(page1, helper1);
       await expect(page1.getByText("Connect to continue")).toHaveCount(0);
 
       // Open a second tab after context-level initialization.
       const page2 = await context.newPage();
-      await page2.goto("/hub", { waitUntil: "domcontentloaded", timeout: 45000 });
+      await page2.goto("/review", { waitUntil: "domcontentloaded", timeout: 45000 });
       const helper2 = new AdminTestHelper(page2);
       await waitForSignedInBoot(page2, helper2);
       await expect(page2.getByText("Connect to continue")).toHaveCount(0);
 
-      // Close tabs
       await page1.close();
       await page2.close();
     });

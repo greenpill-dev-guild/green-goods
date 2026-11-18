@@ -17,17 +17,17 @@ interface ControlledChromeContractProps {
 
 const slots: ToolbarSlot[] = [
   {
-    id: "hub",
-    label: "Hub",
-    labelId: "cockpit.nav.hub",
+    id: "review",
+    label: "Review",
+    labelId: "hub.nav.review",
     icon: RiAppsLine,
-    path: "/hub",
+    path: "/review",
     visible: true,
   },
   {
     id: "garden",
     label: "Garden",
-    labelId: "cockpit.nav.garden",
+    labelId: "hub.nav.garden",
     icon: RiSeedlingLine,
     path: "/garden",
     visible: true,
@@ -35,7 +35,7 @@ const slots: ToolbarSlot[] = [
   {
     id: "community",
     label: "Community",
-    labelId: "cockpit.nav.community",
+    labelId: "hub.nav.community",
     icon: RiTeamLine,
     path: "/community",
     visible: true,
@@ -77,8 +77,8 @@ function ControlledChromeContract({ theme }: ControlledChromeContractProps) {
     <div
       className="admin-m3 workspace-canvas workspace-canvas-grid h-full min-h-[680px]"
       data-theme={theme}
-      data-tone="hub"
-      data-workspace="hub"
+      data-tone="review"
+      data-workspace="review"
     >
       <div className="canvas-area-top">
         <AppBar
@@ -129,7 +129,7 @@ function ControlledChromeContract({ theme }: ControlledChromeContractProps) {
       <div className="canvas-area-bottom">
         <NavigationBar
           slots={slots}
-          activePath="/hub"
+          activePath="/review"
           onNavigate={fn()}
           fab={{
             actions: [
@@ -137,13 +137,13 @@ function ControlledChromeContract({ theme }: ControlledChromeContractProps) {
                 id: "edit-garden",
                 icon: RiSeedlingLine,
                 label: "Edit Garden",
-                labelId: "cockpit.garden.action.editGarden",
+                labelId: "hub.garden.action.editGarden",
               },
               {
                 id: "view-public",
                 icon: RiTeamLine,
                 label: "View Public",
-                labelId: "cockpit.garden.action.viewPublic",
+                labelId: "hub.garden.action.viewPublic",
               },
             ],
             onAction: fn(),
@@ -180,7 +180,7 @@ const meta = {
     withCanvasFrame({
       className: "p-0",
       heightClassName: "h-[720px]",
-      workspace: "hub",
+      workspace: "review",
     }),
   ],
 } satisfies Meta<typeof ControlledChromeContract>;

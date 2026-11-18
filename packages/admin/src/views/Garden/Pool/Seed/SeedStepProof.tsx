@@ -52,7 +52,7 @@ export function SeedStepProof({
         <Alert variant="info">
           {formatMessage(
             {
-              id: "cockpit.garden.pool.seed.appliesToEach",
+              id: "hub.garden.pool.seed.appliesToEach",
               defaultMessage:
                 "These apply to each of the {count} promises. Each one is confirmed on its own.",
             },
@@ -73,18 +73,18 @@ export function SeedStepProof({
         <FactRow
           labelId={`${noteId}-fallback`}
           label={formatMessage({
-            id: "cockpit.garden.pool.seed.protocolFallback",
+            id: "hub.garden.pool.seed.protocolFallback",
             defaultMessage: "Let the Green Goods team confirm if nobody local is eligible",
           })}
           description={
             protocolRegistered
               ? formatMessage({
-                  id: "cockpit.garden.pool.seed.protocolFallbackHint",
+                  id: "hub.garden.pool.seed.protocolFallbackHint",
                   defaultMessage:
                     "On for this pilot. Usable only while nobody local can confirm, always with a recorded reason; every contributor stays excluded.",
                 })
               : formatMessage({
-                  id: "cockpit.garden.pool.seed.protocolFallbackUnavailable",
+                  id: "hub.garden.pool.seed.protocolFallbackUnavailable",
                   defaultMessage:
                     "Unavailable on this deployment: no Green Goods protocol pool is registered yet. The fallback is stored off.",
                 })
@@ -106,7 +106,7 @@ export function SeedStepProof({
       {!protocolRegistered ? (
         <Alert variant="warning">
           {formatMessage({
-            id: "cockpit.garden.pool.seed.protocolFallbackRepair",
+            id: "hub.garden.pool.seed.protocolFallbackRepair",
             defaultMessage:
               "Repair path: register the protocol pool (a deployment operation), or name a reachable local confirmer group before seeding.",
           })}
@@ -119,7 +119,7 @@ export function SeedStepProof({
         render={({ field }) => (
           <AdminChoiceGroup
             ariaLabel={formatMessage({
-              id: "cockpit.garden.pool.seed.claimMode",
+              id: "hub.garden.pool.seed.claimMode",
               defaultMessage: "Claim mode",
             })}
             value={field.value}
@@ -130,11 +130,11 @@ export function SeedStepProof({
                 value: "OPEN",
                 disabled: busy,
                 label: formatMessage({
-                  id: "cockpit.garden.pool.seed.claimMode.open",
+                  id: "hub.garden.pool.seed.claimMode.open",
                   defaultMessage: "Open",
                 }),
                 description: formatMessage({
-                  id: "cockpit.garden.pool.seed.claimMode.openHint",
+                  id: "hub.garden.pool.seed.claimMode.openHint",
                   defaultMessage: "Anyone in the garden may take it up",
                 }),
               },
@@ -142,11 +142,11 @@ export function SeedStepProof({
                 value: "APPROVAL_GATED",
                 disabled: busy,
                 label: formatMessage({
-                  id: "cockpit.garden.pool.seed.claimMode.gated",
+                  id: "hub.garden.pool.seed.claimMode.gated",
                   defaultMessage: "Steward-reviewed",
                 }),
                 description: formatMessage({
-                  id: "cockpit.garden.pool.seed.claimMode.gatedAskHint",
+                  id: "hub.garden.pool.seed.claimMode.gatedAskHint",
                   defaultMessage: "Each ask waits for your approval",
                 }),
               },

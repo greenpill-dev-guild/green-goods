@@ -195,7 +195,7 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     expect(result.current.scopeKey).toBe("11155111:0x1111111111111111111111111111111111111111");
   });
 
-  it("adds the protocol garden for a team member without a role there, so its campaign jars stay reachable (DL-046)", () => {
+  it("exposes every garden to Team without fabricating local membership", () => {
     const root = "0xf401f34378384713222d1d21f63359cc4e8a858a";
     mockUseRole.mockReturnValue({ ...defaultRole(), role: "deployer", isProtocolTeam: true });
     mockGetNetworkConfig.mockReturnValue({
@@ -213,7 +213,27 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
 
     const { result } = renderHook(() => useEligibleAdminGardens());
 
-    expect(result.current.eligibleGardens.map((garden) => garden.id)).toEqual([root, "garden-z"]);
+    expect(result.current.eligibleGardens.map((garden) => garden.id)).toEqual([
+      root,
+      "garden-other",
+      "garden-z",
+    ]);
+    expect(
+      result.current.eligibleGardens.find((garden) => garden.id === "garden-other")?.stewards
+    ).toEqual([]);
+  });
+
+  it("allows Product Lead to inspect all gardens without assigning a garden role", () => {
+    mockUseRole.mockReturnValue({ ...defaultRole(), isProductLead: true });
+    mockUseGardens.mockReturnValue({
+      data: [makeGarden("garden-a", "Alpha")],
+      isFetched: true,
+      isError: false,
+    });
+    const { result } = renderHook(() => useEligibleAdminGardens());
+    expect(result.current.eligibleGardens.map((garden) => garden.id)).toEqual(["garden-a"]);
+    expect(result.current.eligibleGardens[0].owners).toEqual([]);
+    expect(result.current.canCreateGarden).toBe(false);
   });
 
   it.each([

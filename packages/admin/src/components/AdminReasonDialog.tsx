@@ -167,7 +167,7 @@ export function AdminReasonDialog({
           label={
             reasonLabel ??
             formatMessage({
-              id: "cockpit.reasonDialog.reasonLabel",
+              id: "hub.reasonDialog.reasonLabel",
               defaultMessage: "Reason",
             })
           }
@@ -179,7 +179,7 @@ export function AdminReasonDialog({
           placeholder={
             reasonPlaceholder ??
             formatMessage({
-              id: "cockpit.reasonDialog.reasonPlaceholder",
+              id: "hub.reasonDialog.reasonPlaceholder",
               defaultMessage: "In your own words. Members read this.",
             })
           }
@@ -187,7 +187,7 @@ export function AdminReasonDialog({
             tooLong
               ? formatMessage(
                   {
-                    id: "cockpit.reasonDialog.tooLong",
+                    id: "hub.reasonDialog.tooLong",
                     defaultMessage: "Shorten the reason to {max} characters or fewer.",
                   },
                   { max: maxReasonLength }
@@ -203,7 +203,7 @@ export function AdminReasonDialog({
           <div
             className="flex flex-wrap gap-1.5"
             aria-label={formatMessage({
-              id: "cockpit.reasonDialog.suggestions",
+              id: "hub.reasonDialog.suggestions",
               defaultMessage: "Suggested reasons",
             })}
           >

@@ -1,16 +1,11 @@
 import { WagmiProvider } from "wagmi";
-import { ensureAppKit } from "../config/appkit";
+import { type AppKitMetadata, ensureAppKit } from "../config/appkit";
 import { DEFAULT_CHAIN_ID } from "../config/default-chain";
 
 interface AppKitProviderProps {
   children: React.ReactNode;
   projectId: string;
-  metadata: {
-    name: string;
-    description: string;
-    url: string;
-    icons: string[];
-  };
+  metadata: AppKitMetadata;
   defaultChainId?: number;
   fontFamily?: string;
 }

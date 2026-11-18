@@ -1,8 +1,8 @@
 import type {
   CommitmentDialogActs,
   CommitmentDialogController,
-  HubConfirmQueueActs,
-  HubConfirmQueueController,
+  ReviewConfirmQueueActs,
+  ReviewConfirmQueueController,
   PoolConsoleActs,
   PoolConsoleController,
   VoucherConsoleView,
@@ -28,7 +28,11 @@ import {
   selectCommitmentSeat,
   selectConfirmationEligibility,
 } from "../../modules/commitment-pooling/selectors";
-import type { CommitmentPoolRecord, HexString } from "../../modules/commitment-pooling/types";
+import type {
+  CommitmentPoolRecord,
+  HexString,
+  CommitmentReadModel,
+} from "../../modules/commitment-pooling/types";
 import {
   UNAVAILABLE_VOUCHER_CONSOLE,
   type VoucherConsoleSnapshot,
@@ -88,6 +92,7 @@ export function gardenCommitmentControllerFixture(
     metadata: { version: 1, title: "Repair tool handles" },
     pool,
     works: [],
+    workVisibility: { isReady: true, isLoading: false, isVisible: () => true },
     actions: [],
     roles: {
       isSteward: false,
@@ -353,21 +358,21 @@ export function voucherConsoleViewFixture(
   };
 }
 
-const confirmQueueActs: HubConfirmQueueActs = {
+const confirmQueueActs: ReviewConfirmQueueActs = {
   confirm: successfulJob,
   notYet: successfulTransaction,
 };
 
-type HubConfirmQueueFixtureOverrides = Partial<HubConfirmQueueController> & {
+type ReviewConfirmQueueFixtureOverrides = Partial<ReviewConfirmQueueController> & {
   toConfirm?: CommitmentsToConfirm;
 };
 
-export function hubConfirmQueueControllerFixture(
-  overrides: HubConfirmQueueFixtureOverrides = {}
-): HubConfirmQueueController {
+export function reviewConfirmQueueControllerFixture(
+  overrides: ReviewConfirmQueueFixtureOverrides = {}
+): ReviewConfirmQueueController {
   const { toConfirm = toConfirmFixture(), ...controllerOverrides } = overrides;
-  type Row = HubConfirmQueueController["rows"][number];
-  const rows: HubConfirmQueueController["rows"] = [
+  type Row = ReviewConfirmQueueController["rows"][number];
+  const rows: ReviewConfirmQueueController["rows"] = [
     ...toConfirm.groups.flatMap((group) =>
       group.rows.map(
         (row): Row => ({
@@ -552,7 +557,6 @@ import type {
   SettlementOperationsController,
 } from "../../hooks/admin-ui/pool/controller.types";
 import type { CommitmentSettlementChainState } from "../../modules/commitment-pooling/data-settlement-chain";
-import type { CommitmentReadModel } from "../../modules/commitment-pooling/types";
 import {
   selectSettlementEligibility,
   selectSettlementWorkflow,

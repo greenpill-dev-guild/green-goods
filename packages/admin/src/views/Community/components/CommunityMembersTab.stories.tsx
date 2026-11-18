@@ -1,9 +1,11 @@
+import { useGardenMemberContributions } from "@green-goods/shared/hooks/garden/useGardenMemberContributions";
+import { resetHookMocks } from "../../../../../shared/.storybook/moduleMocks";
 import type { Decorator, Meta, StoryObj } from "@storybook/react";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import esMessages from "@green-goods/shared/i18n/es.json";
 import ptMessages from "@green-goods/shared/i18n/pt.json";
 import { IntlProvider } from "react-intl";
-import { fn } from "storybook/test";
+import { fn, mocked } from "storybook/test";
 import {
   withAdminIdentity,
   withDataRouter,
@@ -14,6 +16,7 @@ import { CommunityMembersTab } from "./CommunityMembersTab";
 import {
   storyDirectory,
   storyGarden,
+  storyMemberHistory,
   storyRoleSummary,
   storyRoster,
   storyRosterIdentity,
@@ -24,6 +27,10 @@ const joinRequestsAvailable = [
   queryKeys.gardenJoinRequests.availability(),
   { enabled: true, supportedKinds: ["garden_membership", "steward_access"] },
 ] as const;
+const membershipHistory = [
+  queryKeys.gardens.memberHistory(storyGarden.id, undefined, storyGarden.chainId),
+  storyMemberHistory,
+] as const;
 
 const meta = {
   title: "Admin/Workflows/Community/Members",
@@ -32,7 +39,7 @@ const meta = {
   decorators: [
     withAdminIdentity,
     withDataRouter("/community/members"),
-    withSeededQueryClient([joinRequestsAvailable]),
+    withSeededQueryClient([joinRequestsAvailable, membershipHistory]),
   ],
   parameters: { layout: "padded" },
   args: {
@@ -72,6 +79,7 @@ export const PersonWithSeveralRoles: Story = {
 
 const withRosterIdentity = withSeededQueryClient([
   joinRequestsAvailable,
+  membershipHistory,
   ...storyRosterIdentity(FIXTURE_IMAGE_PROFILE),
 ]);
 
@@ -104,4 +112,20 @@ export const RosterSpanish: Story = {
 export const RosterPortuguese: Story = {
   ...Roster,
   decorators: [inLocale("pt", ptMessages), withRosterIdentity],
+};
+
+/** Public contribution fixtures use only synthetic accounts from the garden roster. */
+export const Contributions: Story = {
+  beforeEach: () => {
+    mocked(useGardenMemberContributions).mockReturnValue({
+      canView: true,
+      byAccount: Object.fromEntries(
+        storyDirectory.map((entry, index) => [
+          entry.address.toLowerCase(),
+          index === 0 ? { status: "recorded", at: Date.UTC(2026, 10, 15, 12) } : { status: "none" },
+        ])
+      ),
+    });
+    return resetHookMocks(useGardenMemberContributions);
+  },
 };

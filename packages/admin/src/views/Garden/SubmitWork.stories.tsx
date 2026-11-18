@@ -187,7 +187,7 @@ const DETAILS_ACTION: Action = {
 // first eligible garden by name, which is not the seeded one. So every story's
 // route names the garden the story is about.
 function submitWorkPath(garden: SharedGarden = STORYBOOK_PRIMARY_ADMIN_GARDEN) {
-  return `/hub/work/submit?gardenId=${garden.id}`;
+  return `/review/work/submit?gardenId=${garden.id}`;
 }
 
 const STORYBOOK_EMPTY_DOMAIN_GARDEN = {
@@ -282,7 +282,7 @@ function submitWorkDecorators({
     withCanvasFrame({
       className: "p-0",
       heightClassName: "h-[760px]",
-      workspace: "hub",
+      workspace: "review",
     }),
   ];
 }
@@ -301,7 +301,7 @@ export const AvailableAction: Story = {
     // here: advancing without it shows an inline error and the Details fields stay
     // out of reach.
     await userEvent.click(await canvas.findByRole("button", { name: "Next" }));
-    await expect(await canvas.findByText(/Add at least 1 photo to continue/)).toBeVisible();
+    await expect(await canvas.findByText(/Add at least 1 media item to continue/)).toBeVisible();
     await expect(canvas.queryByLabelText(/Plot code/)).not.toBeInTheDocument();
   },
 };
@@ -352,8 +352,8 @@ function SubmitWorkDataRoute({ children }: { children: ReactNode }) {
   const [router] = useState(() =>
     createMemoryRouter(
       [
-        { path: "/hub/work/submit", element: children },
-        { path: "*", element: <div className="p-6">Hub route</div> },
+        { path: "/review/work/submit", element: children },
+        { path: "*", element: <div className="p-6">Review route</div> },
       ],
       { initialEntries: [submitWorkPath()] }
     )
@@ -361,7 +361,7 @@ function SubmitWorkDataRoute({ children }: { children: ReactNode }) {
   return <RouterProvider router={router} />;
 }
 
-// The route host in its dialog, as the Hub opens it, with the given actions seeded.
+// The route host in its dialog, as Review opens it, with the given actions seeded.
 function submitWorkRouteDecorators(actions: Action[]) {
   return [
     withAdminIdentity,
@@ -374,7 +374,7 @@ function submitWorkRouteDecorators(actions: Action[]) {
     withCanvasFrame({
       className: "p-0",
       heightClassName: "h-[760px]",
-      workspace: "hub",
+      workspace: "review",
     }),
   ];
 }
@@ -407,7 +407,7 @@ export const MediaStepStaging: Story = {
     const photos = () =>
       within(flow.querySelector<HTMLElement>('[data-component="SubmitWorkPhotos"]')!);
     const count = () => photos().getByRole("status");
-    await expect(count()).toHaveTextContent("0 of 2 photos");
+    await expect(count()).toHaveTextContent("0 of 2 media items");
 
     // Each photo is under the 1 MB compression threshold, so it stages as it is.
     const input = flow.querySelector<HTMLInputElement>('input[type="file"]');
@@ -422,7 +422,7 @@ export const MediaStepStaging: Story = {
       { name: "Preview east-bed-after.jpg" },
       { timeout: 5000 }
     );
-    await expect(count()).toHaveTextContent("3 photos added");
+    await expect(count()).toHaveTextContent("3 media items added");
     await expect(count()).toHaveAttribute("data-state", "met");
 
     // Both controls sit on one tile, so each has to take the press at its own centre.
@@ -456,10 +456,12 @@ export const MediaStepStaging: Story = {
     // Back below the requirement, the count turns amber again and Next is held.
     await userEvent.click(remove);
     await userEvent.click(within(flow).getByRole("button", { name: "Remove seedling-tray.jpg" }));
-    await expect(count()).toHaveTextContent("1 of 2 photos");
+    await expect(count()).toHaveTextContent("1 of 2 media items");
     await expect(count()).toHaveAttribute("data-state", "needed");
     await userEvent.click(within(flow).getByRole("button", { name: "Next" }));
-    await expect(await within(flow).findByText(/Add at least 2 photos to continue/)).toBeVisible();
+    await expect(
+      await within(flow).findByText(/Add at least 2 media items to continue/)
+    ).toBeVisible();
   },
 };
 

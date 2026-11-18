@@ -130,9 +130,9 @@ const NON_VISUAL_ADMIN_VIEWS = new Set<string>([
   "Garden/SubmitWork.tsx",
   "Garden/Vault.tsx",
   "Garden/index.tsx",
-  "Hub/CreateAssessment.tsx",
-  "Hub/CreateHypercert.tsx",
-  "Hub/index.tsx",
+  "Review/CreateAssessment.tsx",
+  "Review/CreateHypercert.tsx",
+  "Review/index.tsx",
   "NotFound.tsx",
   "Profile/index.tsx",
 
@@ -156,14 +156,14 @@ const NON_VISUAL_ADMIN_VIEWS = new Set<string>([
   // — it has no UI to review in Storybook.
   "Community/components/CommunitySheetDescriptor.tsx",
   "Garden/components/GardenSheetDescriptor.tsx",
-  "Hub/components/HubSheetDescriptor.tsx",
+  "Review/components/ReviewSheetDescriptor.tsx",
 
   // Thin route/controller adapters. They switch between reusable shell states
   // and already-covered tab/queue stories, but do not own a distinct visual
   // contract worth snapshotting as another full composition layer.
   "Community/components/CommunityWorkspaceContent.tsx",
   "Garden/components/GardenWorkspaceContent.tsx",
-  "Hub/components/HubStageContent.tsx",
+  "Review/components/ReviewStageContent.tsx",
 ]);
 
 // Currently empty: the former entries (Canvas/CanvasSheetInternals.tsx,
@@ -205,19 +205,19 @@ const AUDITED_HARNESS_ONLY_STORIES = new Map<string, string>([
     "self-fetches garden vaults via useGardenVaults and resolves addresses through EnsAddressText; wagmi/ENS reads are not seedable in Storybook, so the harness renders the row layout from plain props",
   ],
   [
-    "admin/views/Hub/components/CookieJarDepositModal.tsx",
+    "admin/views/Review/components/CookieJarDepositModal.tsx",
     "real modal reads wallet balances and garden cookie jars before mutating deposit flows",
   ],
   [
-    "admin/views/Hub/components/CookieJarManageModal.tsx",
+    "admin/views/Review/components/CookieJarManageModal.tsx",
     "real modal wires cookie-jar reads plus pause, resume, edit, and emergency-withdraw mutations",
   ],
   [
-    "admin/views/Hub/components/CookieJarPayoutPanel.tsx",
+    "admin/views/Review/components/CookieJarPayoutPanel.tsx",
     "real panel is gated by garden cookie-jar wagmi reads",
   ],
   [
-    "admin/views/Hub/components/CookieJarWithdrawModal.tsx",
+    "admin/views/Review/components/CookieJarWithdrawModal.tsx",
     "real modal reads garden cookie jars and mutates withdraw flows through wagmi hooks",
   ],
   [
@@ -526,7 +526,7 @@ async function main() {
     // Candidate story paths. For visual `index.tsx` we also accept a
     // sibling named after the containing directory (e.g.
     // `views/Actions/Actions.stories.tsx` beside `views/Actions/index.tsx`),
-    // a long-standing convention in the cockpit's views.
+    // a long-standing convention in the Hub's views.
     const candidates = [join(dir, `${fileName}.stories.tsx`)];
     if (fileName === "index") {
       const dirName = basename(dir);

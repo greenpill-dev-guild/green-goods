@@ -153,7 +153,6 @@ test.describe("#468 C — iPhone 16 Pro bottom gap", () => {
       fullPage: false,
     });
 
-    // Headlines
     console.log(
       `safe-area-inset-bottom in WebKit iPhone 16 Pro sim: ${layout.safeAreaInsetBottom}px`
     );

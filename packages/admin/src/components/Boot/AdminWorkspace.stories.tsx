@@ -32,7 +32,7 @@ function SeededAppRoutes() {
     <IntlProvider locale="en" messages={messages}>
       <Routes>
         <Route element={<CanvasLayout />}>
-          <Route path="/hub/*" element={<SeededWorkspaceRoute />} />
+          <Route path="/review/*" element={<SeededWorkspaceRoute />} />
         </Route>
       </Routes>
     </IntlProvider>
@@ -45,7 +45,7 @@ const meta: Meta<typeof AdminWorkspace> = {
   decorators: [
     withAdminIdentity,
     withSeededQueryClient(STORYBOOK_ADMIN_SHELL_SEEDS),
-    withRouter(["/hub"]),
+    withRouter(["/review"]),
   ],
   parameters: {
     layout: "fullscreen",

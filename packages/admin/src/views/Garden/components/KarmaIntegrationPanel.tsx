@@ -20,59 +20,59 @@ interface KarmaStatusPresentation {
 
 const STATUS_PRESENTATION = {
   unsupported: {
-    badgeId: "cockpit.garden.karma.status.unsupported",
+    badgeId: "hub.garden.karma.status.unsupported",
     badgeDefault: "Unavailable",
-    bodyId: "cockpit.garden.karma.body.unsupported",
+    bodyId: "hub.garden.karma.body.unsupported",
     bodyDefault: "Karma sync is not available for this network.",
     variant: "neutral",
   },
   "upgrade-needed": {
-    badgeId: "cockpit.garden.karma.status.upgradeNeeded",
+    badgeId: "hub.garden.karma.status.upgradeNeeded",
     badgeDefault: "Migration needed",
-    bodyId: "cockpit.garden.karma.body.upgradeNeeded",
+    bodyId: "hub.garden.karma.body.upgradeNeeded",
     bodyDefault:
       "This garden was created before Karma support and needs a one-time migration. Ask the Green Goods team to migrate this garden.",
     variant: "warning",
   },
   "no-project": {
-    badgeId: "cockpit.garden.karma.status.noProject",
+    badgeId: "hub.garden.karma.status.noProject",
     badgeDefault: "No profile",
-    bodyId: "cockpit.garden.karma.body.noProject",
+    bodyId: "hub.garden.karma.body.noProject",
     bodyDefault: "This garden does not have a Karma profile yet.",
     variant: "warning",
   },
   "stale-details": {
-    badgeId: "cockpit.garden.karma.status.staleDetails",
+    badgeId: "hub.garden.karma.status.staleDetails",
     badgeDefault: "Details pending",
-    bodyId: "cockpit.garden.karma.body.staleDetails",
+    bodyId: "hub.garden.karma.body.staleDetails",
     bodyDefault: "Garden details changed and are waiting to be reflected on Karma.",
     variant: "warning",
   },
   "access-pending": {
-    badgeId: "cockpit.garden.karma.status.accessPending",
+    badgeId: "hub.garden.karma.status.accessPending",
     badgeDefault: "Access pending",
-    bodyId: "cockpit.garden.karma.body.accessPending",
+    bodyId: "hub.garden.karma.body.accessPending",
     bodyDefault: "Garden roles changed and Karma access still needs to catch up.",
     variant: "warning",
   },
   failed: {
-    badgeId: "cockpit.garden.karma.status.failed",
+    badgeId: "hub.garden.karma.status.failed",
     badgeDefault: "Sync failed",
-    bodyId: "cockpit.garden.karma.body.failed",
+    bodyId: "hub.garden.karma.body.failed",
     bodyDefault: "The last Karma sync did not finish. Your garden data is safe and you can retry.",
     variant: "error",
   },
   retrying: {
-    badgeId: "cockpit.garden.karma.status.retrying",
+    badgeId: "hub.garden.karma.status.retrying",
     badgeDefault: "Syncing",
-    bodyId: "cockpit.garden.karma.body.retrying",
+    bodyId: "hub.garden.karma.body.retrying",
     bodyDefault: "Karma is reconciling the project, details, and role access.",
     variant: "info",
   },
   synced: {
-    badgeId: "cockpit.garden.karma.status.synced",
+    badgeId: "hub.garden.karma.status.synced",
     badgeDefault: "Synced",
-    bodyId: "cockpit.garden.karma.body.synced",
+    bodyId: "hub.garden.karma.body.synced",
     bodyDefault: "The Karma profile and garden role access are current.",
     variant: "success",
   },
@@ -142,7 +142,7 @@ export function KarmaIntegrationPanel({ integration }: KarmaIntegrationPanelProp
         <div className="flex items-start justify-between gap-3">
           <AdminCardTitle id={titleId} className="min-w-0">
             {formatMessage({
-              id: "cockpit.garden.karma.title",
+              id: "hub.garden.karma.title",
               defaultMessage: "Karma Integration",
             })}
           </AdminCardTitle>
@@ -161,7 +161,7 @@ export function KarmaIntegrationPanel({ integration }: KarmaIntegrationPanelProp
         </div>
         <p className="mt-1 type-body text-text-soft">
           {formatMessage({
-            id: "cockpit.garden.karma.description",
+            id: "hub.garden.karma.description",
             defaultMessage:
               "Check the public Karma profile and repair project or role sync when needed.",
           })}
@@ -177,8 +177,8 @@ export function KarmaIntegrationPanel({ integration }: KarmaIntegrationPanelProp
 
       {hold && !showPendingAction ? (
         <TxHoldFeedback
-          title={formatMessage({ id: "cockpit.garden.karma.hold.title" })}
-          message={formatMessage({ id: "cockpit.garden.karma.hold.body" })}
+          title={formatMessage({ id: "hub.garden.karma.hold.title" })}
+          message={formatMessage({ id: "hub.garden.karma.hold.body" })}
           hasUnreadValues={false}
           isSettling={integration.isSettlingHold}
           onCheckAgain={() => void integration.checkHoldAgain()}
@@ -190,7 +190,7 @@ export function KarmaIntegrationPanel({ integration }: KarmaIntegrationPanelProp
         {showPendingAction ? (
           <Button type="button" emphasis="secondary" size="compact" loading disabled>
             {formatMessage({
-              id: "cockpit.garden.karma.action.retrying",
+              id: "hub.garden.karma.action.retrying",
               defaultMessage: "Syncing…",
             })}
           </Button>
@@ -204,8 +204,8 @@ export function KarmaIntegrationPanel({ integration }: KarmaIntegrationPanelProp
             {formatMessage({
               id:
                 integration.status.status === "failed"
-                  ? "cockpit.garden.karma.action.retry"
-                  : "cockpit.garden.karma.action.reconcile",
+                  ? "hub.garden.karma.action.retry"
+                  : "hub.garden.karma.action.reconcile",
               defaultMessage:
                 integration.status.status === "failed" ? "Retry Karma Sync" : "Retry Sync",
             })}
@@ -233,12 +233,12 @@ export function KarmaIntegrationPanel({ integration }: KarmaIntegrationPanelProp
             rel="noopener noreferrer"
             className="admin-hit-target inline-flex h-8 items-center gap-1 rounded-[var(--m3-shape-full)] px-2 type-meta-sm font-medium text-[rgb(var(--tone-on-surface-accent,var(--primary-base)))] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--primary-base)))] focus-visible:ring-offset-2"
             aria-label={formatMessage({
-              id: "cockpit.garden.karma.profileLinkLabel",
+              id: "hub.garden.karma.profileLinkLabel",
               defaultMessage: "Open This Garden's Karma Profile",
             })}
           >
             {formatMessage({
-              id: "cockpit.garden.karma.profileLink",
+              id: "hub.garden.karma.profileLink",
               defaultMessage: "Open Karma Profile",
             })}
             <RiExternalLinkLine className="h-4 w-4" aria-hidden />

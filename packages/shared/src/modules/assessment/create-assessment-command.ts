@@ -250,6 +250,7 @@ export function createDefaultCreateAssessmentPorts(input: {
     },
     sender: {
       ensureChain: async (chainId) => {
+        input.transactionSender.assertReadyToSign?.();
         chain = chainId;
         await input.transactionSender.assertOwnership?.(input.account, chainId);
       },

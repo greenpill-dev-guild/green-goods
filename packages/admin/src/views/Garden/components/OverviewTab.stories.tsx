@@ -21,7 +21,7 @@ const MOCK_ACTIVITY: GardenActivityEvent[] = [
     photo: FIXTURE_IMAGE_AGROFORESTRY,
     statusLabel: "Approved",
     statusTone: "success",
-    href: "/hub/work/w-1",
+    href: "/review/work/w-1",
     timestamp: hoursAgo(3) * 1000,
     itemId: "w-1",
   },
@@ -180,7 +180,7 @@ export const EvaluatorActivity: Story = {
   args: {
     mode: "activity",
     filteredActivityEvents: [
-      { ...MOCK_ACTIVITY[0], href: "/hub/work/w-1" },
+      { ...MOCK_ACTIVITY[0], href: "/review/work/w-1" },
       { ...MOCK_ACTIVITY[2], href: undefined },
     ],
   },
@@ -212,7 +212,7 @@ export const ActivityPagination: Story = {
       description: "Submitted work",
       statusLabel: "Pending",
       statusTone: "neutral",
-      href: `/hub/work/work-${index}`,
+      href: `/review/work/work-${index}`,
       timestamp: hoursAgo(index * 24) * 1000,
     })),
   },

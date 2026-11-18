@@ -124,8 +124,8 @@ export const StateCatalog: Story = {
   },
 };
 
-/** The cockpit draws the same card at its own density: its type roles and its card ground and edge. */
-export const InTheCockpit: Story = {
+/** The Hub draws the same card at its own density: its type roles and its card ground and edge. */
+export const InTheHub: Story = {
   parameters: { surface: "admin" },
   render: () => (
     <div

@@ -195,7 +195,7 @@ describe("Workspace State Integration", () => {
     });
   });
 
-  it("deep URL /hub/work/:workId opens correct state without legacy item query", () => {
+  it("deep URL /review/work/:workId opens correct state without legacy item query", () => {
     mockUseGardenUrlSync.mockReturnValue({
       gardenId: "garden-x",
       tab: null,
@@ -208,7 +208,7 @@ describe("Workspace State Integration", () => {
     });
 
     renderWithProviders(
-      <MemoryRouter initialEntries={["/hub/work/item-y?gardenAddress=0xgardenx"]}>
+      <MemoryRouter initialEntries={["/review/work/item-y?gardenAddress=0xgardenx"]}>
         <CanvasLayout />
       </MemoryRouter>
     );
@@ -220,7 +220,7 @@ describe("Workspace State Integration", () => {
     expect(screen.getByTestId("page-content")).toBeInTheDocument();
   });
 
-  it("keeps legacy item helpers out of Hub route ownership", () => {
+  it("keeps legacy item helpers out of Review route ownership", () => {
     const mockCloseItem = vi.fn();
 
     mockUseGardenUrlSync.mockReturnValue({
@@ -235,7 +235,7 @@ describe("Workspace State Integration", () => {
     });
 
     renderWithProviders(
-      <MemoryRouter initialEntries={["/hub/work/item-open?gardenAddress=0xgardenx"]}>
+      <MemoryRouter initialEntries={["/review/work/item-open?gardenAddress=0xgardenx"]}>
         <CanvasLayout />
       </MemoryRouter>
     );
@@ -259,7 +259,7 @@ describe("Workspace State Integration", () => {
     });
 
     const { rerender } = renderWithProviders(
-      <MemoryRouter initialEntries={["/hub?gardenAddress=0xgardenx&tab=community"]}>
+      <MemoryRouter initialEntries={["/review?gardenAddress=0xgardenx&tab=community"]}>
         <CanvasLayout />
       </MemoryRouter>
     );
@@ -277,7 +277,7 @@ describe("Workspace State Integration", () => {
     });
 
     rerender(
-      <MemoryRouter initialEntries={["/hub?gardenAddress=0xgardeny&tab=actions"]}>
+      <MemoryRouter initialEntries={["/review?gardenAddress=0xgardeny&tab=actions"]}>
         <CanvasLayout />
       </MemoryRouter>
     );

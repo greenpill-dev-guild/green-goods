@@ -156,7 +156,7 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
           data-state="open"
           role="menu"
           // Named for the whole set, in the reader's language, not for one act.
-          aria-label={formatMessage({ id: "cockpit.fab.actions" })}
+          aria-label={formatMessage({ id: "hub.fab.actions" })}
           onKeyDown={handleSpeedDialKeyDown}
         >
           {config.actions.map((action) => {
@@ -245,7 +245,7 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
           isSingleAction
             ? floatingActionLabel
             : formatMessage({
-                id: speedDialOpen ? "cockpit.fab.closeActions" : "cockpit.fab.openActions",
+                id: speedDialOpen ? "hub.fab.closeActions" : "hub.fab.openActions",
               })
         }
         aria-haspopup={isSingleAction ? undefined : "menu"}

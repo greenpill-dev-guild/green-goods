@@ -35,7 +35,10 @@ import type { MintServiceDeps } from "./types";
  * Looks up the garden's HypercertSignalPool, then sends a registerHypercert
  * transaction. Gracefully returns { registered: false } when no pool exists.
  */
-export function createRegisterInSignalPoolActor(deps: MintServiceDeps) {
+export function createRegisterInSignalPoolActor(
+  deps: MintServiceDeps,
+  assertReadyToSign: () => void
+) {
   return fromPromise(async ({ input }: { input: RegisterInSignalPoolInput }) => {
     const currentSmartAccountClient = deps.smartAccountClientRef.current;
     const currentEoaAddress = deps.eoaAddressRef.current;
@@ -85,6 +88,7 @@ export function createRegisterInSignalPoolActor(deps: MintServiceDeps) {
     });
 
     // Send registration transaction
+    assertReadyToSign();
     if (currentSmartAccountClient) {
       assertLocalArbitrumForkSmartAccountsDisabled();
 

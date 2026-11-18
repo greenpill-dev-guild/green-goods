@@ -64,6 +64,8 @@ export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole("heading", { level: 2, name: "Recent Activity" })).toBeVisible();
+    // Whose work it is: the garden's, everyone's, not the member's own (PRD-1492).
+    await expect(canvas.getByText("Everyone's work in this garden")).toBeVisible();
     const rows = canvasElement.querySelectorAll<HTMLElement>("[data-component='WorkCard']");
     await expect(rows).toHaveLength(3);
     await expect([...rows].map((row) => within(row).getByRole("status").textContent)).toEqual([
@@ -81,6 +83,34 @@ export const Default: Story = {
 /** English, Spanish and Portuguese at 390 and 360px. */
 export const Locales: Story = {
   render: (args) => <JournalLocales render={() => <RecentActivity {...args} />} />,
+};
+
+const DAY_MS = 86_400_000;
+/** How old each of the three works is: a minute, a month and a year. */
+const AGES_MS = [60_000, 31 * DAY_MS, 400 * DAY_MS];
+const AGES: ActivityState = {
+  status: "ready",
+  items: JOURNAL_WORKS.map((work, index) => ({
+    ...work,
+    createdAt: STORYBOOK_NOW_SECONDS * 1000 - (AGES_MS[index] ?? 0),
+  })),
+  savedAt: null,
+};
+
+/**
+ * Ages in every language (PRD-1492): the short form shortens a minute, and keeps a month and a
+ * year in full, so Spanish never reads "hace 1 m", a month, beside "hace 1 min".
+ */
+export const AgesInEveryLanguage: Story = {
+  beforeEach: withStates({ [JOURNEY_GARDEN]: AGES }),
+  render: (args) => <JournalLocales render={() => <RecentActivity {...args} />} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    for (const age of ["1 month ago", "hace 1 mes", "há 1 mês", "hace 1 año", "hace 1 min"]) {
+      await expect(canvas.getAllByText(new RegExp(age)).length).toBeGreaterThan(0);
+    }
+    await expect(canvas.queryAllByText(/hace 1 m(?!in|es)/)).toHaveLength(0);
+  },
 };
 
 /**

@@ -252,7 +252,7 @@ export function SeedCommitmentDialog({
   const currentStep = STEPS[stepIndex] ?? "review";
   const isLast = stepIndex === STEPS.length - 1;
   const title = formatMessage({
-    id: "cockpit.garden.pool.seed.promisesTitle",
+    id: "hub.garden.pool.seed.promisesTitle",
     defaultMessage: "Seed Promises",
   });
 
@@ -269,7 +269,7 @@ export function SeedCommitmentDialog({
     if (pool.poolId === undefined || !jobs.viewer) {
       setSubmitError(
         formatMessage({
-          id: "cockpit.garden.pool.seed.noPoolOrViewer",
+          id: "hub.garden.pool.seed.noPoolOrViewer",
           defaultMessage: "Sign in and choose a garden with a pool before seeding.",
         })
       );
@@ -290,7 +290,7 @@ export function SeedCommitmentDialog({
     if (outcome === "blocked") {
       setSubmitError(
         formatMessage({
-          id: "cockpit.garden.pool.seed.blocked.build",
+          id: "hub.garden.pool.seed.blocked.build",
           defaultMessage:
             "One of these couldn't be prepared, so nothing was sent. Check its answers, then try again.",
         })
@@ -419,7 +419,7 @@ export function SeedCommitmentDialog({
         preventClose={busy}
         title={title}
         description={formatMessage({
-          id: "cockpit.garden.pool.seed.promisesDescription",
+          id: "hub.garden.pool.seed.promisesDescription",
           defaultMessage: "Offer or ask for one or many promises on the pool's behalf.",
         })}
         bodyClassName="flex min-h-0 flex-col !overflow-hidden"
@@ -467,7 +467,7 @@ export function SeedCommitmentDialog({
             {pool.model.status !== "open" && pool.poolId !== undefined ? (
               <Alert variant="warning">
                 {formatMessage({
-                  id: "cockpit.garden.pool.seed.poolNotOpen",
+                  id: "hub.garden.pool.seed.poolNotOpen",
                   defaultMessage: "The pool is not open, so nothing can be seeded into it yet.",
                 })}
               </Alert>

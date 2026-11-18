@@ -93,7 +93,7 @@ export function PoolClaimsCard({
   const titleOf = (commitment: PoolClaimRequestRow["commitment"]) =>
     (commitment.metadataCID && titles.get(commitment.metadataCID.trim())?.title) ??
     formatMessage(
-      { id: "cockpit.garden.pool.row.untitled", defaultMessage: "Promise {id}" },
+      { id: "hub.garden.pool.row.untitled", defaultMessage: "Promise {id}" },
       { id: commitment.commitmentId.toString() }
     );
   const titleFor = (ask: VoucherAsk | null) => {
@@ -119,7 +119,7 @@ export function PoolClaimsCard({
         act === "approve"
           ? {
               label: formatMessage({
-                id: "cockpit.garden.pool.voucher.act.approve",
+                id: "hub.garden.pool.voucher.act.approve",
                 defaultMessage: "Approve…",
               }),
               onAct: () => setApproving(ask),
@@ -127,7 +127,7 @@ export function PoolClaimsCard({
           : act === "accept"
             ? {
                 label: formatMessage({
-                  id: "cockpit.garden.pool.voucher.act.accept",
+                  id: "hub.garden.pool.voucher.act.accept",
                   defaultMessage: "Accept…",
                 }),
                 onAct: () => setAccepting(ask),
@@ -138,18 +138,18 @@ export function PoolClaimsCard({
 
   const description = model.isPaused
     ? formatMessage({
-        id: "cockpit.garden.pool.claims.paused",
+        id: "hub.garden.pool.claims.paused",
         defaultMessage: "Requests wait while the pool is paused.",
       })
     : approvals.decided === 0
       ? formatMessage({
-          id: "cockpit.garden.pool.approvals.description",
+          id: "hub.garden.pool.approvals.description",
           defaultMessage:
             "Neighbors asking to take a promise up. Approving one closes the others on that promise.",
         })
       : formatMessage(
           {
-            id: "cockpit.garden.pool.approvals.decidedThisVisit",
+            id: "hub.garden.pool.approvals.decidedThisVisit",
             defaultMessage:
               "{waiting, plural, =0 {Nothing waiting now.} other {# waiting.}} {decided, plural, one {# decided this visit; it clears when you leave the Promises tab.} other {# decided this visit; they clear when you leave the Promises tab.}}",
           },
@@ -167,14 +167,14 @@ export function PoolClaimsCard({
       <div>
         <AdminCardTitle>
           {formatMessage({
-            id: "cockpit.garden.pool.approvals.title",
+            id: "hub.garden.pool.approvals.title",
             defaultMessage: "Review Promises",
           })}
         </AdminCardTitle>
         {approvals.rows.length === 0 ? (
           <p className="mt-1 type-body text-text-soft">
             {formatMessage({
-              id: "cockpit.garden.pool.approvals.empty",
+              id: "hub.garden.pool.approvals.empty",
               defaultMessage: "Nothing to review.",
             })}
           </p>

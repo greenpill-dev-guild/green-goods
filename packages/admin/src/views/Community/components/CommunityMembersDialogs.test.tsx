@@ -2,8 +2,9 @@ import {
   buildCommunityViewActions,
   resolveCommunityMode,
 } from "@green-goods/shared/hooks/admin-ui/community/community.utils";
+import type { useAddMembersBatch } from "@green-goods/shared/hooks/garden/useGardenOperations";
 import { createMemoryRouter, RouterProvider, useLocation, useNavigate } from "react-router-dom";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   act,
   fireEvent,
@@ -18,22 +19,35 @@ import { CommunityMembersDialogs } from "./CommunityMembersDialogs";
 import { storyGarden, storyRoleMembers } from "./communityStoryFixtures";
 
 const addGardener = vi.hoisted(() => vi.fn());
+const addSteward = vi.hoisted(() => vi.fn());
+const removeOwner = vi.hoisted(() => vi.fn());
+const scheduleBackgroundRefetch = vi.hoisted(() => vi.fn());
+type AddMembersBatch = ReturnType<typeof useAddMembersBatch>;
+const batchState = vi.hoisted(() => ({ available: false, add: vi.fn<AddMembersBatch["add"]>() }));
 
 // The chain and the wallet are this suite's edges; the action, the URL and the dialogs are real.
 vi.mock("@green-goods/shared/hooks/garden/useGardenOperations", () => ({
-  useGardenOperations: () => ({ isLoading: false, addGardener }),
+  useGardenOperations: () => ({ isLoading: false, addGardener, addSteward, removeOwner }),
   useAddMembersBatch: () => ({
     hold: null,
     saved: [],
     lastReadAt: 0,
     isSettlingHold: false,
-    available: false,
+    available: batchState.available,
+    add: batchState.add,
+    signaturesFor: (count: number) => Math.ceil(count / 10),
   }),
   useRemoveMemberRoles: () => ({ account: null, check: vi.fn(), remove: vi.fn() }),
 }));
 vi.mock("@green-goods/shared/hooks/profile/useProfileAvatar", async (importOriginal) => ({
   ...(await importOriginal()),
   useResolvedProfileAvatar: () => ({ avatarUri: null, isLoading: false }),
+}));
+vi.mock("@green-goods/shared/hooks/garden/useGardenMemberContributions", () => ({
+  useGardenMemberContributions: () => ({ canView: false, byAccount: {} }),
+}));
+vi.mock("@green-goods/shared/hooks/garden/useGardenMemberHistory", () => ({
+  useGardenMemberHistory: () => ({ members: [], isLoading: false, isError: false }),
 }));
 vi.mock("@green-goods/shared/hooks/blockchain/useEnsAddress", () => ({
   useEnsAddress: () => ({ data: null, isFetching: false }),
@@ -52,7 +66,13 @@ vi.mock("@green-goods/shared/hooks/roles/useGardenRoleHat", () => ({
 const TAB_URL = `/community/endowment?gardenId=${storyGarden.id}`;
 const NEW_MEMBER = "0x7777777777777777777777777777777777777777";
 
-function CommunityRoute({ canManage }: { canManage: boolean }) {
+function CommunityRoute({
+  canManage,
+  canManageStewards,
+}: {
+  canManage: boolean;
+  canManageStewards: boolean;
+}) {
   const navigate = useNavigate();
   const location = useLocation();
   const actions = buildCommunityViewActions(
@@ -69,10 +89,11 @@ function CommunityRoute({ canManage }: { canManage: boolean }) {
       <CommunityMembersDialogs
         garden={storyGarden}
         canManage={canManage}
+        canManageStewards={canManageStewards}
         isOwner={false}
         closeMembersModal={() => navigate(`/community/members?gardenId=${storyGarden.id}`)}
         roleMembers={storyRoleMembers}
-        scheduleBackgroundRefetch={() => {}}
+        scheduleBackgroundRefetch={scheduleBackgroundRefetch}
         selectedItem={new URLSearchParams(location.search).get("item")}
       />
       <button type="button" data-testid="browser-back" onClick={() => navigate(-1)} />
@@ -81,10 +102,18 @@ function CommunityRoute({ canManage }: { canManage: boolean }) {
   );
 }
 
-function renderAt(path: string, { before, canManage = true }: RenderOptions = {}) {
+function renderAt(
+  path: string,
+  { before, canManage = true, canManageStewards = false }: RenderOptions = {}
+) {
   // The dialog's close guard uses useBlocker, which needs a data router.
   const router = createMemoryRouter(
-    [{ path: "*", element: <CommunityRoute canManage={canManage} /> }],
+    [
+      {
+        path: "*",
+        element: <CommunityRoute canManage={canManage} canManageStewards={canManageStewards} />,
+      },
+    ],
     {
       initialEntries: before ? [before, path] : [path],
       initialIndex: before ? 1 : 0,
@@ -96,6 +125,7 @@ function renderAt(path: string, { before, canManage = true }: RenderOptions = {}
 interface RenderOptions {
   before?: string;
   canManage?: boolean;
+  canManageStewards?: boolean;
 }
 
 const addButton = () => screen.getByRole("button", { name: "Add Member" });
@@ -105,6 +135,101 @@ const pressBrowserBack = () => fireEvent.click(screen.getByTestId("browser-back"
 const addressField = () => screen.getByPlaceholderText("0x... or name.eth");
 
 describe("CommunityMembersDialogs: Add Member (DL-140)", () => {
+  beforeEach(() => {
+    addGardener.mockClear();
+    scheduleBackgroundRefetch.mockClear();
+    batchState.available = false;
+    batchState.add.mockReset();
+    addSteward.mockReset().mockResolvedValue({ success: true });
+  });
+
+  it("gives Team only Steward for bulk additions without local garden management", async () => {
+    renderAt(`${TAB_URL}&item=add-member`, { canManage: false, canManageStewards: true });
+    const dialog = await screen.findByRole("dialog", { name: "Add Members" });
+    expect(within(dialog).getAllByRole("option")).toHaveLength(1);
+    expect(within(dialog).getByRole("option", { name: "Steward" })).toBeInTheDocument();
+  });
+
+  it("lets Team add only Steward to an existing member through the new role picker", async () => {
+    const user = userEvent.setup();
+    renderAt(`/community/members?gardenId=${storyGarden.id}&item=manage-members`, {
+      canManage: false,
+      canManageStewards: true,
+    });
+    const manage = await screen.findByRole("dialog", { name: "Manage Roles" });
+    const person = storyRoleMembers.owner[0];
+    const row = within(manage)
+      .getByText(person, { exact: true })
+      .closest<HTMLElement>("[data-component=ManageRolesPersonRow]")!;
+    await user.click(within(row).getByRole("button", { name: /Add role for/ }));
+    const dialog = await screen.findByRole("dialog", { name: "Add role" });
+    expect(within(dialog).getAllByRole("radio")).toHaveLength(1);
+    await user.click(within(dialog).getByRole("radio", { name: "Steward" }));
+    await user.click(within(dialog).getByRole("button", { name: "Add Steward Role" }));
+    await waitFor(() => expect(addSteward).toHaveBeenCalledWith(person));
+    expect(addGardener).not.toHaveBeenCalled();
+  });
+
+  it("keeps browser Back blocked while a role write is pending", async () => {
+    const user = userEvent.setup();
+    let finish!: (value: { success: boolean }) => void;
+    addSteward.mockReturnValueOnce(
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+    );
+    const path = `/community/members?gardenId=${storyGarden.id}&item=manage-members`;
+    renderAt(path, { before: TAB_URL });
+    await user.click(screen.getAllByRole("button", { name: /Add role for/ })[0]);
+    await user.click(screen.getByRole("radio", { name: "Steward" }));
+    await user.click(screen.getByRole("button", { name: "Add Steward Role" }));
+    await waitFor(() => expect(addSteward).toHaveBeenCalled());
+    pressBrowserBack();
+    expect(currentUrl()).toBe(path);
+    expect(screen.getByRole("dialog", { name: "Add role" })).toBeInTheDocument();
+    await act(async () => finish({ success: true }));
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Add role" })).not.toBeInTheDocument()
+    );
+  });
+
+  it("protects an unsaved role choice from browser Back", async () => {
+    const user = userEvent.setup();
+    const path = `/community/members?gardenId=${storyGarden.id}&item=manage-members`;
+    renderAt(path, { before: TAB_URL });
+    await user.click(screen.getAllByRole("button", { name: /Add role for/ })[0]);
+    await user.click(screen.getByRole("radio", { name: "Steward" }));
+    pressBrowserBack();
+    expect(
+      await screen.findByRole("alertdialog", { name: "Discard Changes?" })
+    ).toBeInTheDocument();
+    expect(currentUrl()).toBe(path);
+    await user.click(screen.getByRole("button", { name: "Keep Editing" }));
+    expect(screen.getByRole("button", { name: "Add Steward Role" })).toBeEnabled();
+    expect(addSteward).not.toHaveBeenCalled();
+  });
+
+  it("adds a role to the selected member and returns to the roster", async () => {
+    const user = userEvent.setup();
+    renderAt(`/community/members?gardenId=${storyGarden.id}&item=manage-members`);
+    const manage = await screen.findByRole("dialog", { name: "Manage Roles" });
+    const person = storyRoleMembers.owner[0];
+    const row = within(manage)
+      .getByText(person, { exact: true })
+      .closest<HTMLElement>("[data-component=ManageRolesPersonRow]")!;
+    await user.click(within(row).getByRole("button", { name: /Add role for/ }));
+    const roleDialog = await screen.findByRole("dialog", { name: "Add role" });
+    expect(within(roleDialog).getByText(person)).toBeInTheDocument();
+    await user.click(within(roleDialog).getByRole("radio", { name: "Steward" }));
+    await user.click(within(roleDialog).getByRole("button", { name: "Add Steward Role" }));
+    await waitFor(() => expect(addSteward).toHaveBeenCalledWith(person));
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Add role" })).not.toBeInTheDocument()
+    );
+    expect(screen.getByRole("dialog", { name: "Manage Roles" })).toBeInTheDocument();
+    expect(scheduleBackgroundRefetch).toHaveBeenCalled();
+  });
+
   it.each([
     "members",
     "coordination",
@@ -262,12 +387,60 @@ describe("CommunityMembersDialogs: Add Member (DL-140)", () => {
     });
     expect(currentUrl()).toBe(`${TAB_URL}&item=add-member`);
     expect(screen.queryByText("Discard Changes?")).not.toBeInTheDocument();
+    expect(scheduleBackgroundRefetch).not.toHaveBeenCalled();
 
     await act(async () => finish({ success: true }));
 
     await waitFor(() => expect(addDialog()).not.toBeInTheDocument());
     expect(screen.queryByText("Discard Changes?")).not.toBeInTheDocument();
     expect(currentUrl()).toBe(TAB_URL);
+    expect(scheduleBackgroundRefetch).toHaveBeenCalled();
+  });
+
+  it("refreshes on a partial batch landing before Back closes the add dialog", async () => {
+    const user = userEvent.setup();
+    const secondMember = "0x8888888888888888888888888888888888888888";
+    let finish: () => void = () => {};
+    batchState.available = true;
+    batchState.add.mockImplementation(
+      (rows, onLanded) =>
+        new Promise((resolve) => {
+          onLanded?.([rows[0]!]);
+          finish = () =>
+            resolve({
+              added: [{ ...rows[0]!, transactionHash: `0x${"11".repeat(32)}` }],
+              alreadyHeld: [],
+              refused: [],
+              notSent: rows.slice(1),
+              notBatchable: [],
+              unknown: [],
+            });
+        })
+    );
+    renderAt(`/community/members?gardenId=${storyGarden.id}&item=manage-members`, {
+      before: TAB_URL,
+    });
+    const manage = await screen.findByRole("dialog", { name: "Manage Roles" });
+    await user.click(within(manage).getByRole("button", { name: "Add Members" }));
+    for (const address of [NEW_MEMBER, secondMember]) {
+      await user.type(addressField(), address);
+      await user.click(screen.getByRole("button", { name: "Add to list" }));
+    }
+    await user.click(screen.getByRole("button", { name: "Add 2 Gardeners" }));
+
+    await waitFor(() => expect(scheduleBackgroundRefetch).toHaveBeenCalledTimes(1));
+    const staged = screen.getByRole("group", { name: "Members to add" });
+    expect(within(staged).getAllByRole("listitem")).toHaveLength(1);
+    expect(addDialog()).toBeInTheDocument();
+    await act(async () => finish());
+    pressBrowserBack();
+    expect(
+      await screen.findByRole("alertdialog", { name: "Discard Changes?" })
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /^Discard$/ }));
+    await waitFor(() => expect(addDialog()).not.toBeInTheDocument());
+    expect(currentUrl()).toBe(TAB_URL);
+    expect(scheduleBackgroundRefetch).toHaveBeenCalledTimes(1);
   });
 
   it("closes Manage Roles and Add Members over it when Back leaves its item", async () => {

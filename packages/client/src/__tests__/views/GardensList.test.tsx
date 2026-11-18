@@ -7,6 +7,7 @@
  */
 
 import en from "@green-goods/shared/i18n/en.json";
+import { useGardenMemberHistory } from "@green-goods/shared/hooks/garden/useGardenMemberHistory";
 import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
@@ -70,6 +71,14 @@ vi.mock("@green-goods/shared/hooks/garden/useMyGardens", () => ({
 vi.mock("@green-goods/shared/hooks/garden/useActiveGarden", () => ({
   useActiveGarden: () => mockActiveGarden,
 }));
+vi.mock("@green-goods/shared/hooks/garden/useGardenMemberHistory", () => ({
+  useGardenMemberHistory: vi.fn(() => ({
+    members: [],
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  })),
+}));
 
 // Mock @tanstack/react-query
 vi.mock("@tanstack/react-query", async (importOriginal) => {
@@ -118,6 +127,12 @@ describe("GardensList", () => {
     mockMyGardens.isStale = false;
     mockActiveGarden.gardenId = null;
     departure.options = [];
+    vi.mocked(useGardenMemberHistory).mockReturnValue({
+      members: [],
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as ReturnType<typeof useGardenMemberHistory>);
     departure.leave.mockResolvedValue({ hash: "0xabc", departed: true });
     departure.recover.mockResolvedValue({ hash: "0xabc", departed: false });
   });
@@ -271,6 +286,49 @@ describe("GardensList", () => {
     await user.click(screen.getByRole("button", { name: "My Garden" }));
 
     expect(mockNavigate).toHaveBeenCalledWith("/home/0xgarden1");
+  });
+
+  it("matches each garden's own membership dates from one account history read", () => {
+    const first = "0x1111111111111111111111111111111111111111";
+    const second = "0x2222222222222222222222222222222222222222";
+    mockMyGardens.gardens = [
+      asMine({ id: first, name: "River garden" }),
+      {
+        garden: { id: second, name: "Hill garden" },
+        membership: { roles: ["steward", "gardener"], pendingJoin: false },
+      },
+    ];
+    vi.mocked(useGardenMemberHistory).mockReturnValue({
+      members: [
+        {
+          garden: second,
+          account: MOCK_ADDRESS,
+          joinedAt: Date.UTC(2026, 4, 3, 12),
+          memberSince: Date.UTC(2026, 8, 4, 12),
+          roleSince: { gardener: Date.UTC(2026, 8, 4, 12), steward: Date.UTC(2026, 9, 5, 12) },
+        },
+        {
+          garden: first.toUpperCase().replace("0X", "0x"),
+          account: MOCK_ADDRESS,
+          joinedAt: Date.UTC(2026, 5, 12, 12),
+          memberSince: Date.UTC(2026, 5, 12, 12),
+          roleSince: { gardener: Date.UTC(2026, 5, 12, 12) },
+        },
+      ],
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as ReturnType<typeof useGardenMemberHistory>);
+
+    render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS })));
+
+    const rows = screen.getAllByRole("listitem");
+    expect(rows[0]).toHaveTextContent("Jun 12, 2026");
+    expect(rows[0]).not.toHaveTextContent("May 3, 2026");
+    expect(rows[1]).toHaveTextContent("May 3, 2026");
+    expect(rows[1]).toHaveTextContent("Sep 4, 2026");
+    expect(rows[1]).toHaveTextContent("Oct 5, 2026");
+    expect(useGardenMemberHistory).toHaveBeenCalledWith({ account: MOCK_ADDRESS });
   });
 
   it("constrains long garden names and locations inside the row", () => {

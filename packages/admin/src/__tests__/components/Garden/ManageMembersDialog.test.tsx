@@ -1,3 +1,4 @@
+import { useGardenMemberContributions } from "@green-goods/shared/hooks/garden/useGardenMemberContributions";
 /**
  * Manage Roles (ManageMembersDialog): one row per person with a check chip per role, picks that
  * outlive search and filters, the viewer's rank on every chip, and a review that reads the chain
@@ -76,6 +77,14 @@ vi.mock("@green-goods/shared/hooks/admin-ui/useDirtyClose", async () => {
   };
 });
 
+vi.mock("@green-goods/shared/hooks/garden/useGardenMemberContributions", () => ({
+  useGardenMemberContributions: vi.fn(() => ({ canView: false, byAccount: {} })),
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useGardenMemberHistory", () => ({
+  useGardenMemberHistory: () => ({ members: [], isLoading: false, isError: false }),
+}));
+
 import { ManageMembersDialog } from "../../../components/Garden/ManageMembersDialog";
 
 const roleMembers: Record<GardenRole, Address[]> = {
@@ -138,7 +147,37 @@ const pick = (user: ReturnType<typeof userEvent.setup>, role: string, name: stri
   user.click(screen.getByRole("checkbox", { name: `Remove ${role} from ${name}` }));
 
 describe("components/Garden/ManageMembersDialog (Manage Roles)", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(useGardenMemberContributions).mockReturnValue({ canView: false, byAccount: {} });
+  });
+
+  it("shows a garden-scoped contribution in member details and masks cached facts when access changes", () => {
+    const state = {
+      canView: true,
+      byAccount: {
+        [OWNER.toLowerCase()]: { status: "recorded" as const, at: Date.UTC(2026, 10, 15, 12) },
+      },
+    };
+    vi.mocked(useGardenMemberContributions).mockReturnValue(state);
+    const gardenAddress = "0x7777777777777777777777777777777777777777";
+    const view = renderDialog({ gardenAddress, initialMember: OWNER });
+    expect(screen.getByText("Last recorded contribution")).toBeInTheDocument();
+    expect(useGardenMemberContributions).toHaveBeenCalledWith(
+      expect.objectContaining({
+        garden: {
+          id: gardenAddress,
+          chainId: expect.any(Number),
+          owners: roleMembers.owner,
+          stewards: roleMembers.steward,
+        },
+        enabled: true,
+      })
+    );
+    vi.mocked(useGardenMemberContributions).mockReturnValue({ ...state, canView: false });
+    view.rerender({ canManage: false, viewerCanManageStewards: true });
+    expect(screen.queryByText("Last recorded contribution")).not.toBeInTheDocument();
+  });
 
   it("lists each person once, by the name the directory shows, with a check chip per role", () => {
     renderDialog();
@@ -253,7 +292,8 @@ describe("components/Garden/ManageMembersDialog (Manage Roles)", () => {
   it("reviews against the garden, leaves out a role already gone, and removes the rest", async () => {
     const user = userEvent.setup();
     const removal = fakeRemoval({ held: (address) => address !== TOMI });
-    const { onClose } = renderDialog({ removal });
+    const onRosterStale = vi.fn();
+    const { onClose } = renderDialog({ removal, onRosterStale });
 
     await pick(user, "Evaluator", "chidinma");
     await pick(user, "Evaluator", "tomi.eth");
@@ -282,6 +322,7 @@ describe("components/Garden/ManageMembersDialog (Manage Roles)", () => {
       expect.anything()
     );
     expect(await within(review).findByText("2 roles removed")).toBeInTheDocument();
+    expect(onRosterStale).toHaveBeenCalledTimes(1);
     await user.click(within(review).getByRole("button", { name: "Done" }));
     expect(onClose).toHaveBeenCalled();
   });

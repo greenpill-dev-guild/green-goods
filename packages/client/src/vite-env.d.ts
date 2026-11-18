@@ -24,6 +24,8 @@ interface ImportMetaEnv {
   readonly VITE_MOCK_PWA_INSTALLED?: string;
   readonly VITE_QUEUE_DEBUG?: string;
   readonly VITE_API_BASE_URL?: string;
+  /** The Green Goods Hub's address, which the Help tab opens for stewards. */
+  readonly VITE_ADMIN_APP_URL?: string;
   readonly VITE_PINATA_GATEWAY_URL?: string;
   readonly VITE_CAMPAIGN_COOKIE_JARS?: string;
   readonly VITE_SENTRY_CLIENT_DSN?: string;

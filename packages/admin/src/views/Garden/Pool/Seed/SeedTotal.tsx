@@ -46,7 +46,7 @@ export function SeedTotal({ count, each, unit, busy, onMakeItOne }: SeedTotalPro
         <p className="type-body font-semibold tabular-nums text-text-strong">
           {formatMessage(
             {
-              id: "cockpit.garden.pool.seed.total",
+              id: "hub.garden.pool.seed.total",
               defaultMessage:
                 "{count, plural, one {1 promise} other {# promises}} × {each} {unit} each = {total} {unit}",
             },
@@ -57,14 +57,14 @@ export function SeedTotal({ count, each, unit, busy, onMakeItOne }: SeedTotalPro
           {warn
             ? formatMessage(
                 {
-                  id: "cockpit.garden.pool.seed.totalCheck",
+                  id: "hub.garden.pool.seed.totalCheck",
                   defaultMessage:
                     "Did you mean {count} {unit} in total? Then each promise asks for 1.",
                 },
                 { count, unit }
               )
             : formatMessage({
-                id: "cockpit.garden.pool.seed.totalHint",
+                id: "hub.garden.pool.seed.totalHint",
                 defaultMessage: "Each one is taken up, proven and confirmed on its own.",
               })}
         </p>
@@ -79,7 +79,7 @@ export function SeedTotal({ count, each, unit, busy, onMakeItOne }: SeedTotalPro
             onClick={onMakeItOne}
           >
             {formatMessage({
-              id: "cockpit.garden.pool.seed.makeItOne",
+              id: "hub.garden.pool.seed.makeItOne",
               defaultMessage: "Make It 1 Each",
             })}
           </Button>

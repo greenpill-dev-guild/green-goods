@@ -25,7 +25,7 @@ vi.mock("../../../modules/work/draft-lifecycle", () => ({
   deleteDraftOfQueuedWork: mocks.removeDraft,
 }));
 vi.mock("../../../modules/work/upload-preparation", () => ({
-  scheduleUploadPreparation: mocks.schedule,
+  retryUploadPreparationNow: mocks.schedule,
 }));
 vi.mock("../../../components/toast", () => ({ toastService: mocks.toast }));
 vi.mock("../../../modules/app/logger", () => ({
@@ -67,17 +67,48 @@ beforeEach(() => {
 });
 
 describe("useQueuedWorkActions", () => {
-  it("tries a work again by clearing what stopped it and waking preparation", async () => {
+  it("tries a work again by clearing what stopped it and preparing it at once", async () => {
     const actions = render("job-1");
 
     await act(() => actions.current.tryAgain());
 
     expect(mocks.retryJob).toHaveBeenCalledWith("job-1");
-    expect(mocks.schedule).toHaveBeenCalledOnce();
+    // Preparation forgets this work's backoff, so a try that failed is made again now.
+    expect(mocks.schedule).toHaveBeenCalledWith("job-1");
     expect(mocks.retryJob.mock.invocationCallOrder[0]).toBeLessThan(
       mocks.schedule.mock.invocationCallOrder[0]
     );
+    // Its Terms are accepted and nothing says otherwise, so they are not asked again.
+    expect(mocks.request).not.toHaveBeenCalled();
     expect(actions.current.isTryingAgain).toBe(false);
+  });
+
+  it("shows the Terms for a work blocked on them, even with consent on record, before retrying", async () => {
+    // PRD-1488: the page asked for the Terms, and Try Again went straight to preparing.
+    for (const meta of [
+      { waitingReason: "upload-policy-required", waitingForDependency: true },
+      {
+        preparation: { status: "blocked", reason: "upload-policy-required", checkedAt: "earlier" },
+      },
+    ]) {
+      vi.clearAllMocks();
+      const job = queuedWorkJob({ meta });
+      mocks.getJob.mockResolvedValue(job);
+      const accepted = uploadConsent();
+      mocks.request.mockResolvedValue(accepted);
+      const actions = render("job-1");
+
+      await act(() => actions.current.tryAgain());
+
+      expect(mocks.request).toHaveBeenCalledOnce();
+      expect(mocks.request.mock.invocationCallOrder[0]).toBeLessThan(
+        mocks.retryJob.mock.invocationCallOrder[0]
+      );
+      expect(job.payload.uploadConsent).toBe(accepted);
+      expect(job.meta).not.toHaveProperty("waitingReason");
+      expect(job.meta).not.toHaveProperty("preparation");
+      expect(mocks.retryJob).toHaveBeenCalledWith("job-1");
+    }
   });
 
   it("requires consent for a legacy draft before claiming it or retrying", async () => {

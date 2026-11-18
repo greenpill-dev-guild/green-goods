@@ -34,12 +34,12 @@ function renderFailingRoute(message: string) {
         element: <Outlet />,
         errorElement: <RouteErrorBoundary />,
         children: [
-          { path: "hub", element: <Where /> },
-          { path: "hub/assess/create", element: <Crash message={message} /> },
+          { path: "review", element: <Where /> },
+          { path: "review/assess/create", element: <Crash message={message} /> },
         ],
       },
     ],
-    { initialEntries: ["/hub", "/hub/assess/create"], initialIndex: 1 }
+    { initialEntries: ["/review", "/review/assess/create"], initialIndex: 1 }
   );
   renderWithProviders(<RouterProvider router={router} />);
   return router;
@@ -51,7 +51,7 @@ describe("RouteErrorBoundary", () => {
     reload.mockClear();
     Object.defineProperty(window, "location", {
       configurable: true,
-      value: { ...window.location, pathname: "/hub/assess/create", reload },
+      value: { ...window.location, pathname: "/review/assess/create", reload },
     });
     // React reports the thrown render error; the route state is what is under test.
     vi.spyOn(console, "error").mockImplementation(() => undefined);
@@ -72,7 +72,7 @@ describe("RouteErrorBoundary", () => {
     expect(reload).toHaveBeenCalledOnce();
 
     await user.click(screen.getByRole("button", { name: "Go Back" }));
-    expect(router.state.location.pathname).toBe("/hub");
+    expect(router.state.location.pathname).toBe("/review");
   });
 
   it("announces a lost connection once, though it is a warning and not a failure", async () => {
@@ -90,7 +90,7 @@ describe("RouteErrorBoundary", () => {
   it("shows the updated-app state only once its one self-heal is spent", async () => {
     const user = userEvent.setup();
     // The self-heal already reloaded this path a moment ago.
-    sessionStorage.setItem("gg-admin-chunk-reload", `/hub/assess/create|${Date.now()}`);
+    sessionStorage.setItem("gg-admin-chunk-reload", `/review/assess/create|${Date.now()}`);
     renderFailingRoute("Failed to fetch dynamically imported module");
 
     expect(reload).not.toHaveBeenCalled();

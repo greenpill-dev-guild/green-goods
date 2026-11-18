@@ -44,7 +44,7 @@ export function voucherAskTag(
     case "paused":
       return {
         label: formatMessage({
-          id: "cockpit.garden.pool.voucher.live.paused",
+          id: "hub.garden.pool.voucher.live.paused",
           defaultMessage: "Voucher booking paused",
         }),
         tone: "warning",
@@ -53,7 +53,7 @@ export function voucherAskTag(
       return approves
         ? {
             label: formatMessage({
-              id: "cockpit.garden.pool.voucher.tag.needsApproval",
+              id: "hub.garden.pool.voucher.tag.needsApproval",
               defaultMessage: "Needs your approval",
             }),
             tone: "warning",
@@ -61,7 +61,7 @@ export function voucherAskTag(
         : {
             label: formatMessage(
               {
-                id: "cockpit.garden.pool.voucher.tag.waitingIssuer",
+                id: "hub.garden.pool.voucher.tag.waitingIssuer",
                 defaultMessage: "Waiting for {issuer}",
               },
               { issuer: ask.issuer.name }
@@ -71,7 +71,7 @@ export function voucherAskTag(
     case "waiting-for-deposit":
       return {
         label: formatMessage({
-          id: "cockpit.garden.pool.voucher.tag.waitingDeposit",
+          id: "hub.garden.pool.voucher.tag.waitingDeposit",
           defaultMessage: "Waiting for the deposit",
         }),
         tone: "info",
@@ -79,7 +79,7 @@ export function voucherAskTag(
     case "ready":
       return {
         label: formatMessage({
-          id: "cockpit.garden.pool.voucher.tag.depositConfirmed",
+          id: "hub.garden.pool.voucher.tag.depositConfirmed",
           defaultMessage: "Deposit confirmed",
         }),
         tone: "success",
@@ -87,7 +87,7 @@ export function voucherAskTag(
     case "setting-up":
       return {
         label: formatMessage({
-          id: "cockpit.garden.pool.voucher.tag.settingUp",
+          id: "hub.garden.pool.voucher.tag.settingUp",
           defaultMessage: "Being set up",
         }),
         tone: "neutral",
@@ -95,7 +95,7 @@ export function voucherAskTag(
     case "terms-changed":
       return {
         label: formatMessage({
-          id: "cockpit.garden.pool.voucher.tag.termsChanged",
+          id: "hub.garden.pool.voucher.tag.termsChanged",
           defaultMessage: "Terms changed",
         }),
         tone: "error",
@@ -103,7 +103,7 @@ export function voucherAskTag(
     case "consent-missing":
       return {
         label: formatMessage({
-          id: "cockpit.garden.pool.voucher.tag.consentMissing",
+          id: "hub.garden.pool.voucher.tag.consentMissing",
           defaultMessage: "Agreement missing",
         }),
         tone: "error",
@@ -111,7 +111,7 @@ export function voucherAskTag(
     case "past-deadline":
       return {
         label: formatMessage({
-          id: "cockpit.garden.pool.voucher.tag.pastDeadline",
+          id: "hub.garden.pool.voucher.tag.pastDeadline",
           defaultMessage: "Deadline passed",
         }),
         tone: "error",
@@ -130,20 +130,20 @@ export function voucherAskDetail(
   const agreed =
     ask.agreedAt === null
       ? formatMessage({
-          id: "cockpit.garden.pool.voucher.live.recorded",
+          id: "hub.garden.pool.voucher.live.recorded",
           defaultMessage: "on chain",
         })
       : dayText(intl, ask.agreedAt * 1000, nowMs);
   const { setup } = ask;
   if (stage === "paused")
     return formatMessage({
-      id: "cockpit.garden.pool.voucher.live.pausedDetail",
+      id: "hub.garden.pool.voucher.live.pausedDetail",
       defaultMessage: "Approvals and acceptance wait until the voucher route resumes.",
     });
   if (stage === "terms-changed") {
     return formatMessage(
       {
-        id: "cockpit.garden.pool.voucher.ask.termsChanged",
+        id: "hub.garden.pool.voucher.ask.termsChanged",
         defaultMessage: "Agreed to version {agreed}; the offer is now version {current}",
       },
       { agreed: ask.agreed.revision.toString(), current: ask.current.revision.toString() }
@@ -151,14 +151,14 @@ export function voucherAskDetail(
   }
   if (stage === "consent-missing") {
     return formatMessage({
-      id: "cockpit.garden.pool.voucher.ask.consentMissing",
+      id: "hub.garden.pool.voucher.ask.consentMissing",
       defaultMessage: "No agreement to accept · they book again",
     });
   }
   if (setup === null) {
     return formatMessage(
       {
-        id: "cockpit.garden.pool.voucher.ask.settingUp",
+        id: "hub.garden.pool.voucher.ask.settingUp",
         defaultMessage: "Agreed {date} · not with the issuer yet",
       },
       { date: agreed }
@@ -172,7 +172,7 @@ export function voucherAskDetail(
     case "past-deadline":
       return formatMessage(
         {
-          id: "cockpit.garden.pool.voucher.ask.pastDeadline",
+          id: "hub.garden.pool.voucher.ask.pastDeadline",
           defaultMessage: "Not accepted by {due} · the deposit comes back once it’s canceled",
         },
         { due }
@@ -180,7 +180,7 @@ export function voucherAskDetail(
     case "needs-approval":
       return formatMessage(
         {
-          id: "cockpit.garden.pool.voucher.ask.agreed",
+          id: "hub.garden.pool.voucher.ask.agreed",
           defaultMessage:
             "Agreed {date} · {count, plural, one {# voucher} other {# vouchers}} · accept by {due}",
         },
@@ -190,7 +190,7 @@ export function voucherAskDetail(
       if (setup.approvedAt === null)
         return formatMessage(
           {
-            id: "cockpit.garden.pool.voucher.live.approved",
+            id: "hub.garden.pool.voucher.live.approved",
             defaultMessage: "Issuer approval confirmed · accept by {due}",
           },
           { due }
@@ -199,14 +199,14 @@ export function voucherAskDetail(
       return member
         ? formatMessage(
             {
-              id: "cockpit.garden.pool.voucher.ask.approvedMember",
+              id: "hub.garden.pool.voucher.ask.approvedMember",
               defaultMessage: "{issuer} approved {date} · accept by {due}",
             },
             { issuer: member, date, due }
           )
         : formatMessage(
             {
-              id: "cockpit.garden.pool.voucher.ask.approved",
+              id: "hub.garden.pool.voucher.ask.approved",
               defaultMessage: "Approved {date} · accept by {due}",
             },
             { date, due }
@@ -216,7 +216,7 @@ export function voucherAskDetail(
       return member
         ? formatMessage(
             {
-              id: "cockpit.garden.pool.voucher.ask.inEscrowMember",
+              id: "hub.garden.pool.voucher.ask.inEscrowMember",
               defaultMessage:
                 "{count, plural, one {# {issuer} voucher} other {# {issuer} vouchers}} in escrow · {issuer} approved · accept by {due}",
             },
@@ -224,7 +224,7 @@ export function voucherAskDetail(
           )
         : formatMessage(
             {
-              id: "cockpit.garden.pool.voucher.ask.inEscrow",
+              id: "hub.garden.pool.voucher.ask.inEscrow",
               defaultMessage:
                 "{count, plural, one {# voucher} other {# vouchers}} in escrow · accept by {due}",
             },
@@ -291,23 +291,23 @@ function voucherBookingRow(
         text:
           stage.kind === "transfer-pending"
             ? formatMessage({
-                id: "cockpit.garden.pool.voucher.live.transferPending",
+                id: "hub.garden.pool.voucher.live.transferPending",
                 defaultMessage: "Voucher transfer needs completion",
               })
             : stage.kind === "transfer-failed"
               ? formatMessage({
-                  id: "cockpit.garden.pool.voucher.live.transferFailed",
+                  id: "hub.garden.pool.voucher.live.transferFailed",
                   defaultMessage: "Voucher transfer didn’t go through",
                 })
               : formatMessage({
-                  id: "cockpit.garden.pool.voucher.row.returnFailed",
+                  id: "hub.garden.pool.voucher.row.returnFailed",
                   defaultMessage: "Return didn’t go through",
                 }),
         tone: "error",
       },
       status: {
         label: formatMessage({
-          id: "cockpit.garden.pool.summary.recovery",
+          id: "hub.garden.pool.summary.recovery",
           defaultMessage: "Needs recovery",
         }),
         tone: "error",
@@ -321,7 +321,7 @@ function voucherBookingRow(
         service.kind === "visit"
           ? formatMessage(
               {
-                id: "cockpit.garden.pool.voucher.row.endedEarlyHours",
+                id: "hub.garden.pool.voucher.row.endedEarlyHours",
                 defaultMessage: "Ended early · {used} of {of} hours",
               },
               { used: service.report.usableHours, of: service.report.ofHours }
@@ -329,14 +329,14 @@ function voucherBookingRow(
           : service.kind === "units"
             ? formatMessage(
                 {
-                  id: "cockpit.garden.pool.voucher.live.units",
+                  id: "hub.garden.pool.voucher.live.units",
                   defaultMessage: "{units} {label} booked",
                 },
                 { units: service.units.toString(), label: service.label }
               )
             : formatMessage(
                 {
-                  id: "cockpit.garden.pool.voucher.row.endedEarly",
+                  id: "hub.garden.pool.voucher.row.endedEarly",
                   defaultMessage: "Ended early · {done} of {of} days",
                 },
                 { done: service.daysUsed, of: service.daysOf }
@@ -351,7 +351,7 @@ function voucherBookingRow(
   if (service.kind === "units") {
     return {
       note: formatMessage(
-        { id: "cockpit.garden.pool.voucher.live.units", defaultMessage: "{units} {label} booked" },
+        { id: "hub.garden.pool.voucher.live.units", defaultMessage: "{units} {label} booked" },
         { units: service.units.toString(), label: service.label }
       ),
       status: null,
@@ -364,7 +364,7 @@ function voucherBookingRow(
       note: {
         text: formatMessage(
           {
-            id: "cockpit.garden.pool.voucher.row.visit",
+            id: "hub.garden.pool.voucher.row.visit",
             defaultMessage: "Visit {date}, {start} to {end}",
           },
           {
@@ -382,7 +382,7 @@ function voucherBookingRow(
   }
   return {
     note: formatMessage(
-      { id: "cockpit.garden.pool.voucher.row.day", defaultMessage: "Day {done} of {of}" },
+      { id: "hub.garden.pool.voucher.row.day", defaultMessage: "Day {done} of {of}" },
       { done: service.daysUsed, of: service.daysOf }
     ),
     status: null,
@@ -409,11 +409,11 @@ export function voucherOfferRow(
   return {
     note: deposited
       ? intl.formatMessage({
-          id: "cockpit.garden.pool.voucher.row.booked",
+          id: "hub.garden.pool.voucher.row.booked",
           defaultMessage: "Booking: deposit confirmed",
         })
       : intl.formatMessage({
-          id: "cockpit.garden.pool.voucher.row.asked",
+          id: "hub.garden.pool.voucher.row.asked",
           defaultMessage: "Booking asked",
         }),
     status: null,
@@ -431,7 +431,7 @@ export function voucherSafeNote(
   const fileNote =
     execution === "safe-file"
       ? formatMessage({
-          id: "cockpit.garden.pool.voucher.live.safeFileNote",
+          id: "hub.garden.pool.voucher.live.safeFileNote",
           defaultMessage:
             "Download a Safe transaction file, review it in the issuer’s Safe, and collect its required signatures. Downloading submits no transaction. This view updates after execution is confirmed on chain.",
         })
@@ -440,7 +440,7 @@ export function voucherSafeNote(
     return [
       fileNote,
       formatMessage({
-        id: "cockpit.garden.pool.voucher.safe.unread",
+        id: "hub.garden.pool.voucher.safe.unread",
         defaultMessage: "Your Safe signs this. Its signature count can’t be read right now.",
       }),
     ]
@@ -451,7 +451,7 @@ export function voucherSafeNote(
     fileNote,
     formatMessage(
       {
-        id: "cockpit.garden.pool.voucher.safe.needs",
+        id: "hub.garden.pool.voucher.safe.needs",
         defaultMessage:
           "{threshold, plural, one {Your Safe needs # signature.} other {Your Safe needs # of {owners} signatures.}}",
       },
@@ -471,7 +471,7 @@ export function voucherAmountWords(
 ): string {
   return formatMessage(
     {
-      id: "cockpit.garden.pool.voucher.vouchers",
+      id: "hub.garden.pool.voucher.vouchers",
       defaultMessage: "{count, plural, one {# {issuer} voucher} other {# {issuer} vouchers}}",
     },
     { count: voucherCount(units, decimals), issuer }

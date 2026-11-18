@@ -5,8 +5,10 @@ import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, renderWithProviders, screen } from "@/__tests__/test-utils";
-import { CommunityCoordinationTab } from "@/views/Community/components/CommunityCoordinationTab";
-import type { CommunityCoordinationTabProps } from "@/views/Community/components/CommunityCoordinationTab";
+import {
+  CommunityCoordinationTab,
+  type CommunityCoordinationTabProps,
+} from "@/views/Community/components/CommunityCoordinationTab";
 
 vi.mock("@green-goods/shared/hooks/yield/useGardenYieldWiringState", () => ({
   useGardenYieldWiringState: vi.fn(),
@@ -71,11 +73,11 @@ const MESSAGES = {
   "app.conviction.loadError.description": "Please try again.",
   "app.conviction.loadError.title": "Failed to load conviction data",
   "app.conviction.manageStrategies": "Manage Strategies",
-  "cockpit.community.coordination.community": "Community",
-  "cockpit.community.coordination.poolMissing": "Not deployed",
-  "cockpit.community.coordination.proposals": "Registered proposals",
-  "cockpit.community.coordination.proposalsDescription": "Proposal review",
-  "cockpit.community.coordination.status": "Pool status",
+  "hub.community.coordination.community": "Community",
+  "hub.community.coordination.poolMissing": "Not deployed",
+  "hub.community.coordination.proposals": "Registered proposals",
+  "hub.community.coordination.proposalsDescription": "Proposal review",
+  "hub.community.coordination.status": "Pool status",
 };
 
 function renderTab(props: Partial<CommunityCoordinationTabProps> = {}) {

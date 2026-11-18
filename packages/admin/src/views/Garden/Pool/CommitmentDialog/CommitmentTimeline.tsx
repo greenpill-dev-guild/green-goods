@@ -22,21 +22,21 @@ export function CommitmentTimeline({ events }: { events: CommitmentDialogControl
     <section
       className="space-y-1"
       aria-label={formatMessage({
-        id: "cockpit.garden.pool.commitment.timeline",
+        id: "hub.garden.pool.commitment.timeline",
         defaultMessage: "Timeline",
       })}
     >
       <div className="flex items-baseline justify-between gap-2">
         <AdminCardTitle as="h4">
           {formatMessage({
-            id: "cockpit.garden.pool.commitment.timeline",
+            id: "hub.garden.pool.commitment.timeline",
             defaultMessage: "Timeline",
           })}
         </AdminCardTitle>
         {events.length > 0 ? (
           <span className="type-meta text-text-soft">
             {formatMessage(
-              { id: "cockpit.garden.pool.time.zone", defaultMessage: "Times in {zone}" },
+              { id: "hub.garden.pool.time.zone", defaultMessage: "Times in {zone}" },
               { zone: zoneName(intl, now) }
             )}
           </span>
@@ -45,7 +45,7 @@ export function CommitmentTimeline({ events }: { events: CommitmentDialogControl
       {events.length === 0 ? (
         <p className="type-meta text-text-soft">
           {formatMessage({
-            id: "cockpit.garden.pool.commitment.timelineEmpty",
+            id: "hub.garden.pool.commitment.timelineEmpty",
             defaultMessage: "Nothing recorded yet.",
           })}
         </p>

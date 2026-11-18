@@ -17,6 +17,8 @@ on:
       - "playwright.config.ts"
       - "tests/**"
       - "packages/client/**"
+      # The passkey browser ceremony composes the Agent reporting driver and runtime.
+      - "packages/agent/src/**"
       - "packages/shared/**"
       - "!packages/shared/**/__tests__/**"
       - "!packages/shared/**/*.test.*"
@@ -56,6 +58,7 @@ on:
       - "playwright.config.ts"
       - "tests/**"
       - "packages/client/**"
+      - "packages/agent/src/**"
       - "packages/shared/**"
       - "!packages/shared/**/__tests__/**"
       - "!packages/shared/**/*.test.*"
@@ -111,9 +114,10 @@ jobs:
       - name: Setup JavaScript toolchain and dependencies
         uses: ./.github/actions/setup-js
 
+      # With coverage, the floors in vitest.config.ts hold on every pull request, not only nightly.
       - name: Run client tests
         working-directory: packages/client
-        run: bun run test
+        run: bun run test --coverage
         env:
           CI: true
 

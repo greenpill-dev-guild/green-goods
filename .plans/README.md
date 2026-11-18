@@ -135,7 +135,7 @@ than creating a second plan-history surface.
    `confirm-linear-sync --feature <slug> --actor <actor>`.
 7. Close the hub when the work is completed, superseded, closed, cancelled,
    or intentionally paused, following the plan skill's
-   [Closing a Plan Hub](../.claude/skills/plan/SKILL.md#closing-a-plan-hub) procedure:
+   [Close a plan](../.claude/skills/plan/SKILL.md#close-a-plan) procedure:
    commit the hub's closeout record first, then run `move --to archive`, which rejects
    stale Linear mirrors, validates the requested `--resolution`, appends one row to
    `ARCHIVE.md`, and deletes the hub directory. Do not label unfinished stale work as completed.

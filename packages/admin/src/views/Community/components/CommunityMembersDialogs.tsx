@@ -6,7 +6,10 @@ import {
 } from "@green-goods/shared/hooks/garden/useGardenOperations";
 import { useRouteItemClose } from "@green-goods/shared/hooks/navigation/useCanvasSearchParams";
 import type { Address } from "@green-goods/shared/types/domain";
-import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
+import {
+  GARDEN_ROLE_ORDER,
+  type GardenRole,
+} from "@green-goods/shared/utils/blockchain/garden-roles";
 import { ADD_MEMBER_ROUTE_ITEM } from "@green-goods/shared/utils/navigation/admin-routes";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -17,6 +20,7 @@ import { ManageMembersDialog } from "@/components/Garden/ManageMembersDialog";
 export type CommunityMembersDialogsProps = Pick<
   CommunityWorkspace,
   | "canManage"
+  | "canManageStewards"
   | "closeMembersModal"
   | "isOwner"
   | "roleMembers"
@@ -35,6 +39,7 @@ export type CommunityMembersDialogsProps = Pick<
 export function CommunityMembersDialogs({
   garden,
   canManage,
+  canManageStewards,
   closeMembersModal,
   isOwner,
   roleMembers,
@@ -47,6 +52,8 @@ export function CommunityMembersDialogs({
   // Add Members also opens over Manage Members, with no route item of its own.
   const [addingFromManage, setAddingFromManage] = useState(false);
   // The person Manage Members was showing when Add Members opened over it.
+  const [roleTarget, setRoleTarget] = useState<Address | undefined>();
+  if (addMemberItemOpen && roleTarget) setRoleTarget(undefined);
   const [addMembersPrefill, setAddMembersPrefill] = useState<Address | undefined>();
   // It leaves with Manage Members, by browser Back as well as by a close.
   if (addingFromManage && !manageMembersOpen) {
@@ -63,6 +70,11 @@ export function CommunityMembersDialogs({
   const addMembersBatch = useAddMembersBatch(garden.id);
   const removal = useRemoveMemberRoles(garden.id);
   const gardenAddress = garden.id;
+  const canManageMembers = canManage || canManageStewards;
+  const allowedRoles = GARDEN_ROLE_ORDER.filter(
+    (role) =>
+      isOwner || (canManage && role !== "owner") || (canManageStewards && role === "steward")
+  );
 
   const addByRole = useMemo<
     Record<GardenRole, (address: Address) => Promise<{ success: boolean }>>
@@ -78,12 +90,19 @@ export function CommunityMembersDialogs({
     [operations]
   );
   const openAddMembers = (prefill?: Address) => {
+    setRoleTarget(undefined);
     setAddMembersPrefill(prefill);
+    setAddingFromManage(true);
+  };
+  const openAddRole = (address: Address) => {
+    setRoleTarget(address);
+    setAddMembersPrefill(address);
     setAddingFromManage(true);
   };
   const closeAddMembers = () => {
     setAddingFromManage(false);
     setAddMembersPrefill(undefined);
+    scheduleBackgroundRefetch();
     closeAddMemberItem();
   };
 
@@ -93,13 +112,17 @@ export function CommunityMembersDialogs({
       <ManageMembersDialog
         key={`manage-members:${garden.id}`}
         open={manageMembersOpen}
+        gardenAddress={isAddress(gardenAddress) ? gardenAddress : undefined}
+        onAddRole={openAddRole}
         initialMember={initialMemberAddress}
         onClose={closeMembersModal}
         closesByRoute
         tone="community"
         roleMembers={roleMembers}
-        canManage={canManage}
+        canManage={canManageMembers}
         viewerIsOwner={isOwner}
+        viewerCanManageStewards={canManageStewards}
+        allowedRoles={allowedRoles}
         viewerAddress={removal.account}
         gardenName={garden.name}
         chainId={garden.chainId}
@@ -110,17 +133,30 @@ export function CommunityMembersDialogs({
       />
       {isAddress(gardenAddress) ? (
         <AddMembersDialog
-          key={`add-members:${garden.id}`}
-          open={canManage && (addMemberItemOpen || addingFromManage)}
+          key={`add-members:${garden.id}:${roleTarget ?? "new"}`}
+          open={canManageMembers && (addMemberItemOpen || addingFromManage)}
           closesByRoute={addMemberItemOpen}
           onClose={closeAddMembers}
           tone="community"
           gardenAddress={gardenAddress}
           roleMembers={roleMembers}
+          allowedRoles={allowedRoles}
+          memberAddress={roleTarget}
           initialAddress={addMembersPrefill}
           isLoading={operations.isLoading}
-          onAdd={(role, address) => addByRole[role](address)}
-          batch={addMembersBatch}
+          onAdd={async (role, address) => {
+            const result = await addByRole[role](address);
+            if (result.success) scheduleBackgroundRefetch();
+            return result;
+          }}
+          batch={{
+            ...addMembersBatch,
+            add: (rows, onLanded) =>
+              addMembersBatch.add(rows, (landed) => {
+                scheduleBackgroundRefetch();
+                onLanded?.(landed);
+              }),
+          }}
         />
       ) : null}
     </>

@@ -10,6 +10,7 @@ import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { profileAvatarKeys } from "../../config/query-keys/identity";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useAuth } from "../auth/useAuth";
+import { refuseWithoutWallet } from "../../modules/auth/wallet-reconnect";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useEnsAvatar } from "../blockchain/useEnsAvatar";
 import { useEnsName } from "../blockchain/useEnsName";
@@ -174,10 +175,11 @@ export function useProfileAvatarEditor(chainIdOrOptions?: number | ProfileAvatar
     (message: string) =>
       createAccountMessageSigner({
         authMode: auth.authMode,
+        walletRestore: auth.walletRestore,
         signMessage: signMessageAsync,
         account: auth.smartAccountClient?.account,
       })(message),
-    [auth.authMode, auth.smartAccountClient, signMessageAsync]
+    [auth.authMode, auth.walletRestore, auth.smartAccountClient, signMessageAsync]
   );
 
   const getFactoryArgs = useCallback(async () => {
@@ -195,6 +197,7 @@ export function useProfileAvatarEditor(chainIdOrOptions?: number | ProfileAvatar
 
   const publish = useCallback(
     async (input: { file?: File | null; action: "set" | "clear"; cid?: string }) => {
+      if (auth.authMode === "wallet" && auth.walletRestore) refuseWithoutWallet();
       if (!address) throw new Error("Reconnect before publishing your profile photo.");
       const generation = ++draftLoadGeneration.current;
       const operationIdentity = editorIdentity;
@@ -250,6 +253,8 @@ export function useProfileAvatarEditor(chainIdOrOptions?: number | ProfileAvatar
       address,
       chainId,
       editorIdentity,
+      auth.authMode,
+      auth.walletRestore,
       getFactoryArgs,
       loadDraft,
       queryClient,

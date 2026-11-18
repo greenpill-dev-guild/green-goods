@@ -213,10 +213,10 @@ export function renderPackageExports(exports) {
 // Each product surface, in display order, with its name on the page and what it is. The
 // renderer throws on a surface a persona journey names but this table does not.
 const SURFACES = [
-  ["admin", "Admin cockpit", "the steward cockpit at admin.greengoods.app, where gardens, actions, reviews, and pools are run"],
-  ["client", "Client app", "the installed app at greengoods.app, where work is captured, tracked, and reviewed in the field"],
+  ["admin", "Green Goods Hub", "the steward workspace at admin.greengoods.app, where gardens, actions, reviews, and pools are run"],
+  ["client", "Green Goods App", "the installed app at greengoods.app, where work is captured, tracked, and reviewed in the field"],
   ["agent", "Messaging agent", "the Telegram bot, for people who would rather message than install anything"],
-  ["public", "Public site", "the browser website at greengoods.app, where anyone reads gardens and impact and can fund them"],
+  ["public", "Green Goods Website", "the browser website at greengoods.app, where anyone reads gardens and impact and can fund them"],
   ["community", "Community channels", "the Telegram and Discord spaces around the product"],
   ["docs", "Docs", "this site"],
 ];
@@ -817,7 +817,7 @@ const GLOSSARY_EVERYDAY = [
   { ref: "entity:work", guide: ["Submit Work", "/community/gardener-guide/uploading-your-work"] },
   { ref: "entity:work-approval", guide: ["Review Work", "/community/steward-guide/reviewing-work"] },
   { ref: "entity:assessment", guide: ["Make an Initial Assessment", "/community/evaluator-guide/making-an-assessment"] },
-  // The public site and the guides call it an impact certificate; the cockpit says Hypercert.
+  // The public site and the guides call it an impact certificate; the Hub says Hypercert.
   { ref: "entity:hypercert", heading: "Impact Certificate", guide: ["Mint Impact Certificate", "/community/steward-guide/creating-impact-certificates"] },
   { ref: "entity:vault", guide: ["Endow a Garden", "/community/funder-guide/funding-a-garden"] },
   { ref: "entity:cookie-jar", guide: ["Donate to a Garden", "/community/funder-guide/donating-to-a-garden"] },
@@ -1101,6 +1101,7 @@ function describeTriggers(triggers) {
     parts.push(triggers.pull_request.paths.length ? `pull requests that touch its paths (${triggers.pull_request.paths.length} path filters)` : "every pull request");
   }
   if (triggers.workflow_run) parts.push("completion of another workflow");
+  if (triggers.issue_comment) parts.push("comments on issues and pull requests");
   if (triggers.push) {
     const { branches, tags, paths } = triggers.push;
     if (tags.length) parts.push(`pushed tags matching ${tags.map(code).join(", ")}`);
@@ -1180,6 +1181,7 @@ export function renderQaCatalog({ root, sources, digest }) {
     "This page projects scenario definitions only. Live results, identities, owners, defect links, and session evidence are intentionally excluded."
   );
   body += "Each surface groups its cases by priority (the same P0/P1/P2 bands as the [QA app's](https://qa.greengoods.app) Priority view) and sorts by ID within a band. IDs are permanent addresses: never renumbered, never reused; retired cases keep their ID in the catalog history.\n\n";
+  body += "**Release scope:** Rollout Readiness (`ROLL-` IDs) contains only in-progress features. Its cases and journeys require an explicit activation gate and stay separate from the regression surfaces. An active case is available to test; it does not mean the feature is deployed or the case has passed. Confirm the build and environment before recording a verdict.\n\n";
   body += QA_PRIORITY_MEANINGS.map(([priority, meaning]) => `- **${priority}**: ${meaning}.`).join("\n");
   body += "\n\nPriority sets run order only. A failure's severity is assigned separately during triage.";
   body += "\n\nEach case carries one **kind**, the category axis:\n\n";
@@ -1225,6 +1227,7 @@ export function renderQaCatalog({ root, sources, digest }) {
     const tabSlug = tab.toLowerCase().replace(/[^a-z0-9]+/g, "-");
     let rendered = 0;
     body += `## ${tab}\n\n`;
+    if (tab === "Rollout Readiness") body += "These checks apply only to the scoped rollout build and reviewed deployment. Their results do not count as coverage of the shipped release.\n\n";
     for (const [priority] of QA_PRIORITY_MEANINGS) {
       const band = tabCases.filter((candidate) => candidate.priority === priority);
       if (band.length === 0) continue;

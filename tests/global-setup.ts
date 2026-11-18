@@ -29,7 +29,7 @@ async function warmClientBoot(page: Page, clientUrl: string): Promise<void> {
 async function warmAdminBoot(page: Page, adminUrl: string): Promise<void> {
   const startedAt = Date.now();
   try {
-    await page.goto(`${adminUrl}/hub`, {
+    await page.goto(`${adminUrl}/review`, {
       waitUntil: "domcontentloaded",
       timeout: ADMIN_WARMUP_TIMEOUT_MS,
     });
@@ -95,7 +95,6 @@ async function globalSetup() {
     return;
   }
 
-  // Run health checks
   const browser = await chromium.launch({
     channel: process.env.PLAYWRIGHT_QUALIFIED === "true" ? "chromium" : undefined,
   });

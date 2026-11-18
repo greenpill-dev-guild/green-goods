@@ -54,7 +54,7 @@ export function VoucherReportVisitDialog({
           tone={tone}
           title={formatMessage(
             {
-              id: "cockpit.garden.pool.voucher.report.title",
+              id: "hub.garden.pool.voucher.report.title",
               defaultMessage: "Report {name}’s Visit",
             },
             { name }
@@ -62,7 +62,7 @@ export function VoucherReportVisitDialog({
           description={title}
           target={<PoolTarget target={target} />}
           confirmLabel={formatMessage({
-            id: "cockpit.garden.pool.voucher.report.confirm",
+            id: "hub.garden.pool.voucher.report.confirm",
             defaultMessage: "Report Visit",
           })}
           confirmDisabled={disabled}
@@ -70,7 +70,7 @@ export function VoucherReportVisitDialog({
             if (booking) await onReport(booking);
           }}
           note={formatMessage({
-            id: "cockpit.garden.pool.voucher.wallet",
+            id: "hub.garden.pool.voucher.wallet",
             defaultMessage: "Your wallet will ask you to approve.",
           })}
         >
@@ -78,7 +78,7 @@ export function VoucherReportVisitDialog({
             <FactList frame="card">
               <FactRow
                 label={formatMessage({
-                  id: "cockpit.garden.pool.voucher.fact.date",
+                  id: "hub.garden.pool.voucher.fact.date",
                   defaultMessage: "Date",
                 })}
                 valueTitle={exactTime(intl, visit.startsAt * 1000)}
@@ -86,21 +86,21 @@ export function VoucherReportVisitDialog({
               />
               <FactRow
                 label={formatMessage({
-                  id: "cockpit.garden.pool.voucher.fact.attendance",
+                  id: "hub.garden.pool.voucher.fact.attendance",
                   defaultMessage: "Attendance",
                 })}
                 value={
                   visit.report.checkedIn
                     ? formatMessage(
                         {
-                          id: "cockpit.garden.pool.voucher.fact.checkedIn",
+                          id: "hub.garden.pool.voucher.fact.checkedIn",
                           defaultMessage: "{name} checked in",
                         },
                         { name }
                       )
                     : formatMessage(
                         {
-                          id: "cockpit.garden.pool.voucher.fact.noCheckIn",
+                          id: "hub.garden.pool.voucher.fact.noCheckIn",
                           defaultMessage: "{name} didn’t check in",
                         },
                         { name }
@@ -109,12 +109,12 @@ export function VoucherReportVisitDialog({
               />
               <FactRow
                 label={formatMessage({
-                  id: "cockpit.garden.pool.voucher.fact.usableTime",
+                  id: "hub.garden.pool.voucher.fact.usableTime",
                   defaultMessage: "Usable time",
                 })}
                 value={formatMessage(
                   {
-                    id: "cockpit.garden.pool.voucher.fact.usableHours",
+                    id: "hub.garden.pool.voucher.fact.usableHours",
                     defaultMessage: "{used} of {of} hours",
                   },
                   { used: visit.report.usableHours, of: visit.report.ofHours }
@@ -122,12 +122,12 @@ export function VoucherReportVisitDialog({
               />
               <FactRow
                 label={formatMessage({
-                  id: "cockpit.garden.pool.voucher.fact.evidence",
+                  id: "hub.garden.pool.voucher.fact.evidence",
                   defaultMessage: "Evidence",
                 })}
                 value={formatMessage(
                   {
-                    id: "cockpit.garden.pool.voucher.fact.photos",
+                    id: "hub.garden.pool.voucher.fact.photos",
                     defaultMessage: "{count, plural, one {# photo} other {# photos}}",
                   },
                   { count: visit.report.photos }
@@ -138,13 +138,13 @@ export function VoucherReportVisitDialog({
           <Alert
             variant="info"
             title={formatMessage({
-              id: "cockpit.garden.pool.voucher.report.noteTitle",
+              id: "hub.garden.pool.voucher.report.noteTitle",
               defaultMessage: "Reports are evidence",
             })}
           >
             {formatMessage(
               {
-                id: "cockpit.garden.pool.voucher.report.noteBody",
+                id: "hub.garden.pool.voucher.report.noteBody",
                 defaultMessage: "They don’t move vouchers. {name} approves the final split later.",
               },
               { name }

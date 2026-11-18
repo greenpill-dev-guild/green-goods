@@ -18,7 +18,7 @@ export const Unavailable: Story = { args: { value: "—", delta: "Could not load
 export const Empty: Story = { args: { value: "0", delta: "No change" } };
 
 /** The required DL-136 pair, rendered before any route adopts StatTile. */
-export const CockpitPair: Story = {
+export const HubPair: Story = {
   tags: ["storybook-ci"],
   render: () => (
     <div data-surface-scope="admin" className="grid gap-4 sm:grid-cols-2">

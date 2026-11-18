@@ -75,6 +75,7 @@ for (const action of ['update', 'watch', 'start', 'restore']) add(`indexer ${act
 add('ipfs upload', 'script/utils/ipfs-uploader.ts', { network: false });
 add('ipfs cache', 'script/cli/read-cache.mjs', { network: false });
 add('minting open', 'script/cli/open-minting.mjs', { modes: { broadcast: [] }, networks: ['sepolia', 'arbitrum'] });
+add('release hats-delegation', 'script/deploy/hats-delegation-release.ts', { network: false, modes: { preflight: ['--preflight'], plan: ['--plan-only'], verify: ['--verify'] }, values: ['output', 'safe-nonce', 'block', 'plan'], effects: ['prepare three ordered Arbitrum Safe review files', 'verify deployed Hats delegation state; never signs or broadcasts'], safeguards: ['clean committed source and matching production artifact', 'exact CREATE2 factory runtime, Safe threshold and existing governance delay', 'independent Hat roles; no garden recreation or custody transfer'] });
 export const OPERATIONS = Object.freeze(definitions.map((operation) => Object.freeze(operation)));
 
 export function validateSourceUpgradeMode(values) {

@@ -1,0 +1,127 @@
+{
+  "version": 1,
+  "note": "Shrink-only: per rule and file, the solhint warnings the contract sources still carry. Counts may go down, never up; record a lower count with `node scripts/contracts/check-solhint-baseline.mjs --baseline-shrink`.",
+  "counts": {
+    "avoid-low-level-calls": {
+      "packages/contracts/src/accounts/CeloGardenAccountDeploymentCoordinator.sol": 2,
+      "packages/contracts/src/modules/Gardens.sol": 1
+    },
+    "contract-name-capwords": {
+      "packages/contracts/src/interfaces/IGardensV2.sol": 1
+    },
+    "gas-indexed-events": {
+      "packages/contracts/src/accounts/Garden.sol": 2,
+      "packages/contracts/src/accounts/StewardRolePublisher.sol": 6,
+      "packages/contracts/src/accounts/StewardSafeReceiver.sol": 3,
+      "packages/contracts/src/interfaces/ICeloSettlementExecutor.sol": 13,
+      "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol": 18,
+      "packages/contracts/src/interfaces/ICommitmentRegistry.sol": 3,
+      "packages/contracts/src/interfaces/ICreditRegistry.sol": 2,
+      "packages/contracts/src/interfaces/IGardensModule.sol": 7,
+      "packages/contracts/src/interfaces/IHatsModule.sol": 1,
+      "packages/contracts/src/interfaces/IKarmaGAPModule.sol": 1,
+      "packages/contracts/src/interfaces/ISettlementModule.sol": 22,
+      "packages/contracts/src/lib/Settlement/ConfigurationLib.sol": 1,
+      "packages/contracts/src/lib/Settlement/LifecycleLib.sol": 3,
+      "packages/contracts/src/lib/Settlement/PlanLib.sol": 11,
+      "packages/contracts/src/modules/GnosisVoucherEscrow.sol": 1,
+      "packages/contracts/src/modules/Hats.sol": 15,
+      "packages/contracts/src/modules/Hypercerts.sol": 3,
+      "packages/contracts/src/modules/Octant.sol": 8,
+      "packages/contracts/src/modules/Unlock.sol": 2,
+      "packages/contracts/src/modules/VoucherEndpoint.sol": 7,
+      "packages/contracts/src/modules/VoucherEntitlementModule.sol": 2,
+      "packages/contracts/src/modules/VoucherRedemptionModule.sol": 2,
+      "packages/contracts/src/registries/ENS.sol": 7,
+      "packages/contracts/src/registries/ENSReceiver.sol": 4,
+      "packages/contracts/src/registries/GreenWill.sol": 2,
+      "packages/contracts/src/registries/Power.sol": 1,
+      "packages/contracts/src/resolvers/Yield.sol": 24,
+      "packages/contracts/src/strategies/AaveV3ERC4626.sol": 4,
+      "packages/contracts/src/tokens/Garden.sol": 3
+    },
+    "gas-struct-packing": {
+      "packages/contracts/src/Schemas.sol": 2,
+      "packages/contracts/src/interfaces/ICeloSettlementExecutor.sol": 2,
+      "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol": 4,
+      "packages/contracts/src/interfaces/ICookieJarFactory.sol": 3,
+      "packages/contracts/src/interfaces/ICreditRegistry.sol": 1,
+      "packages/contracts/src/interfaces/IGardenAccount.sol": 1,
+      "packages/contracts/src/interfaces/IGardensV2.sol": 1,
+      "packages/contracts/src/interfaces/ISettlementModule.sol": 4,
+      "packages/contracts/src/interfaces/ISettlementPersonalServicePurchases.sol": 1,
+      "packages/contracts/src/lib/CommitmentPooling/CreationLib.sol": 1,
+      "packages/contracts/src/lib/Settlement/CommandLib.sol": 2,
+      "packages/contracts/src/libraries/GardenSafeActionCodec.sol": 2,
+      "packages/contracts/src/libraries/SettlementMessageCodec.sol": 2,
+      "packages/contracts/src/libraries/VoucherMessageCodec.sol": 2,
+      "packages/contracts/src/libraries/VoucherRedemptionCodec.sol": 2,
+      "packages/contracts/src/libraries/VoucherServiceCodec.sol": 4,
+      "packages/contracts/src/libraries/VoucherServiceEscrowStorage.sol": 1,
+      "packages/contracts/src/markets/HypercertMarketplaceAdapter.sol": 1,
+      "packages/contracts/src/modules/VoucherEntitlementModule.sol": 1,
+      "packages/contracts/src/registries/GreenWill.sol": 1,
+      "packages/contracts/src/tokens/Garden.sol": 1
+    },
+    "immutable-vars-naming": {
+      "packages/contracts/src/accounts/StewardRolePublisher.sol": 5,
+      "packages/contracts/src/accounts/StewardSafeReceiver.sol": 7,
+      "packages/contracts/src/modules/HatsCookieJar.sol": 2,
+      "packages/contracts/src/strategies/AaveV3ERC4626.sol": 3,
+      "packages/contracts/src/tokens/Goods.sol": 1
+    },
+    "max-states-count": {
+      "packages/contracts/src/modules/CommitmentPooling/Storage.sol": 1,
+      "packages/contracts/src/modules/Settlement/Storage.sol": 1
+    },
+    "named-parameters-mapping": {
+      "packages/contracts/src/accounts/StewardRolePublisher.sol": 2,
+      "packages/contracts/src/accounts/StewardSafeReceiver.sol": 2,
+      "packages/contracts/src/markets/HypercertMarketplaceAdapter.sol": 4,
+      "packages/contracts/src/modules/CookieJar.sol": 3,
+      "packages/contracts/src/modules/Hats.sol": 2,
+      "packages/contracts/src/registries/ENS.sol": 4,
+      "packages/contracts/src/registries/ENSReceiver.sol": 1
+    },
+    "no-empty-blocks": {
+      "packages/contracts/src/accounts/Garden.sol": 4,
+      "packages/contracts/src/accounts/StewardRolePublisher.sol": 1,
+      "packages/contracts/src/accounts/StewardSafeReceiver.sol": 1,
+      "packages/contracts/src/interfaces/IJuicebox.sol": 3,
+      "packages/contracts/src/lib/GardenHooks.sol": 1,
+      "packages/contracts/src/lib/HatsEligibilitySetup.sol": 2,
+      "packages/contracts/src/lib/HatsRoleSync.sol": 2,
+      "packages/contracts/src/lib/Settlement/LoanLib.sol": 1,
+      "packages/contracts/src/modules/Gardens.sol": 4,
+      "packages/contracts/src/modules/Hats.sol": 2,
+      "packages/contracts/src/modules/Hypercerts.sol": 1,
+      "packages/contracts/src/modules/Octant.sol": 16,
+      "packages/contracts/src/registries/ENSReceiver.sol": 2,
+      "packages/contracts/src/registries/GreenWill.sol": 1,
+      "packages/contracts/src/resolvers/Assessment.sol": 2,
+      "packages/contracts/src/resolvers/WorkApproval.sol": 3,
+      "packages/contracts/src/resolvers/Yield.sol": 2,
+      "packages/contracts/src/tokens/Garden.sol": 1
+    },
+    "no-inline-assembly": {
+      "packages/contracts/src/lib/CommitmentPooling/CreationLib.sol": 1,
+      "packages/contracts/src/lib/Settlement/FundingLib.sol": 1,
+      "packages/contracts/src/lib/Settlement/LoanLib.sol": 1,
+      "packages/contracts/src/lib/Settlement/PersonalPurchaseStorageLib.sol": 1,
+      "packages/contracts/src/lib/VoucherService/VoucherFinalAllocationLib.sol": 1,
+      "packages/contracts/src/lib/VoucherService/VoucherServiceOutboxLib.sol": 1,
+      "packages/contracts/src/lib/VoucherService/VoucherServiceSourceStorage.sol": 1,
+      "packages/contracts/src/libraries/VoucherServiceCodec.sol": 1,
+      "packages/contracts/src/modules/CeloSettlement/Execution.sol": 1,
+      "packages/contracts/src/registries/CreditBase.sol": 1,
+      "packages/contracts/src/resolvers/Assessment.sol": 1
+    },
+    "no-unused-import": {
+      "packages/contracts/src/lib/GardenKarma.sol": 1
+    },
+    "var-name-mixedcase": {
+      "packages/contracts/src/markets/HypercertMarketplaceAdapter.sol": 1,
+      "packages/contracts/src/modules/Octant.sol": 1
+    }
+  }
+}

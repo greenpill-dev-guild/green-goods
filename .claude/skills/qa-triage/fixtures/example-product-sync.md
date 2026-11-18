@@ -35,18 +35,18 @@
 
 ## Summary
 
-Reviewed the v1.1 release readiness. Walked through four open bugs (one PWA iOS, one admin, one cross-surface funding-flow, one docs typo), discussed one feature idea around action templates, and noted a member-display bug that touches both admin and indexer.
+Reviewed the v1.1 release readiness. Walked through four open bugs (one Green Goods App iOS, one Hub, one cross-surface funding-flow, one docs typo), discussed one feature idea around action templates, and noted a member-display bug that touches both admin and indexer.
 
 ## Discussion
 
-### PWA iOS — camera preview clips on iPhone 15
+### Green Goods App iOS — camera preview clips on iPhone 15
 
 Gui demoed the work-submission flow on his iPhone 15. After capturing a photo, the preview thumbnail is cropped to a 1:1 square even though the captured image is 4:3. Reproduces every time on iOS Safari standalone PWA. Gui thinks this looks like the **PWA-IOS-005** case but specific to camera-captured images (the existing test only covers HEIC/JPG library imports). Suspected `object-fit` regression on the preview component tied to the May 12 `WorkSubmissionPreview` refactor.
 
 > "The thumbnail's square but the photo is 4:3 — the gardener thinks they cropped something they didn't."
 > — Gui
 
-### Admin Dashboard — Hub work queue doesn't refresh after approval
+### Green Goods Hub — Review work queue doesn't refresh after approval
 
 Lena reported that after approving a piece of work in the Hub, the queue still shows it as `Pending` until she does a hard refresh. Test **ADM-007** in the QA workbook already covers the post-approval refresh path and is currently marked Fail with no linked Defect — should attach to whatever Linear record comes out of this triage.
 
@@ -80,8 +80,8 @@ Afo floated letting stewards duplicate a previous successful action as a templat
 
 ## Action items
 
-- [ ] File the camera preview bug (PWA iOS, related to PWA-IOS-005)
-- [ ] File the Hub work-queue refresh bug (Admin Dashboard, ADM-007 backfill)
+- [ ] File the camera preview bug (Green Goods App iOS, related to PWA-IOS-005)
+- [ ] File the Review work-queue refresh bug (Green Goods Hub, ADM-007 backfill)
 - [ ] File the radio-button selected-state bug (Cross Surface, related to XPLAT-001)
 - [ ] File the glossary typo (Docs)
 - [ ] File the member-display bug (Cross-surface admin + indexer)
@@ -89,4 +89,4 @@ Afo floated letting stewards duplicate a previous successful action as a templat
 
 ## Next sync
 
-Next Wednesday, 10am PDT. Topic: PWA Android device review.
+Next Wednesday, 10am PDT. Topic: Green Goods App Android device review.

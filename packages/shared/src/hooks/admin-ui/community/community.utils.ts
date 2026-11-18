@@ -59,7 +59,7 @@ export function buildCommunityHeaderStats({
       id: "treasury",
       value: formatAssetAmounts(endowmentByAsset, locale),
       label: formatMessage({
-        id: "cockpit.community.stats.treasury",
+        id: "hub.community.stats.treasury",
         defaultMessage: "endowment",
       }),
     },
@@ -70,7 +70,7 @@ export function buildCommunityHeaderStats({
       id: "distributed",
       value: formatTokenAmount(distributedAmounts[0] ?? 0n),
       label: formatMessage({
-        id: "cockpit.community.stats.distributed",
+        id: "hub.community.stats.distributed",
         defaultMessage: "distributed",
       }),
     });
@@ -147,7 +147,8 @@ export function buildCommunityViewActions(
   navigate: (path: string) => void,
   routeContext?: AdminCommunityRouteContext,
   /** False once the garden is known to have no payout jar to fund. */
-  hasPayoutJar = true
+  hasPayoutJar = true,
+  canAddMember = canManage
 ): ViewAction[] {
   const gardenAddress = routeContext?.gardenAddress;
   // "View public" lives once, on the Garden workspace — not duplicated here.
@@ -155,7 +156,7 @@ export function buildCommunityViewActions(
     {
       id: "add-member",
       label: "Add member",
-      labelId: "cockpit.community.action.addMember",
+      labelId: "hub.community.action.addMember",
       icon: RiUserAddLine,
       onClick: () =>
         pushRouteItem(
@@ -163,13 +164,13 @@ export function buildCommunityViewActions(
           adminRoutes.communityMode(mode, { gardenId: gardenAddress, item: ADD_MEMBER_ROUTE_ITEM })
         ),
       variant: "primary",
-      visible: hasSelectedGarden && canManage,
+      visible: hasSelectedGarden && canAddMember,
       primary: true,
     },
     {
       id: "deposit-withdraw",
       label: "Deposit / withdraw",
-      labelId: "cockpit.community.action.depositWithdraw",
+      labelId: "hub.community.action.depositWithdraw",
       icon: RiMoneyDollarCircleLine,
       onClick: () => navigate(adminRoutes.communityEndowmentVault(routeContext)),
       variant: "secondary",
@@ -178,7 +179,7 @@ export function buildCommunityViewActions(
     {
       id: "fund-payout-jar",
       label: "Fund Cookie Jar",
-      labelId: "cockpit.community.action.fundPayoutJar",
+      labelId: "hub.community.action.fundPayoutJar",
       icon: RiHandCoinLine,
       onClick: () =>
         pushRouteItem(
@@ -192,7 +193,7 @@ export function buildCommunityViewActions(
       ...(hasPayoutJar
         ? {}
         : {
-            disabledReasonId: "cockpit.community.action.fundPayoutJarNoJar",
+            disabledReasonId: "hub.community.action.fundPayoutJarNoJar",
             disabledReason: "This garden has no payout jar yet.",
           }),
     },

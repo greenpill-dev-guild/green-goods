@@ -59,6 +59,38 @@ export function usePoolCycleRail(input: {
   return { cycles, selectedCycleId: activeCycleId, setSelectedCycleId };
 }
 
+/**
+ * What the reader may do in a pool, as its garden's roles answer: start a promise there, and
+ * whether they steward it. A garden's Promises tab and Home's + (DL-181) read the same answer.
+ */
+export function usePoolAccess(pool: CommitmentPoolRecord | null | undefined) {
+  const chainId = DEFAULT_CHAIN_ID;
+  const viewer = (usePrimaryAddress() ?? undefined) as Address | undefined;
+  const garden = (pool?.garden ?? undefined) as Address | undefined;
+  const stewardRole = useHasRole(garden, viewer, "steward", chainId);
+  const ownerRole = useHasRole(garden, viewer, "owner", chainId);
+  const stewards = stewardRole.hasRole || ownerRole.hasRole;
+  // Any role in the garden: the contract's own test for starting a promise in a
+  // garden's pool. Unknown while it reads or when the read fails, which draws no +.
+  const membership = useGardenMembership(garden, viewer, chainId);
+  return {
+    // Creation needs an open pool and, in a garden's pool, a member: the contract
+    // refuses anyone else. The protocol pool takes only its host garden's stewards
+    // (CreationChecksLib.resolveCreator) until members' offers there are decided.
+    // With no pool there is nothing to start a promise in.
+    canCreate:
+      pool?.state === "OPEN" &&
+      (pool.poolType === "PROTOCOL" ? stewards : membership.isMember === true),
+    // Whether the reader stewards the pool's garden. Null until both role reads
+    // answer, and while either failed, so no copy assumes an answer it lacks.
+    stewardsPool: stewards
+      ? true
+      : stewardRole.isLoading || ownerRole.isLoading || stewardRole.error || ownerRole.error
+        ? null
+        : false,
+  };
+}
+
 export function useGardenPoolController(pool: CommitmentPoolRecord) {
   const chainId = DEFAULT_CHAIN_ID;
   const viewer = usePrimaryAddress();
@@ -71,27 +103,7 @@ export function useGardenPoolController(pool: CommitmentPoolRecord) {
   const [liveness, setLiveness] = useState<GardenPoolLiveness>("live");
   const [busyJobId, setBusyJobId] = useState<string | null>(null);
   const activeCycleId = rail.selectedCycleId;
-  const stewardRole = useHasRole(
-    pool.garden as Address,
-    (viewer ?? undefined) as Address | undefined,
-    "steward",
-    chainId
-  );
-  const ownerRole = useHasRole(
-    pool.garden as Address,
-    (viewer ?? undefined) as Address | undefined,
-    "owner",
-    chainId
-  );
-  const stewardsPool = stewardRole.hasRole;
-  const ownsPool = ownerRole.hasRole;
-  // Any role in the garden: the contract's own test for starting a promise in a
-  // garden's pool. Unknown while it reads or when the read fails, which draws no +.
-  const membership = useGardenMembership(
-    pool.garden as Address,
-    (viewer ?? undefined) as Address | undefined,
-    chainId
-  );
+  const access = usePoolAccess(pool);
   const queue = useCommitmentQueueState(viewer as Address | null);
   const { pendingCreates, refresh: refreshQueue } = queue;
   const { retryAndSend } = useJobQueue();
@@ -198,20 +210,8 @@ export function useGardenPoolController(pool: CommitmentPoolRecord) {
     commitments,
     poolState,
     isParticipating: !NON_PARTICIPATING_STATES.has(poolState),
-    // Creation needs an open pool and, in a garden's pool, a member: the contract
-    // refuses anyone else. The protocol pool takes only its host garden's stewards
-    // (CreationChecksLib.resolveCreator) until members' offers there are decided.
-    canCreate:
-      poolState === "OPEN" &&
-      (pool.poolType === "PROTOCOL" ? stewardsPool || ownsPool : membership.isMember === true),
-    // Whether the reader stewards the pool's garden. Null until both role reads
-    // answer, and while either failed, so no copy assumes an answer it lacks.
-    stewardsPool:
-      stewardsPool || ownsPool
-        ? true
-        : stewardRole.isLoading || ownerRole.isLoading || stewardRole.error || ownerRole.error
-          ? null
-          : false,
+    canCreate: access.canCreate,
+    stewardsPool: access.stewardsPool,
     acts: { retry, discard },
   };
 }

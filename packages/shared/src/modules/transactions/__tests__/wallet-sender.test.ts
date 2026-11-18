@@ -19,7 +19,7 @@ import {
   type FakeWagmiDeps,
 } from "../../../__tests__/test-utils/transaction-fakes";
 import { MOCK_ADDRESSES, MOCK_TX_HASH } from "../../../__tests__/test-utils/mock-factories";
-import { TransactionRevertedError, type ContractCall } from "../types";
+import { TransactionRevertedError } from "../types";
 import { WalletSender, type WalletSenderDeps } from "../wallet-sender";
 
 // ============================================

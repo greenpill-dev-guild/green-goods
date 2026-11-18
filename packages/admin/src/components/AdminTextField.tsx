@@ -26,14 +26,14 @@ import { CharacterCounter, countedLength, overLimitMessage } from "./CharacterCo
  * message layout (F3) around Shared's own control:
  * - The label above the control, the shared field title (`gg-field-label`)
  * - The shared control (`TextInput`, `Textarea`, `NativeSelect`) on the admin
- *   surface: the cockpit's 8px corner on the responsive field tier, 44px /
+ *   surface: the Hub's 8px corner on the responsive field tier, 44px /
  *   16px text below 640px (the installed app's touch fields) and 40px / 14px
  *   text from 640px (DL-030, DL-031), the control-grade outline at rest, one
  *   2px focus ring in the workspace tone (DL-098), and the error colour on error
  * - Leading and trailing icon slots (20px, on-surface-variant)
  * - Supporting text / error message below with aria-describedby linkage, on
  *   the shared message line (`gg-field-message`), which reserves the
- *   cockpit's message lines whether or not it shows one, so a message that
+ *   Hub's message lines whether or not it shows one, so a message that
  *   fits never moves the form (DL-064) and a longer one grows the line
  * - Opt-in character counter at the end of that row, toward the control's maxLength,
  *   with an error past it

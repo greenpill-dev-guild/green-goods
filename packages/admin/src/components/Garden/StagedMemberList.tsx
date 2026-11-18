@@ -14,6 +14,8 @@ interface StagedMemberListProps {
   rolesByAddress: Map<string, GardenRole[]>;
   onRemove: (member: StagedMember) => void;
   disabled?: boolean;
+  /** Bulk entry reserves list space; a fixed member only needs their recovery row. */
+  reserveSpace?: boolean;
   /** What a row with an unknown outcome says. It cannot be removed until that settles. */
   heldNote?: (member: StagedMember) => string | null;
 }
@@ -29,17 +31,19 @@ export function StagedMemberList({
   rolesByAddress,
   onRemove,
   disabled = false,
+  reserveSpace = true,
   heldNote,
 }: StagedMemberListProps) {
   const intl = useIntl();
   const { formatMessage } = intl;
 
   return (
-    // Reserved-geometry staging area: fixed height from first paint so adding
-    // names never grows the dialog (§ dialog standard — loading/list regions
-    // reserve their final dimensions).
+    // Bulk entry reserves list geometry; single-member recovery fits its content.
     <div
-      className="h-44 overflow-y-auto rounded-[var(--m3-shape-md)] border border-stroke-soft bg-bg-weak/40 p-2"
+      className={cn(
+        "overflow-y-auto rounded-[var(--m3-shape-md)] border border-stroke-soft bg-bg-weak/40 p-2",
+        reserveSpace ? "h-44" : "max-h-44"
+      )}
       role="group"
       aria-label={formatMessage({
         id: "admin.addMember.pendingList",

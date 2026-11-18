@@ -22,7 +22,7 @@ export interface PoolLifecycleNoticeProps {
   inline?: boolean;
   /**
    * Stewards the pool's garden. Only a steward can finish setting a pool up,
-   * from the steward dashboard, so only a steward reads what it still needs.
+   * from the Green Goods Hub, so only a steward reads what it still needs.
    * Null while the role is unknown: then the notice says only what is true for
    * anyone.
    */

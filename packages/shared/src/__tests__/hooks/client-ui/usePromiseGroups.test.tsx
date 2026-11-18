@@ -10,7 +10,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
-  type PoolListEntry,
+  type CountedPoolListEntry,
   usePastDuePromises,
   usePoolPromiseEntries,
 } from "../../../hooks/client-ui/pool/usePromiseGroups";
@@ -30,6 +30,11 @@ const OMAR = "0x3333333333333333333333333333333333333333" as Address;
 const mocks = vi.hoisted(() => ({
   /** The pool's cycles; undefined while unread. */
   cycles: undefined as CommitmentCycleRecord[] | undefined,
+  /**
+   * The pool's requests waiting on a steward, by copy; `failed` when that read failed, `paused`
+   * when its first read waits for a connection.
+   */
+  asks: [] as bigint[] | "failed" | "paused",
   metadata: new Map<string, CommitmentMetadataV1>([
     ["cid-dated", { version: 1, title: "Water survey", displayGroup: { version: 1, id: "dated" } }],
     ["cid-season", { version: 1, title: "Seed swap", displayGroup: { version: 1, id: "season" } }],
@@ -38,6 +43,16 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("../../../hooks/commitment-pooling/useCommitmentMetadata", () => ({
   useCommitmentMetadata: () => ({ byCID: mocks.metadata, isLoading: false }),
+}));
+vi.mock("../../../hooks/commitment-pooling/usePoolClaimRequests", () => ({
+  usePoolClaimRequests: () => {
+    // TanStack reports a first read waiting for a connection neither loading nor failed.
+    const data =
+      mocks.asks === "failed" || mocks.asks === "paused"
+        ? undefined
+        : mocks.asks.map((commitmentId) => ({ claim: { commitmentId } }));
+    return { data, rows: data ?? [], isLoading: false, isError: mocks.asks === "failed" };
+  },
 }));
 vi.mock("../../../hooks/commitment-pooling/useCommitmentPooling", () => ({
   useCommitmentCycles: () => ({
@@ -72,17 +87,40 @@ const render = (commitments: CommitmentReadModel[]) => {
   );
 };
 
-const countsOf = (entries: readonly PoolListEntry<unknown>[], displayGroupId: string) => {
+const groupOf = (entries: readonly CountedPoolListEntry<unknown>[], displayGroupId: string) => {
   const entry = entries.find(
     (each) => each.kind === "group" && each.group.displayGroupId === displayGroupId
   );
   if (entry?.kind !== "group") throw new Error(`expected the ${displayGroupId} set as one row`);
-  return entry.group.counts;
+  return entry;
 };
+const countsOf = (entries: readonly CountedPoolListEntry<unknown>[], displayGroupId: string) =>
+  groupOf(entries, displayGroupId).group.counts;
 
 describe("usePoolPromiseEntries", () => {
   beforeEach(() => {
     mocks.cycles = undefined;
+    mocks.asks = [];
+  });
+
+  // PRD-1492: a reviewed set's copy with someone's request on it read as available here and on
+  // Take Part, while the group's page held its act because a second ask never goes to that copy.
+  it("counts a reviewed set's asked-for copies as waiting on a steward, as the group's page does", () => {
+    mocks.asks = [11n];
+    const reviewed = (id: number) => copy(id, "cid-dated", { claimMode: "APPROVAL_GATED" });
+    const { result, rerender } = render([reviewed(11), reviewed(12)]);
+
+    expect(countsOf(result.current, "dated")).toMatchObject({ available: 1, requested: 1 });
+    expect(groupOf(result.current, "dated").availabilityKnown).toBe(true);
+
+    // Requests that could not be read leave a reviewed set's availability unknown, and so do
+    // requests whose first read waits for a connection (Codex on #1610).
+    mocks.asks = "failed";
+    rerender();
+    expect(groupOf(result.current, "dated").availabilityKnown).toBe(false);
+    mocks.asks = "paused";
+    rerender();
+    expect(groupOf(result.current, "dated").availabilityKnown).toBe(false);
   });
 
   it("counts a set past its due date as ended, none available, as the group's page does", () => {

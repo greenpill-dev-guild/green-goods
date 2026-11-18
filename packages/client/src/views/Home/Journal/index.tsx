@@ -10,6 +10,7 @@ import { AboutGarden } from "./AboutGarden";
 import { Continue } from "./Continue";
 import { HighlightsCarousel } from "./HighlightsCarousel";
 import { NeedsYourAttention } from "./NeedsYourAttention";
+import { OfferOrAsk } from "./OfferOrAsk";
 import { RecentActivity } from "./RecentActivity";
 import { TakePart } from "./TakePart";
 
@@ -33,7 +34,8 @@ export interface HomeJournalProps {
  * This is the one place the compact journal's sections mount, in this order (DL-156): What's
  * Open, then Needs Your Attention for stewards, Recent Activity, Continue, Take Part, then About
  * This Garden (DL-128), whose rows and sheets keep every entry point the garden page offered
- * within reach of Home.
+ * within reach of Home. The garden's Offer or Ask + floats over them (DL-181), and the journal
+ * ends with room for it, so its last row scrolls clear.
  *
  * The garden's duties are read once here. Needs Your Attention draws them, and a duty card in
  * the carousel would take the first of the same read, so both show one count. Take Part's See
@@ -50,13 +52,15 @@ export function HomeJournal({ garden }: HomeJournalProps) {
   // they never reopen over that garden's journal.
   useEffect(() => closeTakePartSheet, [closeTakePartSheet, garden.id]);
   return (
-    <div className="flex flex-col pb-4">
+    <div className="flex flex-col pb-24">
       <HighlightsCarousel gardenId={garden.id} />
       <NeedsYourAttention garden={garden} duties={duties} />
       <RecentActivity gardenId={garden.id} />
       <Continue />
       <TakePart gardenId={garden.id} />
       <AboutGarden garden={garden} />
+      {/* Another garden gets a + of its own, so a sheet open on one never carries over. */}
+      <OfferOrAsk key={garden.id} gardenId={garden.id} />
       {takePartPresent ? (
         <Suspense fallback={null}>
           <TakePartSheet garden={garden} />

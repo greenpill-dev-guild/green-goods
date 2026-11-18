@@ -1,5 +1,6 @@
 import { useIsMutating, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useIntl } from "react-intl";
+import { WalletReconnectRequiredError } from "../../utils/errors/unsent-failures";
 import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
@@ -163,7 +164,6 @@ export function useBatchWorkApproval(
       await queryClient.cancelQueries({ queryKey: holdKey });
       await queryClient.cancelQueries({ queryKey: worksKeys.merged(gardenAddress, chainId) });
       await queryClient.cancelQueries({ queryKey: worksKeys.online(gardenAddress, chainId) });
-      track("batch_approval_started", { count: decisions.length, auth_mode: rail });
       const inFlight = new Set(decisions.map(({ draft }) => draft.workUID.toLowerCase()));
       // In flight, a work stays pending: it shows a decision only once that decision is proven.
       // No deadline, since a send stays open until it is proven, moved on from, or known not sent.
@@ -175,16 +175,24 @@ export function useBatchWorkApproval(
       return { clearOverlay, refreshWorks, holdKey, rail, gardenAddress };
     },
     mutationFn: async ({ decisions, perSignature }: ReviewSend): Promise<ReviewBatchOutcome> => {
+      let started = false;
+      const start = () => {
+        if (started) return;
+        started = true;
+        track("batch_approval_started", { count: decisions.length, auth_mode: rail });
+      };
+      let outcome: ReviewBatchOutcome;
       try {
-        return await sendReviewBatch({
+        outcome = await sendReviewBatch({
           ...batchInput(),
           rail: rail!,
           decisions,
           perSignature,
           onLanded: markLanded,
+          onSending: start,
         });
       } catch (failure) {
-        return {
+        outcome = {
           sent: [],
           stale: [],
           refused: [],
@@ -194,6 +202,8 @@ export function useBatchWorkApproval(
           failure,
         };
       }
+      if (!(outcome.failure instanceof WalletReconnectRequiredError)) start();
+      return outcome;
     },
     onSuccess: (outcome, _decisions, started) => {
       const { sent, stale, refused, notSent, notBatchable, unknown, failure } = outcome;
@@ -216,9 +226,10 @@ export function useBatchWorkApproval(
         });
         scheduleFollowUp();
       }
-      if (unknown.length > 0 || refused.length > 0 || failure) {
+      const reconnectRefused = failure instanceof WalletReconnectRequiredError;
+      if (unknown.length > 0 || refused.length > 0 || (failure && !reconnectRefused)) {
         track("batch_approval_failed", {
-          count: unknown.length + refused.length + notSent.length,
+          count: unknown.length + refused.length + (reconnectRefused ? 0 : notSent.length),
           unknown: unknown.length,
           auth_mode: started.rail,
         });

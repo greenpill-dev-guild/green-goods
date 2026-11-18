@@ -9,7 +9,7 @@ export function EmptyStateShell({
   children: ReactNode;
   className?: string;
 }) {
-  // The cockpit paints its own opaque gradient (--admin-empty-state-bg); anywhere else the frame
+  // The Hub paints its own opaque gradient (--admin-empty-state-bg); anywhere else the frame
   // keeps the ground level's fill.
   return (
     <Surface

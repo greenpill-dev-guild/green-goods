@@ -6,7 +6,7 @@ import { useIntl } from "react-intl";
 
 // ----------------------------------------------------------------------------
 // FAB + Speed Dial — the creation entry that floats above the nav bar on
-// tablet/mobile (Cockpit M3, finished — 1a). Split out of the forked
+// tablet/mobile (Hub M3, finished — 1a). Split out of the forked
 // Shell/NavigationBar so each shell module stays readable.
 //
 // The FAB is the one tone-filled control in the floating chrome: circular
@@ -171,7 +171,7 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
           data-state="open"
           role="menu"
           // Named for the whole set, in the reader's language, not for one act.
-          aria-label={formatMessage({ id: "cockpit.fab.actions" })}
+          aria-label={formatMessage({ id: "hub.fab.actions" })}
           onKeyDown={handleSpeedDialKeyDown}
         >
           {config.actions.map((action) => {
@@ -260,7 +260,7 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
           isSingleAction
             ? floatingActionLabel
             : formatMessage({
-                id: speedDialOpen ? "cockpit.fab.closeActions" : "cockpit.fab.openActions",
+                id: speedDialOpen ? "hub.fab.closeActions" : "hub.fab.openActions",
               })
         }
         aria-haspopup={isSingleAction ? undefined : "menu"}

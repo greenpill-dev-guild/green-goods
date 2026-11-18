@@ -13,17 +13,9 @@
 import type { WorkUploadConsent } from "@green-goods/shared/types/domain";
 import type { Hex } from "viem";
 
-// ============================================================================
-// PLATFORMS
-// ============================================================================
-
 export type Platform = "telegram" | "discord" | "whatsapp" | "sms";
 
 export type ChatType = "private" | "group" | "supergroup" | "channel";
-
-// ============================================================================
-// MESSAGES (Inbound)
-// ============================================================================
 
 export interface ChatContext {
   id: string;
@@ -109,7 +101,6 @@ export interface DocumentContent {
   caption?: string;
 }
 
-// Type guards
 export const isTextContent = (c: MessageContent): c is TextContent => c.type === "text";
 export const isCommandContent = (c: MessageContent): c is CommandContent => c.type === "command";
 export const isVoiceContent = (c: MessageContent): c is VoiceContent => c.type === "voice";
@@ -117,10 +108,6 @@ export const isCallbackContent = (c: MessageContent): c is CallbackContent => c.
 export const isImageContent = (c: MessageContent): c is ImageContent => c.type === "image";
 export const isVideoContent = (c: MessageContent): c is VideoContent => c.type === "video";
 export const isDocumentContent = (c: MessageContent): c is DocumentContent => c.type === "document";
-
-// ============================================================================
-// RESPONSES (Outbound)
-// ============================================================================
 
 export interface OutboundResponse {
   text: string;
@@ -141,25 +128,16 @@ export interface ResponseAttachment {
   caption?: string;
 }
 
-// Response helpers
 export const textResponse = (text: string, parseMode?: "markdown" | "html"): OutboundResponse => ({
   text,
   parseMode,
 });
-
-// ============================================================================
-// HANDLER RESULT
-// ============================================================================
 
 export interface HandlerResult {
   response: OutboundResponse;
   updateSession?: SessionUpdate;
   clearSession?: boolean;
 }
-
-// ============================================================================
-// USER & SESSION
-// ============================================================================
 
 export interface User {
   platform: Platform;
@@ -202,10 +180,6 @@ export type SessionStep =
 
 export type SessionUpdate = Partial<Omit<Session, "platform" | "platformId">>;
 
-// ============================================================================
-// PENDING WORK
-// ============================================================================
-
 export interface PendingWork {
   id: string;
   actionUID: number;
@@ -227,9 +201,7 @@ export interface WorkDraftData {
   uploadConsent?: WorkUploadConsent;
 }
 
-// ============================================================================
 // CHAT MESSAGES (silent group capture)
-// ============================================================================
 
 export type CaptureType = "bug" | "idea";
 export type ChatMessageStatus = "new" | "processing" | "triaged" | "rejected";
@@ -297,10 +269,6 @@ export interface NewChatMessageAttachmentInput {
   height?: number;
 }
 
-// ============================================================================
-// BLOCKCHAIN
-// ============================================================================
-
 export interface GardenInfo {
   exists: boolean;
   name?: string;
@@ -340,10 +308,6 @@ export interface VerificationResult {
   cachedAt?: number;
 }
 
-// ============================================================================
-// AI / NLU
-// ============================================================================
-
 export interface ParsedTask {
   type: "planting" | "weeding" | "maintenance" | "harvesting" | "other";
   species: string;
@@ -358,7 +322,5 @@ export interface ParsedWorkData {
   date: string;
 }
 
-// ============================================================================
 // RATE LIMITING (types defined in services/rate-limiter.ts)
-// ============================================================================
 export type { RateLimitResult } from "./services/rate-limiter";

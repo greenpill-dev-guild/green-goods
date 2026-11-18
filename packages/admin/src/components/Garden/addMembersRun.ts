@@ -3,6 +3,14 @@ import type { Address } from "@green-goods/shared/types/domain";
 import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
 import { memberRowKey, type StagedMember } from "./addMembersEntry";
 
+/** Recovery for one member must not import another person from a prior bulk send. */
+export function heldRowsForMember(
+  rows: readonly StagedMember[],
+  account?: Address
+): StagedMember[] {
+  return rows.filter((row) => !account || row.address.toLowerCase() === account.toLowerCase());
+}
+
 type OnLanded = (rows: readonly StagedMember[]) => void;
 
 interface AddMembersRunInput {

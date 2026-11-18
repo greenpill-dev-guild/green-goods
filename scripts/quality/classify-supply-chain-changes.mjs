@@ -9,12 +9,17 @@ const guidanceExact = new Set([
   "CLAUDE.md",
   "ONBOARDING.md",
   "scripts/quality/check-codex-docs.js",
+  // check-codex-docs reads markers in the pattern checker, so editing it reaches that job too.
+  "scripts/quality/check-react-patterns.js",
   // Catalog and ledger edits must reach the guidance job: it is where the
   // cross-revision Test ID guard (check:qa-id-ledger) runs.
   "scripts/data/qa-test-catalog.json",
   "scripts/data/qa-test-id-ledger.json",
 ]);
 const guidancePrefixes = [
+  ".agents/",
+  "packages/qa/",
+  "scripts/agents/",
   ".codex/",
   ".claude/",
   ".plans/",
@@ -89,7 +94,7 @@ function startsWithAny(path, prefixes) {
 export function classifySupplyChainChanges(paths, { workflowDispatch = false } = {}) {
   const normalized = [...new Set(paths.filter(Boolean).map((path) => path.replaceAll("\\", "/")))];
   if (workflowDispatch) {
-    return { format: true, guidance: true, supply: true, parity: true };
+    return { format: true, guidance: true, supply: true, parity: true, deadcode: true };
   }
 
   return {
@@ -109,6 +114,9 @@ export function classifySupplyChainChanges(paths, { workflowDispatch = false } =
     parity: normalized.some(
       (path) => parityExact.has(path) || path.startsWith(".github/workflows/"),
     ),
+    // Knip reads far more than code: workflows, hooks, MCP and tool configs, .gitignore. A finding
+    // that lands unchecked blocks the next pull request that runs it, so it runs on every run.
+    deadcode: true,
   };
 }
 

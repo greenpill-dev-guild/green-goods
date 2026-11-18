@@ -11,6 +11,7 @@ const ADDRESS_B = "0x2222222222222222222222222222222222222222" as Address;
 
 const mocks = vi.hoisted(() => ({
   address: "0x1111111111111111111111111111111111111111",
+  walletRestore: null as "restoring" | "failed" | null,
   consent: vi.fn(),
   clearDraft: vi.fn(),
   loadDraft: vi.fn(),
@@ -29,6 +30,7 @@ vi.mock("react-intl", () => ({ useIntl: () => ({ locale: "en" }) }));
 vi.mock("../../../hooks/work/useUploadPolicy", () => ({
   useUploadPolicy: () => ({ request: mocks.consent, prompt: null }),
 }));
+import { onWalletReconnectAsk } from "../../../modules/auth/wallet-reconnect";
 import { uploadConsent } from "../../test-utils/upload-policy";
 import { UploadPolicyCancelledError } from "../../../modules/work/upload-policy";
 vi.mock("wagmi", () => ({
@@ -38,7 +40,11 @@ vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({
   usePrimaryAddress: () => mocks.address,
 }));
 vi.mock("../../../hooks/auth/useAuth", () => ({
-  useAuth: () => ({ authMode: "wallet", smartAccountClient: null }),
+  useAuth: () => ({
+    authMode: "wallet",
+    walletRestore: mocks.walletRestore,
+    smartAccountClient: null,
+  }),
 }));
 vi.mock("../../../hooks/blockchain/useChainConfig", () => ({
   useCurrentChain: () => CHAIN_ID,
@@ -103,8 +109,33 @@ function createDeferred<T>() {
 }
 
 describe("useProfileAvatarEditor", () => {
+  it.each([
+    "restoring",
+    "failed",
+  ] as const)("asks to reconnect before photo consent or upload when %s", async (walletRestore) => {
+    mocks.walletRestore = walletRestore;
+    const asked = vi.fn();
+    const stop = onWalletReconnectAsk(asked);
+    try {
+      const { result } = renderHookWithQueryClient(() => useProfileAvatarEditor(CHAIN_ID));
+      await act(async () => {
+        await expect(result.current.save(new File(["photo"], "photo.png"))).rejects.toMatchObject({
+          name: "WalletReconnectRequiredError",
+          asked: true,
+        });
+      });
+      expect(asked).toHaveBeenCalledOnce();
+      expect(mocks.consent).not.toHaveBeenCalled();
+      expect(mocks.publishAvatar).not.toHaveBeenCalled();
+      expect(mocks.signMessage).not.toHaveBeenCalled();
+    } finally {
+      stop();
+    }
+  });
+
   beforeEach(() => {
     mocks.address = ADDRESS_A;
+    mocks.walletRestore = null;
     mocks.consent.mockReset().mockResolvedValue(uploadConsent(ADDRESS_A));
     mocks.clearDraft.mockReset();
     mocks.loadDraft.mockReset();

@@ -7,6 +7,7 @@
  *
  * @module hooks/hypercerts/useCreateListing
  */
+import { wasAskedToReconnect } from "../../utils/errors/unsent-failures";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { type Address } from "viem";
@@ -160,6 +161,7 @@ export function useCreateListing(
             id: !signer ? "app.account.signInRequired" : "app.account.signerNotReady",
           })
         );
+      sender.assertReadyToSign?.();
       await sender.assertOwnership?.(signer, chainId);
 
       const readiness = assertMarketplaceReady(chainId);
@@ -289,7 +291,7 @@ export function useCreateListing(
       }
     },
     onError: (error) => {
-      if (activeScope.current !== scope) return;
+      if (wasAskedToReconnect(error) || activeScope.current !== scope) return;
       setStep("error");
 
       const { title, message, parsed } = parseAndFormatError(error);

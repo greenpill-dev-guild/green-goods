@@ -91,7 +91,7 @@ describe("button shape guard (DL-023, DL-026)", () => {
     expect(declaration(app, "--gg-button-radius")).toBe("var(--radius-lg)");
     expect(declaration(app, "--gg-button-radius-pressed")).toBe("var(--radius-squircle)");
     expect(declaration(app, "--gg-button-weight")).toBe("var(--text-label-sm--font-weight)");
-    // The installed app's buttons take the cockpit's 500 label weight (F3), scoped as
+    // The installed app's buttons take the Hub's 500 label weight (F3), scoped as
     // its face is, so a public page inside the installed app keeps the website's 600.
     const installedApp = Array.from(
       theme.matchAll(
@@ -173,7 +173,7 @@ describe("button shape guard (DL-023, DL-026)", () => {
     expect(hitAreaPx(iconInset ?? "", height, borderPx(".gg-icon-button"))).toBe(48);
   });
 
-  it("lets a surface move the family's hit box with --gg-hit-block (the cockpit sets 44px)", () => {
+  it("lets a surface move the family's hit box with --gg-hit-block (the Hub sets 44px)", () => {
     const inset = declaration(block(".gg-button[data-size]::after"), "inset") ?? "";
     expect(inset).toContain("var(--gg-hit-block, 3rem)");
     // No sideways overhang: it would count as scrollable overflow, and a
@@ -265,7 +265,7 @@ describe("field shape guard (DL-022, DL-023)", () => {
     expect(declaration(select, "background-position")).toBe("right 0.125rem center");
   });
 
-  it("holds a single-line admin control at the cockpit tier: 44px on touch widths, 40px from 640px (DL-030)", () => {
+  it("holds a single-line admin control at the Hub tier: 44px on touch widths, 40px from 640px (DL-030)", () => {
     const singleLine =
       'input.gg-control[data-surface="admin"],\n  select.gg-control[data-surface="admin"],\n  .gg-control-trigger[data-surface="admin"],\n  .gg-control-dropzone[data-surface="admin"]';
     const touch = block(singleLine);

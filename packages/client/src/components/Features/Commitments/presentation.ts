@@ -43,7 +43,7 @@ const PAST_DUE: StatePresentation = { labelId: "app.commitments.state.pastDue", 
 
 /**
  * The pill for a state. An untaken promise past its due date says "Past due" in its place, as
- * the cockpit's rows do; expiring it stays the cockpit's act (DL-110 as amended).
+ * the Hub's rows do; expiring it stays the Hub's act (DL-110 as amended).
  */
 export function presentState(
   state: CommitmentDerivedState,

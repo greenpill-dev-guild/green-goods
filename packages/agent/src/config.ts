@@ -22,25 +22,20 @@ const CHAIN_MAP: Record<number, Chain> = {
 export type BotMode = "polling" | "webhook";
 
 export interface Config {
-  // Chain configuration
   chain: Chain;
   chainId: number;
 
-  // Telegram configuration
   telegramToken: string;
   telegramWebhookSecret?: string;
   telegramRuntimeDisabled: boolean;
   captureTopics: TopicAllowlistEntry[];
 
-  // Server configuration
   port: number;
   host: string;
   mode: BotMode;
 
-  // Database configuration
   dbPath: string;
 
-  // Security
   encryptionSecret?: string;
   savedOffersEncryptionKey?: string;
   savedOffersAudience?: string;
@@ -48,11 +43,9 @@ export interface Config {
   joinRequestsEncryptionKey?: string;
   joinRequestsProductionReady: boolean;
 
-  // Passkey directory
   /** The hosted passkey server that predates the directory; its names stay taken. */
   passkeyHostedDirectoryUrl?: string;
 
-  // API
   botApiToken?: string;
   publicAllowedOrigins?: string;
   trustedProxyHops?: number;
@@ -63,7 +56,6 @@ export interface Config {
   uploadSignerRateLimit?: number;
   uploadSignerRateLimitWindowMs?: number;
 
-  // Public provider integrations
   pinataJwt?: string;
   pinataUploadsApiBaseUrl?: string;
   resendApiKey?: string;
@@ -73,7 +65,6 @@ export interface Config {
   thirdwebClientId?: string;
   thirdwebSecretKey?: string;
 
-  // Analytics
   posthogApiKey?: string;
   analyticsEnabled: boolean;
   sentryDsn?: string;
@@ -82,7 +73,6 @@ export interface Config {
   sentryRelease?: string;
   sentryDebug: boolean;
 
-  // Environment
   nodeEnv: string;
   isDevelopment: boolean;
   isProduction: boolean;
@@ -113,7 +103,6 @@ export function loadConfig(): Config {
     throw new Error(`Invalid BOT_MODE: ${mode}. Must be 'polling' or 'webhook'`);
   }
 
-  // Analytics configuration
   const posthogApiKey = process.env.POSTHOG_AGENT_KEY;
   const analyticsEnabled = process.env.ANALYTICS_ENABLED !== "false" && nodeEnv === "production";
   const sentryDsn = process.env.SENTRY_AGENT_DSN || process.env.SENTRY_DSN;
@@ -126,25 +115,20 @@ export function loadConfig(): Config {
     process.env.GITHUB_SHA;
 
   return {
-    // Chain
     chain,
     chainId: chain.id,
 
-    // Telegram
     telegramToken,
     telegramWebhookSecret: process.env.TELEGRAM_WEBHOOK_SECRET,
     telegramRuntimeDisabled,
     captureTopics: loadCaptureTopicsFromEnv(),
 
-    // Server
     port: parseInt(process.env.PORT || "3000", 10),
     host: process.env.HOST || "0.0.0.0",
     mode,
 
-    // Database
     dbPath: process.env.DB_PATH || "data/agent.db",
 
-    // API
     botApiToken: process.env.BOT_API_TOKEN,
     publicAllowedOrigins: firstNonEmpty(
       process.env.AGENT_ALLOWED_ORIGINS,
@@ -162,7 +146,6 @@ export function loadConfig(): Config {
       process.env.AGENT_UPLOAD_SIGN_RATE_LIMIT_WINDOW_MS
     ),
 
-    // Public provider integrations
     pinataJwt: process.env.PINATA_JWT,
     pinataUploadsApiBaseUrl: process.env.PINATA_UPLOADS_API_URL,
     resendApiKey: process.env.RESEND_API_KEY,
@@ -172,7 +155,6 @@ export function loadConfig(): Config {
     thirdwebClientId: process.env.VITE_THIRDWEB_CLIENT_ID,
     thirdwebSecretKey: process.env.THIRDWEB_SECRET_KEY,
 
-    // Security
     encryptionSecret: process.env.ENCRYPTION_SECRET,
     savedOffersEncryptionKey: process.env.SAVED_OFFERS_ENCRYPTION_KEY,
     savedOffersAudience: process.env.SAVED_OFFERS_AUDIENCE,
@@ -180,12 +162,10 @@ export function loadConfig(): Config {
     joinRequestsEncryptionKey: process.env.JOIN_REQUESTS_ENCRYPTION_KEY,
     joinRequestsProductionReady: process.env.JOIN_REQUESTS_PRODUCTION_READY === "true",
 
-    // Passkey directory
     passkeyHostedDirectoryUrl: pimlicoApiKey
       ? `https://api.pimlico.io/v2/${networkConfig.chainId}/rpc?apikey=${encodeURIComponent(pimlicoApiKey)}`
       : undefined,
 
-    // Analytics
     posthogApiKey,
     analyticsEnabled,
     sentryDsn,
@@ -194,7 +174,6 @@ export function loadConfig(): Config {
     sentryRelease,
     sentryDebug: process.env.SENTRY_DEBUG === "true",
 
-    // Environment
     nodeEnv,
     isDevelopment: nodeEnv === "development",
     isProduction: nodeEnv === "production",
@@ -404,14 +383,12 @@ export function validateConfig(config: Config): void {
     throw new Error(`Configuration errors:\n- ${errors.join("\n- ")}`);
   }
 
-  // Log warnings
   if (warnings.length > 0) {
     for (const warning of warnings) {
       logger.warn({ warning }, "Configuration warning");
     }
   }
 
-  // Log analytics status
   if (config.analyticsEnabled && config.posthogApiKey) {
     logger.info("Analytics enabled");
   }

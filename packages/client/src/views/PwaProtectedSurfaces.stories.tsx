@@ -188,7 +188,7 @@ export const BackOnlineBanner: Story = {
     const backOnline = canvas.getByRole("status", { name: "App is back online" });
     expect(backOnline.className).toContain("bg-primary-action");
     expect(backOnline.className).toContain("text-primary-action-foreground");
-    // Solid, like every surface but the cockpit's nav dock (DL-108): an opaque fill, no blur.
+    // Solid, like every surface but the Hub's nav dock (DL-108): an opaque fill, no blur.
     const { backgroundColor, backdropFilter } = getComputedStyle(backOnline);
     expect(backgroundColor).toMatch(/^rgb\(/);
     expect(backdropFilter).toBe("none");

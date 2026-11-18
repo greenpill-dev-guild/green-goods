@@ -5,7 +5,7 @@
  * A filled header action, the FAB, a step marker and the shared primary
  * buttons put `--tone-on-action` (white in light, the tone's -900 ink in dark,
  * DL-009) on `--tone-action`, as a selected filter chip does (DL-101). Shared
- * buttons hover and press on `--tone-action-hover`, and the cockpit's filled
+ * buttons hover and press on `--tone-action-hover`, and the Hub's filled
  * actions are the shared primaries (DL-115, DL-119). A selected
  * filter chip is Shared's chip (DL-116): it keeps its fill and, on hover and
  * press, lays the neutral ink layer as a background image, beneath its label.
@@ -15,7 +15,7 @@
  * one while the label keeps its color. Painted over the label as well, it
  * pulls fill and label toward one ink, and Community's dark pair (4.58:1 at
  * rest) falls to 3.66:1 when pressed.
- * The tones resolve against the cockpit's amber ramp (index.css), set on <body>
+ * The tones resolve against the Hub's amber ramp (index.css), set on <body>
  * so the canvas and the dialogs, side sheets and toasts it portals share it:
  * Community's light orange-700 carries white at 5.02:1 there, where the shared
  * ramp those portals drew before gave it 4.01:1. Storybook mirrors the ramp.
@@ -107,20 +107,20 @@ const STATES = ["--m3-state-hover", "--m3-state-focus", "--m3-state-pressed"].ma
   opacity: Number(declared(state, [blocks(tokens, ":root")])),
 }));
 
-const TONES = ["hub", "garden", "community", "actions", "home"];
+const TONES = ["review", "garden", "community", "actions", "home"];
 
-/** The class lists of the cockpit's filled controls that lay the ink layer. */
+/** The class lists of the Hub's filled controls that lay the ink layer. */
 const FILLED_CONTROLS: Record<string, string> = {
   FabButton:
     fabButton.match(/data-slot="fab-button"[\s\S]*?className=\{cn\(([\s\S]*?)\n\s*\)\}/)?.[1] ?? "",
 };
 
-/** The shared chip's selected rule, which the cockpit's filter chip renders (DL-116). */
+/** The shared chip's selected rule, which the Hub's filter chip renders (DL-116). */
 const SELECTED_CHIP = blocks(theme, '.gg-chip[aria-selected="true"]');
 
 /**
  * The state opacity the shared selected chip lays the neutral ink at on hover and
- * on press: a chip state token the cockpit sets to one of its M3 state opacities
+ * on press: a chip state token the Hub sets to one of its M3 state opacities
  * (index.css). It paints the layer as a background image, so beneath its label.
  */
 const SELECTED_CHIP_STATES = [":hover", ":active"].map((pseudo) => {
@@ -279,14 +279,14 @@ describe("workspace tone fills", () => {
     expect(theme.indexOf(".gg-chip:hover")).toBeLessThan(
       theme.indexOf('.gg-chip[aria-pressed="true"]')
     );
-    // Hover and press answer with the neutral ink layer at the cockpit's state opacities.
+    // Hover and press answer with the neutral ink layer at the Hub's state opacities.
     expect(SELECTED_CHIP_STATES).toEqual([
       { pseudo: ":hover", state: "--m3-state-hover" },
       { pseudo: ":active", state: "--m3-state-pressed" },
     ]);
   });
 
-  it("hovers and presses the cockpit's filled buttons, shared primaries, on --tone-action-hover", () => {
+  it("hovers and presses the Hub's filled buttons, shared primaries, on --tone-action-hover", () => {
     // Admin views render the shared primary for a filled action (DL-115, DL-119).
     for (const selector of [
       '.gg-button[data-emphasis="primary"]:hover',

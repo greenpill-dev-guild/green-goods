@@ -39,7 +39,7 @@ const meta = {
   component: GardenChip,
   tags: ["autodocs", "storybook-ci"],
   parameters: {
-    // The cockpit renders the chip, so its stories take the cockpit's surface;
+    // The Hub renders the chip, so its stories take the Hub's surface;
     // AppDensity shows the app's beside it.
     surface: "admin",
     docs: {
@@ -53,7 +53,7 @@ const meta = {
           "- The garden's banner as a 22px avatar on both surfaces, its fallback tile when it",
           "  has none (DL-124); a caller that passes no banner keeps the seedling tile",
           "- With `onOpen` (the installed app), the chip opens the caller's switcher, with one",
-          "  garden too; the cockpit keeps its popover",
+          "  garden too; the Hub keeps its popover",
           "",
           "**Accessibility**:",
           "- Leaf icon is decorative (`aria-hidden`) — name is the accessible label",
@@ -61,7 +61,7 @@ const meta = {
           "- Focus ring uses `var(--tone-action, var(--green-800))`",
           "",
           "**Density**: the size, hit area, outline and focus ring read `--gg-garden-chip-*`.",
-          "The cockpit renders their fallbacks, a 36px pill; the installed app's scope sets a",
+          "The Hub renders their fallbacks, a 36px pill; the installed app's scope sets a",
           "32px capsule, the compact icon buttons' height, with a 48px hit area, the control",
           "outline and focus in the app's green (see AppDensity and AppSwitcher).",
         ].join("\n"),
@@ -157,7 +157,7 @@ export const LongName: Story = {
 
 /**
  * Tone matrix — the same chip rendered inside each `[data-tone]` scope so the
- * leaf-icon tinting can be verified at a glance. Hub blue, Garden green,
+ * leaf-icon tinting can be verified at a glance. Review blue, Garden green,
  * Community amber, Actions clay.
  */
 export const ToneMatrix: Story = {
@@ -168,7 +168,7 @@ export const ToneMatrix: Story = {
   },
   render: () => (
     <div className="grid grid-cols-2 gap-4 p-4">
-      {(["hub", "garden", "community", "actions"] as const).map((tone) => (
+      {(["review", "garden", "community", "actions"] as const).map((tone) => (
         <div key={tone} data-tone={tone} className="rounded-2xl bg-bg-white-0 p-4">
           <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-text-soft">
             [data-tone=&quot;{tone}&quot;]
@@ -235,18 +235,18 @@ export const StateCatalog: Story = {
 };
 
 // ---------------------------------------------------------------------------
-// The app's density beside the cockpit's
+// The app's density beside the Hub's
 // ---------------------------------------------------------------------------
 
 const LOCALES = ["en", "es", "pt"] as const;
 const catalogs = { en: enMessages, es: esMessages, pt: ptMessages };
 const SCOPES = [
   { scope: "app", label: "App" },
-  { scope: "admin", label: "Cockpit" },
+  { scope: "admin", label: "Hub" },
 ] as const;
 
 /**
- * The same chip under the installed app's scope and under the cockpit's, in
+ * The same chip under the installed app's scope and under the Hub's, in
  * English, Spanish and Portuguese, at a phone app bar's width so the long name
  * truncates: single, multi, nothing selected and the long name. The theme
  * toolbar switches both to dark. The play pins both densities, the long name
@@ -364,7 +364,7 @@ export const AppDensity: Story = {
 /**
  * The installed app's chip (DL-124): 32px, the height of the compact icon buttons beside it,
  * with a 48px hit area, the garden's banner as its avatar or the fallback tile without one, and
- * a tap that opens the app's switcher with one garden too. The cockpit's chip, beside it, keeps
+ * a tap that opens the app's switcher with one garden too. The Hub's chip, beside it, keeps
  * its 36px pill, its own box and its popover.
  */
 export const AppSwitcher: Story = {
@@ -397,7 +397,7 @@ export const AppSwitcher: Story = {
           emptyLabel="Choose a Garden"
         />
       </section>
-      <section data-surface-scope="admin" data-testid="cockpit-chip">
+      <section data-surface-scope="admin" data-testid="hub-chip">
         <GardenChip gardens={singleGarden} selectedGarden={singleGarden[0]} onSelectGarden={fn()} />
       </section>
     </div>
@@ -416,10 +416,10 @@ export const AppSwitcher: Story = {
     await expect(empty).toHaveTextContent("Choose a Garden");
     await userEvent.click(banner);
     await expect(args.onOpen).toHaveBeenCalledOnce();
-    // The cockpit's single garden stays a static label at its own 36px, with no hit area added.
-    const cockpit = canvas.getByTestId("cockpit-chip");
-    await expect(within(cockpit).queryByRole("button")).toBeNull();
-    const pill = cockpit.querySelector<HTMLElement>('[data-component="GardenChip"]');
+    // The Hub's single garden stays a static label at its own 36px, with no hit area added.
+    const hub = canvas.getByTestId("hub-chip");
+    await expect(within(hub).queryByRole("button")).toBeNull();
+    const pill = hub.querySelector<HTMLElement>('[data-component="GardenChip"]');
     await expect(pill?.getBoundingClientRect().height).toBeCloseTo(36, 0);
   },
 };

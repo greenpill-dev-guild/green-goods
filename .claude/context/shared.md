@@ -196,7 +196,7 @@ All stores live in `packages/shared/src/stores/` (exported via `stores/index.ts`
 
 | Store | Purpose |
 |-------|---------|
-| `useAdminStore` | Admin cockpit state + tx status (`TransactionInfo`/`TransactionStatus`) |
+| `useAdminStore` | Hub state + tx status (`TransactionInfo`/`TransactionStatus`) |
 | `useCreateGardenStore` | Multi-step garden-creation flow (`persist`) |
 | `useCreateAssessmentStore` | Multi-step assessment-creation flow (`persist` + `partialize`) |
 | `useHypercertWizardStore` | Hypercert minting wizard |
@@ -205,7 +205,7 @@ All stores live in `packages/shared/src/stores/` (exported via `stores/index.ts`
 | `useSheetOrchestratorStore` | Sheet/overlay orchestration |
 | `useUIStore` | Global UI state |
 
-**Multi-step wizard shape**: `useCreateGardenStore` + `useCreateAssessmentStore` use `persist` and share `currentStep` / `setField` / `nextStep` / `prevStep` / computed `isStepValid(stepId)` / `reset()`. Exceptions — `useHypercertWizardStore` persists in-progress minting to **sessionStorage** (custom, not `persist`; no `isStepValid`) and loads drafts from IndexedDB; `useWorkFlowStore` is non-persisted and its `reset()` revokes tracked object URLs.
+**Multi-step wizard shape**: `useCreateGardenStore` + `useCreateAssessmentStore` use `persist` and share `currentStep` / `setField` / `nextStep` / `previousStep` / computed `isStepValid(stepId)` / `reset()`. Exceptions — `useHypercertWizardStore` persists in-progress minting to **sessionStorage** (custom, not `persist`; no `isStepValid`) and loads drafts from IndexedDB; `useWorkFlowStore` is non-persisted and its `reset()` revokes tracked object URLs.
 
 ### Offline Job Queue + IndexedDB
 
@@ -220,7 +220,7 @@ All stores live in `packages/shared/src/stores/` (exported via `stores/index.ts`
 **Two IndexedDB databases** (not one), both typed Dexie databases whose version history is the
 schema (`modules/job-queue/db-schema.ts`, `modules/job-queue/draft-connection.ts`). Dexie stores a
 declared version ×10, so these open the `idb`-era databases in place. `jobQueueDB.observeJobs` /
-`observeStats` and `useLiveQuery` expose live views (`usePendingWorksCount`, `useQueueStatistics`).
+`observeStats` and `useLiveQuery` expose live views (`usePendingWorksCount`, `useQueueStats`).
 
 | DB | Dexie version | Object stores |
 |----|---------------|---------------|
@@ -229,13 +229,13 @@ declared version ×10, so these open the `idb`-era databases in place. `jobQueue
 
 ### Error Utilities
 
-Beyond `parseContractError` / `USER_FRIENDLY_ERRORS` / `createMutationErrorHandler` (the mutation error helpers in this package), `utils/errors/` (barrel) provides:
+Beyond `parseContractError` / `createMutationErrorHandler` (the mutation error helpers in this package), `utils/errors/` (barrel) provides:
 
 - `categorizeError(error) → ErrorCategory` = `network | validation | auth | permission | blockchain | storage | unknown` (`categorize-error.ts`, message pattern-matched)
 - `extractErrorMessage(error)` / `extractErrorMessageOr(error, fallback)` (`extract-message.ts`)
 - `ValidationError` — throw for precondition/programming-error checks (`validation-error.ts`)
 - `createMutationErrorHandler` config: `{ source, toastContext, toastId?, trackError?, getFallbackMessage?, getFallbackDescription?, formatMessage? }`; returned handler takes `(error, { authMode, gardenAddress, metadata?, showToast? })`. Pass a hook's `formatMessage` and a known error whose parser names its copy (`titleKey`, `messageKey`, `messageValues`) shows in the reader's language: a wallet on another network, an earlier version still queued, and offline (`unsent-failures.ts`). Every other known error still shows the parser's English.
-- `USER_FRIENDLY_ERRORS` lives in `contract-errors.ts`; blockchain/tx specifics in `blockchain-errors.ts` + `tx-error-classifier.ts`
+- `parseContractError` and its toast formatters (`formatErrorForToast`, `parseAndFormatError`) live in `contract-errors.ts`; blockchain/tx specifics in `blockchain-errors.ts` + `tx-error-classifier.ts`
 
 ### React Compiler
 

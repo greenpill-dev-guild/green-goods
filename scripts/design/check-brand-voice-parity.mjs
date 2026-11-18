@@ -591,9 +591,9 @@ function compareExamples({ read, page, fail, count, need }) {
     new Set(quotedPhrases(need(section(read(contract), 2, "Copy Voice"), contract, 'a "Copy Voice" section') ?? ""));
   const contracts = { [ADMIN_CONTRACT]: examples(ADMIN_CONTRACT), [CLIENT_CONTRACT]: examples(CLIENT_CONTRACT) };
   for (const [dialect, contract] of [
-    ["Admin dashboard", ADMIN_CONTRACT],
-    ["Editorial website", CLIENT_CONTRACT],
-    ["PWA app", CLIENT_CONTRACT],
+    ["Hub (steward workspace)", ADMIN_CONTRACT],
+    ["Website (editorial)", CLIENT_CONTRACT],
+    ["App (garden journal)", CLIENT_CONTRACT],
   ]) {
     for (const phrase of quotedPhrases(need(section(page, 3, dialect), PAGE, `"${dialect}" section`) ?? "")) {
       count("examples");

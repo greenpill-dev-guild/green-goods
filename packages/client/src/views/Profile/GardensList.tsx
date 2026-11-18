@@ -2,6 +2,7 @@ import { Button } from "@green-goods/shared/components/Button";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useActiveGarden } from "@green-goods/shared/hooks/garden/useActiveGarden";
 import { useGardenDepartureOptions } from "@green-goods/shared/hooks/garden/useLeaveGarden";
+import { useGardenMemberHistory } from "@green-goods/shared/hooks/garden/useGardenMemberHistory";
 import { useMyGardens } from "@green-goods/shared/hooks/garden/useMyGardens";
 import { useExitPresence } from "@green-goods/shared/hooks/utils/useExitPresence";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
@@ -33,6 +34,7 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
   const setGardenFilters = useUIStore((state) => state.setGardenFilters);
   const { gardens: homeGardens, isLoaded, isError, refetch } = useMyGardens(primaryAddress);
   const { gardenId: activeGardenId } = useActiveGarden();
+  const history = useGardenMemberHistory({ account: primaryAddress });
   const {
     options: departureOptions,
     isLoading: membershipsLoading,
@@ -157,6 +159,12 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
                 <GardenMembershipCard
                   garden={garden}
                   role={membership.roles[0] ?? (membership.pendingJoin ? "gardener" : undefined)}
+                  roles={membership.roles}
+                  history={history.members.find((member) =>
+                    compareAddresses(member.garden, garden.id)
+                  )}
+                  historyLoading={history.isLoading}
+                  historyError={history.isError}
                   onHome={compareAddresses(garden.id, activeGardenId)}
                   recovering={departureOptions.some(
                     (option) =>
@@ -214,6 +222,12 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
                   <GardenMembershipCard
                     garden={garden}
                     role={roles[0]}
+                    roles={roles}
+                    history={history.members.find((member) =>
+                      compareAddresses(member.garden, garden.id)
+                    )}
+                    historyLoading={history.isLoading}
+                    historyError={history.isError}
                     onHome={false}
                     recovering={hasPendingDeparture}
                     onOpen={() => navigate(`/home/${garden.id}`)}

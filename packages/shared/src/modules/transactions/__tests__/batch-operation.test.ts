@@ -1,4 +1,5 @@
 import "fake-indexeddb/auto";
+import { onWalletReconnectAsk, refuseWithoutWallet } from "../../auth/wallet-reconnect";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { BatchJournal } from "../batch-journal";
 import { prepareBatch } from "../prepared-batch";
@@ -13,6 +14,7 @@ import {
 } from "../../../__tests__/test-utils/transaction-fakes";
 import { BatchNotSubmittedError, type BatchQuote, type PreparedBatch } from "../batch-types";
 import type { TransactionSender } from "../types";
+import { WalletReconnectRequiredError } from "../../../utils/errors/unsent-failures";
 
 const account = "0x1111111111111111111111111111111111111111" as const;
 const hash = `0x${"a".repeat(64)}` as const;
@@ -76,6 +78,68 @@ const preflight = async () => undefined;
 const verify = async () => ["name", "description"];
 
 describe("batch operation recovery", () => {
+  it("asks to reconnect before ownership checks or batch preparation", async () => {
+    const { journal, prepared, sender } = setup();
+    const asked = vi.fn();
+    const stop = onWalletReconnectAsk(asked);
+    sender.assertReadyToSign = refuseWithoutWallet;
+    const prepare = vi.spyOn(journal, "prepare");
+    const preflight = vi.fn();
+    try {
+      await expect(
+        executeBatchOperation({ journal, prepared, sender, preflight, verify })
+      ).rejects.toMatchObject({ name: "WalletReconnectRequiredError", asked: true });
+      expect(asked).toHaveBeenCalledOnce();
+      expect(sender.assertOwnership).not.toHaveBeenCalled();
+      expect(prepare).not.toHaveBeenCalled();
+      expect(preflight).not.toHaveBeenCalled();
+      expect(sender.submitAtomicBatch).not.toHaveBeenCalled();
+    } finally {
+      stop();
+    }
+  });
+
+  it("keeps recovery of an existing uncertain batch quiet while its wallet is away", async () => {
+    const { journal, prepared, sender } = setup();
+    vi.mocked(sender.submitAtomicBatch!).mockImplementationOnce(async (_calls, options) => {
+      await options!.onBatchReference?.(reference);
+      throw new Error("lost receipt response");
+    });
+    await executeBatchOperation({ journal, prepared, sender, preflight, verify });
+    sender.assertReadyToSign = refuseWithoutWallet;
+    vi.mocked(sender.assertOwnership!).mockRejectedValue(new WalletReconnectRequiredError(false));
+    const asked = vi.fn();
+    const stop = onWalletReconnectAsk(asked);
+    try {
+      await expect(
+        executeBatchOperation({ journal, prepared, sender, preflight, verify })
+      ).rejects.toMatchObject({ name: "WalletReconnectRequiredError", asked: false });
+      await expect(
+        reconcileBatchOperation({
+          journal,
+          sender,
+          operationId: prepared.id,
+          account,
+          chainId: 42161,
+          verify,
+        })
+      ).rejects.toMatchObject({ name: "WalletReconnectRequiredError", asked: false });
+      expect((await journal.get(prepared.id))?.status).toBe("unresolved");
+      expect(asked).not.toHaveBeenCalled();
+      vi.mocked(sender.assertOwnership!).mockResolvedValue(undefined);
+      expect(
+        (await executeBatchOperation({ journal, prepared, sender, preflight, verify })).status
+      ).toBe("confirmed");
+      expect(
+        (await executeBatchOperation({ journal, prepared, sender, preflight, verify })).status
+      ).toBe("confirmed");
+      expect(asked).not.toHaveBeenCalled();
+      expect(sender.submitAtomicBatch).toHaveBeenCalledOnce();
+    } finally {
+      stop();
+    }
+  });
+
   it("persists intent before the sender and receipts before domain verification", async () => {
     const { journal, prepared, sender } = setup();
     vi.mocked(sender.submitAtomicBatch!).mockImplementation(async (_calls, options) => {

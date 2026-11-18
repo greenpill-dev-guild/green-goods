@@ -26,7 +26,7 @@ flowchart TB
   accDescr: Contracts emit events to Indexer. Shared wraps protocol data for Client, Admin and Agent. The text below explains Agent's direct reporting queries and the independent QA app.
   contracts["Contracts · protocol"] --> indexer["Indexer · event read models"]
   indexer --> shared["Shared · data, state and UI"]
-  shared --> apps["Client · website and PWA<br/>Admin · steward cockpit<br/>Agent · messages and API"]
+  shared --> apps["Client · Green Goods Website and App<br/>Admin · Green Goods Hub<br/>Agent · messages and API"]
 ```
 
 ## The packages
@@ -38,8 +38,8 @@ flowchart TB
 | [`shared`](/builders/packages/shared) | Cross-app hooks, providers, stores, protocol modules, domain types, translations, UI foundations | Inside every app bundle | A hook, provider, store, shared UI primitive, or translation |
 | [`agent`](/builders/packages/agent) | Messaging bots and the public HTTP API | A hosted service | Bots, webhooks, or the public HTTP API |
 | [`qa`](/builders/packages/qa) | The team's two-writer QA checklist app | [qa.greengoods.app](https://qa.greengoods.app) | The QA checklist app |
-| [`admin`](/builders/packages/admin) | The steward cockpit | [admin.greengoods.app](https://admin.greengoods.app) | The steward cockpit |
-| [`client`](/builders/packages/client) | The public website and the installed, offline-first PWA | [greengoods.app](https://greengoods.app) | The public website or the installed PWA |
+| [`admin`](/builders/packages/admin) | The Green Goods Hub, where stewards run their gardens | [admin.greengoods.app](https://admin.greengoods.app) | The Green Goods Hub |
+| [`client`](/builders/packages/client) | The Green Goods Website and the installed, offline-first Green Goods App | [greengoods.app](https://greengoods.app) | The Website or the App |
 
 Dependencies point one way: `contracts → indexer → shared → client / admin / agent`. Contracts
 emit the events the indexer projects into read models, shared wraps both for the apps, and nothing

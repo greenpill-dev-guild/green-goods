@@ -10,9 +10,9 @@ function renderWithIntl(ui: React.ReactElement) {
       locale="en"
       messages={{
         "app.common.loading": "Loading...",
-        "cockpit.notifications.empty.description":
+        "hub.notifications.empty.description":
           "Work submissions, assessments, and system alerts will appear here.",
-        "cockpit.notifications.empty.title": "No notifications",
+        "hub.notifications.empty.title": "No notifications",
       }}
     >
       {ui}

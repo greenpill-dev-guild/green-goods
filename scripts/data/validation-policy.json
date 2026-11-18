@@ -26,6 +26,7 @@
     {
       "risk": "sensitive",
       "prefixes": [
+        ".agents/",
         ".github/",
         ".claude/",
         ".codex/",
@@ -114,6 +115,12 @@
   ],
   "conditionalRules": [
     {
+      "check": "comment-policy-test",
+      "runInQa": true,
+      "runInEvidence": true,
+      "exact": ["scripts/quality/comment-policy.mjs", "bun.lock", "package.json"]
+    },
+    {
       "check": "dependabot-sync-test",
       "runInQa": true,
       "runInEvidence": true,
@@ -134,10 +141,18 @@
         ".claude/scripts/task-completion-gate.sh",
         ".claude/scripts/teammate-idle-gate.sh",
         ".codex/hooks/pre_tool_policy.sh",
+        ".codex/hooks/edit_policy.sh",
+        ".agents/policy.json",
         ".claude/settings.json",
         ".codex/hooks.json",
         "scripts/harness/command-policy.mjs",
-        "scripts/harness/agent-hooks.test.mjs"
+        "scripts/harness/agent-hooks.test.mjs",
+        "scripts/contracts/check-solhint-baseline.mjs",
+        "scripts/contracts/check-solhint-baseline.test.mjs",
+        "scripts/data/solhint-baseline.json",
+        "scripts/quality/check-knip-baseline.mjs",
+        "scripts/quality/check-knip-baseline.test.mjs",
+        "scripts/data/knip-baseline.json"
       ]
     },
     {
@@ -154,6 +169,7 @@
         "scripts/dev/test-lease.mjs",
         "turbo.json",
         "scripts/data/validation-policy.json",
+        ".agents/merge-policy.json",
         "scripts/quality/select-validation.mjs",
         "scripts/quality/shared-mutation-surface.mjs",
         "scripts/dev/ci-local.js",
@@ -173,7 +189,8 @@
         "scripts/lib/vitest-shared-graph.mjs",
         "scripts/quality/check-shared-graph-tests.mjs",
         "scripts/quality/check-small-test-files.mjs",
-        "scripts/quality/check-test-utils-barrel.mjs"
+        "scripts/quality/check-test-utils-barrel.mjs",
+        "scripts/quality/merge-gate.mjs"
       ]
     },
     {
@@ -428,6 +445,7 @@
       "runInQa": true,
       "runInEvidence": true,
       "exact": [
+        ".agents/adapter.md",
         "AGENTS.md",
         "CLAUDE.md",
         ".claude/context/codebase-architecture.md",
@@ -441,6 +459,7 @@
         "scripts/quality/check-direct-tested-seams.mjs",
         "scripts/quality/check-direct-tested-seams.test.mjs",
         "scripts/quality/check-codex-docs.js",
+        "scripts/quality/check-react-patterns.js",
         "scripts/quality/check-guidance-links.mjs",
         "scripts/quality/check-skill-behavior-contracts.mjs",
         ".plans/README.md"
@@ -532,7 +551,7 @@
       "check": "agent-tools-test",
       "runInQa": true,
       "runInEvidence": true,
-      "prefixes": ["packages/qa/locales/"],
+      "prefixes": ["packages/qa/", "scripts/agents/"],
       "exact": [
         "scripts/data/qa-test-catalog.json",
         "scripts/data/qa-test-id-ledger.json",
@@ -825,7 +844,8 @@
         "packages/shared/src/hooks/auth/",
         "packages/shared/src/hooks/client-ui/auth/",
         "packages/shared/src/hooks/admin-ui/auth/",
-        "packages/client/src/views/Login/"
+        "packages/client/src/views/Login/",
+        "packages/agent/src/"
       ]
     },
     {
@@ -943,7 +963,7 @@
     },
     {
       "id": "validation-system-test",
-      "command": "node scripts/dev/node-cli.js node --test scripts/lib/dev-shared.test.mjs scripts/quality/check-direct-tested-seams.test.mjs scripts/quality/check-source-structure.test.mjs scripts/quality/check-staged-modules.test.mjs scripts/quality/select-validation.test.mjs scripts/dev/ci-local.test.mjs scripts/dev/surface-leases.test.mjs scripts/dev/stack.test.mjs scripts/dev/smoke-full.test.mjs scripts/quality/ci-gate.test.mjs scripts/quality/workflow-performance-parity.test.mjs scripts/dev/dev-modes.test.mjs scripts/dev/setup-env.test.mjs scripts/dev/package-commands.test.mjs scripts/dev/command-runners.test.mjs scripts/quality/check-commit-identity.test.mjs",
+      "command": "node scripts/dev/node-cli.js node --test scripts/lib/dev-shared.test.mjs scripts/quality/check-direct-tested-seams.test.mjs scripts/quality/check-source-structure.test.mjs scripts/quality/check-staged-modules.test.mjs scripts/quality/select-validation.test.mjs scripts/dev/ci-local.test.mjs scripts/dev/surface-leases.test.mjs scripts/dev/stack.test.mjs scripts/dev/smoke-full.test.mjs scripts/quality/ci-gate.test.mjs scripts/quality/merge-gate.test.mjs scripts/quality/workflow-performance-parity.test.mjs scripts/dev/dev-modes.test.mjs scripts/dev/setup-env.test.mjs scripts/dev/package-commands.test.mjs scripts/dev/command-runners.test.mjs scripts/quality/check-commit-identity.test.mjs",
       "risk": "validation selector or workflow routing changes are not exercised by their durable regression suite",
       "expectedSignal": "the validation-system regression suite passes",
       "freshness": "exact-inputs-and-toolchain",
@@ -958,6 +978,16 @@
       "expectedSignal": "test-quality and certified seam guardrails pass without baseline debt",
       "freshness": "exact-test-guidance-registry-inputs-and-toolchain",
       "budgetSeconds": 2,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "comment-policy-test",
+      "command": "node scripts/dev/node-cli.js node --test scripts/quality/comment-policy.test.mjs",
+      "risk": "the comment codemod removes a comment it must keep, or misreads code as a comment",
+      "expectedSignal": "the comment codemod's fixtures pass for TypeScript, JavaScript and Solidity",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 15,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -1532,11 +1562,11 @@
     },
     {
       "id": "dead-code",
-      "command": "bun --bun node_modules/.bin/knip",
-      "risk": "Independently selectable repository verification must retain its behavior.",
-      "expectedSignal": "dead-code completes successfully",
+      "command": "node scripts/quality/check-knip-baseline.mjs",
+      "risk": "Knip's findings may shrink, never grow: new unused files, exports, types or dependencies fail.",
+      "expectedSignal": "knip: N finding(s), none new",
       "freshness": "exact-inputs-and-toolchain",
-      "budgetSeconds": 60,
+      "budgetSeconds": 180,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -1562,7 +1592,7 @@
     },
     {
       "id": "review-guardrails-test",
-      "command": "node scripts/dev/node-cli.js node --test scripts/harness/agent-hooks.test.mjs scripts/quality/check-codex-docs.test.mjs scripts/quality/check-guidance-links.test.mjs scripts/quality/check-skill-behavior-contracts.test.mjs scripts/quality/task-routing-contract.test.mjs scripts/quality/check-immutable-plan-reports.test.mjs scripts/quality/check-qa-id-ledger.test.mjs scripts/quality/lint-linear-issue.test.mjs scripts/design/check-guidance-examples.test.mjs scripts/contracts/check-foundry-version.test.mjs scripts/contracts/check-solidity-test-names.test.mjs",
+      "command": "node scripts/dev/node-cli.js node --test scripts/harness/agent-hooks.test.mjs scripts/quality/check-codex-docs.test.mjs scripts/quality/check-guidance-links.test.mjs scripts/quality/check-skill-behavior-contracts.test.mjs scripts/quality/task-routing-contract.test.mjs scripts/quality/check-immutable-plan-reports.test.mjs scripts/quality/check-qa-id-ledger.test.mjs scripts/quality/lint-linear-issue.test.mjs scripts/design/check-guidance-examples.test.mjs scripts/contracts/check-foundry-version.test.mjs scripts/contracts/check-solidity-test-names.test.mjs scripts/contracts/check-solhint-baseline.test.mjs scripts/quality/check-knip-baseline.test.mjs",
       "risk": "Independently selectable repository verification must retain its behavior.",
       "expectedSignal": "review-guardrails-test completes successfully",
       "freshness": "exact-inputs-and-toolchain",
@@ -1652,7 +1682,7 @@
     },
     {
       "id": "static-lint",
-      "command": "bun --bun run oxlint packages/client/src packages/admin/src packages/shared/src packages/indexer/src packages/agent/src packages/contracts/script --deny-warnings && bun run --cwd packages/contracts lint --check",
+      "command": "bun --bun run oxlint packages/client/src packages/admin/src packages/shared/src packages/indexer/src packages/indexer/test packages/agent/src packages/contracts/script tests --deny-warnings && bun run --cwd packages/contracts lint --check",
       "risk": "Independently selectable repository verification must retain its behavior.",
       "expectedSignal": "static-lint completes successfully",
       "freshness": "exact-inputs-and-toolchain",
@@ -1736,8 +1766,8 @@
         "packages/shared/src/hooks/admin-ui/garden/useGardenWorkspaceController.ts",
         "packages/shared/src/hooks/admin-ui/garden/useManageMembersController.ts",
         "packages/shared/src/hooks/admin-ui/garden/useSubmitWorkController.ts",
-        "packages/shared/src/hooks/admin-ui/hub/useCreateAssessmentController.ts",
-        "packages/shared/src/hooks/admin-ui/hub/useHubWorkbenchController.ts",
+        "packages/shared/src/hooks/admin-ui/review/useCreateAssessmentController.ts",
+        "packages/shared/src/hooks/admin-ui/review/useReviewWorkbenchController.ts",
         "packages/shared/src/hooks/admin-ui/hypercerts/useWizardData.ts",
         "packages/shared/src/hooks/admin-ui/layout/useAccountProfileController.ts",
         "packages/shared/src/hooks/admin-ui/layout/useStewardAccessRequestController.ts",
@@ -1747,7 +1777,7 @@
         "packages/shared/src/hooks/admin-ui/pool/useCommitmentVoucherOutcomes.ts",
         "packages/shared/src/hooks/admin-ui/pool/useEditReward.ts",
         "packages/shared/src/hooks/admin-ui/pool/useFinishCreating.ts",
-        "packages/shared/src/hooks/admin-ui/pool/useHubConfirmQueueController.ts",
+        "packages/shared/src/hooks/admin-ui/pool/useReviewConfirmQueueController.ts",
         "packages/shared/src/hooks/admin-ui/pool/usePoolConsoleController.ts",
         "packages/shared/src/hooks/admin-ui/pool/useProtocolFundingOperationsController.ts",
         "packages/shared/src/hooks/admin-ui/pool/useSeedTray.ts",
@@ -2074,14 +2104,21 @@
         "scripts/dev/test-e2e.js",
         "scripts/dev/node-cli.js",
         "scripts/lib/command-runner.mjs",
-        "scripts/lib/dev-shared.js"
+        "scripts/lib/dev-shared.js",
+        "packages/agent/src/__tests__/reporting/driver/server.ts",
+        "packages/agent/src/__tests__/reporting/support/browser.ts",
+        "packages/agent/src/__tests__/reporting/support/fake-chain.ts",
+        "packages/agent/src/__tests__/reporting/support/fixtures.ts",
+        "packages/agent/src/__tests__/reporting/support/media.ts",
+        "packages/agent/src/__tests__/reporting/support/synthetic.ts"
       ],
       "prefixes": [
         "packages/client/",
         "packages/shared/",
         "tests/",
         "packages/contracts/abis/",
-        "packages/contracts/deployments/"
+        "packages/contracts/deployments/",
+        "packages/agent/src/"
       ],
       "excludeValidationOnlyFrom": ["shared"]
     },
@@ -2091,6 +2128,7 @@
         "bun.lock",
         "env.schema",
         "scripts/lib/git-guardrails.mjs",
+        "scripts/data/solhint-baseline.json",
         "scripts/quality/check-source-structure.js",
         ".github/actions/setup-js/action.yml",
         ".github/workflows/contracts.yml"
@@ -2422,6 +2460,7 @@
         "CLAUDE.md",
         ".github/actions/setup-js/action.yml",
         ".github/workflows/supply-chain-guardrails.yml",
+        ".gitignore",
         "yarn.lock"
       ],
       "prefixes": [
@@ -2432,7 +2471,9 @@
         ".plans/",
         "docs/routines/",
         "scripts/quality/",
-        "scripts/harness/"
+        "scripts/harness/",
+        "packages/qa/",
+        "scripts/agents/"
       ],
       "extensions": [
         ".css",
@@ -2448,6 +2489,8 @@
         ".sol",
         ".ts",
         ".tsx",
+        ".mts",
+        ".cts",
         ".yaml",
         ".yml"
       ]

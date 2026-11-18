@@ -8,7 +8,7 @@ import { useLeftSheetConfigValue } from "./leftSheetChannel";
 export function LeftInspectorDialog({
   fallbackTone,
 }: {
-  fallbackTone: "hub" | "garden" | "community" | "actions";
+  fallbackTone: "review" | "garden" | "community" | "actions";
 }) {
   const config = useLeftSheetConfigValue();
   const isOpen = config !== null;

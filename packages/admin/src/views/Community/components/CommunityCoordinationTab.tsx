@@ -71,10 +71,10 @@ export function CommunityCoordinationTab({
           <AdminCard variant="elevated" className="space-y-4">
             <div>
               <AdminCardTitle>
-                {formatMessage({ id: "cockpit.community.coordination.proposals" })}
+                {formatMessage({ id: "hub.community.coordination.proposals" })}
               </AdminCardTitle>
               <p className="mt-1 type-body text-text-sub">
-                {formatMessage({ id: "cockpit.community.coordination.proposalsDescription" })}
+                {formatMessage({ id: "hub.community.coordination.proposalsDescription" })}
               </p>
             </div>
             {poolsUnread ? (
@@ -105,11 +105,11 @@ export function CommunityCoordinationTab({
           <div className="garden-tab-rail-sticky">
             <AdminCard variant="filled" className="space-y-3">
               <AdminCardTitle>
-                {formatMessage({ id: "cockpit.community.coordination.status" })}
+                {formatMessage({ id: "hub.community.coordination.status" })}
               </AdminCardTitle>
               <FactList frame="inset">
                 <FactRow
-                  label={formatMessage({ id: "cockpit.community.coordination.community" })}
+                  label={formatMessage({ id: "hub.community.coordination.community" })}
                   value={
                     <span className="inline-flex items-center gap-1">
                       {communityConfig ? (
@@ -135,7 +135,7 @@ export function CommunityCoordinationTab({
                   </p>
                   <p className="mt-1 type-body text-text-sub">
                     {formatMessage(
-                      { id: "cockpit.community.coordination.weightSummary" },
+                      { id: "hub.community.coordination.weightSummary" },
                       {
                         community: weightSchemeValues.community / 10_000,
                         gardener: weightSchemeValues.gardener / 10_000,
@@ -167,7 +167,7 @@ export function CommunityCoordinationTab({
                             {pool ? (
                               <AddressDisplay address={pool.poolAddress} className="type-body" />
                             ) : poolsRead ? (
-                              formatMessage({ id: "cockpit.community.coordination.poolMissing" })
+                              formatMessage({ id: "hub.community.coordination.poolMissing" })
                             ) : (
                               "—"
                             )}

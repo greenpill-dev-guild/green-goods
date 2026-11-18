@@ -5,12 +5,14 @@
 
 import { describe, expect, it } from "vitest";
 import { selectGardenWorkList } from "../../../hooks/work/useGardenWorkListView";
+import { Domain } from "../../../types/domain";
+import { domainMaskOf } from "../../../utils/domain";
 import { createMockAction, createMockWork } from "../../test-utils/mock-factories";
 
 const ACTIONS = [
   createMockAction({ id: "42161-3", title: "Weeding" }),
   createMockAction({ id: "42161-1", title: "Planting" }),
-  createMockAction({ id: "42161-2", title: "Composting" }),
+  createMockAction({ id: "42161-2", title: "Composting", domain: Domain.WASTE }),
   // An action nobody has done here yet.
   createMockAction({ id: "42161-4", title: "Harvesting" }),
 ];
@@ -21,10 +23,11 @@ const WORKS = [
   createMockWork({ id: "d", actionUID: 2, status: "rejected", createdAt: 200 }),
 ];
 const ids = (view: ReturnType<typeof selectGardenWorkList>) => view.works.map((work) => work.id);
+const domainMask = domainMaskOf([Domain.AGRO, Domain.WASTE]);
 
 describe("selectGardenWorkList", () => {
   it("offers the garden's actions that have work here, A to Z, and leaves out the rest", () => {
-    const view = selectGardenWorkList(WORKS, ACTIONS, { type: "all", sort: "pending" });
+    const view = selectGardenWorkList(WORKS, ACTIONS, { type: "all", sort: "pending", domainMask });
 
     expect(view.typeOptions).toEqual([
       { id: "2", title: "Composting" },
@@ -36,7 +39,11 @@ describe("selectGardenWorkList", () => {
 
   it("offers no type while only one action has work here, so the list stays whole", () => {
     const planting = WORKS.filter((work) => work.actionUID === 1);
-    const view = selectGardenWorkList(planting, ACTIONS, { type: "1", sort: "pending" });
+    const view = selectGardenWorkList(planting, ACTIONS, {
+      type: "1",
+      sort: "pending",
+      domainMask,
+    });
 
     expect(view.typeOptions).toEqual([]);
     expect(view.type).toBe("all");
@@ -64,14 +71,59 @@ describe("selectGardenWorkList", () => {
   });
 
   it("shows one action's work when a type is chosen, still in the chosen order", () => {
-    const view = selectGardenWorkList(WORKS, ACTIONS, { type: "1", sort: "oldest" });
+    const view = selectGardenWorkList(WORKS, ACTIONS, { type: "1", sort: "oldest", domainMask });
     expect(view.type).toBe("1");
     expect(ids(view)).toEqual(["c", "a"]);
   });
 
   it("falls back to all work when the chosen type has nothing left in it", () => {
     // Harvesting has no work, so it is never an option and never empties the list.
-    const view = selectGardenWorkList(WORKS, ACTIONS, { type: "4", sort: "pending" });
+    const view = selectGardenWorkList(WORKS, ACTIONS, { type: "4", sort: "pending", domainMask });
+    expect(view.type).toBe("all");
+    expect(view.works).toHaveLength(4);
+  });
+
+  it("offers supported actions while All retains work from unsupported and unknown domains", () => {
+    const actions = [...ACTIONS, createMockAction({ id: "42161-5", title: "Other", domain: null })];
+    const works = [...WORKS, createMockWork({ id: "e", actionUID: 5 })];
+    const view = selectGardenWorkList(works, actions, {
+      type: "all",
+      sort: "pending",
+      domainMask: domainMaskOf([Domain.AGRO]),
+    });
+
+    expect(view.typeOptions).toEqual([
+      { id: "1", title: "Planting" },
+      { id: "3", title: "Weeding" },
+    ]);
+    expect(new Set(ids(view))).toEqual(new Set(["a", "b", "c", "d", "e"]));
+    expect(view.actionById.get("2")?.title).toBe("Composting");
+    expect(view.actionById.get("5")?.title).toBe("Other");
+  });
+
+  it.each([
+    undefined,
+    0,
+    domainMaskOf([Domain.WASTE]),
+  ])("keeps the whole list when the supported domain mask %s offers fewer than two actions", (mask) => {
+    const view = selectGardenWorkList(WORKS, ACTIONS, {
+      type: "2",
+      sort: "pending",
+      domainMask: mask,
+    });
+
+    expect(view.typeOptions).toEqual([]);
+    expect(view.type).toBe("all");
+    expect(ids(view)).toEqual(["c", "b", "a", "d"]);
+  });
+
+  it("returns to All when the selected action's domain is no longer supported", () => {
+    const view = selectGardenWorkList(WORKS, ACTIONS, {
+      type: "2",
+      sort: "pending",
+      domainMask: domainMaskOf([Domain.AGRO]),
+    });
+
     expect(view.type).toBe("all");
     expect(view.works).toHaveLength(4);
   });

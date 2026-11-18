@@ -1,6 +1,7 @@
 import { Button } from "@green-goods/shared/components/Button";
+import { GardenMembershipDates } from "@green-goods/shared/components/GardenMembershipDates";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
-import type { Garden } from "@green-goods/shared/types/domain";
+import type { Garden, GardenMemberHistory } from "@green-goods/shared/types/domain";
 import { type GardenRole, getRoleLabel } from "@green-goods/shared/utils/blockchain/garden-roles";
 import { RiArrowRightSLine, RiHomeLine, RiMapPinLine, RiPlantLine } from "@remixicon/react";
 import { useId } from "react";
@@ -11,6 +12,10 @@ import { Avatar } from "@/components/Display";
 interface GardenMembershipCardProps {
   garden: Garden;
   role?: GardenRole;
+  roles?: readonly GardenRole[];
+  history?: GardenMemberHistory;
+  historyLoading?: boolean;
+  historyError?: boolean;
   onHome: boolean;
   recovering: boolean;
   onOpen: () => void;
@@ -21,6 +26,10 @@ interface GardenMembershipCardProps {
 export function GardenMembershipCard({
   garden,
   role,
+  roles,
+  history,
+  historyLoading,
+  historyError,
   onHome,
   recovering,
   onOpen,
@@ -77,6 +86,14 @@ export function GardenMembershipCard({
         </span>
         <RiArrowRightSLine className="h-5 w-5 shrink-0 text-text-soft-400" aria-hidden="true" />
       </button>
+      <div className="px-4 pb-3">
+        <GardenMembershipDates
+          history={history}
+          roles={roles ?? (role ? [role] : [])}
+          isLoading={historyLoading}
+          isError={historyError}
+        />
+      </div>
       <div className="flex items-center justify-between gap-3 border-t border-stroke-soft-200 px-3 py-2 pl-4">
         {role ? (
           <StatusBadge size="xs" variant="neutral" showIcon={false}>

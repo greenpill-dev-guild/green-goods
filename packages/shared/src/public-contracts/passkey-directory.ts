@@ -31,7 +31,9 @@ export type PasskeyDirectoryAccountProfile =
 export function getDefaultPasskeyRegistrationProfile(
   hostname: string
 ): PasskeyDirectoryAccountProfile {
-  return ["beta.greengoods.app", "beta.admin.greengoods.app"].includes(hostname.toLowerCase())
+  return ["beta.greengoods.app", "beta.admin.greengoods.app", "beta.hub.greengoods.app"].includes(
+    hostname.toLowerCase()
+  )
     ? KERNEL_033_PASSKEY_PROFILE
     : LEGACY_PASSKEY_PROFILE;
 }

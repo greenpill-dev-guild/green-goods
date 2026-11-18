@@ -14,8 +14,8 @@ import type { ProofDraftRepository } from "../../../modules/commitment-pooling/p
 import {
   commitmentProofDraftKey,
   useCommitmentProofDraftStore,
+  type CommitmentProofDraft,
 } from "../../../stores/useCommitmentProofDraftStore";
-import type { CommitmentProofDraft } from "../../../stores/useCommitmentProofDraftStore";
 
 const VIEWER = "0x1111111111111111111111111111111111111111" as const;
 type Snapshot = Parameters<CommitmentProofDraftHandle["saveSnapshot"]>[0];

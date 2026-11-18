@@ -190,7 +190,7 @@ function ReviewInFlow({ stage }: { stage: MintingState["status"] }) {
       open
       size="lg"
       variant="flow"
-      tone="hub"
+      tone="review"
       className={ADMIN_FLOW_DIALOG_CLASS}
       onOpenChange={noop}
       preventClose={phase === "sending"}
