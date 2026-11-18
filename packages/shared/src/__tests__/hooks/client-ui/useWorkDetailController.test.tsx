@@ -1,6 +1,6 @@
 /** @vitest-environment happy-dom */
 
-import { act, renderHook, screen } from "@testing-library/react";
+import { act, renderHook, screen, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -371,8 +371,36 @@ describe("useWorkDetailController", () => {
     expect(jobQueue.processJob).toHaveBeenCalledWith("work-1", {
       transactionSender: mocks.sender,
       explicit: true,
+      onPhase: expect.any(Function),
     });
     expect(toastService.error).not.toHaveBeenCalled();
+  });
+
+  it("follows Upload now's send from the wallet to the chain, and lets go when it ends", async () => {
+    mocks.sender = { authMode: "wallet" };
+    const { jobQueue } = await import("../../../modules/job-queue/default-instance");
+    let finish: (() => void) | undefined;
+    vi.mocked(jobQueue.processJob).mockImplementation(async (_jobId, context) => {
+      context.onPhase?.({ stage: "wallet" });
+      await new Promise<void>((resolve) => {
+        finish = resolve;
+      });
+      context.onPhase?.({ stage: "confirming", txHash: "0xsent" });
+      return { success: false, error: "awaiting-confirmation", skipped: true };
+    });
+    const { result } = renderHook(() => useWorkDetailController(), { wrapper: RouterWrapper });
+
+    let sending: Promise<void> | undefined;
+    act(() => {
+      sending = result.current.retry();
+    });
+    await waitFor(() => expect(result.current.sendStage).toBe("wallet"));
+    await act(async () => {
+      finish?.();
+      await sending;
+    });
+    expect(result.current.sendStage).toBeNull();
+    expect(result.current.isRetrying).toBe(false);
   });
 
   it("checks the connection on Upload now and says nothing was sent when it is not confirmed", async () => {

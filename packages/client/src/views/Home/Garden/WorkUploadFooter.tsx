@@ -29,7 +29,8 @@ export interface WorkUploadFooterProps {
 /**
  * The acts for the gardener's own queued work, fixed under its page (D24): two
  * equal halves on one row, Discard on the left and the primary on the right,
- * or one full-width act when discarding isn't safe. Waiting work uploads here;
+ * or one full-width act when discarding isn't safe, as while a send runs and its
+ * button says whether the wallet is asked or the chain is confirming. Waiting work uploads here;
  * work that needs attention is tried again; failed work uploads again; work
  * already sent is checked again. Work being prepared spins only while
  * preparation is on it: a try that failed is tried again here, and a wait on
@@ -53,10 +54,14 @@ export const WorkUploadFooter: FC<WorkUploadFooterProps> = ({
   const [confirmingDiscard, setConfirmingDiscard] = useState(false);
   const state = readQueuedWorkState(work.metadata);
   const group = workUploadGroup(state.submissionState);
-  const canDiscard = canDiscardQueuedWork(state.submissionState, {
-    isOnline,
-    preparationWaiting: preparation !== "working",
-  });
+  // Discarding is never safe while a send runs, so that send's one act takes the whole row,
+  // with room to say where it stands.
+  const canDiscard =
+    !isRetrying &&
+    canDiscardQueuedWork(state.submissionState, {
+      isOnline,
+      preparationWaiting: preparation !== "working",
+    });
 
   // While a send runs, its button says where it stands: before the wallet is asked, the work's
   // media are still uploading.
@@ -191,7 +196,7 @@ export const WorkUploadFooter: FC<WorkUploadFooterProps> = ({
               tone="danger"
               size="lg"
               className="w-full"
-              disabled={isRetrying || isTryingAgain || isDiscarding}
+              disabled={isTryingAgain || isDiscarding}
               onClick={() => setConfirmingDiscard(true)}
               data-testid="work-discard"
             >
