@@ -96,11 +96,13 @@ describe("prepareAddMembersBatch", () => {
     );
     const [first, second] = prepared.items;
     expect(first.call.functionName).toBe("grantRoles");
+    expect(first.call.gasHeadroomPercent).toBe(10);
     expect(first.call.abi).toHaveLength(1);
     expect(first.call.address).toBe(MODULE);
     expect(first.call.args).toEqual([gardenAddress, rows.map((r) => r.address), [0, 2]]);
     expect(second.call.data).toBe(first.call.data);
     expect(prepared.budget?.sponsorship).toBe("wallet");
+    expect(prepared.budget?.maxGas).toBe("7000000");
   });
 
   it("has no ceilings on a chain nobody has measured", () => {

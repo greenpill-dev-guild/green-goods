@@ -89,6 +89,8 @@ export function buildCommitmentCreationPayload(input: {
    * defaults to steward review); a member composing alone may not.
    */
   allowGatedOffers?: boolean;
+  /** Steward console only. The contract independently verifies the calling steward. */
+  allowRequestReward?: boolean;
   /**
    * Delegated creation, and only for a `StewardCaptured` commitment: the member
    * whose contribution a steward is capturing. Every other type must send the
@@ -99,6 +101,13 @@ export function buildCommitmentCreationPayload(input: {
   capturedFor?: Address;
 }): Omit<CommitmentCreationPayload, "creationRequestKey"> {
   const { values, clientCommitmentId, poolId, gardenAddress } = input;
+  if (
+    values.direction === "REQUEST" &&
+    values.considerationRail !== "NONE" &&
+    !input.allowRequestReward
+  ) {
+    throw new Error("Only a pool steward can create a Request with a reward");
+  }
   if (!SETTLEMENT_ENABLED && values.considerationRail === "CELO_SETTLEMENT") {
     throw new Error("G$ reward promises are unavailable in this release");
   }

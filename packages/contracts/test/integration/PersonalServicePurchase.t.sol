@@ -17,6 +17,36 @@ contract PersonalServicePurchaseIntegrationTest is PersonalServicePurchaseFixtur
         _setUpPersonalFixture();
     }
 
+    function testPersonalServicePurchase_depositAndConsumptionCannotBeAppliedTwice() public {
+        uint256 id = _personalOffer(keccak256("deposit-consumption-state-boundaries"));
+        _request(id, 1);
+        uint256 fundingId = _pledge(id);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Settlement.CommitmentFundingNotInState.selector, fundingId, Settlement.FundingState.Pledged
+            )
+        );
+        _consume(fundingId);
+        _recordDeposit(fundingId, PRICE);
+        assertEq(_pledge(id), fundingId, "pledge retry preserves the recorded deposit");
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Settlement.CommitmentFundingNotInState.selector, fundingId, Settlement.FundingState.DepositRecorded
+            )
+        );
+        _recordDeposit(fundingId, PRICE);
+        _accept(id);
+        _consume(fundingId);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Settlement.CommitmentFundingNotInState.selector, fundingId, Settlement.FundingState.Consumed
+            )
+        );
+        _consume(fundingId);
+        assertEq(settlement.getCommitmentFunding(fundingId).depositedAmount, PRICE);
+        assertEq(uint256(settlement.getCommitmentFunding(fundingId).state), uint256(Settlement.FundingState.Consumed));
+    }
+
     function testIntegration_PersonalServicePurchase_revertsWhenFulfilledServiceHasNoConsumedFunding() public {
         uint256 id = _personalOffer(keccak256("unfunded"));
         _request(id, 1);

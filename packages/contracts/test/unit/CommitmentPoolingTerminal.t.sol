@@ -187,7 +187,7 @@ contract CommitmentPoolingTerminalTest is CommitmentPoolingFixture {
 
     function testDisputeResolutionFulfillsAndConvertsUnits() public {
         uint256 commitmentId = _readyCommitment(keccak256("dispute-fulfilled"));
-        vm.prank(POOL_STEWARD);
+        vm.prank(CREATOR);
         module.raiseDispute(commitmentId, "bafy-dispute");
         uint32 liveWhileDisputed = module.getPool(poolId).liveCommitmentCount;
 
@@ -199,6 +199,61 @@ contract CommitmentPoolingTerminalTest is CommitmentPoolingFixture {
         );
         assertEq(registry.fulfilledOf(CREATOR, commitmentId), 1);
         assertEq(module.getPool(poolId).liveCommitmentCount, liveWhileDisputed - 1);
+    }
+
+    function testCommitmentPoolingDispute_raiserCannotFulfillOwnDisputeButAnotherStewardCan() public {
+        uint256 commitmentId = _readyCommitment(keccak256("raiser-cannot-fulfill"));
+        vm.prank(POOL_STEWARD);
+        module.raiseDispute(commitmentId, "bafy-dispute");
+        uint32 liveBefore = module.getPool(poolId).liveCommitmentCount;
+
+        vm.expectRevert(abi.encodeWithSelector(ICommitmentPoolingModule.SelfDisputeResolution.selector, commitmentId));
+        vm.prank(POOL_STEWARD);
+        module.resolveDispute(commitmentId, ICommitmentPoolingModule.DisputeResolution.Fulfilled, "bafy-self");
+        assertEq(module.getPool(poolId).liveCommitmentCount, liveBefore);
+        assertEq(registry.fulfilledOf(CREATOR, commitmentId), 0);
+
+        address secondSteward = address(0xA002);
+        hats.setOperator(POOL_GARDEN, secondSteward, true);
+        vm.prank(secondSteward);
+        module.resolveDispute(commitmentId, ICommitmentPoolingModule.DisputeResolution.Fulfilled, "bafy-independent");
+        assertEq(registry.fulfilledOf(CREATOR, commitmentId), 1);
+    }
+
+    function testCommitmentPoolingDispute_legacyRequiresRestoreAndFreshRaiserBeforeFulfillment() public {
+        uint256 commitmentId = _readyCommitment(keccak256("legacy-dispute"));
+        vm.prank(CREATOR);
+        module.raiseDispute(commitmentId, "bafy-legacy");
+        // Model the empty ERC-7201 namespace on an upgraded proxy with an open legacy dispute.
+        bytes32 actorSlot = keccak256(
+            abi.encode(commitmentId, bytes32(0x00db7e1233ad7c733085b036698b86167ca9dcdb9d823e12d31c5fe3ff1f6a00))
+        );
+        vm.store(address(module), actorSlot, bytes32(0));
+        vm.expectRevert(abi.encodeWithSelector(ICommitmentPoolingModule.UnknownDisputeRaiser.selector, commitmentId));
+        vm.prank(POOL_STEWARD);
+        module.resolveDispute(commitmentId, ICommitmentPoolingModule.DisputeResolution.Fulfilled, "bafy-unknown");
+        vm.prank(POOL_STEWARD);
+        module.resolveDispute(commitmentId, ICommitmentPoolingModule.DisputeResolution.RestorePrevious, "bafy-restore");
+        vm.prank(CREATOR);
+        module.raiseDispute(commitmentId, "bafy-fresh");
+        vm.prank(POOL_STEWARD);
+        module.resolveDispute(commitmentId, ICommitmentPoolingModule.DisputeResolution.Fulfilled, "bafy-verified");
+        assertEq(registry.fulfilledOf(CREATOR, commitmentId), 1);
+        assertEq(vm.load(address(module), actorSlot), bytes32(0), "resolved actor is cleared");
+    }
+
+    function testCommitmentPoolingDispute_raiserCanCancelOrExpireOwnDispute() public {
+        for (uint256 i = 0; i < 2; i++) {
+            uint256 id = _readyCommitment(keccak256(abi.encode("raiser-wind-down", i)));
+            vm.prank(POOL_STEWARD);
+            module.raiseDispute(id, "bafy-dispute");
+            ICommitmentPoolingModule.DisputeResolution resolution = i == 0
+                ? ICommitmentPoolingModule.DisputeResolution.Cancelled
+                : ICommitmentPoolingModule.DisputeResolution.Expired;
+            vm.prank(POOL_STEWARD);
+            module.resolveDispute(id, resolution, "bafy-wind-down");
+            assertEq(registry.committedOf(CREATOR, id), 0);
+        }
     }
 
     // ───────────────────────────── Helpers

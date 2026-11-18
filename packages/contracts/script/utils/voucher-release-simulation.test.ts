@@ -1,7 +1,8 @@
 import { execFileSync } from "node:child_process";
 import { JsonRpcProvider } from "ethers";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { CONTRACTS_ROOT, getFoundryOutDir } from "./paths";
+import { CONTRACTS_ROOT } from "./paths";
+import { withProductionArtifacts } from "./production-artifacts.fixtures";
 import { fixtureManifest } from "./voucher-release.fixtures";
 import { buildVoucherPlan, loadVoucherArtifacts } from "./voucher-release";
 import { simulateVoucherNetwork } from "./voucher-release-simulation";
@@ -13,13 +14,15 @@ let artifacts: ReturnType<typeof loadVoucherArtifacts>;
 let plan: ReturnType<typeof buildVoucherPlan>;
 beforeAll(async () => {
   // Exercise the public preflight entrypoint and real production compiler, never a fake runtime.
-  const preflight = execFileSync(
-    "bun",
-    ["--no-env-file", "run", "contracts", "--", "release", "vouchers", "--mode", "preflight"],
-    { cwd: CONTRACTS_ROOT, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 },
-  );
-  expect(JSON.parse(preflight).deploymentInputs).toBe("pending");
-  artifacts = loadVoucherArtifacts(getFoundryOutDir("production"));
+  await withProductionArtifacts(({ out, env }) => {
+    const preflight = execFileSync(
+      "bun",
+      ["--no-env-file", "run", "contracts", "--", "release", "vouchers", "--mode", "preflight"],
+      { cwd: CONTRACTS_ROOT, env, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 },
+    );
+    expect(JSON.parse(preflight).deploymentInputs).toBe("pending");
+    artifacts = loadVoucherArtifacts(out);
+  });
   plan = buildVoucherPlan(manifest, artifacts, "a".repeat(40));
   arb = await seed(42161);
   gnosis = await seed(100);

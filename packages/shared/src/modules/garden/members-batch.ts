@@ -15,6 +15,7 @@ import {
   UNKNOWN_BATCH_STATES,
 } from "../transactions/batch-types";
 import { onlyFunction, prepareBatch } from "../transactions/prepared-batch";
+import { GARDEN_ROLE_GAS_HEADROOM_PERCENT } from "./role-gas-headroom";
 
 /** One person and the role they are getting. */
 export interface GardenMemberRow {
@@ -26,6 +27,7 @@ interface HatsCall {
   address: Address;
   functionName: string;
   args: readonly unknown[];
+  gasHeadroomPercent?: number;
 }
 
 /** How an add reads the chain. */
@@ -120,6 +122,7 @@ function grantRolesCall(
   return {
     address: moduleAddress,
     functionName: "grantRoles",
+    gasHeadroomPercent: GARDEN_ROLE_GAS_HEADROOM_PERCENT,
     args: [
       gardenAddress,
       rows.map((row) => row.address),
