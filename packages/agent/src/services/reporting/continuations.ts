@@ -95,11 +95,11 @@ export function watchLinkExpiry(core: ReportingCore, requestId: string, at: numb
   });
 }
 
-export function issueContinuation(
+/** Retires the open links to one purpose and resource for a chat source, as a newer link does. */
+export function revokeOpenRequests(
   core: ReportingCore,
-  input: Omit<ContinuationRequest, "id" | "expiresAt"> & { ttlMs?: number }
-): { request: ContinuationRequest; url: string } {
-  const now = core.clock.now();
+  input: Pick<ContinuationRequest, "purpose" | "resourceKind" | "resourceId" | "subjectId">
+): void {
   core.db
     .query(
       `UPDATE continuation_requests SET state = 'revoked'
@@ -112,6 +112,23 @@ export function issueContinuation(
       resource: input.resourceId,
       subject: input.subjectId,
     });
+}
+
+/** Whether a newer link, or a newer answer in the chat, has retired this link. */
+export function requestRevoked(core: ReportingCore, requestId: string): boolean {
+  return (
+    core.db
+      .query("SELECT 1 FROM continuation_requests WHERE id = $id AND state = 'revoked'")
+      .get({ id: requestId }) !== null
+  );
+}
+
+export function issueContinuation(
+  core: ReportingCore,
+  input: Omit<ContinuationRequest, "id" | "expiresAt"> & { ttlMs?: number }
+): { request: ContinuationRequest; url: string } {
+  const now = core.clock.now();
+  revokeOpenRequests(core, input);
   const id = core.ids.id();
   const locator = core.ids.token(24);
   const expiresAt = now + (input.ttlMs ?? core.settings.linkChallengeTtlMs);

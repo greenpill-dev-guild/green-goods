@@ -369,7 +369,7 @@ export function askConfirmation(
  * Asks a passkey owner how to publish: allow reporting in chat, which also signs this report, or
  * sign this report only. A garden that already has a live permission never gets here.
  */
-export function askGrantChoice(out: ConversationWriter, draft: DraftRecord, garden: string): void {
+export function askGrantChoice(out: ConversationWriter, draft: DraftRecord, garden: Address): void {
   out.ask(
     {
       subjectKind: "draft",

@@ -4,7 +4,7 @@ import {
 } from "@green-goods/shared/modules/agent-reporting";
 import type { Address } from "@green-goods/shared/types/domain";
 import { pairFromChat } from "../channel-pairing";
-import { issueContinuation } from "../continuations";
+import { issueContinuation, revokeOpenRequests } from "../continuations";
 import { commitDraft, type DraftRecord } from "../drafts";
 import { gardenScope, isUnlisted, type ReportingGarden } from "../gardens";
 import { retireUnusedGrants } from "../grants-store";
@@ -354,8 +354,15 @@ export function answerGrantChoice(writer: TurnWriter, choice: string): void {
     return writer.say("report.noStatus");
   }
   if (ctx.prompt) resolvePrompt(core, ctx.prompt.id);
-  // Either answer replaces an earlier page's permission that nobody authorized: "this report only"
-  // must not leave that page able to install it, and a new permission page proposes its own.
+  // Either answer replaces an earlier permission page: "this report only" must not leave it able to
+  // install its permission, and a new page proposes its own. Its link is retired, so a proposal
+  // it still has in flight is refused, and a permission it proposed that nobody authorized ends.
+  revokeOpenRequests(core, {
+    purpose: "grant_reporting",
+    resourceKind: "grant",
+    resourceId: draft.id,
+    subjectId: ctx.subjectId,
+  });
   retireUnusedGrants(core, {
     accountBindingId: account.id,
     purpose: "reporting",

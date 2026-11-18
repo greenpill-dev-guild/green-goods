@@ -457,6 +457,34 @@ describe("an Allow reporting in chat link that expires unused", () => {
     ]);
   });
 
+  it("refuses a proposal from the earlier page that finishes after the owner picked again", async () => {
+    const browser = new TestBrowser(harness.app);
+    await browser.open(latestLink(harness));
+    await browser.proveAs(KERNEL, KERNEL_PROOF);
+    await browser.access();
+    const token = browser.cookies.get("gg_msg_session")!;
+    const session = sessionFromToken(harness.core, token, browser.csrf!)!;
+    const result = await proposeGrant(
+      {
+        core: harness.core,
+        chain: harness.chain,
+        ...harness.grantDeps(),
+        // While the page waits on this lookup, the owner asks again and picks the permission anew.
+        permissionIdFor: async () => {
+          await harness.say(ADA, "RETRY");
+          await harness.press(ADA, "Allow reporting in chat");
+          return harness.permissionId;
+        },
+      },
+      session,
+      TAS.address
+    );
+    expect(result).toEqual({ ok: false, errorCode: "forbidden" });
+    // The page from the new link proposes its own permission and prepares the first report.
+    const fresh = await prepareActivation(harness);
+    expect(fresh.operation.envelope).not.toBeNull();
+  });
+
   it("after the first report is prepared, RETRY sends a page to sign that report with the passkey", async () => {
     // Prepare First Report is pressed, then the page is closed before anything is sent.
     const { browser, grant } = await openPermissionPage();

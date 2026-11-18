@@ -1,4 +1,5 @@
 import type { GrantPolicy, GrantPurpose } from "@green-goods/shared/modules/agent-reporting";
+import type { Address } from "@green-goods/shared/types/domain";
 import { audit } from "./participants";
 import type { ReportingCore } from "./runtime";
 
@@ -149,7 +150,12 @@ export function liveGrant(
  */
 export function retireUnusedGrants(
   core: ReportingCore,
-  input: { accountBindingId: string; purpose: GrantPurpose; chainId: number; gardenAddress: string }
+  input: {
+    accountBindingId: string;
+    purpose: GrantPurpose;
+    chainId: number;
+    gardenAddress: Address;
+  }
 ): number {
   const retired = core.db
     .query(
