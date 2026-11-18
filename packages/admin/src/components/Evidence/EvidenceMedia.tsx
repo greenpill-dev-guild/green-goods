@@ -152,7 +152,7 @@ export function EvidencePhotoGrid({
             <ImageWithFallback
               src={src}
               alt={photoAlt(index)}
-              className="h-full w-full object-cover transition-transform group-hover:scale-105"
+              className="h-full w-full object-cover"
               fallbackClassName="h-full w-full"
               loading="lazy"
             />
