@@ -25,6 +25,7 @@ export type AtomicBatchAction =
   | "pool-setup"
   | "commitment-creations"
   | "reward-edits"
+  | "confirmer-edits"
   | "marketplace-approvals"
   | "proof-and-send";
 

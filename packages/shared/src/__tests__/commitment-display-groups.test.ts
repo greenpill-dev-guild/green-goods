@@ -4,6 +4,7 @@ import {
   type GroupableCommitment,
   groupCommitmentsForDisplay,
   identicalOpenCopyKey,
+  selectConfirmerEdit,
   selectRewardEdit,
 } from "../modules/commitment-pooling/display-groups";
 import {
@@ -103,7 +104,7 @@ describe("promises shown as groups", () => {
     });
   });
 
-  it("keeps apart copies from another set, or with other terms, but not another reward amount", () => {
+  it("keeps apart copies from another set, or with other terms, but not another reward or confirmers", () => {
     const entries = groupCommitmentsForDisplay({
       commitments: [
         ...copies(3),
@@ -114,13 +115,15 @@ describe("promises shown as groups", () => {
         ...copies(2, { claimType: "GARDEN" }),
         // Edit Reward changed the untaken copies' amount: still the same group.
         ...copies(2, { considerationAmount: 40_000n } as Partial<GroupableCommitment>),
+        // Edit Confirmers named others on the untaken copies: still the same group.
+        ...copies(2, { confirmers: [STEWARD, LINA], confirmationThreshold: 2 }),
       ],
       metadataByCID: metadata,
     });
 
     expect(
       entries.map((entry) => (entry.kind === "group" ? entry.children.length : "single"))
-    ).toEqual([5, 2, 2, 2, 2]);
+    ).toEqual([7, 2, 2, 2, 2]);
   });
 
   it("requires known matching action/count terms and task content, while ignoring reward records", () => {
@@ -290,6 +293,7 @@ describe("identical open copies made apart (DL-150)", () => {
     ["claim mode", { claimMode: "APPROVAL_GATED" }],
     ["requirements", { requirements: [{ actionUID: 44n, requiredCount: 2 }] }],
     ["reward rail", { considerationRail: "NONE" }],
+    ["confirmer group", { confirmers: [STEWARD] }],
     ["words", { metadataCID: "cid-water" }],
   ])("keeps apart another %s", (_term, change) => {
     const key = keyOf(change);
@@ -338,5 +342,22 @@ describe("Edit Reward", () => {
     { label: "every copy is taken", children: [taken, taken], unsent: 0, reason: "none-available" },
   ])("closes once $label", ({ children, unsent, reason }) => {
     expect(selectRewardEdit(children, { unsent })).toEqual({ open: false, reason });
+  });
+});
+
+describe("Edit Confirmers", () => {
+  const open = [record(), record({ onchainState: "OFFERED" })];
+
+  it("changes only the copies nobody has taken, even once one is kept", () => {
+    const children = [record({ onchainState: "FULFILLED" }), record({ onchainState: "ACCEPTED" })];
+    expect(selectConfirmerEdit([...children, ...open])).toEqual({ open: true, targets: open });
+  });
+
+  it("closes while a copy is unsent, and once every copy is taken", () => {
+    expect(selectConfirmerEdit(open, { unsent: 1 })).toEqual({ open: false, reason: "unsent" });
+    expect(selectConfirmerEdit([record({ onchainState: "ACCEPTED" })])).toEqual({
+      open: false,
+      reason: "none-available",
+    });
   });
 });
