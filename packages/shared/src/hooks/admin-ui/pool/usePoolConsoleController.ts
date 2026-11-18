@@ -61,6 +61,9 @@ import { useFinishCreating } from "./useFinishCreating";
 // do a promise's voucher outcomes, for its inspector (PRD-1323).
 export { useCommitmentVoucherOutcomes } from "./useCommitmentVoucherOutcomes";
 export { useVoucherConsole } from "./useVoucherConsole";
+// Edit Confirmers, from a group's inspector or a single promise's, sits here too; its rules
+// are the pool console module's (`confirmerRuleError`).
+export { type ConfirmerEditProgress, useEditConfirmers } from "./useEditConfirmers";
 
 /** Queue acts are not mutations, so their failures go through the same handler by hand. */
 const reportQueuedSendError = createMutationErrorHandler({
