@@ -354,6 +354,14 @@ export function answerGrantChoice(writer: TurnWriter, choice: string): void {
     return writer.say("report.noStatus");
   }
   if (ctx.prompt) resolvePrompt(core, ctx.prompt.id);
+  // Either answer replaces an earlier page's permission that nobody authorized: "this report only"
+  // must not leave that page able to install it, and a new permission page proposes its own.
+  retireUnusedGrants(core, {
+    accountBindingId: account.id,
+    purpose: "reporting",
+    chainId: draft.content.garden.chainId,
+    gardenAddress: draft.content.garden.address,
+  });
   if (choice === "once") {
     const { draft: preparing } = commitLifecycle(core, draft, [{ type: "SIGN_ONCE_CHOSEN" }], {
       participantAction: true,
@@ -379,13 +387,6 @@ export function answerGrantChoice(writer: TurnWriter, choice: string): void {
     });
     return writer.say("publish.sending");
   }
-  // The new page proposes its own permission, which an earlier page's unused one would block.
-  retireUnusedGrants(core, {
-    accountBindingId: account.id,
-    purpose: "reporting",
-    chainId: draft.content.garden.chainId,
-    gardenAddress: draft.content.garden.address,
-  });
   const { url } = issueContinuation(core, {
     purpose: "grant_reporting",
     participantId: binding.participantId,

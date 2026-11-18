@@ -50,6 +50,44 @@ const CHECK_STOPPED = "reconciliation_stopped";
 const FOUND_AFTER_STOP = "reconciliation_found_after_stop";
 /** The reason a check stops with the attempt's transaction mined and its attestation unread. */
 export const ATTESTATION_PENDING = "attestation_pending";
+/** The audit record of the attempt's transaction seen mined, which a later empty read can't undo. */
+const TRANSACTION_MINED = "reconciliation_transaction_mined";
+
+/** The attempt's transaction a pass has seen mined, if any. */
+function minedTransaction(core: ReportingCore, operation: OperationRecord): Hex | null {
+  const row = core.db
+    .query(
+      `SELECT json_extract(detail_json, '$.transactionHash') AS hash FROM audit_events
+       WHERE subject_kind = 'operation' AND subject_id = $id AND kind = $mined
+         AND json_extract(detail_json, '$.attemptVersion') = $attemptVersion
+       ORDER BY created_at, rowid LIMIT 1`
+    )
+    .get({
+      id: operation.id,
+      mined: TRANSACTION_MINED,
+      attemptVersion: operation.attemptVersion,
+    }) as { hash: Hex | null } | null;
+  return row?.hash ?? null;
+}
+
+/**
+ * Records once per attempt that a pass saw its transaction mined. The chat has said so by then, so
+ * however a later pass reads the chain, the check never ends by saying it can't find the report.
+ */
+export function recordMined(
+  core: ReportingCore,
+  operation: OperationRecord,
+  transactionHash: Hex
+): void {
+  if (minedTransaction(core, operation)) return;
+  const { attemptVersion } = operation;
+  audit(
+    core,
+    TRANSACTION_MINED,
+    { kind: "operation", id: operation.id },
+    { transactionHash, attemptVersion }
+  );
+}
 
 /**
  * What the chat says about a stopped check: that the report or decision was not found, or that its
@@ -89,15 +127,10 @@ function stopReply(kind: "draft" | "review", reason: string): ReportingCopyKey {
  * the person hears it ended, once, instead of waiting on a promise that nothing will keep. It runs
  * as the worker parks the job. The record and the notice belong to the operation's current
  * attempt: an operation is reused for its next attempt, which gets a check and a notice of its own.
- * A check that stops with the transaction mined and its attestation unread says that instead.
+ * Once any pass saw the transaction mined, the check stops as one whose attestation stayed unread,
+ * with the transaction's link, whatever its last pass read.
  */
-export function stopChecking(
-  core: ReportingCore,
-  operationId: string,
-  reason: string,
-  /** The mined transaction an unread attestation belongs to; its link goes with the notice. */
-  mined?: { chainId: number; transactionHash: Hex }
-): void {
+export function stopChecking(core: ReportingCore, operationId: string, reason: string): void {
   const operation = operationById(core, operationId);
   if (operation?.state !== "reconciling") return;
   // A late wallet report starts a second check beside the first: the last one to run out speaks.
@@ -109,21 +142,31 @@ export function stopChecking(
     .get({ id: operation.id });
   if (stillChecking) return;
   const { attemptVersion } = operation;
-  audit(core, CHECK_STOPPED, { kind: "operation", id: operation.id }, { reason, attemptVersion });
+  const mined = minedTransaction(core, operation);
+  const stopped = mined ? ATTESTATION_PENDING : reason;
+  audit(
+    core,
+    CHECK_STOPPED,
+    { kind: "operation", id: operation.id },
+    { reason: stopped, lastError: reason, attemptVersion }
+  );
   const subject = operationSubject(core, operation);
   if (!subject) return;
-  const unread = reason === ATTESTATION_PENDING;
   const out = participantWriter(core, {
     participantId: subject.participantId,
     conversationId: subject.conversationId,
-    dedupePrefix: `${unread ? "unread" : "unconfirmed"}:${operation.id}:${attemptVersion}`,
+    dedupePrefix: `${mined ? "unread" : "unconfirmed"}:${operation.id}:${attemptVersion}`,
   });
   if (!out) return;
-  const key = stopReply(subject.kind, reason);
+  const key = stopReply(subject.kind, stopped);
   if (!mined) return out.say(key);
   out.sayWithRecords(
     key,
-    publicationRecords((copyKey) => out.text(copyKey), { ...mined, attestationUid: null })
+    publicationRecords((copyKey) => out.text(copyKey), {
+      chainId: operation.chainId,
+      transactionHash: mined,
+      attestationUid: null,
+    })
   );
 }
 
@@ -148,6 +191,8 @@ export function announceStillConfirming(
 ): void {
   const attempt = latestAttempt(core, operation.id);
   if (attempt?.state !== "broadcast" || attempt.reasonCode === "callback_missing") return;
+  // Once the chat has said the transaction is confirmed, "still being confirmed" would undercut it.
+  if (minedTransaction(core, operation)) return;
   const started = core.db
     .query("SELECT created_at FROM processing_jobs WHERE id = $id")
     .get({ id: job.id }) as { created_at: number } | null;

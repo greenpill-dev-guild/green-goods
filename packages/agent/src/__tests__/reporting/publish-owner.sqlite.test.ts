@@ -578,6 +578,32 @@ describe("owner publication", () => {
     expect(await harness.say(ADA, "CANCEL")).toEqual([ATTESTATION_UNREAD]);
   });
 
+  it("never ends by saying it can't find a report whose transaction it already called confirmed", async () => {
+    await confirmLinkAndPublish(harness);
+    const { browser, view, envelope } = await openSigningPage(harness);
+    const attempt = await reserve(browser, view, envelope);
+    const hash = send(envelope);
+    harness.chain.attestationsUnread = true;
+    await reportOutcome(browser, view, envelope, attempt.body.attemptId, {
+      kind: "broadcast",
+      transactionHash: hash,
+    });
+    await harness.drain();
+    expect(sentTexts().at(-1)).toContain("The transaction is confirmed.");
+
+    // Every later read loses the receipt, so the check's last pass sees nothing at all.
+    harness.chain.hidden.add(hash);
+    await exhaustChainCheck();
+    expect(sentTexts()).not.toContain(CHECK_STOPPED);
+    expect(sentTexts()).not.toContain(STILL_CONFIRMING);
+    const stops = harness.transport.sent.filter((sent) => sent.message.text === ATTESTATION_UNREAD);
+    expect(stops).toHaveLength(1);
+    expect(stops[0]?.message.records).toEqual([
+      { url: `https://arbiscan.io/tx/${hash}`, label: "View transaction" },
+    ]);
+    expect(await harness.say(ADA, "STATUS")).toEqual([ATTESTATION_UNREAD]);
+  });
+
   it("says once, two minutes into the check, that a reported send is still confirming", async () => {
     await confirmLinkAndPublish(harness);
     const { browser, view, envelope } = await openSigningPage(harness);
@@ -825,6 +851,16 @@ describe("signing links", () => {
     );
     await harness.drain();
     expect(count(LINK_EXPIRED)).toBe(said);
+  });
+
+  it("says the link expired once when STATUS asks before the expiry notice goes out", async () => {
+    await confirmLinkAndPublish(harness);
+    harness.clock.advance(harness.core.settings.linkChallengeTtlMs);
+    // A turn runs before the jobs in the same pass, so STATUS answers before the watcher runs.
+    expect(await harness.say(ADA, "STATUS")).toEqual([LINK_EXPIRED]);
+    harness.clock.advance(60_000);
+    await harness.drain();
+    expect(count(LINK_EXPIRED)).toBe(1);
   });
 
   it("waits for a signing page that is still open before saying its link expired", async () => {

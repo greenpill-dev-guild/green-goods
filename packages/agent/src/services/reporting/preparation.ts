@@ -28,7 +28,7 @@ import {
 import { accountById } from "./participants";
 import { findGarden, isUnlisted } from "./gardens";
 import type { ReportingCore } from "./runtime";
-import { sendSigningLink } from "./signing-links";
+import { rewatchSigningLink, sendSigningLink } from "./signing-links";
 import type { EvidenceUploader } from "./uploader";
 import type { JobOutcome } from "./worker";
 
@@ -301,7 +301,9 @@ export async function prepareOperation(
         });
         return;
       }
-      if (typeof job.payload.activationGrantId === "string") return;
+      // The permission page signs this one; if it has closed meanwhile, the chat hears so.
+      if (typeof job.payload.activationGrantId === "string")
+        return rewatchSigningLink(core, draft.id);
       const out = writer();
       const frozen = operationById(core, operation.id);
       if (out && frozen) sendSigningLink(core, out, current, frozen);

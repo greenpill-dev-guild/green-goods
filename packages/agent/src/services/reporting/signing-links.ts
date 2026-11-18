@@ -79,6 +79,28 @@ export function signingLinkLapsed(core: ReportingCore, draft: DraftRecord): bool
   return latestSigningRequest(core, draft.id)?.revision === draft.revision;
 }
 
+/**
+ * Checks the report's latest signing link again now. A first report prepared from the permission
+ * page gets no link of its own, and its preparation can outlast the page, so the check that ran
+ * when the page closed found the report still being prepared. This one finds it waiting.
+ */
+export function rewatchSigningLink(core: ReportingCore, draftId: string): void {
+  const latest = latestSigningRequest(core, draftId);
+  if (latest) watchLinkExpiry(core, latest.id, core.clock.now());
+}
+
+/** Whether the chat has already said, since this link expired, that it did (STATUS says it too). */
+function lapseAlreadyTold(core: ReportingCore, conversationId: string, expiredAt: number): boolean {
+  return (
+    core.db
+      .query(
+        `SELECT 1 FROM delivery_outbox WHERE conversation_id = $conversation
+           AND reply_kind = 'publish.linkExpired' AND created_at >= $expiredAt LIMIT 1`
+      )
+      .get({ conversation: conversationId, expiredAt }) !== null
+  );
+}
+
 function waitingDraft(core: ReportingCore, draftId: string, revision: number | null) {
   let draft: DraftRecord | null;
   try {
@@ -109,7 +131,8 @@ export function watchSigningLinkJob(core: ReportingCore, job: ClaimedJob): JobOu
       return { status: "done" };
     }
     const draft = waitingDraft(core, draftId, request.resourceRevision);
-    if (!draft) return { status: "done" };
+    if (!draft || lapseAlreadyTold(core, draft.conversationId, request.expiresAt))
+      return { status: "done" };
     participantWriter(core, {
       participantId: draft.participantId,
       conversationId: draft.conversationId,

@@ -14,6 +14,7 @@ import {
   announceConfirmed,
   announceStillConfirming,
   foundAfterStop,
+  recordMined,
   stopChecking,
 } from "./check-notices";
 import { inTransaction } from "./database";
@@ -293,11 +294,11 @@ export async function reconcileOperation(
       case "verified":
         publish(deps, current, envelope, resolution.verified);
         return { status: "done" };
-      case "confirmed": {
+      case "confirmed":
         // The person gets the transaction's link; only its attestation is still unread. If the
-        // check runs out like this it says so, with the link, instead of the promise of more that
-        // this pass would otherwise make just before stopping.
-        const mined = { chainId: envelope.chainId, transactionHash: resolution.transactionHash };
+        // check runs out after this, it says so, with the link. On its last pass it says only
+        // that, not the promise of more this pass would otherwise make just before stopping.
+        recordMined(core, current, resolution.transactionHash);
         if (job.attempts < job.maxAttempts)
           announceConfirmed(core, current, envelope, resolution.transactionHash);
         foundAfterStop(core, current, "transaction_mined");
@@ -305,9 +306,8 @@ export async function reconcileOperation(
           status: "retry",
           errorCode: ATTESTATION_PENDING,
           delayMs: 30_000,
-          onParked: () => stopChecking(core, operation.id, ATTESTATION_PENDING, mined),
+          onParked: stopped(ATTESTATION_PENDING),
         };
-      }
       case "reverted":
         revert(deps, current);
         return { status: "done" };

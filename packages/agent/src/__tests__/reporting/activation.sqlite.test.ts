@@ -417,6 +417,46 @@ describe("an Allow reporting in chat link that expires unused", () => {
     ).toEqual([{ state: "expired" }, { state: "owner_authorization_pending" }]);
   });
 
+  it("says the link expired once a first report prepared after its page closed is ready", async () => {
+    const { browser, grant } = await openPermissionPage();
+    // Prepare First Report is pressed, but preparation can't finish while the catalog is down.
+    harness.catalog.unavailable = true;
+    const started = await browser.request(
+      "POST",
+      `/messaging/execution-grants/${grant.grantId}/activation`,
+      { body: { expectedVersion: grant.version, policyDigest: grant.policyDigest } }
+    );
+    expect(started.status).toBe(200);
+    await harness.drain();
+    // The page closes while the report is still being prepared, which is not yet a lapsed link.
+    harness.clock.advance(harness.core.settings.browserSessionTtlMs);
+    await harness.drain();
+    expect(sent()).not.toContain(LINK_EXPIRED);
+
+    // Preparation finishes with nothing left to sign it, so the chat hears that now.
+    harness.catalog.unavailable = false;
+    harness.clock.advance(60_000);
+    await harness.drain();
+    expect(sent().filter((text) => text === LINK_EXPIRED)).toHaveLength(1);
+    expect(await harness.say(ADA, "STATUS")).toEqual([LINK_EXPIRED]);
+  });
+
+  it("ends the earlier page's unused permission when the owner picks this report only instead", async () => {
+    const { browser, grant } = await openPermissionPage();
+    await harness.say(ADA, "RETRY");
+    await harness.press(ADA, "Publish this report only");
+    // The page still open from the first choice can no longer install that permission.
+    const stale = await browser.request(
+      "POST",
+      `/messaging/execution-grants/${grant.grantId}/activation`,
+      { body: { expectedVersion: grant.version, policyDigest: grant.policyDigest } }
+    );
+    expect(stale.status).toBe(409);
+    expect(harness.core.db.query("SELECT state FROM execution_grants").all()).toEqual([
+      { state: "expired" },
+    ]);
+  });
+
   it("after the first report is prepared, RETRY sends a page to sign that report with the passkey", async () => {
     // Prepare First Report is pressed, then the page is closed before anything is sent.
     const { browser, grant } = await openPermissionPage();
