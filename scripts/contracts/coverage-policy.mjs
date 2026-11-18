@@ -31,6 +31,9 @@ const CRITICAL_TARGETS = [
   { file: "src/accounts/StewardRolePublisher.sol", line: 85, branch: 60 },
 ];
 
+const FAILING_TESTS_SHOWN = 5;
+const REASON_MAX_LENGTH = 300;
+
 function parseArgs(argv) {
   const args = {};
   for (let i = 2; i < argv.length; i += 2) {
@@ -158,17 +161,79 @@ function passes(summary, target) {
   return summary.linePercent >= target.line && summary.branchPercent >= target.branch;
 }
 
-function formatCoverage(summary) {
-  return `${summary.linePercent.toFixed(2)}% (${summary.lineCovered}/${summary.lineTotal})`;
+function truncate(text) {
+  return text.length > REASON_MAX_LENGTH ? `${text.slice(0, REASON_MAX_LENGTH)}...` : text;
 }
 
-function formatBranch(summary) {
-  return `${summary.branchPercent.toFixed(2)}% (${summary.branchCovered}/${summary.branchTotal})`;
+function failingTests(log) {
+  const section = log.split(/^Failing tests:\r?$/m)[1];
+  if (!section) return [];
+
+  const failures = [];
+  let suite = "";
+  for (const line of section.split(/\r?\n/)) {
+    const header = /^Encountered \d+ failing tests? in \S+:(\w+)$/.exec(line);
+    if (header) {
+      suite = header[1];
+      continue;
+    }
+    // Greedy up to the last "] name(" so a reason or counterexample in the brackets is skipped.
+    const failure = /^\[FAIL.*\] (\w+)\(/.exec(line);
+    if (failure) failures.push(suite ? `${suite}.${failure[1]}` : failure[1]);
+  }
+  return failures;
+}
+
+// A failed forge coverage run leaves every gate at 0/0, so name what stopped it.
+function describeLocalFailure(log) {
+  const timeout = /^TIMEOUT after (\d+)s$/m.exec(log);
+  if (timeout) return `forge coverage timed out after ${timeout[1]}s`;
+
+  const compile = /^Error: Compiler run failed:\r?\n(?:Error: )?(.*)(?:\r?\n\s*--> (\S+))?/m.exec(log);
+  if (compile) {
+    const location = compile[2] ? ` at ${compile[2].replace(/:$/, "")}` : "";
+    return truncate(`the coverage build did not compile: ${compile[1].trim()}${location}`);
+  }
+
+  const failures = failingTests(log);
+  if (failures.length > 0) {
+    const shown = failures.slice(0, FAILING_TESTS_SHOWN).join(", ");
+    const more = failures.length > FAILING_TESTS_SHOWN ? `, and ${failures.length - FAILING_TESTS_SHOWN} more` : "";
+    const noun = failures.length === 1 ? "test" : "tests";
+    return `${failures.length} ${noun} failed under coverage: ${shown}${more}`;
+  }
+
+  const lastLine = log.trimEnd().split(/\r?\n/).at(-1)?.trim();
+  return lastLine
+    ? truncate(`no known failure pattern in the coverage log; it ends: ${lastLine}`)
+    : "the coverage log is empty or missing";
+}
+
+function readLog(filePath) {
+  return filePath && fs.existsSync(filePath) ? fs.readFileSync(filePath, "utf8") : "";
 }
 
 const args = parseArgs(process.argv);
 const localOk = args["local-ok"] === "true";
 const localError = args["local-error"] ?? "";
+const localFailure = localOk ? "" : describeLocalFailure(readLog(args["local-log"]));
+
+function shortfall(label, summary, target) {
+  const misses = [];
+  if (summary.linePercent < target.line) misses.push(`line ${summary.linePercent.toFixed(2)}% < ${target.line}%`);
+  if (summary.branchPercent < target.branch) misses.push(`branch ${summary.branchPercent.toFixed(2)}% < ${target.branch}%`);
+  return misses.length > 0 ? `${label} ${misses.join(", ")}` : null;
+}
+
+function formatCoverage(summary) {
+  if (!localOk) return "not measured";
+  return `${summary.linePercent.toFixed(2)}% (${summary.lineCovered}/${summary.lineTotal})`;
+}
+
+function formatBranch(summary) {
+  if (!localOk) return "not measured";
+  return `${summary.branchPercent.toFixed(2)}% (${summary.branchCovered}/${summary.branchTotal})`;
+}
 
 const localRecords = readLcov(args["local-lcov"]);
 const combinedRecords = mergeRecords([localRecords]);
@@ -187,6 +252,12 @@ let overallStatus = coreStatus;
 if (!localOk || criticalRows.some((row) => row.status !== "PASS")) {
   overallStatus = "FAIL";
 }
+
+const floorMisses = [
+  shortfall("core src/**", coreCombined, CORE_TARGET),
+  ...criticalRows.map((row) => shortfall(row.file, row.summary, row)),
+].filter(Boolean);
+const failureReason = localFailure || (floorMisses.length > 0 ? `below floor: ${floorMisses.join("; ")}` : "");
 
 const summaryMd = `# Contracts Coverage Summary
 
@@ -232,7 +303,7 @@ These numbers are retained for diagnosis. Release thresholds use the filtered co
 
 Execution Notes:
 - Local: ${localError || "OK"}
-- Overall status: ${overallStatus}
+${failureReason ? `- Reason: ${failureReason}\n` : ""}- Overall status: ${overallStatus}
 
 Artifacts:
 - output/contracts-test-audit/lcov-local.info
@@ -278,6 +349,7 @@ const summaryJson = {
       branch_total: rawLocal.branchTotal,
       branch_percent: rawLocal.branchPercent,
       error: localError,
+      failure_reason: failureReason,
     },
   },
   overall_status: overallStatus,
@@ -289,6 +361,7 @@ fs.writeFileSync(args["summary-json"], `${JSON.stringify(summaryJson, null, 2)}\
 
 console.log(`Coverage summary written: ${args["summary-md"]}`);
 console.log(`Coverage JSON written: ${args["summary-json"]}`);
+if (failureReason) console.log(`Coverage failure: ${failureReason}`);
 console.log(`Coverage status: ${overallStatus}`);
 
 process.exit(overallStatus === "PASS" ? 0 : 1);

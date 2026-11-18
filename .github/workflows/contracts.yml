@@ -149,7 +149,7 @@ jobs:
         run: bun run check --only solidity-test-names
 
       - name: Run Solidity guardrail tests
-        run: node --test scripts/contracts/check-solidity-test-names.test.mjs scripts/contracts/check-solhint-baseline.test.mjs
+        run: node --test scripts/contracts/check-solidity-test-names.test.mjs scripts/contracts/check-solhint-baseline.test.mjs scripts/contracts/coverage-policy.test.mjs
 
       - name: Run contract lint
         working-directory: packages/contracts

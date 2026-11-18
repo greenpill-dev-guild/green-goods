@@ -65,6 +65,7 @@ popd >/dev/null
 
 node "$ROOT_DIR/scripts/contracts/coverage-policy.mjs" \
     --local-lcov "$LOCAL_LCOV" \
+    --local-log "$LOCAL_LOG" \
     --summary-md "$SUMMARY_MD" \
     --summary-json "$SUMMARY_JSON" \
     --local-ok "$localCoverageOk" \
