@@ -260,6 +260,9 @@ describe("client public service worker migration", () => {
 
   it("lets boot apply a waiting update only when no other app window is open", async () => {
     const { clients, self, listeners } = await loadServiceWorker();
+    // This worker is waiting; the one it replaces is still busy for a website tab.
+    const outgoing = { postMessage: vi.fn() };
+    Object.assign(self.registration, { active: outgoing, waiting: {} });
     const boot = { id: "boot", url: "https://www.greengoods.app/home" };
     const otherApp = { id: "work", url: "https://www.greengoods.app/home/garden" };
     const website = { id: "site", url: "https://www.greengoods.app/" };
@@ -276,12 +279,29 @@ describe("client public service worker migration", () => {
     await waitUntil.mock.calls[0][0];
     expect(postMessage).toHaveBeenLastCalledWith({ status: "blocked" });
     expect(self.skipWaiting).not.toHaveBeenCalled();
+    expect(
+      outgoing.postMessage,
+      "a blocked update leaves the other window's work alone"
+    ).not.toHaveBeenCalled();
 
     clients.matchAll.mockResolvedValueOnce([boot, website]);
     listeners.message[0](event);
     await waitUntil.mock.calls[1][0];
     expect(self.skipWaiting).toHaveBeenCalledTimes(1);
     expect(postMessage).toHaveBeenLastCalledWith({ status: "requested" });
+    // Activation waits for the outgoing worker's open work, so it is asked to go quiet first.
+    expect(outgoing.postMessage).toHaveBeenCalledWith({ type: "PREPARE_TO_ACTIVATE_UPDATE" });
+    expect(outgoing.postMessage.mock.invocationCallOrder[0]).toBeLessThan(
+      self.skipWaiting.mock.invocationCallOrder[0]
+    );
+
+    // A refused activation hands the outgoing worker its work back.
+    clients.matchAll.mockResolvedValueOnce([boot]);
+    self.skipWaiting.mockRejectedValueOnce(new Error("refused"));
+    listeners.message[0](event);
+    await waitUntil.mock.calls[2][0];
+    expect(postMessage).toHaveBeenLastCalledWith({ status: "failed" });
+    expect(outgoing.postMessage).toHaveBeenLastCalledWith({ type: "RESUME_BACKGROUND_WORK" });
   });
 
   it("skips production shell population for the Vite development worker", async () => {
