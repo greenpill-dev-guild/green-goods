@@ -42,6 +42,8 @@ const [GROUP] = groupCommitmentsForDisplay({
 function inspector(
   overrides: {
     canEditReward?: boolean;
+    canEditConfirmers?: boolean;
+    isOnline?: boolean;
     canSeedMore?: boolean;
     waitingOnYou?: ReadonlySet<string>;
   } = {}
@@ -51,6 +53,7 @@ function inspector(
     onOpenCommitment: vi.fn(),
     onSeedMore: vi.fn(),
     onEditReward: vi.fn(),
+    onEditConfirmers: vi.fn(),
   };
   renderWithProviders(
     <GroupInspector
@@ -62,6 +65,8 @@ function inspector(
       terms={[["Asks for", "1 survey · The pool asks"]]}
       rewarded
       canEditReward={overrides.canEditReward ?? false}
+      canEditConfirmers={overrides.canEditConfirmers}
+      isOnline={overrides.isOnline}
       canSeedMore={overrides.canSeedMore}
       events={STORY_GROUP_EVENTS}
       waitingOnYou={overrides.waitingOnYou ?? new Set()}
@@ -140,6 +145,15 @@ describe("GroupInspector", () => {
     fireEvent.click(screen.getByRole("button", { name: "Edit Reward" }));
     expect(onEditReward).toHaveBeenCalled();
     expect(screen.getByText("Edit Reward is open until one of this group is kept.")).toBeVisible();
+  });
+
+  it("holds both edits while offline, since they are sent right away, and says why", () => {
+    inspector({ canEditReward: true, canEditConfirmers: true, isOnline: false });
+    expect(screen.getByRole("button", { name: "Edit Reward" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Edit Confirmers" })).toBeDisabled();
+    expect(
+      screen.getByText("Needs a connection. Pool changes are sent right away, not queued.")
+    ).toBeVisible();
   });
 });
 

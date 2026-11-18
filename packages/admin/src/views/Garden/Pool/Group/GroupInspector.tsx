@@ -30,6 +30,8 @@ export interface GroupInspectorProps {
   canEditReward: boolean;
   /** Some copy is still untaken, so its confirmers can change. */
   canEditConfirmers?: boolean;
+  /** Edits are sent right away, never queued, so they wait for a connection. */
+  isOnline?: boolean;
   /** Rewarded templates cannot be copied while settlement is deferred. */
   canSeedMore?: boolean;
   /** The pool's recent activity, for when each copy was taken, proven and confirmed. */
@@ -64,6 +66,7 @@ export function GroupInspector({
   rewarded,
   canEditReward,
   canEditConfirmers = false,
+  isOnline = true,
   canSeedMore = true,
   events,
   waitingOnYou,
@@ -125,24 +128,39 @@ export function GroupInspector({
     ],
   ];
 
+  const editsHeld = !isOnline && (canEditReward || canEditConfirmers);
   const footer = (
     <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
-      <p className="min-w-0 type-meta text-text-soft sm:flex-1">
-        {canEditReward
+      <p
+        className={`min-w-0 type-meta sm:flex-1 ${editsHeld ? "text-warning-dark" : "text-text-soft"}`}
+        role={editsHeld ? "status" : undefined}
+      >
+        {editsHeld
           ? formatMessage({
-              id: "hub.garden.pool.group.editRewardNote",
-              defaultMessage: "Edit Reward is open until one of this group is kept.",
+              id: "hub.garden.pool.offline",
+              defaultMessage: "Needs a connection. Pool changes are sent right away, not queued.",
             })
-          : !canSeedMore
-            ? formatMessage({ id: "hub.garden.pool.group.rewardDeferredNote" })
-            : formatMessage({
-                id: "hub.garden.pool.group.seedMoreNote",
-                defaultMessage: "Seed More Like This can add to this group or start a new one.",
-              })}
+          : canEditReward
+            ? formatMessage({
+                id: "hub.garden.pool.group.editRewardNote",
+                defaultMessage: "Edit Reward is open until one of this group is kept.",
+              })
+            : !canSeedMore
+              ? formatMessage({ id: "hub.garden.pool.group.rewardDeferredNote" })
+              : formatMessage({
+                  id: "hub.garden.pool.group.seedMoreNote",
+                  defaultMessage: "Seed More Like This can add to this group or start a new one.",
+                })}
       </p>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
         {canEditReward ? (
-          <Button type="button" emphasis="secondary" size="sm" onClick={onEditReward}>
+          <Button
+            type="button"
+            emphasis="secondary"
+            size="sm"
+            onClick={onEditReward}
+            disabled={!isOnline}
+          >
             {formatMessage({
               id: "hub.garden.pool.reward.title",
               defaultMessage: "Edit Reward",
@@ -150,7 +168,13 @@ export function GroupInspector({
           </Button>
         ) : null}
         {canEditConfirmers && onEditConfirmers ? (
-          <Button type="button" emphasis="secondary" size="sm" onClick={onEditConfirmers}>
+          <Button
+            type="button"
+            emphasis="secondary"
+            size="sm"
+            onClick={onEditConfirmers}
+            disabled={!isOnline}
+          >
             {formatMessage({
               id: "hub.garden.pool.confirmers.title",
               defaultMessage: "Edit Confirmers",

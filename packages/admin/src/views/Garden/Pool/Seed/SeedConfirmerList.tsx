@@ -41,7 +41,7 @@ function initialsOf(name: string): string | undefined {
 }
 
 /** A named confirmer group being edited: Seed's form, or Edit Confirmers' own state. */
-export interface ConfirmerGroupDraft {
+interface ConfirmerGroupDraft {
   confirmers: string[];
   threshold: number;
   /** Read the latest list, for a name that resolves after other changes. */
@@ -58,6 +58,8 @@ export interface ConfirmerGroupEditorProps {
   busy: boolean;
   /** The garden's people, each once, in the order they should be offered. */
   members: readonly SeedMember[];
+  /** Told while a typed name is being looked up, so a save can wait for it. */
+  onAddingChange?: (adding: boolean) => void;
 }
 
 /**
@@ -114,6 +116,7 @@ export function ConfirmerGroupEditor({
   ordinaryNote,
   busy,
   members,
+  onAddingChange,
 }: ConfirmerGroupEditorProps) {
   const { formatMessage } = useIntl();
   const titleId = useId();
@@ -141,6 +144,17 @@ export function ConfirmerGroupEditor({
     };
   };
   const entry = useAddressInput(add, formatMessage);
+  // A name may still be resolving when Add is pressed, and the list changes only
+  // once it lands; an address lands at once.
+  const addEntry = async () => {
+    const looksUp = !entry.isHexAddress;
+    if (looksUp) onAddingChange?.(true);
+    try {
+      await entry.handleAdd();
+    } finally {
+      if (looksUp) onAddingChange?.(false);
+    }
+  };
 
   const isChosen = (address: string) =>
     chosen.some((named) => named.toLowerCase() === address.toLowerCase());
@@ -229,7 +243,7 @@ export function ConfirmerGroupEditor({
             onKeyDown: (event) => {
               if (event.key === "Enter") {
                 event.preventDefault();
-                void entry.handleAdd();
+                void addEntry();
               }
             },
           }}
@@ -241,7 +255,7 @@ export function ConfirmerGroupEditor({
           size="compact"
           className="mb-9"
           leadingIcon={<RiAddLine className="h-4 w-4" aria-hidden="true" />}
-          onClick={() => void entry.handleAdd()}
+          onClick={() => void addEntry()}
           disabled={busy || entry.trimmedInput.length === 0}
         >
           {formatMessage({

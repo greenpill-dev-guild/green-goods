@@ -97,6 +97,11 @@ export const EditRewardOpen: Story = {
   args: { group: NEWER, terms: termsOf(NEWER), canEditReward: true },
 };
 
+/** Offline: both edits are sent right away, never queued, so they wait for a connection. */
+export const Offline: Story = {
+  args: { group: NEWER, terms: termsOf(NEWER), canEditReward: true, isOnline: false },
+};
+
 /** Without the pool's activity the dates are left out; what the records say still shows. */
 export const WithoutActivity: Story = { args: { events: [], terms: termsOf(SURVEY, []) } };
 

@@ -146,6 +146,7 @@ export function GroupDialogs({
         onSeedMore={() => setStep("seed-more")}
         onEditReward={() => setStep("edit-reward")}
         canEditConfirmers={confirmerEdit.open}
+        isOnline={pool.isOnline}
         onEditConfirmers={() => setStep("edit-confirmers")}
       />
       <SeedMoreDialog

@@ -43,6 +43,8 @@ const mocks = vi.hoisted(() => ({
   unchanged: new Set<bigint>(),
   added: [] as number[],
   outcome: "sent" as AddToGroupOutcome,
+  /** A name's lookup, left open until the test lands it. */
+  lookup: null as Promise<string | null> | null,
   confirmerChanges: [] as Array<{
     copies: Array<[bigint, boolean]>;
     rule: { confirmers: string[]; threshold: number };
@@ -126,6 +128,14 @@ vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
 }));
 vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
   useGreenGoodsEnsName: () => ({ data: undefined }),
+}));
+
+vi.mock("@green-goods/shared/hooks/blockchain/useEnsAddress", () => ({
+  useEnsAddress: () => ({ data: undefined, isFetching: false }),
+}));
+vi.mock("@green-goods/shared/utils/blockchain/ens", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/utils/blockchain/ens")>()),
+  resolveEnsAddress: () => mocks.lookup ?? Promise.resolve(null),
 }));
 
 vi.mock("@green-goods/shared/hooks/blockchain/useGoodDollarPrice", () => ({
@@ -495,6 +505,7 @@ describe("Edit Confirmers", () => {
   beforeEach(() => {
     mocks.confirmerChanges = [];
     mocks.unchanged.clear();
+    mocks.lookup = null;
   });
 
   function renderConfirmers() {
@@ -563,6 +574,27 @@ describe("Edit Confirmers", () => {
       copies: [[4n, false]],
       rule: { confirmers: [LINA, NEW], threshold: 1 },
     });
+  });
+
+  it("waits for a name still being looked up, then saves it with the rest", async () => {
+    let land: (address: string) => void = () => undefined;
+    mocks.lookup = new Promise((resolve) => {
+      land = resolve;
+    });
+    renderConfirmers();
+    fireEvent.click(confirmers().getAllByRole("button", { name: /^remove /i })[0]!);
+    expect(change()).toBeEnabled();
+    fireEvent.change(confirmers().getByLabelText(/^add a confirmer/i), {
+      target: { value: "new.eth" },
+    });
+    fireEvent.click(confirmers().getByRole("button", { name: "Add" }));
+    await waitFor(() => expect(change()).toBeDisabled());
+
+    land(NEW);
+    await waitFor(() => expect(change()).toBeEnabled());
+    fireEvent.click(change());
+    await waitFor(() => expect(mocks.confirmerChanges).toHaveLength(1));
+    expect(mocks.confirmerChanges[0]?.rule.confirmers).toEqual([LINA, NEW]);
   });
 
   it("holds a threshold no named group could reach, and says why", () => {

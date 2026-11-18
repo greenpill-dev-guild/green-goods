@@ -19,6 +19,9 @@ import { seedMembers } from "../Seed/seedStepModel";
 import { editConfirmersStatus } from "./editConfirmersStatus";
 import { confirmerRuleText } from "./groupTerms";
 
+/** Copies a batching wallet changes per request, as Shared sends them (`sendConfirmerEdit`). */
+const PER_APPROVAL = 50;
+
 export interface EditConfirmersDialogProps {
   open: boolean;
   onClose: () => void;
@@ -74,6 +77,8 @@ export function EditConfirmersDialog({
   const [confirmers, setConfirmersState] = useState<string[]>(() => [...current.confirmers]);
   const [threshold, setThreshold] = useState(() => current.confirmationThreshold ?? 1);
   const [error, setError] = useState<string | null>(null);
+  // A name still being looked up isn't in the list yet, so saving waits for it.
+  const [adding, setAdding] = useState(false);
   // The latest list, for a name that resolves after other changes.
   const latest = useRef<string[]>(confirmers);
   // The rule of the first change, kept for every Try Again.
@@ -199,14 +204,22 @@ export function EditConfirmersDialog({
                 },
                 { count }
               )
-            : formatMessage(
-                {
-                  id: "hub.garden.pool.seed.note.bundle",
-                  defaultMessage:
-                    "{count, plural, one {Your wallet will ask you once.} other {Your wallet will ask you once, for all #.}}",
-                },
-                { count }
-              )));
+            : count <= PER_APPROVAL
+              ? formatMessage(
+                  {
+                    id: "hub.garden.pool.seed.note.bundle",
+                    defaultMessage:
+                      "{count, plural, one {Your wallet will ask you once.} other {Your wallet will ask you once, for all #.}}",
+                  },
+                  { count }
+                )
+              : formatMessage(
+                  {
+                    id: "hub.garden.pool.reward.note.bundles",
+                    defaultMessage: "Your wallet will ask you {requests} times, once for every 50.",
+                  },
+                  { requests: Math.ceil(count / PER_APPROVAL) }
+                )));
 
   const footer =
     status.phase === "changed" ? (
@@ -238,7 +251,7 @@ export function EditConfirmersDialog({
             emphasis="primary"
             size="sm"
             onClick={() => void change()}
-            disabled={status.busy || (!locked && Boolean(blocked))}
+            disabled={status.busy || adding || (!locked && Boolean(blocked))}
             loading={status.busy}
             className="w-full sm:w-auto"
           >
@@ -328,6 +341,7 @@ export function EditConfirmersDialog({
           }
           busy={status.busy || locked}
           members={members}
+          onAddingChange={setAdding}
         />
       </div>
     </AdminDialog>
