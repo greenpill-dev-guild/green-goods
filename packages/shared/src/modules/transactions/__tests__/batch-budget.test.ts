@@ -78,12 +78,12 @@ describe("reviewed batch budgets", () => {
 describe("the gas a bundler counts when the operation is sent", () => {
   // Five passkey approvals as simulated on an Arbitrum fork on 18 November: the hosted bundler's
   // non-call gas from this account's own operations, a 3,076-byte call and a WebAuthn signature.
-  const fiveApprovals = (callGasLimit: bigint) => ({
+  const fiveApprovals = (callGasLimit: bigint, verificationGasLimit = 605_410n) => ({
     sender: account,
     nonce: 3n,
     callData: `0x${"ab".repeat(3_076)}` as Hex,
     callGasLimit,
-    verificationGasLimit: 605_410n,
+    verificationGasLimit,
     preVerificationGas: 79_163n,
     maxFeePerGas: 10_000_000n,
     maxPriorityFeePerGas: 0n,
@@ -102,6 +102,15 @@ describe("the gas a bundler counts when the operation is sent", () => {
   it("sends five approvals one at a time when the bundler would refuse them after the signature", () => {
     // 55-character descriptions: 15.84M added up, under the 16M cap, but about 16.9M counted on send.
     expect(() => quoteUserOperation(fiveApprovals(15_105_339n), passkeyReviews)).toThrow(
+      "batch-budget-exceeded"
+    );
+  });
+  it("takes an operation the bundler counts at exactly 16M and refuses one gas more", () => {
+    // Counted on send, apart from the app, at 16,000,000 and 16,000,001.
+    expect(quoteUserOperation(fiveApprovals(14_000_000n, 869_391n), passkeyReviews).gas).toBe(
+      "14995011"
+    );
+    expect(() => quoteUserOperation(fiveApprovals(14_000_000n, 869_392n), passkeyReviews)).toThrow(
       "batch-budget-exceeded"
     );
   });

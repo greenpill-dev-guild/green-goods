@@ -219,10 +219,19 @@ export class PasskeySender implements TransactionSender {
     const clientChainId = client.chain?.id;
     const signUserOperation: typeof account.signUserOperation = async (userOperation) => {
       const operation = { ...userOperation, sender: userOperation.sender ?? account.address };
-      if (options.batchBudget) quoteUserOperation(operation, options.batchBudget);
+      // Both quotes run before viem can send, so a refusal proves the operation was not sent.
+      const quote = (quoted: typeof operation) => {
+        if (!options.batchBudget) return;
+        try {
+          quoteUserOperation(quoted, options.batchBudget);
+        } catch (error) {
+          throw new BatchNotSubmittedError(error);
+        }
+      };
+      quote(operation);
       const signature = await account.signUserOperation(userOperation);
       // Quoted again with the signature the bundler will carry in place of the stub.
-      if (options.batchBudget) quoteUserOperation({ ...operation, signature }, options.batchBudget);
+      quote({ ...operation, signature });
       // A WebAuthn prompt can outlive the session that opened it. Check again
       // at the last point before viem can submit the signed operation.
       assertSmartAccountClientResolverActive(this.deps.resolveSmartAccountClient);
@@ -408,7 +417,8 @@ export class PasskeySender implements TransactionSender {
         sponsored: true,
       };
     } catch (error) {
-      if (!reference || beforeBroadcastFailed) throw new BatchNotSubmittedError(error);
+      if (!reference || beforeBroadcastFailed)
+        throw error instanceof BatchNotSubmittedError ? error : new BatchNotSubmittedError(error);
       return {
         status: error instanceof TransactionRevertedError ? "reverted" : "unresolved",
         reference,

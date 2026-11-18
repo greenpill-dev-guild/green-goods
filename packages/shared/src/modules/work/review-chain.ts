@@ -156,9 +156,10 @@ const ARBITRUM_CEILINGS = {
  * default limit for one operation is 16M and the hosted bundler's is unconfirmed, so a passkey
  * group stops at 16M. The quote also counts the gas Alto checks on send, which runs about 1M higher:
  * on a fork on 18 November, five approvals of works with 55-character descriptions added up to
- * 15.84M but came to 16.87M on that check. One past either is turned away before the prompt, rather
- * than by the bundler after the signature. Past its ceiling a list goes one review at a time. The
- * first live batch on each rail confirms them before it is listed.
+ * 15.84M but came to 16.87M on that check. One past either is turned away before the prompt. One that
+ * only the real signature, in place of the stub, takes past the bundler's count is turned away after
+ * the prompt but before it is sent. Either way nothing reaches the bundler, and the list can be sent
+ * again one review at a time. The first live batch on each rail confirms them before it is listed.
  */
 const REVIEW_BUDGETS: Partial<Record<number, Record<BatchRail, BatchBudget>>> = {
   42161: {

@@ -505,7 +505,10 @@ it.each([
   expect(client.waitForUserOperationReceipt).not.toHaveBeenCalled();
 });
 
-it("keeps a signed operation unsent when its real signature takes it past the bundler's limit", async () => {
+it.each([
+  "submitAtomicBatch",
+  "sendContractCall",
+] as const)("keeps a signed operation unsent through %s when its real signature takes it past the bundler's limit", async (send) => {
   const { sender, client, calls } = passkey();
   // Under the bundler's count with the stub signature; a 2,000-byte one adds about 32k gas.
   const sign = vi
@@ -518,12 +521,15 @@ it("keeps a signed operation unsent when its real signature takes it past the bu
     });
     return hash;
   });
-  const refusal = await sender
-    .submitAtomicBatch(calls, { batchBudget: { ...passkeyBudget, maxGas: "16000000" } })
-    .catch((error) => error);
+  const batchBudget = { ...passkeyBudget, maxGas: "16000000" };
+  const sent =
+    send === "submitAtomicBatch"
+      ? sender.submitAtomicBatch(calls, { batchBudget })
+      : sender.sendContractCall(calls[0], { batchBudget });
+  // Proven unsent, so a batch journal keeps the work free to go one at a time.
+  await expect(sent).rejects.toBeInstanceOf(BatchNotSubmittedError);
+  await expect(sent).rejects.toThrow("batch-budget-exceeded");
   expect(sign).toHaveBeenCalledOnce();
-  expect(refusal).toBeInstanceOf(BatchNotSubmittedError);
-  expect(refusal.message).toBe("batch-budget-exceeded");
   expect(client.waitForUserOperationReceipt).not.toHaveBeenCalled();
 });
 
