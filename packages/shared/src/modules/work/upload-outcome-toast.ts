@@ -27,7 +27,7 @@ const TOASTS: Record<Exclude<UploadOutcome["status"], "declined">, [Tone, string
     "app.uploads.sendUnconfirmedTitle",
     "app.uploads.sendUnconfirmedMessage",
   ],
-  failed: ["error", "app.uploads.failedTitle", "app.uploads.failedMessage"],
+  failed: ["error", "app.uploads.notSentTitle", "app.uploads.failedMessage"],
 };
 
 /** `undefined` when nothing should be said: the person declined, and nothing had gone. */

@@ -126,7 +126,7 @@ describe("queue failure toast", () => {
       expect([
         messages["app.home.work.retryFailed"],
         messages["app.uploads.revertedTitle"],
-        messages["app.uploads.failedTitle"],
+        messages["app.uploads.notSentTitle"],
       ]).toEqual([name, name, name]);
     }
   });

@@ -35,7 +35,7 @@ const CASES: Array<[string, UploadOutcome, Toast | undefined]> = [
   [
     "says nothing was sent when an upload stops before anything goes",
     { status: "failed", sent: 0, flagged: 0, error: stopped },
-    { ...toast("error", m("failedTitle"), m("failedMessage")), error: stopped },
+    { ...toast("error", m("notSentTitle"), m("failedMessage")), error: stopped },
   ],
   [
     "never calls an upload of nothing a success: every ready item was refused",
