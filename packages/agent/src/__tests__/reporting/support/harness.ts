@@ -9,6 +9,7 @@ import { InMemoryPublicRateLimiter } from "../../../api/public-protection";
 import { resolveAuthority } from "../../../services/reporting/authority";
 import type { AccountProofVerifier } from "../../../services/reporting/browser-access";
 import { watchOwnerAttempt } from "../../../services/reporting/owner-attempt-watch";
+import { watchSigningLinkJob } from "../../../services/reporting/signing-links";
 import { createFilesystemMediaStore } from "../../../services/reporting/media-store";
 import { processMedia } from "../../../services/reporting/media/process";
 import { modelMeter } from "../../../services/reporting/model-spend";
@@ -217,6 +218,7 @@ export class Harness {
             job
           ),
         watch_owner_attempt: async (job) => watchOwnerAttempt(this.core, job),
+        watch_signing_link: async (job) => watchSigningLinkJob(this.core, job),
         review_list: (job) => listPendingReviews(this.reviewDeps(), job),
         reconcile_grant: (job) =>
           reconcileGrant({ core: this.core, chain: this.chain, ...this.grantDeps() }, job),

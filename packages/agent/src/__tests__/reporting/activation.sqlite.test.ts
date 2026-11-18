@@ -375,3 +375,85 @@ describe("first-report activation authority", () => {
     expect(harness.sender.signed).toBe(0);
   });
 });
+
+describe("an Allow reporting in chat link that expires unused", () => {
+  const LINK_EXPIRED =
+    "Your publishing link expired before anything was sent, so nothing was published. Your report is saved; reply RETRY for a new link.";
+  const sent = () => harness.transport.sent.map((reply) => reply.message.text);
+
+  /** Opens the permission page and proves the account; it proposes the permission and returns. */
+  async function openPermissionPage() {
+    const browser = new TestBrowser(harness.app);
+    await browser.open(latestLink(harness));
+    await browser.proveAs(KERNEL, KERNEL_PROOF);
+    await browser.access();
+    const proposed = await browser.request<{ grant: GrantView }>(
+      "POST",
+      "/messaging/execution-grants"
+    );
+    expect(proposed.status).toBe(201);
+    return { browser, grant: proposed.body.grant };
+  }
+
+  it("says so once, and RETRY asks again so a fresh page can propose its own permission", async () => {
+    // The page proposes the permission and is closed before the first report is prepared.
+    await openPermissionPage();
+    harness.clock.advance(harness.core.settings.browserSessionTtlMs);
+    await harness.drain();
+    expect(sent().filter((text) => text === LINK_EXPIRED)).toHaveLength(1);
+    expect(await harness.say(ADA, "STATUS")).toEqual([LINK_EXPIRED]);
+
+    const asked = await harness.say(ADA, "RETRY");
+    expect(asked[0]).toContain("1. Allow reporting in chat\n2. Publish this report only");
+    expect(await harness.say(ADA, "STATUS")).toEqual([
+      "Your report for TAS is waiting for you to choose how to publish it.",
+    ]);
+    await harness.press(ADA, "Allow reporting in chat");
+    // The closed page's permission was never authorized, so it no longer blocks the new page's.
+    const fresh = await prepareActivation(harness);
+    expect(fresh.operation.envelope).not.toBeNull();
+    expect(
+      harness.core.db.query("SELECT state FROM execution_grants ORDER BY created_at").all()
+    ).toEqual([{ state: "expired" }, { state: "owner_authorization_pending" }]);
+  });
+
+  it("after the first report is prepared, RETRY sends a page to sign that report with the passkey", async () => {
+    // Prepare First Report is pressed, then the page is closed before anything is sent.
+    const { browser, grant } = await openPermissionPage();
+    const started = await browser.request(
+      "POST",
+      `/messaging/execution-grants/${grant.grantId}/activation`,
+      { body: { expectedVersion: grant.version, policyDigest: grant.policyDigest } }
+    );
+    expect(started.status).toBe(200);
+    await harness.drain();
+    harness.clock.advance(harness.core.settings.browserSessionTtlMs);
+    await harness.drain();
+    expect(sent().filter((text) => text === LINK_EXPIRED)).toHaveLength(1);
+
+    const fresh = await harness.say(ADA, "RETRY");
+    expect(fresh[0]).toContain(
+      "Open this page to review and sign the exact publication with your passkey."
+    );
+    const signing = new TestBrowser(harness.app);
+    await signing.open(latestLink(harness));
+    await signing.proveAs(KERNEL, KERNEL_PROOF);
+    const access = await signing.access();
+    const { resourceId } = access.body.scope as { resourceId: string };
+    const view = (await signing.request<ResourceView>("GET", `/messaging/drafts/${resourceId}`))
+      .body;
+    expect(view.operation?.state).toBe("prepared");
+    const reserved = await signing.request(
+      "POST",
+      `/messaging/operations/${view.operation?.operationId}/attempts`,
+      {
+        body: {
+          expectedAttemptVersion: view.operation?.attemptVersion ?? 0,
+          payloadDigest: view.operation?.envelope?.payloadDigest,
+          idempotencyKey: "owner-after-expiry",
+        },
+      }
+    );
+    expect(reserved.status).toBe(200);
+  });
+});

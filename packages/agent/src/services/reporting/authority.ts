@@ -7,7 +7,7 @@ import { currentConfirmation } from "./confirmations";
 import { issueContinuation } from "./continuations";
 import { accountLink } from "./coordinator/account-link";
 import { commitLifecycle, lifecycleState } from "./coordinator/draft-commit";
-import { gardenLabel } from "./coordinator/prompting";
+import { askGrantChoice, gardenLabel } from "./coordinator/prompting";
 import { inTransaction } from "./database";
 import { loadDraft } from "./drafts";
 import { grantUsability, liveGrant } from "./grants-store";
@@ -195,23 +195,7 @@ export async function resolveAuthority(deps: AuthorityDeps, job: ClaimedJob): Pr
     if (spent) writer()?.say(spent);
     if (mode === "grant_choice") {
       const out = writer();
-      out?.ask(
-        {
-          subjectKind: "draft",
-          resourceId: draft.id,
-          resourceRevision: draft.revision,
-          kind: "grant_choice",
-          options: [
-            { id: "grant", label: out.text("publish.allowReporting"), value: "grant" },
-            { id: "once", label: out.text("publish.thisReportOnly"), value: "once" },
-          ],
-        },
-        () =>
-          out.text("publish.grantOffer", {
-            garden: gardenLabel(core.gardens, garden.address),
-            count: 5,
-          })
-      );
+      if (out) askGrantChoice(out, draft, garden.address);
       return;
     }
     const operation = upsertOperation(core, {

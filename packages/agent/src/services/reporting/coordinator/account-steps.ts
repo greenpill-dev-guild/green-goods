@@ -7,6 +7,7 @@ import { pairFromChat } from "../channel-pairing";
 import { issueContinuation } from "../continuations";
 import { commitDraft, type DraftRecord } from "../drafts";
 import { gardenScope, isUnlisted, type ReportingGarden } from "../gardens";
+import { retireUnusedGrants } from "../grants-store";
 import { enqueueJob } from "../jobs";
 import { conversationRealm } from "../notify";
 import { upsertOperation } from "../operations";
@@ -378,6 +379,13 @@ export function answerGrantChoice(writer: TurnWriter, choice: string): void {
     });
     return writer.say("publish.sending");
   }
+  // The new page proposes its own permission, which an earlier page's unused one would block.
+  retireUnusedGrants(core, {
+    accountBindingId: account.id,
+    purpose: "reporting",
+    chainId: draft.content.garden.chainId,
+    gardenAddress: draft.content.garden.address,
+  });
   const { url } = issueContinuation(core, {
     purpose: "grant_reporting",
     participantId: binding.participantId,

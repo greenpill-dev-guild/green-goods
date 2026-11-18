@@ -38,9 +38,7 @@ const ANSWERING = new Set(["discussing", "needsClarification", "decisionPrepared
 
 /** A decision that can't change is being recorded, unless its chain check stopped without it. */
 function frozenReviewReply(writer: TurnWriter, review: ReviewRecord): ReportingCopyKey {
-  return chainCheckStopped(writer.core, { reviewIntentId: review.id })
-    ? "review.unconfirmed"
-    : "review.frozen";
+  return chainCheckStopped(writer.core, { reviewIntentId: review.id }) ?? "review.frozen";
 }
 
 /** `REVIEW` lists pending work (after linking an account); `REVIEW n` picks from the open list. */
@@ -178,13 +176,14 @@ export function handleReviewCommand(
     // shows the question it waits on. A question no longer showing is put again, so the next
     // story goes to the review and not to a report beside it.
     case "new":
-    case "status":
+    case "status": {
       // STATUS for a decision whose chain check stopped says so, not that no report is open.
-      if (
-        command.kind === "status" &&
-        chainCheckStopped(writer.core, { reviewIntentId: review.id })
-      ) {
-        writer.say("review.unconfirmed");
+      const stopped =
+        command.kind === "status"
+          ? chainCheckStopped(writer.core, { reviewIntentId: review.id })
+          : null;
+      if (stopped) {
+        writer.say(stopped);
         return true;
       }
       if (!account || !ANSWERING.has(reviewState(review))) return false;
@@ -192,6 +191,7 @@ export function handleReviewCommand(
       if (command.kind === "status" || !isReviewPrompt(writer.ctx.prompt?.kind))
         nextReviewStep(writer, review, account.address);
       return true;
+    }
     default:
       return false;
   }

@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import type { ReportingPurpose } from "@green-goods/shared/modules/agent-reporting";
+import { enqueueJob } from "./jobs";
 import type { ReportingCore } from "./runtime";
 
 /**
@@ -75,6 +76,25 @@ export function channelLabel(providerRealm: string): string {
   return "Chat";
 }
 
+/**
+ * Links to the pages where a report is signed. When one expires, a job checks whether the report
+ * still waits for that signature and tells the chat (signing-links.ts).
+ */
+const WATCHED_PURPOSES: ReadonlySet<ReportingPurpose> = new Set([
+  "publish_work",
+  "grant_reporting",
+]);
+
+/** Checks on a report signing link at `at`: when it expires, or when a page opened from it closes. */
+export function watchLinkExpiry(core: ReportingCore, requestId: string, at: number): void {
+  enqueueJob(core, {
+    kind: "watch_signing_link",
+    subjectId: requestId,
+    dedupeKey: `link-watch:${requestId}:${at}`,
+    runAfter: at,
+  });
+}
+
 export function issueContinuation(
   core: ReportingCore,
   input: Omit<ContinuationRequest, "id" | "expiresAt"> & { ttlMs?: number }
@@ -122,6 +142,7 @@ export function issueContinuation(
       now,
       expires: expiresAt,
     });
+  if (WATCHED_PURPOSES.has(input.purpose)) watchLinkExpiry(core, id, expiresAt);
   const path = input.purpose === "recovery" ? "/agent/reporting/recover/" : "/agent/reporting/";
   return {
     request: {
