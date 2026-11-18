@@ -409,7 +409,6 @@
         "MainSheetProps"
       ],
       "packages/admin/src/views/Garden/Pool/Group/AddToGroupDialog.tsx": ["AddToGroupCounts"],
-      "packages/admin/src/views/Garden/Pool/Group/editRewardStatus.ts": ["EditRewardPhase"],
       "packages/admin/src/views/Garden/Pool/Seed/SeedStepReview.tsx": ["SeedReviewCapacity"],
       "packages/admin/src/views/Garden/Pool/Seed/seedStatus.ts": ["SeedPhase"],
       "packages/admin/src/views/Review/components/ReviewWorkCard.tsx": ["ReviewWorkCardStatusTone"],

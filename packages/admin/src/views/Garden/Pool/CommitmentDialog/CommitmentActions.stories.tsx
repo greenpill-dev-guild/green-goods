@@ -106,3 +106,8 @@ export const CancelUntaken: Story = {
 export const Offline: Story = {
   args: { isOnline: false, actDisabled: true },
 };
+
+/** Nobody has taken it: the steward can still change its reward and who confirms it. */
+export const NotTakenYet: Story = {
+  args: { onEditReward: () => undefined, onEditConfirmers: () => undefined },
+};

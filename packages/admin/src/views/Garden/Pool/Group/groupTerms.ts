@@ -10,6 +10,7 @@ import {
   type CommitmentMetadataV1,
   rewardCentsAsSet,
 } from "@green-goods/shared/modules/commitment-pooling/metadata";
+import { sameConfirmerRule } from "@green-goods/shared/modules/commitment-pooling/pool-console";
 import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import {
   type GoodDollarPriceState,
@@ -167,6 +168,78 @@ function rewardLine(
   );
 }
 
+/** Who confirms a copy, as one short phrase: the ordinary rule, or the named group and its threshold. */
+export function confirmerRuleText(
+  formatMessage: TermsIntl["formatMessage"],
+  rule: { confirmers: readonly string[]; confirmationThreshold?: number }
+): string {
+  return rule.confirmers.length === 0
+    ? formatMessage({
+        id: "hub.garden.pool.seed.review.ordinary",
+        defaultMessage: "Ordinary rule",
+      })
+    : formatMessage(
+        {
+          id: "hub.garden.pool.seed.review.named",
+          defaultMessage: "Named group · {threshold} of {count}",
+        },
+        { threshold: rule.confirmationThreshold ?? 1, count: rule.confirmers.length }
+      );
+}
+
+/**
+ * Whether every copy names the same people with the same threshold. It reads
+ * the accounts, never the phrase: a partial swap leaves "1 of 2" on both sides.
+ */
+export function confirmerRulesAgree(
+  copies: readonly Pick<CommitmentReadModel, "confirmers" | "confirmationThreshold">[]
+): boolean {
+  const [first, ...rest] = copies;
+  if (!first) return true;
+  const ruleOf = (copy: (typeof copies)[number]) => ({
+    confirmers: copy.confirmers,
+    threshold: copy.confirmationThreshold ?? 1,
+  });
+  return rest.every((copy) => sameConfirmerRule(ruleOf(first), ruleOf(copy)));
+}
+
+/** Available copies that don't all name the same confirmers, after a change that didn't finish. */
+export function confirmersSplitText(formatMessage: TermsIntl["formatMessage"]): string {
+  return formatMessage({
+    id: "hub.garden.pool.group.confirmersSplit",
+    defaultMessage: "Not the same on every available one",
+  });
+}
+
+/**
+ * Who confirms across a group: one phrase when every copy agrees, otherwise the
+ * available copies' rule first, since Edit Confirmers leaves taken ones as they
+ * were, or that they differ, so a steward can align them.
+ */
+function groupConfirmersText(
+  formatMessage: TermsIntl["formatMessage"],
+  children: readonly CommitmentReadModel[]
+): string {
+  const [first] = children;
+  if (!first) return "—";
+  if (confirmerRulesAgree(children)) return confirmerRuleText(formatMessage, first);
+  const available = children.filter((child) => displayBucketOf(child.onchainState) === "available");
+  const [template] = available;
+  if (!template) {
+    return [...new Set(children.map((child) => confirmerRuleText(formatMessage, child)))].join(
+      " / "
+    );
+  }
+  if (!confirmerRulesAgree(available)) return confirmersSplitText(formatMessage);
+  return formatMessage(
+    {
+      id: "hub.garden.pool.group.confirmersMixed",
+      defaultMessage: "{rule} for available ones; taken ones keep theirs",
+    },
+    { rule: confirmerRuleText(formatMessage, template) }
+  );
+}
+
 /** The group's terms as label and value: the inspector's "Each promise" and "Same as the group". */
 export function groupTerms(input: {
   intl: TermsIntl;
@@ -219,20 +292,7 @@ export function groupTerms(input: {
               defaultMessage: "Steward-reviewed",
             })
           : formatMessage({ id: "hub.garden.pool.seed.claimMode.open", defaultMessage: "Open" })
-      } · ${
-        first.confirmers.length === 0
-          ? formatMessage({
-              id: "hub.garden.pool.seed.review.ordinary",
-              defaultMessage: "Ordinary rule",
-            })
-          : formatMessage(
-              {
-                id: "hub.garden.pool.seed.review.named",
-                defaultMessage: "Named group · {threshold} of {count}",
-              },
-              { threshold: first.confirmationThreshold ?? 1, count: first.confirmers.length }
-            )
-      }`,
+      } · ${groupConfirmersText(formatMessage, children)}`,
     ],
   ];
 }

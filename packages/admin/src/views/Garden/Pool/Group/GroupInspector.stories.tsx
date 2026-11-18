@@ -75,6 +75,9 @@ const meta: Meta<typeof GroupInspector> = {
     onOpenCommitment: () => undefined,
     onSeedMore: () => undefined,
     onEditReward: () => undefined,
+    // Four copies are still untaken, so who confirms them can change.
+    canEditConfirmers: true,
+    onEditConfirmers: () => undefined,
   },
   decorators: [withSeededQueryClient(STORYBOOK_ADMIN_SHELL_SEEDS)],
 };
@@ -92,6 +95,11 @@ export const FiveDaysIn: Story = {
 
 export const EditRewardOpen: Story = {
   args: { group: NEWER, terms: termsOf(NEWER), canEditReward: true },
+};
+
+/** Offline: both edits are sent right away, never queued, so they wait for a connection. */
+export const Offline: Story = {
+  args: { group: NEWER, terms: termsOf(NEWER), canEditReward: true, isOnline: false },
 };
 
 /** Without the pool's activity the dates are left out; what the records say still shows. */
