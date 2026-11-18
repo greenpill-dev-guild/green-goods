@@ -80,10 +80,6 @@ const BANDS: Record<string, StatusBand> = {
     bodyId: "app.commitment.band.provider.expired.b",
     tone: "neutral",
   },
-  "provider:CANCELLED": {
-    bodyId: "app.commitment.band.provider.cancelled.b",
-    tone: "neutral",
-  },
   "provider:DISPUTED": {
     bodyId: "app.commitment.band.disputed.b",
     tone: "attention",
@@ -122,10 +118,6 @@ const BANDS: Record<string, StatusBand> = {
   "confirmer:RECONCILED": {
     bodyId: "app.commitment.band.confirmer.fulfilled.b",
     tone: "kept",
-  },
-  "confirmer:CANCELLED": {
-    bodyId: "app.commitment.band.confirmer.cancelled.b",
-    tone: "neutral",
   },
   "confirmer:DISPUTED": {
     bodyId: "app.commitment.band.disputed.b",
@@ -173,7 +165,10 @@ const BANDS: Record<string, StatusBand> = {
   },
 };
 
-/** A phase with no seat-specific sentence states the fact and claims nothing. */
+/**
+ * A phase with no seat-specific sentence states the fact and claims nothing. A withdrawal is
+ * always this one: the creator or a steward may have given its reason, and History names which.
+ */
 const NEUTRAL_FALLBACK: Record<string, StatusBand> = {
   DISPUTED: {
     bodyId: "app.commitment.band.disputed.b",

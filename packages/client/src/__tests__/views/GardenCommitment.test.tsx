@@ -1914,7 +1914,7 @@ describe("a voucher booking on the promise page", () => {
       {
         state: "CANCELLED",
         actKind: "offerAgain",
-        sentence: /^It has left the pool/,
+        sentence: /^This left the pool\. The reason stays in its history/,
         act: "Offer It Again",
       },
     ] as const)("keeps the promise's own sentence and act for its creator when $state", ({
