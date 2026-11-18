@@ -422,11 +422,10 @@ test("a recovered browser tab no longer holds back the installed app's update", 
   await installedApp.getByRole("button", { name: "Try Again" }).click();
   // Nothing blocks the update now. The browser activates the new worker once the old one has
   // finished its work; on a slow runner the app first says the update is taking longer, keeps
-  // watching, and reloads when the worker activates.
-  await expect
-    .poll(() => workers(installedApp), { timeout: 60_000 })
-    .toEqual({ active: "new", waiting: null });
-  await expect(installedApp.getByTestId("login-button")).toBeVisible({ timeout: 25_000 });
+  // watching, and reloads when the worker activates. Wait for the reloaded page before reading
+  // the workers: a read across the reload would throw.
+  await expect(installedApp.getByTestId("login-button")).toBeVisible({ timeout: 85_000 });
+  await expect.poll(() => workers(installedApp)).toEqual({ active: "new", waiting: null });
   expect(await installedApp.evaluate(() => navigator.serviceWorker.controller?.scriptURL)).toMatch(
     /\/sw\.js$/
   );
