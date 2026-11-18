@@ -437,9 +437,11 @@ describe("sendReviewBatch", () => {
      * The bundler's call gas for one and five decisions, measured on a fork of Arbitrum One on
      * 10 November 2026 with 55-character work descriptions. Open-source Alto quotes the least gas
      * the call runs on; Pimlico's hosted bundler quoted 1.131 times the gas used on 2 November.
+     * On 18 November, the node's estimate for five works with no description, as on 2 November.
      */
     const OPEN_SOURCE_ALTO = { 5: 9_970_414n };
     const HOSTED = { 1: 2_367_214n, 5: 10_946_022n };
+    const NO_DESCRIPTION = { 5: 9_306_052n };
 
     /** The passkey sender's preflight, against a bundler that quotes `callGas`. */
     const bundlerQuoting =
@@ -485,17 +487,47 @@ describe("sendReviewBatch", () => {
       expect(apart.sent).toHaveLength(5);
     });
 
-    it("keeps five reviews under one signature when the bundler quotes them under 16M", async () => {
+    it("turns away five reviews that add up under 16M but that the bundler counts past it on send", async () => {
       const { sender, decide, landed, send } = setup();
       const decisions = Array.from({ length: 5 }, () => decide());
       decisions.forEach((decision) => landed(decision));
-      // 15.69M together.
+      // 15.69M added up, about 16.7M on the gas Alto counts when the operation is sent.
       sender.preflightBatch = bundlerQuoting(OPEN_SOURCE_ALTO);
+
+      const outcome = await send(decisions);
+
+      expect(outcome.notBatchable).toEqual(decisions.map(({ draft }) => draft.workUID));
+      expect(sender.sendContractCall).not.toHaveBeenCalled();
+    });
+
+    it("keeps five reviews under one signature when the bundler takes them on send", async () => {
+      const { sender, decide, landed, send } = setup();
+      const decisions = Array.from({ length: 5 }, () => decide());
+      decisions.forEach((decision) => landed(decision));
+      // 14.69M added up, about 15.6M on the gas Alto counts when the operation is sent.
+      sender.preflightBatch = bundlerQuoting(NO_DESCRIPTION);
 
       const outcome = await send(decisions);
 
       expect(sender.sendContractCall).toHaveBeenCalledOnce();
       expect(outcome.sent).toHaveLength(5);
+    });
+
+    it("leaves five reviews free to go one at a time when the signature takes them past 16M", async () => {
+      const { sender, decide, landed, input, send } = setup();
+      const decisions = Array.from({ length: 5 }, () => decide());
+      decisions.forEach((decision) => landed(decision));
+      sender.preflightBatch = bundlerQuoting(NO_DESCRIPTION);
+      // What the passkey sender throws when the real signature, not the stub, goes past the limit.
+      vi.mocked(sender.sendContractCall).mockRejectedValueOnce(
+        new BatchNotSubmittedError(new Error("batch-budget-exceeded"))
+      );
+
+      const outcome = await send(decisions);
+
+      expect(outcome.notBatchable).toEqual(decisions.map(({ draft }) => draft.workUID));
+      expect(outcome.unknown).toEqual([]);
+      await expect(readReviewHold(input)).resolves.toMatchObject({ hold: null });
     });
   });
 });

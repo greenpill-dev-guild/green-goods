@@ -505,6 +505,34 @@ it.each([
   expect(client.waitForUserOperationReceipt).not.toHaveBeenCalled();
 });
 
+it.each([
+  "submitAtomicBatch",
+  "sendContractCall",
+] as const)("keeps a signed operation unsent through %s when its real signature takes it past the bundler's limit", async (send) => {
+  const { sender, client, calls } = passkey();
+  // Under the bundler's count with the stub signature; a 2,000-byte one adds about 32k gas.
+  const sign = vi
+    .spyOn(client.account!, "signUserOperation")
+    .mockResolvedValue(`0x${"55".repeat(2_000)}`);
+  client.sendUserOperation.mockImplementation(async (request) => {
+    await request.account!.signUserOperation({
+      ...fakePreparedUserOperation(client.account!.address),
+      callGasLimit: 14_680_000n,
+    });
+    return hash;
+  });
+  const batchBudget = { ...passkeyBudget, maxGas: "16000000" };
+  const sent =
+    send === "submitAtomicBatch"
+      ? sender.submitAtomicBatch(calls, { batchBudget })
+      : sender.sendContractCall(calls[0], { batchBudget });
+  // Proven unsent, so a batch journal keeps the work free to go one at a time.
+  await expect(sent).rejects.toBeInstanceOf(BatchNotSubmittedError);
+  await expect(sent).rejects.toThrow("batch-budget-exceeded");
+  expect(sign).toHaveBeenCalledOnce();
+  expect(client.waitForUserOperationReceipt).not.toHaveBeenCalled();
+});
+
 it("refuses an oversize wallet quote before asking the wallet", async () => {
   const { sender, deps, calls } = wallet();
   deps.preflightBatch.mockRejectedValueOnce(new Error("batch-budget-exceeded"));
