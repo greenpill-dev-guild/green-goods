@@ -106,9 +106,11 @@ export function useDeploymentRegistry(): DeploymentRegistryPermissions {
     enabled: !!normalizedAddress && ready,
     staleTime: STALE_TIMES.baseLists,
     networkMode: "offlineFirst",
-    // A failed read must not restart when the Hub's access gate mounts the workspace: the
-    // restart reopens the gate, which unmounts the workspace and starts the loop over (PRD-1506).
+    // A failed read stays settled until Try Again or a reconnect asks for it again. Restarting it
+    // when the access gate mounts the workspace, or when the tab regains focus, reopens the gate,
+    // which unmounts the workspace and starts the loop over (PRD-1506).
     retryOnMount: false,
+    refetchOnWindowFocus: false,
   });
 
   return {
@@ -116,7 +118,8 @@ export function useDeploymentRegistry(): DeploymentRegistryPermissions {
     isInAllowlist: data?.isInAllowlist ?? false,
     canDeploy: data?.canDeploy ?? false,
     loading: !ready || isLoading,
-    ...(error ? { error: error instanceof Error ? error.message : "Unknown error" } : {}),
+    // Only a read with no answer is unknown: a failed refresh keeps the answer it already had.
+    ...(error && !data ? { error: error instanceof Error ? error.message : "Unknown error" } : {}),
   };
 }
 

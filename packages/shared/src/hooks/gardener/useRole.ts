@@ -76,7 +76,10 @@ export interface RoleInfo {
   isAgent: boolean;
   isTechnicalDeployer: boolean;
   protocolRolesError: boolean;
-  /** The deployment registry could not be read, so `isDeployer` is unknown rather than false. */
+  /**
+   * The deployment registry has never answered, so `isDeployer` is unknown rather than false. A
+   * failed refresh over an earlier answer keeps that answer and does not set this.
+   */
   deploymentPermissionsError: boolean;
   isSteward: boolean;
   stewardGardens: StewardGarden[];
@@ -124,6 +127,10 @@ export function useRole(): RoleInfo {
     staleTime: STALE_TIMES.baseLists,
     // Offline-first: prefer cached data
     networkMode: "offlineFirst",
+    // As with the deployment registry: a failed read restarted by a mount or a window focus
+    // reopens the Hub's access gate and loops it. Try Again and a reconnect read it again.
+    retryOnMount: false,
+    refetchOnWindowFocus: false,
   });
 
   const fences = useSyncExternalStore(

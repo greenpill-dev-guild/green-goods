@@ -8,8 +8,10 @@ interface CanvasIndexerErrorStateProps {
 }
 
 /**
- * Terminal state shown on `/` when `useEligibleAdminGardens.isError` is true
- * AND the role-confirmed cross-check produced no fallback gardens.
+ * Terminal state shown when the access check could not finish: on `/` when no
+ * garden is eligible and a garden, role or garden-creation read failed
+ * (`useAdminAccessState`'s `indexer-error`), and on a deployer-only route whose
+ * garden-creation read never answered (`RequireRole`).
  *
  * Distinct from `CanvasGardenAccessState` — that copy implies "you don't have
  * access yet"; this copy says "we can't tell yet". Mixing the two during an

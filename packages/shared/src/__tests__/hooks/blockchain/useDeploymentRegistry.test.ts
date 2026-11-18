@@ -311,6 +311,13 @@ describe("useDeploymentRegistry", () => {
       expect(first.result.current.loading).toBe(false);
       expect(mockReadContract).toHaveBeenCalledTimes(callsAfterFailure);
 
+      // Returning to the tab doesn't restart it either.
+      act(() => {
+        queryClient.getQueryCache().onFocus();
+      });
+      expect(next.result.current.loading).toBe(false);
+      expect(mockReadContract).toHaveBeenCalledTimes(callsAfterFailure);
+
       mockReadContract
         .mockReset()
         .mockResolvedValueOnce(MOCK_ADDRESSES.deployer)
@@ -319,6 +326,24 @@ describe("useDeploymentRegistry", () => {
         await queryClient.invalidateQueries({ queryKey: roleKeys.all });
       });
       await waitFor(() => expect(next.result.current.canDeploy).toBe(true));
+    });
+
+    it("keeps an earlier answer when a refresh fails, and reports no error", async () => {
+      const queryClient = createTestQueryClient();
+      mockReadContract.mockResolvedValueOnce(MOCK_ADDRESSES.deployer).mockResolvedValueOnce(false);
+      const { result } = renderHookWithQueryClient(() => useDeploymentRegistry(), { queryClient });
+      await waitFor(() => expect(result.current.canDeploy).toBe(true));
+
+      mockReadContract.mockRejectedValue(new Error("RPC connection failed"));
+      await act(async () => {
+        await queryClient.invalidateQueries({ queryKey: roleKeys.all });
+      });
+      const [query] = queryClient.getQueryCache().findAll({
+        queryKey: ["greengoods", "role", "deploymentPermissions"],
+      });
+      await waitFor(() => expect(query?.state.status).toBe("error"));
+      expect(result.current).toMatchObject({ canDeploy: true, loading: false });
+      expect(result.current.error).toBeUndefined();
     });
   });
 
