@@ -37,6 +37,7 @@ export function browserMinimumGateScript({ surface, logo, posthogKey }) {
   const options = JSON.stringify({
     surface,
     logo,
+    minimum: SUPPORTED_BROWSER_TARGETS.join(" "),
     telemetry: posthogKey ? { host: POSTHOG_HOST, key: posthogKey } : null,
   }).replace(/</g, "\\u003c");
   return `(function () {\n${source}\nbrowserMinimumGate(window, ${options});\n})();`;

@@ -9,7 +9,10 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parseAst } from "vite";
 import { afterEach, describe, expect, it } from "vitest";
-import { browserMinimumGateScript } from "../../../../scripts/lib/browser-support.mjs";
+import {
+  browserMinimumGateScript,
+  SUPPORTED_BROWSER_TARGETS,
+} from "../../../../scripts/lib/browser-support.mjs";
 
 const GATE_SOURCE = readFileSync(
   resolve(process.cwd(), "../../scripts/lib/browser-minimum-gate.js"),
@@ -27,6 +30,7 @@ const ALL_FEATURES = [
   "well-formed-strings",
 ];
 const TELEMETRY = { host: "https://us.i.posthog.com", key: "phc_test" };
+const MINIMUM = SUPPORTED_BROWSER_TARGETS.join(" ");
 
 type Feature = (typeof ALL_FEATURES)[number];
 
@@ -184,7 +188,12 @@ describe("browser minimum gate", () => {
 
   it("lets a browser at the minimum through untouched", () => {
     const { window, requests } = standInBrowser({ presentation: "pwa" });
-    browserMinimumGate(window, { surface: "client", logo: "/icon.png", telemetry: TELEMETRY });
+    browserMinimumGate(window, {
+      surface: "client",
+      logo: "/icon.png",
+      minimum: MINIMUM,
+      telemetry: TELEMETRY,
+    });
 
     expect(document.documentElement.hasAttribute("data-browser-update")).toBe(false);
     expect(document.getElementById("browser-update")).toBeNull();
@@ -198,7 +207,12 @@ describe("browser minimum gate", () => {
       storedLanguage: "es",
       browserLanguages: ["pt-BR"],
     });
-    browserMinimumGate(window, { surface: "client", logo: "/icon.png", telemetry: TELEMETRY });
+    browserMinimumGate(window, {
+      surface: "client",
+      logo: "/icon.png",
+      minimum: MINIMUM,
+      telemetry: TELEMETRY,
+    });
 
     const screen = document.getElementById("browser-update");
     expect(document.documentElement.getAttribute("data-browser-update")).toBe("required");
@@ -234,6 +248,7 @@ describe("browser minimum gate", () => {
         "$process_person_profile",
         "distinct_id",
         "language",
+        "minimum",
         "missing_features",
         "surface",
         "token",
@@ -245,25 +260,36 @@ describe("browser minimum gate", () => {
       $geoip_disable: true,
       $host: "greengoods.app",
       surface: "app",
+      minimum: MINIMUM,
       missing_features: ["color-mix", "well-formed-strings"],
       language: "es",
     });
     expect(stored.has("gg-browser-update-reported")).toBe(false);
     requests[0].respond(200);
-    expect(stored.get("gg-browser-update-reported")).toBe("1");
+    expect(stored.get("gg-browser-update-reported")).toBe(MINIMUM);
 
     document.body.innerHTML = "";
-    browserMinimumGate(window, { surface: "client", logo: "/icon.png", telemetry: TELEMETRY });
+    browserMinimumGate(window, {
+      surface: "client",
+      logo: "/icon.png",
+      minimum: MINIMUM,
+      telemetry: TELEMETRY,
+    });
     expect(document.getElementById("browser-update")).not.toBeNull();
     expect(requests).toHaveLength(1);
   });
 
-  it("counts a browser only once PostHog has taken the event", () => {
+  it("counts a browser once per minimum, after PostHog has taken the event", () => {
     const { window, requests, stored, reconnect } = standInBrowser({
       missing: ["registered-properties"],
       online: false,
     });
-    browserMinimumGate(window, { surface: "hub", logo: "/logo.png", telemetry: TELEMETRY });
+    browserMinimumGate(window, {
+      surface: "hub",
+      logo: "/logo.png",
+      minimum: MINIMUM,
+      telemetry: TELEMETRY,
+    });
     // Offline, it waits for the connection instead of sending into nothing.
     expect(requests).toHaveLength(0);
     reconnect();
@@ -272,8 +298,25 @@ describe("browser minimum gate", () => {
     requests[0].respond(503);
     expect(stored.has("gg-browser-update-reported")).toBe(false);
     window.navigator.onLine = true;
-    browserMinimumGate(window, { surface: "hub", logo: "/logo.png", telemetry: TELEMETRY });
+    browserMinimumGate(window, {
+      surface: "hub",
+      logo: "/logo.png",
+      minimum: MINIMUM,
+      telemetry: TELEMETRY,
+    });
     expect(requests).toHaveLength(2);
+    requests[1].respond(200);
+
+    // A browser counted under one minimum is counted again once the line moves.
+    const raised = "chrome119 edge119 firefox128 safari17 ios17";
+    browserMinimumGate(window, {
+      surface: "hub",
+      logo: "/logo.png",
+      minimum: raised,
+      telemetry: TELEMETRY,
+    });
+    expect(requests).toHaveLength(3);
+    expect(decodeEvent(requests[2].body).properties.minimum).toBe(raised);
   });
 
   it("keeps the website open and gates the reporting pages", () => {
@@ -285,6 +328,7 @@ describe("browser minimum gate", () => {
     browserMinimumGate(website.window, {
       surface: "client",
       logo: "/icon.png",
+      minimum: MINIMUM,
       telemetry: TELEMETRY,
     });
     expect(document.getElementById("browser-update")).toBeNull();
@@ -294,6 +338,7 @@ describe("browser minimum gate", () => {
     browserMinimumGate(website.window, {
       surface: "client",
       logo: "/icon.png",
+      minimum: MINIMUM,
       telemetry: TELEMETRY,
     });
     const signing = document.getElementById("browser-update");
@@ -307,14 +352,24 @@ describe("browser minimum gate", () => {
 
   it("gates every Hub page, and sends nothing from a development host or without a key", () => {
     const local = standInBrowser({ missing: ["registered-properties"], hostname: "localhost" });
-    browserMinimumGate(local.window, { surface: "hub", logo: "/logo.png", telemetry: TELEMETRY });
+    browserMinimumGate(local.window, {
+      surface: "hub",
+      logo: "/logo.png",
+      minimum: MINIMUM,
+      telemetry: TELEMETRY,
+    });
     expect(document.getElementById("browser-update")?.getAttribute("data-surface")).toBe("hub");
     expect(document.getElementById("browser-update")?.getAttribute("lang")).toBe("en");
     expect(document.querySelector(".browser-update-safe")).toBeNull();
     expect(local.requests).toEqual([]);
 
     const keyless = standInBrowser({ missing: ["media-query-ranges"] });
-    browserMinimumGate(keyless.window, { surface: "hub", logo: "/logo.png", telemetry: null });
+    browserMinimumGate(keyless.window, {
+      surface: "hub",
+      logo: "/logo.png",
+      minimum: MINIMUM,
+      telemetry: null,
+    });
     expect(keyless.requests).toEqual([]);
   });
 

@@ -9,8 +9,9 @@
  * so it is ES5: no let, const, arrow functions, template strings or newer built-ins. A test parses
  * it to hold that line.
  *
- * Options: `surface` is "hub" or "client"; `logo` is the image the screen shows; `telemetry`
- * is `{ host, key }` for the surface's PostHog project, or null to send nothing.
+ * Options: `surface` is "hub" or "client"; `logo` is the image the screen shows; `minimum` names
+ * the line in force (SUPPORTED_BROWSER_TARGETS); `telemetry` is `{ host, key }` for the surface's
+ * PostHog project, or null to send nothing.
  */
 function browserMinimumGate(window, options) {
   var document = window.document;
@@ -147,7 +148,8 @@ function browserMinimumGate(window, options) {
   // to PostHog's capture endpoint, in the body posthog-js sends, because the app's own analytics
   // never loads here. The event carries no identifier of its own and no page path (reporting
   // links hold private locators): a random id that is never stored, no person profile, no
-  // location lookup, and only the surface, the missing checks, the language and the host.
+  // location lookup, and only the surface, the minimum, the missing checks, the language and the
+  // host.
   // PostHog still sees the request's IP address, as it does for the app's own analytics. It
   // stamps the time the event arrived, since old devices often keep the wrong time. The stored
   // flag says only that this browser has been counted, and is set once PostHog has taken the
@@ -158,7 +160,8 @@ function browserMinimumGate(window, options) {
     var storage = null;
     try {
       storage = window.localStorage;
-      if (storage.getItem(REPORTED_KEY)) return;
+      // The flag names the minimum it was counted under, so moving the line counts browsers again.
+      if (storage.getItem(REPORTED_KEY) === options.minimum) return;
     } catch (error) {
       storage = null;
     }
@@ -180,6 +183,7 @@ function browserMinimumGate(window, options) {
           $lib: "green-goods-browser-gate",
           $host: window.location.host,
           surface: surface,
+          minimum: options.minimum,
           missing_features: missing,
           language: language,
         },
@@ -191,7 +195,7 @@ function browserMinimumGate(window, options) {
         request.onload = function () {
           if (request.status < 200 || request.status > 299 || !storage) return;
           try {
-            storage.setItem(REPORTED_KEY, "1");
+            storage.setItem(REPORTED_KEY, options.minimum);
           } catch (error) {
             // A browser that cannot store the flag may be counted again on its next visit.
           }
@@ -237,7 +241,7 @@ var COPY = {
     ledeLink: "Green\u00a0Goods needs a newer version of this browser. Update it, then open the link again.",
     safe: "What you saved stays on this phone. Keep the app installed and don't clear its data.",
     steps: [
-      ["Android", "Update Chrome from the Play Store."],
+      ["Android", "Update this browser, usually Chrome, from the Play Store."],
       ["iPhone or iPad", "Update iOS in Settings > General > Software Update. Safari updates with it."],
       ["Computer", "Update Chrome, Edge, Firefox or Safari."],
     ],
@@ -249,7 +253,7 @@ var COPY = {
     ledeLink: "Green\u00a0Goods necesita una versión más reciente de este navegador. Actualízalo y vuelve a abrir el enlace.",
     safe: "Lo que guardaste sigue en este teléfono. Mantén la app instalada y no borres sus datos.",
     steps: [
-      ["Android", "Actualiza Chrome desde Play Store."],
+      ["Android", "Actualiza este navegador, normalmente Chrome, desde Play Store."],
       ["iPhone o iPad", "Actualiza iOS en Ajustes > General > Actualización de software. Safari se actualiza con iOS."],
       ["Computadora", "Actualiza Chrome, Edge, Firefox o Safari."],
     ],
@@ -261,7 +265,7 @@ var COPY = {
     ledeLink: "O Green\u00a0Goods precisa de uma versão mais recente deste navegador. Atualize-o e abra o link de novo.",
     safe: "O que você salvou continua neste telefone. Mantenha o app instalado e não apague os dados dele.",
     steps: [
-      ["Android", "Atualize o Chrome na Play Store."],
+      ["Android", "Atualize este navegador, geralmente o Chrome, na Play Store."],
       ["iPhone ou iPad", "Atualize o iOS em Ajustes > Geral > Atualização de Software. O Safari é atualizado junto."],
       ["Computador", "Atualize o Chrome, Edge, Firefox ou Safari."],
     ],
