@@ -30,7 +30,7 @@ const CASES: Array<[string, UploadOutcome, Toast | undefined]> = [
   [
     "never denies a send that went before the upload stopped",
     { status: "failed", sent: 2, flagged: 0, error: stopped },
-    { ...toast("error", m("failedTitle"), m("partlySentMessage", 2)), error: stopped },
+    { ...toast("error", m("partlySentTitle"), m("partlySentMessage", 2)), error: stopped },
   ],
   [
     "says nothing was sent when an upload stops before anything goes",
@@ -66,7 +66,7 @@ const CASES: Array<[string, UploadOutcome, Toast | undefined]> = [
   [
     "keeps what an earlier call sent when a later one reverts",
     { status: "reverted", sent: 5, flagged: 0 },
-    toast("error", m("revertedTitle"), m("partlySentMessage", 5)),
+    toast("error", m("partlySentTitle"), m("partlySentMessage", 5)),
   ],
   [
     "says a send whose answer was lost is being checked, not that it failed",

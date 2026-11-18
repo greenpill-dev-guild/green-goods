@@ -7070,6 +7070,7 @@
   "app.uploads.chip.checking": "Checking",
   "app.uploads.failedTitle": "Didn't send",
   "app.uploads.failedMessage": "Nothing was sent. Try again in a moment.",
+  "app.uploads.partlySentTitle": "Some didn't send",
   "app.uploads.partlySentMessage": "{count, plural, one {# item went to the garden record before this stopped.} other {# items went to the garden record before this stopped.}} The rest is still on this device.",
   "app.uploads.nothingSentMessage": "Nothing went out this time. Your items are still on this device.",
   "app.uploads.restWaitingMessage": "The rest is still on this device. Tap Upload all to send it.",

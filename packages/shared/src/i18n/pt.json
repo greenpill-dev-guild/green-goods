@@ -7070,6 +7070,7 @@
   "app.uploads.chip.checking": "Verificando",
   "app.uploads.failedTitle": "Não enviou",
   "app.uploads.failedMessage": "Nada foi enviado. Tente novamente em instantes.",
+  "app.uploads.partlySentTitle": "Alguns não foram enviados",
   "app.uploads.partlySentMessage": "{count, plural, one {# item chegou ao registro do jardim antes de isto parar.} other {# itens chegaram ao registro do jardim antes de isto parar.}} O resto continua neste dispositivo.",
   "app.uploads.nothingSentMessage": "Nada foi enviado desta vez. Seus itens continuam neste dispositivo.",
   "app.uploads.restWaitingMessage": "O restante continua neste dispositivo. Toque em Enviar tudo para enviá-lo.",
