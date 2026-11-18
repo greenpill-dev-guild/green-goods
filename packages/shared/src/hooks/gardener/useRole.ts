@@ -127,10 +127,11 @@ export function useRole(): RoleInfo {
     staleTime: STALE_TIMES.baseLists,
     // Offline-first: prefer cached data
     networkMode: "offlineFirst",
-    // As with the deployment registry: a failed read restarted by a mount or a window focus
-    // reopens the Hub's access gate and loops it. Try Again and a reconnect read it again.
+    // As with the deployment registry: a read with no answer, restarted by a mount or a window
+    // focus, reopens the Hub's access gate and loops it. Try Again and a reconnect read it again,
+    // and an answer, once there is one, still refreshes on focus.
     retryOnMount: false,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: (query) => query.state.data !== undefined,
   });
 
   const fences = useSyncExternalStore(

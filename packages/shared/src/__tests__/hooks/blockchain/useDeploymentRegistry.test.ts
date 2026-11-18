@@ -328,6 +328,24 @@ describe("useDeploymentRegistry", () => {
       await waitFor(() => expect(next.result.current.canDeploy).toBe(true));
     });
 
+    it("still refreshes a stale answer when the tab regains focus, so a revoked deployer shows", async () => {
+      const queryClient = createTestQueryClient();
+      mockReadContract.mockResolvedValueOnce(MOCK_ADDRESSES.deployer).mockResolvedValueOnce(false);
+      const { result } = renderHookWithQueryClient(() => useDeploymentRegistry(), { queryClient });
+      await waitFor(() => expect(result.current.canDeploy).toBe(true));
+
+      // Ownership moved while the tab was in the background, and the answer has gone stale.
+      mockReadContract
+        .mockResolvedValueOnce("0xSomeOtherOwner123456789012345678901234")
+        .mockResolvedValueOnce(false);
+      await act(async () => {
+        await queryClient.invalidateQueries({ queryKey: roleKeys.all, refetchType: "none" });
+        queryClient.getQueryCache().onFocus();
+      });
+      await waitFor(() => expect(result.current.canDeploy).toBe(false));
+      expect(result.current.loading).toBe(false);
+    });
+
     it("keeps an earlier answer when a refresh fails, and reports no error", async () => {
       const queryClient = createTestQueryClient();
       mockReadContract.mockResolvedValueOnce(MOCK_ADDRESSES.deployer).mockResolvedValueOnce(false);
