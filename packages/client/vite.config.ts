@@ -9,7 +9,10 @@ import { resolve } from "path";
 import { defineConfig, loadEnv, type Plugin, type UserConfig } from "vite";
 import mkcert from "vite-plugin-mkcert";
 import { VitePWA } from "vite-plugin-pwa";
-import { SUPPORTED_BROWSER_TARGETS } from "../../scripts/lib/browser-support.mjs";
+import {
+  browserMinimumGatePlugin,
+  SUPPORTED_BROWSER_TARGETS,
+} from "../../scripts/lib/browser-support.mjs";
 import {
   assertEnvParity,
   assertSentryDsnResolvable,
@@ -286,6 +289,12 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
   const plugins = [
     devTunnelPlugin(),
     pwaHtmlMetadataPlugin(pwaBranding),
+    // Below the browser minimum the installed App and the reporting pages show an update screen.
+    browserMinimumGatePlugin({
+      surface: "client",
+      logo: `${pwaRouting.assetBasePath}icon.png`,
+      posthogKey: process.env.VITE_POSTHOG_KEY,
+    }),
     // Only use mkcert for HTTPS when not in devcontainer, CI, or explicitly skipped
     ...(isDevContainer || isCI || skipMkcert ? [] : [mkcert()]),
     tailwindcss(),

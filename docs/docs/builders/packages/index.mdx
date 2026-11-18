@@ -4,15 +4,18 @@ sidebar_label: Monorepo Map
 slug: /builders/packages
 audience: developer
 owner: docs
-last_verified: 2026-10-15
+last_verified: 2026-11-17
 feature_status: Live
 source_of_truth:
   - AGENTS.md
   - package.json
+  - scripts/lib/browser-support.mjs
+  - scripts/lib/browser-minimum-gate.js
 keywords:
   - monorepo
   - packages
   - ownership
+  - browser support
 ---
 
 # Monorepo Map
@@ -49,6 +52,33 @@ which is why the Architecture diagram draws `indexer → agent`. That is the dat
 terms the indexer imports nothing, and shared's indexer types are generated from the indexer's
 schema. If your change crosses that arrow, validate
 from the repo root rather than inside one package.
+
+## Browser support {#browser-support}
+
+The Green Goods App, Website and Hub support Chrome and Edge 111, Safari 16.4 on macOS and iOS, and
+Firefox 128, and anything newer. In phone terms that is Android 7 or newer with Chrome updated, and
+iPhone 8 or newer. Code in `client`, `admin` and `shared` may use any feature these browsers have.
+A feature that arrived later needs a fallback, or it must only decorate.
+
+Two files own the line:
+
+- [`scripts/lib/browser-support.mjs`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/scripts/lib/browser-support.mjs)
+  names it as `SUPPORTED_BROWSER_TARGETS`. Both Vite configs build JavaScript and CSS for that
+  list, and so does the client's service worker build.
+- [`scripts/lib/browser-minimum-gate.js`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/scripts/lib/browser-minimum-gate.js)
+  checks the same line in the browser. It runs before the app's bundle, with one feature check per
+  engine's minimum and no user-agent reading. Below the line, the App, the Hub and the reporting
+  pages show an update screen in English, Spanish or Portuguese, and the app does not start; the
+  Website stays open. The screen sends one `browser_update_screen_shown` event per browser, for
+  each minimum, to the surface's PostHog project, and counts the browser only once PostHog has
+  taken it. The event
+  carries no identifier of its own, no page path and no person profile; PostHog still sees the
+  request's IP address, as it does for the apps' own analytics.
+
+Moving the minimum means changing both files in the same pull request. The gate is plain ES5,
+because it runs on the browsers it turns away; `packages/client/src/__tests__/browserMinimumGate.test.ts`
+fails on newer syntax, and the `browser-minimum` Playwright specs check the screen in Chromium with
+the minimum's features taken away.
 
 ## Generated references
 
