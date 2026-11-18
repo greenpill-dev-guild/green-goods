@@ -471,6 +471,7 @@ describe("useWorkDetailController", () => {
       const { result } = renderHook(() => useWorkDetailController(), { wrapper: RouterWrapper });
       for (const error of [
         "awaiting-confirmation",
+        "already-processing",
         "photo-needs-attention",
         "wallet-reconnect-required",
       ]) {
@@ -485,14 +486,17 @@ describe("useWorkDetailController", () => {
       }
 
       expect(toastService.error).not.toHaveBeenCalled();
-      // A lost answer is being checked; any other held send is not sent yet and still saved; a
-      // wallet that has not answered was asked by its own reconnect prompt, so it adds nothing.
+      // A lost answer, and a send already under way in this tab's sync or another tab, are being
+      // checked; any other held send is not sent yet and still saved; a wallet that has not
+      // answered was asked by its own reconnect prompt, so it adds nothing.
+      const checking = expect.objectContaining({
+        id: "work-upload",
+        title: "app.home.work.checking.title",
+        message: "app.home.work.checking.message",
+      });
       expect(vi.mocked(toastService.info).mock.calls.map(([toast]) => toast)).toEqual([
-        expect.objectContaining({
-          id: "work-upload",
-          title: "app.home.work.checking.title",
-          message: "app.home.work.checking.message",
-        }),
+        checking,
+        checking,
         expect.objectContaining({
           id: "work-upload",
           title: "app.home.work.held.title",
@@ -555,10 +559,15 @@ describe("useWorkDetailController", () => {
         expect(vi.mocked(jobQueue.processJob).mock.calls.map(([jobId]) => jobId)).toEqual([
           "take-up",
         ]);
-        // In the queue's take-up slot, so the queue's own toast for it is replaced, not doubled.
-        expect(toastService.error).toHaveBeenCalledWith(
-          expect.objectContaining({ id: "take-up", title: "app.garden.takeUp.failed.title" })
-        );
+        // The queue raises its own take-up toast later, after a read; the page raises that same
+        // toast, so whichever lands last leaves one toast in the same words.
+        const pageToasts = vi.mocked(toastService.error).mock.calls.map(([toast]) => toast);
+        vi.mocked(toastService.error).mockClear();
+        const { createQueueToasts } = await import("../../../components/Toast/presets/queue");
+        createQueueToasts(({ id, defaultMessage }) => String(defaultMessage ?? id)).takeUpFailed();
+        const queueToast = vi.mocked(toastService.error).mock.calls[0]?.[0];
+        expect(queueToast).toEqual(expect.objectContaining({ id: "take-up" }));
+        expect(pageToasts).toEqual([queueToast]);
       } finally {
         confirm.mockRestore();
       }

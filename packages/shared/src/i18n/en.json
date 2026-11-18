@@ -3057,7 +3057,6 @@
   "app.home.work.held.message": "Your work is still saved on this device.",
   "app.home.work.checking.title": "Checking whether it was sent",
   "app.home.work.checking.message": "Your media stays saved. This page updates once we know.",
-  "app.home.work.takeUpFailed.message": "Your work is still saved on this device. It goes after the promise is taken up.",
   "app.home.work.takeUpQueued.title": "The promise isn't taken up yet",
   "app.home.work.takeUpQueued.message": "Its take-up is still on its way. Your work goes after it.",
   "app.home.work.retryMetadataLoad": "Retry Loading Details",

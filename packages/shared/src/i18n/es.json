@@ -3057,7 +3057,6 @@
   "app.home.work.held.message": "Tu trabajo sigue guardado en este dispositivo.",
   "app.home.work.checking.title": "Verificando si se envió",
   "app.home.work.checking.message": "Tus archivos siguen guardados. Esta página se actualiza cuando lo sepamos.",
-  "app.home.work.takeUpFailed.message": "Tu trabajo sigue guardado en este dispositivo. Se envía después de aceptar la promesa.",
   "app.home.work.takeUpQueued.title": "La promesa aún no está aceptada",
   "app.home.work.takeUpQueued.message": "Su aceptación sigue en camino. Tu trabajo se envía después.",
   "app.home.work.retryMetadataLoad": "Reintentar carga de detalles",
