@@ -368,11 +368,11 @@ describe("useWorkDetailController", () => {
 
     // A ready job keeps its prepared media and is never reset before sending.
     expect(jobQueue.retryJob).not.toHaveBeenCalled();
-    expect(jobQueue.processJob).toHaveBeenCalledWith("work-1", {
-      transactionSender: mocks.sender,
-      explicit: true,
-      onPhase: expect.any(Function),
-    });
+    // A passkey reports its stages only after each wait ended, so Upload now does not follow them.
+    expect(vi.mocked(jobQueue.processJob).mock.calls[0]).toEqual([
+      "work-1",
+      { transactionSender: mocks.sender, explicit: true },
+    ]);
     expect(toastService.error).not.toHaveBeenCalled();
   });
 

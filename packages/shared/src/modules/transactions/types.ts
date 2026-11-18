@@ -90,7 +90,8 @@ export interface TransactionSendOptions {
    * How long to wait for the receipt once the network has the transaction. When
    * it passes, the send rejects with `ReceiptWaitLimitError`: the transaction went
    * out and may still land. Without it the wait lasts until the receipt arrives.
-   * The wallet and embedded senders honor it; a passkey send keeps its own limit.
+   * The wallet and embedded senders honor it. A passkey send keeps its own
+   * 120 second limit and ends with the same error when it passes.
    */
   receiptWaitLimitMs?: number;
 }
@@ -222,13 +223,18 @@ export class ReceiptWaitLimitError extends Error {
   }
 }
 
+const RECEIPT_WAIT_TIMEOUTS: ReadonlySet<string> = new Set([
+  "WaitForTransactionReceiptTimeoutError",
+  "WaitForUserOperationReceiptTimeoutError",
+]);
+
 /**
- * The limit, when a receipt wait given one ran out of it: viem's own timeout
- * becomes `ReceiptWaitLimitError`. Any other failure, or a wait with no limit,
- * passes through unchanged.
+ * The limit, when a receipt wait given one ran out of it: viem's own timeout, for
+ * a transaction or a UserOperation, becomes `ReceiptWaitLimitError`. Any other
+ * failure, or a wait with no limit, passes through unchanged.
  */
 export function asReceiptWaitLimit(error: unknown, limitMs: number | undefined): unknown {
-  const timedOut = error instanceof Error && error.name === "WaitForTransactionReceiptTimeoutError";
+  const timedOut = error instanceof Error && RECEIPT_WAIT_TIMEOUTS.has(error.name);
   return limitMs && timedOut ? new ReceiptWaitLimitError(limitMs, { cause: error }) : error;
 }
 

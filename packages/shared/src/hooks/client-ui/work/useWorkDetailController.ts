@@ -131,8 +131,12 @@ export function useWorkDetailController() {
   const permissions = useGardenPermissions();
   const [isRetrying, setIsRetrying] = useState(false);
   // Where Upload now's send stands while it runs: the wallet is asked, then the chain confirms.
+  // Only a wallet reports those as they happen; a passkey reports each after its wait ended.
   const [sendStage, setSendStage] = useState<JobSendPhase["stage"] | null>(null);
-  const onPhase = (phase: JobSendPhase) => setSendStage(phase.stage);
+  const followStages =
+    transactionSender?.authMode === "wallet"
+      ? { onPhase: (phase: JobSendPhase) => setSendStage(phase.stage) }
+      : {};
 
   const viewingMode = useMemo<WorkViewingMode>(() => {
     if (!garden || !work) return "viewer";
@@ -233,7 +237,7 @@ export function useWorkDetailController() {
         const taken = await jobQueue.processJob(takeUp.id, {
           transactionSender,
           explicit: true,
-          onPhase,
+          ...followStages,
         });
         if (!taken.success) {
           // A wallet that has not answered was already asked to reconnect by its own prompt.
@@ -269,7 +273,7 @@ export function useWorkDetailController() {
       const result = await jobQueue.processJob(work.id, {
         transactionSender,
         explicit: true,
-        onPhase,
+        ...followStages,
       });
       // Declining the prompt is not a failure; the work stays ready to send. A wallet that has
       // not answered was already asked to reconnect by its own prompt.

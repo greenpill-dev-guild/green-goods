@@ -20,6 +20,7 @@ import { logger } from "../app/logger";
 import { withGasHeadroom } from "./gas-headroom";
 import { assertLocalArbitrumForkSmartAccountsDisabled } from "./local-fork-safety";
 import {
+  asReceiptWaitLimit,
   assertTypedDataChain,
   TransactionRevertedError,
   type AtomicBatchOptions,
@@ -179,10 +180,12 @@ export class PasskeySender implements TransactionSender {
       ...(callGasLimit !== undefined ? { callGasLimit } : {}),
     });
     await options.onBroadcastReference?.({ kind: "user-operation", hash: operationHash, chainId });
-    const receipt = await client.waitForUserOperationReceipt({
-      hash: operationHash,
-      timeout: TX_RECEIPT_TIMEOUT_MS,
-    });
+    // The operation went out, so a receipt that outlasts the limit may still land.
+    const receipt = await client
+      .waitForUserOperationReceipt({ hash: operationHash, timeout: TX_RECEIPT_TIMEOUT_MS })
+      .catch((error: unknown) => {
+        throw asReceiptWaitLimit(error, TX_RECEIPT_TIMEOUT_MS);
+      });
     if (
       receipt.userOpHash.toLowerCase() !== operationHash.toLowerCase() ||
       receipt.sender.toLowerCase() !== client.account!.address.toLowerCase()

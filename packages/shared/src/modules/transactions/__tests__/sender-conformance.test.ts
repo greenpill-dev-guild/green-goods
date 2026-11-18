@@ -12,6 +12,7 @@ import {
 } from "../../../__tests__/test-utils/conformance";
 import { expect, vi } from "vitest";
 import { type Hex, WaitForTransactionReceiptTimeoutError } from "viem";
+import { WaitForUserOperationReceiptTimeoutError } from "viem/account-abstraction";
 import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import { EmbeddedSender } from "../embedded-sender";
 import { PasskeySender } from "../passkey-sender";
@@ -63,7 +64,8 @@ type SenderExpectations = {
   chainSource: "resolver" | "call";
   receipt: "none" | "always" | "canonical-only";
   revertedReceipt: true | string;
-  receiptWaitLimit: true | string;
+  /** Whose limit ends a receipt wait: the caller's option, or the sender's own. */
+  receiptWaitLimit: "caller" | "own";
   nonCanonicalHash: true | string;
   guardOrder: string[];
   omittedValue: bigint | undefined;
@@ -89,7 +91,7 @@ const cases: SenderCase[] = [
       chainSource: "call",
       receipt: "canonical-only",
       revertedReceipt: true,
-      receiptWaitLimit: true,
+      receiptWaitLimit: "caller",
       nonCanonicalHash: true,
       guardOrder: ["chain", "safety", "send", "receipt"],
       omittedValue: undefined,
@@ -144,7 +146,7 @@ const cases: SenderCase[] = [
       chainSource: "resolver",
       receipt: "always",
       revertedReceipt: true,
-      receiptWaitLimit: "a passkey send keeps its own receipt limit",
+      receiptWaitLimit: "own",
       nonCanonicalHash: "passkey mode confirms a UserOperation receipt",
       guardOrder: ["safety", "send", "receipt"],
       omittedValue: 0n,
@@ -171,6 +173,7 @@ const cases: SenderCase[] = [
       vi.mocked(client.waitForUserOperationReceipt).mockImplementation(async ({ hash }) => {
         trace.push("receipt");
         receiptHashes.push(hash);
+        if (scenario.receiptNeverComes) throw new WaitForUserOperationReceiptTimeoutError({ hash });
         return {
           actualGasCost: 1n,
           actualGasUsed: 1n,
@@ -225,7 +228,7 @@ const cases: SenderCase[] = [
       chainSource: "call",
       receipt: "always",
       revertedReceipt: true,
-      receiptWaitLimit: true,
+      receiptWaitLimit: "caller",
       nonCanonicalHash: "embedded mode always waits for its wagmi receipt",
       guardOrder: ["chain", "safety", "send", "receipt"],
       omittedValue: undefined,
@@ -438,20 +441,20 @@ const laws: ConformanceLaw<SenderCase>[] = [
   {
     // The send went out, so a receipt that outlasts the limit never reads as a failure: the
     // caller's record of the broadcast confirms it later (PRD-1550).
-    name: "ends a receipt wait at the send's limit, after the broadcast is reported",
-    applicable: ({ expectations }) => expectations.receiptWaitLimit,
-    verify: async ({ make }) => {
+    name: "ends a receipt wait at its limit, after the broadcast is reported",
+    verify: async ({ make, expectations }) => {
       const harness = make({ receiptNeverComes: true });
-      const onBroadcast = vi.fn(async () => {
+      const onBroadcastReference = vi.fn(async () => {
         harness.trace.push("broadcast");
       });
       const sent = harness.sender.sendContractCall(createMockContractCall(), {
-        onBroadcast,
+        onBroadcastReference,
         receiptWaitLimitMs: 120_000,
       });
       await expect(sent).rejects.toBeInstanceOf(ReceiptWaitLimitError);
       await expect(sent).rejects.toMatchObject({ limitMs: 120_000 });
       expect(harness.trace.slice(-2)).toEqual(["broadcast", "receipt"]);
+      if (expectations.receiptWaitLimit === "own") return;
 
       // Without a limit nothing changes: the wait is the caller's to end.
       const unlimited = make({ receiptNeverComes: true });
