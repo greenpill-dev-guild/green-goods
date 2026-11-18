@@ -106,8 +106,9 @@ const BLOCKED_REASONS = new Map<string, MessageDescriptor>([
   ],
   // Not a resolver error: Upload all marks a batch the chain reverted when no
   // single item explains it. Saying the record won't accept it would contradict
-  // the per-item check that just passed.
-  ["reverted", CONFIRMATION_FAILED],
+  // the per-item check that just passed. A check that refuses one item alone
+  // records "reverted", which reads as the record refusing it.
+  ["batch-reverted", CONFIRMATION_FAILED],
 ]);
 
 const UPLOADING_NOW = {

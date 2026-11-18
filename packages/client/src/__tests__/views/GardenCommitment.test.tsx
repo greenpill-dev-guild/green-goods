@@ -2070,7 +2070,7 @@ describe("a voucher booking on the promise page", () => {
     );
     await userEvent.click(decisions.getByRole("button", { name: /^Decline$/ }));
     expect(mockActs.declineClaim).toHaveBeenCalledWith(OTHER, "Try next week");
-    expect(screen.queryByRole("button", { name: /^Ask again$/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Request Again$/ })).not.toBeInTheDocument();
     expect(mockActs.claimPersonal).not.toHaveBeenCalled();
     expect(mockActs.claim).not.toHaveBeenCalled();
   });
@@ -2095,7 +2095,7 @@ describe("a voucher booking on the promise page", () => {
   it("keeps earned member retries behind consent and hides decisions from non-stewards", () => {
     showEarnedClaimRequests(false);
     expect(screen.queryByRole("region", { name: "Waiting on you" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /^Ask again$/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Request Again$/ })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Agree and Take It Up" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Take It Up$/ })).not.toBeInTheDocument();
     expect(mockActs.claimPersonal).not.toHaveBeenCalled();

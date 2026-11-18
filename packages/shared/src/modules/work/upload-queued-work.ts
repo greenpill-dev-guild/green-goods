@@ -309,9 +309,10 @@ export async function uploadQueuedWork(
           for (const { job } of items) forgetWorkBroadcast(job.id);
           const accepted = await flagRefused(items).catch(() => items);
           // No single item explains the revert, so every one is flagged: the
-          // same call must not stay ready and go out again unchanged.
+          // same call must not stay ready and go out again unchanged. Its reason
+          // is its own: a check that refuses one item alone records "reverted".
           if (accepted.length === items.length)
-            for (const item of accepted) await flag(item, "reverted").catch(() => undefined);
+            for (const item of accepted) await flag(item, "batch-reverted").catch(() => undefined);
           return { stop: "reverted", error: result.error };
         }
       }

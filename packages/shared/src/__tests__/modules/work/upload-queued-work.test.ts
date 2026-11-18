@@ -551,7 +551,7 @@ describe("Upload all", () => {
     for (const { id } of jobs) {
       expect(store.get(id)?.meta?.preparation).toMatchObject({
         status: "blocked",
-        reason: "reverted",
+        reason: "batch-reverted",
       });
       expect(sendOf(store, id)).not.toHaveProperty("broadcast");
     }
