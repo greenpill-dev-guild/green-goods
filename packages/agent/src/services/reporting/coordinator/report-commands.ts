@@ -5,6 +5,7 @@ import {
   reportSummaryDigest,
 } from "@green-goods/shared/modules/agent-reporting";
 import { WORK_UPLOAD_POLICY_VERSION } from "@green-goods/shared/modules/work/upload-policy";
+import { chainCheckStopped } from "../check-notices";
 import { grantPublicationConsent, hasPublicationConsent } from "../consent";
 import { currentConfirmation, invalidateConfirmation, recordConfirmation } from "../confirmations";
 import type { ReportingCopyKey } from "../copy";
@@ -14,7 +15,6 @@ import { operationForSubject } from "../operations";
 import { setParticipantLocale } from "../participants";
 import { retryPreparation } from "../preparation";
 import { closeConversationPrompt, resolvePrompt } from "../prompts";
-import { chainCheckStopped } from "../reconciliation";
 import type { ReportingCore } from "../runtime";
 import { sendSigningLink, signingLinkLapsed, signingLinkOpen } from "../signing-links";
 import type { ChatCommand } from "./commands";

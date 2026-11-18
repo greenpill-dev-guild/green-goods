@@ -7,11 +7,11 @@ import {
   withFeedback,
 } from "@green-goods/shared/modules/agent-reporting";
 import type { Confidence } from "@green-goods/shared/types/domain";
+import { chainCheckStopped } from "../check-notices";
 import { invalidateConfirmation, recordConfirmation } from "../confirmations";
 import type { ReportingCopyKey } from "../copy";
 import { enqueueJob } from "../jobs";
 import { closeConversationPrompt, resolvePrompt } from "../prompts";
-import { chainCheckStopped } from "../reconciliation";
 import { commitReview, type ReviewRecord, reviewState } from "../reviews";
 import { accountLink } from "./account-link";
 import type { ChatCommand } from "./commands";
