@@ -733,11 +733,10 @@ contract HatsModule is
             // (Evaluator + Gardener) are handled recursively by _grantSubRole
             _grantSubRole(garden, account, GardenRole.Steward, "operator");
         }
-        if (role == GardenRole.Owner || role == GardenRole.Steward) _syncProjectAdmin(garden, account, true);
-
         // Best-effort conviction power sync on role grant
         // Sync fires post-mint so strategies see updated hat state
         _syncConvictionPower(garden, account);
+        if (role == GardenRole.Owner || role == GardenRole.Steward) _syncProjectAdmin(garden, account, true);
         _notifyStewardObserver(garden, account, role);
     }
 
@@ -770,16 +769,17 @@ contract HatsModule is
             hats.setHatWearerStatus(hatId, account, false, true);
         }
         emit RoleRevoked(garden, account, role);
-        _notifyStewardObserver(garden, account, role);
-        if (role == GardenRole.Owner || role == GardenRole.Steward) {
-            _syncProjectAdmin(garden, account, isOwnerOf(garden, account) || isStewardOf(garden, account));
-        }
         // Best-effort conviction power sync -- sync failure MUST NOT revert role revocation.
-        // Sync fires post-transfer intentionally: strategies must see the updated hat state
+        // Sync fires post-revocation intentionally: strategies must see the updated hat state
         // (i.e., the account no longer wears the hat). This is correct even for double-revocation
         // or when the account still holds other garden roles -- strategies need the sync signal
         // to re-evaluate the member's total power across all roles they still hold.
         _syncConvictionPower(garden, account);
+        // Voting updates get their bounded allowance before secondary integrations can consume it.
+        _notifyStewardObserver(garden, account, role);
+        if (role == GardenRole.Owner || role == GardenRole.Steward) {
+            _syncProjectAdmin(garden, account, isOwnerOf(garden, account) || isStewardOf(garden, account));
+        }
     }
 
     function _syncProjectAdmin(address garden, address account, bool add) internal {

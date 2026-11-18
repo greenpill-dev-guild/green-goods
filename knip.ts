@@ -140,6 +140,8 @@ const config: KnipConfig = {
       entry: [
         "script/*.{ts,mjs}",
         "script/utils/*.{ts,mjs}",
+        // Run by path from script/cli/operations.mjs (`release conviction-sync`).
+        "script/deploy/conviction-sync.ts",
       ],
       ignoreDependencies: [
         // Consumed by Solidity through remappings.txt, which TS analysis

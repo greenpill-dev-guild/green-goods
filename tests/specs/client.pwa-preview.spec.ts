@@ -1,6 +1,6 @@
 /** CI Playwright, anonymous production shell; no production auth bypass or installed-profile claim. */
 // TEST-QUALITY: allow-small-test-file - anonymous production recovery and offline-cache proof share the preview preset
-import { expect, type Page, test } from "@playwright/test";
+import { type BrowserContext, expect, type Page, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
 
 type LogoBox = { top: number; width: number; height: number };
@@ -299,13 +299,36 @@ test("production navigation cache restores the anonymous shell offline and is re
   });
 });
 
+/**
+ * Register an app worker and wait for it to reach `until`. Installing copies the whole critical
+ * shell, which takes as long as the machine is busy, so this follows the worker's own state
+ * rather than a clock.
+ */
+function registerWorker(page: Page, scriptUrl: string, until: "installed" | "activated") {
+  return page.evaluate(
+    async ({ scriptUrl, until }) => {
+      const order = ["installing", "installed", "activating", "activated"];
+      const registration = await navigator.serviceWorker.register(scriptUrl, { scope: "/home" });
+      const worker = registration.installing ?? registration.waiting ?? registration.active;
+      if (!worker) throw new Error(`${scriptUrl} did not start installing`);
+      await new Promise<void>((resolve, reject) => {
+        const check = () => {
+          if (worker.state === "redundant") reject(new Error(`${scriptUrl} failed to install`));
+          else if (order.indexOf(worker.state) >= order.indexOf(until)) resolve();
+        };
+        worker.addEventListener("statechange", check);
+        check();
+      });
+    },
+    { scriptUrl, until }
+  );
+}
+
 /** The worker a browser profile kept from an older build, registered without running any app code. */
 async function installOldBuildWorker(page: Page) {
   await page.goto("/robots.txt");
-  await page.evaluate(async () => {
-    await navigator.serviceWorker.register("/sw.js?old-build", { scope: "/home" });
-  });
-  await expect.poll(() => workers(page)).toEqual({ active: "old", waiting: null });
+  await registerWorker(page, "/sw.js?old-build", "activated");
+  expect(await workers(page)).toEqual({ active: "old", waiting: null });
 }
 
 /** A tab whose old build lost a chunk, as after a deploy removes the old build's files. */
@@ -328,10 +351,35 @@ async function openStuckTab(page: Page, path: string, blocked: string, recoveryT
 
 /** The current build's worker installs behind the open old-build tabs and waits. */
 async function deployNewBuild(page: Page) {
-  await page.evaluate(async () => {
-    await navigator.serviceWorker.register("/sw.js", { scope: "/home" });
-  });
-  await expect.poll(() => workers(page)).toEqual({ active: "old", waiting: "new" });
+  await registerWorker(page, "/sw.js", "installed");
+  expect(await workers(page)).toEqual({ active: "old", waiting: "new" });
+}
+
+/**
+ * Hold open the shell-tail downloads the old build's worker starts, as a slow connection would.
+ * Any page that registers the app worker asks the active one for its tail, the website included,
+ * and an update can activate only once that worker's open work settles. `started` settles once
+ * the old worker is downloading; its held requests end only when the worker gives up on them.
+ */
+async function holdOldWorkerTail(context: BrowserContext): Promise<{ started: Promise<void> }> {
+  const shell = JSON.parse(
+    readFileSync(
+      new URL("../../packages/client/dist/pwa-shell-assets.json", import.meta.url),
+      "utf8"
+    )
+  ) as { tailAssets: string[] };
+  expect(shell.tailAssets.length, "The build must defer a shell tail").toBeGreaterThan(0);
+  const tail = new Set(shell.tailAssets);
+  let started!: () => void;
+  const downloading = new Promise<void>((resolve) => (started = resolve));
+  await context.route(
+    (url) => tail.has(url.pathname),
+    (route) => {
+      if (!route.request().serviceWorker()?.url().endsWith("?old-build")) return route.fallback();
+      started();
+    }
+  );
+  return { started: downloading };
 }
 
 function workers(page: Page) {
@@ -388,8 +436,9 @@ test("a recovered browser tab no longer holds back the installed app's update", 
     process.env.PLAYWRIGHT_PWA_PREVIEW,
     "Use the pwa-preview preset to build production assets"
   ).toBe("true");
-  // Two windows, two stuck boots and a worker hand-over outlast the project's budget on a busy runner.
-  test.setTimeout(150_000);
+  // Two windows and two stuck boots outlast the project's budget on a busy runner.
+  test.setTimeout(90_000);
+  const oldWorkerTail = await holdOldWorkerTail(context);
   await page.setViewportSize({ width: 390, height: 844 });
   await installOldBuildWorker(page);
   await page.evaluate(recoveryWorkStorage, true);
@@ -418,17 +467,25 @@ test("a recovered browser tab no longer holds back the installed app's update", 
   await browserTab.getByRole("button", { name: "Reload" }).click();
   await expect(browserTab).toHaveURL(/\/$/, { timeout: 15_000 });
   await expect(browserTab.getByRole("heading", { level: 1 })).toBeVisible();
+  // The website registered the app worker and asked the old one for its shell tail, which a slow
+  // connection keeps downloading. On a fast one the race goes either way.
+  await oldWorkerTail.started;
 
   await installedApp.getByRole("button", { name: "Try Again" }).click();
-  // Nothing blocks the update now. The browser activates the new worker once the old one has
-  // finished its work; on a slow runner the app first says the update is taking longer, keeps
-  // watching, and reloads when the worker activates. Wait for the reloaded page before reading
-  // the workers: a read across the reload would throw.
-  await expect(installedApp.getByTestId("login-button")).toBeVisible({ timeout: 85_000 });
-  await expect.poll(() => workers(installedApp)).toEqual({ active: "new", waiting: null });
+  // No other app window is open, so the new worker asks the old one to put its download down and
+  // takes over within the startup screen's 15-second budget. The website tab reads the workers:
+  // it stays put while the app reloads.
+  await expect
+    .poll(() => workers(browserTab), { timeout: 15_000 })
+    .toEqual({ active: "new", waiting: null });
+  await expect(installedApp.getByTestId("login-button")).toBeVisible({ timeout: 30_000 });
   expect(await installedApp.evaluate(() => navigator.serviceWorker.controller?.scriptURL)).toMatch(
     /\/sw\.js$/
   );
+  expect(
+    await installedApp.evaluate(() => localStorage.getItem("gg-crash-reports") ?? ""),
+    "The app must not have said the update is taking longer"
+  ).not.toContain("activation_delayed");
   expect(await installedApp.evaluate(recoveryWorkStorage, false)).toEqual({
     draft: "draft notes",
     upload: [1, 2, 3],

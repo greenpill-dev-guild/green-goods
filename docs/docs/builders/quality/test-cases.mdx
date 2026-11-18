@@ -15,7 +15,7 @@ generated_from:
   - playwright.config.ts
   - scripts/data/qa-test-catalog.json
   - scripts/data/validation-policy.json
-source_digest: "sha256:dd8e23e1016ef0e8148cb20c67b869dd67cc560ffa75df1b03becccc14a63bf0"
+source_digest: "sha256:d77a5a9e9e2036c979afaa2ceee6f93b4c2217bf6eb54772830d4466b6e92301"
 source_of_truth:
   - package.json
   - packages/admin/vitest.config.ts
@@ -525,7 +525,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-054` | Transaction | Community · Members | Welcome a join request from the admin | Screenshots of the request and the welcomed state |
 | `ADM-055` | Transaction | Community · Members | Decline a join request with a reason from the admin | Screenshots of the decline dialog and the gardener's view |
 | `ADM-056` | Transaction | Garden · Pool | Set up commitments for a registered NotReady pool | Screenshots of the checklist and the configured pool |
-| `ADM-057` | Transaction | Garden · Pool | Start a season and open it to the garden | Screenshots of the cycles list and the app's rail |
+| `ADM-057` | Transaction | Garden · Pool | Start a season and open it to the garden | Screenshots of the prompt count, the cycles list and the app's rail |
 | `ADM-058` | Transaction | Garden · Pool | Start a campaign and open it | Screenshots of the campaign in the console and the app |
 | `ADM-065` | Transaction | Garden · Pool | Decline a claim with a reason from the pool console | Screenshots of the decline dialog and the requester's view |
 | `ADM-075` | Transaction | Garden · Commitment | Send a commitment for confirmation from the inspector | Screenshots of the inspector and the confirm queue |
@@ -558,7 +558,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-207` | Resilience | Settlement | Recover stale ledgers and refuse changed routes, fees and limits before sending | Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run. |
 | `ADM-208` | Transaction | Settlement | Keep Safe proposal, execution and acknowledgment separate through retry | Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run. |
 
-### P1 (95) {#green-goods-hub-p1}
+### P1 (96) {#green-goods-hub-p1}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
@@ -657,6 +657,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-198` | Transaction | Review · Work | Stage several reviews with Add to Batch and send them from Review under one signature | Screenshots of the staged chips, the bar before sending, and the sent state |
 | `ADM-199` | Transaction | Garden · Pool | Edit a group's reward: one prompt per promise on a plain wallet, one request on a legacy passkey | Screenshots of the summary and note, the partial and declined states, and the group's new reward |
 | `ADM-203` | Journey | Steward access | Decline, withdraw and resubmit without losing request history | Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run. |
+| `ADM-209` | Transaction | Garden · Pool | Open an already seeded season with Open to the Garden | Screenshots of the seeded row, the prompt count, and the opened season with its terms |
 
 ### P2 (35) {#green-goods-hub-p2}
 

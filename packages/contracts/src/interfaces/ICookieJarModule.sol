@@ -23,6 +23,7 @@ interface ICookieJarModule {
     error ZeroAddress();
     error AssetNotFound(address asset);
     error UnsupportedGarden(address garden);
+    error InvalidJarRecord(address garden, address asset, address jar);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Garden Mint Callback

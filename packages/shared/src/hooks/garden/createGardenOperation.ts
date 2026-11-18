@@ -17,6 +17,7 @@ import {
   trackAdminMemberRemoveSuccess,
 } from "../../modules/app/analytics-events";
 import { logger } from "../../modules/app/logger";
+import { GARDEN_ROLE_GAS_HEADROOM_PERCENT } from "../../modules/garden/role-gas-headroom";
 import {
   TransactionReplacementError,
   TransactionRevertedError,
@@ -402,6 +403,7 @@ export function createGardenOperation(
               account: address,
               abi: targetAbi,
               functionName: targetFunctionName,
+              gasHeadroomPercent: GARDEN_ROLE_GAS_HEADROOM_PERCENT,
               args: targetArgs,
               chainId,
             },

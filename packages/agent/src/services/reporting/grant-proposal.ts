@@ -9,6 +9,7 @@ import {
 import type { Hex } from "viem";
 import { activeConsentId } from "./consent";
 import { currentConfirmation } from "./confirmations";
+import { requestRevoked } from "./continuations";
 import { inTransaction } from "./database";
 import { loadDraft } from "./drafts";
 import { findGarden } from "./gardens";
@@ -167,7 +168,13 @@ export async function proposeGrant(
         participant: session.participantId,
         subject: session.request.subjectId,
       }) as { id: string } | null;
-    if (!binding || participantEpoch(core, session.participantId) !== session.identityEpoch)
+    // A newer answer in the chat retires this page's link while the lookup above is awaited; the
+    // permission it would propose belongs to a choice the owner has already replaced.
+    if (
+      !binding ||
+      participantEpoch(core, session.participantId) !== session.identityEpoch ||
+      requestRevoked(core, session.request.id)
+    )
       return { ok: false as const, errorCode: "forbidden" as const };
     const id = core.ids.id();
     try {

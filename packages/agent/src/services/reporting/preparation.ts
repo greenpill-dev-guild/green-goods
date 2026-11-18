@@ -10,7 +10,6 @@ import type { ReportingChain } from "./chain";
 import { activeConsentId, hasPublicationConsent, workUploadConsent } from "./consent";
 import { WORK_UPLOAD_POLICY_VERSION } from "@green-goods/shared/modules/work/upload-policy";
 import { confirmationById } from "./confirmations";
-import { issueContinuation } from "./continuations";
 import { readControl } from "./controls";
 import { commitLifecycle, lifecycleState } from "./coordinator/draft-commit";
 import { gardenLabel, promptNextStepFor } from "./coordinator/prompting";
@@ -18,16 +17,18 @@ import { inTransaction } from "./database";
 import { type DraftRecord, loadDraft } from "./drafts";
 import { enqueueJob, type ClaimedJob } from "./jobs";
 import { type PrivateMediaStore, sha256Hex } from "./media-store";
-import { conversationRealm, participantWriter } from "./notify";
+import { participantWriter } from "./notify";
 import {
   freezeEnvelope,
+  operationById,
   type OperationRecord,
   operationForSubject,
   setOperationState,
 } from "./operations";
-import { accountById, participantEpoch } from "./participants";
+import { accountById } from "./participants";
 import { findGarden, isUnlisted } from "./gardens";
 import type { ReportingCore } from "./runtime";
+import { rewatchSigningLink, sendSigningLink } from "./signing-links";
 import type { EvidenceUploader } from "./uploader";
 import type { JobOutcome } from "./worker";
 
@@ -300,28 +301,12 @@ export async function prepareOperation(
         });
         return;
       }
-      if (typeof job.payload.activationGrantId === "string") return;
+      // The permission page signs this one; if it has closed meanwhile, the chat hears so.
+      if (typeof job.payload.activationGrantId === "string")
+        return rewatchSigningLink(core, draft.id);
       const out = writer();
-      if (!out?.target.binding) return;
-      const { url } = issueContinuation(core, {
-        purpose: "publish_work",
-        participantId: draft.participantId,
-        subjectId: out.target.subjectId,
-        bindingId: out.target.binding.bindingId,
-        conversationId: draft.conversationId,
-        providerRealm: conversationRealm(core, draft.conversationId),
-        resourceKind: "draft",
-        resourceId: draft.id,
-        resourceRevision: draft.revision,
-        resourceDigest: envelope.payloadDigest,
-        expectedAccount: account.address,
-        identityEpoch: participantEpoch(core, draft.participantId),
-      });
-      out.say(
-        "publish.signLink",
-        { kind: out.text(account.kind === "eoa" ? "account.wallet" : "account.passkey") },
-        { url, label: out.text("publish.signLabel") }
-      );
+      const frozen = operationById(core, operation.id);
+      if (out && frozen) sendSigningLink(core, out, current, frozen);
     });
     return { status: "done" };
   } catch (error) {
