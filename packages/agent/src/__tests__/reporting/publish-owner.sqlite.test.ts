@@ -578,7 +578,17 @@ describe("owner publication", () => {
     expect(await harness.say(ADA, "CANCEL")).toEqual([ATTESTATION_UNREAD]);
   });
 
-  it("never ends by saying it can't find a report whose transaction it already called confirmed", async () => {
+  it.each([
+    ["a later read loses the receipt", (hash: `0x${string}`) => harness.chain.hidden.add(hash)],
+    [
+      "later chain reads fail",
+      (_hash: `0x${string}`) => {
+        harness.chain.transactionReceipt = async () => {
+          throw new Error("RPC unavailable");
+        };
+      },
+    ],
+  ])("never ends by saying it can't find a report whose transaction it already called confirmed, when %s", async (_trigger, loseTheRead) => {
     await confirmLinkAndPublish(harness);
     const { browser, view, envelope } = await openSigningPage(harness);
     const attempt = await reserve(browser, view, envelope);
@@ -591,8 +601,8 @@ describe("owner publication", () => {
     await harness.drain();
     expect(sentTexts().at(-1)).toContain("The transaction is confirmed.");
 
-    // Every later read loses the receipt, so the check's last pass sees nothing at all.
-    harness.chain.hidden.add(hash);
+    // Every later pass reads nothing it can use, so the check's last pass sees nothing at all.
+    loseTheRead(hash);
     await exhaustChainCheck();
     expect(sentTexts()).not.toContain(CHECK_STOPPED);
     expect(sentTexts()).not.toContain(STILL_CONFIRMING);
