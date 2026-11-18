@@ -2,6 +2,7 @@ import {
   type ActionDefinitionSnapshot,
   buildReportSummary,
   findInput,
+  GRANT_LIMITS,
   outstandingFieldQuestions,
   outstandingRequirements,
   reportQuestionPosition,
@@ -360,6 +361,30 @@ export function askConfirmation(
             : "report.summaryCodeInstruction",
           { token: prompt.token }
         ),
+      })
+  );
+}
+
+/**
+ * Asks a passkey owner how to publish: allow reporting in chat, which also signs this report, or
+ * sign this report only. A garden that already has a live permission never gets here.
+ */
+export function askGrantChoice(out: ConversationWriter, draft: DraftRecord, garden: Address): void {
+  out.ask(
+    {
+      subjectKind: "draft",
+      resourceId: draft.id,
+      resourceRevision: draft.revision,
+      kind: "grant_choice",
+      options: [
+        { id: "grant", label: out.text("publish.allowReporting"), value: "grant" },
+        { id: "once", label: out.text("publish.thisReportOnly"), value: "once" },
+      ],
+    },
+    () =>
+      out.text("publish.grantOffer", {
+        garden: gardenLabel(out.core.gardens, garden),
+        count: GRANT_LIMITS.reporting.maxSubmissions,
       })
   );
 }

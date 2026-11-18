@@ -19,6 +19,7 @@ import { grantById } from "./grants-store";
 import { enqueueJob } from "./jobs";
 import { operationForSubject, upsertOperation } from "./operations";
 import { participantEpoch } from "./participants";
+import { closeSubjectPrompt } from "./prompts";
 import { loadReview } from "./reviews";
 import type { ReportingCore } from "./runtime";
 import type { BrowserSession } from "./sessions";
@@ -217,6 +218,9 @@ export async function startGrantActivation(
       commitLifecycle(deps.core, context.resource, [{ type: "SIGN_ONCE_CHOSEN" }], {
         participantAction: true,
       });
+      // The page has made the choice the chat may still be asking (RETRY asks it again), so an
+      // answer to that question would refer to a choice already past.
+      closeSubjectPrompt(deps.core, context.resource.conversationId, "draft", context.resourceId);
       const operation = upsertOperation(deps.core, {
         subject: context.subject,
         authorAccountId: session.accountBindingId,

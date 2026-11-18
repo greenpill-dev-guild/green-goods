@@ -5,6 +5,7 @@ import {
   reportSummaryDigest,
 } from "@green-goods/shared/modules/agent-reporting";
 import { WORK_UPLOAD_POLICY_VERSION } from "@green-goods/shared/modules/work/upload-policy";
+import { chainCheckStopped } from "../check-notices";
 import { grantPublicationConsent, hasPublicationConsent } from "../consent";
 import { currentConfirmation, invalidateConfirmation, recordConfirmation } from "../confirmations";
 import type { ReportingCopyKey } from "../copy";
@@ -14,8 +15,8 @@ import { operationForSubject } from "../operations";
 import { setParticipantLocale } from "../participants";
 import { retryPreparation } from "../preparation";
 import { closeConversationPrompt, resolvePrompt } from "../prompts";
-import { chainCheckStopped } from "../reconciliation";
 import type { ReportingCore } from "../runtime";
+import { sendSigningLink, signingLinkLapsed, signingLinkOpen } from "../signing-links";
 import type { ChatCommand } from "./commands";
 import {
   commitContentChange,
@@ -25,7 +26,7 @@ import {
 } from "./draft-commit";
 import { askEditMenu } from "./edit-menu";
 import { askGarden, askJoin, sayJoin } from "./garden-step";
-import { askAnotherGarden, gardenLabel, promptNextStep } from "./prompting";
+import { askAnotherGarden, askGrantChoice, gardenLabel, promptNextStep } from "./prompting";
 import type { TurnExternal } from "./report-work";
 import type { TurnWriter } from "./writer";
 
@@ -33,7 +34,7 @@ const STATE_COPY: Record<string, ReportingCopyKey> = {
   collecting: "state.collecting",
   review: "state.review",
   authority: "state.authority",
-  grantChoice: "state.authority",
+  grantChoice: "state.choice",
   preparing: "state.preparing",
   preparationFailed: "state.preparing",
   awaitingWallet: "state.signature",
@@ -165,7 +166,25 @@ function askLanguage(writer: TurnWriter): void {
  * check ended without finding it, that the check stopped and where to turn.
  */
 export function frozenReply(core: ReportingCore, draft: DraftRecord): ReportingCopyKey {
-  return chainCheckStopped(core, { draftId: draft.id }) ? "publish.unconfirmed" : "report.frozen";
+  return chainCheckStopped(core, { draftId: draft.id }) ?? "report.frozen";
+}
+
+/**
+ * RETRY for a report waiting on its owner's signature sends a fresh way to give it, whether or not
+ * the last link has expired: a page link for a prepared report, or the choice of how to publish
+ * again for one waiting on that choice. False when the report waits for something else.
+ */
+function resendSigning(writer: TurnWriter, draft: DraftRecord): boolean {
+  const { core } = writer;
+  const state = lifecycleState(draft);
+  const garden = draft.content.garden;
+  if (state === "grantChoice" && garden) {
+    askGrantChoice(writer, draft, garden.address);
+    return true;
+  }
+  if (state !== "awaitingWallet") return false;
+  const operation = operationForSubject(core, { draftId: draft.id });
+  return operation?.state === "prepared" && sendSigningLink(core, writer, draft, operation);
 }
 
 function cancelDraft(writer: TurnWriter): void {
@@ -239,8 +258,18 @@ export function handleReportCommand(
       return writer.say(draft ? "report.resumeFirst" : "report.newStarted");
     case "status": {
       if (!draft) return writer.say("report.noStatus");
-      if (chainCheckStopped(core, { draftId: draft.id })) return writer.say("publish.unconfirmed");
-      const state = STATE_COPY[lifecycleState(draft)] ?? "state.publishing";
+      const stopped = chainCheckStopped(core, { draftId: draft.id });
+      if (stopped) return writer.say(stopped);
+      // An open question about how to publish is what the report waits on, link or no link, while
+      // the report is still at that choice. A permission page can move it on without an answer.
+      const lifecycle = lifecycleState(draft);
+      const choosing = ctx.prompt?.kind === "grant_choice" && lifecycle === "grantChoice";
+      if (!choosing && signingLinkLapsed(core, draft)) return writer.say("publish.linkExpired");
+      // After the choice, a report waits on the page its link opens.
+      const state =
+        lifecycle === "grantChoice" && !choosing && signingLinkOpen(core, draft.id)
+          ? "state.signature"
+          : (STATE_COPY[lifecycle] ?? "state.publishing");
       return writer.say("report.status", {
         garden: gardenLabel(core.gardens, draft.content.garden?.address),
         state: writer.text(state),
@@ -264,6 +293,7 @@ export function handleReportCommand(
         });
         return;
       }
+      if (draft && resendSigning(writer, draft)) return;
       return handleReportCommand(writer, { kind: "status" }, external);
     }
     case "locale":

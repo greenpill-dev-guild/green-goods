@@ -19,6 +19,7 @@ export const JOB_KINDS = [
   "prepare_operation",
   "execute_delegated",
   "watch_owner_attempt",
+  "watch_signing_link",
   "review_list",
   "review_open",
   "review_authority",

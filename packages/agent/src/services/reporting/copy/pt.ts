@@ -201,6 +201,7 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "state.authority": "aguardando a verificação da conta",
   "state.preparing": "sendo preparado para publicação",
   "state.signature": "aguardando sua assinatura",
+  "state.choice": "aguardando você escolher como publicar",
   "state.publishing": "sendo publicado",
   "report.noStatus": "Você não tem um relato em andamento. Descreva seu trabalho para começar um.",
   "report.expired":
@@ -263,6 +264,12 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
     "Não recebi resposta da sua carteira, então ainda não sei se foi enviado. Não vou enviar de novo; estou verificando a blockchain e aviso o que encontrar.",
   "publish.unconfirmed":
     "Verifiquei a blockchain e ainda não encontro seu relato, então parei de procurar. Não vou enviá-lo de novo. Se ele não aparecer no jardim, escreva para {support}.",
+  "publish.linkExpired":
+    "Seu link para publicar expirou antes de qualquer envio, então nada foi publicado. Seu relato está guardado; responda RETRY para receber um link novo.",
+  "publish.stillConfirming":
+    "Seu relato foi enviado e ainda está sendo confirmado, o que pode levar alguns minutos. Você pode sair deste chat; aviso quando ele for publicado. Você não precisa enviá-lo de novo.",
+  "publish.attestationUnread":
+    "A transação está confirmada, mas ainda não consigo ler os detalhes da atestação, então parei de verificar. Você não precisa assinar nem enviar nada de novo. Se seu relato não aparecer no jardim, escreva para {support}.",
   "publish.rejected":
     "A assinatura foi recusada, então nada foi publicado. Aqui está seu relato de novo; confirme quando quiser.",
   "publish.reverted":
@@ -326,6 +333,10 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
     "O registro da sua revisão falhou na blockchain. Confira e confirme novamente para tentar de novo.",
   "review.unconfirmed":
     "Verifiquei a blockchain e ainda não encontro sua revisão, então parei de procurar. Não vou enviá-la de novo. Se ela não aparecer no trabalho, escreva para {support}.",
+  "review.stillConfirming":
+    "Sua revisão foi enviada e ainda está sendo confirmada, o que pode levar alguns minutos. Você pode sair deste chat; aviso quando ela for registrada. Você não precisa enviá-la de novo.",
+  "review.attestationUnread":
+    "A transação está confirmada, mas ainda não consigo ler os detalhes da atestação, então parei de verificar. Você não precisa assinar nem enviar nada de novo. Se sua revisão não aparecer no trabalho, escreva para {support}.",
   "recovery.started":
     "Para mover sua conta Green Goods para este chat, abra esta página e verifique a conta que você usava antes. O link expira em 10 minutos.",
   "recovery.code": "Digite este código na página de recuperação do Green Goods: {code}",

@@ -76,6 +76,10 @@ export async function reserveOwnerAttempt(
     return { ok: false, errorCode: "dependency_unavailable" };
   }
   return inTransaction(core.db, () => {
+    // A page whose session ended while the reads above were awaited can't start a send: by then
+    // the chat may have said its link expired with nothing sent.
+    if (input.session.expiresAt <= core.clock.now())
+      return { ok: false as const, errorCode: "forbidden" as const };
     const subject = operationSubject(core, operation);
     const confirmation = confirmationById(core, operation.confirmationId);
     if (!subject?.awaitingOwner || subject.revision !== operation.resourceRevision) {

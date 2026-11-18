@@ -308,4 +308,46 @@ describe("steward review", () => {
     expect(await harness.say(BOLA, "EDIT")).toEqual([stopped]);
     expect(await harness.say(BOLA, "CANCEL")).toEqual([stopped]);
   });
+
+  it("tells a steward a sent decision is still confirming, and when its check stops with the attestation unread", async () => {
+    await publishedWork();
+    await linkedSteward();
+    const summary = await decide("Approve", "Looks right");
+    const token = /CONFIRM (\d{4})/.exec(summary[0] ?? "")?.[1];
+    await harness.say(BOLA, `CONFIRM ${token}`);
+    const { browser, view } = await openDecisionPage();
+    const envelope = view.operation?.envelope;
+    if (!envelope) throw new Error("Expected an envelope");
+    const attempt = await reserve(browser, view, envelope);
+    const hash = harness.chain.submit({
+      attester: stewardAccount.address,
+      to: envelope.call.to,
+      data: envelope.call.data,
+    });
+    harness.chain.hidden.add(hash);
+    await reportOutcome(browser, view, envelope, attempt.body.attemptId, {
+      kind: "broadcast",
+      transactionHash: hash,
+    });
+    await harness.drain();
+    const passes = async (count: number) => {
+      for (let pass = 0; pass < count; pass += 1) {
+        harness.clock.advance(30_000);
+        await harness.drain();
+      }
+    };
+    const confirming =
+      "Your review was sent and is still being confirmed, which can take a few minutes. You can leave this chat; I'll message you when it's recorded. You don't need to send it again.";
+    await passes(6);
+    expect(sentTexts().filter((text) => text === confirming)).toHaveLength(1);
+
+    // The decision is mined, but its attestation is never read back.
+    harness.chain.hidden.delete(hash);
+    harness.chain.attestationsUnread = true;
+    await passes(45);
+    const unread =
+      "The transaction is confirmed, but I still can't read its attestation details, so I've stopped checking. You don't need to sign or send anything again. If your review doesn't show on the work, write to contact@greengoods.app.";
+    expect(sentTexts().filter((text) => text === unread)).toHaveLength(1);
+    expect(await harness.say(BOLA, "STATUS")).toEqual([unread]);
+  });
 });

@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import type { ReportingPurpose } from "@green-goods/shared/modules/agent-reporting";
+import { enqueueJob } from "./jobs";
 import type { ReportingCore } from "./runtime";
 
 /**
@@ -75,11 +76,30 @@ export function channelLabel(providerRealm: string): string {
   return "Chat";
 }
 
-export function issueContinuation(
+/**
+ * Links to the pages where a report is signed. When one expires, a job checks whether the report
+ * still waits for that signature and tells the chat (signing-links.ts).
+ */
+const WATCHED_PURPOSES: ReadonlySet<ReportingPurpose> = new Set([
+  "publish_work",
+  "grant_reporting",
+]);
+
+/** Checks on a report signing link at `at`: when it expires, or when a page opened from it closes. */
+export function watchLinkExpiry(core: ReportingCore, requestId: string, at: number): void {
+  enqueueJob(core, {
+    kind: "watch_signing_link",
+    subjectId: requestId,
+    dedupeKey: `link-watch:${requestId}:${at}`,
+    runAfter: at,
+  });
+}
+
+/** Retires the open links to one purpose and resource for a chat source, as a newer link does. */
+export function revokeOpenRequests(
   core: ReportingCore,
-  input: Omit<ContinuationRequest, "id" | "expiresAt"> & { ttlMs?: number }
-): { request: ContinuationRequest; url: string } {
-  const now = core.clock.now();
+  input: Pick<ContinuationRequest, "purpose" | "resourceKind" | "resourceId" | "subjectId">
+): void {
   core.db
     .query(
       `UPDATE continuation_requests SET state = 'revoked'
@@ -92,6 +112,23 @@ export function issueContinuation(
       resource: input.resourceId,
       subject: input.subjectId,
     });
+}
+
+/** Whether a newer link, or a newer answer in the chat, has retired this link. */
+export function requestRevoked(core: ReportingCore, requestId: string): boolean {
+  return (
+    core.db
+      .query("SELECT 1 FROM continuation_requests WHERE id = $id AND state = 'revoked'")
+      .get({ id: requestId }) !== null
+  );
+}
+
+export function issueContinuation(
+  core: ReportingCore,
+  input: Omit<ContinuationRequest, "id" | "expiresAt"> & { ttlMs?: number }
+): { request: ContinuationRequest; url: string } {
+  const now = core.clock.now();
+  revokeOpenRequests(core, input);
   const id = core.ids.id();
   const locator = core.ids.token(24);
   const expiresAt = now + (input.ttlMs ?? core.settings.linkChallengeTtlMs);
@@ -122,6 +159,7 @@ export function issueContinuation(
       now,
       expires: expiresAt,
     });
+  if (WATCHED_PURPOSES.has(input.purpose)) watchLinkExpiry(core, id, expiresAt);
   const path = input.purpose === "recovery" ? "/agent/reporting/recover/" : "/agent/reporting/";
   return {
     request: {

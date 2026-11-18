@@ -196,6 +196,7 @@ export const EN_REPORTING_COPY = {
   "state.authority": "waiting for account checks",
   "state.preparing": "being prepared for publishing",
   "state.signature": "waiting for your signature",
+  "state.choice": "waiting for you to choose how to publish it",
   "state.publishing": "being published",
   "report.noStatus": "You don't have a report in progress. Describe your work to start one.",
   "report.expired":
@@ -258,6 +259,12 @@ export const EN_REPORTING_COPY = {
     "I didn't hear back from your wallet, so I can't tell yet whether it was sent. I won't send it again; I'm checking the chain and will tell you what I find.",
   "publish.unconfirmed":
     "I've checked the chain and still can't find your report, so I've stopped checking. I won't send it again. If it doesn't show in the garden, write to {support}.",
+  "publish.linkExpired":
+    "Your publishing link expired before anything was sent, so nothing was published. Your report is saved; reply RETRY for a new link.",
+  "publish.stillConfirming":
+    "Your report was sent and is still being confirmed, which can take a few minutes. You can leave this chat; I'll message you when it's published. You don't need to send it again.",
+  "publish.attestationUnread":
+    "The transaction is confirmed, but I still can't read its attestation details, so I've stopped checking. You don't need to sign or send anything again. If your report doesn't show in the garden, write to {support}.",
   "publish.rejected":
     "The signature was declined, so nothing was published. Here is your report again; confirm it when you're ready.",
   "publish.reverted":
@@ -319,6 +326,10 @@ export const EN_REPORTING_COPY = {
   "review.reverted": "Recording your review failed on chain. Check it and confirm again to retry.",
   "review.unconfirmed":
     "I've checked the chain and still can't find your review, so I've stopped checking. I won't send it again. If it doesn't show on the work, write to {support}.",
+  "review.stillConfirming":
+    "Your review was sent and is still being confirmed, which can take a few minutes. You can leave this chat; I'll message you when it's recorded. You don't need to send it again.",
+  "review.attestationUnread":
+    "The transaction is confirmed, but I still can't read its attestation details, so I've stopped checking. You don't need to sign or send anything again. If your review doesn't show on the work, write to {support}.",
   "recovery.started":
     "To move your Green Goods account to this chat, open this page and verify the account you used before. The link expires in 10 minutes.",
   "recovery.code": "Enter this code on the Green Goods recovery page: {code}",

@@ -38,6 +38,7 @@ const RERUN = {
   prepare_operation: "checkpointed",
   execute_delegated: "exact_bytes",
   watch_owner_attempt: "reads",
+  watch_signing_link: "reads",
   review_list: "reads",
   review_open: "reads",
   review_authority: "reads",
