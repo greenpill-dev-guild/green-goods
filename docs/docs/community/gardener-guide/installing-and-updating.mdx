@@ -5,12 +5,12 @@ slug: /community/gardener-guide/installing-and-updating
 description: "Put Green Goods on your phone, create your account, and keep the app up to date without losing work you have not sent yet."
 audience: gardener
 owner: docs
-last_verified: "2026-11-04"
+last_verified: "2026-11-17"
 feature_status: Live
 goal: "Get a gardener onto the current version, signed in, and able to record work without a signal, with drafts and unsent work intact."
 difficulty: "quickstart"
 estimated_time: "5 minutes, plus download time on a slow connection."
-prereqs: "An Android phone with Chrome, or an iPhone with Safari, and a connection for the install."
+prereqs: "An Android phone with Chrome 111 or newer, or an iPhone on iOS 16.4 or newer with Safari, and a connection for the install."
 next_steps: "/community/gardener-guide/joining-a-garden"
 persona_context: "Gardeners installing or updating on their own phone, often in the field."
 source_of_truth:
@@ -26,6 +26,7 @@ source_of_truth:
   - packages/shared/src/hooks/app/useWorkUpdateGuard.ts
   - packages/shared/src/providers/App.tsx
   - packages/shared/src/i18n/en.json
+  - scripts/lib/browser-minimum-gate.js
 keywords:
   - install
   - android
@@ -34,6 +35,7 @@ keywords:
   - update
   - offline
   - create account
+  - update browser
 ---
 
 # Install and Update the App
@@ -46,7 +48,7 @@ Choose [Android](#install-on-android) or [iPhone](#install-on-iphone) below. Alr
 
 ## Before you start
 
-- **An Android phone with Chrome, or an iPhone with Safari.** Use the browser Green Goods recommends for your phone. It tells you if you need to switch.
+- **An Android phone with Chrome, or an iPhone with Safari.** Chrome needs version 111 or newer, which Android 7 and later can install. An iPhone needs iOS 16.4 or newer, which iPhone 8 and later can install. Use the browser Green Goods recommends for your phone. It tells you if you need to switch.
 - **A connection.** Installing and signing in both need one. Recording work afterwards does not.
 - **A few minutes.** Allow time for the app to download before you head out.
 
@@ -165,6 +167,15 @@ Clearing the browser's site data or storage for Green Goods **deletes work you h
 ### You cannot install, or you only see the website
 
 On Android, tap **Open in Chrome** if Green Goods asks you to switch browsers. On iPhone, tap **Copy Link** and open it in Safari. Links opened inside a chat app may need the same step. Once installed, use the home screen icon; a browser tab keeps showing the website.
+
+### The app asks you to update your browser
+
+If your phone's browser is older than Green Goods supports, the app shows **Update your browser to use Green Goods** instead of opening. This screen does not touch your drafts or unsent work.
+
+- **Android:** update Chrome from the Play Store, then open Green Goods again.
+- **iPhone:** update iOS in **Settings > General > Software Update**. Safari updates with it.
+
+Green Goods works on Chrome and Edge 111, Safari and iOS 16.4, and Firefox 128, and anything newer.
 
 ### You cannot sign in
 

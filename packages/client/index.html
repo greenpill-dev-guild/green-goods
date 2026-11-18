@@ -1291,6 +1291,9 @@
     </div>
     <script id="boot-fallback-controller">
       (function () {
+        // Below the browser minimum the update screen is the whole page and the app never starts
+        // (the gate at the top of <body>, scripts/lib/browser-minimum-gate.js).
+        if (document.documentElement.hasAttribute("data-browser-update")) return;
         var root = document.getElementById("root");
         var fallback = document.getElementById("boot-fallback");
         var website = document.getElementById("boot-fallback-website");

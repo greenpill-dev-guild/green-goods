@@ -13,9 +13,6 @@ import {
 import "@/index.css";
 import "@/config";
 
-initTheme();
-initGlobalErrorHandlers();
-
 function runAfterLoadAndIdle(task: () => void) {
   const run = () => {
     const idleCallback =
@@ -74,27 +71,36 @@ function initializeDeferredRuntime() {
   });
 }
 
-const container = document.getElementById("root");
-if (!container) throw new Error("Root container missing in index.html");
+async function startClient() {
+  initTheme();
+  initGlobalErrorHandlers();
 
-const presentation = getBootPresentation();
-const restartingWithoutLegacyWorker =
-  presentation === "public" &&
-  (await restartPublicPageWithoutLegacyRootWorker(
-    presentation,
-    import.meta.env.VITE_APP_VERSION ?? ""
-  ));
+  const container = document.getElementById("root");
+  if (!container) throw new Error("Root container missing in index.html");
 
-if (!restartingWithoutLegacyWorker) {
-  const { default: Bootstrap } = await loadClientBootstrap(presentation);
-  createRoot(container).render(
-    <StrictMode>
-      <Bootstrap />
-    </StrictMode>
-  );
-  initializeDeferredRuntime();
+  const presentation = getBootPresentation();
+  const restartingWithoutLegacyWorker =
+    presentation === "public" &&
+    (await restartPublicPageWithoutLegacyRootWorker(
+      presentation,
+      import.meta.env.VITE_APP_VERSION ?? ""
+    ));
 
-  const markReactMounted = (window as Window & { __GG_MARK_REACT_MOUNTED?: () => void })
-    .__GG_MARK_REACT_MOUNTED;
-  if (markReactMounted) window.requestAnimationFrame(() => markReactMounted());
+  if (!restartingWithoutLegacyWorker) {
+    const { default: Bootstrap } = await loadClientBootstrap(presentation);
+    createRoot(container).render(
+      <StrictMode>
+        <Bootstrap />
+      </StrictMode>
+    );
+    initializeDeferredRuntime();
+
+    const markReactMounted = (window as Window & { __GG_MARK_REACT_MOUNTED?: () => void })
+      .__GG_MARK_REACT_MOUNTED;
+    if (markReactMounted) window.requestAnimationFrame(() => markReactMounted());
+  }
 }
+
+// Below the browser minimum the gate at the top of <body> (scripts/lib/browser-minimum-gate.js)
+// shows the update screen instead, and the app does not start behind it.
+if (!document.documentElement.hasAttribute("data-browser-update")) await startClient();

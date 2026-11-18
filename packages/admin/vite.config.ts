@@ -6,7 +6,10 @@ import babel from "@rolldown/plugin-babel";
 import { sentryVitePlugin } from "@sentry/vite-plugin";
 import tailwindcss from "@tailwindcss/vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
-import { SUPPORTED_BROWSER_TARGETS } from "../../scripts/lib/browser-support.mjs";
+import {
+  browserMinimumGatePlugin,
+  SUPPORTED_BROWSER_TARGETS,
+} from "../../scripts/lib/browser-support.mjs";
 import {
   assertEnvParity,
   assertSentryDsnResolvable,
@@ -196,6 +199,12 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
 
   const plugins = [
     devTunnelPlugin(),
+    // Below the browser minimum every Hub page shows an update screen.
+    browserMinimumGatePlugin({
+      surface: "hub",
+      logo: `${isIPFSBuild ? "./" : "/"}green-goods-logo.png`,
+      posthogKey: process.env.VITE_POSTHOG_ADMIN_KEY,
+    }),
     // Only use mkcert for HTTPS when not in devcontainer, CI, or explicitly skipped
     ...(isDevContainer || isCI || skipMkcert ? [] : [mkcert()]),
     tailwindcss(),
