@@ -125,6 +125,15 @@ describe("CommitmentProof", () => {
     );
   });
 
+  it("shows a proof that credits two contributors once", () => {
+    const shared = proof("bafy-proof-two-credits", { note: "Planted twelve seedlings." });
+    const otherCredit = { ...shared, contributor: "0x2222222222222222222222222222222222222222" };
+    renderWithProviders(<CommitmentProof attributions={[shared, otherCredit]} recordedCount={1} />);
+
+    expect(screen.getAllByText("Planted twelve seedlings.")).toHaveLength(1);
+    expect(screen.queryByText(/recorded but cannot be shown/)).toBeNull();
+  });
+
   it("renders nothing for a promise with no proof", () => {
     const { container } = renderWithProviders(
       <CommitmentProof attributions={[]} recordedCount={0} />

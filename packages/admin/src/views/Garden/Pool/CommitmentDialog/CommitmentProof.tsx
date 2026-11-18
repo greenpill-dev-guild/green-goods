@@ -8,7 +8,7 @@ import {
 import { RiExternalLinkLine } from "@remixicon/react";
 import { type IntlShape, useIntl } from "react-intl";
 import { AdminCardTitle } from "@/components/AdminCard";
-import { EvidenceDocumentList, EvidencePhotoGrid } from "@/views/Review/components/MediaEvidence";
+import { EvidenceDocumentList, EvidencePhotoGrid } from "@/components/Evidence/EvidenceMedia";
 
 export interface CommitmentProofProps {
   /** The proof attached to the promise, as the indexer recorded each attachment. */
@@ -130,7 +130,11 @@ function ProofItem({ item }: { item: ResolvedEvidence }) {
  */
 export function CommitmentProof({ attributions, recordedCount }: CommitmentProofProps) {
   const { formatMessage } = useIntl();
-  const { evidence } = useCommitmentEvidence(attributions);
+  const { evidence: rows } = useCommitmentEvidence(attributions);
+  // The indexer keeps one row per contributor a proof credits, while the chain counts the
+  // proof once: one proof is one item here, whoever it credits.
+  const seen = new Set<string>();
+  const evidence = rows.filter((row) => !seen.has(row.cid) && Boolean(seen.add(row.cid)));
 
   if (recordedCount === 0 && evidence.length === 0) return null;
   const unreadable = Math.max(0, recordedCount - evidence.length);
