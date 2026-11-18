@@ -9,22 +9,30 @@ import { load } from "js-yaml";
 const root = resolve(import.meta.dirname, "../..");
 const action = load(readFileSync(join(root, ".github/actions/setup-playwright/action.yml"), "utf8"));
 const install = action.runs.steps.find((step) => step.name === "Install Playwright Chromium and system dependencies");
+const restore = action.runs.steps.find((step) => step.uses?.startsWith("actions/cache/restore@"));
+const AZURE_MIRROR = "http://azure.archive.ubuntu.com/ubuntu/";
+const AWS_MIRROR = "http://us-east-2.ec2.archive.ubuntu.com/ubuntu/";
 
-function runInstall(failures = 0) {
+function runInstall(failures = 0, { mirror = AZURE_MIRROR, cachedPackages = [] } = {}) {
   const fixture = mkdtempSync(join(tmpdir(), "playwright setup-"));
   const bin = join(fixture, "bin");
   mkdirSync(bin);
   const cli = join(fixture, "pinned-cli.mjs");
   const log = join(fixture, "calls.jsonl");
   const mirrors = join(fixture, "apt-mirrors.txt");
-  writeFileSync(mirrors, "http://azure.archive.ubuntu.com/ubuntu/\tpriority:1\nhttp://security.ubuntu.com/ubuntu/\tpriority:2\n");
+  writeFileSync(mirrors, `${mirror}\tpriority:1\nhttp://security.ubuntu.com/ubuntu/\tpriority:2\n`);
+  const packageCache = join(fixture, "package-cache");
+  const archives = join(fixture, "archives");
+  mkdirSync(packageCache);
+  mkdirSync(archives);
+  for (const name of cachedPackages) writeFileSync(join(packageCache, name), name);
   writeFileSync(cli, `
-import {appendFileSync,existsSync,readFileSync,writeFileSync} from 'node:fs';
+import {appendFileSync,existsSync,readdirSync,readFileSync,writeFileSync} from 'node:fs';
 const command=process.argv[2];
 const state=process.env.TEST_ATTEMPT_FILE;
 const attempt=command==='install-deps'?(existsSync(state)?Number(readFileSync(state,'utf8')):0)+1:1;
 if(command==='install-deps')writeFileSync(state,String(attempt));
-appendFileSync(process.env.TEST_CALL_LOG,JSON.stringify({command,attempt,privileged:process.env.TEST_PRIVILEGED==='1',timeoutOwner:process.env.TEST_TIMEOUT_OWNER,argv:process.argv.slice(2),mirrors:readFileSync(process.env.TEST_MIRRORS,'utf8')})+'\\n');
+appendFileSync(process.env.TEST_CALL_LOG,JSON.stringify({command,attempt,privileged:process.env.TEST_PRIVILEGED==='1',timeoutOwner:process.env.TEST_TIMEOUT_OWNER,argv:process.argv.slice(2),mirrors:readFileSync(process.env.TEST_MIRRORS,'utf8'),archives:readdirSync(process.env.APT_ARCHIVES).sort()})+'\\n');
 if(command==='install-deps'&&process.env.TEST_TIMEOUT_OWNER!=='root')process.exit(77);
 process.exit(command==='install-deps'&&attempt<=Number(process.env.TEST_DEP_FAILURES)?124:0);
 `);
@@ -33,6 +41,7 @@ process.exit(command==='install-deps'&&attempt<=Number(process.env.TEST_DEP_FAIL
     sudo: '#!/bin/sh\nexport TEST_PRIVILEGED=1\nif [ "$1" = sed ] && [ "$2" = -i ]; then\n  sed "$3" "$4" "$5" > "$5.tmp" && mv "$5.tmp" "$5"\nelse\n  exec "$@"\nfi\n',
     timeout: '#!/bin/sh\nprintf "%s\\n" "${TEST_PRIVILEGED:-0}:$1:$2" >> "$TEST_BUDGET_LOG"\nif [ "${TEST_PRIVILEGED:-0}" = 1 ]; then export TEST_TIMEOUT_OWNER=root; else export TEST_TIMEOUT_OWNER=user; fi\nshift 2\nexec "$@"\n',
     bunx: '#!/bin/sh\nshift\nexec "$TEST_REAL_NODE" "$TEST_PINNED_CLI" "$@"\n',
+    dpkg: '#!/bin/sh\nprintf \'{"command":"dpkg","privileged":%s,"argv":"%s"}\\n\' "$([ "${TEST_PRIVILEGED:-0}" = 1 ] && echo true || echo false)" "$*" >> "$TEST_CALL_LOG"\n',
   };
   for (const [name, source] of Object.entries(scripts)) {
     writeFileSync(join(bin, name), source);
@@ -46,7 +55,7 @@ process.exit(command==='install-deps'&&attempt<=Number(process.env.TEST_DEP_FAIL
         ...process.env, ...Object.fromEntries(Object.entries(install.env).map(([k,v]) => [k,String(v)])),
         PATH: `${bin}:${process.env.PATH}`, RETRY_BACKOFF: "0",
         TEST_PINNED_CLI: cli, TEST_REAL_NODE: process.execPath,
-        TEST_MIRRORS: mirrors,
+        TEST_MIRRORS: mirrors, PACKAGE_CACHE: packageCache, APT_ARCHIVES: archives,
         TEST_ATTEMPT_FILE: join(fixture, "attempt"), TEST_CALL_LOG: log,
         TEST_BUDGET_LOG: join(fixture, "budgets"), TEST_DEP_FAILURES: String(failures),
       },
@@ -67,20 +76,32 @@ test("system dependency timeout owns privilege; browser download stays unprivile
   assert.equal(result.calls[1].mirrors, result.calls[0].mirrors);
 });
 
-test("a timed-out dependency attempt switches mirrors within the same privilege boundary", () => {
-  const result = runInstall(1);
+test("a timed-out dependency attempt repairs dpkg and leaves either cloud's regional mirror within the same privilege boundary", () => {
+  for (const mirror of [AZURE_MIRROR, AWS_MIRROR]) {
+    const result = runInstall(1, { mirror });
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(result.calls.map(c => c.command), ["install-deps", "dpkg", "install-deps", "install"]);
+    assert.ok([0, 2].every(i => result.calls[i].privileged && result.calls[i].timeoutOwner === "root"));
+    assert.ok(result.calls[0].mirrors.startsWith(mirror));
+    assert.equal(result.calls[2].mirrors, "https://archive.ubuntu.com/ubuntu/\tpriority:1\nhttp://security.ubuntu.com/ubuntu/\tpriority:2\n");
+    assert.deepEqual(result.calls[1], { command: "dpkg", privileged: true, argv: "--configure -a" });
+    assert.match(result.stdout, /attempt 1 failed or timed out/);
+    assert.ok(result.stdout.includes(`instead of ${mirror.replace(/\/ubuntu\/$/, "")}`));
+  }
+});
+
+test("cached packages reach apt's archive before the first dependency attempt", () => {
+  const result = runInstall(0, { cachedPackages: ["fonts-unifont.deb", "xfonts-utils.deb"] });
   assert.equal(result.status, 0, result.stderr);
-  assert.deepEqual(result.calls.map(c => c.command), ["install-deps", "install-deps", "install"]);
-  assert.ok(result.calls.slice(0, 2).every(c => c.privileged && c.timeoutOwner === "root"));
-  assert.equal(result.calls[1].mirrors, "https://archive.ubuntu.com/ubuntu/\tpriority:1\nhttp://security.ubuntu.com/ubuntu/\tpriority:2\n");
-  assert.match(result.calls[0].mirrors, /^http:\/\/azure\.archive\.ubuntu\.com\//);
-  assert.match(result.stdout, /attempt 1 failed or timed out/);
+  assert.deepEqual(result.calls[0].archives, ["fonts-unifont.deb", "xfonts-utils.deb"]);
+  assert.match(result.stdout, /Seeded apt with 2 cached packages/);
+  assert.deepEqual(runInstall().calls[0].archives, []);
 });
 
 test("exhausted dependency setup stops before browser download with infrastructure guidance", () => {
   const result = runInstall(2);
   assert.equal(result.status, 1);
-  assert.deepEqual(result.calls.map(c => c.command), ["install-deps", "install-deps"]);
+  assert.deepEqual(result.calls.map(c => c.command), ["install-deps", "dpkg", "install-deps"]);
   assert.match(result.stdout, /Playwright environment setup/);
   assert.match(result.stdout, /2 bounded attempts; browser tests have not started/);
 });
@@ -88,7 +109,10 @@ test("exhausted dependency setup stops before browser download with infrastructu
 test("timeout and retry budgets remain inside every caller's action deadline", () => {
   const seconds = value => Number(String(value).replace(/s$/, ""));
   const attempts = Number(install.env.MAX_ATTEMPTS);
-  const worstCase = 2 * (attempts * (seconds(install.env.ATTEMPT_TIMEOUT) + seconds(install.env.KILL_GRACE)) + (attempts - 1) * seconds(install.env.RETRY_BACKOFF));
+  const restoreBound = Number(restore.env.SEGMENT_DOWNLOAD_TIMEOUT_MINS) * 60;
+  assert.ok(restoreBound > 0, "the cache restore needs its own download bound");
+  const repairBound = (attempts - 1) * (seconds(install.env.REPAIR_TIMEOUT) + 5);
+  const worstCase = restoreBound + repairBound + 2 * (attempts * (seconds(install.env.ATTEMPT_TIMEOUT) + seconds(install.env.KILL_GRACE)) + (attempts - 1) * seconds(install.env.RETRY_BACKOFF));
   for (const file of ["design.yml", "admin.yml", "client.yml"]) {
     const workflow = load(readFileSync(join(root, ".github/workflows", file), "utf8"));
     for (const job of Object.values(workflow.jobs)) {
