@@ -379,7 +379,8 @@ if (!publicShell || !pwaRuntime) {
  * open app window. The hash-routed IPFS build has one scope and keeps its redirect.
  */
 function leaveForWebsite(url: URL, target: string) {
-  const inAppScope = url.pathname === PWA_APP_SCOPE || url.pathname.startsWith(`${PWA_APP_SCOPE}/`);
+  // A worker's scope is a plain URL prefix: "/home" also answers "/homepage".
+  const inAppScope = url.pathname.startsWith(PWA_APP_SCOPE);
   return inAppScope && import.meta.env.VITE_USE_HASH_ROUTER !== "true"
     ? redirectDocument(target)
     : redirect(target);
