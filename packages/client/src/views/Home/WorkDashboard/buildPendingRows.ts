@@ -96,6 +96,23 @@ function checkingCard(
 }
 
 /**
+ * A send that gave up reads Didn't send (DL-177): one that used up its tries, one the chain
+ * reverted, and one Upload all flagged because the batch it rode in reverted. No single item
+ * explains that last revert, so saying the record refused it would contradict the check it passed.
+ */
+function didntSendCard(base: Pick<RowCard, "title" | "meta" | "marker">, intl: IntlShape) {
+  return {
+    ...base,
+    kind: "needs",
+    pill: message(intl, "app.pending.pill.didntUpload"),
+    status: message(intl, "app.pending.status.nothingWasSent"),
+  } satisfies RowCard;
+}
+
+/** Upload all's mark for an item whose batch reverted: blocked so it is not resent unchanged. */
+const BATCH_REVERTED = "reverted";
+
+/**
  * Your own work: on this phone it says where its upload stands, the way its
  * page does; once on the record it waits for a review (O2).
  */
@@ -159,6 +176,7 @@ export function submissionRow(
       );
     switch (workUploadGroup(state.submissionState)) {
       case "attention":
+        if (state.blockedReason === BATCH_REVERTED) return didntSendCard(saved, intl);
         return {
           ...saved,
           kind: "needs",
@@ -167,20 +185,7 @@ export function submissionRow(
           statusTone: "error",
         };
       case "failed":
-        return state.submissionState === "reverted"
-          ? {
-              ...saved,
-              kind: "needs",
-              pill: message(intl, "app.pending.pill.didntUpload"),
-              status: message(intl, "app.uploads.blocked.short.refused"),
-              statusTone: "error",
-            }
-          : {
-              ...saved,
-              kind: "needs",
-              pill: message(intl, "app.pending.pill.didntUpload"),
-              status: message(intl, "app.pending.status.nothingWasSent"),
-            };
+        return didntSendCard(saved, intl);
       case "sent":
         return state.submissionState === "sending" && context.isOnline
           ? toUpload(message(intl, "app.pending.status.uploadingNow"), true)
@@ -233,6 +238,7 @@ export function decisionRow(
         return checkingCard(base, context);
       case "blocked":
       case "photo-needs-attention":
+        if (status.reason === BATCH_REVERTED) return didntSendCard(base, intl);
         return {
           ...base,
           kind: "needs",
@@ -247,12 +253,7 @@ export function decisionRow(
         };
       case "failed":
       case "reverted":
-        return {
-          ...base,
-          kind: "needs",
-          pill: message(intl, "app.pending.pill.didntUpload"),
-          status: message(intl, "app.pending.status.nothingWasSent"),
-        };
+        return didntSendCard(base, intl);
       default:
         return {
           ...base,

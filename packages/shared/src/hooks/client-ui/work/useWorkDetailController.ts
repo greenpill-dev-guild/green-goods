@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useOutletContext, useParams } from "react-router-dom";
 import { toastService } from "../../../components/Toast/toast.service";
+import { logger } from "../../../modules/app/logger";
 import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import { worksKeys } from "../../../config/query-keys/work";
 import { jobQueue } from "../../../modules/job-queue/default-instance";
@@ -34,6 +35,7 @@ import { useWorks } from "../../work/useWorks";
 import { useWorkVisibility } from "../../work/useWorkVisibility";
 import { queuedUploadStatus } from "../../../modules/work/upload-state";
 import { isCancelledTxError } from "../../../utils/errors/tx-error-classifier";
+import { WALLET_RECONNECT_REQUIRED } from "../../../utils/errors/unsent-failures";
 import type { Work, WorkDisplayStatus } from "../../../types/domain";
 
 export type WorkViewingMode = "steward" | "gardener" | "viewer";
@@ -169,6 +171,38 @@ export function useWorkDetailController() {
       context: "work upload",
     });
 
+  /**
+   * One toast answers an Upload now that did not send, in the app's words, never the error's
+   * (DL-177). A send the queue gave up on already raised the queue's own failure toast; this one
+   * takes its place under the same id, so the page shows one toast that points at the page's own
+   * Upload now. A send the queue held without failing is not called a failure: one whose answer
+   * was lost is being checked, and any other waits for what this page now names.
+   */
+  const reportUploadNowOutcome = ({ error, skipped }: { error?: string; skipped?: boolean }) => {
+    if (skipped) {
+      const checking = error === "awaiting-confirmation";
+      toastService.info({
+        id: "work-upload",
+        title: intl.formatMessage({
+          id: checking ? "app.home.work.checking.title" : "app.home.work.held.title",
+        }),
+        message: intl.formatMessage({
+          id: checking ? "app.home.work.checking.message" : "app.home.work.held.message",
+        }),
+        devMessage: error,
+        context: "work upload",
+      });
+      return;
+    }
+    toastService.error({
+      id: "work-upload",
+      title: intl.formatMessage({ id: "app.home.work.retryFailed", defaultMessage: "Didn't send" }),
+      message: intl.formatMessage({ id: "app.home.work.retryStillSaved" }),
+      devMessage: error,
+      context: "work upload",
+    });
+  };
+
   const retry = async () => {
     if (!transactionSender || !work) return;
     setIsRetrying(true);
@@ -215,26 +249,15 @@ export function useWorkDetailController() {
         }
       }
       const result = await jobQueue.processJob(work.id, { transactionSender, explicit: true });
-      // Declining the prompt is not a failure; the work stays ready to send.
-      if (result.error === "send-cancelled") return;
+      // Declining the prompt is not a failure; the work stays ready to send. A wallet that has
+      // not answered was already asked to reconnect by its own prompt.
+      if (result.error === "send-cancelled" || result.error === WALLET_RECONNECT_REQUIRED) return;
       if (result.error === "offline" || result.error === "connection-unconfirmed") {
         reportNotSent();
         return;
       }
       if (!result.success) {
-        toastService.error({
-          title: intl.formatMessage({
-            id: "app.home.work.retryFailed",
-            defaultMessage: "Didn't send",
-          }),
-          message:
-            result.error ||
-            intl.formatMessage({
-              id: "app.home.work.retryFailedMessage",
-              defaultMessage: "Please try again.",
-            }),
-          context: "work upload",
-        });
+        reportUploadNowOutcome(result);
         return;
       }
       queryClient.invalidateQueries({ queryKey: worksKeys.merged(gardenId, chainId) });
@@ -251,20 +274,8 @@ export function useWorkDetailController() {
         context: "work upload",
       });
     } catch (error) {
-      toastService.error({
-        title: intl.formatMessage({
-          id: "app.home.work.retryFailed",
-          defaultMessage: "Didn't send",
-        }),
-        message:
-          error instanceof Error
-            ? error.message
-            : intl.formatMessage({
-                id: "app.home.work.unknownError",
-                defaultMessage: "Something went wrong",
-              }),
-        context: "work upload",
-      });
+      logger.error("[WorkDetail] Upload now failed", { error, workId: work.id });
+      reportUploadNowOutcome({ error: error instanceof Error ? error.message : String(error) });
     } finally {
       setIsRetrying(false);
     }

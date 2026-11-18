@@ -119,6 +119,32 @@ describe("Pending rows", () => {
     });
   });
 
+  it("names every send that gave up Didn't send, a reverted one included (DL-177)", () => {
+    const didntSend = { pill: "Didn't send", status: "Nothing was sent" };
+    // A send that used up its tries, one the chain reverted, and one Upload all flagged because
+    // the batch it rode in reverted: no single item explains that, so the record never refused it.
+    for (const work of [
+      queuedWork("retry-required"),
+      queuedWork("reverted"),
+      queuedWork("blocked", "reverted"),
+    ]) {
+      const row = submissionRow(work, true, context);
+      expect(row.type === "work" && row.card).toEqual(expect.objectContaining(didntSend));
+      expect(row.type === "work" && row.card.statusTone).toBeUndefined();
+    }
+    for (const status of [
+      { state: "reverted" as const },
+      { state: "blocked" as const, reason: "reverted" },
+    ]) {
+      const row = decisionRow(
+        { ...queuedWork("ready"), id: "0xabc", status: "pending" },
+        { jobId: "approval-1", status, savedAt: 1 },
+        context
+      );
+      expect(row.card).toEqual(expect.objectContaining(didntSend));
+    }
+  });
+
   it("never offers to discard work that may already be sent, or that is being prepared online", () => {
     const checking = submissionRow(queuedWork("checking-submission"), true, context);
     expect(checking).toMatchObject({ kind: "checking", discardable: false });

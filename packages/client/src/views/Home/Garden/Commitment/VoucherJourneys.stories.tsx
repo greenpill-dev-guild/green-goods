@@ -945,7 +945,7 @@ export const EarnedClaimStewardDecisions: Story = {
     const decisions = within(await canvas.findByRole("region", { name: "Waiting on you" }));
     await expect(decisions.getByRole("button", { name: /^Accept$/ })).toBeEnabled();
     await expect(decisions.getByRole("button", { name: /^Decline$/ })).toBeVisible();
-    await expect(canvas.queryByRole("button", { name: /^Ask again$/ })).toBeNull();
+    await expect(canvas.queryByRole("button", { name: /^Request Again$/ })).toBeNull();
     await expect(canvas.queryByRole("button", { name: /^Take It Up$/ })).toBeNull();
   },
 };
