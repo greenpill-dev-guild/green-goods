@@ -65,6 +65,9 @@ export async function handleClaimEvent(
         commitment.lifecycleBlockNumber,
         commitment.lifecycleLogIndex
       ));
+  // A commitment ends only after its acceptance, never before one, so when both are newer than
+  // this event the acceptance is what closed the request: the ending names it only otherwise.
+  const terminalSupersedes = terminalIsNewer && !acceptanceIsNewer;
   const requested = event.eventName === "ClaimRequested";
   const requestPayloadWins = requested && (rowWins || !(existing?.requestSeen ?? false));
   const gardenContext = requestPayloadWins
@@ -131,7 +134,7 @@ export async function handleClaimEvent(
         : nextState === "ACCEPTED"
           ? "COMMITMENT_ACCEPTED"
           : nextState === "SUPERSEDED"
-            ? terminalIsNewer
+            ? terminalSupersedes
               ? terminalResolutionCode
               : "COMMITMENT_ACCEPTED"
             : undefined,
@@ -149,7 +152,7 @@ export async function handleClaimEvent(
             (nextState === "ACCEPTED"
               ? commitment.acceptanceAt
               : nextState === "SUPERSEDED"
-                ? terminalIsNewer
+                ? terminalSupersedes
                   ? terminalResolutionCode === "COMMITMENT_CANCELLED"
                     ? commitment.cancelledAt
                     : commitment.expiredAt

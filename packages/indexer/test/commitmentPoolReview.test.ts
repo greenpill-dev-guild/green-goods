@@ -891,6 +891,42 @@ describe("Commitment Pooling review regressions", () => {
     assert.equal(cancelledClaim?.state, "SUPERSEDED");
     assert.equal(cancelledClaim?.resolutionCode, "COMMITMENT_CANCELLED");
     assert.equal(cancelledClaim?.resolvedAt, START_BLOCK + 7);
+
+    // Taken up by someone else and canceled later: the acceptance closed the request, so the
+    // asker hears it was taken up, never that it was withdrawn before anyone did.
+    const acceptedThenCancelledDb = await processEvents(createTestIndexer(), [
+      poolRegistered(START_BLOCK),
+      cycleSeeded(START_BLOCK + 1),
+      commitmentCreated(48n, START_BLOCK + 2, 1n),
+      accepted(48n, START_BLOCK + 6),
+      CommitmentPoolingModule.CommitmentCancelled.createMockEvent({
+        commitmentId: 48n,
+        canceller: address(2),
+        reasonCID: "ipfs://cancelled",
+        mockEventData: eventData(START_BLOCK + 7),
+      }),
+    ]);
+    await handleClaimEvent(
+      runtimeEvent(
+        CommitmentPoolingModule.ClaimRequested.createMockEvent({
+          commitmentId: 48n,
+          claimant: address(8),
+          requestedBy: address(8),
+          kind: 1n,
+          gardenContext: address(9),
+          requestedAt: 100n,
+          mockEventData: eventData(START_BLOCK + 4),
+        }),
+        "ClaimRequested"
+      ),
+      acceptedThenCancelledDb as unknown as PoolingContext
+    );
+    const takenUpClaim = await acceptedThenCancelledDb.CommitmentClaimRequest.get(
+      `${CHAIN_ID}-48-${address(8).toLowerCase()}`
+    );
+    assert.equal(takenUpClaim?.state, "SUPERSEDED");
+    assert.equal(takenUpClaim?.resolutionCode, "COMMITMENT_ACCEPTED");
+    assert.equal(takenUpClaim?.resolvedAt, START_BLOCK + 6);
   });
 
   it("applies every signed unit delta and refreshes ownership on a winning relink", async () => {
