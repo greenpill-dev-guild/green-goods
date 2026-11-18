@@ -8,6 +8,10 @@ import { expect, test } from "@playwright/test";
 import { emulateChrome101, UPDATE_SCREEN_TITLE } from "../helpers/browser-minimum";
 import { TEST_URLS } from "../helpers/test-utils";
 
+// The screen draws before the bundle, but a cold dev server can take a busy CI runner most of a
+// minute to serve the Hub's modules, and this test waits for them to settle.
+test.describe.configure({ timeout: 90_000 });
+
 test.describe("Browser minimum", () => {
   test.use({ baseURL: TEST_URLS.admin });
 

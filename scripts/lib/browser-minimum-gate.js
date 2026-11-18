@@ -120,7 +120,10 @@ function browserMinimumGate(window, options) {
     logo.setAttribute("width", "819");
     logo.setAttribute("height", "464");
     append(content, "h1", null, copy.title).id = "browser-update-title";
-    append(content, "p", "browser-update-lede", copy.lede);
+    // A reporting page was opened from a chat link, so its reader opens the link again.
+    append(content, "p", "browser-update-lede", surface === "signing" ? copy.ledeLink : copy.lede);
+    // What the App holds on the phone is safe, and stays safe while the app and its data remain.
+    if (surface === "app") append(content, "p", "browser-update-safe", copy.safe);
     var steps = append(content, "ul", "browser-update-steps");
     for (var step = 0; step < copy.steps.length; step += 1) {
       var item = append(steps, "li", null);
@@ -141,11 +144,14 @@ function browserMinimumGate(window, options) {
   }
 
   // One event per browser, so the count is the number of people who land here. It goes straight
-  // to PostHog's capture endpoint in the form posthog-js uses for a beacon, because the app's own
-  // analytics never loads here. It carries no identifier, no address and no page path (reporting
+  // to PostHog's capture endpoint, in the body posthog-js sends, because the app's own analytics
+  // never loads here. The event carries no identifier of its own and no page path (reporting
   // links hold private locators): a random id that is never stored, no person profile, no
-  // location lookup, and only the surface, the missing checks, the language and the host. The
-  // stored flag says only that this browser has been counted. Development hosts send nothing.
+  // location lookup, and only the surface, the missing checks, the language and the host.
+  // PostHog still sees the request's IP address, as it does for the app's own analytics. It
+  // stamps the time the event arrived, since old devices often keep the wrong time. The stored
+  // flag says only that this browser has been counted, and is set once PostHog has taken the
+  // event, so an offline or failed send is tried again. Development hosts send nothing.
   function report(language, surface) {
     var telemetry = options.telemetry;
     if (!telemetry || !telemetry.key || isDevelopmentHost(window.location.hostname)) return;
@@ -156,57 +162,48 @@ function browserMinimumGate(window, options) {
     } catch (error) {
       storage = null;
     }
-
-    var event = {
-      event: "browser_update_screen_shown",
-      properties: {
-        token: telemetry.key,
-        distinct_id: "browser-update-" + Math.random().toString(36).slice(2) + new Date().getTime().toString(36),
-        $process_person_profile: false,
-        $geoip_disable: true,
-        $lib: "green-goods-browser-gate",
-        $host: window.location.host,
-        surface: surface,
-        missing_features: missing,
-        language: language,
-      },
-      timestamp: new Date().toISOString(),
-    };
-    var body = "data=" + encodeURIComponent(base64(JSON.stringify(event)));
-    var url = telemetry.host + "/e/?compression=base64";
-    var sent = false;
-    try {
-      sent = !!(
-        window.navigator.sendBeacon &&
-        window.navigator.sendBeacon(
-          url,
-          new window.Blob([body], { type: "application/x-www-form-urlencoded" })
-        )
-      );
-    } catch (error) {
-      sent = false;
+    if (window.navigator.onLine === false) {
+      window.addEventListener("online", send);
+      return;
     }
-    if (!sent) {
+    send();
+
+    function send() {
+      window.removeEventListener("online", send);
+      var event = {
+        event: "browser_update_screen_shown",
+        properties: {
+          token: telemetry.key,
+          distinct_id: "browser-update-" + Math.random().toString(36).slice(2) + new Date().getTime().toString(36),
+          $process_person_profile: false,
+          $geoip_disable: true,
+          $lib: "green-goods-browser-gate",
+          $host: window.location.host,
+          surface: surface,
+          missing_features: missing,
+          language: language,
+        },
+      };
       try {
         var request = new window.XMLHttpRequest();
-        request.open("POST", url, true);
+        request.open("POST", telemetry.host + "/e/?compression=base64", true);
         request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-        request.send(body);
-        sent = true;
+        request.onload = function () {
+          if (request.status < 200 || request.status > 299 || !storage) return;
+          try {
+            storage.setItem(REPORTED_KEY, "1");
+          } catch (error) {
+            // A browser that cannot store the flag may be counted again on its next visit.
+          }
+        };
+        request.send("data=" + encodeURIComponent(base64(JSON.stringify(event))));
       } catch (error) {
-        sent = false;
-      }
-    }
-    if (sent && storage) {
-      try {
-        storage.setItem(REPORTED_KEY, "1");
-      } catch (error) {
-        // A browser that cannot store the flag may be counted again on its next visit.
+        // Nothing is stored, so the next visit tries again.
       }
     }
   }
 
-  // UTF-8 then base64, as posthog-js encodes a beacon body.
+  // UTF-8 then base64, as posthog-js encodes a request body.
   function base64(text) {
     return window.btoa(
       encodeURIComponent(text).replace(/%([0-9A-F]{2})/g, function (match, hex) {
@@ -237,6 +234,8 @@ var COPY = {
   en: {
     title: "Update your browser to use Green\u00a0Goods",
     lede: "Green\u00a0Goods needs a newer version of this browser. Update it, then open Green\u00a0Goods again.",
+    ledeLink: "Green\u00a0Goods needs a newer version of this browser. Update it, then open the link again.",
+    safe: "What you saved stays on this phone. Keep the app installed and don't clear its data.",
     steps: [
       ["Android", "Update Chrome from the Play Store."],
       ["iPhone or iPad", "Update iOS in Settings > General > Software Update. Safari updates with it."],
@@ -247,6 +246,8 @@ var COPY = {
   es: {
     title: "Actualiza tu navegador para usar Green\u00a0Goods",
     lede: "Green\u00a0Goods necesita una versión más reciente de este navegador. Actualízalo y vuelve a abrir Green\u00a0Goods.",
+    ledeLink: "Green\u00a0Goods necesita una versión más reciente de este navegador. Actualízalo y vuelve a abrir el enlace.",
+    safe: "Lo que guardaste sigue en este teléfono. Mantén la app instalada y no borres sus datos.",
     steps: [
       ["Android", "Actualiza Chrome desde Play Store."],
       ["iPhone o iPad", "Actualiza iOS en Ajustes > General > Actualización de software. Safari se actualiza con iOS."],
@@ -257,6 +258,8 @@ var COPY = {
   pt: {
     title: "Atualize seu navegador para usar o Green\u00a0Goods",
     lede: "O Green\u00a0Goods precisa de uma versão mais recente deste navegador. Atualize-o e abra o Green\u00a0Goods de novo.",
+    ledeLink: "O Green\u00a0Goods precisa de uma versão mais recente deste navegador. Atualize-o e abra o link de novo.",
+    safe: "O que você salvou continua neste telefone. Mantenha o app instalado e não apague os dados dele.",
     steps: [
       ["Android", "Atualize o Chrome na Play Store."],
       ["iPhone ou iPad", "Atualize o iOS em Ajustes > Geral > Atualização de Software. O Safari é atualizado junto."],
@@ -286,6 +289,7 @@ var STYLES =
   "#browser-update .browser-update-logo { display: block; width: auto; height: 56px; margin-bottom: 32px; }" +
   "#browser-update h1 { font-size: 24px; font-weight: 600; line-height: 32px; }" +
   "#browser-update .browser-update-lede { margin-top: 12px; }" +
+  "#browser-update .browser-update-safe { margin-top: 8px; }" +
   "#browser-update .browser-update-steps { margin-top: 24px; list-style: none; border-top: 1px solid #e7e5e4; }" +
   "#browser-update .browser-update-steps li { display: block; padding: 12px 0; border-bottom: 1px solid #e7e5e4; }" +
   "#browser-update .browser-update-steps strong { display: block; font-size: 14px; font-weight: 600; line-height: 20px; }" +

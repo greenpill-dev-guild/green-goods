@@ -32,6 +32,7 @@ type Feature = (typeof ALL_FEATURES)[number];
 
 interface StandIn {
   missing?: Feature[];
+  online?: boolean;
   hostname?: string;
   storedLanguage?: string;
   browserLanguages?: string[];
@@ -39,8 +40,18 @@ interface StandIn {
   hero?: "focused" | "banner";
 }
 
+/** A request the gate opened; `respond` is PostHog answering it. */
+interface SentRequest {
+  method: string;
+  url: string;
+  contentType: string;
+  body: string;
+  respond: (status: number) => void;
+}
+
 function standInBrowser({
   missing = [],
+  online = true,
   hostname = "greengoods.app",
   storedLanguage,
   browserLanguages = ["en-US"],
@@ -48,7 +59,8 @@ function standInBrowser({
   hero,
 }: StandIn) {
   const stored = new Map<string, string>(storedLanguage ? [["gg-language", storedLanguage]] : []);
-  const beacons: { url: string; body: Blob }[] = [];
+  const requests: SentRequest[] = [];
+  const listeners = new Map<string, () => void>();
   const root = document.documentElement;
   if (presentation) root.setAttribute("data-boot-presentation", presentation);
   if (hero) root.setAttribute("data-boot-hero", hero);
@@ -72,20 +84,41 @@ function standInBrowser({
     navigator: {
       languages: browserLanguages,
       language: browserLanguages[0],
-      sendBeacon: (url: string, body: Blob) => {
-        beacons.push({ url, body });
-        return true;
-      },
+      onLine: online,
     },
     location: { hostname, host: hostname },
     btoa: (text: string) => Buffer.from(text, "binary").toString("base64"),
-    Blob,
+    addEventListener: (type: string, listener: () => void) => listeners.set(type, listener),
+    removeEventListener: (type: string) => listeners.delete(type),
+    XMLHttpRequest: class {
+      status = 0;
+      onload: (() => void) | null = null;
+      private sent: Partial<SentRequest> = {};
+      open(method: string, url: string) {
+        this.sent = { method, url };
+      }
+      setRequestHeader(name: string, value: string) {
+        if (name === "Content-Type") this.sent.contentType = value;
+      }
+      send(body: string) {
+        requests.push({
+          ...(this.sent as SentRequest),
+          body,
+          respond: (status) => {
+            this.status = status;
+            this.onload?.();
+          },
+        });
+      }
+    },
   };
-  return { window, beacons, stored };
+  /** The browser getting its connection back. */
+  const reconnect = () => listeners.get("online")?.();
+  return { window, requests, stored, reconnect };
 }
 
-async function decodeBeacon(body: Blob) {
-  const data = new URLSearchParams(await body.text()).get("data") ?? "";
+function decodeEvent(body: string) {
+  const data = new URLSearchParams(body).get("data") ?? "";
   return JSON.parse(Buffer.from(data, "base64").toString("utf8"));
 }
 
@@ -127,9 +160,22 @@ describe("browser minimum gate", () => {
       if (typeof type === "string" && newer.has(type)) found.push(type);
       if (type === "VariableDeclaration" && kind !== "var") found.push(`${kind} declaration`);
       if (type === "Property" && (shorthand || method || computed)) found.push("ES2015 property");
-      if (type === "LogicalExpression" && (node as { operator: string }).operator === "??") {
-        found.push("??");
+      const { operator, param, regex } = node as {
+        operator?: string;
+        param?: unknown;
+        regex?: { flags: string };
+      };
+      if (type === "LogicalExpression" && operator === "??") found.push("??");
+      if (type === "BinaryExpression" && operator === "**") found.push("**");
+      if (
+        type === "AssignmentExpression" &&
+        operator &&
+        !/^[-+*/%&|^]?=$|^(<<|>>>?)=$/.test(operator)
+      ) {
+        found.push(`${operator} assignment`);
       }
+      if (type === "CatchClause" && param === null) found.push("catch without a binding");
+      if (regex && /[^gim]/.test(regex.flags)) found.push(`regex flags ${regex.flags}`);
       for (const value of Object.values(node)) visit(value);
     };
     visit(parseAst(script));
@@ -137,16 +183,16 @@ describe("browser minimum gate", () => {
   });
 
   it("lets a browser at the minimum through untouched", () => {
-    const { window, beacons } = standInBrowser({ presentation: "pwa" });
+    const { window, requests } = standInBrowser({ presentation: "pwa" });
     browserMinimumGate(window, { surface: "client", logo: "/icon.png", telemetry: TELEMETRY });
 
     expect(document.documentElement.hasAttribute("data-browser-update")).toBe(false);
     expect(document.getElementById("browser-update")).toBeNull();
-    expect(beacons).toEqual([]);
+    expect(requests).toEqual([]);
   });
 
-  it("puts up the update screen in the App, in the reader's language, and counts it once", async () => {
-    const { window, beacons, stored } = standInBrowser({
+  it("puts up the update screen in the App, in the reader's language, and counts it once", () => {
+    const { window, requests, stored } = standInBrowser({
       missing: ["color-mix", "well-formed-strings"],
       presentation: "pwa",
       storedLanguage: "es",
@@ -161,13 +207,36 @@ describe("browser minimum gate", () => {
     expect(screen?.querySelector("h1")?.textContent).toBe(
       "Actualiza tu navegador para usar Green\u00a0Goods"
     );
+    // The App says its saved work is safe before anything else.
+    expect(screen?.querySelector(".browser-update-safe")?.textContent).toBe(
+      "Lo que guardaste sigue en este teléfono. Mantén la app instalada y no borres sus datos."
+    );
     expect(screen?.querySelectorAll("li")).toHaveLength(3);
     expect(screen?.querySelector("img")?.getAttribute("src")).toBe("/icon.png");
 
-    expect(beacons).toHaveLength(1);
-    expect(beacons[0].url).toBe("https://us.i.posthog.com/e/?compression=base64");
-    const event = await decodeBeacon(beacons[0].body);
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).toMatchObject({
+      method: "POST",
+      url: "https://us.i.posthog.com/e/?compression=base64",
+      contentType: "application/x-www-form-urlencoded",
+    });
+    const event = decodeEvent(requests[0].body);
+    expect(Object.keys(event)).toEqual(["event", "properties"]);
     expect(event.event).toBe("browser_update_screen_shown");
+    // These and nothing else: no URL, path, referrer, device time or stored identifier.
+    expect(Object.keys(event.properties).sort()).toEqual(
+      [
+        "$geoip_disable",
+        "$host",
+        "$lib",
+        "$process_person_profile",
+        "distinct_id",
+        "language",
+        "missing_features",
+        "surface",
+        "token",
+      ].sort()
+    );
     expect(event.properties).toMatchObject({
       token: "phc_test",
       $process_person_profile: false,
@@ -177,14 +246,32 @@ describe("browser minimum gate", () => {
       missing_features: ["color-mix", "well-formed-strings"],
       language: "es",
     });
-    // Nothing that could name a person or a page travels with it.
-    expect(Object.keys(event.properties)).not.toContain("$current_url");
-    expect(stored.has("gg-browser-update-reported")).toBe(true);
+    expect(stored.has("gg-browser-update-reported")).toBe(false);
+    requests[0].respond(200);
+    expect(stored.get("gg-browser-update-reported")).toBe("1");
 
     document.body.innerHTML = "";
     browserMinimumGate(window, { surface: "client", logo: "/icon.png", telemetry: TELEMETRY });
     expect(document.getElementById("browser-update")).not.toBeNull();
-    expect(beacons).toHaveLength(1);
+    expect(requests).toHaveLength(1);
+  });
+
+  it("counts a browser only once PostHog has taken the event", () => {
+    const { window, requests, stored, reconnect } = standInBrowser({
+      missing: ["registered-properties"],
+      online: false,
+    });
+    browserMinimumGate(window, { surface: "hub", logo: "/logo.png", telemetry: TELEMETRY });
+    // Offline, it waits for the connection instead of sending into nothing.
+    expect(requests).toHaveLength(0);
+    reconnect();
+    expect(requests).toHaveLength(1);
+
+    requests[0].respond(503);
+    expect(stored.has("gg-browser-update-reported")).toBe(false);
+    window.navigator.onLine = true;
+    browserMinimumGate(window, { surface: "hub", logo: "/logo.png", telemetry: TELEMETRY });
+    expect(requests).toHaveLength(2);
   });
 
   it("keeps the website open and gates the reporting pages", () => {
@@ -199,7 +286,7 @@ describe("browser minimum gate", () => {
       telemetry: TELEMETRY,
     });
     expect(document.getElementById("browser-update")).toBeNull();
-    expect(website.beacons).toEqual([]);
+    expect(website.requests).toEqual([]);
 
     document.documentElement.setAttribute("data-boot-hero", "focused");
     browserMinimumGate(website.window, {
@@ -207,7 +294,13 @@ describe("browser minimum gate", () => {
       logo: "/icon.png",
       telemetry: TELEMETRY,
     });
-    expect(document.getElementById("browser-update")?.getAttribute("data-surface")).toBe("signing");
+    const signing = document.getElementById("browser-update");
+    expect(signing?.getAttribute("data-surface")).toBe("signing");
+    // A reporting page was opened from a chat link, and holds nothing on the phone.
+    expect(signing?.querySelector(".browser-update-lede")?.textContent).toContain(
+      "then open the link again."
+    );
+    expect(signing?.querySelector(".browser-update-safe")).toBeNull();
   });
 
   it("gates every Hub page, and sends nothing from a development host or without a key", () => {
@@ -215,11 +308,12 @@ describe("browser minimum gate", () => {
     browserMinimumGate(local.window, { surface: "hub", logo: "/logo.png", telemetry: TELEMETRY });
     expect(document.getElementById("browser-update")?.getAttribute("data-surface")).toBe("hub");
     expect(document.getElementById("browser-update")?.getAttribute("lang")).toBe("en");
-    expect(local.beacons).toEqual([]);
+    expect(document.querySelector(".browser-update-safe")).toBeNull();
+    expect(local.requests).toEqual([]);
 
     const keyless = standInBrowser({ missing: ["media-query-ranges"] });
     browserMinimumGate(keyless.window, { surface: "hub", logo: "/logo.png", telemetry: null });
-    expect(keyless.beacons).toEqual([]);
+    expect(keyless.requests).toEqual([]);
   });
 
   it("passes the surface's options without letting a value close the script", () => {
