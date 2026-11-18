@@ -59,7 +59,7 @@ export function CommitmentReasonDialogs({
             ? formatMessage({
                 id: "hub.garden.pool.commitment.cancel.descriptionUntaken",
                 defaultMessage:
-                  "Nobody has taken this up yet. Canceling takes it out of the pool. The record and your reason stay in its history, and whoever made it sees why.",
+                  "Nobody has taken this up yet. Canceling takes it out of the pool. The record stays, and your reason is saved with it.",
               })
             : formatMessage({
                 id: "hub.garden.pool.commitment.cancel.description",
