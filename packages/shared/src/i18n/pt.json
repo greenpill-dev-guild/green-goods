@@ -4915,6 +4915,7 @@
   "hub.garden.pool.commitment.attach.title": "Anexar uma avaliação",
   "hub.garden.pool.commitment.cancel.confirm": "Cancelar promessa",
   "hub.garden.pool.commitment.cancel.description": "Aceito passa a Cancelado com um motivo registrado. As unidades comprometidas são liberadas; o membro vê o motivo, nunca só “cancelado”.",
+  "hub.garden.pool.commitment.cancel.descriptionUntaken": "Ninguém aceitou ainda. Cancelar tira do pool. O registro e o seu motivo ficam no histórico, e quem fez vê o porquê.",
   "hub.garden.pool.commitment.cancel.keep": "Mantê-la ativa",
   "hub.garden.pool.commitment.cancel.suggestion.agreement": "Retirado por acordo",
   "hub.garden.pool.commitment.cancel.suggestion.duplicate": "Promessa duplicada",

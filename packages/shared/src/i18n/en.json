@@ -4915,6 +4915,7 @@
   "hub.garden.pool.commitment.attach.title": "Attach an Assessment",
   "hub.garden.pool.commitment.cancel.confirm": "Cancel Promise",
   "hub.garden.pool.commitment.cancel.description": "Accepted becomes Canceled with a recorded reason. Committed units release; the member sees the reason, never “canceled” alone.",
+  "hub.garden.pool.commitment.cancel.descriptionUntaken": "Nobody has taken this up yet. Canceling takes it out of the pool. The record and your reason stay in its history, and whoever made it sees why.",
   "hub.garden.pool.commitment.cancel.keep": "Keep It Live",
   "hub.garden.pool.commitment.cancel.suggestion.agreement": "Withdrawn by agreement",
   "hub.garden.pool.commitment.cancel.suggestion.duplicate": "Duplicate promise",

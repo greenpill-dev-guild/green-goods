@@ -825,6 +825,36 @@ describe("useCommitmentDialogController", () => {
     expect(result.current.can.sendForConfirmation).toBe(false);
   });
 
+  it("offers a steward's cancel while nobody has taken the promise up and once accepted, never after", async () => {
+    const states: Array<[string, boolean]> = [
+      ["OFFERED", true],
+      ["REQUESTED", true],
+      ["ACCEPTED", true],
+      // TerminalLib.cancelCommitment refuses every later state.
+      ["READY_FOR_CONFIRMATION", false],
+      ["FULFILLED", false],
+      ["CANCELLED", false],
+    ];
+
+    for (const [onchainState, expected] of states) {
+      mocks.getCommitmentDetail.mockResolvedValue(detail({ onchainState, state: onchainState }));
+      const { result, unmount } = render();
+      await waitFor(() => expect(result.current.commitment?.onchainState).toBe(onchainState));
+      expect(result.current.can.cancel, onchainState).toBe(expected);
+      unmount();
+    }
+
+    // A gardener who is no steward never gets it, even on an untaken record.
+    mocks.roles.mockReturnValue({ roles: ["gardener"], isLoading: false, error: null });
+    mocks.getCommitmentDetail.mockResolvedValue(
+      detail({ onchainState: "OFFERED", state: "OFFERED" })
+    );
+    const gardener = render();
+    await waitFor(() => expect(gardener.result.current.commitment?.onchainState).toBe("OFFERED"));
+    expect(gardener.result.current.can.cancel).toBe(false);
+    gardener.unmount();
+  });
+
   it("offers a dispute only in the three states raiseDispute accepts", async () => {
     const states: Array<[string, boolean]> = [
       ["ACCEPTED", true],
