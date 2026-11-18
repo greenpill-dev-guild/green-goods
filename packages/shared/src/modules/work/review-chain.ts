@@ -154,9 +154,11 @@ const ARBITRUM_CEILINGS = {
  * bundler's call gas plus the same, and a Green Goods passkey UserOperation adds about 730k: 15.7M
  * at open-source Alto's estimate, 17.2M with the margin Pimlico's hosted bundler added. Alto's
  * default limit for one operation is 16M and the hosted bundler's is unconfirmed, so a passkey
- * group stops at 16M. One past it is turned away before the prompt, rather than by the bundler
- * after the signature. Past its ceiling a list goes one review at a time. The first live batch on
- * each rail confirms them before it is listed.
+ * group stops at 16M. The quote also counts the gas Alto checks on send, which runs about 1M higher:
+ * on a fork on 18 November, five approvals of works with 55-character descriptions added up to
+ * 15.84M but came to 16.87M on that check. One past either is turned away before the prompt, rather
+ * than by the bundler after the signature. Past its ceiling a list goes one review at a time. The
+ * first live batch on each rail confirms them before it is listed.
  */
 const REVIEW_BUDGETS: Partial<Record<number, Record<BatchRail, BatchBudget>>> = {
   42161: {

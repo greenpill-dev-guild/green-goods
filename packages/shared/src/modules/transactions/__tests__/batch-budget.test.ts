@@ -1,4 +1,6 @@
+import type { Hex } from "viem";
 import { describe, expect, it, vi } from "vitest";
+import { reviewBudget } from "../../work/review-chain";
 import { assertBatchQuote, quoteUserOperation } from "../batch-budget";
 import { quoteWalletBatch } from "../wallet-batch-preflight";
 import { createMockContractCall } from "../../../__tests__/test-utils/transaction-fakes";
@@ -15,6 +17,8 @@ const budget: BatchBudget = {
 };
 const operation = {
   sender: account,
+  nonce: 0n,
+  signature: "0x" as const,
   callData: "0x1234" as const,
   callGasLimit: 100n,
   verificationGasLimit: 200n,
@@ -55,6 +59,9 @@ describe("reviewed batch budgets", () => {
   it.each([
     { verificationGasLimit: -1n },
     { preVerificationGas: undefined },
+    { sender: undefined },
+    { nonce: undefined },
+    { signature: "0xzz" as Hex },
     { maxPriorityFeePerGas: 3n },
     { maxFeePerGas: 0n },
   ])("rejects incomplete or invalid operation estimates: %#", (patch) => {
@@ -64,6 +71,38 @@ describe("reviewed batch budgets", () => {
     const quote = quoteUserOperation(operation, budget);
     expect(() => assertBatchQuote(budget, { ...quote, maxFee: "1" })).toThrow(
       "batch-invalid-quote"
+    );
+  });
+});
+
+describe("the gas a bundler counts when the operation is sent", () => {
+  // Five passkey approvals as simulated on an Arbitrum fork on 18 November: the hosted bundler's
+  // non-call gas from this account's own operations, a 3,076-byte call and a WebAuthn signature.
+  const fiveApprovals = (callGasLimit: bigint) => ({
+    sender: account,
+    nonce: 3n,
+    callData: `0x${"ab".repeat(3_076)}` as Hex,
+    callGasLimit,
+    verificationGasLimit: 605_410n,
+    preVerificationGas: 79_163n,
+    maxFeePerGas: 10_000_000n,
+    maxPriorityFeePerGas: 0n,
+    paymaster: account,
+    paymasterData: `0x${"cd".repeat(77)}` as Hex,
+    paymasterVerificationGasLimit: 46_456n,
+    paymasterPostOpGasLimit: 1n,
+    signature: `0x${"ef".repeat(352)}` as Hex,
+  });
+  const passkeyReviews = reviewBudget("passkey", 42161)!;
+
+  it("keeps five approvals the bundler takes in one signature", () => {
+    // No work descriptions: 14.69M added up, about 15.7M on the bundler's count.
+    expect(quoteUserOperation(fiveApprovals(13_959_078n), passkeyReviews).gas).toBe("14690108");
+  });
+  it("sends five approvals one at a time when the bundler would refuse them after the signature", () => {
+    // 55-character descriptions: 15.84M added up, under the 16M cap, but about 16.9M counted on send.
+    expect(() => quoteUserOperation(fiveApprovals(15_105_339n), passkeyReviews)).toThrow(
+      "batch-budget-exceeded"
     );
   });
 });

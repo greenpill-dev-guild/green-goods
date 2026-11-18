@@ -218,9 +218,11 @@ export class PasskeySender implements TransactionSender {
     const account = client.account!;
     const clientChainId = client.chain?.id;
     const signUserOperation: typeof account.signUserOperation = async (userOperation) => {
-      if (options.batchBudget) quoteUserOperation(userOperation, options.batchBudget);
+      const operation = { ...userOperation, sender: userOperation.sender ?? account.address };
+      if (options.batchBudget) quoteUserOperation(operation, options.batchBudget);
       const signature = await account.signUserOperation(userOperation);
-      if (options.batchBudget) quoteUserOperation(userOperation, options.batchBudget);
+      // Quoted again with the signature the bundler will carry in place of the stub.
+      if (options.batchBudget) quoteUserOperation({ ...operation, signature }, options.batchBudget);
       // A WebAuthn prompt can outlive the session that opened it. Check again
       // at the last point before viem can submit the signed operation.
       assertSmartAccountClientResolverActive(this.deps.resolveSmartAccountClient);
