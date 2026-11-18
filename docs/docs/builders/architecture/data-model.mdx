@@ -11,7 +11,7 @@ generated_from:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
   - scripts/quality/ontology-render.mjs
-source_digest: "sha256:b137ed704e505a6eb67d9544279fb259f3e2b2e2aa016cc5f48059acb9ff7437"
+source_digest: "sha256:f65935405f84a4de4b863d1e79c1f3fc8269f81aa50f19fd3d70aeffab458d3b"
 source_of_truth:
   - packages/indexer/schema.graphql
   - packages/shared/src/ontology/green-goods-ontology.json
@@ -346,7 +346,7 @@ stateDiagram-v2
 | Offered, Requested, Accepted | Cancelled | on-chain | cancelCommitment(reasonCID) — creator or steward pre-acceptance, steward-only after; Accepted releases committed units |
 | Offered, Requested, Accepted, ReadyForConfirmation | Expired | on-chain | expireCommitment — permissionless once past dueDate (or cycle endTime); releases still-committed units |
 | Accepted, ReadyForConfirmation, Expired | Disputed | on-chain | raiseDispute(reasonCID) — module stores the exact prior state in preDisputeState → CommitmentDisputed |
-| Disputed | Accepted, ReadyForConfirmation, Fulfilled, Cancelled, Expired | on-chain | resolveDispute steward-only; RestorePrevious replays preDisputeState; an Expired prior state can never resolve Fulfilled; a direct Fulfilled resolution requires an available recognition policy and verified contributor, then freezes an unfrozen roster before DisputeResolved |
+| Disputed | Accepted, ReadyForConfirmation, Fulfilled, Cancelled, Expired | on-chain | resolveDispute steward-only; RestorePrevious replays preDisputeState; an Expired prior state can never resolve Fulfilled; a direct Fulfilled resolution rejects the steward who raised the dispute (SelfDisputeResolution) and a dispute with no recorded raiser (UnknownDisputeRaiser), while that steward may still restore, cancel or expire it; it then requires an available recognition policy and verified contributor, and freezes an unfrozen roster before DisputeResolved |
 
 ### commitment-loan {#commitment-loan}
 
