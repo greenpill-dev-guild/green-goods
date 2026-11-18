@@ -14,6 +14,8 @@ import { existingCLCAddress } from "./clc-garden-release";
 import { gardenExecutionJournal, validateGardenExecutionJournal } from "./clc-garden-execution";
 import { aiyelojaGasEnvelope } from "./clc-aiyeloja-downstream";
 import { voucherDigest } from "./voucher-release";
+// A dependency-free data file: the deployed pin that test and QA harnesses read through Shared's `./testing` export.
+import { AIYELOJA_TEST_POOL } from "../../../shared/src/__tests__/test-utils/aiyeloja-test-pool";
 const revision = "a".repeat(40);
 const plan = () => buildCLCAiyelojaPlan(structuredClone(manifest), revision);
 
@@ -100,6 +102,29 @@ describe("Aiyeloja test-only pool preparation", () => {
     { tokens: manifest.tokens.map((t, i) => (i ? t : { ...t, kind: "individual" })) },
   ])("rejects wrong authority, mainnet assets and unsafe test bounds: %j", (patch) => {
     expect(() => inspectCLCAiyelojaManifest({ ...structuredClone(manifest), ...patch })).toThrow();
+  });
+  it("predicts exactly the nine proxies deployed on Gnosis, at the pinned deployer nonces", () => {
+    const p = plan();
+    const pinned = [
+      ...Object.entries(AIYELOJA_TEST_POOL.contracts),
+      ...Object.entries(AIYELOJA_TEST_POOL.vouchers).map(([id, voucher]) => [`fixture:${id}`, voucher] as const),
+    ];
+    expect(p.transactions.map((tx) => [tx.component, tx.address])).toEqual(
+      pinned.map(([component, pin]) => [component, pin.address]),
+    );
+    expect(p.addresses).toEqual(
+      Object.fromEntries(Object.entries(AIYELOJA_TEST_POOL.contracts).map(([key, pin]) => [key, pin.address])),
+    );
+    expect(p.assets.map((a) => [a.symbol, a.token])).toEqual(
+      Object.values(AIYELOJA_TEST_POOL.vouchers).map((v) => [v.symbol, v.address]),
+    );
+    expect([p.safe, p.garden, p.automation]).toEqual([
+      AIYELOJA_TEST_POOL.safe,
+      AIYELOJA_TEST_POOL.garden,
+      AIYELOJA_TEST_POOL.automation,
+    ]);
+    const blocks = pinned.map(([, pin]) => pin.receipt.blockNumber);
+    expect(blocks).toEqual([...blocks].sort((a, b) => (a < b ? -1 : 1)));
   });
   it("binds every deployment and Safe call, and keeps deterministic addresses independent of sender nonce", () => {
     const p = plan();

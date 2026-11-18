@@ -58,7 +58,8 @@ const CONFIGURED_ADDRESSES: ReadonlyMap<string, Address> = (() => {
       contract = named;
       continue;
     }
-    const address = line.match(/^\s+address:\s*"(0x[0-9a-fA-F]{40})"\s*$/)?.[1];
+    // A single `address: "0x…"`, or the first `- "0x…"` item of an address list.
+    const address = line.match(/^\s+(?:address:\s*|-\s*)"(0x[0-9a-fA-F]{40})"\s*$/)?.[1];
     if (address && chainId && contract) {
       const key = `${chainId}:${contract}`;
       // The regex above proves the 0x-prefixed 40-hex shape, so this is a

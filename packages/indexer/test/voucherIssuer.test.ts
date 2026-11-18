@@ -158,6 +158,36 @@ describe("voucher issuer configuration and exchange observations", () => {
     assert.deepEqual(await db.VoucherPoolExchange.getAll(), before);
   });
 
+  it("indexes the Aiyeloja test pool's settlements under its own module address", async () => {
+    const db = createTestIndexer();
+    const aiyelojaPool = "0x766b4531A9690Bf80e4331FC33d34030e6f14630";
+    await processEvents(db, [
+      {
+        contract: "CLCSwapPool",
+        event: "SwapSettlement",
+        chainId: 100,
+        srcAddress: aiyelojaPool,
+        params: {
+          initiator: HOLDER,
+          tokenIn: TOKEN,
+          tokenOut: OTHER,
+          amountIn: 1_000_000n,
+          quotedAmountOut: 1_000_000n,
+          nominalAmountOut: 1_000_000n,
+          amountOut: 1_000_000n,
+          poolFee: 0n,
+          protocolFee: 0n,
+        },
+        block: { number: 49_334_242, timestamp: 1_792_900_000 },
+        logIndex: 0,
+        transaction: { hash: hash(102) },
+      },
+    ]);
+    const [exchange] = await db.VoucherPoolExchange.getAll();
+    assert.equal(exchange?.moduleAddress, aiyelojaPool.toLowerCase());
+    assert.equal(exchange?.amountOut, 1_000_000n);
+  });
+
   it("discovers the source module only through the configured core's local pin event", async () => {
     const db = createTestIndexer();
     const untrusted = createTestIndexer();
