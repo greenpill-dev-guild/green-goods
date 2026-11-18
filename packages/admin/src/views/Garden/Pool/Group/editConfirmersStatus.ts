@@ -6,6 +6,7 @@
  */
 
 import type { ConfirmerEditProgress } from "@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController";
+import type { confirmerRuleError } from "@green-goods/shared/modules/commitment-pooling/pool-console";
 import type { CreationSendMode } from "@green-goods/shared/hooks/admin-ui/pool/useSeedTray";
 import type { FlowStatusTone } from "@/components/Layout/FlowStatusRow";
 import { copiesInRequest, type EditRewardPhase } from "./editRewardStatus";
@@ -25,6 +26,32 @@ export interface EditConfirmersStatus {
   progress: number | null;
   /** The copies Try Again changes: the ones that weren't. */
   retry: readonly bigint[];
+}
+
+/** Why a rule can't be saved, in the composer's own words; null when it can. */
+export function confirmerRuleMessage(
+  error: ReturnType<typeof confirmerRuleError>,
+  formatMessage: FormatMessage
+): string | null {
+  switch (error) {
+    case "hub.garden.pool.seed.error.confirmersTooMany":
+      return formatMessage({
+        id: "hub.garden.pool.seed.error.confirmersTooMany",
+        defaultMessage: "That is more confirmers than one promise can name.",
+      });
+    case "hub.garden.pool.seed.error.thresholdAtLeastOne":
+      return formatMessage({
+        id: "hub.garden.pool.seed.error.thresholdAtLeastOne",
+        defaultMessage: "At least one confirmation is needed.",
+      });
+    case "hub.garden.pool.seed.error.thresholdAboveGroup":
+      return formatMessage({
+        id: "hub.garden.pool.seed.error.thresholdAboveGroup",
+        defaultMessage: "That asks for more confirmations than there are named confirmers.",
+      });
+    default:
+      return null;
+  }
 }
 
 const IN_FLIGHT = new Set<ConfirmerEditProgress["status"]>(["waiting", "wallet", "confirming"]);

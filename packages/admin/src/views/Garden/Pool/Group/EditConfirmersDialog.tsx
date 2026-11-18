@@ -16,7 +16,7 @@ import { FlowStatusRow } from "@/components/Layout/FlowStatusRow";
 import { GardenPoolTarget } from "../PoolTarget";
 import { ConfirmerGroupEditor } from "../Seed/SeedConfirmerList";
 import { seedMembers } from "../Seed/seedStepModel";
-import { editConfirmersStatus } from "./editConfirmersStatus";
+import { confirmerRuleMessage, editConfirmersStatus } from "./editConfirmersStatus";
 import { confirmerRuleText, confirmersSplitText } from "./groupTerms";
 
 /** Copies a batching wallet changes per request, as Shared sends them (`sendConfirmerEdit`). */
@@ -105,23 +105,7 @@ export function EditConfirmersDialog({
     threshold: current.confirmationThreshold ?? 1,
   };
   const ruleError = confirmerRuleError(draft);
-  const ruleMessage =
-    ruleError === "hub.garden.pool.seed.error.confirmersTooMany"
-      ? formatMessage({
-          id: "hub.garden.pool.seed.error.confirmersTooMany",
-          defaultMessage: "That is more confirmers than one promise can name.",
-        })
-      : ruleError === "hub.garden.pool.seed.error.thresholdAtLeastOne"
-        ? formatMessage({
-            id: "hub.garden.pool.seed.error.thresholdAtLeastOne",
-            defaultMessage: "At least one confirmation is needed.",
-          })
-        : ruleError === "hub.garden.pool.seed.error.thresholdAboveGroup"
-          ? formatMessage({
-              id: "hub.garden.pool.seed.error.thresholdAboveGroup",
-              defaultMessage: "That asks for more confirmations than there are named confirmers.",
-            })
-          : null;
+  const ruleMessage = confirmerRuleMessage(ruleError, formatMessage);
   const unchanged = !locked && !retrying && !mixed && sameConfirmerRule(draft, now);
   const blocked =
     ruleMessage ??
