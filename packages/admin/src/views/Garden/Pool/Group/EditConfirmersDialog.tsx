@@ -17,7 +17,7 @@ import { GardenPoolTarget } from "../PoolTarget";
 import { ConfirmerGroupEditor } from "../Seed/SeedConfirmerList";
 import { seedMembers } from "../Seed/seedStepModel";
 import { editConfirmersStatus } from "./editConfirmersStatus";
-import { confirmerRuleText } from "./groupTerms";
+import { confirmerRuleText, confirmersSplitText } from "./groupTerms";
 
 /** Copies a batching wallet changes per request, as Shared sends them (`sendConfirmerEdit`). */
 const PER_APPROVAL = 50;
@@ -161,7 +161,10 @@ export function EditConfirmersDialog({
       formatMessage(
         { id: "hub.garden.pool.confirmers.fromTo", defaultMessage: "{from} → {to}" },
         {
-          from: confirmerRuleText(formatMessage, current),
+          // After a change that didn't finish, the copies don't share one rule to name.
+          from: mixed
+            ? confirmersSplitText(formatMessage)
+            : confirmerRuleText(formatMessage, current),
           to: ruleError
             ? "—"
             : confirmerRuleText(formatMessage, {

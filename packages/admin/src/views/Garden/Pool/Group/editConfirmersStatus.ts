@@ -8,7 +8,7 @@
 import type { ConfirmerEditProgress } from "@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController";
 import type { CreationSendMode } from "@green-goods/shared/hooks/admin-ui/pool/useSeedTray";
 import type { FlowStatusTone } from "@/components/Layout/FlowStatusRow";
-import type { EditRewardPhase } from "./editRewardStatus";
+import { copiesInRequest, type EditRewardPhase } from "./editRewardStatus";
 
 type FormatMessage = (
   descriptor: { id: string; defaultMessage: string },
@@ -104,6 +104,7 @@ export function editConfirmersStatus(input: {
         ),
       };
     }
+    const inRequest = copiesInRequest(copies);
     return copies[at]?.status === "confirming"
       ? {
           ...busy,
@@ -115,7 +116,7 @@ export function editConfirmersStatus(input: {
               defaultMessage:
                 "{count, plural, one {Changing who confirms} other {Changing who confirms # promises}}",
             },
-            { count: copies.length }
+            { count: inRequest }
           ),
           description: formatMessage({
             id: "hub.garden.pool.reward.confirmingHint",
@@ -132,7 +133,7 @@ export function editConfirmersStatus(input: {
               defaultMessage:
                 "{count, plural, one {Approve in your wallet} other {Approve in your wallet: # promises in one request}}",
             },
-            { count: copies.length }
+            { count: inRequest }
           ),
           description: formatMessage(
             {
@@ -140,7 +141,7 @@ export function editConfirmersStatus(input: {
               defaultMessage:
                 "{count, plural, one {It changes once your wallet approves.} other {They change together: all #, or none if the wallet declines.}}",
             },
-            { count: copies.length }
+            { count: inRequest }
           ),
         };
   }

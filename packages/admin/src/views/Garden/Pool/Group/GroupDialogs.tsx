@@ -26,7 +26,7 @@ import { EditConfirmersDialog } from "./EditConfirmersDialog";
 import { EditRewardDialog } from "./EditRewardDialog";
 import { GroupInspector } from "./GroupInspector";
 import { groupSetAt } from "./groupInspectorModel";
-import { groupReward, groupTerms } from "./groupTerms";
+import { confirmerRulesAgree, groupReward, groupTerms } from "./groupTerms";
 import { SeedMoreDialog } from "./SeedMoreDialog";
 
 /** How far back the inspector reads the pool's activity for its dates. */
@@ -249,16 +249,7 @@ export function GroupDialogs({
             protocolFallbackEnabled: child.protocolFallbackEnabled === true,
           }))}
           current={confirmerEdit.targets[0]}
-          mixed={
-            new Set(
-              confirmerEdit.targets.map((child) =>
-                [
-                  ...child.confirmers.map((address) => address.toLowerCase()).sort(),
-                  child.confirmationThreshold,
-                ].join(",")
-              )
-            ).size > 1
-          }
+          mixed={!confirmerRulesAgree(confirmerEdit.targets)}
           direction={first.direction}
           taken={group.counts.inProgress + group.counts.kept}
         />

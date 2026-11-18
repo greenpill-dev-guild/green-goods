@@ -302,3 +302,39 @@ describe("the group's reward line", () => {
     );
   });
 });
+
+describe("the group's confirmers line", () => {
+  const intl = createIntl({ locale: "en", messages: {} });
+  const ANA = "0x2222222222222222222222222222222222222222" as const;
+  const OLD = "0x3333333333333333333333333333333333333333" as const;
+  const NEW = "0x4444444444444444444444444444444444444444" as const;
+  const copyOf = (onchainState: "REQUESTED" | "ACCEPTED", confirmers: `0x${string}`[]) => ({
+    ...GROUP.children[0]!,
+    onchainState,
+    confirmers,
+    confirmationThreshold: 1,
+  });
+  const line = (children: ReturnType<typeof copyOf>[]) =>
+    groupTerms({
+      intl,
+      children,
+      metadata: null,
+      reward: groupReward(children, new Map()),
+      price: STORY_PRICE_STATE,
+      setAt: null,
+      now: 0,
+    }).find(([label]) => label === "Claim mode · confirmers")?.[1];
+
+  it("reads the accounts, so a swap that reached only some available copies shows", () => {
+    // Both read "Named group · 1 of 2", but only one names the new account.
+    expect(line([copyOf("REQUESTED", [ANA, NEW]), copyOf("REQUESTED", [ANA, OLD])])).toBe(
+      "Open · Not the same on every available one"
+    );
+  });
+
+  it("names the available copies' rule when only taken ones differ", () => {
+    expect(line([copyOf("REQUESTED", [ANA, NEW]), copyOf("ACCEPTED", [ANA, OLD])])).toBe(
+      "Open · Named group · 1 of 2 for available ones; taken ones keep theirs"
+    );
+  });
+});

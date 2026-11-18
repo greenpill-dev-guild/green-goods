@@ -21,6 +21,7 @@ import type { GoodDollarPriceState } from "@green-goods/shared/modules/wallet/go
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { addToGroupRefusal } from "@/views/Garden/Pool/Group/addToGroupStatus";
 import { createIntl } from "react-intl";
+import { editConfirmersStatus } from "@/views/Garden/Pool/Group/editConfirmersStatus";
 import { editRewardSummary, editRewardStatus } from "@/views/Garden/Pool/Group/editRewardStatus";
 import { fireEvent, renderWithProviders, screen, waitFor, within } from "../test-utils";
 
@@ -595,6 +596,34 @@ describe("Edit Confirmers", () => {
     fireEvent.click(change());
     await waitFor(() => expect(mocks.confirmerChanges).toHaveLength(1));
     expect(mocks.confirmerChanges[0]?.rule.confirmers).toEqual([LINA, NEW]);
+  });
+
+  it.each([
+    ["first", 50, "wallet", "waiting"],
+    ["second", 10, "changed", "wallet"],
+  ] as const)("asks about the %s request's copies only, when 60 change in bundles of 50", (_, count, firstFifty, rest) => {
+    const intl = createIntl({ locale: "en", messages: {} });
+    const copies = Array.from(
+      { length: 60 },
+      (_, index): ConfirmerEditProgress => ({
+        commitmentId: BigInt(index),
+        status: index < 50 ? firstFifty : rest,
+        txHash: null,
+      })
+    );
+    const status = editConfirmersStatus({
+      mode: "bundle",
+      isSending: true,
+      copies,
+      available: 60,
+      taken: 0,
+      formatMessage: (descriptor, values) => intl.formatMessage(descriptor, values),
+    });
+    expect(status).toMatchObject({
+      phase: "asking",
+      title: `Approve in your wallet: ${count} promises in one request`,
+      description: `They change together: all ${count}, or none if the wallet declines.`,
+    });
   });
 
   it("holds a threshold no named group could reach, and says why", () => {

@@ -7965,6 +7965,7 @@
   "app.pool.queued.settlementDeferredNote": "Saved on this device. Sending G$ reward promises is unavailable in this release.",
   "hub.garden.pool.group.rewardDeferredNote": "G$ reward promises cannot be copied in this release.",
   "hub.garden.pool.group.confirmersMixed": "{rule} for available ones; taken ones keep theirs",
+  "hub.garden.pool.group.confirmersSplit": "Not the same on every available one",
   "hub.garden.pool.group.confirmersChangedToast": "{count, plural, one {Confirmers changed for # promise} other {Confirmers changed for # promises}}",
   "app.serviceAccess.title": "Service Access",
   "app.serviceAccess.rehearsal": "Local rehearsal",

@@ -7965,6 +7965,7 @@
   "app.pool.queued.settlementDeferredNote": "Salvo neste dispositivo. Não é possível enviar promessas com recompensa em G$ nesta versão.",
   "hub.garden.pool.group.rewardDeferredNote": "Não é possível copiar promessas com recompensa em G$ nesta versão.",
   "hub.garden.pool.group.confirmersMixed": "{rule} para as disponíveis; as assumidas mantêm os seus",
+  "hub.garden.pool.group.confirmersSplit": "Não é igual em todas as disponíveis",
   "hub.garden.pool.group.confirmersChangedToast": "{count, plural, one {Confirmadores alterados para # promessa} other {Confirmadores alterados para # promessas}}",
   "app.serviceAccess.title": "Acesso ao serviço",
   "app.serviceAccess.rehearsal": "Ensaio local",
