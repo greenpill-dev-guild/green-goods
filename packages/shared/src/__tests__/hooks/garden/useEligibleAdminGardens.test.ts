@@ -123,6 +123,20 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     expect(result.current.isError).toBe(false);
   });
 
+  it("reports an unread garden-creation permission without making loaded gardens an error", () => {
+    mockUseRole.mockReturnValue({ ...defaultRole(), deploymentPermissionsError: true });
+    mockUseGardens.mockReturnValue({
+      data: [makeGarden("garden-steward", "Steward Garden", { stewards: [ADDR_USER] })],
+      isFetched: true,
+      isError: false,
+    });
+
+    const { result } = renderHook(() => useEligibleAdminGardens());
+
+    expect(result.current).toMatchObject({ isError: false, deploymentPermissionsError: true });
+    expect(result.current.eligibleGardens).toHaveLength(1);
+  });
+
   it("prefers the persisted garden when it is still eligible", () => {
     mockUseGardens.mockReturnValue({
       data: [

@@ -4399,7 +4399,7 @@
   "app.yield.title": "Alocação de rendimento",
   "app.yield.totalAllocated": "Rendimento total alocado",
   "app.yield.viewAll": "Ver todas as alocações",
-  "hub.access.indexerErrorDescription": "Não foi possível carregar os jardins pelo indexador. Geralmente é temporário. Tente novamente em instantes.",
+  "hub.access.indexerErrorDescription": "Não foi possível verificar seu acesso aos jardins. Geralmente é temporário. Tente novamente em instantes.",
   "hub.access.indexerErrorRetry": "Tentar novamente",
   "hub.access.indexerErrorTitle": "Falha ao carregar acesso",
   "hub.access.noGardenChip": "Sem acesso a jardins",

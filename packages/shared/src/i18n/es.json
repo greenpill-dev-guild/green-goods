@@ -4399,7 +4399,7 @@
   "app.yield.title": "Asignar rendimiento",
   "app.yield.totalAllocated": "Rendimiento total asignado",
   "app.yield.viewAll": "Ver todas las asignaciones",
-  "hub.access.indexerErrorDescription": "No pudimos cargar los jardines desde el indexador. Suele ser temporal: vuelve a intentarlo en un momento.",
+  "hub.access.indexerErrorDescription": "No pudimos comprobar tu acceso a los jardines. Suele ser temporal: vuelve a intentarlo en un momento.",
   "hub.access.indexerErrorRetry": "Reintentar",
   "hub.access.indexerErrorTitle": "No carga acceso a jardines",
   "hub.access.noGardenChip": "Sin acceso a jardines",
