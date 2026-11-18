@@ -320,3 +320,26 @@ Safe execution hashes and balances, bidirectional member-fixture swaps, unauthor
 rejection, failed-batch rollback, holding caps and preservation of production pools and Safes.
 Private transaction files and proof stay outside Git and Linear. Mainnet deployment requires a
 reviewed tooling PR and Afo's approval; indexer/app activation remains after the 2.1.0 cut.
+
+### Deployed and published, 17 November 2026
+
+The packet above was approved and executed on 12 and 13 November: nine deployments at deployer
+nonces 22 to 30 (Gnosis blocks 49,249,861 to 49,249,900) and Safe nonces 0 to 2. The packet's
+proposed quantities are now the live state. `deployments/100-aiyeloja-test-pool.json` records the
+nine addresses and receipts, and the release test checks them against the CREATE2 plan. Shared's
+testing export projects them as `AIYELOJA_TEST_POOL` for test and QA harnesses; no App or Hub
+surface reads them. The indexer follows the pool on chain 100; the hosted redeploy is a release
+step.
+
+Known limits of the schema-4 tooling, kept as they were reviewed:
+
+- `release downstream --mode verify` rebuilds the plan from the current commit and reads a fork
+  proof taken before deployment (Safe nonce 0, empty listings). After the Safe batches and any
+  later commit it cannot pass for this release. The committed deployment record is the durable
+  evidence instead.
+- The production snapshot comparison fails a session if an unrelated production swap or steward
+  Safe transaction lands during it. Nothing on chain is harmed, but the deployment summary is not
+  written.
+- The deployer is also one of the test Safe's owners, and any one owner can act for the Safe. The
+  "no deployer mint" and "deployer cannot take proxy administration" checks only show that direct
+  calls are refused. They do not show that the roles are separate.

@@ -14,8 +14,7 @@ import { existingCLCAddress } from "./clc-garden-release";
 import { gardenExecutionJournal, validateGardenExecutionJournal } from "./clc-garden-execution";
 import { aiyelojaGasEnvelope } from "./clc-aiyeloja-downstream";
 import { voucherDigest } from "./voucher-release";
-// A dependency-free data file: the deployed pin that test and QA harnesses read through Shared's `./testing` export.
-import { AIYELOJA_TEST_POOL } from "../../../shared/src/__tests__/test-utils/aiyeloja-test-pool";
+import deployed from "../../deployments/100-aiyeloja-test-pool.json";
 const revision = "a".repeat(40);
 const plan = () => buildCLCAiyelojaPlan(structuredClone(manifest), revision);
 
@@ -103,28 +102,22 @@ describe("Aiyeloja test-only pool preparation", () => {
   ])("rejects wrong authority, mainnet assets and unsafe test bounds: %j", (patch) => {
     expect(() => inspectCLCAiyelojaManifest({ ...structuredClone(manifest), ...patch })).toThrow();
   });
-  it("predicts exactly the nine proxies deployed on Gnosis, at the pinned deployer nonces", () => {
+  it("predicts exactly the nine proxies recorded as deployed on Gnosis, at their deployer nonces", () => {
     const p = plan();
-    const pinned = [
-      ...Object.entries(AIYELOJA_TEST_POOL.contracts),
-      ...Object.entries(AIYELOJA_TEST_POOL.vouchers).map(([id, voucher]) => [`fixture:${id}`, voucher] as const),
-    ];
-    expect(p.transactions.map((tx) => [tx.component, tx.address])).toEqual(
-      pinned.map(([component, pin]) => [component, pin.address]),
+    expect(deployed.contracts.map((c) => [c.component, c.address, c.receipt.nonce, c.receipt.status])).toEqual(
+      p.transactions.map((tx) => [tx.component, tx.address, tx.nonce, 1]),
     );
-    expect(p.addresses).toEqual(
-      Object.fromEntries(Object.entries(AIYELOJA_TEST_POOL.contracts).map(([key, pin]) => [key, pin.address])),
+    expect(deployed.contracts.filter((c) => c.symbol).map((c) => [c.symbol, c.address])).toEqual(
+      p.assets.map((a) => [a.symbol, a.token]),
     );
-    expect(p.assets.map((a) => [a.symbol, a.token])).toEqual(
-      Object.values(AIYELOJA_TEST_POOL.vouchers).map((v) => [v.symbol, v.address]),
-    );
-    expect([p.safe, p.garden, p.automation]).toEqual([
-      AIYELOJA_TEST_POOL.safe,
-      AIYELOJA_TEST_POOL.garden,
-      AIYELOJA_TEST_POOL.automation,
+    expect([deployed.releaseId, deployed.deployer, deployed.factory]).toEqual([
+      manifest.releaseId,
+      manifest.deployer,
+      p.transactions[0].to,
     ]);
-    const blocks = pinned.map(([, pin]) => pin.receipt.blockNumber);
-    expect(blocks).toEqual([...blocks].sort((a, b) => (a < b ? -1 : 1)));
+    expect([deployed.safe, deployed.garden, deployed.automation]).toEqual([p.safe, p.garden, p.automation]);
+    const blocks = deployed.contracts.map((c) => c.receipt.blockNumber);
+    expect(blocks).toEqual([...blocks].sort((a, b) => a - b));
   });
   it("binds every deployment and Safe call, and keeps deterministic addresses independent of sender nonce", () => {
     const p = plan();
