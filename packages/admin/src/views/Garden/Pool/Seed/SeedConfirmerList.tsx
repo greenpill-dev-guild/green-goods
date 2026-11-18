@@ -40,12 +40,29 @@ function initialsOf(name: string): string | undefined {
   return (words.length > 1 ? `${words[0]![0]}${words[1]![0]}` : name.slice(0, 1)).toUpperCase();
 }
 
+/** A named confirmer group being edited: Seed's form, or Edit Confirmers' own state. */
+export interface ConfirmerGroupDraft {
+  confirmers: string[];
+  threshold: number;
+  /** Read the latest list, for a name that resolves after other changes. */
+  read: () => string[];
+  setConfirmers: (next: string[]) => void;
+  setThreshold: (next: number) => void;
+  errors: { confirmers?: string; threshold?: string };
+}
+
+export interface ConfirmerGroupEditorProps {
+  draft: ConfirmerGroupDraft;
+  /** What naming nobody means here: who confirms under the ordinary rule. */
+  ordinaryNote: string;
+  busy: boolean;
+  /** The garden's people, each once, in the order they should be offered. */
+  members: readonly SeedMember[];
+}
+
 /**
- * The named confirmer group and its threshold (PRD-1022 D8, D15). Chosen
- * people show as removable chips that wrap only after many. People come from
- * the garden in one tap, or from one field that takes a name or an address.
- * Nobody named leaves the ordinary rule in place, which reads differently for
- * an offer than for a request.
+ * The named confirmer group and its threshold (PRD-1022 D8, D15). Seed's
+ * answers, through the composer form, and Edit Confirmers both use it.
  */
 export function SeedConfirmerList({
   form,
@@ -55,14 +72,57 @@ export function SeedConfirmerList({
   members,
 }: SeedConfirmerListProps) {
   const { formatMessage } = useIntl();
+  const options = { shouldDirty: true, shouldValidate: true };
+  return (
+    <ConfirmerGroupEditor
+      draft={{
+        confirmers: values.confirmers,
+        threshold: values.confirmationThreshold,
+        read: () => form.getValues("confirmers"),
+        setConfirmers: (next) => form.setValue("confirmers", next, options),
+        setThreshold: (next) => form.setValue("confirmationThreshold", next, options),
+        errors: {
+          confirmers: errorOf("confirmers"),
+          threshold: errorOf("confirmationThreshold"),
+        },
+      }}
+      ordinaryNote={
+        values.direction === "REQUEST"
+          ? formatMessage({
+              id: "hub.garden.pool.seed.confirmersDefaultRequest",
+              defaultMessage: "Nobody named: you confirm it yourself, as the one asking.",
+            })
+          : formatMessage({
+              id: "hub.garden.pool.seed.confirmersDefaultOffer",
+              defaultMessage: "Nobody named: whoever takes this up confirms it.",
+            })
+      }
+      busy={busy}
+      members={members}
+    />
+  );
+}
+
+/**
+ * Chosen people show as removable chips that wrap only after many. People come
+ * from the garden in one tap, or from one field that takes a name or an
+ * address. Nobody named leaves the ordinary rule in place, which the caller
+ * says in its own words (`ordinaryNote`).
+ */
+export function ConfirmerGroupEditor({
+  draft,
+  ordinaryNote,
+  busy,
+  members,
+}: ConfirmerGroupEditorProps) {
+  const { formatMessage } = useIntl();
   const titleId = useId();
   const [showAll, setShowAll] = useState(false);
-  const chosen = values.confirmers;
-  const setConfirmers = (next: string[]) =>
-    form.setValue("confirmers", next, { shouldDirty: true, shouldValidate: true });
+  const chosen = draft.confirmers;
+  const setConfirmers = draft.setConfirmers;
 
   const add = (address: string) => {
-    const next = withConfirmer(form.getValues("confirmers"), address);
+    const next = withConfirmer(draft.read(), address);
     if (next) {
       setConfirmers(next);
       return { success: true };
@@ -102,15 +162,7 @@ export function SeedConfirmerList({
       </AdminCardTitle>
       <p className="type-meta text-text-soft">
         {chosen.length === 0
-          ? values.direction === "REQUEST"
-            ? formatMessage({
-                id: "hub.garden.pool.seed.confirmersDefaultRequest",
-                defaultMessage: "Nobody named: you confirm it yourself, as the one asking.",
-              })
-            : formatMessage({
-                id: "hub.garden.pool.seed.confirmersDefaultOffer",
-                defaultMessage: "Nobody named: whoever takes this up confirms it.",
-              })
+          ? ordinaryNote
           : formatMessage({
               id: "hub.garden.pool.seed.confirmersNamed",
               defaultMessage:
@@ -171,7 +223,7 @@ export function SeedConfirmerList({
                   defaultMessage: "Names like lina.eth resolve to their account.",
                 })
           }
-          error={entry.error ?? errorOf("confirmers")}
+          error={entry.error ?? draft.errors.confirmers}
           className="flex-1"
           inputProps={{
             onKeyDown: (event) => {
@@ -248,14 +300,9 @@ export function SeedConfirmerList({
             id: "hub.garden.pool.seed.threshold",
             defaultMessage: "How many must confirm",
           })}
-          value={String(values.confirmationThreshold)}
-          onChange={(event) =>
-            form.setValue("confirmationThreshold", Number(event.target.value), {
-              shouldDirty: true,
-              shouldValidate: true,
-            })
-          }
-          error={errorOf("confirmationThreshold")}
+          value={String(draft.threshold)}
+          onChange={(event) => draft.setThreshold(Number(event.target.value))}
+          error={draft.errors.threshold}
           helperText={formatMessage(
             {
               id: "hub.garden.pool.seed.thresholdOfNamed",

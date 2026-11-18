@@ -167,6 +167,46 @@ function rewardLine(
   );
 }
 
+/** Who confirms a copy, as one short phrase: the ordinary rule, or the named group and its threshold. */
+export function confirmerRuleText(
+  formatMessage: TermsIntl["formatMessage"],
+  rule: { confirmers: readonly string[]; confirmationThreshold?: number }
+): string {
+  return rule.confirmers.length === 0
+    ? formatMessage({
+        id: "hub.garden.pool.seed.review.ordinary",
+        defaultMessage: "Ordinary rule",
+      })
+    : formatMessage(
+        {
+          id: "hub.garden.pool.seed.review.named",
+          defaultMessage: "Named group · {threshold} of {count}",
+        },
+        { threshold: rule.confirmationThreshold ?? 1, count: rule.confirmers.length }
+      );
+}
+
+/**
+ * Who confirms across a group: one phrase when every copy agrees, otherwise the
+ * available copies' rule first, since Edit Confirmers leaves taken ones as they were.
+ */
+function groupConfirmersText(
+  formatMessage: TermsIntl["formatMessage"],
+  children: readonly CommitmentReadModel[]
+): string {
+  const phrases = new Set(children.map((child) => confirmerRuleText(formatMessage, child)));
+  if (phrases.size <= 1) return [...phrases][0] ?? "—";
+  const available = children.find((child) => displayBucketOf(child.onchainState) === "available");
+  if (!available) return [...phrases].join(" / ");
+  return formatMessage(
+    {
+      id: "hub.garden.pool.group.confirmersMixed",
+      defaultMessage: "{rule} for available ones; taken ones keep theirs",
+    },
+    { rule: confirmerRuleText(formatMessage, available) }
+  );
+}
+
 /** The group's terms as label and value: the inspector's "Each promise" and "Same as the group". */
 export function groupTerms(input: {
   intl: TermsIntl;
@@ -219,20 +259,7 @@ export function groupTerms(input: {
               defaultMessage: "Steward-reviewed",
             })
           : formatMessage({ id: "hub.garden.pool.seed.claimMode.open", defaultMessage: "Open" })
-      } · ${
-        first.confirmers.length === 0
-          ? formatMessage({
-              id: "hub.garden.pool.seed.review.ordinary",
-              defaultMessage: "Ordinary rule",
-            })
-          : formatMessage(
-              {
-                id: "hub.garden.pool.seed.review.named",
-                defaultMessage: "Named group · {threshold} of {count}",
-              },
-              { threshold: first.confirmationThreshold ?? 1, count: first.confirmers.length }
-            )
-      }`,
+      } · ${groupConfirmersText(formatMessage, children)}`,
     ],
   ];
 }

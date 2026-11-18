@@ -75,6 +75,9 @@ const meta: Meta<typeof GroupInspector> = {
     onOpenCommitment: () => undefined,
     onSeedMore: () => undefined,
     onEditReward: () => undefined,
+    // Four copies are still untaken, so who confirms them can change.
+    canEditConfirmers: true,
+    onEditConfirmers: () => undefined,
   },
   decorators: [withSeededQueryClient(STORYBOOK_ADMIN_SHELL_SEEDS)],
 };

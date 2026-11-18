@@ -1,11 +1,18 @@
 /**
- * Edit Reward: every untaken copy of a group gets the new reward, in one
- * approval where the wallet can batch, and a copy the wallet declined keeps its
- * old one. The wallet is a fake that records the calls it was asked to send.
+ * Term edits on untaken copies. Edit Reward: every untaken copy of a group gets
+ * the new reward, in one approval where the wallet can batch, and a copy the
+ * wallet declined keeps its old one. Edit Confirmers sends the same way, one
+ * `setConfirmerRule` per copy. The wallet is a fake that records the calls it
+ * was asked to send.
  */
 
 import { describe, expect, it, vi } from "vitest";
 
+import {
+  confirmerRuleError,
+  sameConfirmerRule,
+  sendConfirmerEdit,
+} from "../modules/commitment-pooling/confirmer-edit";
 import {
   goodDollarConsideration,
   rewardEditBudget,
@@ -208,5 +215,83 @@ describe("Edit Reward", () => {
 
   it("records no reward as the None rail with nothing named, the only shape the contract accepts", () => {
     expect(goodDollarConsideration(0n)).toEqual({ rail: 0, source: ZERO, token: ZERO, amount: 0n });
+  });
+});
+
+describe("Edit Confirmers", () => {
+  const AMIO = "0x1111111111111111111111111111111111111111" as Address;
+  const LINA = "0x2222222222222222222222222222222222222222" as Address;
+  const confirmers = (
+    sender: TransactionSender,
+    rule: { confirmers: Address[]; threshold: number }
+  ) =>
+    sendConfirmerEdit({
+      sender,
+      chainId: 42161,
+      moduleAddress: MODULE,
+      copies: [
+        { commitmentId: 3n, protocolFallbackEnabled: true },
+        { commitmentId: 4n, protocolFallbackEnabled: false },
+      ],
+      rule,
+    });
+
+  it("asks a passkey once per copy, each keeping its own team fallback", async () => {
+    // Listed or not, no measured ceilings exist for these edits yet.
+    const { sender, asked } = passkey({ listed: ["reward-edits", "confirmer-edits"] });
+
+    const ended = await confirmers(sender, { confirmers: [AMIO, LINA], threshold: 1 });
+
+    expect(sender.sendAtomicBatch).not.toHaveBeenCalled();
+    expect(asked.map(([call]) => [call!.functionName, call!.args])).toEqual([
+      ["setConfirmerRule", [3n, [AMIO, LINA], 1, true]],
+      ["setConfirmerRule", [4n, [AMIO, LINA], 1, false]],
+    ]);
+    expect(ended.map((copy) => copy.status)).toEqual(["changed", "changed"]);
+  });
+
+  it("asks a batching wallet once, and writes the ordinary rule with its one confirmation", async () => {
+    const { sender, asked } = wallet({ bundles: true });
+
+    await confirmers(sender, { confirmers: [], threshold: 3 });
+
+    expect(asked).toHaveLength(1);
+    expect(asked[0]!.map((call) => call.args)).toEqual([
+      [3n, [], 1, true],
+      [4n, [], 1, false],
+    ]);
+  });
+
+  it("refuses a rule the contract would, and reads a reordered group as the same one", () => {
+    const named = (count: number) =>
+      Array.from({ length: count }, (_, i) => `0x${(i + 1).toString(16).padStart(40, "0")}`);
+    expect(confirmerRuleError({ confirmers: named(41) as Address[], threshold: 1 })).toBe(
+      "hub.garden.pool.seed.error.confirmersTooMany"
+    );
+    expect(confirmerRuleError({ confirmers: [AMIO], threshold: 0 })).toBe(
+      "hub.garden.pool.seed.error.thresholdAtLeastOne"
+    );
+    expect(confirmerRuleError({ confirmers: [AMIO], threshold: 2 })).toBe(
+      "hub.garden.pool.seed.error.thresholdAboveGroup"
+    );
+    expect(confirmerRuleError({ confirmers: [], threshold: 0 })).toBeNull();
+
+    const upper = LINA.toUpperCase().replace("0X", "0x") as Address;
+    expect(
+      sameConfirmerRule(
+        { confirmers: [AMIO, LINA], threshold: 2 },
+        { confirmers: [upper, AMIO], threshold: 2 }
+      )
+    ).toBe(true);
+    expect(
+      sameConfirmerRule(
+        { confirmers: [AMIO, LINA], threshold: 2 },
+        { confirmers: [AMIO, LINA], threshold: 1 }
+      )
+    ).toBe(false);
+    // Nobody named is one confirmation, whatever threshold was carried.
+    expect(
+      sameConfirmerRule({ confirmers: [], threshold: 1 }, { confirmers: [], threshold: 2 })
+    ).toBe(true);
   });
 });

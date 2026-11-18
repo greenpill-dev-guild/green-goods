@@ -4,14 +4,17 @@
 
 /**
  * The group inspector's dialogs. Edit Reward: what the steward's dollars
- * become, and what a Try Again sends. Seed More Like This and Add to This
+ * become, and what a Try Again sends. Edit Confirmers: which rule the untaken
+ * copies get, and what a Try Again sends. Seed More Like This and Add to This
  * Group: which way the steward can go, and what an Add sends. The sends are
- * Shared's `useEditReward` (proven with the wallet in `commitment-reward-edit`)
- * and `useAddToGroup` (in `commitment-group-additions`); here they are
- * stand-ins that record what they were asked and answer as scripted.
+ * Shared's `useEditReward` and `useEditConfirmers` (proven with the wallet in
+ * `commitment-reward-edit`) and `useAddToGroup` (in
+ * `commitment-group-additions`); here they are stand-ins that record what they
+ * were asked and answer as scripted.
  */
 
 import type { AddToGroupOutcome } from "@green-goods/shared/hooks/admin-ui/pool/useAddToGroup";
+import type { ConfirmerEditProgress } from "@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController";
 import type { RewardEditProgress } from "@green-goods/shared/hooks/admin-ui/pool/useEditReward";
 import { buildCommitmentMetadata } from "@green-goods/shared/modules/commitment-pooling/metadata";
 import type { GoodDollarPriceState } from "@green-goods/shared/modules/wallet/good-dollar-price";
@@ -29,6 +32,8 @@ const CHANGE_PRICE = 100_000_000_000_000n;
 
 type EditRewardModule = typeof import("@green-goods/shared/hooks/admin-ui/pool/useEditReward");
 type AddModule = typeof import("@green-goods/shared/hooks/admin-ui/pool/useAddToGroup");
+type ConsoleModule =
+  typeof import("@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController");
 
 const mocks = vi.hoisted(() => ({
   price: { status: "ready", price: 0n, readAt: 0 } as GoodDollarPriceState,
@@ -38,6 +43,10 @@ const mocks = vi.hoisted(() => ({
   unchanged: new Set<bigint>(),
   added: [] as number[],
   outcome: "sent" as AddToGroupOutcome,
+  confirmerChanges: [] as Array<{
+    copies: Array<[bigint, boolean]>;
+    rule: { confirmers: string[]; threshold: number };
+  }>,
 }));
 
 vi.mock("@green-goods/shared/hooks/admin-ui/pool/useEditReward", async () => {
@@ -83,6 +92,42 @@ vi.mock("@green-goods/shared/hooks/admin-ui/pool/useAddToGroup", async () => {
   return { useAddToGroup };
 });
 
+vi.mock("@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController", async () => {
+  const react = await import("react");
+  const useEditConfirmers: ConsoleModule["useEditConfirmers"] = () => {
+    const [copies, setCopies] = react.useState<ConfirmerEditProgress[] | null>(null);
+    return {
+      mode: "one-by-one",
+      isSending: false,
+      copies,
+      reset: react.useCallback(() => setCopies(null), [setCopies]),
+      change: async (targets, rule) => {
+        mocks.confirmerChanges.push({
+          copies: targets.map((copy) => [copy.commitmentId, copy.protocolFallbackEnabled]),
+          rule: { confirmers: [...rule.confirmers], threshold: rule.threshold },
+        });
+        const ended = targets.map(({ commitmentId }) =>
+          mocks.unchanged.has(commitmentId)
+            ? ({ commitmentId, status: "not-changed", miss: "failed", txHash: null } as const)
+            : ({ commitmentId, status: "changed", txHash: null } as const)
+        );
+        mocks.unchanged.clear();
+        setCopies(ended);
+        return ended.some((copy) => copy.status !== "changed") ? "left" : "changed";
+      },
+    };
+  };
+  return { useEditConfirmers };
+});
+
+// People are named from their Green Goods or ENS name; no test reaches for either.
+vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
+  useEnsName: () => ({ data: undefined }),
+}));
+vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
+  useGreenGoodsEnsName: () => ({ data: undefined }),
+}));
+
 vi.mock("@green-goods/shared/hooks/blockchain/useGoodDollarPrice", () => ({
   useGoodDollarPrice: () => ({ state: mocks.price, readNow: mocks.readNow }),
 }));
@@ -92,6 +137,7 @@ vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
 }));
 
 const { EditRewardDialog } = await import("@/views/Garden/Pool/Group/EditRewardDialog");
+const { EditConfirmersDialog } = await import("@/views/Garden/Pool/Group/EditConfirmersDialog");
 const { AddToGroupDialog } = await import("@/views/Garden/Pool/Group/AddToGroupDialog");
 const { SeedMoreDialog } = await import("@/views/Garden/Pool/Group/SeedMoreDialog");
 
@@ -438,5 +484,95 @@ describe("Seed More Like This", () => {
     expect(dialog()).toHaveTextContent(/deadline has passed/i);
     fireEvent.click(within(dialog()).getByRole("button", { name: "Continue" }));
     expect(onContinue).toHaveBeenCalledWith("new");
+  });
+});
+
+describe("Edit Confirmers", () => {
+  const OLD = "0x3333333333333333333333333333333333333333" as const;
+  const LINA = "0x2222222222222222222222222222222222222222" as const;
+  const NEW = "0x4444444444444444444444444444444444444444" as const;
+
+  beforeEach(() => {
+    mocks.confirmerChanges = [];
+    mocks.unchanged.clear();
+  });
+
+  function renderConfirmers() {
+    const onChanged = vi.fn();
+    renderWithProviders(
+      <EditConfirmersDialog
+        open
+        onClose={vi.fn()}
+        onChanged={onChanged}
+        chainId={42161}
+        garden={GARDEN}
+        title="Climate course check-ins"
+        available={[
+          { commitmentId: 3n, protocolFallbackEnabled: true },
+          { commitmentId: 4n, protocolFallbackEnabled: false },
+        ]}
+        current={{ confirmers: [OLD, LINA], confirmationThreshold: 1 }}
+        direction="REQUEST"
+        taken={2}
+      />
+    );
+    return { onChanged };
+  }
+  const confirmers = () => within(screen.getByTestId("seed-confirmers"));
+  const change = () =>
+    within(dialog()).getByRole("button", { name: "Change Confirmers on 2 Promises" });
+  const swapOldForNew = () => {
+    fireEvent.click(confirmers().getAllByRole("button", { name: /^remove /i })[0]!);
+    fireEvent.change(confirmers().getByLabelText(/^add a confirmer/i), { target: { value: NEW } });
+    fireEvent.click(confirmers().getByRole("button", { name: "Add" }));
+  };
+
+  it("names a replacement account on every copy nobody has taken, each keeping its team fallback", async () => {
+    const { onChanged } = renderConfirmers();
+    expect(screen.getByTestId("edit-confirmers")).toHaveTextContent(
+      "The 2 already taken keep the confirmers they were taken up with."
+    );
+    // It starts at the rule they have, which would change nothing.
+    expect(change()).toBeDisabled();
+    swapOldForNew();
+    fireEvent.click(change());
+
+    await waitFor(() => expect(onChanged).toHaveBeenCalledWith(2));
+    expect(mocks.confirmerChanges).toEqual([
+      {
+        copies: [
+          [3n, true],
+          [4n, false],
+        ],
+        rule: { confirmers: [LINA, NEW], threshold: 1 },
+      },
+    ]);
+  });
+
+  it("sends a Try Again to the one that didn't change, with the same confirmers, and holds the list", async () => {
+    mocks.unchanged.add(4n);
+    renderConfirmers();
+    swapOldForNew();
+    fireEvent.click(change());
+
+    const retry = await within(dialog()).findByRole("button", { name: "Try Again (1)" });
+    expect(confirmers().getByLabelText(/^add a confirmer/i)).toBeDisabled();
+    fireEvent.click(retry);
+    await waitFor(() => expect(mocks.confirmerChanges).toHaveLength(2));
+    expect(mocks.confirmerChanges[1]).toEqual({
+      copies: [[4n, false]],
+      rule: { confirmers: [LINA, NEW], threshold: 1 },
+    });
+  });
+
+  it("holds a threshold no named group could reach, and says why", () => {
+    renderConfirmers();
+    fireEvent.change(confirmers().getByLabelText(/^how many must confirm/i), {
+      target: { value: "3" },
+    });
+    expect(change()).toBeDisabled();
+    expect(
+      confirmers().getByText(/more confirmations than there are named confirmers/i)
+    ).toBeVisible();
   });
 });

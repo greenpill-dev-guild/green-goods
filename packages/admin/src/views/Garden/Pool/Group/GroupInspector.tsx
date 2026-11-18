@@ -28,6 +28,8 @@ export interface GroupInspectorProps {
   rewarded: boolean;
   /** Edit Reward stays open until one copy is kept (D14). */
   canEditReward: boolean;
+  /** Some copy is still untaken, so its confirmers can change. */
+  canEditConfirmers?: boolean;
   /** Rewarded templates cannot be copied while settlement is deferred. */
   canSeedMore?: boolean;
   /** The pool's recent activity, for when each copy was taken, proven and confirmed. */
@@ -37,6 +39,7 @@ export interface GroupInspectorProps {
   onOpenCommitment: (commitment: CommitmentReadModel) => void;
   onSeedMore: () => void;
   onEditReward: () => void;
+  onEditConfirmers?: () => void;
 }
 
 const bold = (chunks: ReactNode[]) => (
@@ -60,12 +63,14 @@ export function GroupInspector({
   terms,
   rewarded,
   canEditReward,
+  canEditConfirmers = false,
   canSeedMore = true,
   events,
   waitingOnYou,
   onOpenCommitment,
   onSeedMore,
   onEditReward,
+  onEditConfirmers,
 }: GroupInspectorProps) {
   const intl = useIntl();
   const { formatMessage } = intl;
@@ -141,6 +146,14 @@ export function GroupInspector({
             {formatMessage({
               id: "hub.garden.pool.reward.title",
               defaultMessage: "Edit Reward",
+            })}
+          </Button>
+        ) : null}
+        {canEditConfirmers && onEditConfirmers ? (
+          <Button type="button" emphasis="secondary" size="sm" onClick={onEditConfirmers}>
+            {formatMessage({
+              id: "hub.garden.pool.confirmers.title",
+              defaultMessage: "Edit Confirmers",
             })}
           </Button>
         ) : null}
