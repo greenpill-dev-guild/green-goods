@@ -74,6 +74,7 @@ function ProofItem({ item }: { item: ResolvedEvidence }) {
         : null}
       {contents?.documents?.length ? (
         <EvidenceDocumentList
+          label={formatMessage({ id: "admin.work.documents", defaultMessage: "Documents" })}
           documents={contents.documents.map((document) => ({
             cid: document.cid,
             name: document.name,
@@ -83,7 +84,9 @@ function ProofItem({ item }: { item: ResolvedEvidence }) {
         />
       ) : null}
       {contents?.note ? (
-        <p className="whitespace-pre-line type-body text-text-strong">{contents.note}</p>
+        <p className="whitespace-pre-line break-words type-body text-text-strong">
+          {contents.note}
+        </p>
       ) : null}
       {contents?.links?.length ? (
         <ul className="space-y-1">

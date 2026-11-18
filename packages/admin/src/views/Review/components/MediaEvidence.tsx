@@ -89,14 +89,18 @@ export interface EvidenceDocument {
  * One row per document, each opening from the gateway in a new tab: its kind, its name and
  * its size. Documents are read rather than looked at, so a row never previews one.
  */
-export function EvidenceDocumentList({ documents }: { documents: readonly EvidenceDocument[] }) {
+export function EvidenceDocumentList({
+  documents,
+  label,
+}: {
+  documents: readonly EvidenceDocument[];
+  /** Names the list where no heading above it does. */
+  label?: string;
+}) {
   const intl = useIntl();
   const { formatMessage } = intl;
   return (
-    <ul
-      className="space-y-2"
-      aria-label={formatMessage({ id: "admin.work.documents", defaultMessage: "Documents" })}
-    >
+    <ul className="space-y-2" aria-label={label}>
       {documents.map((document, index) => {
         const kind = documentKind(document.type);
         const Icon = DOCUMENT_ICONS[kind];

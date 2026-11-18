@@ -110,4 +110,11 @@ export const PartlyUnreadable: Story = {
     ],
     recordedCount: 3,
   },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("This proof could not be read right now.")).toBeVisible();
+    await expect(
+      canvas.getByText("1 piece of proof is recorded but cannot be shown right now.")
+    ).toBeVisible();
+  },
 };

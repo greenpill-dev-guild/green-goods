@@ -95,6 +95,36 @@ describe("CommitmentProof", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
+  it("keeps photos apart from a video beside them, and opens the proof's links", () => {
+    const VIDEO_CID = "bafkreia5cufmf2fjxzhr6vjz4qxmhbq6k7a3d2etm6zkqbqpl7xbbzrxse";
+    renderWithProviders(
+      <CommitmentProof
+        attributions={[
+          proof("bafy-proof-mixed", {
+            media: [
+              { cid: VIDEO_CID, mime: "video/mp4", kind: "video" },
+              { cid: PHOTO_CID, mime: "image/jpeg", kind: "photo" },
+            ],
+            links: [{ url: "https://example.org/riverside/fence-repair", label: "Repair notes" }],
+          }),
+        ]}
+        recordedCount={1}
+      />
+    );
+
+    // The video plays where it is; only the photo is a tile, so the grid opens no video.
+    const video = document.querySelector("video");
+    expect(video).toHaveAttribute("src", resolveIPFSUrl(VIDEO_CID));
+    expect(screen.getAllByRole("button", { name: /^Proof photo/ })).toHaveLength(1);
+    expect(screen.getByRole("img", { name: "Proof photo 1" }).getAttribute("src")).toContain(
+      PHOTO_CID
+    );
+    expect(screen.getByRole("link", { name: "Repair notes" })).toHaveAttribute(
+      "href",
+      "https://example.org/riverside/fence-repair"
+    );
+  });
+
   it("renders nothing for a promise with no proof", () => {
     const { container } = renderWithProviders(
       <CommitmentProof attributions={[]} recordedCount={0} />
