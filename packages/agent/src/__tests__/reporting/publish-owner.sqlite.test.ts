@@ -913,6 +913,28 @@ describe("signing links", () => {
     expect(count(LINK_EXPIRED)).toBe(1);
   });
 
+  it("refuses a send whose page session ended while its chain reads were awaited", async () => {
+    await confirmLinkAndPublish(harness);
+    harness.clock.advance(harness.core.settings.linkChallengeTtlMs - 60_000);
+    const { browser, view, envelope } = await openSigningPage(harness);
+    const realBlockNumber = harness.chain.blockNumber.bind(harness.chain);
+    let lapsed = false;
+    harness.chain.blockNumber = async () => {
+      if (!lapsed) {
+        // The page's session ends while its reads are in flight, and the expiry watch runs.
+        lapsed = true;
+        harness.clock.advance(harness.core.settings.browserSessionTtlMs);
+        await harness.drain();
+      }
+      return realBlockNumber();
+    };
+    const attempt = await reserve(browser, view, envelope);
+    // The chat said nothing was sent, so nothing may be: the late reservation is refused.
+    expect(sentTexts()).toContain(LINK_EXPIRED);
+    expect(attempt.status).toBe(403);
+    expect(row("SELECT count(*) AS n FROM execution_attempts")).toEqual({ n: 0 });
+  });
+
   it("waits for a signing page that is still open before saying its link expired", async () => {
     await confirmLinkAndPublish(harness);
     // The page opens a minute before its link expires, and is closed before it sends anything.
