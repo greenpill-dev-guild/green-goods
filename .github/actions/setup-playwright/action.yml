@@ -50,14 +50,17 @@ runs:
         } >> "$GITHUB_OUTPUT"
 
     # A failed restore is a cache miss, not a failure: the install below falls
-    # back to the mirror. The ~21 MB archive normally restores in seconds, and
-    # @actions/cache gives up on each 4 MB block after 30s and five retries.
-    # The save runs in this action's post step at the end of the job, outside
-    # the caller's setup timeout, and only when the job succeeded without an
-    # exact key match.
+    # back to the mirror. The ~21 MB archive normally restores in seconds. The
+    # cache service downloads through the Azure SDK, where
+    # SEGMENT_DOWNLOAD_TIMEOUT_MINS is the only bound on a stalled download
+    # (600s by default). The save runs in this action's post step at the end
+    # of the job, outside the caller's setup timeout, and only when the job
+    # succeeded without an exact key match.
     - name: Restore cached system packages
       id: apt-cache
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+      env:
+        SEGMENT_DOWNLOAD_TIMEOUT_MINS: "1"
       with:
         path: ${{ steps.apt-cache-key.outputs.dir }}
         key: ${{ steps.apt-cache-key.outputs.key }}
@@ -73,11 +76,9 @@ runs:
     # up to ATTEMPT_TIMEOUT + KILL_GRACE, and a dependency retry first spends up
     # to REPAIR_TIMEOUT + REPAIR_KILL_GRACE repairing dpkg. Worst case is one
     # leg nearly exhausting its budget before succeeding, then the other failing
-    # outright, plus a 60s allowance for a slow cache restore:
+    # outright, after a cache download that ran into its 60s segment timeout:
     #   60 + (180 + 35 + 30 + 149) + (2*180 + 30) = 844s, against a 900s cap.
     # Keep that inequality true if any value here or `timeout-minutes` changes.
-    # A cache service that stalls past its own retries can exceed the
-    # allowance; the caller's timeout then reports the stall.
     - name: Install Playwright Chromium and system dependencies
       shell: bash
       env:
@@ -127,8 +128,8 @@ runs:
         }
         # apt reuses a .deb already in its archive directory when its file name
         # and size match the index, without hashing it again, so the cache is
-        # trusted like the runner image. Other branches restore only entries
-        # saved by runs on develop, which run reviewed code.
+        # trusted like the runner image. A pull request restores entries saved
+        # by its own runs or by runs on develop; develop restores only its own.
         shopt -s nullglob
         cached=("$PACKAGE_CACHE"/*.deb)
         if [ "${#cached[@]}" -gt 0 ]; then
@@ -156,6 +157,10 @@ runs:
         APT_ARCHIVES: /var/cache/apt/archives
       run: |
         shopt -s nullglob
+        # Start empty, and empty again on any error, so a failed stage leaves
+        # nothing (not a restored older set) for the post step to save.
+        rm -rf "$PACKAGE_CACHE"
+        trap 'rm -rf "$PACKAGE_CACHE"' ERR
         installed="$(mktemp)"
         # apt names an archive <package>_<version>_<arch>.deb, with an epoch's
         # colon written as %3a.
@@ -168,7 +173,6 @@ runs:
         done
         # With nothing to keep, leave no directory: the post step then skips
         # the save instead of storing an empty entry under this key.
-        rm -rf "$PACKAGE_CACHE"
         if [ "${#keep[@]}" -eq 0 ]; then
           echo "No installed packages to cache"
           exit 0

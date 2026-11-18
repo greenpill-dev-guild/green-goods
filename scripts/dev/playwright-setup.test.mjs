@@ -10,10 +10,9 @@ const root = resolve(import.meta.dirname, "../..");
 const action = load(readFileSync(join(root, ".github/actions/setup-playwright/action.yml"), "utf8"));
 const install = action.runs.steps.find((step) => step.name === "Install Playwright Chromium and system dependencies");
 const stage = action.runs.steps.find((step) => step.name === "Stage system packages for the cache");
+const restore = action.runs.steps.find((step) => step.id === "apt-cache");
 // GitHub runs `shell: bash` steps with these flags.
 const GITHUB_BASH = ["--noprofile", "--norc", "-e", "-o", "pipefail", "-c"];
-// The ~21 MB package cache normally restores in seconds; @actions/cache bounds each 4 MB block itself.
-const CACHE_RESTORE_ALLOWANCE_SECONDS = 60;
 const AZURE_MIRROR = "http://azure.archive.ubuntu.com/ubuntu/";
 const AWS_MIRROR = "http://us-east-2.ec2.archive.ubuntu.com/ubuntu/";
 
@@ -115,7 +114,10 @@ test("timeout and retry budgets remain inside every caller's action deadline", (
   const seconds = value => Number(String(value).replace(/s$/, ""));
   const attempts = Number(install.env.MAX_ATTEMPTS);
   const repairBound = (attempts - 1) * (seconds(install.env.REPAIR_TIMEOUT) + seconds(install.env.REPAIR_KILL_GRACE));
-  const worstCase = CACHE_RESTORE_ALLOWANCE_SECONDS + repairBound + 2 * (attempts * (seconds(install.env.ATTEMPT_TIMEOUT) + seconds(install.env.KILL_GRACE)) + (attempts - 1) * seconds(install.env.RETRY_BACKOFF));
+  // The cache service downloads through the Azure SDK, whose stall bound is this segment timeout.
+  const restoreBound = Number(restore.env.SEGMENT_DOWNLOAD_TIMEOUT_MINS) * 60;
+  assert.ok(restoreBound > 0, "the cache restore needs a segment timeout");
+  const worstCase = restoreBound + repairBound + 2 * (attempts * (seconds(install.env.ATTEMPT_TIMEOUT) + seconds(install.env.KILL_GRACE)) + (attempts - 1) * seconds(install.env.RETRY_BACKOFF));
   let callers = 0;
   for (const file of ["design.yml", "admin.yml", "client.yml"]) {
     const workflow = load(readFileSync(join(root, ".github/workflows", file), "utf8"));
@@ -156,6 +158,12 @@ test("the package cache keeps only installed versions and is skipped when there 
     assert.deepEqual(readdirSync(packageCache).sort(), ["fonts-unifont_1%3a15.1.01-1build1_all.deb", "xfonts-utils_1%3a7.7+6build3_amd64.deb"]);
     const empty = stageWith(["fonts-unifont_1%3a15.0.0-1_all.deb"]);
     assert.equal(empty.status, 0, empty.stderr);
+    assert.throws(() => readdirSync(packageCache), /ENOENT/);
+    mkdirSync(packageCache);
+    writeFileSync(join(packageCache, "restored-from-older-key.deb"), "");
+    writeFileSync(join(bin, "dpkg-query"), "#!/bin/sh\nexit 2\n");
+    const failed = stageWith(["fonts-unifont_1%3a15.1.01-1build1_all.deb"]);
+    assert.notEqual(failed.status, 0);
     assert.throws(() => readdirSync(packageCache), /ENOENT/);
   } finally { rmSync(fixture, { recursive: true, force: true }); }
   assert.equal(stage["continue-on-error"], true);
