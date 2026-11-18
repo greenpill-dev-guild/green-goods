@@ -148,6 +148,14 @@ export interface JobQueueAnalytics {
    * and a tap's refusal before one. A background pass that never starts records nothing.
    */
   jobSkipped(kind: string, reason: string, context: { explicit: boolean; started: boolean }): void;
+  /**
+   * A send went out and its receipt did not come within the queue's limit. The job stays on
+   * record as still confirming; this says how long it waited and who it waited for.
+   */
+  receiptWaitLimitReached(
+    kind: string,
+    context: { limitMs: number; explicit: boolean; authMode: string }
+  ): void;
 }
 
 export interface JobQueueLogger {
@@ -214,6 +222,11 @@ export interface JobQueueConfig {
   defaultChainId: number;
   maxRetries: number;
   storageQuotaCacheTTL: number;
+  /**
+   * How long a send the queue keeps a record of waits for its receipt. Past it the
+   * send reads as still confirming, and a later pass confirms it from that record.
+   */
+  receiptWaitLimitMs: number;
 }
 
 /**

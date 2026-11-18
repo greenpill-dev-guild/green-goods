@@ -11,11 +11,11 @@ import {
   type ConformanceLaw,
 } from "../../../__tests__/test-utils/conformance";
 import { expect, vi } from "vitest";
-import type { Hex } from "viem";
+import { type Hex, WaitForTransactionReceiptTimeoutError } from "viem";
 import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import { EmbeddedSender } from "../embedded-sender";
 import { PasskeySender } from "../passkey-sender";
-import type { TransactionSender } from "../types";
+import { ReceiptWaitLimitError, type TransactionSender } from "../types";
 import { WalletSender } from "../wallet-sender";
 
 const SECOND_TX_HASH = `0x${"b".repeat(64)}` as Hex;
@@ -31,7 +31,15 @@ type SenderScenario = {
   connectedAccount?: `0x${string}`;
   /** What happens while the guard reads the wallet, before it asks who signs. */
   whileGuardReads?: () => void;
+  /** The network never answers with a receipt: a wait with a limit times out, as viem's does. */
+  receiptNeverComes?: boolean;
 };
+
+/** viem's wait for a receipt that never comes: it ends only at the limit it was given. */
+function receiptThatNeverComes(receipt: { hash: Hex; timeout?: number }): never {
+  if (receipt.timeout) throw new WaitForTransactionReceiptTimeoutError({ hash: receipt.hash });
+  throw new Error("waited for a receipt with no limit");
+}
 
 type ForwardedCall = {
   account?: string;
@@ -55,6 +63,7 @@ type SenderExpectations = {
   chainSource: "resolver" | "call";
   receipt: "none" | "always" | "canonical-only";
   revertedReceipt: true | string;
+  receiptWaitLimit: true | string;
   nonCanonicalHash: true | string;
   guardOrder: string[];
   omittedValue: bigint | undefined;
@@ -80,6 +89,7 @@ const cases: SenderCase[] = [
       chainSource: "call",
       receipt: "canonical-only",
       revertedReceipt: true,
+      receiptWaitLimit: true,
       nonCanonicalHash: true,
       guardOrder: ["chain", "safety", "send", "receipt"],
       omittedValue: undefined,
@@ -113,6 +123,7 @@ const cases: SenderCase[] = [
       deps.waitForTransactionReceipt.mockImplementation(async (_config, receipt) => {
         trace.push("receipt");
         receiptHashes.push(receipt.hash);
+        if (scenario.receiptNeverComes) receiptThatNeverComes(receipt);
         return { status: scenario.receiptStatus ?? "success" };
       });
       return {
@@ -133,6 +144,7 @@ const cases: SenderCase[] = [
       chainSource: "resolver",
       receipt: "always",
       revertedReceipt: true,
+      receiptWaitLimit: "a passkey send keeps its own receipt limit",
       nonCanonicalHash: "passkey mode confirms a UserOperation receipt",
       guardOrder: ["safety", "send", "receipt"],
       omittedValue: 0n,
@@ -213,6 +225,7 @@ const cases: SenderCase[] = [
       chainSource: "call",
       receipt: "always",
       revertedReceipt: true,
+      receiptWaitLimit: true,
       nonCanonicalHash: "embedded mode always waits for its wagmi receipt",
       guardOrder: ["chain", "safety", "send", "receipt"],
       omittedValue: undefined,
@@ -250,6 +263,7 @@ const cases: SenderCase[] = [
       deps.waitForTransactionReceipt.mockImplementation(async (_config, receipt) => {
         trace.push("receipt");
         receiptHashes.push(receipt.hash);
+        if (scenario.receiptNeverComes) receiptThatNeverComes(receipt);
         return { status: scenario.receiptStatus ?? "success" };
       });
       return {
@@ -419,6 +433,31 @@ const laws: ConformanceLaw<SenderCase>[] = [
     verify: async ({ make }) => {
       const { sender } = make({ receiptStatus: "reverted" });
       await expect(sender.sendContractCall(createMockContractCall())).rejects.toThrow(/reverted/i);
+    },
+  },
+  {
+    // The send went out, so a receipt that outlasts the limit never reads as a failure: the
+    // caller's record of the broadcast confirms it later (PRD-1550).
+    name: "ends a receipt wait at the send's limit, after the broadcast is reported",
+    applicable: ({ expectations }) => expectations.receiptWaitLimit,
+    verify: async ({ make }) => {
+      const harness = make({ receiptNeverComes: true });
+      const onBroadcast = vi.fn(async () => {
+        harness.trace.push("broadcast");
+      });
+      const sent = harness.sender.sendContractCall(createMockContractCall(), {
+        onBroadcast,
+        receiptWaitLimitMs: 120_000,
+      });
+      await expect(sent).rejects.toBeInstanceOf(ReceiptWaitLimitError);
+      await expect(sent).rejects.toMatchObject({ limitMs: 120_000 });
+      expect(harness.trace.slice(-2)).toEqual(["broadcast", "receipt"]);
+
+      // Without a limit nothing changes: the wait is the caller's to end.
+      const unlimited = make({ receiptNeverComes: true });
+      await expect(unlimited.sender.sendContractCall(createMockContractCall())).rejects.toThrow(
+        "waited for a receipt with no limit"
+      );
     },
   },
   {

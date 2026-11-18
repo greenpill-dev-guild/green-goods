@@ -1,5 +1,9 @@
 import { BundleIncompleteError } from "../transactions/batch-types";
-import type { TransactionSender, TransactionSendOptions } from "../transactions/types";
+import {
+  ReceiptWaitLimitError,
+  type TransactionSender,
+  type TransactionSendOptions,
+} from "../transactions/types";
 import {
   acquireWorkJobs,
   retainedWorkBroadcast,
@@ -28,6 +32,7 @@ import {
   createOfflineTxHash,
   hasRecordedSend,
   isWaitingReprobeThrottled,
+  recordsSends,
   sendsOnReopen,
 } from "./queue-policy";
 import { findTakeUpOf, TAKE_UP_PENDING } from "./take-up-hold";
@@ -131,6 +136,31 @@ function withPhaseReports(
   };
 }
 
+/**
+ * The record of a send whose receipt outlasted its limit: the job's kind, the limit, and who
+ * waited, with no address, hash or message. The send then ends as still confirming: its
+ * broadcast is on record, so even a record that throws here cannot turn it into a failure.
+ */
+function recordReceiptWaitLimit(
+  jobId: string,
+  job: Job,
+  limitMs: number,
+  context: ProcessJobContext,
+  sender: TransactionSender,
+  deps: ProcessJobDependencies
+): void {
+  deps.logger.warn("[JobQueue] A send's receipt did not come within its limit", {
+    jobId,
+    kind: job.kind,
+    limitMs,
+  });
+  deps.analytics.receiptWaitLimitReached(job.kind, {
+    limitMs,
+    explicit: Boolean(context.explicit),
+    authMode: sender.authMode,
+  });
+}
+
 export function createJobProcessor(deps: ProcessJobDependencies) {
   async function processJob(
     jobId: string,
@@ -224,15 +254,26 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
         await context.assertOwnership?.();
         await sender.assertOwnership?.(address, chainId);
       };
-      guardedSender.sendContractCall = (call, options = {}) =>
-        sender.sendContractCall(call, {
-          ...withPhaseReports(options, jobId, context, deps.logger),
-          assertOwnership: async () => {
-            await context.assertOwnership?.();
-            await sender.assertOwnership?.(job.userAddress, chainId);
-            await options.assertOwnership?.();
-          },
-        });
+      // A send on record that outlasts its limit is confirmed from that record later. A kind
+      // that keeps no record waits as long as it takes: its answer is the only proof it went.
+      const receiptWaitLimitMs = recordsSends(job.kind) ? deps.config.receiptWaitLimitMs : 0;
+      guardedSender.sendContractCall = async (call, options = {}) => {
+        try {
+          return await sender.sendContractCall(call, {
+            ...withPhaseReports(options, jobId, context, deps.logger),
+            ...(receiptWaitLimitMs ? { receiptWaitLimitMs } : {}),
+            assertOwnership: async () => {
+              await context.assertOwnership?.();
+              await sender.assertOwnership?.(job.userAddress, chainId);
+              await options.assertOwnership?.();
+            },
+          });
+        } catch (error) {
+          if (error instanceof ReceiptWaitLimitError)
+            recordReceiptWaitLimit(jobId, job, error.limitMs, context, sender, deps);
+          throw error;
+        }
+      };
       const execution = await deps.executors.execute(jobId, job, chainId, guardedSender);
       if (execution.status === "waiting") {
         const meta = { ...(job.meta ?? {}), waitingForDependency: true };

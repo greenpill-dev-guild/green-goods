@@ -3062,6 +3062,8 @@
   "app.home.work.retryMetadataLoad": "Retry Loading Details",
   "app.home.work.retrySuccess": "Your work was sent",
   "app.home.work.retrySuccessMessage": "Saved to the garden record.",
+  "app.home.work.sendStage.confirming": "Confirming…",
+  "app.home.work.sendStage.wallet": "Confirm in your wallet",
   "app.home.work.share": "Share Work",
   "app.home.work.shareFailed": "Couldn't share work",
   "app.home.work.submittedForReview": "Submitted for review",

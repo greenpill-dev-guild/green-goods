@@ -49,6 +49,7 @@ export const GardenWork: React.FC = () => {
     isOfflineWork,
     isOnline,
     isRetrying,
+    sendStage,
     gardensLoading,
     workLoading,
     workLoadError,
@@ -133,6 +134,7 @@ export const GardenWork: React.FC = () => {
       onPrepareNow={uploads.prepareNow}
       onRetry={handleRetry}
       isRetrying={isRetrying}
+      sendStage={sendStage}
       onTryAgain={queuedWork.tryAgain}
       isTryingAgain={queuedWork.isTryingAgain}
       onDiscard={async () => {

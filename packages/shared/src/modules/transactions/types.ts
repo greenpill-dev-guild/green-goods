@@ -85,6 +85,13 @@ export interface TransactionSendOptions {
   onBroadcast?: (hash: Hex) => Promise<void>;
   /** Opaque batch identity, checkpointed before any receipt wait. */
   onBatchReference?: (reference: BatchReference) => Promise<void>;
+  /**
+   * How long to wait for the receipt once the network has the transaction. When
+   * it passes, the send rejects with `ReceiptWaitLimitError`: the transaction went
+   * out and may still land. Without it the wait lasts until the receipt arrives.
+   * The wallet and embedded senders honor it; a passkey send keeps its own limit.
+   */
+  receiptWaitLimitMs?: number;
 }
 
 export interface AtomicBatchOptions extends BatchSendOptions {
@@ -198,6 +205,30 @@ export class TransactionRevertedError extends Error {
     super(message);
     this.name = "TransactionRevertedError";
   }
+}
+
+/**
+ * The receipt did not come within the send's limit. The transaction went out and
+ * may still land, so this is never a failure: what is on record confirms it later.
+ */
+export class ReceiptWaitLimitError extends Error {
+  constructor(
+    readonly limitMs: number,
+    options?: { cause?: unknown }
+  ) {
+    super(`No receipt within ${limitMs / 1000}s. The transaction may still land.`, options);
+    this.name = "ReceiptWaitLimitError";
+  }
+}
+
+/**
+ * The limit, when a receipt wait given one ran out of it: viem's own timeout
+ * becomes `ReceiptWaitLimitError`. Any other failure, or a wait with no limit,
+ * passes through unchanged.
+ */
+export function asReceiptWaitLimit(error: unknown, limitMs: number | undefined): unknown {
+  const timedOut = error instanceof Error && error.name === "WaitForTransactionReceiptTimeoutError";
+  return limitMs && timedOut ? new ReceiptWaitLimitError(limitMs, { cause: error }) : error;
 }
 
 /** Submitted without a canonical execution receipt; never announce success or resend automatically. */

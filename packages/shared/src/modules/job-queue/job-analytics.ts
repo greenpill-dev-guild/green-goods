@@ -170,6 +170,22 @@ export function trackJobSkipped(
 }
 
 /**
+ * Track a send whose receipt did not come within the queue's limit (PRD-1495). It went out and
+ * may still land, so the job waits as still confirming. Nothing names the send or whose it is.
+ */
+export function trackReceiptWaitLimitReached(
+  kind: string,
+  context: { limitMs: number; explicit: boolean; authMode: string }
+): void {
+  trackPrivateQueueEvent("offline_job_receipt_wait_limit", {
+    job_kind: kind,
+    limit_ms: context.limitMs,
+    explicit: context.explicit,
+    auth_mode: context.authMode,
+  });
+}
+
+/**
  * Makes a record without letting it change what the person's action did. A mutation callback
  * that throws stops a send before it starts or turns a finished one into a failure, so a record
  * that fails is logged and dropped, as `track` does when its transport throws.
