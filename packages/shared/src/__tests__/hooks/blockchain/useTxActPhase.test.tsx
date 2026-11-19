@@ -16,6 +16,11 @@ import {
   WalletAnswerAbandonedError,
 } from "../../../modules/transactions/types";
 
+let mockAuthMode = "wallet";
+vi.mock("../../../providers/Auth", () => ({
+  useOptionalAuthContext: () => ({ authMode: mockAuthMode }),
+}));
+
 const HASH = `0x${"b".repeat(64)}` as const;
 
 describe("useTxActPhase.trackReported", () => {
@@ -69,6 +74,7 @@ describe("useTxActPhase.trackReported", () => {
 describe("useTxActPhase.track", () => {
   afterEach(() => {
     vi.useRealTimers();
+    mockAuthMode = "wallet";
   });
 
   it("turns slow after 20 seconds on the wallet, and Cancel stops the wait", async () => {
@@ -97,6 +103,32 @@ describe("useTxActPhase.track", () => {
     // The sender hears it too, so a wallet sender stops waiting for the wallet's answer.
     expect(send?.signal?.aborted).toBe(true);
     expect(result.current.phase).toEqual({ status: "stopped", key: "k" });
+
+    // The steward retries under the same key; the old prompt's late answer must not move it.
+    let retry!: Promise<unknown>;
+    act(() => {
+      retry = result.current.track("k", () => new Promise(() => undefined));
+    });
+    await act(async () => {
+      await send?.onBroadcast?.(HASH);
+      send?.onAwaiting?.("safe-signers");
+    });
+    expect(result.current.phase).toMatchObject({ status: "signing", key: "k" });
+    void retry;
+  });
+
+  it("never turns a passkey act slow: it approves in the app, not a wallet", () => {
+    mockAuthMode = "passkey";
+    vi.useFakeTimers();
+    const { result } = renderHook(() => useTxActPhase());
+    act(() => {
+      void result.current.track("k", () => new Promise(() => undefined));
+    });
+
+    act(() => {
+      vi.advanceTimersByTime(60_000);
+    });
+    expect(result.current.phase).toEqual({ status: "signing", key: "k" });
   });
 
   it.each<[string, (send: ActSendCallbacks) => Promise<unknown>, TxActPhase]>([

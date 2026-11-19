@@ -566,6 +566,30 @@ describe("commitment queue executor", () => {
     ).resolves.toEqual({ status: "submitted", txHash: MOCK_TX_HASH });
   });
 
+  it.each([
+    [true, { status: "submitted", txHash: MOCK_TX_HASH }],
+    [false, { status: "waiting", reason: "pending-first-send" }],
+  ] as const)("sends a kept creation again only once its transaction reverted (%s)", async (reverted, ending) => {
+    // Kept as submitted after the limit, it made nothing if its transaction then reverted; one
+    // pending or unknown waits for the chain instead (PRD-1551).
+    const queueStore = store();
+    const sender = createMockTransactionSender();
+    const kept = job("commitment", commitmentPayload(), { meta: { submittedTxHash: HASH } });
+
+    await expect(
+      executeCommitmentQueueJob("job-commitment", kept, 42161, sender, {
+        demoActive: () => false,
+        reads: {
+          ...reads(chainClock()),
+          transactionReverted: vi.fn(async (hash: string) => reverted && hash === HASH),
+        },
+        store: queueStore,
+      })
+    ).resolves.toEqual(ending);
+    expect(sender.sendContractCall).toHaveBeenCalledTimes(reverted ? 1 : 0);
+    expect(kept.meta).toEqual(reverted ? {} : { submittedTxHash: HASH });
+  });
+
   it("never publishes the words of a promise composed offline that the chain can no longer keep", async () => {
     // Its words are published only when it sends, and it never will.
     const uploadJson = vi.fn().mockResolvedValue({ cid: "bafy-published" });

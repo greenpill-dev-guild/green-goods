@@ -10,9 +10,11 @@
  * `trackReported` is for an act that says how it ended, such as a job-queue
  * send, which can land or stay queued on this device without failing.
  *
- * Either way, an act still waiting on the wallet after `WALLET_NUDGE_MS` turns
- * slow, and its line offers Cancel: the line stops waiting, and the wallet
- * sender stops waiting for the wallet's answer (PRD-1551).
+ * A tracked act signed with a wallet that is still waiting on it after
+ * `WALLET_NUDGE_MS` turns slow, and its line offers Cancel: the line stops
+ * waiting, and the wallet sender stops waiting for the wallet's answer
+ * (PRD-1551). A passkey approves in the app and an embedded wallet asks
+ * nobody, and a queued act keeps its own send, so none of those turns slow.
  *
  * @module hooks/blockchain/useTxActPhase
  */
@@ -30,6 +32,7 @@ import {
   type TransactionSendOptions,
   WalletAnswerAbandonedError,
 } from "../../modules/transactions/types";
+import { useOptionalAuthContext } from "../../providers/Auth";
 import { isUnconfirmedTxError } from "../../utils/errors/tx-error-classifier";
 import { useTimeout } from "../utils/useTimeout";
 
@@ -42,6 +45,8 @@ export type ActSendCallbacks = Pick<
 /** The line an act moves: its events, the timer that marks a slow wallet, and what landing does. */
 export interface ActLine {
   step: (event: TxActPhaseEvent) => void;
+  /** Whether the act waits on a wallet the person must open: only then can it turn slow. */
+  waitsOnWallet: boolean;
   setNudge: (callback: () => void, delay: number) => void;
   clearNudge: () => void;
   /** The act landed (not a Safe proposal): `confirmed` by default, or the caller's own. */
@@ -55,9 +60,10 @@ function endingOf(error: unknown): "stopped" | "still-confirming" | "failed" {
 }
 
 /**
- * Runs `act` on its line: waiting on the wallet (slow past `WALLET_NUDGE_MS`, with Cancel), on
- * the chain, then its ending. Cancel rejects the act with `WalletAnswerAbandonedError` even when
- * its sender cannot stop asking, and the sender's late events no longer move the line.
+ * Runs `act` on its line: waiting on the wallet (slow past `WALLET_NUDGE_MS`, with Cancel, when
+ * it `waitsOnWallet`), on the chain, then its ending. Cancel rejects the act with
+ * `WalletAnswerAbandonedError`, and its sender's late events no longer move the line: a retry
+ * under the same key is a new act, which an older one's answer must not move.
  */
 export async function followAct<T>(
   key: string,
@@ -71,17 +77,24 @@ export async function followAct<T>(
     });
   });
   let awaitingSigners = false;
-  line.step({ type: "start", key, cancel: () => cancel.abort() });
-  line.setNudge(() => line.step({ type: "wallet-slow", key }), WALLET_NUDGE_MS);
+  line.step({
+    type: "start",
+    key,
+    ...(line.waitsOnWallet ? { cancel: () => cancel.abort() } : {}),
+  });
+  if (line.waitsOnWallet)
+    line.setNudge(() => line.step({ type: "wallet-slow", key }), WALLET_NUDGE_MS);
   try {
     const result = await Promise.race([
       act({
         signal: cancel.signal,
         onBroadcast: async (hash) => {
+          if (cancel.signal.aborted) return;
           line.clearNudge();
           line.step({ type: "broadcast", key, hash });
         },
         onAwaiting: () => {
+          if (cancel.signal.aborted) return;
           awaitingSigners = true;
           line.step({ type: "safe-signers", key });
         },
@@ -105,16 +118,18 @@ export function useTxActPhase(): {
 } {
   const [phase, dispatch] = useReducer(actPhaseReducer, IDLE_ACT_PHASE);
   const { set: setNudge, clear: clearNudge } = useTimeout();
+  const waitsOnWallet = useOptionalAuthContext()?.authMode === "wallet";
 
   const track = useCallback(
     <T>(key: string, act: (send: ActSendCallbacks) => Promise<T>): Promise<T> =>
       followAct(key, act, {
         step: dispatch,
+        waitsOnWallet,
         setNudge,
         clearNudge,
         landed: () => dispatch({ type: "confirmed", key }),
       }),
-    [setNudge, clearNudge]
+    [waitsOnWallet, setNudge, clearNudge]
   );
 
   const trackReported = useCallback(
@@ -122,7 +137,7 @@ export function useTxActPhase(): {
       let ended = false;
       return followAct(
         key,
-        // A queued send keeps its own sender; Cancel stops only this line's wait for it.
+        // A queued send keeps its own sender and its own stages, so its line never turns slow.
         () =>
           act((event) => {
             if (event.type === "broadcast") {
@@ -135,6 +150,7 @@ export function useTxActPhase(): {
           }),
         {
           step: dispatch,
+          waitsOnWallet: false,
           setNudge,
           clearNudge,
           // Resolved without saying how it ended: it did not fail, and nothing

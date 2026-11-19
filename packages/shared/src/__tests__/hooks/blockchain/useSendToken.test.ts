@@ -532,6 +532,15 @@ describe("Celo send safety", () => {
       });
       await waitFor(() => expect(result.current.notice).toBe("stopped"));
       expect(toastService.success).not.toHaveBeenCalled();
+
+      // The wallet sends it after all: it went out, so it reads as still confirming.
+      const { onBroadcast } = mockSendContractCall.mock.calls[0]![1] as {
+        onBroadcast: (hash: string) => Promise<void>;
+      };
+      await act(async () => {
+        await onBroadcast("0xlate");
+      });
+      await waitFor(() => expect(result.current.notice).toBe("still-confirming"));
     } finally {
       delete (mockSender as { authMode?: string }).authMode;
     }

@@ -19,6 +19,7 @@ import {
   type DeferredWorkIdentityResolution,
   resolveDeferredWorkIdentity,
 } from "../commitment-pooling/work-identity";
+import { isCanonicalTransactionHash } from "../transactions/confirmation";
 import { ReceiptWaitLimitError, type TransactionSender } from "../transactions/types";
 import type { StrandedCommitmentLookup } from "../work/stranded-intent";
 import {
@@ -178,6 +179,20 @@ export async function executeCommitmentQueueJob(
   const store = deps.store ?? jobQueueDB;
   const moduleAddress = getNetworkContracts(chainId).commitmentPoolingModule;
   const chainReads = deps.reads ?? createCommitmentChainReads({ chainId, moduleAddress });
+  // A creation kept as submitted when its receipt outlasted the queue's limit (PRD-1551) made
+  // nothing if that transaction then reverted. Its hash is cleared so the creation can go again,
+  // as one that reverted inside the wait always could; one pending or unknown keeps waiting.
+  const submitted = job.meta?.submittedTxHash;
+  if (
+    (job.kind === "commitment" || job.kind === "commitmentSeries") &&
+    typeof submitted === "string" &&
+    isCanonicalTransactionHash(submitted) &&
+    (await chainReads.transactionReverted?.(submitted))
+  ) {
+    const { submittedTxHash: _reverted, ...meta } = job.meta ?? {};
+    job.meta = meta;
+    await store.updateJob({ ...job });
+  }
   if (recordsSends(job.kind) && (hasRecordedSend(job) || retainedWorkBroadcastReference(jobId))) {
     return settleActSend(jobId, job, chainId, sender, store, chainReads, deps);
   }

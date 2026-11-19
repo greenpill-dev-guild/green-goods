@@ -17,6 +17,7 @@ import { claimActKey, type TxActPhase } from "../../../modules/transactions/act-
 import { useClaimDecisionStore } from "../../../stores/useClaimDecisionStore";
 import type { Address } from "../../../types/domain";
 import { type ActSendCallbacks, followAct } from "../../blockchain/useTxActPhase";
+import { useOptionalAuthContext } from "../../../providers/Auth";
 import { useTimeout } from "../../utils/useTimeout";
 
 export interface ClaimDecisionActs {
@@ -44,6 +45,7 @@ export function useClaimDecisions(): ClaimDecisionActs {
   const step = useClaimDecisionStore((state) => state.step);
   const decide = useClaimDecisionStore((state) => state.decide);
   const { set: setNudge, clear: clearNudge } = useTimeout();
+  const waitsOnWallet = useOptionalAuthContext()?.authMode === "wallet";
 
   // The line follows the approval as any single-signature act's does. A Safe's proposal is not
   // an approval yet, so only an approval that landed is kept as a decision.
@@ -57,6 +59,7 @@ export function useClaimDecisions(): ClaimDecisionActs {
       const key = claimActKey(commitmentId, claimant);
       return followAct(key, act, {
         step,
+        waitsOnWallet,
         setNudge,
         clearNudge,
         landed: () =>
@@ -68,7 +71,7 @@ export function useClaimDecisions(): ClaimDecisionActs {
           }),
       });
     },
-    [step, decide, setNudge, clearNudge]
+    [step, decide, waitsOnWallet, setNudge, clearNudge]
   );
 
   const decline = useCallback(
