@@ -390,6 +390,31 @@ describe("Celo send safety", () => {
     expect(invalidate.mock.calls).not.toContainEqual([{ queryKey: ["greengoods", "tokens"] }]);
   });
 
+  it("records a pending Celo send its receipt proves included as confirmed (PRD-1553)", async () => {
+    const endings: unknown[] = [];
+    const unregister = registerTelemetrySink({
+      capture: (event, properties) => {
+        if (event === "send_act_ended") endings.push(properties.outcome);
+      },
+    });
+    try {
+      const hash = `0x${"a".repeat(64)}`;
+      mockSendContractCall.mockResolvedValueOnce({
+        hash,
+        sponsored: false,
+        confirmation: "pending",
+      });
+      mockWaitForReceipt.mockResolvedValueOnce({ status: "success", transactionHash: hash });
+      const { result } = renderSendToken();
+      await result.current.mutateAsync(input);
+
+      expect(mockWaitForReceipt).toHaveBeenCalledOnce();
+      expect(endings).toEqual(["confirmed"]);
+    } finally {
+      unregister();
+    }
+  });
+
   it("requires balance for amount plus sender-paid fee", async () => {
     mockReadContract.mockImplementation(({ functionName }: { functionName: string }) =>
       Promise.resolve(functionName === "getFees" ? [10n, true] : 105n)
