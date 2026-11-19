@@ -373,7 +373,7 @@ export function ManageMembersDialog({
             ? undefined
             : formatMessage({ id: "app.garden.roles.modal.description" }, { count: people.length })
         }
-        actions={{ note: summary ?? undefined, ...footerActions }}
+        actions={{ note: summary ?? null, ...footerActions }}
       >
         {review && moment ? (
           <div

@@ -238,7 +238,7 @@ export function CookieJarDepositModal({
             }
           : lowLimitJar
             ? {
-                note: plan.signatureLine || undefined,
+                note: plan.signatureLine || null,
                 primary: {
                   label: formatMessage({ id: "app.cookieJar.fixLimitFirst" }),
                   disabled: isPending,
@@ -252,7 +252,7 @@ export function CookieJarDepositModal({
                 },
               }
             : {
-                note: plan.signatureLine || undefined,
+                note: plan.signatureLine || null,
                 primary: {
                   label: formatMessage({ id: "app.cookieJar.deposit", defaultMessage: "Deposit" }),
                   loading: isPending,

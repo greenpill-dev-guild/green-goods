@@ -1,4 +1,5 @@
 import {
+  hasSheetActions,
   SheetActions,
   type SheetActionsProps,
 } from "@green-goods/shared/components/Dialog/SheetActions";
@@ -127,7 +128,7 @@ export function FormFlow({
             {sectionsBlock}
           </div>
         </SheetBody>
-        {actions ? (
+        {hasSheetActions(actions) ? (
           <SheetFooter>
             <SheetActions {...actions} />
           </SheetFooter>
@@ -154,7 +155,7 @@ export function FormFlow({
         data-region="form-flow-actions"
         className="mt-4"
       >
-        {actions ? <SheetActions {...actions} /> : null}
+        {hasSheetActions(actions) ? <SheetActions {...actions} /> : null}
       </Surface>
     </div>
   );

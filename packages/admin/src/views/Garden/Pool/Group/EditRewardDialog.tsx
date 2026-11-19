@@ -241,11 +241,7 @@ export function EditRewardDialog({
           },
         }
       : {
-          note: note ? (
-            <span role="status" data-testid="reward-prompt-count">
-              {note}
-            </span>
-          ) : undefined,
+          note: note ? <span data-testid="reward-prompt-count">{note}</span> : null,
           primary: {
             label: retrying
               ? status.phase === "partial"

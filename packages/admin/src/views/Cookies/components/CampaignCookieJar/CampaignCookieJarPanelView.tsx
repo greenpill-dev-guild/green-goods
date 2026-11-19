@@ -114,7 +114,7 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
         tone="community"
         preventClose={syncPending}
         actions={{
-          note: syncSignatureLine || undefined,
+          note: syncSignatureLine || null,
           primary: {
             label: formatMessage({
               id: "hub.community.cookies.sync",

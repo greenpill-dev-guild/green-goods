@@ -230,7 +230,7 @@ export function DepositModal({
       actions={
         primaryAddress
           ? {
-              note: plan.signatureLine || undefined,
+              note: plan.signatureLine || null,
               primary: {
                 label: formatMessage({ id: "app.treasury.deposit" }),
                 onClick: onSubmit,

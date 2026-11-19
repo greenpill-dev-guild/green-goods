@@ -41,10 +41,13 @@ export function StewardAccessRequest({
     label: formatMessage({ id: "app.common.close", defaultMessage: "Close" }),
     onClick: () => c.setOpen(false),
   };
+  // Two acts share one row at every width (`steps`), so the footer keeps one
+  // height through the flow and nothing under it moves.
   const actions: SheetActionsProps = !c.available
     ? { secondary: close }
     : statusView
       ? {
+          layout: "steps",
           primary: {
             label: formatMessage({ id: "hub.stewardAccess.checkStatus" }),
             disabled: c.busy,
@@ -63,7 +66,6 @@ export function StewardAccessRequest({
         }
       : c.step === "review" && c.selectedGarden
         ? {
-            // Back to the gardens beside the way on, as a flow's steps are.
             layout: "steps",
             primary: {
               label: formatMessage({ id: "hub.stewardAccess.send" }),
@@ -127,6 +129,8 @@ export function StewardAccessRequest({
         tone="home"
         preventClose={c.busy}
         actions={actions}
+        // This flow's footer sits on the dialog's own surface, not a raised bar.
+        className="[&_[data-slot=actions]]:bg-transparent"
         finalFocusRef={opener}
       >
         <div

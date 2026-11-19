@@ -404,7 +404,7 @@ export function AddMembersDialog({
           note:
             batchCount > 0
               ? formatMessage({ id: "admin.addMember.signatureCount" }, { count: signatureCount })
-              : undefined,
+              : null,
           primary: {
             label: submitLabel,
             type: "submit",

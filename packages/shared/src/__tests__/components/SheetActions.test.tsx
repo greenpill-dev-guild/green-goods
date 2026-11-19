@@ -25,7 +25,7 @@ describe("SheetActions", () => {
     );
     expect(bar()?.firstElementChild).toHaveAttribute("data-slot", "note");
     expect(bar()?.firstElementChild).toHaveTextContent("Needs a connection.");
-    // The line changes as a send moves, so it is announced politely.
+    // The line changes as a send moves, so the note is the bar's polite live region.
     expect(bar()?.firstElementChild).toHaveAttribute("aria-live", "polite");
     expect(screen.getAllByRole("button").map((button) => button.textContent)).toEqual([
       "Edit Reward",
@@ -51,6 +51,32 @@ describe("SheetActions", () => {
     expect(bar()).toHaveAttribute("data-note");
     expect(bar()?.firstElementChild).toHaveAttribute("data-slot", "note");
     expect(actionRoles()).toEqual(["secondary", "primary"]);
+  });
+
+  it("makes a new button of an action that becomes a form's submit, so the press that swapped it never submits", () => {
+    const { rerender } = render(<SheetActions primary={{ label: "Try Again" }} />);
+    const pressed = screen.getByRole("button", { name: "Try Again" });
+    rerender(<SheetActions primary={{ label: "Sign & List", type: "submit", form: "listing" }} />);
+    const submit = screen.getByRole("button", { name: "Sign & List" });
+    expect(submit).toHaveAttribute("type", "submit");
+    // The pressed node is gone, not re-typed: the browser activates the node it
+    // was pressed on, and a re-typed one would submit the form.
+    expect(submit).not.toBe(pressed);
+    expect(pressed).not.toBeInTheDocument();
+  });
+
+  it("keeps a note's live region mounted while the note has nothing to say", () => {
+    const { rerender } = render(<SheetActions note={null} primary={{ label: "Deposit" }} />);
+    const region = bar()?.querySelector('[data-slot="note"]') as HTMLElement;
+    expect(region).toBeEmptyDOMElement();
+    // No role: an empty region must not read as a status on the page.
+    expect(screen.queryByRole("status")).toBeNull();
+    rerender(
+      <SheetActions note="Your wallet will ask you twice." primary={{ label: "Deposit" }} />
+    );
+    // The same region gains the line, which is what a screen reader announces.
+    expect(bar()?.querySelector('[data-slot="note"]')).toBe(region);
+    expect(region).toHaveTextContent("Your wallet will ask you twice.");
   });
 
   it("stacks primary, secondary, then tertiary in reading order (DL-016)", () => {

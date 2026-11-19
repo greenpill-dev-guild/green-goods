@@ -242,7 +242,7 @@ export function EditConfirmersDialog({
         },
       }
     : {
-        note: note ? <span role="status">{note}</span> : undefined,
+        note,
         primary: {
           label: retrying
             ? status.phase === "partial"

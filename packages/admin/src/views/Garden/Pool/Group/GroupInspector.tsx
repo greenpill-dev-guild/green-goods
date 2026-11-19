@@ -131,7 +131,7 @@ export function GroupInspector({
   const editsHeld = !isOnline && (canEditReward || canEditConfirmers);
   const footer: SheetActionsProps = {
     note: editsHeld ? (
-      <span className="text-warning-dark" role="status">
+      <span className="text-warning-dark">
         {formatMessage({
           id: "hub.garden.pool.offline",
           defaultMessage: "Needs a connection. Pool changes are sent right away, not queued.",
