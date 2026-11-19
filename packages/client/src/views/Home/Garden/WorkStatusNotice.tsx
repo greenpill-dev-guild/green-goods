@@ -1,5 +1,6 @@
 import { Alert } from "@green-goods/shared/components/Alert";
 import type { ItemPreparation } from "@green-goods/shared/hooks/work/useWorkUploads";
+import { SEND_STAGE_WORDS } from "@green-goods/shared/modules/transactions/send-stage";
 import type { Work } from "@green-goods/shared/types/domain";
 import {
   RiAlertLine,
@@ -115,19 +116,28 @@ export function WorkStatusNotice({
         };
       }
       case "sent":
-        return state.submissionState === "sending" && isOnline
-          ? {
-              variant: "info",
-              icon: <RiLoader4Line className={`${ICON} animate-spin`} aria-hidden="true" />,
-              title: { id: "app.work.notice.sending.title" },
-              body: { id: "app.work.notice.sending.body" },
-            }
-          : {
-              variant: "info",
-              icon: <RiRefreshLine className={ICON} aria-hidden="true" />,
-              title: { id: "app.work.notice.checking.title" },
-              body: { id: "app.work.notice.checking.body" },
-            };
+        if (state.submissionState === "sending" && isOnline)
+          return {
+            variant: "info",
+            icon: <RiLoader4Line className={`${ICON} animate-spin`} aria-hidden="true" />,
+            title: { id: "app.work.notice.sending.title" },
+            body: { id: "app.work.notice.sending.body" },
+          };
+        // Its broadcast is on record: it went out and is still confirming (PRD-1552). Only a
+        // send whose answer was lost may or may not have gone out.
+        if (state.submissionState === "awaiting-confirmation")
+          return {
+            variant: "info",
+            icon: <RiRefreshLine className={ICON} aria-hidden="true" />,
+            title: SEND_STAGE_WORDS["still-confirming"].label,
+            body: SEND_STAGE_WORDS["still-confirming"].detail,
+          };
+        return {
+          variant: "info",
+          icon: <RiRefreshLine className={ICON} aria-hidden="true" />,
+          title: { id: "app.work.notice.checking.title" },
+          body: { id: "app.work.notice.checking.body" },
+        };
       default:
         return {
           variant: "info",

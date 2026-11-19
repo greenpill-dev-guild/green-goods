@@ -294,4 +294,17 @@ describe("WorkStatusNotice", () => {
       )
     ).toBeInTheDocument();
   });
+
+  // Its broadcast is on record, so it went out: still confirming, never "may already be sent".
+  it("says a sent work is still confirming and that nothing needs sending again", () => {
+    renderNotice(queuedWork("awaiting-confirmation"));
+
+    expect(screen.getByText("Still confirming…")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Sent. Confirming is taking longer than usual. You can leave, and you don't need to send it again."
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByText("May already be sent")).not.toBeInTheDocument();
+  });
 });
