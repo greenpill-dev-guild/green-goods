@@ -125,6 +125,31 @@ describe("the visit's rows", () => {
     expect(failed).toEqual({ status: "failed" });
     expect(isStillWaiting(failed)).toBe(true);
     expect(isStillWaiting({ status: "not-chosen", at: 1 })).toBe(false);
+
+    // An approval that may still land, or one the wallet may still hold after Cancel, holds the
+    // ask so Approve cannot send a second request (PRD-1551).
+    for (const status of ["still-confirming", "safe-signers", "stopped"] as const) {
+      const held = waitingRowState(entry!, { ...none, live, phase: { status, key } });
+      expect(held).toEqual({ status: "held" });
+      expect(isStillWaiting(held)).toBe(true);
+      // Once the index stops listing it, it was decided, by this approval or another.
+      expect(waitingRowState(entry!, { ...none, phase: { status, key } })).toEqual({
+        status: "gone",
+      });
+    }
+  });
+
+  it("keeps an ask held while the steward approves another (PRD-1551)", () => {
+    const { result } = renderHook(() => useClaimDecisions());
+    const step = useClaimDecisionStore.getState().step;
+    act(() => {
+      step({ type: "start", key: "a" });
+      step({ type: "stopped", key: "a" });
+      // Another ask's approval takes the one line.
+      step({ type: "start", key: "b" });
+    });
+    expect(result.current.phaseOf("a")).toEqual({ status: "stopped", key: "a" });
+    expect(result.current.phaseOf("b")).toMatchObject({ status: "signing", key: "b" });
   });
 });
 

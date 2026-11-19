@@ -8,7 +8,9 @@
 
 import { getEASConfig } from "../../config/blockchain";
 import { connectivityStore } from "../../stores/connectivity";
+import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { jobQueueDB } from "../job-queue/db";
+import { trackReceiptWaitLimitReached } from "../job-queue/job-analytics";
 import { jobQueue } from "../job-queue/default-instance";
 import { createSendChainReads } from "../job-queue/send-chain-reads";
 import { acquireAvailableWorkJobs, holdWorkClaims, saveUnderClaim } from "../job-queue/work-claims";
@@ -44,5 +46,7 @@ export async function createDefaultUploadQueuedWorkPorts(): Promise<UploadQueued
     readTransactionNonce: (hash, chainId) =>
       createSendChainReads({ chainId }).readTransactionNonce(hash),
     readChainHead: (chainId) => createSendChainReads({ chainId }).readChainHead(),
+    receiptWaitLimitMs: TX_RECEIPT_TIMEOUT_MS,
+    receiptWaitLimitReached: trackReceiptWaitLimitReached,
   };
 }
