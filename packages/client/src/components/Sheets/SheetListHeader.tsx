@@ -18,9 +18,10 @@ interface SheetListHeaderProps {
 
 /**
  * The one header row a sheet tab's list shares, in Your Work and the bell's sheet: status line
- * and compact Refresh on the left, filters on the right (DL-032). The row keeps the height of a
- * tab that has a filter, so a tab without one (Drafts) starts its list at the same place, 16px
- * under the tab rail, and it never shrinks when the list below it scrolls.
+ * and compact Refresh on the left, filters on the right (DL-032). It sits 12px under the tab rail
+ * and the list starts 8px under it, the rhythm of the garden's own header row (DL-194). The row
+ * keeps the height of a tab that has a filter, so a tab without one (Drafts) starts its list at
+ * the same place, and it never shrinks when the list below it scrolls.
  *
  * An action (Upload all) sits beside Refresh at normal phone sizes.
  * When the row is short of room the filters give way first, down to their 4rem
@@ -40,7 +41,7 @@ export const SheetListHeader: React.FC<SheetListHeaderProps> = ({
   return (
     <div className="@container shrink-0">
       <div
-        className="mb-4 flex min-h-14 shrink-0 items-center gap-2 px-4 pt-4 @max-[20rem]:flex-wrap"
+        className="mb-2 flex min-h-13 shrink-0 items-center gap-2 px-4 pt-3 @max-[20rem]:flex-wrap"
         data-testid="sheet-list-header"
       >
         <div
