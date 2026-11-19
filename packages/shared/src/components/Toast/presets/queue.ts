@@ -7,7 +7,7 @@ const queueDefaults = {
   approvalCompleted: { title: "Approval sent", message: "Status updated." },
   syncSuccess: { title: "Offline jobs synced" },
   syncError: {
-    title: "Some jobs failed to sync",
+    title: "Didn't send",
     message: "We'll retry automatically in the background.",
   },
   jobFailed: {
@@ -22,7 +22,7 @@ const queueDefaults = {
     review: "Review",
   },
   retryFailed: {
-    title: "Couldn't send it",
+    title: "Didn't send",
     message: "It's still saved on this device. You can try again.",
   },
   stillQueued: {

@@ -369,7 +369,7 @@ describe("useWorkUploads", () => {
 
     await waitFor(() =>
       expect(mocks.toast.error).toHaveBeenCalledWith(
-        expect.objectContaining({ title: en["app.uploads.failedTitle"], error: stopped })
+        expect.objectContaining({ title: en["app.uploads.notSentTitle"], error: stopped })
       )
     );
   });

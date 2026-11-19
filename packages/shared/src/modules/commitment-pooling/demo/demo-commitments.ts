@@ -222,7 +222,7 @@ export function demoCommitments(V: Address): CommitmentReadModel[] {
       unitLabel: "repairs",
       targetUnits: 1n,
     }),
-    // Withdrawn.
+    // Withdrawn by the reader, with their reason.
     commitment({
       commitmentId: 1014n,
       direction: "REQUEST",
@@ -231,6 +231,20 @@ export function demoCommitments(V: Address): CommitmentReadModel[] {
       creator: V,
       unitLabel: "rides",
       targetUnits: 1n,
+      cancelReasonCID: "bafy-demo-reason-1014",
+    }),
+    // A neighbor's offer a steward withdrew while the reader's request to take it up waited.
+    commitment({
+      commitmentId: 1027n,
+      direction: "OFFER",
+      commitmentType: "SUPPORT_SERVICE",
+      onchainState: "CANCELLED",
+      creator: ROSA,
+      leadProvider: ROSA,
+      claimMode: "APPROVAL_GATED",
+      unitLabel: "sessions",
+      targetUnits: 2n,
+      cancelReasonCID: "bafy-demo-reason-1027",
     }),
     // Under review after a Not yet.
     commitment({

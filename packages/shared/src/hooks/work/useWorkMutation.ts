@@ -4,6 +4,7 @@ import {
   recordWorkSubmissionFailure,
   recordWorkSubmissionOutcome,
   recordWorkSubmissionStart,
+  showWorkStillConfirming,
   showWorkSubmissionFailure,
 } from "./workSubmissionFeedback";
 import { createDraftUploadPersistence } from "../../modules/work/draft-upload";
@@ -217,7 +218,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
           onWalletStage: (stage, message) => {
             if (!ownsFlow(origin)) return;
             if (
-              stage === "confirming" &&
+              stage === "wallet" &&
               walletRequestStartedJourneyRef.current !== workSubmissionJourneyId
             ) {
               walletRequestStartedJourneyRef.current = workSubmissionJourneyId;
@@ -234,7 +235,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
             if (stage === "complete") {
               walletProgressToasts.success();
             } else {
-              showWalletProgress(stage, message);
+              showWalletProgress(stage, message, intl.formatMessage);
             }
             onProgress?.(stage, message);
           },
@@ -378,16 +379,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       const unchecked =
         origin.outcome?.kind === "awaiting-confirmation" &&
         origin.outcome.reason === "connection-unconfirmed";
-      if (awaiting) {
-        walletProgressToasts.dismiss();
-        toastService.info({
-          title: intl.formatMessage({ id: "app.work.awaitingConfirmation" }),
-          message: intl.formatMessage({
-            id: unchecked ? "app.work.confirmationUnchecked" : "app.work.confirmationExplanation",
-          }),
-          context: "work",
-        });
-      }
+      if (awaiting) showWorkStillConfirming(intl, unchecked);
       if (!awaiting) hapticSuccess();
       // Offline already said "Saved offline"; an unstable connection says why nothing was sent.
       if (origin.outcome?.kind === "queued" && origin.outcome.reason === "connection-unconfirmed")

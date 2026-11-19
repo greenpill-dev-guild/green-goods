@@ -21,7 +21,7 @@ import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useLiveQuery } from "../utils/useLiveQuery";
 import { gardenWorkListQuery, workSessionStartedAt } from "./gardenWorkListQuery";
 import { useQueuedWorkPreviews } from "./useQueuedWorkPreviews";
-import { useSendingWorkIds } from "./useSendingWorkIds";
+import { useSendingWork } from "./useSendingWork";
 import { useWorkVisibility } from "./useWorkVisibility";
 
 export { usePendingWorksCount } from "./usePendingWorksCount";
@@ -52,7 +52,7 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
     primaryAddress ? `${chainId}:${primaryAddress.toLowerCase()}` : null,
     () => jobQueueDB.observeWorkCompletions(primaryAddress!, chainId)
   );
-  const sendingJobs = useSendingWorkIds(primaryAddress, chainId);
+  const sendingJobs = useSendingWork(primaryAddress, chainId);
   const projectionKey = offline
     ? worksKeys.local(gardenId, chainId, primaryAddress ?? undefined)
     : worksKeys.merged(gardenId, chainId);
@@ -179,10 +179,12 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
       if (rows.some((work) => work.id === job.id)) continue;
       const work = jobToWork(job);
       if (isOnline && sendingJobs.has(job.id) && work.status === "offline") {
+        const sendStage = sendingJobs.get(job.id);
         work.status = "uploading";
         work.metadata = JSON.stringify({
           ...JSON.parse(work.metadata),
           submissionState: "sending",
+          ...(sendStage ? { sendStage } : {}),
         });
       }
       rows.push(

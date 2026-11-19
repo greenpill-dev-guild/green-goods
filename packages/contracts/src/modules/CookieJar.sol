@@ -10,6 +10,11 @@ import { ICookieJarFactory } from "../interfaces/ICookieJarFactory.sol";
 import { IHatsModule } from "../interfaces/IHatsModule.sol";
 import { GardenAccountsLib } from "../lib/GardenAccounts.sol";
 
+/// @dev Release C jars expose their immutable currency, including after asset support is removed.
+interface ICookieJarCurrency {
+    function CURRENCY() external view returns (address);
+}
+
 /// @title CookieJarModule
 /// @notice Creates per-asset Cookie Jar vaults for gardens during mint using the Greenpill Dev Guild CookieJarFactory
 /// @dev UUPS upgradeable. Called by GardenToken during mintGarden() via try/catch.
@@ -147,7 +152,7 @@ contract CookieJarModule is ICookieJarModule, OwnableUpgradeable, ReentrancyGuar
     }
 
     /// @notice Stop listing the jars of older garden accounts, so neither yield nor the apps find them
-    /// @dev The jars themselves are unchanged. Clears each garden's jar for every supported asset and its jar list.
+    /// @dev The jars themselves are unchanged. Clears recorded currencies, including removed assets.
     /// @param gardens Older garden accounts
     function unlistOlderGardenJars(address[] calldata gardens) public virtual onlyOwner {
         uint256 assetCount = supportedAssets.length;
@@ -155,6 +160,18 @@ contract CookieJarModule is ICookieJarModule, OwnableUpgradeable, ReentrancyGuar
             address garden = gardens[g];
             if (!GardenAccountsLib.isOlderGardenAccount(gardenToken, garden)) revert UnsupportedGarden(garden);
 
+            // The jar list is historical; supportedAssets is only the current deployment policy.
+            // Read the immutable currency instead of losing records when that policy changes.
+            address[] storage recordedJars = gardenJarList[garden];
+            for (uint256 j = 0; j < recordedJars.length; j++) {
+                address jar = recordedJars[j];
+                address asset = ICookieJarCurrency(jar).CURRENCY();
+                if (gardenJars[garden][asset] != jar) revert InvalidJarRecord(garden, asset, jar);
+                delete gardenJars[garden][asset];
+                emit JarUnlisted(garden, asset, jar);
+            }
+
+            // Also clear older orphan mappings whose list was removed before this upgrade.
             for (uint256 i = 0; i < assetCount; i++) {
                 address asset = supportedAssets[i];
                 address jar = gardenJars[garden][asset];

@@ -187,6 +187,6 @@ describe("AppProvider page language", () => {
     );
     expect(await screen.findByText("Public close")).toBeInTheDocument();
     expect(importCatalogue.mock.calls.map(([locale]) => locale)).toEqual(["pt", "en"]);
-    expect(document.documentElement.lang).toBe("en");
+    await waitFor(() => expect(document.documentElement.lang).toBe("en"));
   });
 });

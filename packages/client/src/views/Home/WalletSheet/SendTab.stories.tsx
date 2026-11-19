@@ -89,7 +89,11 @@ function controller({
   } as unknown as Controller;
 }
 
-function withSendFlow(state: Parameters<typeof controller>[0]) {
+function withSendFlow(
+  state: Parameters<typeof controller>[0] & {
+    notice?: ReturnType<typeof useSendToken>["notice"];
+  }
+) {
   return () => {
     mocked(useUser).mockReturnValue({ primaryAddress: ACCOUNT } as ReturnType<typeof useUser>);
     mocked(useCurrentChain).mockReturnValue(DEFAULT_CHAIN_ID);
@@ -104,6 +108,8 @@ function withSendFlow(state: Parameters<typeof controller>[0]) {
     mocked(useSendToken).mockReturnValue({
       isPending: state.isSending ?? false,
       mutate: fn(),
+      notice: state.notice ?? null,
+      cancelWalletWait: fn(),
     } as unknown as ReturnType<typeof useSendToken>);
     mocked(useEnsName).mockReturnValue({ data: "together.eth" } as ReturnType<typeof useEnsName>);
     mocked(useSendFlowController).mockReturnValue(controller(state));
@@ -183,6 +189,24 @@ export const Sending: Story = {
       "aria-busy",
       "true"
     );
+  },
+};
+
+/** Twenty seconds on the wallet: the line says to open it and offers Cancel (PRD-1551). */
+export const WalletSlow: Story = {
+  beforeEach: withSendFlow({
+    step: "review",
+    amountInput: "0.5",
+    isSending: true,
+    notice: "wallet-slow",
+  }),
+  play: async () => {
+    await expect(
+      await screen.findByText(
+        "Still waiting for your wallet. Open it to approve or reject the request."
+      )
+    ).toBeVisible();
+    await expect(screen.getByRole("button", { name: "Cancel" })).toBeVisible();
   },
 };
 

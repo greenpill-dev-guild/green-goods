@@ -47,7 +47,7 @@ describe("queuedWorkStatusMessage", () => {
     ["photo-pending", "To upload"],
     ["blocked", "Blocked"],
     ["photo-needs-attention", "Blocked"],
-    ["awaiting-confirmation", "Awaiting confirmation"],
+    ["awaiting-confirmation", "Still confirming…"],
     ["checking-submission", "Checking whether this work was sent"],
   ])("names %s work on its chip", (state, text) => {
     expect(textOf(queuedWorkStatusMessage(state))).toBe(text);
@@ -120,9 +120,11 @@ describe("blockedReasonMessage", () => {
     // to blame. Saying the record won't accept it would contradict the per-item
     // check that just passed.
     [
-      "reverted",
-      "This upload didn't go through. Your media is saved; try again when you're ready.",
+      "batch-reverted",
+      "Your work didn't send. Your media is still saved, so try again when you're ready.",
     ],
+    // A check that refused this item alone.
+    ["reverted", "Can't upload: the garden record won't accept it"],
   ])("explains %s", (reason, text) => {
     expect(textOf(blockedReasonMessage(reason))).toBe(text);
   });
@@ -151,14 +153,24 @@ describe("queuedWorkExplanation", () => {
     ["retry-required", "Your media stays saved. Choose Upload now when you’re ready to try again."],
     [
       "reverted",
-      "This upload didn't go through. Your media is saved; try again when you're ready.",
+      "Your work didn't send. Your media is still saved, so try again when you're ready.",
     ],
-    ["awaiting-confirmation", messages["app.work.confirmationExplanation"]],
+    ["awaiting-confirmation", messages["app.sendStage.stillConfirming.detail"]],
     ["checking-submission", messages["app.work.checkingSubmissionInfo"]],
     ["sending", "Uploading to the garden record..."],
     [undefined, "Saved on your device. Upload it here when you're connected."],
   ])("has one sentence for %s work", (submissionState, text) => {
     expect(textOf(queuedWorkExplanation({ submissionState }, online))).toBe(text);
+  });
+
+  // The queue reports a send's stage on the row, Upload all's included (PRD-1552).
+  it.each([
+    ["wallet", "Confirm in your wallet"],
+    ["confirming", "Confirming…"],
+  ])("says a send at the %s stage in the shared words", (sendStage, text) => {
+    const state = readQueuedWorkState(JSON.stringify({ submissionState: "sending", sendStage }));
+    expect(textOf(queuedWorkExplanation(state, online))).toBe(text);
+    expect(textOf(queuedWorkDetailMessage(state))).toBe(text);
   });
 
   it("says why refused work cannot go, instead of telling the person to upload it", () => {

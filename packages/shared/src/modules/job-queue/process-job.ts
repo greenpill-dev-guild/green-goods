@@ -1,5 +1,6 @@
-import { BundleIncompleteError } from "../transactions/batch-types";
-import type { TransactionSender, TransactionSendOptions } from "../transactions/types";
+import { BatchConfirmationPendingError, BundleIncompleteError } from "../transactions/batch-types";
+import { withSendStageReports } from "../transactions/send-stage";
+import { ReceiptWaitLimitError, type TransactionSender } from "../transactions/types";
 import {
   acquireWorkJobs,
   retainedWorkBroadcast,
@@ -95,40 +96,65 @@ async function completeJob(
 }
 
 /**
- * The send options with the context's phase reports added, when it asked for
- * them. The executor's own callbacks run first and keep their say: a checkpoint
- * that fails to save still stops the send. The report runs after and can never
- * stop it. Without `onPhase` the options pass through untouched.
+ * Reports where a send of this job stands: on the queue's events, for any screen that shows the
+ * job (PRD-1552), and to the caller's `onPhase` when it asked. Report-only: a report that throws
+ * is logged, and the send goes on.
  */
-function withPhaseReports(
-  options: TransactionSendOptions,
+function stageReporter(
   jobId: string,
+  job: Job,
   context: ProcessJobContext,
-  logger: JobQueueLogger
-): TransactionSendOptions {
-  const onPhase = context.onPhase;
-  if (!onPhase) return options;
-  const report = (phase: JobSendPhase) => {
+  deps: ProcessJobDependencies
+): (stage: JobSendPhase | null) => void {
+  const safely = (report: () => void) => {
     try {
-      onPhase(phase);
+      report();
     } catch (error) {
-      logger.warn("[JobQueue] a send phase report threw", {
+      deps.logger.warn("[JobQueue] a send phase report threw", {
         jobId,
         error: error instanceof Error ? error.message : String(error),
       });
     }
   };
-  return {
-    ...options,
-    onBeforeBroadcast: async (reference) => {
-      await options.onBeforeBroadcast?.(reference);
-      report({ stage: "wallet" });
-    },
-    onBroadcast: async (hash) => {
-      await options.onBroadcast?.(hash);
-      report({ stage: "confirming", txHash: hash });
-    },
+  return (phase) => {
+    safely(() => deps.events.emit("job:stage", { jobId, job, stage: phase?.stage ?? null }));
+    if (phase && context.onPhase) safely(() => context.onPhase?.(phase));
   };
+}
+
+/**
+ * The record of a send whose receipt outlasted its limit: the job's kind, the limit, and who
+ * waited, with no address, hash or message. The send then ends as still confirming: its
+ * broadcast is on record, so even a record that throws here cannot turn it into a failure.
+ */
+function recordReceiptWaitLimit(
+  jobId: string,
+  job: Job,
+  limitMs: number,
+  context: ProcessJobContext,
+  sender: TransactionSender,
+  deps: ProcessJobDependencies
+): void {
+  deps.logger.warn("[JobQueue] A send's receipt did not come within its limit", {
+    jobId,
+    kind: job.kind,
+    limitMs,
+  });
+  deps.analytics.receiptWaitLimitReached(job.kind, {
+    limitMs,
+    explicit: Boolean(context.explicit),
+    authMode: sender.authMode,
+  });
+}
+
+/**
+ * The limit a send's wait ran out of, if that is how it ended: a single send's receipt, or the
+ * status of the wallet batch it rode in (PRD-1551). Either way it went out and may still land.
+ */
+function receiptWaitLimitOf(error: unknown): number | undefined {
+  if (error instanceof ReceiptWaitLimitError) return error.limitMs;
+  if (error instanceof BatchConfirmationPendingError) return error.execution.waitLimitMs;
+  return undefined;
 }
 
 export function createJobProcessor(deps: ProcessJobDependencies) {
@@ -211,6 +237,7 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
     started = true;
     const chainId = job.chainId || deps.config.defaultChainId;
     const startedAt = deps.clock.now();
+    const reportStage = stageReporter(jobId, job, context, deps);
 
     try {
       await context.assertOwnership?.();
@@ -224,15 +251,26 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
         await context.assertOwnership?.();
         await sender.assertOwnership?.(address, chainId);
       };
-      guardedSender.sendContractCall = (call, options = {}) =>
-        sender.sendContractCall(call, {
-          ...withPhaseReports(options, jobId, context, deps.logger),
-          assertOwnership: async () => {
-            await context.assertOwnership?.();
-            await sender.assertOwnership?.(job.userAddress, chainId);
-            await options.assertOwnership?.();
-          },
-        });
+      // A send on record that outlasts its limit is confirmed from that record later. A
+      // creation keeps no record; its executor keeps the transaction the limit names instead.
+      const receiptWaitLimitMs = deps.config.receiptWaitLimitMs;
+      guardedSender.sendContractCall = async (call, options = {}) => {
+        try {
+          return await sender.sendContractCall(call, {
+            ...withSendStageReports(options, sender.authMode, reportStage),
+            receiptWaitLimitMs,
+            assertOwnership: async () => {
+              await context.assertOwnership?.();
+              await sender.assertOwnership?.(job.userAddress, chainId);
+              await options.assertOwnership?.();
+            },
+          });
+        } catch (error) {
+          const limitMs = receiptWaitLimitOf(error);
+          if (limitMs) recordReceiptWaitLimit(jobId, job, limitMs, context, sender, deps);
+          throw error;
+        }
+      };
       const execution = await deps.executors.execute(jobId, job, chainId, guardedSender);
       if (execution.status === "waiting") {
         const meta = { ...(job.meta ?? {}), waitingForDependency: true };
@@ -281,7 +319,9 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
         });
         return skipped("pending_materialization", execution.txHash);
       }
-      return completeJob(jobId, job, execution.txHash, startedAt, deps);
+      // Awaited, so the stage is let go only after the job completes: a row must never fall back
+      // to its sent state between its send and its completion.
+      return await completeJob(jobId, job, execution.txHash, startedAt, deps);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       const processingDuration = deps.clock.now() - startedAt;
@@ -338,6 +378,10 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
         error
       );
       return { success: false, error: errorMessage };
+    } finally {
+      // The try stopped, however it ended, and whether or not it reported a stage: no screen
+      // keeps saying it is under way.
+      reportStage(null);
     }
   }
   return async (jobId: string, context: ProcessJobContext): Promise<ProcessJobResult> => {

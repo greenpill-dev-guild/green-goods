@@ -16,7 +16,6 @@ const meta: Meta<typeof ActPhaseLine> = {
     },
   },
   args: {
-    chainId: 42161,
     confirmed: "Accepted. The request leaves this list once the index shows it.",
     phase: { status: "signing", key: "row" },
   },
@@ -45,6 +44,26 @@ export const Confirmed: Story = {
 /** A job-queue send kept on this device: not landed, and not a failure. */
 export const Queued: Story = {
   args: { phase: { status: "queued", key: "row" } },
+};
+
+/** Twenty seconds on the wallet: it says to open the wallet and offers Cancel (PRD-1551). */
+export const WalletSlow: Story = {
+  args: { phase: { status: "signing", key: "row", slow: true, cancel: () => undefined } },
+};
+
+/** Its receipt outlasted the wait's limit, or the queue kept it after its broadcast: sent, and may still land. */
+export const StillConfirming: Story = {
+  args: { phase: { status: "still-confirming", key: "row" } },
+};
+
+/** The wallet answered with a Safe proposal, which lands once enough owners sign it. */
+export const SafeSigners: Story = {
+  args: { phase: { status: "safe-signers", key: "row" } },
+};
+
+/** The steward stopped waiting for the wallet; it may still hold the request. */
+export const Stopped: Story = {
+  args: { phase: { status: "stopped", key: "row" } },
 };
 
 export const Failed: Story = {

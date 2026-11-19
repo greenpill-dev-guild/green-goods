@@ -19,6 +19,14 @@ address constant CODELESS_JAR = address(0xC0DE1E55);
 /// @notice A deployed jar. The registry only requires that a jar has code.
 contract JarStub { }
 
+contract LegacyJarStub {
+    address public immutable CURRENCY;
+
+    constructor(address currency) {
+        CURRENCY = currency;
+    }
+}
+
 /// @notice The parts of GardenCookieJarFactory v1 the registry reads, plus a switch that makes it hand back a jar
 ///         the real factory never would.
 /// @dev Faithful where the registry depends on it: only the registrar creates, a config must name the factory's
@@ -136,14 +144,14 @@ contract GardenHatsMock {
 /// @notice The Release C CookieJarFactory, which made the jars an older garden lists from its mint.
 contract LegacyJarFactoryMock {
     function createCookieJar(
-        ICookieJarFactory.JarConfig calldata,
+        ICookieJarFactory.JarConfig calldata config,
         ICookieJarFactory.AccessConfig calldata,
         ICookieJarFactory.MultiTokenConfig calldata
     )
         external
         returns (address)
     {
-        return address(new JarStub());
+        return address(new LegacyJarStub(config.supportedCurrency));
     }
 }
 
@@ -310,9 +318,7 @@ contract HatsCookieJarModuleTest is Test {
         );
     }
 
-    function testHatsCookieJarModule_provisionRevertsWhenAStaleAssetEntryRemains() public {
-        // Unlisting after DAI stops being supported clears the list but leaves the garden's DAI entry behind.
-        address staleDaiJar = module.getGardenJar(legacyGarden, dai);
+    function testHatsCookieJarModule_unlistClearsRemovedAssetAndAllowsReplacement() public {
         vm.startPrank(owner);
         module.removeSupportedAsset(dai);
         module.unlistOlderGardenJars(_gardens(legacyGarden));
@@ -320,11 +326,9 @@ contract HatsCookieJarModuleTest is Test {
         vm.stopPrank();
         assertEq(module.getGardenJars(legacyGarden).length, 0, "unlisting cleared the jar list");
         assertEq(module.getGardenJar(legacyGarden, weth), address(0), "unlisting cleared the WETH entry");
-        assertEq(module.getGardenJar(legacyGarden, dai), staleDaiJar, "unlisting left the DAI entry behind");
-
-        (IHatsJarFactory.Config memory wethConfig, IHatsJarFactory.Config memory daiConfig) = _pair(legacyGarden);
-        _expectRefusal(wethConfig, daiConfig, GENERATION, _alreadyListed(legacyGarden), "stale DAI entry second");
-        _expectRefusal(daiConfig, wethConfig, GENERATION, _alreadyListed(legacyGarden), "stale DAI entry first");
+        assertEq(module.getGardenJar(legacyGarden, dai), address(0), "removed DAI is also cleared");
+        _provision(legacyGarden);
+        assertEq(module.getGardenJars(legacyGarden).length, 2, "replacement discovery finds both jars");
     }
 
     function testHatsCookieJarModule_provisionRevertsWhenFactoryNoLongerMatchesReview() public {

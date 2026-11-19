@@ -13,6 +13,7 @@ import {
 } from "@green-goods/shared/modules/commitment-pooling/metadata";
 import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
 import { useCommitmentComposerController } from "@green-goods/shared/hooks/client-ui/commitment/useCommitmentComposerController";
+import { useDashboardNavigation } from "@green-goods/shared/hooks/client-ui/useDashboardNavigation";
 import { useCallback, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
@@ -92,7 +93,12 @@ function ComposeCommitmentForm({
   const [beat, setBeat] = useState<ComposerBeat>("what");
   const [readToEnd, setReadToEnd] = useState(false);
   const reviewEndRef = useRef<HTMLDivElement>(null);
-  const back = () => navigate("..");
+  // Opened as the next page, by Home's + (DL-181) or a promise's Offer It Again or Ask Again,
+  // Back steps back there; from a garden's Promises tab or a link, it goes up to the garden.
+  const dashboardNavigation = useDashboardNavigation();
+  const back = () => {
+    if (!dashboardNavigation.back()) navigate("..");
+  };
 
   const beatIndex = COMPOSER_BEATS.indexOf(beat);
   const isReview = beat === "review";
@@ -153,7 +159,10 @@ function ComposeCommitmentForm({
             )}
           </p>
           <Button type="button" size="lg" onClick={back} className="mt-2">
-            {formatMessage({ id: "app.compose.done.back" })}
+            {/* It names the Promises tab only when that is where it goes. */}
+            {formatMessage({
+              id: dashboardNavigation.canGoBack ? "app.common.done" : "app.compose.done.back",
+            })}
           </Button>
         </div>
       </ComposeShell>

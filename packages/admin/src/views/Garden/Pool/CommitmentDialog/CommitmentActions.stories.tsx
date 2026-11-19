@@ -27,7 +27,6 @@ const meta: Meta<typeof CommitmentActions> = {
     fallbackPath: null,
     onOpenDialog: () => undefined,
     sendPhase: { status: "idle" },
-    chainId: 42161,
   },
   decorators: [
     (Story) => (
@@ -91,6 +90,23 @@ export const SeedAnotherLikeThis: Story = {
   },
 };
 
+/**
+ * A steward reading a promise nobody has taken up: Cancel Promise stands apart in its own row,
+ * like Expire, and asks for a reason before it sends.
+ */
+export const CancelUntaken: Story = {
+  args: {
+    can: { ...dialog.can, raiseDispute: false, sendForConfirmation: false, cancel: true },
+    onSeedAnother: () => undefined,
+    onCancelUntaken: () => undefined,
+  },
+};
+
 export const Offline: Story = {
   args: { isOnline: false, actDisabled: true },
+};
+
+/** Nobody has taken it: the steward can still change its reward and who confirms it. */
+export const NotTakenYet: Story = {
+  args: { onEditReward: () => undefined, onEditConfirmers: () => undefined },
 };

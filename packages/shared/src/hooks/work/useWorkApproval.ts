@@ -18,6 +18,7 @@ import {
   trackWorkRejectionSuccess,
 } from "../../modules/app/analytics-events";
 import type { JobQueueHandle } from "../../modules/job-queue/ports";
+import { SEND_STAGE_WORDS } from "../../modules/transactions/send-stage";
 import { refreshApprovalReads } from "../../modules/work/approval-read-refresh";
 import {
   clearLapsedOverlay,
@@ -383,7 +384,8 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
           toastService.success({
             id: "approval-submit",
             title: completion.approved ? "Approval submitted" : "Decision submitted",
-            message: formatMessage({ id: "app.toast.approval.walletConfirm.message" }),
+            // It went out and its receipt has not come: still confirming (PRD-1552).
+            message: formatMessage(SEND_STAGE_WORDS["still-confirming"].detail),
             context: "wallet confirmation",
             suppressLogging: true,
           });

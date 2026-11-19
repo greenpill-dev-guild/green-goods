@@ -9,18 +9,19 @@ import {
   type TransactionReceiptView,
   USER_OPERATION_EVENT_TOPIC,
 } from "./chain";
+import {
+  ATTESTATION_PENDING,
+  announceConfirmed,
+  announceStillConfirming,
+  foundAfterStop,
+  recordMined,
+  stopChecking,
+} from "./check-notices";
 import { inTransaction } from "./database";
 import type { ClaimedJob } from "./jobs";
-import { participantWriter } from "./notify";
 import { operationSubject } from "./operation-subjects";
-import {
-  type OperationRecord,
-  operationById,
-  operationForSubject,
-  setOperationState,
-} from "./operations";
+import { type OperationRecord, operationById, setOperationState } from "./operations";
 import { audit } from "./participants";
-import { publicationRecords } from "./publication-records";
 import type { ReportingCore } from "./runtime";
 import type { JobOutcome } from "./worker";
 
@@ -246,34 +247,6 @@ function publish(
   operationSubject(core, operation)?.recorded(verified, envelope, `published:${operation.id}`);
 }
 
-/**
- * Says once that the transaction is confirmed while its attestation is still being read. The
- * dedupe key belongs to the operation, so every later pass through this state stays silent, and
- * the verified result follows without anything more from its author.
- */
-function announceConfirmed(
-  core: ReportingCore,
-  operation: OperationRecord,
-  envelope: PublicationEnvelope,
-  transactionHash: Hex
-): void {
-  const subject = operationSubject(core, operation);
-  if (!subject) return;
-  const out = participantWriter(core, {
-    participantId: subject.participantId,
-    conversationId: subject.conversationId,
-    dedupePrefix: `confirmed:${operation.id}`,
-  });
-  out?.sayWithRecords(
-    "publish.confirmed",
-    publicationRecords((key) => out.text(key), {
-      chainId: envelope.chainId,
-      transactionHash,
-      attestationUid: null,
-    })
-  );
-}
-
 function revert(deps: ReconciliationDeps, operation: OperationRecord): void {
   const { core } = deps;
   const attempt = latestAttempt(core, operation.id);
@@ -287,85 +260,6 @@ function revert(deps: ReconciliationDeps, operation: OperationRecord): void {
     operation.envelope?.accountAddress ?? null,
     `reverted:${operation.id}`
   );
-}
-
-/** The audit record of a chain check that ended without finding what it looked for. */
-const CHECK_STOPPED = "reconciliation_stopped";
-/** The audit record of chain evidence a later check found for an attempt whose check had stopped. */
-const FOUND_AFTER_STOP = "reconciliation_found_after_stop";
-
-/** Whether the latest record for the operation's current attempt says its check stopped. */
-function attemptCheckStopped(core: ReportingCore, operation: OperationRecord): boolean {
-  const latest = core.db
-    .query(
-      `SELECT kind FROM audit_events
-       WHERE subject_kind = 'operation' AND subject_id = $id AND kind IN ($stopped, $found)
-         AND json_extract(detail_json, '$.attemptVersion') = $attemptVersion
-       ORDER BY created_at DESC, rowid DESC LIMIT 1`
-    )
-    .get({
-      id: operation.id,
-      stopped: CHECK_STOPPED,
-      found: FOUND_AFTER_STOP,
-      attemptVersion: operation.attemptVersion,
-    }) as { kind: string } | null;
-  return latest?.kind === CHECK_STOPPED;
-}
-
-/**
- * The check's last attempt found nothing it can stand behind. Nothing is sent again and the
- * reservation stays, so an operator replay can still find a late publication; what changes is that
- * the person hears it ended, once, instead of waiting on a promise that nothing will keep. It runs
- * as the worker parks the job. The record and the notice belong to the operation's current
- * attempt: an operation is reused for its next attempt, which gets a check and a notice of its own.
- */
-function stopChecking(core: ReportingCore, operationId: string, reason: string): void {
-  const operation = operationById(core, operationId);
-  if (operation?.state !== "reconciling") return;
-  // A late wallet report starts a second check beside the first: the last one to run out speaks.
-  const stillChecking = core.db
-    .query(
-      `SELECT 1 FROM processing_jobs WHERE kind = 'reconcile_operation' AND subject_id = $id
-         AND state IN ('pending', 'leased') LIMIT 1`
-    )
-    .get({ id: operation.id });
-  if (stillChecking) return;
-  const { attemptVersion } = operation;
-  audit(core, CHECK_STOPPED, { kind: "operation", id: operation.id }, { reason, attemptVersion });
-  const subject = operationSubject(core, operation);
-  if (!subject) return;
-  participantWriter(core, {
-    participantId: subject.participantId,
-    conversationId: subject.conversationId,
-    dedupePrefix: `unconfirmed:${operation.id}:${attemptVersion}`,
-  })?.say(subject.kind === "review" ? "review.unconfirmed" : "publish.unconfirmed");
-}
-
-/**
- * A replayed check that finds the transaction mined, or matching attestations, overrides the
- * attempt's earlier stop, so replies agree with what the chat has just said about it.
- */
-function foundAfterStop(core: ReportingCore, operation: OperationRecord, evidence: string): void {
-  if (!attemptCheckStopped(core, operation)) return;
-  const { attemptVersion } = operation;
-  audit(
-    core,
-    FOUND_AFTER_STOP,
-    { kind: "operation", id: operation.id },
-    { evidence, attemptVersion }
-  );
-}
-
-/**
- * Whether the chain check for the current attempt at a report or a decision ended without finding
- * it, so replies say that rather than that it is being published or recorded.
- */
-export function chainCheckStopped(
-  core: ReportingCore,
-  subject: { draftId: string } | { reviewIntentId: string }
-): boolean {
-  const operation = operationForSubject(core, subject);
-  return operation?.state === "reconciling" && attemptCheckStopped(core, operation);
 }
 
 export async function reconcileOperation(
@@ -382,6 +276,10 @@ export async function reconcileOperation(
   try {
     resolution = await resolve(deps, operation, envelope);
   } catch {
+    inTransaction(core.db, () => {
+      const current = operationById(core, operation.id);
+      if (current?.state === "reconciling") announceStillConfirming(core, current, job);
+    });
     return {
       status: "retry",
       errorCode: "dependency_unavailable",
@@ -397,10 +295,19 @@ export async function reconcileOperation(
         publish(deps, current, envelope, resolution.verified);
         return { status: "done" };
       case "confirmed":
-        // The person already has the transaction's link; only its attestation is still unread.
-        announceConfirmed(core, current, envelope, resolution.transactionHash);
+        // The person gets the transaction's link; only its attestation is still unread. If the
+        // check runs out after this, it says so, with the link. On its last pass it says only
+        // that, not the promise of more this pass would otherwise make just before stopping.
+        recordMined(core, current, resolution.transactionHash);
+        if (job.attempts < job.maxAttempts)
+          announceConfirmed(core, current, envelope, resolution.transactionHash);
         foundAfterStop(core, current, "transaction_mined");
-        return { status: "retry", errorCode: "attestation_pending", delayMs: 30_000 };
+        return {
+          status: "retry",
+          errorCode: ATTESTATION_PENDING,
+          delayMs: 30_000,
+          onParked: stopped(ATTESTATION_PENDING),
+        };
       case "reverted":
         revert(deps, current);
         return { status: "done" };
@@ -414,6 +321,7 @@ export async function reconcileOperation(
         );
         if (resolution.reason === "multiple_matches")
           foundAfterStop(core, current, "multiple_matches");
+        else announceStillConfirming(core, current, job);
         return {
           status: "retry",
           errorCode: resolution.reason,
@@ -424,6 +332,7 @@ export async function reconcileOperation(
             : { onParked: stopped(resolution.reason) }),
         };
       case "pending":
+        announceStillConfirming(core, current, job);
         return {
           status: "retry",
           errorCode: "receipt_pending",

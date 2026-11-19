@@ -16,6 +16,7 @@ import { type ControlName, ensureControls, INITIAL_CONTROLS } from "../services/
 import { inTransaction, openReportingDatabase } from "../services/reporting/database";
 import { type DelegatedSender, executeDelegated } from "../services/reporting/delegated";
 import { watchOwnerAttempt } from "../services/reporting/owner-attempt-watch";
+import { watchSigningLinkJob } from "../services/reporting/signing-links";
 import { type GrantDeps, reconcileGrant } from "../services/reporting/grants";
 import type { ReportInterpreter } from "../services/reporting/interpretation";
 import type { JobKind } from "../services/reporting/jobs";
@@ -158,6 +159,7 @@ export function createReportingRuntime(options: ReportingRuntimeOptions): Report
         job
       ),
     watch_owner_attempt: async (job) => watchOwnerAttempt(core, job),
+    watch_signing_link: async (job) => watchSigningLinkJob(core, job),
     reconcile_operation: (job) =>
       reconcileOperation({ core, chain: options.chain, scanWindowBlocks: 50_000n }, job),
     review_list: (job) => listPendingReviews(reviewDeps, job),

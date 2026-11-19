@@ -277,3 +277,69 @@ Agent/model: Codex / model unknown | Coverage: continuation beginning 2026-11-05
 | Wait | 2026-11-05T04:49:36Z → ongoing | Service definition and actual capacity await a human decision; controls and budget remain unresolved. |
 
 Human corrections: 0 in this segment; attention: unknown.
+
+## PRD-1481 test exchange, 12 November 2026
+
+The separate ordinary Gnosis Safe now exists with one required signature and all six current
+stewards as owners. The two Hats-managed steward Safes retain their existing policy. Membership
+changes on the ordinary test Safe require Safe transactions; Hats does not update it automatically.
+This is a test exchange, not a service-offer launch or a real independently issued member catalog.
+
+The closest implementation is `script/utils/clc-garden-release.ts`: its schema 3 adopts Green
+Goods and deploys Tech and Sun, with independently owned member assets. It cannot describe
+collectively controlled test fixtures without changing that custody rule. Schema 4 in
+`script/utils/clc-aiyeloja-release.ts` therefore owns the explicit Aiyeloja test policy. It reuses
+the same factory and implementation pins, proxy recipe, pool component inventory, exact-prefix
+receipt recovery, durable journal, isolated fork and private keystore session. Existing schema 3
+admission and independent-member checks are preserved.
+
+The proposed packet has one garden voucher and two clearly named member test fixtures, each with
+100 units and six decimals. All token ownership and proxy administration belong to the test Safe.
+Each listing starts with 10 units in the pool, a holding cap of 20 and a 1:1 price. One unit of each
+fixture goes to the approved automation steward; 89 remain in the Safe. Fees are zero. These are
+review proposals until Afo approves the exact packet. They do not claim independently owned issuer
+onboarding, redeemable services, source rewards or adapter/escrow authorization.
+
+Preparation uses the existing package commands:
+
+```sh
+bun run contracts -- release clc --mode preflight --manifest config/clc-aiyeloja-test-pool.json
+bun run contracts -- release clc --mode plan --manifest config/clc-aiyeloja-test-pool.json
+bun run contracts -- release clc --mode simulate --manifest config/clc-aiyeloja-test-pool.json --plan .generated/clc-release/aiyeloja-test-exchange-2026-11.plan.json
+```
+
+`release downstream` with that manifest and plan uses one deployer unlock session for nine exact,
+zero-value factory calls. It requires the complete bound fork proof, live chain and bytecode,
+unchanged Safe policy, unused addresses, fresh sender nonces and a total deployment cap of
+0.01 xDAI at no more than 2 gwei. It proves journal write access before password entry. An uncertain
+send stops the session; `--mode verify` reconciles exact canonical receipts without signing.
+
+Safe activation is separate: nonce 0 configures listings, mints and seals; nonce 1 approves exact
+stock and deposits; nonce 2 distributes test balances. The fork checks those exact MultiSend calls,
+Safe execution hashes and balances, bidirectional member-fixture swaps, unauthorized mint/admin
+rejection, failed-batch rollback, holding caps and preservation of production pools and Safes.
+Private transaction files and proof stay outside Git and Linear. Mainnet deployment requires a
+reviewed tooling PR and Afo's approval; indexer/app activation remains after the 2.1.0 cut.
+
+### Deployed and published, 17 November 2026
+
+The packet above was approved and executed on 12 and 13 November: nine deployments at deployer
+nonces 22 to 30 (Gnosis blocks 49,249,861 to 49,249,900) and Safe nonces 0 to 2. The packet's
+proposed quantities are now the live state. `deployments/100-aiyeloja-test-pool.json` records the
+nine addresses and receipts, and the release test checks them against the CREATE2 plan. Shared's
+testing export projects them as `AIYELOJA_TEST_POOL` for test and QA harnesses; no App or Hub
+surface reads them. The indexer follows the pool on chain 100; the hosted redeploy is a release
+step.
+
+Known limits of the schema-4 tooling, kept as they were reviewed:
+
+- `release downstream --mode verify` rebuilds the plan from the current commit and reads a fork
+  proof taken before deployment (Safe nonce 0, empty listings). After the Safe batches and any
+  later commit it cannot pass for this release. The committed deployment record is the durable
+  evidence instead.
+- The production snapshot comparison fails a session if an unrelated production swap or steward
+  Safe transaction lands during it. Nothing on chain is harmed, but the deployment summary is not
+  written.
+- The deployer is also one of the test Safe's owners, and any one owner can act for the Safe. The
+  "no deployer mint" and "deployer cannot take proxy administration" checks only show that direct
+  calls are refused. They do not show that the roles are separate.

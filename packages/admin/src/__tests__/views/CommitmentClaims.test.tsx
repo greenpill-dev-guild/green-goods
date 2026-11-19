@@ -11,7 +11,7 @@ import type { TxActPhase } from "@green-goods/shared/hooks/admin-ui/pool/control
 import { claimRowKey } from "@green-goods/shared/hooks/admin-ui/pool/useWaitingForApproval";
 import { describe, expect, it, vi } from "vitest";
 import { CommitmentClaims } from "@/views/Garden/Pool/CommitmentDialog/CommitmentClaims";
-import { renderWithProviders, screen, userEvent, within } from "../test-utils";
+import { cleanup, renderWithProviders, screen, userEvent, within } from "../test-utils";
 
 const PERSON = "0x1111111111111111111111111111111111111111" as const;
 const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
@@ -91,12 +91,29 @@ describe("CommitmentClaims", () => {
     ]);
 
     const approving = screen.getByTestId(`commitment-claim-${PERSON}`);
-    expect(within(approving).getByText(/^Confirming on .+…$/)).toBeInTheDocument();
+    expect(within(approving).getByText("Confirming…")).toBeInTheDocument();
     expect(within(approving).queryByRole("button")).not.toBeInTheDocument();
 
     const other = screen.getByTestId(`commitment-claim-${GARDEN}`);
-    expect(within(other).queryByText(/^Confirming on/)).not.toBeInTheDocument();
+    expect(within(other).queryByText("Confirming…")).not.toBeInTheDocument();
     expect(within(other).getByRole("button", { name: "Approve" })).toBeEnabled();
+  });
+
+  it("holds an ask whose approval may still land, or that the wallet may still hold, with no Approve", () => {
+    // PRD-1551: still confirming, waiting on a Safe's signers, or stopped after Cancel.
+    for (const [status, words] of [
+      ["still-confirming", /^Sent\. Confirming is taking longer/],
+      ["safe-signers", /^Waiting for the Safe's signers$/],
+      ["stopped", /^Stopped waiting\./],
+    ] as const) {
+      renderClaims({ phaseFor: () => ({ status, key: "accept" }) }, [
+        claimFixture({ claimant: PERSON, claimType: "INDIVIDUAL" }),
+      ]);
+      const held = screen.getByTestId(`commitment-claim-${PERSON}`);
+      expect(within(held).getByText(words)).toBeInTheDocument();
+      expect(within(held).queryByRole("button", { name: "Approve" })).not.toBeInTheDocument();
+      cleanup();
+    }
   });
 
   it("keeps an approved ask as its outcome, and brings the pair back as Try Again after a failure", () => {

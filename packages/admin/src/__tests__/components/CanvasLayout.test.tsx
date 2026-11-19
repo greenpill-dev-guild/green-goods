@@ -104,6 +104,7 @@ const {
       canCreateGarden: true,
       isLoaded: true,
       isError: false,
+      deploymentPermissionsError: false,
       hasStaleBaseList: false,
     } as EligibleAdminGardensResult,
   },
@@ -525,6 +526,7 @@ describe("CanvasLayout", () => {
       canCreateGarden: true,
       isLoaded: true,
       isError: false,
+      deploymentPermissionsError: false,
       hasStaleBaseList: false,
     };
     mockUseGardenUrlSync.mockReturnValue({
@@ -700,6 +702,7 @@ describe("CanvasLayout", () => {
       canCreateGarden: true,
       isLoaded: true,
       isError: false,
+      deploymentPermissionsError: false,
       hasStaleBaseList: false,
     };
 
@@ -837,6 +840,7 @@ describe("CanvasLayout", () => {
       canCreateGarden: true,
       isLoaded: true,
       isError: false,
+      deploymentPermissionsError: false,
       hasStaleBaseList: false,
     };
 

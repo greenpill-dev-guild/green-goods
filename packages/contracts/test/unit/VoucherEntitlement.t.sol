@@ -624,6 +624,7 @@ contract VoucherEntitlementTest is CommitmentPoolingFixture {
         uint256 localChain = vouchers.LOCAL_CHAIN_ID();
         vm.chainId(localChain + 1);
         VoucherEntitlementModule replacement = new VoucherEntitlementModule(address(router));
+        assertEq(replacement.LOCAL_CHAIN_ID(), localChain + 1);
         vm.chainId(localChain);
         vouchers.pause();
         vouchers.scheduleUpgrade(address(replacement));

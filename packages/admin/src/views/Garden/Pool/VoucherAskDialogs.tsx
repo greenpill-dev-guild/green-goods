@@ -197,7 +197,6 @@ export interface VoucherAcceptDialogProps {
   title: string;
   /** The pool the acceptance writes to. */
   target: PoolWriteTarget;
-  chainId: number;
   /** The clock the checks read against, in seconds. */
   now: number;
   /** Where this ask's acceptance stands, from here or its row. */
@@ -222,7 +221,6 @@ export function VoucherAcceptDialog({
   ask,
   title,
   target,
-  chainId,
   now,
   phase,
   disabled,
@@ -260,7 +258,6 @@ export function VoucherAcceptDialog({
           progress={
             <ActPhaseLine
               phase={phase}
-              chainId={chainId}
               confirmed={formatMessage({
                 id: "hub.garden.pool.voucher.accepted",
                 defaultMessage: "Accepted",

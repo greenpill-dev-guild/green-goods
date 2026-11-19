@@ -375,3 +375,216 @@ describe("first-report activation authority", () => {
     expect(harness.sender.signed).toBe(0);
   });
 });
+
+describe("an Allow reporting in chat link that expires unused", () => {
+  const LINK_EXPIRED =
+    "Your publishing link expired before anything was sent, so nothing was published. Your report is saved; reply RETRY for a new link.";
+  const sent = () => harness.transport.sent.map((reply) => reply.message.text);
+
+  /** Opens the permission page and proves the account; it proposes the permission and returns. */
+  async function openPermissionPage() {
+    const browser = new TestBrowser(harness.app);
+    await browser.open(latestLink(harness));
+    await browser.proveAs(KERNEL, KERNEL_PROOF);
+    await browser.access();
+    const proposed = await browser.request<{ grant: GrantView }>(
+      "POST",
+      "/messaging/execution-grants"
+    );
+    expect(proposed.status).toBe(201);
+    return { browser, grant: proposed.body.grant };
+  }
+
+  it("says so once, and RETRY asks again so a fresh page can propose its own permission", async () => {
+    // The page proposes the permission and is closed before the first report is prepared.
+    await openPermissionPage();
+    harness.clock.advance(harness.core.settings.browserSessionTtlMs);
+    await harness.drain();
+    expect(sent().filter((text) => text === LINK_EXPIRED)).toHaveLength(1);
+    expect(await harness.say(ADA, "STATUS")).toEqual([LINK_EXPIRED]);
+
+    const asked = await harness.say(ADA, "RETRY");
+    expect(asked[0]).toContain("1. Allow reporting in chat\n2. Publish this report only");
+    expect(await harness.say(ADA, "STATUS")).toEqual([
+      "Your report for TAS is waiting for you to choose how to publish it.",
+    ]);
+    await harness.press(ADA, "Allow reporting in chat");
+    // The closed page's permission was never authorized, so it no longer blocks the new page's.
+    const fresh = await prepareActivation(harness);
+    expect(fresh.operation.envelope).not.toBeNull();
+    expect(
+      harness.core.db.query("SELECT state FROM execution_grants ORDER BY created_at").all()
+    ).toEqual([{ state: "expired" }, { state: "owner_authorization_pending" }]);
+  });
+
+  it("says the link expired once a first report prepared after its page closed is ready", async () => {
+    const { browser, grant } = await openPermissionPage();
+    // Prepare First Report is pressed, but preparation can't finish while the catalog is down.
+    harness.catalog.unavailable = true;
+    const started = await browser.request(
+      "POST",
+      `/messaging/execution-grants/${grant.grantId}/activation`,
+      { body: { expectedVersion: grant.version, policyDigest: grant.policyDigest } }
+    );
+    expect(started.status).toBe(200);
+    await harness.drain();
+    // The page closes while the report is still being prepared, which is not yet a lapsed link.
+    harness.clock.advance(harness.core.settings.browserSessionTtlMs);
+    await harness.drain();
+    expect(sent()).not.toContain(LINK_EXPIRED);
+
+    // Preparation finishes with nothing left to sign it, so the chat hears that now.
+    harness.catalog.unavailable = false;
+    harness.clock.advance(60_000);
+    await harness.drain();
+    expect(sent().filter((text) => text === LINK_EXPIRED)).toHaveLength(1);
+    expect(await harness.say(ADA, "STATUS")).toEqual([LINK_EXPIRED]);
+  });
+
+  it("ends the earlier page's unused permission when the owner picks this report only instead", async () => {
+    const { browser, grant } = await openPermissionPage();
+    await harness.say(ADA, "RETRY");
+    await harness.press(ADA, "Publish this report only");
+    // The page still open from the first choice can no longer install that permission.
+    const stale = await browser.request(
+      "POST",
+      `/messaging/execution-grants/${grant.grantId}/activation`,
+      { body: { expectedVersion: grant.version, policyDigest: grant.policyDigest } }
+    );
+    expect(stale.status).toBe(409);
+    expect(harness.core.db.query("SELECT state FROM execution_grants").all()).toEqual([
+      { state: "expired" },
+    ]);
+  });
+
+  it("refuses a proposal from the earlier page that finishes after the owner picked again", async () => {
+    const browser = new TestBrowser(harness.app);
+    await browser.open(latestLink(harness));
+    await browser.proveAs(KERNEL, KERNEL_PROOF);
+    await browser.access();
+    const token = browser.cookies.get("gg_msg_session")!;
+    const session = sessionFromToken(harness.core, token, browser.csrf!)!;
+    const result = await proposeGrant(
+      {
+        core: harness.core,
+        chain: harness.chain,
+        ...harness.grantDeps(),
+        // While the page waits on this lookup, the owner asks again and picks the permission anew.
+        permissionIdFor: async () => {
+          await harness.say(ADA, "RETRY");
+          await harness.press(ADA, "Allow reporting in chat");
+          return harness.permissionId;
+        },
+      },
+      session,
+      TAS.address
+    );
+    expect(result).toEqual({ ok: false, errorCode: "forbidden" });
+    // The page from the new link proposes its own permission and prepares the first report.
+    const fresh = await prepareActivation(harness);
+    expect(fresh.operation.envelope).not.toBeNull();
+  });
+
+  it("does not wait on a revoked permission page before saying the new link expired", async () => {
+    // The permission page stays open while the owner asks again and picks this report only.
+    await openPermissionPage();
+    await harness.say(ADA, "RETRY");
+    await harness.press(ADA, "Publish this report only");
+    expect(sent().at(-1)).toContain(
+      "Open this page to review and sign the exact publication with your passkey."
+    );
+    // The new link expires unused; the permission page is still open but can't sign anything.
+    harness.clock.advance(harness.core.settings.linkChallengeTtlMs);
+    await harness.drain();
+    expect(sent().filter((text) => text === LINK_EXPIRED)).toHaveLength(1);
+  });
+
+  it("answers STATUS with the lapsed link when a page moved the report on past an open question", async () => {
+    // The owner asks again, then goes back to the open permission page and prepares from there.
+    const { browser, grant } = await openPermissionPage();
+    await harness.say(ADA, "RETRY");
+    const started = await browser.request(
+      "POST",
+      `/messaging/execution-grants/${grant.grantId}/activation`,
+      { body: { expectedVersion: grant.version, policyDigest: grant.policyDigest } }
+    );
+    expect(started.status).toBe(200);
+    await harness.drain();
+    harness.clock.advance(harness.core.settings.browserSessionTtlMs);
+    await harness.drain();
+    expect(sent().filter((text) => text === LINK_EXPIRED)).toHaveLength(1);
+    expect(await harness.say(ADA, "STATUS")).toEqual([LINK_EXPIRED]);
+  });
+
+  it("lets a choice asked again by RETRY stand instead of the old link's expiry notice", async () => {
+    // The owner asks again before ever opening the permission link, and hasn't answered yet.
+    await harness.say(ADA, "RETRY");
+    harness.clock.advance(harness.core.settings.linkChallengeTtlMs);
+    await harness.drain();
+    expect(sent()).not.toContain(LINK_EXPIRED);
+    expect(await harness.say(ADA, "STATUS")).toEqual([
+      "Your report for TAS is waiting for you to choose how to publish it.",
+    ]);
+  });
+
+  it("closes the chat's open choice once the permission page prepares the first report", async () => {
+    const { browser, grant } = await openPermissionPage();
+    await harness.say(ADA, "RETRY");
+    const started = await browser.request(
+      "POST",
+      `/messaging/execution-grants/${grant.grantId}/activation`,
+      { body: { expectedVersion: grant.version, policyDigest: grant.policyDigest } }
+    );
+    expect(started.status).toBe(200);
+    await harness.drain();
+    expect(
+      row(
+        "SELECT count(*) AS n FROM conversation_prompts WHERE state = 'open' AND kind = 'grant_choice'"
+      )
+    ).toEqual({ n: 0 });
+    // A tap on that question's old button no longer claims there is no report.
+    expect(await harness.press(ADA, "Allow reporting in chat")).not.toContain(
+      "You don't have a report in progress. Describe your work to start one."
+    );
+  });
+
+  it("after the first report is prepared, RETRY sends a page to sign that report with the passkey", async () => {
+    // Prepare First Report is pressed, then the page is closed before anything is sent.
+    const { browser, grant } = await openPermissionPage();
+    const started = await browser.request(
+      "POST",
+      `/messaging/execution-grants/${grant.grantId}/activation`,
+      { body: { expectedVersion: grant.version, policyDigest: grant.policyDigest } }
+    );
+    expect(started.status).toBe(200);
+    await harness.drain();
+    harness.clock.advance(harness.core.settings.browserSessionTtlMs);
+    await harness.drain();
+    expect(sent().filter((text) => text === LINK_EXPIRED)).toHaveLength(1);
+
+    const fresh = await harness.say(ADA, "RETRY");
+    expect(fresh[0]).toContain(
+      "Open this page to review and sign the exact publication with your passkey."
+    );
+    const signing = new TestBrowser(harness.app);
+    await signing.open(latestLink(harness));
+    await signing.proveAs(KERNEL, KERNEL_PROOF);
+    const access = await signing.access();
+    const { resourceId } = access.body.scope as { resourceId: string };
+    const view = (await signing.request<ResourceView>("GET", `/messaging/drafts/${resourceId}`))
+      .body;
+    expect(view.operation?.state).toBe("prepared");
+    const reserved = await signing.request(
+      "POST",
+      `/messaging/operations/${view.operation?.operationId}/attempts`,
+      {
+        body: {
+          expectedAttemptVersion: view.operation?.attemptVersion ?? 0,
+          payloadDigest: view.operation?.envelope?.payloadDigest,
+          idempotencyKey: "owner-after-expiry",
+        },
+      }
+    );
+    expect(reserved.status).toBe(200);
+  });
+});

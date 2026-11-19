@@ -25,8 +25,9 @@ describe("wallet submission progress toasts", () => {
   it.each([
     { stage: "validating", method: "loading", persistent: undefined },
     { stage: "uploading", method: "loading", persistent: undefined },
-    // Signing waits on the user, so this stage must never time out on its own.
-    { stage: "confirming", method: "loading", persistent: true },
+    // The wallet waits on the person, so this stage must never time out on its own.
+    { stage: "wallet", method: "loading", persistent: true },
+    { stage: "confirming", method: "loading", persistent: undefined },
     { stage: "syncing", method: "loading", persistent: undefined },
     { stage: "success", method: "success", persistent: undefined },
     { stage: "timeout", method: "info", persistent: undefined },
@@ -68,6 +69,19 @@ describe("wallet submission progress toasts", () => {
     expect(loading.mock.calls.map(([options]) => options.message)).toEqual([
       "2 of 5 photos",
       "Saving your photos…",
+    ]);
+  });
+
+  // The send's stages read in the person's language, in the shared stage words (PRD-1552).
+  it("says the send's stages in the shared words when given the person's language", () => {
+    const loading = vi.spyOn(toastService, "loading").mockReturnValue("wallet-submission");
+
+    showWalletProgress("wallet", undefined, formatMessage);
+    showWalletProgress("confirming", undefined, formatMessage);
+
+    expect(loading.mock.calls.map(([options]) => [options.title, options.persistent])).toEqual([
+      ["Confirm in your wallet", true],
+      ["Confirming…", undefined],
     ]);
   });
 });

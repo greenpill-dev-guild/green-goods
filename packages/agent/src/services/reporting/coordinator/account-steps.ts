@@ -4,9 +4,10 @@ import {
 } from "@green-goods/shared/modules/agent-reporting";
 import type { Address } from "@green-goods/shared/types/domain";
 import { pairFromChat } from "../channel-pairing";
-import { issueContinuation } from "../continuations";
+import { issueContinuation, revokeOpenRequests } from "../continuations";
 import { commitDraft, type DraftRecord } from "../drafts";
 import { gardenScope, isUnlisted, type ReportingGarden } from "../gardens";
+import { retireUnusedGrants } from "../grants-store";
 import { enqueueJob } from "../jobs";
 import { conversationRealm } from "../notify";
 import { upsertOperation } from "../operations";
@@ -353,6 +354,21 @@ export function answerGrantChoice(writer: TurnWriter, choice: string): void {
     return writer.say("report.noStatus");
   }
   if (ctx.prompt) resolvePrompt(core, ctx.prompt.id);
+  // Either answer replaces an earlier permission page: "this report only" must not leave it able to
+  // install its permission, and a new page proposes its own. Its link is retired, so a proposal
+  // it still has in flight is refused, and a permission it proposed that nobody authorized ends.
+  revokeOpenRequests(core, {
+    purpose: "grant_reporting",
+    resourceKind: "grant",
+    resourceId: draft.id,
+    subjectId: ctx.subjectId,
+  });
+  retireUnusedGrants(core, {
+    accountBindingId: account.id,
+    purpose: "reporting",
+    chainId: draft.content.garden.chainId,
+    gardenAddress: draft.content.garden.address,
+  });
   if (choice === "once") {
     const { draft: preparing } = commitLifecycle(core, draft, [{ type: "SIGN_ONCE_CHOSEN" }], {
       participantAction: true,

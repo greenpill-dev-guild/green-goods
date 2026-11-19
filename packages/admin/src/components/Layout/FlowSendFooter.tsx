@@ -1,4 +1,5 @@
-import { Button, type ButtonProps } from "@green-goods/shared/components/Button";
+import type { ButtonProps } from "@green-goods/shared/components/Button";
+import { SheetActions } from "@green-goods/shared/components/Dialog/SheetActions";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import type { FlowStatusTone } from "./FlowStatusRow";
@@ -107,100 +108,57 @@ export function FlowSendFooter({
 
   if (phase === "sent") {
     return (
-      <div
-        data-component="FlowSendFooter"
-        data-phase={phase}
-        className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end"
-      >
-        {another ? (
-          <Button
-            type="button"
-            emphasis="secondary"
-            size="sm"
-            onClick={another.onClick}
-            className="w-full sm:w-auto"
-          >
-            {another.label}
-          </Button>
-        ) : null}
-        <Button
-          type="button"
-          emphasis="primary"
-          size="sm"
-          onClick={onDone}
-          className="w-full sm:w-auto"
-        >
-          {formatMessage({ id: "app.common.done", defaultMessage: "Done" })}
-        </Button>
-      </div>
+      <SheetActions
+        primary={{
+          label: formatMessage({ id: "app.common.done", defaultMessage: "Done" }),
+          onClick: onDone,
+        }}
+        secondary={another ? { label: another.label, onClick: another.onClick } : undefined}
+      />
     );
   }
 
   const waiting = held || phase === "sending";
   const isFirst = stepIndex === 0;
-  const back = (
-    <Button
-      type="button"
-      emphasis={isFirst ? "tertiary" : "secondary"}
-      size="sm"
-      onClick={isFirst ? onCancel : onBack}
-      disabled={waiting}
-      className="self-start sm:self-auto"
-    >
-      {isFirst
-        ? formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })
-        : formatMessage({ id: "app.common.back", defaultMessage: "Back" })}
-    </Button>
-  );
+  const back = {
+    label: isFirst
+      ? formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })
+      : formatMessage({ id: "app.common.back", defaultMessage: "Back" }),
+    onClick: isFirst ? onCancel : onBack,
+    disabled: waiting,
+  };
 
   if (!isLast) {
     return (
-      <div
-        data-component="FlowSendFooter"
-        data-phase={phase}
-        className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end"
-      >
-        {back}
-        <Button
-          type="button"
-          emphasis="primary"
-          size="sm"
-          onClick={onNext}
-          disabled={waiting || nextDisabled}
-          className="w-full sm:w-auto"
-        >
-          {formatMessage({ id: "app.common.next", defaultMessage: "Next" })}
-        </Button>
-      </div>
+      <SheetActions
+        layout="steps"
+        primary={{
+          label: formatMessage({ id: "app.common.next", defaultMessage: "Next" }),
+          onClick: onNext,
+          disabled: waiting || nextDisabled,
+        }}
+        secondary={back}
+      />
     );
   }
 
   return (
-    <div
-      data-component="FlowSendFooter"
-      data-phase={phase}
-      className="flex w-full flex-col gap-2 sm:flex-row sm:items-center"
-    >
-      <p className="min-w-0 type-meta text-text-soft sm:flex-1">
-        {note ? <span role="status">{note}</span> : null}
-      </p>
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-        {back}
-        <Button
-          type="button"
-          {...sendButtonProps}
-          emphasis="primary"
-          size="sm"
-          onClick={onSend}
-          loading={phase === "sending"}
-          disabled={waiting || sendDisabled}
-          className="w-full sm:w-auto"
-        >
-          {phase === "failed"
+    <SheetActions
+      layout="steps"
+      note={note ?? null}
+      primary={{
+        type: sendButtonProps?.type,
+        form: sendButtonProps?.form,
+        icon: sendButtonProps?.leadingIcon,
+        label:
+          phase === "failed"
             ? formatMessage({ id: "app.common.tryAgain", defaultMessage: "Try Again" })
-            : sendLabel}
-        </Button>
-      </div>
-    </div>
+            : sendLabel,
+        onClick: onSend,
+        loading: phase === "sending",
+        disabled: waiting || sendDisabled,
+      }}
+      secondary={back}
+    />
   );
 }

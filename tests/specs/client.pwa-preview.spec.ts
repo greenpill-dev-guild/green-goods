@@ -1,6 +1,6 @@
 /** CI Playwright, anonymous production shell; no production auth bypass or installed-profile claim. */
 // TEST-QUALITY: allow-small-test-file - anonymous production recovery and offline-cache proof share the preview preset
-import { expect, type Page, test } from "@playwright/test";
+import { type BrowserContext, expect, type Page, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
 
 type LogoBox = { top: number; width: number; height: number };
@@ -299,12 +299,211 @@ test("production navigation cache restores the anonymous shell offline and is re
   });
 });
 
-async function expectEvidenceFailureContained(page: Page) {
-  let blocked = 0;
-  const manifest = JSON.parse(
+/**
+ * Register an app worker and wait for it to reach `until`. Installing copies the whole critical
+ * shell, which takes as long as the machine is busy, so this follows the worker's own state
+ * rather than a clock.
+ */
+function registerWorker(page: Page, scriptUrl: string, until: "installed" | "activated") {
+  return page.evaluate(
+    async ({ scriptUrl, until }) => {
+      const order = ["installing", "installed", "activating", "activated"];
+      const registration = await navigator.serviceWorker.register(scriptUrl, { scope: "/home" });
+      const worker = registration.installing ?? registration.waiting ?? registration.active;
+      if (!worker) throw new Error(`${scriptUrl} did not start installing`);
+      await new Promise<void>((resolve, reject) => {
+        const check = () => {
+          if (worker.state === "redundant") reject(new Error(`${scriptUrl} failed to install`));
+          else if (order.indexOf(worker.state) >= order.indexOf(until)) resolve();
+        };
+        worker.addEventListener("statechange", check);
+        check();
+      });
+    },
+    { scriptUrl, until }
+  );
+}
+
+/** The worker a browser profile kept from an older build, registered without running any app code. */
+async function installOldBuildWorker(page: Page) {
+  await page.goto("/robots.txt");
+  await registerWorker(page, "/sw.js?old-build", "activated");
+  expect(await workers(page)).toEqual({ active: "old", waiting: null });
+}
+
+/** A tab whose old build lost a chunk, as after a deploy removes the old build's files. */
+async function openStuckTab(page: Page, path: string, blocked: string, recoveryText: string) {
+  const session = await page.context().newCDPSession(page);
+  await session.send("Network.enable");
+  await session.send("Network.setBlockedURLs", { urls: [blocked] });
+  await page.goto(path, { waitUntil: "domcontentloaded" });
+  await expect(page.getByText(recoveryText)).toBeVisible({ timeout: 10_000 });
+  expect(
+    await page.evaluate(() => navigator.serviceWorker.controller?.scriptURL),
+    "The old build's worker must answer the stuck tab"
+  ).toMatch(/\?old-build$/);
+  return async () => {
+    // The new build is whole; only the old worker still stands in the way.
+    await session.send("Network.setBlockedURLs", { urls: [] });
+    await session.detach();
+  };
+}
+
+/** The current build's worker installs behind the open old-build tabs and waits. */
+async function deployNewBuild(page: Page) {
+  await registerWorker(page, "/sw.js", "installed");
+  expect(await workers(page)).toEqual({ active: "old", waiting: "new" });
+}
+
+/**
+ * Hold open the shell-tail downloads the old build's worker starts, as a slow connection would.
+ * Any page that registers the app worker asks the active one for its tail, the website included,
+ * and an update can activate only once that worker's open work settles. `started` settles once
+ * the old worker is downloading; its held requests end only when the worker gives up on them.
+ */
+async function holdOldWorkerTail(context: BrowserContext): Promise<{ started: Promise<void> }> {
+  const shell = JSON.parse(
+    readFileSync(
+      new URL("../../packages/client/dist/pwa-shell-assets.json", import.meta.url),
+      "utf8"
+    )
+  ) as { tailAssets: string[] };
+  expect(shell.tailAssets.length, "The build must defer a shell tail").toBeGreaterThan(0);
+  const tail = new Set(shell.tailAssets);
+  let started!: () => void;
+  const downloading = new Promise<void>((resolve) => (started = resolve));
+  await context.route(
+    (url) => tail.has(url.pathname),
+    (route) => {
+      if (!route.request().serviceWorker()?.url().endsWith("?old-build")) return route.fallback();
+      started();
+    }
+  );
+  return { started: downloading };
+}
+
+function workers(page: Page) {
+  return page.evaluate(async () => {
+    const registration = await navigator.serviceWorker.getRegistration("/home");
+    const build = (worker?: ServiceWorker | null) =>
+      worker ? (worker.scriptURL.endsWith("?old-build") ? "old" : "new") : null;
+    return { active: build(registration?.active), waiting: build(registration?.waiting) };
+  });
+}
+
+const WEBSITE_RECOVERY = "This page is taking longer than expected.";
+
+test("a browser tab stuck on an old build lets the new build take over after one Reload", async ({
+  page,
+}, info) => {
+  expect(
+    process.env.PLAYWRIGHT_PWA_PREVIEW,
+    "Use the pwa-preview preset to build production assets"
+  ).toBe("true");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installOldBuildWorker(page);
+  await page.evaluate(recoveryWorkStorage, true);
+  const bootstrap = viteManifest()["src/bootstrapPublic.tsx"]?.file;
+  expect(bootstrap, "The built public bootstrap chunk must exist").toBeTruthy();
+
+  const unblock = await openStuckTab(page, "/home", `*/${bootstrap}`, WEBSITE_RECOVERY);
+  await deployNewBuild(page);
+  const stuck = info.outputPath("browser-tab-stale-build.png");
+  await page.screenshot({ path: stuck });
+  await info.attach("browser-tab-stale-build", { path: stuck });
+  await unblock();
+
+  await page.getByRole("button", { name: "Reload" }).click();
+  await expect(page).toHaveURL(/\/$/, { timeout: 15_000 });
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  // The website is its own document, outside the worker, so the old build has no tab left.
+  expect(await page.evaluate(() => navigator.serviceWorker.controller)).toBeNull();
+  await expect.poll(() => workers(page)).toEqual({ active: "new", waiting: null });
+  expect(await page.evaluate(recoveryWorkStorage, false)).toEqual({
+    draft: "draft notes",
+    upload: [1, 2, 3],
+  });
+  const recovered = info.outputPath("browser-tab-recovered.png");
+  await page.screenshot({ path: recovered });
+  await info.attach("browser-tab-recovered", { path: recovered });
+});
+
+test("a recovered browser tab no longer holds back the installed app's update", async ({
+  page,
+  context,
+}, info) => {
+  expect(
+    process.env.PLAYWRIGHT_PWA_PREVIEW,
+    "Use the pwa-preview preset to build production assets"
+  ).toBe("true");
+  // Two windows and two stuck boots outlast the project's budget on a busy runner.
+  test.setTimeout(90_000);
+  const oldWorkerTail = await holdOldWorkerTail(context);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installOldBuildWorker(page);
+  await page.evaluate(recoveryWorkStorage, true);
+  const bootstrap = viteManifest()["src/bootstrapPublic.tsx"]?.file;
+  const browserTab = page;
+  const installedApp = await context.newPage();
+  await installedApp.setViewportSize({ width: 390, height: 844 });
+  const unblockTab = await openStuckTab(browserTab, "/home", `*/${bootstrap}`, WEBSITE_RECOVERY);
+  const unblockApp = await openStuckTab(
+    installedApp,
+    "/home?presentation=pwa",
+    "*/assets/index-*.js",
+    "Taking longer to load."
+  );
+  await deployNewBuild(installedApp);
+  await unblockTab();
+  await unblockApp();
+
+  // Both windows are on /home, so the app will not take the update over the browser tab.
+  await installedApp.getByRole("button", { name: "Try Again" }).click();
+  await expect(installedApp.getByText("An update is ready.")).toBeVisible({ timeout: 15_000 });
+  const blocked = info.outputPath("installed-app-blocked-by-tab.png");
+  await installedApp.screenshot({ path: blocked });
+  await info.attach("installed-app-blocked-by-tab", { path: blocked });
+
+  await browserTab.getByRole("button", { name: "Reload" }).click();
+  await expect(browserTab).toHaveURL(/\/$/, { timeout: 15_000 });
+  await expect(browserTab.getByRole("heading", { level: 1 })).toBeVisible();
+  // The website registered the app worker and asked the old one for its shell tail, which a slow
+  // connection keeps downloading. On a fast one the race goes either way.
+  await oldWorkerTail.started;
+
+  await installedApp.getByRole("button", { name: "Try Again" }).click();
+  // No other app window is open, so the new worker asks the old one to put its download down and
+  // takes over within the startup screen's 15-second budget. The website tab reads the workers:
+  // it stays put while the app reloads.
+  await expect
+    .poll(() => workers(browserTab), { timeout: 15_000 })
+    .toEqual({ active: "new", waiting: null });
+  await expect(installedApp.getByTestId("login-button")).toBeVisible({ timeout: 30_000 });
+  expect(await installedApp.evaluate(() => navigator.serviceWorker.controller?.scriptURL)).toMatch(
+    /\/sw\.js$/
+  );
+  expect(
+    await installedApp.evaluate(() => localStorage.getItem("gg-crash-reports") ?? ""),
+    "The app must not have said the update is taking longer"
+  ).not.toContain("activation_delayed");
+  expect(await installedApp.evaluate(recoveryWorkStorage, false)).toEqual({
+    draft: "draft notes",
+    upload: [1, 2, 3],
+  });
+  const updated = info.outputPath("installed-app-updated.png");
+  await installedApp.screenshot({ path: updated });
+  await info.attach("installed-app-updated", { path: updated });
+});
+
+function viteManifest() {
+  return JSON.parse(
     readFileSync(new URL("../../packages/client/dist/.vite/manifest.json", import.meta.url), "utf8")
   ) as Record<string, { file: string }>;
-  const evidenceAsset = manifest["src/views/Public/HomeEvidence.tsx"]?.file;
+}
+
+async function expectEvidenceFailureContained(page: Page) {
+  let blocked = 0;
+  const evidenceAsset = viteManifest()["src/views/Public/HomeEvidence.tsx"]?.file;
   expect(evidenceAsset, "The built lazy evidence entry must exist").toBeTruthy();
   await page.route(`**/${evidenceAsset}`, (route) => {
     blocked++;

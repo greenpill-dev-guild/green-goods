@@ -11,7 +11,9 @@
  *   match too. The same words with a different deadline, reward rail, claim
  *   mode, cycle or creator never become one entry.
  * - The reward amount is left out of the terms, because Edit Reward changes it
- *   on the copies nobody has taken; the group stays one row (D14).
+ *   on the copies nobody has taken; the group stays one row (D14). So is the
+ *   confirmer rule among copies made together, for Edit Confirmers. Copies made
+ *   apart still need the same confirmers to fold.
  * - Counts come from published records only. What a steward meant to create
  *   is never shown as something to take up.
  * - A record whose metadata is missing, unreadable or of a later version is an
@@ -229,13 +231,18 @@ export function hasKnownDisplayTerms(
 /**
  * The terms that make two copies the same promise to someone taking one up.
  * The reward amount is not among them (Edit Reward), and neither is anything
- * that changes as a copy is taken up or kept.
+ * that changes as a copy is taken up or kept. The confirmer rule is, unless the
+ * copies were made together: Edit Confirmers changes it on the copies nobody
+ * has taken, and their group stays one row.
  */
 function materialTermsKey(
   record: GroupableCommitment,
-  metadata: Pick<CommitmentMetadataV1, "title" | "note" | "links">
+  metadata: Pick<CommitmentMetadataV1, "title" | "note" | "links">,
+  options: { confirmerRule: boolean }
 ): string {
-  const confirmers = [...(record.confirmers ?? [])].map((a) => a.toLowerCase()).sort();
+  const confirmers = options.confirmerRule
+    ? [...(record.confirmers ?? [])].map((a) => a.toLowerCase()).sort()
+    : [];
   return JSON.stringify(
     [
       metadata.title,
@@ -262,7 +269,7 @@ function materialTermsKey(
       record.dueDate,
       record.requiresAssessment,
       confirmers.join(","),
-      record.confirmationThreshold,
+      options.confirmerRule ? record.confirmationThreshold : null,
       record.protocolFallbackEnabled,
       record.considerationRail,
       record.considerationSource?.toLowerCase(),
@@ -279,7 +286,8 @@ function materialTermsKey(
  * What an open record shares with its identical copies, or null when it has its own row.
  *
  * Copies made apart have no group id between them, so a list goes by this instead (DL-150):
- * the same state and the same words and material terms, judged as copies made together are.
+ * the same state and the same words and material terms, confirmers included, though copies
+ * made together leave those out so an edited group stays one row.
  * Once one is taken up it is nobody's copy. Words not read yet are still one document under
  * one CID, so those copies fold under it; words this build can't read stay an ordinary row.
  */
@@ -292,7 +300,9 @@ export function identicalOpenCopyKey(
   const cid = record.metadataCID.trim();
   const metadata = metadataByCID.get(cid);
   if (metadata && !hasReadableWords(metadata)) return null;
-  return `${record.onchainState}|${materialTermsKey(record, metadata ?? { title: cid })}`;
+  return `${record.onchainState}|${materialTermsKey(record, metadata ?? { title: cid }, {
+    confirmerRule: true,
+  })}`;
 }
 
 /**
@@ -314,7 +324,7 @@ export function groupCommitmentsForDisplay<T extends GroupableCommitment>(input:
       order.push({ single: record });
       continue;
     }
-    const key = `${displayGroupId}|${materialTermsKey(record, input.metadataByCID.get(record.metadataCID!.trim())!)}`;
+    const key = `${displayGroupId}|${materialTermsKey(record, input.metadataByCID.get(record.metadataCID!.trim())!, { confirmerRule: false })}`;
     const existing = groups.get(key);
     if (existing) {
       existing.children.push(record);
@@ -352,6 +362,22 @@ export function selectRewardEdit<T extends Pick<GroupableCommitment, "onchainSta
   if (children.some((child) => child.onchainState === "FULFILLED")) {
     return { open: false, reason: "kept" };
   }
+  if ((options.unsent ?? 0) > 0) return { open: false, reason: "unsent" };
+  const targets = children.filter((child) => displayBucketOf(child.onchainState) === "available");
+  return targets.length > 0 ? { open: true, targets } : { open: false, reason: "none-available" };
+}
+
+/**
+ * Edit Confirmers, for a group or a single commitment: it changes only the
+ * copies nobody has taken, because the contract fixes the confirmer rule at
+ * take-up, and stays open while any copy is still available, kept ones or not.
+ * A copy still waiting to be created carries the rule it was frozen with, so
+ * the edit waits until none is left.
+ */
+export function selectConfirmerEdit<T extends Pick<GroupableCommitment, "onchainState">>(
+  children: readonly T[],
+  options: { unsent?: number } = {}
+): { open: true; targets: T[] } | { open: false; reason: "unsent" | "none-available" } {
   if ((options.unsent ?? 0) > 0) return { open: false, reason: "unsent" };
   const targets = children.filter((child) => displayBucketOf(child.onchainState) === "available");
   return targets.length > 0 ? { open: true, targets } : { open: false, reason: "none-available" };

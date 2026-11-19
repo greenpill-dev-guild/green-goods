@@ -106,7 +106,7 @@ type AccountState = {
   isConnected: boolean;
   isConnecting: boolean;
   isReconnecting: boolean;
-  connector?: { id: string; name: string };
+  connector?: { id: string; name: string; uid: string };
 };
 
 const disconnectedAccount: AccountState = {
@@ -117,8 +117,12 @@ const disconnectedAccount: AccountState = {
   connector: undefined,
 };
 
-const rabbyConnector = { id: "io.rabby", name: "Rabby" };
-const embeddedConnector = { id: "ID_AUTH", name: "Google" };
+const rabbyConnector = { id: "io.rabby", name: "Rabby", uid: "rabby" };
+const embeddedConnector = { id: "ID_AUTH", name: "Google", uid: "auth" };
+const walletConnectConnector = { id: "walletConnect", name: "WalletConnect", uid: "wc" };
+// The connectors this page set up. A connection wagmi restores from the last page sits on a
+// stored stand-in, none of these, until its wallet answers.
+const pageConnectors = [rabbyConnector, embeddedConnector, walletConnectConnector];
 
 let accountState: AccountState;
 let actor: ReturnType<typeof createAuthTestActor>;
@@ -180,6 +184,10 @@ describe("AuthProvider wallet login bridge", () => {
 
     setAccount(disconnectedAccount);
     mocks.mockUseAccount.mockImplementation(() => accountState);
+    mocks.mockUseConfig.mockImplementation(() => ({
+      id: "wagmi-config",
+      connectors: pageConnectors,
+    }));
     mocks.mockGetAppKit.mockReturnValue({
       open: mocks.mockOpenAppKit,
       close: mocks.mockCloseAppKit,
@@ -898,6 +906,63 @@ describe("AuthProvider wallet login bridge", () => {
     }
   });
 
+  // PRD-1499, PRD-1504: wagmi restores the last page's connection as `reconnecting`, on a
+  // stored stand-in for its connector, and reports the stored address as connected. A wallet
+  // that never answers leaves it there, and sends went ahead without the wallet.
+  it("keeps a remembered wallet unanswered while wagmi only restores its connection", async () => {
+    vi.useFakeTimers();
+    try {
+      localStorage.setItem(AUTH_MODE_STORAGE_KEY, "wallet");
+      actor.stop();
+      actor = createAuthTestActor("wallet", TEST_WALLET);
+      actor.start();
+      mocks.mockGetAuthActor.mockReturnValue(actor);
+      const restored = { ...rabbyConnector, uid: "last-page" };
+      setAccount({
+        address: TEST_WALLET,
+        isConnected: true,
+        isReconnecting: true,
+        connector: restored,
+      });
+
+      const view = renderAuth();
+      await act(async () => void (await vi.advanceTimersByTimeAsync(0)));
+      expect(view.result.current.isReady).toBe(true);
+      expect(view.result.current.externalWalletConnected).toBe(false);
+      expect(view.result.current.walletRestore).toBe("restoring");
+
+      await act(async () => void (await vi.advanceTimersByTimeAsync(15_000)));
+      expect(view.result.current.walletAddress).toBe(TEST_WALLET);
+      expect(view.result.current.walletRestore).toBe("failed");
+      expect(mocks.mockTrackWalletRestore).toHaveBeenCalledWith(
+        expect.objectContaining({ outcome: "failed", reason: "timeout", sessionKept: true })
+      );
+
+      // Reconnect asks for a wallet. A connect that fails leaves wagmi reporting the stand-in
+      // as connected, which is still no answer.
+      act(() => view.result.current.loginWithWallet());
+      expect(mocks.mockOpenAppKit).toHaveBeenCalledTimes(1);
+      setAccount({ address: TEST_WALLET, isConnected: true, connector: restored });
+      view.rerender();
+      await act(async () => void (await vi.advanceTimersByTimeAsync(0)));
+      expect(view.result.current.walletRestore).toBe("failed");
+
+      // The wallet answers through this page's connector while wagmi still asks the others.
+      setAccount({
+        address: TEST_WALLET,
+        isConnected: true,
+        isReconnecting: true,
+        connector: rabbyConnector,
+      });
+      view.rerender();
+      await act(async () => void (await vi.advanceTimersByTimeAsync(0)));
+      expect(view.result.current.externalWalletConnected).toBe(true);
+      expect(view.result.current.walletRestore).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("ends a bounded restore with privacy-safe timeout telemetry", async () => {
     vi.useFakeTimers();
     try {
@@ -1146,7 +1211,6 @@ describe("AuthProvider wallet login bridge", () => {
   // wallet app, and the sign-in screen waited with no end and no record of it.
   describe("wallet sign-in attempts", () => {
     type AppKitEventsState = { timestamp: number; data: Record<string, unknown> };
-    const walletConnectConnector = { id: "walletConnect", name: "WalletConnect" };
     let captured: Array<{ event: string; properties: Record<string, unknown> }>;
     let unregisterSink: () => void;
     let appKit: ReturnType<typeof createFakeAppKit>;

@@ -15,7 +15,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import draft from "../../config/source-upgrade-release.json";
 import { minedIsolatedReceipt } from "./isolated-fork";
 import { createIsolatedSeed } from "./isolated-fork.fixtures";
-import { CONTRACTS_ROOT, getFoundryOutDir } from "./paths";
+import { CONTRACTS_ROOT } from "./paths";
+import { withProductionArtifacts } from "./production-artifacts.fixtures";
 import { loadSourceUpgradeCompilerJobs } from "./source-upgrade-compiler";
 import {
   buildSourceUpgradePlan,
@@ -81,7 +82,6 @@ async function send(client: JsonRpcProvider, from: string, to: string | null, da
 describe("production existing source upgrade on process-owned forks", () => {
   beforeAll(async () => {
     const buildInfoPath = process.env.SOURCE_UPGRADE_COMPILER_BUILD_INFO;
-    const artifactOut = buildInfoPath ? path.dirname(path.dirname(buildInfoPath)) : getFoundryOutDir("production");
     m = {
       ...structuredClone(draft),
       chainId: 42161,
@@ -90,42 +90,41 @@ describe("production existing source upgrade on process-owned forks", () => {
       nonce: 0,
       authority: { ...draft.authority, nonce: 0 },
     };
-    const loadEvidence = () => {
+    const loadEvidence = (artifactOut: string) => {
       a = loadSourceUpgradeArtifacts(artifactOut, m);
       jobs = loadSourceUpgradeCompilerJobs(artifactOut, a);
+      return JSON.parse(readFileSync(path.join(artifactOut, "ERC1967Proxy.sol/ERC1967Proxy.json"), "utf8")) as {
+        deployedBytecode: { object: string };
+      };
     };
-    try {
-      loadEvidence();
-    } catch (error) {
-      const missing =
-        error instanceof Error &&
-        (error.message.startsWith("Missing full source compiler evidence") ||
-          (error as NodeJS.ErrnoException).code === "ENOENT");
-      if (buildInfoPath || !missing) throw error;
-      const built = spawnSync(
-        "bun",
-        [
-          "--no-env-file",
-          "run",
-          "build",
-          "--mode",
-          "target",
-          "--",
-          ...Object.values(SOURCE_UPGRADE_TARGETS).map((key) => key.split(":")[0]),
-        ],
-        {
-          cwd: CONTRACTS_ROOT,
-          env: { ...process.env, FOUNDRY_PROFILE: "production", FOUNDRY_BUILD_INFO: "true", FOUNDRY_AST: "true" },
-          encoding: "utf8",
-          maxBuffer: 16 * 1024 * 1024,
-        },
-      );
-      if (built.error || built.status !== 0)
-        throw new Error(
-          `Production compiler evidence build failed: ${built.error?.message ?? built.stderr ?? built.stdout}`,
-        );
-      loadEvidence();
-    }
+    const proxy = buildInfoPath
+      ? loadEvidence(path.dirname(path.dirname(buildInfoPath)))
+      : await withProductionArtifacts(({ out, env }) => {
+          const built = spawnSync(
+            "bun",
+            [
+              "--no-env-file",
+              "run",
+              "build",
+              "--mode",
+              "target",
+              "--",
+              ...Object.values(SOURCE_UPGRADE_TARGETS).map((key) => key.split(":")[0]),
+              "lib/tokenbound/lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol",
+            ],
+            {
+              cwd: CONTRACTS_ROOT,
+              env: { ...env, FOUNDRY_BUILD_INFO: "true", FOUNDRY_AST: "true" },
+              encoding: "utf8",
+              maxBuffer: 16 * 1024 * 1024,
+            },
+          );
+          if (built.error || built.status !== 0)
+            throw new Error(
+              `Production compiler evidence build failed: ${built.error?.message ?? built.stderr ?? built.stdout}`,
+            );
+          return loadEvidence(out);
+        });
     seed = await createIsolatedSeed(42161);
     await seed.client.send("anvil_impersonateAccount", [m.deployer]);
     await seed.client.send("anvil_setBalance", [m.deployer, toQuantity(100n * 10n ** 18n)]);
@@ -140,9 +139,6 @@ describe("production existing source upgrade on process-owned forks", () => {
       implementation,
       implementationCodeHash: keccak256(await seed.client.getCode(implementation)),
     };
-    const proxy = JSON.parse(
-      readFileSync(path.join(getFoundryOutDir("production"), "ERC1967Proxy.sol/ERC1967Proxy.json"), "utf8"),
-    );
     await seed.client.send("anvil_setCode", [m.pooling.proxy, proxy.deployedBytecode.object]);
     await seed.client.send("anvil_setStorageAt", [
       m.pooling.proxy,

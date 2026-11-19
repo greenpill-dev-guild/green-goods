@@ -313,7 +313,8 @@ Client startup prints one `[vite-watch]` line with the checkout, client root, wa
 | `check-test-realism-worker.cjs` | `check-test-realism.sh` | Node worker for the audit (CommonJS — uses `require`) |
 | `validate-test-realism-tooling.sh` | `contracts.yml`, `packages/contracts test:audit:realism:tooling` | Meta-test that exercises the realism audit script itself |
 | `run-coverage-audit.sh` | `packages/contracts test:audit:coverage` | Run unit + integration coverage and write `output/contracts-test-audit/` reports |
-| `coverage-policy.mjs` | `run-coverage-audit.sh` | Per-file coverage thresholds policy |
+| `coverage-policy.mjs` | `run-coverage-audit.sh` | Per-file coverage thresholds policy; a failed run names its reason (compile error, failing tests, timeout, kill, missing LCOV or the floor it missed) |
+| `coverage-policy.test.mjs` | Contracts CI | Runs the policy as a command on fixture logs and LCOV: each failure reason, a floor miss, and a passing run |
 | `verify-production.sh` | `bun run check --only contracts-verify` | Pre-deploy contract verification gate |
 | `verify-production.test.mjs` | `bun run check --only contracts-verifier-test` | Black-box regression test for contract verifier path resolution and working directory |
 
@@ -403,7 +404,8 @@ workflow does not merge PRs or change required checks.
 - `ipfs-hybrid.ts` — Pinata client helpers used by `ops/ipfs-repin.ts` and `ops/upload-action-images.ts`.
 - `dev-shared.js` — shared dev-script helpers, including tool/version probes, Bun-to-Node re-exec with the repo's Node 22 toolchain, loopback URL probes for local smoke checks, and the git isolation helpers: `fixtureGitEnvironment()` for any test that builds a throwaway repository (`cwd` alone does not isolate git under a hook), plus the shared-config leak checks `ci-local.js` runs.
 - `env-schema.mjs` — dotenv/schema parser and profile-required-key helpers used by `dev/env-check.js` and env-parity checks, and the sync-safety check `dev/env-sync.js` runs on `env.schema` before `op inject`.
-- `browser-support.mjs` — the supported browser minimum (Chrome and Edge 111, Firefox 128, Safari 16.4 on macOS and iOS) as Vite build targets; the client and admin Vite configs pass it as `build.target`, and the client's service worker build takes the same list.
+- `browser-support.mjs`: the supported browser minimum (Chrome and Edge 111, Firefox 128, Safari 16.4 on macOS and iOS) as Vite build targets; the client and admin Vite configs pass it as `build.target`, and the client's service worker build takes the same list. Its `browserMinimumGatePlugin`, used by both Vite configs, inlines `browser-minimum-gate.js` first in each app's `<body>`.
+- `browser-minimum-gate.js`: the ES5 check that draws the same minimum in the browser, before the app's bundle: below it, the App, the Hub and the reporting pages show an update screen and send one count to PostHog. Covered by `packages/client/src/__tests__/browserMinimumGate.test.ts` and the `browser-minimum` Playwright specs.
 - `env-parity.mjs` — Vercel build-time environment-parity and Sentry-DSN assertions used by the client and admin Vite configs, and the rule that keeps Vercel's `VITE_`-prefixed system variables out of the browser bundles.
 - `git-guardrails.mjs` — shared Git/base-ref resolution for diff-aware quality and contracts checks, including invalid CI base fallback.
 - `vitest-shared-graph.mjs` — splits the Shared Vitest config's Node test files into those that share one module graph and those that keep their own: files that mock, stub, assign globals directly, reset modules, use IndexedDB, or carry a `// @shared-graph isolate: <reason>` marker stay isolated; `quality/check-shared-graph-tests.mjs` checks the result. Covered by `quality/workflow-performance-parity.test.mjs`.

@@ -7,6 +7,7 @@ import type {
   WorkMetadata,
   WorkMetadataV1,
 } from "@green-goods/shared/types/domain";
+import { SEND_STAGE_WORDS } from "@green-goods/shared/modules/transactions/send-stage";
 import { readPublishedWorkDocuments } from "@green-goods/shared/modules/work/media-processing";
 import { formatTimeSpent } from "@green-goods/shared/utils/form/normalizers";
 import {
@@ -219,10 +220,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       });
     if (isOfflineStatus) {
       if (submissionState === "awaiting-confirmation")
-        return intl.formatMessage({
-          id: "app.work.awaitingConfirmation",
-          defaultMessage: "Awaiting confirmation",
-        });
+        return intl.formatMessage(SEND_STAGE_WORDS["still-confirming"].label);
       if (submissionState === "checking-submission")
         return intl.formatMessage({
           id: "app.work.checkingSubmission",

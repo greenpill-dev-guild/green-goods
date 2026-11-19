@@ -24,6 +24,7 @@ import {
 } from "../../utils/cookie-jar-campaign";
 import { COOKIE_JAR_ABI, COOKIE_JAR_FACTORY_ABI } from "../../utils/blockchain/abis/cookie-jar";
 import { ERC20_DECIMALS_ABI, ERC20_SYMBOL_ABI } from "../../utils/blockchain/abis/erc20";
+import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { ZERO_ADDRESS } from "../../utils/blockchain/vaults";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useUser } from "../auth/useUser";
@@ -102,7 +103,11 @@ function campaignInvalidationKeys(
 async function readCreatedJar(hash: Hex, chainId: number): Promise<Address | undefined> {
   let receipt: TransactionReceipt;
   try {
-    receipt = await waitForReceipt(getWagmiConfig(), { hash, chainId });
+    receipt = await waitForReceipt(getWagmiConfig(), {
+      hash,
+      chainId,
+      timeout: TX_RECEIPT_TIMEOUT_MS,
+    });
   } catch (error) {
     logger.warn("[CampaignCookieJar] Could not read the creation receipt", { error });
     return undefined;

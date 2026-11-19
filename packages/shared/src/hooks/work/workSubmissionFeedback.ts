@@ -8,6 +8,7 @@ import { WorkSubmissionError } from "../../modules/work/wallet-submission/types"
 import { WorkSendCancelledError } from "../../modules/work/send-outcome";
 import { UploadPolicyCancelledError } from "../../modules/work/upload-policy";
 import { isCancelledTxError } from "../../utils/errors/tx-error-classifier";
+import { SEND_STAGE_WORDS } from "../../modules/transactions/send-stage";
 import {
   trackWorkSubmissionFailed,
   trackWorkSubmissionOffline,
@@ -261,6 +262,22 @@ export function recordWorkSubmissionOutcome(
       wasOffline: typeof txHash === "string" && isOfflineTxHash(txHash),
       submissionPhase: "success",
     });
+  });
+}
+
+/**
+ * A Submit whose send is on record and whose receipt has not come says it is still confirming,
+ * in the shared stage words (PRD-1552), or that its check waits for a confirmed connection.
+ */
+export function showWorkStillConfirming(intl: IntlShape, unchecked: boolean): void {
+  const words = SEND_STAGE_WORDS["still-confirming"];
+  walletProgressToasts.dismiss();
+  toastService.info({
+    title: intl.formatMessage(words.label),
+    message: intl.formatMessage(
+      unchecked ? { id: "app.work.confirmationUnchecked" } : words.detail
+    ),
+    context: "work",
   });
 }
 

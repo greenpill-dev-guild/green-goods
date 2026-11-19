@@ -5,7 +5,7 @@ slug: /community/gardener-guide/report-in-chat
 description: "Report your work to the Green Goods bot in Telegram: link your account, send photos or a voice note, check the summary, and sign to publish."
 audience: gardener
 owner: docs
-last_verified: "2026-11-02"
+last_verified: "2026-11-17"
 feature_status: In progress
 goal: "Publish one work report from a Telegram chat, from the first message to the signed record, and know how to change or cancel it on the way."
 difficulty: "standard"
@@ -38,6 +38,7 @@ source_of_truth:
   - packages/shared/src/workflows/agent-reporting/reportLifecycle.ts
   - packages/shared/src/hooks/agent-reporting/community-offer.ts
   - packages/client/src/views/Public/AgentReporting/CeremonyView.tsx
+  - scripts/lib/browser-minimum-gate.js
   - packages/shared/src/modules/agent-reporting/grants.ts
   - packages/client/src/views/Public/AgentReporting/messages.ts
   - packages/shared/src/i18n/en.json
@@ -215,6 +216,7 @@ Send any of these on its own. Most are also in the **Menu**.
 | **That account is already linked to another chat** | If it's yours, send **RECOVER** from the chat you want to use |
 | **This link can't be used here** on the page | The link expired, was already used, or was opened in another browser. For a new **Verify account** link, send **CONNECT**. For a new signing link, change something in your report and confirm it again |
 | **Reporting is paused for maintenance** | Your message is saved. The bot replies when reporting resumes |
+| **Update your browser to use Green Goods** on the page | The browser that opened the link is older than Green Goods supports (Chrome 111, iOS 16.4, Firefox 128). On Android, update that browser from the Play Store, or open the link in an updated Chrome. On iPhone, update iOS in **Settings > General > Software Update**. Then open the link again |
 
 To reach a person, ask in the [Green Goods community on Discord](https://discord.gg/greenpill).
 

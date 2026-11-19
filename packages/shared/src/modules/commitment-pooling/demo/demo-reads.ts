@@ -13,6 +13,7 @@ import type { Address } from "../../../types/domain";
 import type {
   CommitmentClaimRequestRecord,
   CommitmentCycleRecord,
+  CommitmentEventRecord,
   CommitmentPoolRecord,
   CommitmentReadModel,
 } from "../types-core";
@@ -22,7 +23,8 @@ import type {
   CommitmentPoolDetail,
   CommitmentWorkAttributionRecord,
 } from "../types-relations";
-import { demoViewer } from "./demo-mode";
+import { NOW } from "./demo-builders";
+import { DEMO_VIEWER_ADDRESSES, demoViewer } from "./demo-mode";
 import { buildDemoWorld, type DemoDocument, type DemoWorld } from "./demo-world";
 
 let cached: DemoWorld | null = null;
@@ -120,6 +122,55 @@ export async function getCommitmentClaimRequests(
     .claimRequests.filter((row) => row.chainId === chainId && row.commitmentId === commitmentId)
     .filter((row) => !state || row.state === state)
     .sort((left, right) => right.updatedAt - left.updatedAt);
+}
+
+/**
+ * A withdrawn promise's history, so its page can show who withdrew it and why: its creation, any
+ * request to take it up, and the withdrawal, by the reader when it is theirs and by the demo
+ * steward otherwise. The demo keeps no other activity, so every other promise reads none.
+ */
+export async function getCommitmentActivity(input: {
+  chainId: number;
+  commitmentId?: bigint;
+  limit?: number;
+}): Promise<CommitmentEventRecord[]> {
+  const w = world();
+  const event = (
+    row: CommitmentReadModel,
+    eventType: string,
+    actor: Address | null,
+    timestamp: number
+  ): CommitmentEventRecord => ({
+    id: `${row.id}-${eventType}-${timestamp}`,
+    chainId: row.chainId,
+    poolId: row.poolId ?? null,
+    cycleId: row.cycleId ?? null,
+    commitmentId: row.commitmentId,
+    eventType,
+    actor,
+    configurationKey: null,
+    previousValue: null,
+    newValue: null,
+    units: null,
+    data: null,
+    txHash: `0x${row.commitmentId.toString(16).padStart(60, "0")}${(timestamp % 0x10000).toString(16).padStart(4, "0")}`,
+    timestamp,
+  });
+  return w.commitments
+    .filter((row) => row.chainId === input.chainId && row.onchainState === "CANCELLED")
+    .filter((row) => input.commitmentId === undefined || row.commitmentId === input.commitmentId)
+    .flatMap((row) => {
+      const withdrawnBy = same(row.creator, w.viewer) ? w.viewer : DEMO_VIEWER_ADDRESSES.steward;
+      return [
+        event(row, "CANCELLED", withdrawnBy, NOW - 86_400),
+        ...w.claimRequests
+          .filter((claim) => claim.commitmentId === row.commitmentId)
+          .map((claim) => event(row, "CLAIM_REQUESTED", claim.requestedBy, claim.requestedAt)),
+        event(row, "CREATED", row.creator ?? null, NOW - 86_400 * 10),
+      ];
+    })
+    .sort((left, right) => right.timestamp - left.timestamp)
+    .slice(0, input.limit ?? 50);
 }
 
 export async function getCommitmentPools(

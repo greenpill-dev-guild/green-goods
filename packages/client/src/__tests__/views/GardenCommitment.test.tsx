@@ -1081,6 +1081,29 @@ describe("GardenCommitment", () => {
     expect(screen.getByLabelText("What still needs doing?")).toHaveValue("The far bed");
   });
 
+  it("closes a Not yet note that may still land rather than offering it again", async () => {
+    // Its receipt outlasted the limit (PRD-1551): sent, so a second try could land twice.
+    mockActs.notYet.mockRejectedValue(
+      Object.assign(new Error("still confirming"), { name: "ReceiptWaitLimitError" })
+    );
+    mockUseController.mockReturnValue(
+      controller({
+        detail: detail({ commitment: { derivedState: "READY_FOR_CONFIRMATION" } }),
+        actKind: "confirm",
+      })
+    );
+    render();
+    await userEvent.click(screen.getByRole("button", { name: "Confirm It Was Kept" }));
+    await userEvent.click(screen.getByRole("button", { name: "Not Yet" }));
+    await userEvent.type(screen.getByLabelText("What still needs doing?"), "The far bed");
+    await userEvent.click(screen.getByRole("button", { name: "Send to the Stewards" }));
+
+    await waitFor(() =>
+      expect(screen.queryByLabelText("What still needs doing?")).not.toBeInTheDocument()
+    );
+    expect(screen.queryByText(/Could not reach the stewards/i)).not.toBeInTheDocument();
+  });
+
   it("confirms withdrawal locally and preserves a reason after pin failure", async () => {
     mockUseController.mockReturnValue(
       controller({
@@ -1914,7 +1937,7 @@ describe("a voucher booking on the promise page", () => {
       {
         state: "CANCELLED",
         actKind: "offerAgain",
-        sentence: /^It has left the pool/,
+        sentence: /^This left the pool\. The reason stays in its history/,
         act: "Offer It Again",
       },
     ] as const)("keeps the promise's own sentence and act for its creator when $state", ({
@@ -2070,7 +2093,7 @@ describe("a voucher booking on the promise page", () => {
     );
     await userEvent.click(decisions.getByRole("button", { name: /^Decline$/ }));
     expect(mockActs.declineClaim).toHaveBeenCalledWith(OTHER, "Try next week");
-    expect(screen.queryByRole("button", { name: /^Ask again$/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Request Again$/ })).not.toBeInTheDocument();
     expect(mockActs.claimPersonal).not.toHaveBeenCalled();
     expect(mockActs.claim).not.toHaveBeenCalled();
   });
@@ -2095,7 +2118,7 @@ describe("a voucher booking on the promise page", () => {
   it("keeps earned member retries behind consent and hides decisions from non-stewards", () => {
     showEarnedClaimRequests(false);
     expect(screen.queryByRole("region", { name: "Waiting on you" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /^Ask again$/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Request Again$/ })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Agree and Take It Up" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Take It Up$/ })).not.toBeInTheDocument();
     expect(mockActs.claimPersonal).not.toHaveBeenCalled();

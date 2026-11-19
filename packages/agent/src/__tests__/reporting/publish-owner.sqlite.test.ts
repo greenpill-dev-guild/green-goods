@@ -47,6 +47,26 @@ function row<T>(sql: string, params: Record<string, string | number> = {}): T {
 
 const CHECK_STOPPED =
   "I've checked the chain and still can't find your report, so I've stopped checking. I won't send it again. If it doesn't show in the garden, write to contact@greengoods.app.";
+const ATTESTATION_UNREAD =
+  "The transaction is confirmed, but I still can't read its attestation details, so I've stopped checking. You don't need to sign or send anything again. If your report doesn't show in the garden, write to contact@greengoods.app.";
+const STILL_CONFIRMING =
+  "Sent. Confirming is taking longer than usual. You can leave, and you don't need to send it again. I'll message you when your report is published.";
+const LINK_EXPIRED =
+  "Your publishing link expired before anything was sent, so nothing was published. Your report is saved; reply RETRY for a new link.";
+const AWAITING_SIGNATURE = "Your report for TAS is waiting for your signature.";
+
+function count(text: string): number {
+  return sentTexts().filter((sent) => sent === text).length;
+}
+
+/** The page sends the frozen report as the gardener; the transaction is mined unless hidden. */
+function send(envelope: { call: { to: `0x${string}`; data: `0x${string}` } }): `0x${string}` {
+  return harness.chain.submit({
+    attester: adaAccount.address,
+    to: envelope.call.to,
+    data: envelope.call.data,
+  });
+}
 
 /** Every pass of the chain check finds nothing, until the job has no attempts left. */
 async function exhaustChainCheck(): Promise<void> {
@@ -344,6 +364,8 @@ describe("owner publication", () => {
       state: "failed",
     });
     expect(sentTexts().filter((text) => text === CHECK_STOPPED)).toHaveLength(1);
+    // The chat already said it was checking, so it never adds that the send is still confirming.
+    expect(sentTexts()).not.toContain(STILL_CONFIRMING);
     // Stopping the check sends nothing: the one attempt keeps its reservation.
     expect(row("SELECT state FROM execution_operations")).toEqual({ state: "reconciling" });
     expect(row("SELECT count(*) AS n FROM execution_attempts")).toEqual({ n: 1 });
@@ -487,7 +509,7 @@ describe("owner publication", () => {
     expect(sentTexts().filter((text) => text === CHECK_STOPPED)).toHaveLength(1);
   });
 
-  it("lets chain evidence that a replayed check finds override its earlier stop", async () => {
+  it("lets chain evidence that a replayed check finds override its earlier stop, and says when that check stops too", async () => {
     await confirmLinkAndPublish(harness);
     const { browser, view, envelope } = await openSigningPage(harness);
     const attempt = await reserve(browser, view, envelope);
@@ -513,9 +535,156 @@ describe("owner publication", () => {
     );
     expect(replayFailedJob(harness.core, job.id)).toBe(true);
     await harness.drain();
+    // A replay gets one pass. It found the transaction, so its stop says that, with the link, and
+    // makes no promise of an attestation link just before stopping.
+    expect(sentTexts().at(-1)).toBe(ATTESTATION_UNREAD);
+    expect(harness.transport.sent.at(-1)?.message.records).toEqual([
+      { url: `https://arbiscan.io/tx/${hash}`, label: "View transaction" },
+    ]);
+    expect(sentTexts().filter((text) => text.startsWith("The transaction is confirmed."))).toEqual(
+      []
+    );
+    // STATUS agrees with the chat: the report was found, so it no longer says it can't be found.
+    expect(await harness.say(ADA, "STATUS")).toEqual([ATTESTATION_UNREAD]);
+  });
+
+  it("says once when the check stops with the transaction mined and its attestation still unread", async () => {
+    await confirmLinkAndPublish(harness);
+    const { browser, view, envelope } = await openSigningPage(harness);
+    const attempt = await reserve(browser, view, envelope);
+    const hash = send(envelope);
+    harness.chain.attestationsUnread = true;
+    await reportOutcome(browser, view, envelope, attempt.body.attemptId, {
+      kind: "broadcast",
+      transactionHash: hash,
+    });
+    await harness.drain();
     expect(sentTexts().at(-1)).toContain("The transaction is confirmed.");
-    // STATUS agrees with the chat: the report was found, so it no longer says the check stopped.
-    expect(await harness.say(ADA, "STATUS")).not.toEqual([CHECK_STOPPED]);
+
+    // The attestation is never read back, so the check runs out with the transaction mined.
+    await exhaustChainCheck();
+    expect(row("SELECT state FROM processing_jobs WHERE kind = 'reconcile_operation'")).toEqual({
+      state: "failed",
+    });
+    const stops = harness.transport.sent.filter((sent) => sent.message.text === ATTESTATION_UNREAD);
+    expect(stops).toHaveLength(1);
+    expect(stops[0]?.message.records).toEqual([
+      { url: `https://arbiscan.io/tx/${hash}`, label: "View transaction" },
+    ]);
+    // It was found, so nothing says it can't be found, and nothing is sent again.
+    expect(sentTexts()).not.toContain(CHECK_STOPPED);
+    expect(row("SELECT count(*) AS n FROM execution_attempts")).toEqual({ n: 1 });
+    expect(await harness.say(ADA, "STATUS")).toEqual([ATTESTATION_UNREAD]);
+    expect(await harness.say(ADA, "CANCEL")).toEqual([ATTESTATION_UNREAD]);
+  });
+
+  it.each([
+    ["a later read loses the receipt", (hash: `0x${string}`) => harness.chain.hidden.add(hash)],
+    [
+      "later chain reads fail",
+      (_hash: `0x${string}`) => {
+        harness.chain.transactionReceipt = async () => {
+          throw new Error("RPC unavailable");
+        };
+      },
+    ],
+  ])("never ends by saying it can't find a report whose transaction it already called confirmed, when %s", async (_trigger, loseTheRead) => {
+    await confirmLinkAndPublish(harness);
+    const { browser, view, envelope } = await openSigningPage(harness);
+    const attempt = await reserve(browser, view, envelope);
+    const hash = send(envelope);
+    harness.chain.attestationsUnread = true;
+    await reportOutcome(browser, view, envelope, attempt.body.attemptId, {
+      kind: "broadcast",
+      transactionHash: hash,
+    });
+    await harness.drain();
+    expect(sentTexts().at(-1)).toContain("The transaction is confirmed.");
+
+    // Every later pass reads nothing it can use, so the check's last pass sees nothing at all.
+    loseTheRead(hash);
+    await exhaustChainCheck();
+    expect(sentTexts()).not.toContain(CHECK_STOPPED);
+    expect(sentTexts()).not.toContain(STILL_CONFIRMING);
+    const stops = harness.transport.sent.filter((sent) => sent.message.text === ATTESTATION_UNREAD);
+    expect(stops).toHaveLength(1);
+    expect(stops[0]?.message.records).toEqual([
+      { url: `https://arbiscan.io/tx/${hash}`, label: "View transaction" },
+    ]);
+    expect(await harness.say(ADA, "STATUS")).toEqual([ATTESTATION_UNREAD]);
+  });
+
+  it("does not say a send is still confirming on the pass that ends the check", async () => {
+    await confirmLinkAndPublish(harness);
+    const { browser, view, envelope } = await openSigningPage(harness);
+    const attempt = await reserve(browser, view, envelope);
+    const hash = send(envelope);
+    harness.chain.hidden.add(hash);
+    await reportOutcome(browser, view, envelope, attempt.body.attemptId, {
+      kind: "broadcast",
+      transactionHash: hash,
+    });
+    await harness.drain();
+    // The check gets one more pass, two minutes in, as an operator replay does.
+    harness.core.db
+      .query(
+        "UPDATE processing_jobs SET max_attempts = attempts + 1 WHERE kind = 'reconcile_operation'"
+      )
+      .run();
+    harness.clock.advance(120_000);
+    await harness.drain();
+    expect(sentTexts()).toContain(CHECK_STOPPED);
+    expect(sentTexts()).not.toContain(STILL_CONFIRMING);
+  });
+
+  it("still tells a person who stopped the assistant how a send already made ended", async () => {
+    await confirmLinkAndPublish(harness);
+    const { browser, view, envelope } = await openSigningPage(harness);
+    const attempt = await reserve(browser, view, envelope);
+    const hash = send(envelope);
+    harness.chain.attestationsUnread = true;
+    await reportOutcome(browser, view, envelope, attempt.body.attemptId, {
+      kind: "broadcast",
+      transactionHash: hash,
+    });
+    await harness.drain();
+    expect(sentTexts().at(-1)).toContain("The transaction is confirmed.");
+    await harness.say(ADA, "STOP");
+    await exhaustChainCheck();
+    expect(sentTexts()).toContain(ATTESTATION_UNREAD);
+  });
+
+  it("says once, two minutes into the check, that a reported send is still confirming", async () => {
+    await confirmLinkAndPublish(harness);
+    const { browser, view, envelope } = await openSigningPage(harness);
+    const attempt = await reserve(browser, view, envelope);
+    const hash = send(envelope);
+    harness.chain.hidden.add(hash);
+    await reportOutcome(browser, view, envelope, attempt.body.attemptId, {
+      kind: "broadcast",
+      transactionHash: hash,
+    });
+    await harness.drain();
+    const pass = async () => {
+      harness.clock.advance(30_000);
+      await harness.drain();
+    };
+    // A minute and a half in, the chat has said nothing since the page sent the report.
+    const sentBefore = sentTexts().length;
+    for (let n = 0; n < 3; n += 1) await pass();
+    expect(sentTexts()).toHaveLength(sentBefore);
+    await pass();
+    expect(sentTexts().slice(sentBefore)).toEqual([STILL_CONFIRMING]);
+    // It is said once, and STATUS still answers that the report is being published.
+    for (let n = 0; n < 4; n += 1) await pass();
+    expect(count(STILL_CONFIRMING)).toBe(1);
+    expect(await harness.say(ADA, "STATUS")).toEqual(["Your report for TAS is being published."]);
+
+    harness.chain.hidden.delete(hash);
+    await pass();
+    expect(sentTexts().at(-1)).toBe("Your report is published ✅");
+    expect(count(STILL_CONFIRMING)).toBe(1);
+    expect(sentTexts().some((text) => /fail/i.test(text))).toBe(false);
   });
 
   it("waits for a reported hash that is not mined yet instead of calling it a conflict", async () => {
@@ -690,6 +859,97 @@ describe("owner publication", () => {
     harness.chain.grantRole(TAS.address, adaAccount.address, {});
     expect((await reserve(browser, view, envelope)).status).toBe(403);
     expect(row("SELECT count(*) AS n FROM execution_attempts")).toEqual({ n: 0 });
+  });
+});
+
+describe("signing links", () => {
+  it("says once when a signing link expires unused, and RETRY sends a fresh one", async () => {
+    await confirmLinkAndPublish(harness);
+    const expired = latestLink(harness);
+    expect(await harness.say(ADA, "STATUS")).toEqual([AWAITING_SIGNATURE]);
+
+    harness.clock.advance(harness.core.settings.linkChallengeTtlMs);
+    await harness.drain();
+    expect(sentTexts().at(-1)).toBe(LINK_EXPIRED);
+    harness.clock.advance(60 * 60_000);
+    await harness.drain();
+    expect(count(LINK_EXPIRED)).toBe(1);
+    expect(await harness.say(ADA, "STATUS")).toEqual([LINK_EXPIRED]);
+
+    const fresh = await harness.say(ADA, "RETRY");
+    expect(fresh[0]).toContain(
+      "Open this page to review and sign the exact publication with your wallet."
+    );
+    expect(latestLink(harness)).not.toBe(expired);
+    expect(await harness.say(ADA, "STATUS")).toEqual([AWAITING_SIGNATURE]);
+
+    // The fresh link signs the report already prepared: nothing is uploaded again.
+    const { browser, view, envelope } = await openSigningPage(harness);
+    const attempt = await reserve(browser, view, envelope);
+    expect(attempt.status).toBe(200);
+    await reportOutcome(browser, view, envelope, attempt.body.attemptId, {
+      kind: "broadcast",
+      transactionHash: send(envelope),
+    });
+    await harness.drain();
+    expect(sentTexts().at(-1)).toBe("Your report is published ✅");
+    expect(harness.uploader.uploads.map(({ name }) => name)).toEqual(["metadata.json"]);
+    // The fresh link's own expiry comes after the send, so it says nothing.
+    const said = count(LINK_EXPIRED);
+    harness.clock.advance(
+      harness.core.settings.linkChallengeTtlMs + harness.core.settings.browserSessionTtlMs
+    );
+    await harness.drain();
+    expect(count(LINK_EXPIRED)).toBe(said);
+  });
+
+  it("says the link expired once when STATUS asks before the expiry notice goes out", async () => {
+    await confirmLinkAndPublish(harness);
+    harness.clock.advance(harness.core.settings.linkChallengeTtlMs);
+    // A turn runs before the jobs in the same pass, so STATUS answers before the watcher runs.
+    expect(await harness.say(ADA, "STATUS")).toEqual([LINK_EXPIRED]);
+    harness.clock.advance(60_000);
+    await harness.drain();
+    expect(count(LINK_EXPIRED)).toBe(1);
+  });
+
+  it("refuses a send whose page session ended while its chain reads were awaited", async () => {
+    await confirmLinkAndPublish(harness);
+    harness.clock.advance(harness.core.settings.linkChallengeTtlMs - 60_000);
+    const { browser, view, envelope } = await openSigningPage(harness);
+    const realBlockNumber = harness.chain.blockNumber.bind(harness.chain);
+    let lapsed = false;
+    harness.chain.blockNumber = async () => {
+      if (!lapsed) {
+        // The page's session ends while its reads are in flight, and the expiry watch runs.
+        lapsed = true;
+        harness.clock.advance(harness.core.settings.browserSessionTtlMs);
+        await harness.drain();
+      }
+      return realBlockNumber();
+    };
+    const attempt = await reserve(browser, view, envelope);
+    // The chat said nothing was sent, so nothing may be: the late reservation is refused.
+    expect(sentTexts()).toContain(LINK_EXPIRED);
+    expect(attempt.status).toBe(403);
+    expect(row("SELECT count(*) AS n FROM execution_attempts")).toEqual({ n: 0 });
+  });
+
+  it("waits for a signing page that is still open before saying its link expired", async () => {
+    await confirmLinkAndPublish(harness);
+    // The page opens a minute before its link expires, and is closed before it sends anything.
+    harness.clock.advance(harness.core.settings.linkChallengeTtlMs - 60_000);
+    await openSigningPage(harness);
+    harness.clock.advance(60_000);
+    await harness.drain();
+    expect(sentTexts()).not.toContain(LINK_EXPIRED);
+    expect(await harness.say(ADA, "STATUS")).toEqual([AWAITING_SIGNATURE]);
+
+    // Once that page can no longer send either, the chat hears it.
+    harness.clock.advance(harness.core.settings.browserSessionTtlMs);
+    await harness.drain();
+    expect(count(LINK_EXPIRED)).toBe(1);
+    expect(await harness.say(ADA, "STATUS")).toEqual([LINK_EXPIRED]);
   });
 });
 

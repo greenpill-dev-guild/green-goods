@@ -56,7 +56,7 @@ const PHONE_VIEWPORT = {
 const MESSAGES = { en, es, pt } as const;
 type Locale = keyof typeof MESSAGES;
 
-type Moment = "all" | "afterCancel" | "afterDiscard" | "empty" | "takeUp";
+type Moment = "all" | "afterCancel" | "afterDiscard" | "empty" | "takeUp" | "sendGaveUp";
 
 const EMPTY: PendingWorkFixture = {
   submissions: [],
@@ -101,12 +101,42 @@ const TAKE_UP_STATES = new Map<string, NonNullable<ReturnType<WorkUploads["statu
   ["job-mulch", { state: "take-up-failed" }],
 ]);
 
+/** Work queued on this phone whose send gave up, in the state its metadata records. */
+function gaveUp(id: string, title: string, actionUID: number, state: object): Work {
+  return {
+    ...forPromise(id, title, actionUID, hoursAgo(1)),
+    metadata: JSON.stringify({ clientWorkId: `client-${id}`, ...state }),
+  };
+}
+
+/**
+ * Three sends that gave up, each named Didn't send (DL-177): one that used up its tries, one the
+ * chain reverted, and one Upload all flagged because the batch it rode in reverted.
+ */
+const SEND_GAVE_UP: PendingWorkFixture = {
+  submissions: [
+    gaveUp("job-compost", "Compost Turn", 2, { submissionState: "retry-required" }),
+    gaveUp("job-mulch", "Mulching", 4, { submissionState: "reverted" }),
+    gaveUp("job-seedling", "Seedling Transplant", 5, {
+      submissionState: "blocked",
+      blockedReason: "batch-reverted",
+    }),
+  ],
+  drafts: [],
+  proofs: [],
+  linkedWorkIds: new Set(),
+  linkedWorkUIDs: new Set(),
+  onPhone: 3,
+};
+
 const fixtureAt = (moment: Moment, documentationPhoto = false) =>
   moment === "empty"
     ? EMPTY
     : moment === "takeUp"
       ? TAKE_UP_CHAIN
-      : pendingWorkFixture(moment, documentationPhoto);
+      : moment === "sendGaveUp"
+        ? SEND_GAVE_UP
+        : pendingWorkFixture(moment, documentationPhoto);
 
 /** Work in a garden the steward reviews, and a review of theirs still on this phone. */
 function gardenWork(id: string, title: string, overrides: Partial<Work> = {}): Work {
@@ -582,6 +612,29 @@ export const PendingTakeUpChain: Story = {
     await expect(body.getByText("Couldn't take up the promise")).toBeVisible();
     await expect(body.getByText("Couldn't link it to the promise")).toBeVisible();
   },
+};
+
+/** Every send that gave up reads Didn't send, a reverted batch's included; none says the record refused it. */
+export const PendingDidntSend: Story = {
+  tags: ["storybook-ci"],
+  args: { moment: "sendGaveUp" },
+  play: async ({ canvasElement }) => {
+    // The sheet draws in a portal, so its rows are found from the page body.
+    const body = within(canvasElement.ownerDocument.body);
+    await expect(await body.findAllByText("Nothing was sent")).toHaveLength(3);
+    await expect(body.getAllByText("Didn't send")).toHaveLength(3);
+    await expect(body.queryByText("The record refused it")).toBeNull();
+  },
+};
+
+export const PendingDidntSendSpanish: Story = {
+  args: { moment: "sendGaveUp" },
+  parameters: { locale: "es" },
+};
+
+export const PendingDidntSendPortuguese: Story = {
+  args: { moment: "sendGaveUp" },
+  parameters: { locale: "pt" },
 };
 
 export const PendingTakeUpChainSpanish: Story = {

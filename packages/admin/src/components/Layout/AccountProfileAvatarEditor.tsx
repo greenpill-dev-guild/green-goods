@@ -164,33 +164,28 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
         size="md"
         tone="review"
         preventClose={busy}
-        actions={
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            {resolved.source === "app" ? (
-              <Button
-                type="button"
-                emphasis="primary"
-                tone="danger"
-                size="sm"
-                onClick={() => setRemoveConfirmOpen(true)}
-                disabled={busy}
-                leadingIcon={<RiDeleteBinLine className="h-[18px] w-[18px]" aria-hidden="true" />}
-              >
-                {formatMessage({ id: "profile.avatar.remove", defaultMessage: "Remove Photo" })}
-              </Button>
-            ) : null}
-            <Button
-              type="button"
-              emphasis="primary"
-              size="sm"
-              onClick={save}
-              disabled={!selectedFile || busy}
-              loading={busy && Boolean(selectedFile)}
-            >
-              {saveLabel}
-            </Button>
-          </div>
-        }
+        actions={{
+          primary: {
+            label: saveLabel,
+            onClick: save,
+            disabled: !selectedFile || busy,
+            loading: busy && Boolean(selectedFile),
+          },
+          // Removing the photo is the destructive way out, so it is outlined in the danger tone.
+          secondary:
+            resolved.source === "app"
+              ? {
+                  label: formatMessage({
+                    id: "profile.avatar.remove",
+                    defaultMessage: "Remove Photo",
+                  }),
+                  tone: "danger",
+                  icon: <RiDeleteBinLine className="h-[18px] w-[18px]" aria-hidden="true" />,
+                  onClick: () => setRemoveConfirmOpen(true),
+                  disabled: busy,
+                }
+              : undefined,
+        }}
       >
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-4">

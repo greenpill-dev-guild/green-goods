@@ -207,6 +207,7 @@ export default defineConfig({
         /admin\.auth\.spec\.ts$/,
         /admin\.smoke\.spec\.ts$/,
         /admin\.production-flows\.ci\.spec\.ts$/,
+        /admin\.browser-minimum\.ci\.spec\.ts$/,
       ],
       use: { ...devices["Desktop Chrome"] },
     },

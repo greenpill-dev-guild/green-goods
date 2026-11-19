@@ -8,7 +8,7 @@ generated: true
 generator: scripts/docs/generate.mjs
 generated_from:
   - packages/contracts/script/cli/operations.mjs
-source_digest: "sha256:7b539a9a6a5abfbbbb902547983b420e74d530b5c477841e505fbbfdf29fe569"
+source_digest: "sha256:f903d09220ecc45ae7f6c46b0e9802c0199bfa69943dc12c3e53ae217c2109df"
 source_of_truth:
   - packages/contracts/script/cli/operations.mjs
 ---
@@ -18,7 +18,7 @@ import {CopyCommand} from "@site/src/components/docs";
 
 # Contract operations
 
-Generated from the package-owned CLI definitions: 99 operations in 15 groups. Every command runs as `bun run contracts -- <command>` from the repository root; `bun run contracts -- help` lists them and `--help` after any command explains it. Deployments, upgrades, migrations, and repairs require an explicit network and execution mode.
+Generated from the package-owned CLI definitions: 100 operations in 15 groups. Every command runs as `bun run contracts -- <command>` from the repository root; `bun run contracts -- help` lists them and `--help` after any command explains it. Deployments, upgrades, migrations, and repairs require an explicit network and execution mode.
 
 `--explain --json` describes resolution without credentials, service access, or execution. Broadcasts require release authorization. Planning, compilation, simulation, and upload can write artifacts. Read the owning runbook before executing an operation.
 
@@ -135,7 +135,7 @@ No options beyond the command itself.
 |---|---|---|
 | <CopyCommand command="bun run contracts -- status --network &lt;network&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | none |
 
-### Release (13)
+### Release (14)
 
 Run a release session step by step with its transaction boundaries.
 
@@ -161,6 +161,12 @@ Options: `--manifest <value>`, `--members <value>`, `--receipts <value>`, `--pla
 | Command | Networks | Modes |
 |---|---|---|
 | <CopyCommand command="bun run contracts -- release clc --mode &lt;mode&gt;" /> | not network-scoped | preflight, plan, simulate |
+
+Options: `--output <value>`, `--garden <value>`, `--block <value>`, `--expected-implementation <value>`, `--expected-runtime-hash <value>`.
+
+| Command | Networks | Modes |
+|---|---|---|
+| <CopyCommand command="bun run contracts -- release conviction-sync --network &lt;network&gt; --mode &lt;mode&gt;" /> | arbitrum | plan, verify |
 
 Options: `--recover-lock`, `--manifest <value>`, `--plan <value>`, `--receipts <value>`.
 
