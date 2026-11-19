@@ -11,6 +11,7 @@ import type { AuthMode } from "../../../types/auth";
 import type { Address } from "../../../types/domain";
 import { createTestQueryClient } from "../../test-utils/query-client";
 import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
+import { registerTelemetrySink } from "../../../modules/app/telemetry-sink";
 
 const ACCOUNT = "0x1111111111111111111111111111111111111111" as Address;
 const RECIPIENT = "0x2222222222222222222222222222222222222222" as Address;
@@ -155,6 +156,35 @@ describe("hooks/blockchain/useSendToken", () => {
       result.current.mutateAsync({ token: TOKEN as any, to: RECIPIENT, amount: 100n })
     ).rejects.toThrow(/insufficient/i);
     expect(mockSendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("records each send's start and ending, with no address or note (PRD-1553)", async () => {
+    const captured: Array<[string, Record<string, unknown>]> = [];
+    const unregister = registerTelemetrySink({
+      capture: (event, properties) => {
+        if (event.startsWith("send_act_")) captured.push([event, properties]);
+      },
+    });
+    try {
+      const { result } = renderSendToken();
+      await result.current.mutateAsync(SEND_PARAMS);
+      mockReadContract.mockResolvedValue(50n);
+      await expect(result.current.mutateAsync(SEND_PARAMS)).rejects.toThrow(/insufficient/i);
+
+      expect(captured.map(([event, { act, outcome }]) => [event, act, outcome])).toEqual([
+        ["send_act_started", "token_send", undefined],
+        ["send_act_ended", "token_send", "confirmed"],
+        ["send_act_started", "token_send", undefined],
+        ["send_act_ended", "token_send", "failed"],
+      ]);
+      expect(captured[1]![1]).toMatchObject({ chain_id: CHAIN });
+      const sent = JSON.stringify(captured).toLowerCase();
+      for (const address of [ACCOUNT, RECIPIENT, TOKEN_ADDR])
+        expect(sent).not.toContain(address.toLowerCase());
+      expect(sent).not.toContain('"hi"');
+    } finally {
+      unregister();
+    }
   });
 
   it("rejects a zero amount", async () => {

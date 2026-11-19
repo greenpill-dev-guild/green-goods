@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useIntl } from "react-intl";
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
 import { toastService } from "../../components/toast";
 import type { Address, Domain } from "../../types/domain";
 import { ActionRegistryABI, getNetworkContracts } from "../../utils/blockchain/contracts";
@@ -27,6 +28,13 @@ export function useSetGardenDomains() {
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
   const sendContractTx = useContractTxSender();
+  const authMode = sendContractTx.authMode;
+  const act: SendActContext = {
+    act: "garden_update",
+    operation: "setGardenDomains",
+    authMode,
+    chainId,
+  };
   const handleError = createMutationErrorHandler({
     source: "useSetGardenDomains",
     toastContext: "set garden domains",
@@ -35,7 +43,7 @@ export function useSetGardenDomains() {
   const contracts = getNetworkContracts(chainId);
 
   return useMutation({
-    mutationFn: async (params: SetGardenDomainsParams) => {
+    mutationFn: recordedSendAct(act, async (params: SetGardenDomainsParams) => {
       if (params.domains.length === 0) {
         throw new Error("At least one domain is required");
       }
@@ -45,7 +53,7 @@ export function useSetGardenDomains() {
         functionName: "setGardenDomains",
         args: [params.gardenAddress, domainMaskOf(params.domains)],
       });
-    },
+    }),
     onMutate: () => {
       const toastId = toastService.loading({
         title: formatMessage({

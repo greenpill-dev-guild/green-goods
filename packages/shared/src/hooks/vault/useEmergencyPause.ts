@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef } from "react";
 import { useIntl } from "react-intl";
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
 import { toastService } from "../../components/toast";
 import type { EmergencyPauseParams } from "../../types/vaults";
 import { OCTANT_MODULE_ABI } from "../../utils/blockchain/abis/octant";
@@ -18,6 +19,11 @@ export function useEmergencyPause() {
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
   const sender = useTransactionSender();
+  const pauseAct: SendActContext = {
+    act: "vault_emergency_pause",
+    authMode: sender?.authMode,
+    chainId,
+  };
   const handleError = createMutationErrorHandler({
     source: "useEmergencyPause",
     toastContext: "vault emergency pause",
@@ -35,7 +41,7 @@ export function useEmergencyPause() {
   );
 
   const mutation = useMutation({
-    mutationFn: async (params: EmergencyPauseParams) => {
+    mutationFn: recordedSendAct(pauseAct, async (params: EmergencyPauseParams) => {
       if (!sender) throw new Error("TransactionSender not available — auth not initialized");
       const octantModule = getOctantModuleAddress(chainId);
 
@@ -46,7 +52,7 @@ export function useEmergencyPause() {
         args: [params.gardenAddress, params.assetAddress],
       });
       return result.hash;
-    },
+    }),
     onMutate: () => {
       const toastId = toastService.loading({
         title: formatMessage({ id: "app.treasury.emergencyPause" }),

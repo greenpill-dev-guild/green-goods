@@ -27,6 +27,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
 import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import { isDemoPoolingActive } from "../../modules/commitment-pooling/demo/demo-mode";
 import {
@@ -128,6 +129,12 @@ export function useCommitmentPoolMutation(options: { chainId?: number } = {}) {
   const currentChainId = useCurrentChain();
   const chainId = options.chainId ?? currentChainId;
   const sender = useTransactionSender();
+  const act = ({ action }: CommitmentPoolMutationVariables): SendActContext => ({
+    act: "pool_lifecycle",
+    operation: action,
+    authMode: sender?.authMode,
+    chainId,
+  });
   const queryClient = useQueryClient();
   const handleError = createMutationErrorHandler({
     source: "useCommitmentPoolMutation",
@@ -135,7 +142,8 @@ export function useCommitmentPoolMutation(options: { chainId?: number } = {}) {
   });
 
   return useMutation({
-    mutationFn: async ({ send, ...input }: CommitmentPoolMutationVariables) => {
+    mutationFn: recordedSendAct(act, async (variables: CommitmentPoolMutationVariables) => {
+      const { send, ...input } = variables;
       if (!sender) throw new Error("Transaction sender is unavailable");
       const moduleAddress = resolveCommitmentPoolingModule(chainId);
       const call = await resolveCall(input as CommitmentPoolMutationInput);
@@ -153,7 +161,7 @@ export function useCommitmentPoolMutation(options: { chainId?: number } = {}) {
         ? await sender.sendContractCall(contractCall, send)
         : await sender.sendContractCall(contractCall);
       return result.hash;
-    },
+    }),
     onSuccess: async (_hash, input) => {
       await queryClient.invalidateQueries({ queryKey: commitmentPoolingKeys.all(chainId) });
       if ("poolId" in input) {

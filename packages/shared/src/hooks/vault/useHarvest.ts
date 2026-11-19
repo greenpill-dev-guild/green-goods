@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef } from "react";
 import { useIntl } from "react-intl";
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
 import { toastService } from "../../components/toast";
 import type { HarvestParams } from "../../types/vaults";
 import { OCTANT_MODULE_ABI } from "../../utils/blockchain/abis/octant";
@@ -18,6 +19,7 @@ export function useHarvest() {
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
   const sender = useTransactionSender();
+  const harvestAct: SendActContext = { act: "vault_harvest", authMode: sender?.authMode, chainId };
   const handleError = createMutationErrorHandler({
     source: "useHarvest",
     toastContext: "vault harvest",
@@ -35,7 +37,7 @@ export function useHarvest() {
   );
 
   const mutation = useMutation({
-    mutationFn: async (params: HarvestParams) => {
+    mutationFn: recordedSendAct(harvestAct, async (params: HarvestParams) => {
       if (!sender) throw new Error("TransactionSender not available — auth not initialized");
       const octantModule = getOctantModuleAddress(chainId);
 
@@ -46,7 +48,7 @@ export function useHarvest() {
         args: [params.gardenAddress, params.assetAddress],
       });
       return result.hash;
-    },
+    }),
     onMutate: () => {
       const toastId = toastService.loading({
         title: formatMessage({ id: "app.treasury.harvest" }),

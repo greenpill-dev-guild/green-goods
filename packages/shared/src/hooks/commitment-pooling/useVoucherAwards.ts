@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSignMessage } from "wagmi";
 import { useUser } from "../auth/useUser";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
+import { voucherAwardActOutcome } from "../../modules/commitment-pooling/send-act-outcome";
 import { SERVICE_LIVE_ROUTES } from "../../modules/commitment-pooling/service-access-live-config";
 import { createAccountMessageSigner } from "../../modules/auth/account-message-signer";
 import { createVoucherAwardClient } from "../../modules/commitment-pooling/voucher-award-client";
@@ -130,13 +132,18 @@ export function useVoucherAwards(reserve?: Address | null) {
       throw new Error("Select the award reserve and connect its signer");
     return { record, actor: user.primaryAddress, sender, client: required(), assertCurrent };
   };
+  const awardAct: SendActContext = { act: "pool_voucher_award", authMode: user.authMode };
   const send = useMutation({
     ...mutationOptions,
-    mutationFn: async (record: VoucherAwardRecord) => {
-      const result = await sendVoucherAward(execution(record));
-      remember(result.record);
-      return result;
-    },
+    mutationFn: recordedSendAct(
+      awardAct,
+      async (record: VoucherAwardRecord) => {
+        const result = await sendVoucherAward(execution(record));
+        remember(result.record);
+        return result;
+      },
+      voucherAwardActOutcome
+    ),
   });
   const recover = useMutation({
     ...mutationOptions,

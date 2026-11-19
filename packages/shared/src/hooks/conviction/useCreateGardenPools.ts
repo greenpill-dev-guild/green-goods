@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef } from "react";
 import { useIntl } from "react-intl";
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
 import { toastService } from "../../components/toast";
 import type { Address } from "../../types/domain";
 import { GARDENS_MODULE_ABI } from "../../utils/blockchain/abis/conviction";
@@ -29,6 +30,13 @@ export function useCreateGardenPools(gardenAddress?: Address) {
   const chainId = useCurrentChain();
   const queryClient = useQueryClient();
   const sendContractTx = useContractTxSender();
+  const authMode = sendContractTx.authMode;
+  const act: SendActContext = {
+    act: "conviction",
+    operation: "createGardenPools",
+    authMode,
+    chainId,
+  };
   const handleError = createMutationErrorHandler({
     source: "useCreateGardenPools",
     toastContext: "pool creation",
@@ -53,7 +61,7 @@ export function useCreateGardenPools(gardenAddress?: Address) {
   );
 
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: recordedSendAct(act, async () => {
       if (!normalizedGarden) {
         throw new Error("Garden address is required");
       }
@@ -69,7 +77,7 @@ export function useCreateGardenPools(gardenAddress?: Address) {
         functionName: "createGardenPools",
         args: [normalizedGarden],
       });
-    },
+    }),
     onMutate: () => {
       const toastId = toastService.loading({
         title: formatMessage({ id: "app.pools.creating" }),

@@ -8,6 +8,7 @@ import { act } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createTestQueryClient } from "../../test-utils/query-client";
 import { renderHookWithProviders } from "../../test-utils/render-helpers";
+import { registerTelemetrySink } from "../../../modules/app/telemetry-sink";
 
 // Mock matchMedia before any module imports that touch theme system
 Object.defineProperty(window, "matchMedia", {
@@ -236,6 +237,48 @@ describe("hooks/vault/useVaultOperations", () => {
       // It may have landed, so what the forms read straight from the chain is worth reading again.
       expect(invalidate).toHaveBeenCalledWith({ queryKey: ["balance"] });
       expect(invalidate).toHaveBeenCalledWith({ queryKey: ["readContract"] });
+    });
+
+    it("records a deposit that may still land as confirming, a withdraw as confirmed (PRD-1553)", async () => {
+      const captured: Array<[string, Record<string, unknown>]> = [];
+      const unregister = registerTelemetrySink({
+        capture: (event, properties) => {
+          if (event.startsWith("send_act_")) captured.push([event, properties]);
+        },
+      });
+      try {
+        allowanceCovers();
+        mockSendContractCall.mockRejectedValueOnce(
+          Object.assign(new Error("Timed out"), { name: "WaitForTransactionReceiptTimeoutError" })
+        );
+        const deposits = renderHookWithProviders(() => useVaultDeposit(), {
+          queryClient: trackedQueryClient(),
+        });
+        await act(async () => {
+          await expect(deposits.result.current.mutateAsync(deposit)).rejects.toSatisfy(
+            isUnconfirmedTxError
+          );
+        });
+        mockReadContract.mockResolvedValueOnce(100n); // maxWithdraw
+        const withdrawals = renderHookWithProviders(() => useVaultWithdraw(), {
+          queryClient: trackedQueryClient(),
+        });
+        await act(async () => {
+          await withdrawals.result.current.mutateAsync({ ...deposit, amount: 5n });
+        });
+
+        expect(captured.map(([event, { act, outcome }]) => [event, act, outcome])).toEqual([
+          ["send_act_started", "vault_deposit", undefined],
+          ["send_act_ended", "vault_deposit", "confirming"],
+          ["send_act_started", "vault_withdraw", undefined],
+          ["send_act_ended", "vault_withdraw", "confirmed"],
+        ]);
+        const sent = JSON.stringify(captured).toLowerCase();
+        for (const address of [TEST_PRIMARY_ADDRESS, TEST_GARDEN, TEST_ASSET, TEST_VAULT])
+          expect(sent).not.toContain(address);
+      } finally {
+        unregister();
+      }
     });
 
     it("stops before the deposit when an approval has no receipt", async () => {

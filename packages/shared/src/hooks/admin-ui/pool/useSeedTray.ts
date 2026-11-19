@@ -28,6 +28,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useMemo, useRef, useState } from "react";
 import type { UseFormReturn } from "react-hook-form";
 
+import { recordedSendAct, type SendActContext } from "../../../modules/app/sendActAnalytics";
+import { copiesActEnding } from "../../../modules/commitment-pooling/send-act-outcome";
 import { commitmentPoolingKeys } from "../../../config/query-keys/commitment-pooling";
 import { logger } from "../../../modules/app/logger";
 import {
@@ -362,7 +364,12 @@ export function useSeedTray(input: {
       setPassIds([...sentThisPass]);
       setIsSending(true);
       try {
-        const ended = await sendCreationCopies({
+        const act: SendActContext = { act: "pool_seed", authMode: sender?.authMode, chainId };
+        const ended = await recordedSendAct(
+          act,
+          sendCreationCopies,
+          copiesActEnding
+        )({
           copies: toSend,
           queue: jobQueue,
           sender,

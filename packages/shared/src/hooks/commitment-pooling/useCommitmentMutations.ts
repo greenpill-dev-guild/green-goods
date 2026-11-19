@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Hex } from "viem";
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
 import { SETTLEMENT_ENABLED } from "../../config/app";
 import { CONSIDERATION_RAIL_ORDINAL } from "../../modules/commitment-pooling/job-types";
 
@@ -218,6 +219,12 @@ export function useCommitmentMutation(options: { chainId?: number } = {}) {
   const currentChainId = useCurrentChain();
   const chainId = options.chainId ?? currentChainId;
   const sender = useTransactionSender();
+  const act = ({ action }: CommitmentMutationVariables): SendActContext => ({
+    act: "commitment",
+    operation: action,
+    authMode: sender?.authMode,
+    chainId,
+  });
   const queryClient = useQueryClient();
   const handleError = createMutationErrorHandler({
     source: "useCommitmentMutation",
@@ -225,7 +232,8 @@ export function useCommitmentMutation(options: { chainId?: number } = {}) {
   });
 
   return useMutation({
-    mutationFn: async ({ send, ...input }: CommitmentMutationVariables) => {
+    mutationFn: recordedSendAct(act, async (variables: CommitmentMutationVariables) => {
+      const { send, ...input } = variables;
       if (
         !SETTLEMENT_ENABLED &&
         input.action === "setDeclaredConsideration" &&
@@ -265,7 +273,7 @@ export function useCommitmentMutation(options: { chainId?: number } = {}) {
         ? await sender.sendContractCall(contractCall, send)
         : await sender.sendContractCall(contractCall);
       return result.hash;
-    },
+    }),
     onSuccess: async (_hash, input) => {
       await queryClient.invalidateQueries({ queryKey: commitmentPoolingKeys.all(chainId) });
       if ("commitmentId" in input) {

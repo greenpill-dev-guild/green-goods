@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef } from "react";
 import { useIntl } from "react-intl";
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
 import { toastService } from "../../components/toast";
 import type { DeregisterHypercertParams } from "../../types/conviction";
 import { HYPERCERT_SIGNAL_POOL_ABI } from "../../utils/blockchain/abis/conviction";
@@ -17,6 +18,13 @@ export function useDeregisterHypercert() {
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
   const sendContractTx = useContractTxSender();
+  const authMode = sendContractTx.authMode;
+  const act: SendActContext = {
+    act: "conviction",
+    operation: "deregisterHypercert",
+    authMode,
+    chainId,
+  };
   const handleError = createMutationErrorHandler({
     source: "useDeregisterHypercert",
     toastContext: "deregister hypercert",
@@ -35,14 +43,14 @@ export function useDeregisterHypercert() {
   );
 
   return useMutation({
-    mutationFn: async (params: DeregisterHypercertParams) => {
+    mutationFn: recordedSendAct(act, async (params: DeregisterHypercertParams) => {
       return sendContractTx({
         address: params.poolAddress,
         abi: HYPERCERT_SIGNAL_POOL_ABI,
         functionName: "deregisterHypercert",
         args: [params.hypercertId],
       });
-    },
+    }),
     onMutate: () => {
       const toastId = toastService.loading({
         title: formatMessage({ id: "app.signal.removing" }),

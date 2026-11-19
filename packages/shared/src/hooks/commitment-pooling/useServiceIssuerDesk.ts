@@ -6,6 +6,7 @@ import type {
   ServiceIssuerDeskSelection,
   ServiceIssuerDraft,
 } from "../../public-contracts/service-issuer-desk";
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
 import { createServiceIssuerDeskClient } from "../../modules/commitment-pooling/service-issuer-desk-client";
 import { signServiceIssuerApproval } from "../../modules/commitment-pooling/service-issuer-approval";
 import { serviceIssuerTermsDigest } from "../../modules/commitment-pooling/service-issuer-approval-terms";
@@ -127,9 +128,14 @@ export function useServiceIssuerDesk(selection?: ServiceIssuerDeskSelection | nu
         ).record!
       ),
   });
+  const approveAct: SendActContext = {
+    act: "pool_service_issuer",
+    operation: "approveTerms",
+    authMode: user.authMode,
+  };
   const approve = useMutation({
     ...options,
-    mutationFn: async (record: ServiceIssuerDeskRecord) => {
+    mutationFn: recordedSendAct(approveAct, async (record: ServiceIssuerDeskRecord) => {
       if (record.draft.member.toLowerCase() !== user.primaryAddress?.toLowerCase())
         throw new Error("Only the member can approve these terms");
       const fresh = (await required().request({ action: "read", id: record.draft.id })).record!;
@@ -170,7 +176,7 @@ export function useServiceIssuerDesk(selection?: ServiceIssuerDeskSelection | nu
           })
         ).record!
       );
-    },
+    }),
   });
   return {
     records: records.data ?? [],

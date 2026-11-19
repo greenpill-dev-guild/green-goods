@@ -1,5 +1,7 @@
 import { useMemo, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
+import { issuerActOutcome } from "../../modules/commitment-pooling/send-act-outcome";
 import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import { createServiceIssuerOperations } from "../../modules/commitment-pooling/service-issuer-operations";
 import type {
@@ -82,20 +84,30 @@ export function useServiceIssuerOperations(actor: ServiceIssuerActor | null) {
     mutationFn: (input: { outputAssetId: string; amount: bigint }) =>
       operations.quote(requiredActor(), input.outputAssetId, input.amount),
   });
+  const executeAct = ({ action, call }: ServiceIssuerReview): SendActContext => ({
+    act: "pool_service_issuer",
+    operation: action.kind,
+    authMode: user.authMode,
+    chainId: call.chainId,
+  });
   const execute = useMutation({
     retry: false,
     networkMode: "always",
-    mutationFn: (value: ServiceIssuerReview) => {
-      const selected = requiredActor();
-      if (
-        selected.address.toLowerCase() !== value.actor.address.toLowerCase() ||
-        selected.routeId !== value.actor.routeId ||
-        selected.assetId !== value.actor.assetId ||
-        selected.poolId !== value.actor.poolId
-      )
-        throw new Error("Selected issuer context changed; review again");
-      return operations.execute(value);
-    },
+    mutationFn: recordedSendAct(
+      executeAct,
+      (value: ServiceIssuerReview) => {
+        const selected = requiredActor();
+        if (
+          selected.address.toLowerCase() !== value.actor.address.toLowerCase() ||
+          selected.routeId !== value.actor.routeId ||
+          selected.assetId !== value.actor.assetId ||
+          selected.poolId !== value.actor.poolId
+        )
+          throw new Error("Selected issuer context changed; review again");
+        return operations.execute(value);
+      },
+      issuerActOutcome
+    ),
     onSettled: refresh,
   });
   const reconcile = useMutation({

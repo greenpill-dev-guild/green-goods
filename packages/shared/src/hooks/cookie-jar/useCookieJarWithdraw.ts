@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef } from "react";
 import { useIntl } from "react-intl";
 import type { Address } from "viem";
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
 import { toastService } from "../../components/toast";
 import type { CookieJarWithdrawParams } from "../../types/cookie-jar";
 import { COOKIE_JAR_ABI } from "../../utils/blockchain/abis/cookie-jar";
@@ -30,9 +31,10 @@ export function useCookieJarWithdraw(
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
-  const { primaryAddress } = useUser();
+  const { authMode, primaryAddress } = useUser();
   const showErrorToast = shouldShowErrorToast(options.errorMode);
   const sendContractTx = useContractTxSender();
+  const withdrawAct: SendActContext = { act: "cookie_jar_withdraw", authMode, chainId };
   const handleError = createMutationErrorHandler({
     source: "useCookieJarWithdraw",
     toastContext: "cookie jar withdraw",
@@ -64,7 +66,7 @@ export function useCookieJarWithdraw(
   );
 
   return useMutation({
-    mutationFn: async (params: CookieJarWithdrawParams) => {
+    mutationFn: recordedSendAct(withdrawAct, async (params: CookieJarWithdrawParams) => {
       if (!primaryAddress) {
         throw new Error("Connected account required");
       }
@@ -75,7 +77,7 @@ export function useCookieJarWithdraw(
         functionName: "withdraw",
         args: [params.amount, params.purpose],
       });
-    },
+    }),
     onMutate: () => {
       const toastId = toastService.loading({
         title: formatMessage({ id: "app.cookieJar.withdraw" }),

@@ -14,6 +14,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits, isAddress, maxUint256 } from "viem";
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
 import { toastService } from "../../components/toast";
 import { createPublicClientForChain } from "../../config/pimlico";
 import { queryInvalidation } from "../../config/query-keys/invalidation";
@@ -49,6 +50,11 @@ export function useSendToken() {
   const queryClient = useQueryClient();
   const { primaryAddress } = useUser();
   const sender = useTransactionSender();
+  const act = ({ token }: SendTokenParams): SendActContext => ({
+    act: "token_send",
+    authMode: sender?.authMode,
+    chainId: token.chainId,
+  });
   const identity = useRef({ primaryAddress, sender });
   identity.current = { primaryAddress, sender };
   const handleError = createMutationErrorHandler({
@@ -73,7 +79,8 @@ export function useSendToken() {
     retry: false,
     // Reject immediately while offline; TanStack must not resume a value transfer later.
     networkMode: "always",
-    mutationFn: async ({ token, to, amount, reviewedFee }: SendTokenParams) => {
+    mutationFn: recordedSendAct(act, async (params: SendTokenParams) => {
+      const { token, to, amount, reviewedFee } = params;
       if (typeof navigator !== "undefined" && !navigator.onLine)
         throw new Error("Token sends require an online connection");
       if (!primaryAddress) throw new Error("Connected account required");
@@ -161,7 +168,7 @@ export function useSendToken() {
         };
       }
       return { ...result, account: primaryAddress.toLowerCase() };
-    },
+    }),
     onMutate: () => ({
       toastId: toastService.loading({
         title: formatMessage({ id: "app.send.title" }),

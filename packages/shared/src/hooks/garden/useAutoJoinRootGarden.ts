@@ -21,6 +21,7 @@ import { getDefaultChain } from "../../config/blockchain";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { trackNetworkError } from "../../modules/app/error-tracking";
 import { logger } from "../../modules/app/logger";
+import { recordSendAct } from "../../modules/app/sendActAnalytics";
 import { ensureAppKitWalletChain } from "../../modules/transactions/chain-guard";
 import {
   assertLocalArbitrumForkSmartAccountsDisabled,
@@ -225,7 +226,13 @@ export function useAutoJoinRootGarden() {
 
       setIsLoading(true);
       try {
-        await executeJoin(sessionOverride);
+        const authMode = (sessionOverride?.client ?? smartAccountClient)?.account
+          ? "passkey"
+          : "wallet";
+        await recordSendAct(
+          { act: "garden_join", operation: "root_garden", authMode, chainId },
+          () => executeJoin(sessionOverride)
+        );
         markOnboarded(targetAddress);
 
         // Dismiss prompt toast if still showing
@@ -272,7 +279,15 @@ export function useAutoJoinRootGarden() {
         setIsLoading(false);
       }
     },
-    [executeJoin, markOnboarded, refetchGardenData, rootGarden?.address, primaryAddress]
+    [
+      executeJoin,
+      markOnboarded,
+      refetchGardenData,
+      rootGarden?.address,
+      primaryAddress,
+      smartAccountClient,
+      chainId,
+    ]
   );
 
   /**

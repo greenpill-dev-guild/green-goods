@@ -128,6 +128,7 @@ import {
   trackGardenJoinFailed,
 } from "../../modules/app/analytics-events";
 import { trackContractError } from "../../modules/app/error-tracking";
+import { registerTelemetrySink } from "../../modules/app/telemetry-sink";
 import { gardensKeys } from "../../config/query-keys/garden";
 import { useActiveGardenStore } from "../../stores/useActiveGardenStore";
 import {
@@ -455,6 +456,47 @@ describe("hooks/garden/useJoinGarden", () => {
       // The signer address must never reach a PostHog property.
       const payload = JSON.stringify(vi.mocked(trackGardenJoinFailed).mock.calls[0]?.[0]);
       expect(payload).not.toContain(signerAddress);
+    });
+
+    it("records each join's start and ending, a join that may still land as confirming (PRD-1553)", async () => {
+      const captured: Array<[string, Record<string, unknown>]> = [];
+      const unregister = registerTelemetrySink({
+        capture: (event, properties) => {
+          if (event.startsWith("send_act_")) captured.push([event, properties]);
+        },
+      });
+      try {
+        const mockClient = createMockSmartAccountClient();
+        const timedOut = new Error(`Timed out waiting for ${MOCK_ADDRESSES.smartAccount}`);
+        timedOut.name = "WaitForUserOperationReceiptTimeoutError";
+        mockClient.sendTransaction
+          .mockResolvedValueOnce(MOCK_TX_HASH)
+          .mockRejectedValueOnce(timedOut);
+        mockUseUser.mockReturnValue({
+          smartAccountAddress: MOCK_ADDRESSES.smartAccount,
+          smartAccountClient: mockClient,
+          eoa: null,
+        });
+        const { result } = renderHookWithProviders(() => useJoinGarden(), { queryClient });
+
+        await act(async () => {
+          await result.current.joinGarden(MOCK_ADDRESSES.garden);
+          await expect(result.current.joinGarden(MOCK_ADDRESSES.garden)).rejects.toBe(timedOut);
+        });
+
+        expect(captured.map(([event, { act, outcome }]) => [event, act, outcome])).toEqual([
+          ["send_act_started", "garden_join", undefined],
+          ["send_act_ended", "garden_join", "confirmed"],
+          ["send_act_started", "garden_join", undefined],
+          ["send_act_ended", "garden_join", "confirming"],
+        ]);
+        expect(trackGardenJoinFailed).not.toHaveBeenCalled();
+        const sent = JSON.stringify(captured);
+        expect(sent).not.toContain(MOCK_ADDRESSES.smartAccount);
+        expect(sent).not.toContain(MOCK_ADDRESSES.garden);
+      } finally {
+        unregister();
+      }
     });
   });
 

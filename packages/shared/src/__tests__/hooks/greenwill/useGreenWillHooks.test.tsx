@@ -15,6 +15,7 @@ import {
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createTestQueryClient } from "../../test-utils/query-client";
 import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
+import { registerTelemetrySink } from "../../../modules/app/telemetry-sink";
 
 const TEST_CHAIN_ID = 42161;
 const TEST_USER = "0xABcDEFabcdefABCDEFabcdefAbcdefABcDefABCD" as Address;
@@ -384,6 +385,35 @@ describe("hooks/greenwill", () => {
     expect(mockToast.info).toHaveBeenCalledWith(
       expect.objectContaining({ title: "app.profile.badges.claim.awaitingTitle" })
     );
+  });
+
+  it("records each claim's start and ending, a Safe proposal as confirming (PRD-1553)", async () => {
+    const captured: Array<[string, Record<string, unknown>]> = [];
+    const unregister = registerTelemetrySink({
+      capture: (event, properties) => {
+        if (event.startsWith("send_act_")) captured.push([event, properties]);
+      },
+    });
+    try {
+      mockSendContractCall
+        .mockResolvedValueOnce({ hash: "0xsafe", sponsored: false, confirmation: "pending" })
+        .mockRejectedValueOnce(new Error("User rejected the request."));
+      const { result } = renderHookWithQueryClient(() => useClaimGenesisBadge());
+      await act(async () => {
+        await result.current.mutateAsync(undefined);
+        await expect(result.current.mutateAsync(undefined)).rejects.toThrow();
+      });
+
+      expect(captured.map(([event, { act, outcome }]) => [event, act, outcome])).toEqual([
+        ["send_act_started", "greenwill_badge_claim", undefined],
+        ["send_act_ended", "greenwill_badge_claim", "confirming"],
+        ["send_act_started", "greenwill_badge_claim", undefined],
+        ["send_act_ended", "greenwill_badge_claim", "cancelled"],
+      ]);
+      expect(JSON.stringify(captured).toLowerCase()).not.toContain(TEST_USER.toLowerCase());
+    } finally {
+      unregister();
+    }
   });
 
   it("keeps reading ownership after a claim that failed once it was sent", async () => {

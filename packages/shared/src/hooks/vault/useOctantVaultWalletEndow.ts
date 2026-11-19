@@ -1,3 +1,4 @@
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
 import { ENDOWMENT_DEPOSITS_ENABLED } from "../../config/app";
 import { useMutation } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
@@ -5,7 +6,7 @@ import { useRef } from "react";
 import { useIntl } from "react-intl";
 import { toastService } from "../../components/toast";
 import { getWagmiConfig } from "../../config/appkit";
-import type { OctantVaultWalletEndowPreparedTransaction } from "../../modules/vault-crowdfunding";
+import type { OctantVaultWalletEndowPreparedTransaction as PreparedEndow } from "../../modules/vault-crowdfunding";
 import type { Address } from "../../types/domain";
 import { ERC20_ALLOWANCE_ABI, ERC20_BALANCE_ABI } from "../../utils/blockchain/abis/erc20";
 import { OCTANT_VAULT_ABI } from "../../utils/blockchain/abis/octant";
@@ -32,6 +33,11 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
   const { formatMessage } = useIntl();
   const { authMode, primaryAddress } = useUser();
   const sender = useTransactionSender();
+  const act = (transaction: PreparedEndow): SendActContext => ({
+    act: "vault_endow",
+    authMode: sender?.authMode,
+    chainId: transaction.chainId,
+  });
   const showLifecycleToast = shouldShowLifecycleToast(options.toastMode);
   const showErrorToast = shouldShowErrorToast(options.errorMode);
   const handleError = createMutationErrorHandler({
@@ -41,7 +47,7 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
   const activeToastId = useRef<string | undefined>(undefined);
 
   const mutation = useMutation({
-    mutationFn: async (transaction: OctantVaultWalletEndowPreparedTransaction) => {
+    mutationFn: recordedSendAct(act, async (transaction: PreparedEndow) => {
       if (!ENDOWMENT_DEPOSITS_ENABLED) {
         throw new Error(formatMessage({ id: "public.fund.endowmentPause.title" }));
       }
@@ -286,7 +292,7 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
           error instanceof Error ? error.message : "Deposit failed"
         );
       }
-    },
+    }),
     onMutate: () => {
       if (!ENDOWMENT_DEPOSITS_ENABLED) return;
       if (!showLifecycleToast) {

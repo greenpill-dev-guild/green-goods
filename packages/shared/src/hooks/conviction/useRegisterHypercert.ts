@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef } from "react";
 import { useIntl } from "react-intl";
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
 import { toastService } from "../../components/toast";
 import type { RegisterHypercertParams } from "../../types/conviction";
 import { HYPERCERT_SIGNAL_POOL_ABI } from "../../utils/blockchain/abis/conviction";
@@ -17,6 +18,13 @@ export function useRegisterHypercert() {
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
   const sendContractTx = useContractTxSender();
+  const authMode = sendContractTx.authMode;
+  const act: SendActContext = {
+    act: "conviction",
+    operation: "registerHypercert",
+    authMode,
+    chainId,
+  };
   const handleError = createMutationErrorHandler({
     source: "useRegisterHypercert",
     toastContext: "register hypercert",
@@ -35,14 +43,14 @@ export function useRegisterHypercert() {
   );
 
   return useMutation({
-    mutationFn: async (params: RegisterHypercertParams) => {
+    mutationFn: recordedSendAct(act, async (params: RegisterHypercertParams) => {
       return sendContractTx({
         address: params.poolAddress,
         abi: HYPERCERT_SIGNAL_POOL_ABI,
         functionName: "registerHypercert",
         args: [params.hypercertId],
       });
-    },
+    }),
     onMutate: () => {
       const toastId = toastService.loading({
         title: formatMessage({ id: "app.signal.registering" }),

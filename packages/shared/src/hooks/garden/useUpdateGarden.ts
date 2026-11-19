@@ -1,6 +1,11 @@
 import { useBatchCapability } from "../blockchain/useBatchCapability";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useIntl } from "react-intl";
+import {
+  batchSaveActOutcome,
+  recordedSendAct,
+  type SendActContext,
+} from "../../modules/app/sendActAnalytics";
 import { toastService } from "../../components/toast";
 import type { Address } from "../../types/domain";
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
@@ -62,10 +67,12 @@ function useGardenStringMutation(
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const sendContractTx = useContractTxSender();
+  const authMode = sendContractTx.authMode;
+  const act: SendActContext = { act: "garden_update", operation: functionName, authMode };
   const handleError = createMutationErrorHandler({ source, toastContext });
 
   return useMutation({
-    mutationFn: async (params: UpdateGardenStringParam) => {
+    mutationFn: recordedSendAct(act, async (params: UpdateGardenStringParam) => {
       return updateGarden(
         {
           gardenAddress: params.gardenAddress,
@@ -75,7 +82,7 @@ function useGardenStringMutation(
         },
         { sender: sendContractTx }
       );
-    },
+    }),
     onMutate: () => {
       const toastId = toastService.loading({
         title: formatMessage({ id: loadingMessageId, defaultMessage: "Updating..." }),
@@ -174,13 +181,15 @@ export function useSetOpenJoining() {
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const sendContractTx = useContractTxSender();
+  const authMode = sendContractTx.authMode;
+  const act: SendActContext = { act: "garden_update", operation: "setOpenJoining", authMode };
   const handleError = createMutationErrorHandler({
     source: "useSetOpenJoining",
     toastContext: "set open joining",
   });
 
   return useMutation({
-    mutationFn: async (params: UpdateGardenBoolParam) => {
+    mutationFn: recordedSendAct(act, async (params: UpdateGardenBoolParam) => {
       return updateGarden(
         {
           gardenAddress: params.gardenAddress,
@@ -190,7 +199,7 @@ export function useSetOpenJoining() {
         },
         { sender: sendContractTx }
       );
-    },
+    }),
     onMutate: () => {
       const toastId = toastService.loading({
         title: formatMessage({
@@ -225,13 +234,15 @@ export function useSetMaxGardeners() {
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const sendContractTx = useContractTxSender();
+  const authMode = sendContractTx.authMode;
+  const act: SendActContext = { act: "garden_update", operation: "setMaxGardeners", authMode };
   const handleError = createMutationErrorHandler({
     source: "useSetMaxGardeners",
     toastContext: "set max gardeners",
   });
 
   return useMutation({
-    mutationFn: async (params: UpdateGardenNumberParam) => {
+    mutationFn: recordedSendAct(act, async (params: UpdateGardenNumberParam) => {
       return updateGarden(
         {
           gardenAddress: params.gardenAddress,
@@ -241,7 +252,7 @@ export function useSetMaxGardeners() {
         },
         { sender: sendContractTx }
       );
-    },
+    }),
     onMutate: () => {
       const toastId = toastService.loading({
         title: formatMessage({
@@ -325,16 +336,18 @@ export function useGardenSettingsBatch(gardenAddress: Address) {
 
   const sendBatch = useMutation({
     onMutate: () => queryClient.cancelQueries({ queryKey: holdKey }),
-    mutationFn: async (
-      changes: readonly GardenSettingsChange[]
-    ): Promise<GardenSettingsBatchOutcome> => {
-      try {
-        return await sendGardenSettingsBatch({ ...batchInput(), rail: rail!, changes });
-      } catch (error) {
-        handleError(error, { authMode: rail, gardenAddress });
-        return { status: "not-saved" };
-      }
-    },
+    mutationFn: recordedSendAct(
+      { act: "garden_update", operation: "settingsBatch", authMode: rail, chainId },
+      async (changes: readonly GardenSettingsChange[]): Promise<GardenSettingsBatchOutcome> => {
+        try {
+          return await sendGardenSettingsBatch({ ...batchInput(), rail: rail!, changes });
+        } catch (error) {
+          handleError(error, { authMode: rail, gardenAddress });
+          return { status: "not-saved" };
+        }
+      },
+      batchSaveActOutcome
+    ),
     onSuccess: (outcome) => {
       if (outcome.status === "saved") refreshGarden();
     },

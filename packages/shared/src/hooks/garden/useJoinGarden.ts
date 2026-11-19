@@ -30,6 +30,7 @@ import {
   trackNetworkError,
 } from "../../modules/app/error-tracking";
 import { logger } from "../../modules/app/logger";
+import { recordSendAct, sendActEnding } from "../../modules/app/sendActAnalytics";
 import { refuseWithoutWallet } from "../../modules/auth/wallet-reconnect";
 import { activeGardenScope } from "../../modules/garden/active-garden";
 import {
@@ -59,7 +60,6 @@ interface PasskeySession {
 
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
 import { isAlreadyGardenerError, parseContractError } from "../../utils/errors/contract-errors";
-import { isCancelledTxError } from "../../utils/errors/tx-error-classifier";
 import { useUser } from "../auth/useUser";
 import { gardensKeys } from "../../config/query-keys/garden";
 import { useDocumentEvent } from "../utils/useEventListener";
@@ -244,27 +244,29 @@ export function useJoinGarden() {
       const previousGardens = queryClient.getQueryData<Garden[]>(gardensKeys.byChain(chainId));
 
       try {
-        const txHash = await submitJoinGarden(
-          {
-            gardenAddress: gardenAddress as Hex,
-            userAddress: targetAddress as Hex,
-            chainId,
-            smartAccountClient: client,
-          },
-          createDefaultJoinGardenPorts({
-            walletSend: ({ gardenAddress: targetGarden, chainId: targetChain }) => {
-              // A wallet that has not answered is asked to reconnect before it is asked to sign.
-              if (walletRestore) refuseWithoutWallet();
-              return writeContractAsync({
-                address: targetGarden,
-                abi: GardenAccountABI,
-                functionName: "joinGarden",
-                args: [],
-                chainId: targetChain,
-              });
+        const txHash = await recordSendAct({ act: "garden_join", authMode, chainId }, () =>
+          submitJoinGarden(
+            {
+              gardenAddress: gardenAddress as Hex,
+              userAddress: targetAddress as Hex,
+              chainId,
+              smartAccountClient: client,
             },
-            recordPending: addPendingJoin,
-          })
+            createDefaultJoinGardenPorts({
+              walletSend: ({ gardenAddress: targetGarden, chainId: targetChain }) => {
+                // A wallet that has not answered is asked to reconnect before it is asked to sign.
+                if (walletRestore) refuseWithoutWallet();
+                return writeContractAsync({
+                  address: targetGarden,
+                  abi: GardenAccountABI,
+                  functionName: "joinGarden",
+                  args: [],
+                  chainId: targetChain,
+                });
+              },
+              recordPending: addPendingJoin,
+            })
+          )
         );
 
         // Optimistic update: add user to garden's gardeners list, marked as the join's own entry so
@@ -337,9 +339,12 @@ export function useJoinGarden() {
         // stays out of the failure funnel and the error dashboard — counting
         // aborts as failures is what made `failures.conversion-kill` read a
         // two-person retry loop as a 66.7% garden_join conversion kill (PRD-717).
-        if (isCancelledTxError(error)) {
+        // A send that may still land is not a failure either: `send_act_ended`
+        // records it as still confirming (PRD-1553).
+        const { outcome } = sendActEnding(error);
+        if (outcome === "cancelled") {
           trackGardenJoinCancelled({ gardenAddress, authMode });
-        } else {
+        } else if (outcome === "failed") {
           // Telemetry carries the parsed error family only — viem embeds the
           // signer address in raw wallet messages, and these values are quoted
           // into shared surfaces by the growth-pulse routine.
