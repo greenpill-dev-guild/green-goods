@@ -15,7 +15,11 @@
  */
 
 import { parseContractError } from "../../utils/errors/contract-errors";
-import { classifyTxError, hasErrorName } from "../../utils/errors/tx-error-classifier";
+import {
+  classifyTxError,
+  hasErrorName,
+  isHeldByAnotherSend,
+} from "../../utils/errors/tx-error-classifier";
 import type { AuthMode } from "./analytics-events";
 import { logger } from "./logger";
 import { track } from "./posthog";
@@ -138,6 +142,9 @@ export function sendActEnding(error: unknown): {
   outcome: Extract<SendActOutcome, "confirming" | "cancelled" | "failed">;
   parsedErrorFamily: string;
 } {
+  // Refused before sending: the earlier send that holds the same thing keeps its own record.
+  if (isHeldByAnotherSend(error))
+    return { outcome: "failed", parsedErrorFamily: "HeldByAnotherSend" };
   const parsedErrorFamily = parseContractError(error).name;
   if (hasErrorName(error, STILL_CONFIRMING_NAMES))
     return { outcome: "confirming", parsedErrorFamily };
@@ -150,15 +157,18 @@ export function sendActEnding(error: unknown): {
 /**
  * A batched save's ending. `unknown` may have landed and is held until someone
  * reads it, so it is still confirming; a `not-saved` the wallet declined is
- * cancelled; any other `not-saved`, and `not-batchable`, sent nothing that can
- * still land.
+ * cancelled; any other `not-saved` sent nothing that can still land. A
+ * `not-batchable` save sent nothing either, and goes out one write at a time
+ * instead, each its own act: its family keeps it apart from real failures.
  */
 export function batchSaveActOutcome(outcome: {
   status: "saved" | "not-saved" | "unknown" | "not-batchable";
   declined?: true;
-}): SendActOutcome {
+}): SendActOutcome | SendActEndingDetail {
   if (outcome.status === "saved") return "confirmed";
   if (outcome.status === "unknown") return "confirming";
+  if (outcome.status === "not-batchable")
+    return { outcome: "failed", parsedErrorFamily: "NotBatchable" };
   return outcome.declined ? "cancelled" : "failed";
 }
 

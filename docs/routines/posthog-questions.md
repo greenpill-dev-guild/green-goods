@@ -164,8 +164,12 @@ yet. Read App acts in the App project
 
 The events carry no address, hash, amount, or text a person typed. A question that counts failed
 sends reads `outcome = 'failed'` only: a `confirming` send may still land. A join refused because
-the person is already a member ends `failed` with `parsed_error_family: AlreadyGardener`. Only
-builds that carry PRD-1553 record these events.
+the person is already a member ends `failed` with `parsed_error_family: AlreadyGardener`. Two
+`failed` endings sent nothing and are not failed sends, so leave them out of a failure count: an
+act refused because an earlier send of the same thing still holds it (`HeldByAnotherSend`; the
+earlier send keeps its own record), and a batched save the wallet cannot batch (`NotBatchable`;
+its changes then go out one write at a time, each recorded as its own act). Only builds that
+carry PRD-1553 record these events.
 
 ---
 

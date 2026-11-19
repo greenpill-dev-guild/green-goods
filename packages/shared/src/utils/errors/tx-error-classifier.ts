@@ -326,14 +326,16 @@ const UNCONFIRMED_ERROR_NAMES: ReadonlySet<string> = new Set([
   "WaitForUserOperationReceiptTimeoutError",
 ]);
 
-/** Another send of the same thing still holds it, so this one has the same answer: not yet known. */
-const HELD_BY_ANOTHER_SEND = "batch-items-held";
+/**
+ * Another send of the same thing still holds it, so this one sent nothing and has the same
+ * answer: not yet known.
+ */
+export function isHeldByAnotherSend(error: unknown): boolean {
+  return error instanceof Error && error.message === "batch-items-held";
+}
 
 export function isUnconfirmedTxError(error: unknown): boolean {
-  return (
-    hasErrorName(error, UNCONFIRMED_ERROR_NAMES) ||
-    (error instanceof Error && error.message === HELD_BY_ANOTHER_SEND)
-  );
+  return hasErrorName(error, UNCONFIRMED_ERROR_NAMES) || isHeldByAnotherSend(error);
 }
 
 const STOPPED_WAITING_NAMES: ReadonlySet<string> = new Set(["WalletAnswerAbandonedError"]);

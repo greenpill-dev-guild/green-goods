@@ -115,7 +115,7 @@ export async function checkMembership(address: string): Promise<{
  * @returns Join state and joinGarden function
  */
 export function useAutoJoinRootGarden() {
-  const { smartAccountClient } = useUser();
+  const { smartAccountClient, authMode: signIn } = useUser();
   // Use single source of truth for primary address
   const primaryAddress = usePrimaryAddress();
 
@@ -229,9 +229,11 @@ export function useAutoJoinRootGarden() {
         const authMode = (sessionOverride?.client ?? smartAccountClient)?.account
           ? "passkey"
           : "wallet";
+        // An embedded wallet joins through the wallet path, but records its own sign-in kind.
+        const actAuthMode = authMode === "wallet" && signIn === "embedded" ? signIn : authMode;
         // A wallet join returns once it is broadcast, before its receipt: it may still land.
         await recordSendAct(
-          { act: "garden_join", operation: "root_garden", authMode, chainId },
+          { act: "garden_join", operation: "root_garden", authMode: actAuthMode, chainId },
           () => executeJoin(sessionOverride),
           () => (authMode === "wallet" ? "confirming" : "confirmed")
         );
@@ -288,6 +290,7 @@ export function useAutoJoinRootGarden() {
       rootGarden?.address,
       primaryAddress,
       smartAccountClient,
+      signIn,
       chainId,
     ]
   );

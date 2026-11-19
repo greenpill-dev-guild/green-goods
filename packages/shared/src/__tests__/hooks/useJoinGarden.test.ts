@@ -503,21 +503,27 @@ describe("hooks/garden/useJoinGarden", () => {
         ]);
         expect(trackGardenJoinFailed).not.toHaveBeenCalled();
 
-        // A wallet join returns at broadcast, before its receipt, so it may still land.
-        mockUseUser.mockReturnValue({
-          smartAccountAddress: null,
-          smartAccountClient: null,
-          eoa: { address: MOCK_ADDRESSES.smartAccount },
-        });
-        const wallet = renderHookWithProviders(() => useJoinGarden(), { queryClient });
-        await act(async () => {
-          await wallet.result.current.joinGarden(MOCK_ADDRESSES.garden);
-        });
+        // A wallet join returns at broadcast, before its receipt, so it may still land. An
+        // embedded wallet joins the same way and records its own sign-in kind.
+        for (const authMode of ["wallet", "embedded"]) {
+          mockUseUser.mockReturnValue({
+            smartAccountAddress: null,
+            smartAccountClient: null,
+            eoa: { address: MOCK_ADDRESSES.smartAccount },
+            authMode,
+          });
+          const wallet = renderHookWithProviders(() => useJoinGarden(), { queryClient });
+          await act(async () => {
+            await wallet.result.current.joinGarden(MOCK_ADDRESSES.garden);
+          });
+        }
         expect(
           captured.slice(4).map(([event, { auth_mode, outcome }]) => [event, auth_mode, outcome])
         ).toEqual([
           ["send_act_started", "wallet", undefined],
           ["send_act_ended", "wallet", "confirming"],
+          ["send_act_started", "embedded", undefined],
+          ["send_act_ended", "embedded", "confirming"],
         ]);
         const sent = JSON.stringify(captured);
         expect(sent).not.toContain(MOCK_ADDRESSES.smartAccount);

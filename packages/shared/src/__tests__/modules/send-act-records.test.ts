@@ -247,9 +247,9 @@ describe("pool and batch endings", () => {
     [{ status: "unknown" }, "confirming"],
     [{ status: "not-saved" }, "failed"],
     [{ status: "not-saved", declined: true }, "cancelled"],
-    [{ status: "not-batchable" }, "failed"],
-  ] as const)("reads a batched save %j as %s", (outcome, expected) => {
-    expect(batchSaveActOutcome(outcome)).toBe(expected);
+    [{ status: "not-batchable" }, { outcome: "failed", parsedErrorFamily: "NotBatchable" }],
+  ] as const)("reads a batched save %j as %j", (outcome, expected) => {
+    expect(batchSaveActOutcome(outcome)).toEqual(expected);
   });
 
   it("reads issuer sends and voucher awards that may still land as confirming", () => {
@@ -275,6 +275,11 @@ describe("pool and batch endings", () => {
   it("classifies a thrown error the same way for every caller", () => {
     expect(sendActEnding(userRejected).outcome).toBe("cancelled");
     expect(sendActEnding(new ReceiptWaitLimitError(1)).outcome).toBe("confirming");
+    // Refused before sending: the earlier send holding the same thing keeps its own record.
+    expect(sendActEnding(new Error("batch-items-held"))).toEqual({
+      outcome: "failed",
+      parsedErrorFamily: "HeldByAnotherSend",
+    });
   });
 });
 

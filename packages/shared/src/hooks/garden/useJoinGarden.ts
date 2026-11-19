@@ -165,7 +165,13 @@ interface JoinGardenState {
  */
 export function useJoinGarden() {
   const { formatMessage } = useIntl();
-  const { smartAccountAddress, smartAccountClient, eoa, walletRestore } = useUser();
+  const {
+    smartAccountAddress,
+    smartAccountClient,
+    eoa,
+    walletRestore,
+    authMode: signIn,
+  } = useUser();
   const walletAddress = eoa?.address;
   const primaryAddress = smartAccountAddress || walletAddress;
 
@@ -246,8 +252,10 @@ export function useJoinGarden() {
       try {
         // A wallet join returns once it is broadcast, before its receipt: it may still land.
         const joinEnding = () => (authMode === "wallet" ? "confirming" : "confirmed");
+        // An embedded wallet joins through the wallet path, but records its own sign-in kind.
+        const actAuthMode = authMode === "wallet" && signIn === "embedded" ? signIn : authMode;
         const txHash = await recordSendAct(
-          { act: "garden_join", authMode, chainId },
+          { act: "garden_join", authMode: actAuthMode, chainId },
           () =>
             submitJoinGarden(
               {
@@ -386,6 +394,7 @@ export function useJoinGarden() {
     [
       primaryAddress,
       smartAccountClient,
+      signIn,
       walletRestore,
       writeContractAsync,
       chainId,

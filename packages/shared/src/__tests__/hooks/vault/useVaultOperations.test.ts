@@ -102,6 +102,7 @@ function trackedQueryClient() {
 
 const operationsModule = await import("../../../hooks/vault/useVaultOperations");
 const { isUnconfirmedTxError } = await import("../../../utils/errors/tx-error-classifier");
+const { parseContractError } = await import("../../../utils/errors/contract-errors");
 const { useTxErrorMessages } = await import("../../../hooks/utils/useTxErrorMessages");
 const { ReceiptWaitLimitError, TransactionConfirmationPendingError } = await import(
   "../../../modules/transactions/types"
@@ -714,6 +715,63 @@ describe("hooks/vault/useVaultOperations", () => {
           .catch(() => undefined);
       });
 
+      expect(endings).toEqual(["confirming"]);
+    } finally {
+      unregister();
+    }
+  });
+
+  it("reads an Endow approval past its receipt limit as still confirming, in its error too (PRD-1553)", async () => {
+    // The stage error keeps the send error as its cause, so the error toast says the approval
+    // may still land rather than that it failed, and the act ends confirming.
+    const endings: unknown[] = [];
+    const unregister = registerTelemetrySink({
+      capture: (event, properties) => {
+        if (event === "send_act_ended") endings.push(properties.outcome);
+      },
+    });
+    try {
+      mockReadContract
+        .mockResolvedValueOnce(100n) // maxDeposit
+        .mockResolvedValueOnce(10n) // balanceOf
+        .mockResolvedValueOnce(10n) // preApprovalPreview
+        .mockResolvedValueOnce(0n); // allowance (none, so it approves)
+      const limit = new ReceiptWaitLimitError(120_000, { hash: sentHash });
+      mockSendContractCall.mockRejectedValueOnce(limit);
+      const { result } = renderHookWithProviders(
+        () => useOctantVaultWalletEndow({ errorMode: "inline" }),
+        { queryClient: trackedQueryClient() }
+      );
+
+      let thrown: unknown;
+      await act(async () => {
+        thrown = await result.current
+          .mutateAsync({
+            intentKind: "wallet_endow",
+            paymentMethod: "wallet",
+            chainId: TEST_OCTANT_CHAIN_ID,
+            vaultAddress: TEST_VAULT as `0x${string}`,
+            assetAddress: TEST_ASSET as `0x${string}`,
+            assetSymbol: "WETH",
+            assetDecimals: 18,
+            amount: 10n,
+            receiver: {
+              intentKind: "wallet_endow",
+              paymentMethod: "wallet",
+              receiverKind: "connected_wallet",
+              receiverCustody: "connected_wallet",
+              receiverAddress: TEST_PRIMARY_ADDRESS as `0x${string}`,
+            },
+          })
+          .catch((error: unknown) => error);
+      });
+
+      expect(thrown).toMatchObject({
+        name: "VaultDepositStageError",
+        stage: "approval",
+        cause: limit,
+      });
+      expect(parseContractError(thrown).name).toBe("SendStillConfirming");
       expect(endings).toEqual(["confirming"]);
     } finally {
       unregister();
