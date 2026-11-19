@@ -138,17 +138,19 @@ export function useVoucherAwards(reserve?: Address | null) {
     authMode: user.authMode,
     chainId: 100,
   };
+  const sendAward = recordedSendAct(
+    awardAct,
+    (record: VoucherAwardRecord) => sendVoucherAward(execution(record)),
+    voucherAwardActOutcome
+  );
   const send = useMutation({
     ...mutationOptions,
-    mutationFn: recordedSendAct(
-      awardAct,
-      async (record: VoucherAwardRecord) => {
-        const result = await sendVoucherAward(execution(record));
-        remember(result.record);
-        return result;
-      },
-      voucherAwardActOutcome
-    ),
+    // The send's ending is recorded before the cache update, which can fail on its own.
+    mutationFn: async (record: VoucherAwardRecord) => {
+      const result = await sendAward(record);
+      remember(result.record);
+      return result;
+    },
   });
   const recover = useMutation({
     ...mutationOptions,
