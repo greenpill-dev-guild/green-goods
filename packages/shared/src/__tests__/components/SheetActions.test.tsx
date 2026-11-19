@@ -16,6 +16,41 @@ describe("SheetActions", () => {
     expect(bar()).toBeNull();
   });
 
+  it("leads with a note and keeps several outlined actions in reading order", () => {
+    const { unmount } = render(
+      <SheetActions
+        note="Needs a connection."
+        secondary={[{ label: "Edit Reward" }, { label: "Edit Confirmers" }]}
+      />
+    );
+    expect(bar()?.firstElementChild).toHaveAttribute("data-slot", "note");
+    expect(bar()?.firstElementChild).toHaveTextContent("Needs a connection.");
+    expect(screen.getAllByRole("button").map((button) => button.textContent)).toEqual([
+      "Edit Reward",
+      "Edit Confirmers",
+    ]);
+    expect(actionRoles()).toEqual(["secondary", "secondary"]);
+    unmount();
+
+    // A sheet with nothing to offer still says why.
+    render(<SheetActions note="Nothing can be copied in this release." />);
+    expect(bar()).toHaveTextContent("Nothing can be copied in this release.");
+  });
+
+  it("marks a steps bar that carries a note, so the note keeps its own line on a phone", () => {
+    render(
+      <SheetActions
+        layout="steps"
+        note="Your wallet will ask you once."
+        primary={{ label: "Add 2 Promises" }}
+        secondary={{ label: "Back" }}
+      />
+    );
+    expect(bar()).toHaveAttribute("data-note");
+    expect(bar()?.firstElementChild).toHaveAttribute("data-slot", "note");
+    expect(actionRoles()).toEqual(["secondary", "primary"]);
+  });
+
   it("stacks primary, secondary, then tertiary in reading order (DL-016)", () => {
     render(
       <SheetActions

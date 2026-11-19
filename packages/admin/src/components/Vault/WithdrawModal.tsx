@@ -227,28 +227,26 @@ export function WithdrawModal({
           </p>
         </div>
 
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
-          <AdminTextField
-            id="withdraw-amount"
-            className="min-w-0 flex-1"
-            label={formatMessage({ id: "app.treasury.withdrawAmount" })}
-            required
-            value={amountInput}
-            onChange={(event) => setAmountInput(event.target.value)}
-            placeholder={`0.0 ${assetSymbol}`}
-            error={amountError ? formatMessage({ id: amountError }) : undefined}
-            inputProps={{ inputMode: "decimal" }}
-          />
-          <Button
-            type="button"
-            emphasis="secondary"
-            size="compact"
-            className="w-full sm:mt-8 sm:w-auto"
-            onClick={() => setAmountInput(formatUnits(maxWithdrawable, assetDecimals))}
-          >
-            {formatMessage({ id: "app.treasury.max" })}
-          </Button>
-        </div>
+        <AdminTextField
+          id="withdraw-amount"
+          label={formatMessage({ id: "app.treasury.withdrawAmount" })}
+          required
+          value={amountInput}
+          onChange={(event) => setAmountInput(event.target.value)}
+          placeholder={`0.0 ${assetSymbol}`}
+          error={amountError ? formatMessage({ id: amountError }) : undefined}
+          inputProps={{ inputMode: "decimal" }}
+          action={
+            <Button
+              type="button"
+              emphasis="secondary"
+              size="compact"
+              onClick={() => setAmountInput(formatUnits(maxWithdrawable, assetDecimals))}
+            >
+              {formatMessage({ id: "app.treasury.max" })}
+            </Button>
+          }
+        />
 
         <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 type-body text-text-sub">
           <p>
