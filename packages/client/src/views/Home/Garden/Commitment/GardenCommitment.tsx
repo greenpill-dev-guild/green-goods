@@ -5,6 +5,7 @@ import { useDashboardNavigation } from "@green-goods/shared/hooks/client-ui/useD
 import { formatCommitmentUnits } from "@green-goods/shared/i18n/commitmentUnits";
 import type { Address } from "@green-goods/shared/types/domain";
 import { getNetworkContracts } from "@green-goods/shared/utils/blockchain/contracts";
+import { mayStillLand } from "@green-goods/shared/utils/errors/tx-error-classifier";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
@@ -439,7 +440,8 @@ export function GardenCommitment() {
           void controller.acts
             .notYet(reason)
             .then(() => setConfirmOpen(null))
-            .catch(() => setNotYetFailed(true));
+            // One that may still land is not offered again; its toast says where it stands.
+            .catch((error) => (mayStillLand(error) ? setConfirmOpen(null) : setNotYetFailed(true)));
         }}
         onDone={() => setConfirmOpen(null)}
       />

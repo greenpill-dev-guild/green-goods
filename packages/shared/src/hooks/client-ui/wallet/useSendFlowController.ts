@@ -17,10 +17,9 @@ import {
   validateSendAmount,
   type WalletMode,
 } from "../../../modules/wallet/send-flow";
-import { WalletAnswerAbandonedError } from "../../../modules/transactions/types";
 import type { Address } from "../../../types/domain";
 import { formatAddress } from "../../../utils/app/text";
-import { isUnconfirmedTxError } from "../../../utils/errors/tx-error-classifier";
+import { mayStillLand } from "../../../utils/errors/tx-error-classifier";
 import { useUser } from "../../auth/useUser";
 
 interface SendMutationPort {
@@ -35,14 +34,6 @@ interface SendMutationPort {
     },
     options: { onSuccess: () => void; onError?: (error: unknown) => void }
   ): void;
-}
-
-/**
- * A send that went out and is still confirming, or that the wallet may still send after the
- * person stopped waiting for it: its draft must not go out again (PRD-1551).
- */
-function mayHaveGone(error: unknown): boolean {
-  return error instanceof WalletAnswerAbandonedError || isUnconfirmedTxError(error);
 }
 
 interface UseSendFlowControllerOptions {
@@ -221,7 +212,7 @@ export function useSendFlowController({
         onSuccess: () => dispatch({ type: "reset-after-send" }),
         // Cleared as a sent one is, so Send cannot pay the same draft twice.
         onError: (error) => {
-          if (mayHaveGone(error)) dispatch({ type: "reset-after-send" });
+          if (mayStillLand(error)) dispatch({ type: "reset-after-send" });
         },
       }
     );

@@ -2,6 +2,7 @@ import { Button } from "@green-goods/shared/components/Button";
 import { SheetActions } from "@green-goods/shared/components/Dialog/SheetActions";
 import { logger } from "@green-goods/shared/modules/app/logger";
 import { MAX_REASON } from "@green-goods/shared/modules/commitment-pooling/reasons";
+import { mayStillLand } from "@green-goods/shared/utils/errors/tx-error-classifier";
 import { type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminDialog, type AdminDialogProps } from "./AdminDialog";
@@ -105,6 +106,12 @@ export function AdminReasonDialog({
     try {
       await confirm(trimmed);
     } catch (error) {
+      // A send that may still land did not fail, and Confirm must not send it again: the dialog
+      // closes, and the mutation's toast says where it stands (PRD-1551).
+      if (mayStillLand(error)) {
+        onClose();
+        return;
+      }
       logger.error("[AdminReasonDialog] confirm failed", {
         title,
         error: error instanceof Error ? error.message : String(error),
