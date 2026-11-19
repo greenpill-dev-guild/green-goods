@@ -41,7 +41,7 @@ DL-191 to DL-196.
 
 ## Human Judgment Points
 
-- Open on PRD-1574, built as written until ruled: the fallback start shows 15 minutes after
+- Ruled on 19 November 2026, kept as built: the fallback start shows 15 minutes after
   acceptance; Home's "Your Requests" becomes "Waiting to Join" and the steward's join queue
   "Asking to Join"; Accept goes through on an empty steward wallet and the fallback covers it.
 - Protected surface: Accept and Start sends transactions from Shared (critical tier).
