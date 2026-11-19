@@ -150,7 +150,7 @@ and rightmost from it, Cancel outlined, Back beside the way on in one row (`layo
 note or a send's progress in the bar's `note` slot. An inspector whose actions are ways on with no
 main one passes several `secondary` actions. Never stack your own buttons in a footer: the Hub's
 32px buttons keep a 6px finger-box reserve, so a hand-built stack sits 20px apart.
-A guard test in the Hub's suite fails on a hand-stacked footer button (`w-full sm:w-auto`) in
+`AdminFieldActionAndFooter.guard` fails on a hand-stacked footer button (`w-full sm:w-auto`) in
 `packages/admin/src`.
 
 ## Rule 15: Form Fields
@@ -175,9 +175,9 @@ and `AdminSelect` draw it in the control's own row, centered on the control at b
 at the button's own size, with the message line under both. Never lay a button beside the whole
 field and lift it with a margin (`mb-9`, `sm:mt-8`): the label and the reserved message line throw
 it 6 to 8px off the control's center. A button that acts on a list (Select Visible, Clear) sits with
-the list's count, not beside its search field. The same guard test fails on a hand-tuned lift in
-any file that renders the field family; its one audited exception is a button whose neighboring
-field changes with the container's width.
+the list's count, not beside its search field. `AdminFieldActionAndFooter.guard` fails on a
+hand-tuned lift in any file that renders the field family; its one audited exception is a button
+whose neighboring field changes with the container's width.
 
 ```tsx
 // Bad: beside the whole field, lifted over the reserved message line
