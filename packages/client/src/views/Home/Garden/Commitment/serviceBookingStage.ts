@@ -6,7 +6,8 @@ import type {
   ServiceActKind,
   ServiceBookingInput,
   ServiceBookingStage,
-  ServiceBookingView,
+  ServicePill,
+  ServiceProfile,
 } from "./serviceBookingTypes";
 
 /**
@@ -71,7 +72,8 @@ export function serviceBookingStage(
     : "confirmingDeposit";
 }
 
-export const NEEDS_YOU = new Set<ServiceBookingStage>([
+const NEEDS_YOU = new Set<ServiceBookingStage>([
+  "requestNotSent",
   "readyToDeposit",
   "readyToClose",
   "returnProposed",
@@ -137,26 +139,69 @@ export function recoveryAct(
 }
 
 /**
- * The booking's own state beside the promise's pill, where that pill alone would mislead: the
- * promise reads "Offered" through the whole deposit, a cancellation and a changed offer, and
- * "Awaiting confirmation" while a split's transfers are still on their way.
+ * Whether the booking waits on the reader: its own step (deposit, the split, a changed offer, a
+ * failed transfer), or an act of theirs that stopped partway. The page's band and every list row
+ * that shows the booking ask this one question.
  */
-export const CHIP: Partial<
-  Record<ServiceBookingStage, NonNullable<ServiceBookingView["band"]["chip"]>["tone"]>
-> = {
-  requestNotSent: "neutral",
-  waitingApproval: "info",
-  readyToDeposit: "warning",
-  confirmingDeposit: "info",
-  waitingAcceptance: "info",
-  termsChanged: "warning",
-  readyToClose: "warning",
-  returnProposed: "warning",
-  transfersPending: "info",
-  returnFailed: "error",
-  canceling: "neutral",
-  canceled: "success",
+export function bookingNeedsYou(
+  stage: ServiceBookingStage,
+  setup: ServiceVoucherSetup | null
+): boolean {
+  return NEEDS_YOU.has(stage) || recoveryAct(stage, setup) !== null;
+}
+
+const pill = (id: string, tone: ServicePill["tone"]): ServicePill => ({
+  labelId: `app.voucher.pp.chip.${id}`,
+  tone,
+});
+
+/**
+ * The page's one pill per stage, in the member's words. The promise reads "Offered" through the
+ * whole deposit and "Awaiting confirmation" while a split settles, so the booking speaks instead;
+ * a request or a start on its way reads as the wait it is part of.
+ */
+const PILL: Partial<Record<ServiceBookingStage, ServicePill>> = {
+  open: pill("open", "info"),
+  notEnough: pill("open", "info"),
+  requestNotSent: pill("requestNotSent", "warning"),
+  requestInTransit: pill("waitingApproval", "neutral"),
+  waitingApproval: pill("waitingApproval", "neutral"),
+  readyToDeposit: pill("readyToDeposit", "warning"),
+  confirmingDeposit: pill("waitingAcceptance", "neutral"),
+  waitingAcceptance: pill("waitingAcceptance", "neutral"),
+  termsChanged: pill("termsChanged", "warning"),
+  starting: pill("accepted", "info"),
+  activationInTransit: pill("accepted", "info"),
+  inProgress: pill("booked", "success"),
+  acceptedFirst: pill("booked", "success"),
+  readyToClose: pill("readyToClose", "warning"),
+  returnProposed: pill("readyToClose", "warning"),
+  transfersPending: pill("transfersPending", "info"),
+  returnFailed: pill("returnFailed", "error"),
+  canceling: pill("canceling", "neutral"),
+  canceled: pill("canceled", "neutral"),
 };
+
+/**
+ * The booking's pill, or null where the promise's own says it: Kept, and a reported problem's
+ * Disputed. A booking settled before the promise closes is still Closing; a hub day's delivery is
+ * the visit.
+ */
+export function bookingPill(
+  stage: ServiceBookingStage,
+  profile: ServiceProfile,
+  closed: { kept: boolean; endedEarly: boolean }
+): ServicePill | null {
+  if (stage === "closed")
+    return closed.kept
+      ? null
+      : closed.endedEarly
+        ? { labelId: "app.voucher.pp.st.endedEarly", tone: "neutral" }
+        : pill("transfersPending", "info");
+  if (profile === "hubDay" && (stage === "readyToClose" || stage === "returnProposed"))
+    return pill("visitReported", "warning");
+  return PILL[stage] ?? null;
+}
 
 /**
  * Before the deposit, the reader's own vouchers are what the offer or booking still rests on, so a

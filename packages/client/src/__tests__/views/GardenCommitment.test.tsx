@@ -451,7 +451,7 @@ describe("GardenCommitment", () => {
       within(section).getByText("1 Tech and Sun voucher, still in your account")
     ).toBeVisible();
     expect(screen.getByRole("region", { name: "Where this stands" })).toHaveTextContent(
-      "Tech and Sun approved. Deposit your voucher into the escrow for this booking."
+      "Tech and Sun approved. Deposit your voucher to hold your place."
     );
     await userEvent.click(screen.getByRole("button", { name: "Cancel Booking" }));
     expect(mockServiceMutation).toHaveBeenCalledWith(
@@ -1826,6 +1826,49 @@ describe("a voucher booking on the promise page", () => {
     expect(section).not.toHaveTextContent("Green Goods voucher");
   });
 
+  const currentStep = () =>
+    screen.getByRole("list", { name: "Steps" }).querySelector('[aria-current="step"]');
+
+  it("draws a member's booking slim: its tracker up top, one pill, the facts and one act", () => {
+    show(
+      bookingStorySnapshot("hubDay", "waitingApproval"),
+      bookingStoryController("hubDay", "OFFERED")
+    );
+    expect(currentStep()).toHaveTextContent("Deposit, waiting on Tech and Sun");
+    const band = screen.getByRole("region", { name: "Where this stands" });
+    expect(within(band).getByText("Waiting for approval")).toBeInTheDocument();
+    expect(within(band).queryByText("Offered")).toBeNull();
+    for (const title of ["What was promised", "Team", "Progress and proof", "Work", "History"])
+      expect(screen.queryByRole("heading", { name: title })).toBeNull();
+    // The steps, transfers and records wait, closed, behind one disclosure.
+    const section = screen.getByRole("region", { name: "Service Access" });
+    const details = within(section).getByText("Booking details").closest("details");
+    expect(details).not.toHaveAttribute("open");
+    expect(details).toHaveTextContent("Booking steps");
+    expect(screen.getByRole("button", { name: "Cancel Booking" })).toBeInTheDocument();
+  });
+
+  it("introduces an open offer in the card, with what booking it takes and who offers it", () => {
+    show(bookingStorySnapshot("hubDay", "open"), bookingStoryController("hubDay", "OFFERED"));
+    expect(currentStep()).toHaveTextContent("Request");
+    expect(currentStep()).not.toHaveTextContent("waiting");
+    const section = screen.getByRole("region", { name: "Service Access" });
+    expect(section).toHaveTextContent(/A reserved visit to the Tech and Sun hub/);
+    expect(within(section).getByText("Offered by")).toBeInTheDocument();
+    expect(within(section).getByText("How booking works").closest("details")).not.toBeNull();
+  });
+
+  it("brings Progress and proof back once the delivery is reported", () => {
+    show(
+      bookingStorySnapshot("hubDay", "readyToClose"),
+      bookingStoryController("hubDay", "READY_FOR_CONFIRMATION")
+    );
+    expect(currentStep()).toHaveTextContent("Done");
+    expect(currentStep()).not.toHaveTextContent("waiting");
+    expect(screen.getByRole("heading", { name: "Progress and proof" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "History" })).toBeNull();
+  });
+
   it("says Needs you when the promise waits on the reader under a booking that doesn't", () => {
     show(
       bookingStorySnapshot("hubDay", "transfersPending"),
@@ -1914,7 +1957,8 @@ describe("a voucher booking on the promise page", () => {
   });
 
   describe("the same offer, read by a buyer and by the person who made it", () => {
-    const OPEN_FOR_BOOKING = "Open for booking. Nothing moves until you agree to the exact terms.";
+    const OPEN_FOR_BOOKING =
+      "Booking takes 1 Tech and Sun voucher. Nothing moves until you agree to the terms.";
     const OWN_OFFER = "Neighbors can take this up. You can withdraw it until someone does.";
 
     function creatorPage(
@@ -1929,7 +1973,7 @@ describe("a voucher booking on the promise page", () => {
       show(bookingStorySnapshot("hubDay", "open"), bookingStoryController("hubDay", "OFFERED"));
       expect(screen.getByText(OPEN_FOR_BOOKING)).toBeInTheDocument();
       expect(screen.getByRole("region", { name: "Service Access" })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Review and Redeem" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Book" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Check Status" })).toBeInTheDocument();
       expect(screen.queryByText("Takes")).not.toBeInTheDocument();
     });
@@ -1956,7 +2000,7 @@ describe("a voucher booking on the promise page", () => {
       expect(promised.getByText("1 Tech and Sun voucher")).toBeInTheDocument();
       expect(screen.queryByText(/^You hold/)).not.toBeInTheDocument();
       expect(screen.queryByRole("region", { name: "Service Access" })).not.toBeInTheDocument();
-      expect(screen.queryByRole("button", { name: "Review and Redeem" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Book" })).not.toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Check Status" })).not.toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Withdraw This" })).toBeInTheDocument();
     });
@@ -2194,7 +2238,7 @@ describe("a voucher booking on the promise page", () => {
     const claimPersonal = vi.fn();
     show(snapshot, { ...page, acts: { ...page.acts, claimPersonal } });
     expect(screen.queryByRole("button", { name: "Take It Up" })).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Review and Redeem" }));
+    await userEvent.click(screen.getByRole("button", { name: "Book" }));
     expect(await screen.findByRole("dialog", { name: "Review and Redeem" })).toBeInTheDocument();
     expect(claimPersonal).not.toHaveBeenCalled();
     expect(mockServiceMutation).not.toHaveBeenCalled();

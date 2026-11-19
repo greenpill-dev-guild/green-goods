@@ -24,12 +24,22 @@ vi.mock("react-router-dom", async (importOriginal) => ({
   useNavigate: () => navigate,
 }));
 
-// A booking row reads its offer's title; the title read has its own coverage.
+// A booking row reads its offer's title and the booking itself; each read has its own coverage.
+const booked = vi.hoisted(() => ({
+  service: vi.fn((..._key: unknown[]) => ({ data: undefined as unknown })),
+  state: "OFFERED",
+}));
 vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   ...(await importOriginal()),
   useVoucherAwards: () => awards,
-  useCommitment: () => ({ commitment: { metadataCID: "bafy-hub-day" } }),
+  useCommitment: () => ({
+    commitment: { metadataCID: "bafy-hub-day", derivedState: booked.state },
+  }),
   useCommitmentMetadataFor: () => ({ version: 1, title: "Hub day, up to 4 hours" }),
+  useServiceAccess: (...key: unknown[]) => booked.service(...key),
+}));
+vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
+  usePrimaryAddress: () => "0x1111111111111111111111111111111111111111",
 }));
 
 import { VouchersTab } from "../../views/Home/WalletSheet/VouchersTab";
@@ -189,6 +199,41 @@ describe("VouchersTab", () => {
     expect(navigate).toHaveBeenCalledWith(`/home/${HUB}/commitments/1023`, {
       state: { from: "home" },
     });
+  });
+
+  it.each([
+    ["awaiting-deposit", "readyToDeposit", "OFFERED", "Needs you", "to deposit"],
+    ["held", "readyToClose", "READY_FOR_CONFIRMATION", "Needs you", "in a booking"],
+    ["held", "returnProposed", "ACCEPTED", "Needs you", "in a booking"],
+    ["held", "inProgress", "ACCEPTED", "Booked", "in a booking"],
+  ] as const)("marks a %s booking at %s with what it needs from the reader", async (escrowStage, stage, state, pill, caption) => {
+    const { bookingStorySnapshot } = await import(
+      "../../../../shared/.storybook/voucherBookingFixtures"
+    );
+    booked.state = state;
+    booked.service.mockImplementation(() => ({ data: bookingStorySnapshot("hubDay", stage) }));
+    const booking = {
+      booking: ref(1023n),
+      issuer: TECH_AND_SUN.account,
+      asset: TECH_AND_SUN.asset,
+      agreed: VOUCHER,
+      held: escrowStage === "held" ? VOUCHER : 0n,
+      stage: escrowStage,
+    };
+    render(<VouchersTab wallet={wallet({ bookings: [booking] })} onClose={vi.fn()} />);
+
+    const row = screen.getByRole("button", { name: /Hub day, up to 4 hours/ });
+    expect(within(row).getByText(pill)).toBeInTheDocument();
+    expect(within(row).getByText(caption)).toBeInTheDocument();
+    // The booking is read as its own page reads it: this promise, for this reader.
+    expect(booked.service).toHaveBeenLastCalledWith({
+      sourceChainId: 42161,
+      coreModule: "0x000000000000000000000000000000000000f100",
+      commitmentId: 1023n,
+      buyer: "0x1111111111111111111111111111111111111111",
+    });
+    booked.service.mockImplementation(() => ({ data: undefined }));
+    booked.state = "OFFERED";
   });
 
   it("shows a return on its way as a pending row until it arrives, not as a booking", () => {

@@ -1,9 +1,10 @@
-import type { Garden } from "@green-goods/shared/types/domain";
+import type { Address, Garden } from "@green-goods/shared/types/domain";
 import type {
   CommitmentMetadataV1,
   CommitmentPoolRecord,
   CommitmentsToConfirm,
   InboxCommitment,
+  ServiceAccessKey,
 } from "@green-goods/shared/commitment-pooling";
 import { identicalOpenCopyKey } from "@green-goods/shared/modules/commitment-pooling/display-groups";
 
@@ -20,6 +21,47 @@ export interface GardenGroup {
   key: string;
   gardenName: string;
   rows: InboxCommitment[];
+}
+
+/**
+ * The rows that may be the reader's booking of a service, keyed as the promise page reads them:
+ * an approval-gated offer one person takes up, made by someone else.
+ */
+export function bookingReadKeys(
+  rows: readonly InboxCommitment[],
+  scope: { viewer: Address | null; sourceChainId: number; coreModule: Address }
+): ServiceAccessKey[] {
+  const { viewer, sourceChainId, coreModule } = scope;
+  if (!viewer) return [];
+  const seen = new Set<string>();
+  return rows.flatMap(({ commitment }) => {
+    const id = commitment.commitmentId.toString();
+    const booking =
+      commitment.direction === "OFFER" &&
+      commitment.claimMode === "APPROVAL_GATED" &&
+      commitment.claimType === "INDIVIDUAL" &&
+      commitment.creator?.toLowerCase() !== viewer.toLowerCase();
+    if (!booking || seen.has(id)) return [];
+    seen.add(id);
+    return [{ sourceChainId, coreModule, commitmentId: commitment.commitmentId, buyer: viewer }];
+  });
+}
+
+/**
+ * The rows with each booking's own Needs you (its deposit, its split, a failed transfer) added to
+ * what the promise's acts say, and what needs the reader first, so it leads the list and never
+ * folds into identical copies.
+ */
+export function withBookingNeedsYou(
+  rows: readonly InboxCommitment[],
+  needs: ReadonlySet<string>
+): InboxCommitment[] {
+  const marked = rows.map((row) =>
+    !row.needsYou && needs.has(row.commitment.commitmentId.toString())
+      ? { ...row, needsYou: true }
+      : row
+  );
+  return [...marked.filter((row) => row.needsYou), ...marked.filter((row) => !row.needsYou)];
 }
 
 /** One line of the Live list: a promise, or its identical open copies as one (DL-150). */

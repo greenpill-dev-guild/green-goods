@@ -6,22 +6,34 @@ import type {
 } from "@green-goods/shared/commitment-pooling";
 import type { ReactNode } from "react";
 import type { CommitmentIdentityProps } from "./CommitmentIdentity";
-import type { ServiceBookingView } from "./serviceBookingTypes";
+import type { BookingTracker, ServiceBookingView } from "./serviceBookingTypes";
 /** What a voucher booking or a request's rewards hand the promise page. */
 export interface ServicePromiseParts {
-  band: CommitmentIdentityProps["serviceBand"];
-  /** What a booking of the reader's own voucher offer takes, for What was promised. */
-  takes: string | null;
+  /**
+   * What the service says in the status block and What was promised: its band, what a booking of
+   * the reader's own offer takes, whether a request's rewards draw below, and whether a booking's
+   * own card says what was promised.
+   */
+  identity: Required<
+    Pick<
+      CommitmentIdentityProps,
+      "serviceBand" | "serviceTakes" | "rewardsBelow" | "promisedInBooking"
+    >
+  >;
   /** The door under the band and the service's section card, in the page's order. */
   body: ReactNode;
   /** The service's own bar, or null when the promise's act leads. */
   bar: ReactNode | null;
   delivery: ServiceBookingView["delivery"];
-  bookingLines: ServiceBookingView["events"];
-  /** Promise kept? after a booking's split: the strip, the split and its note. */
+  /** Promise kept? after a booking's split: the tracker, the split and its note. */
   confirm: ServiceBookingView["confirm"];
-  /** A request's rewards draw in their own section, which leads with the vouchers. */
-  rewards: boolean;
+  /**
+   * The reader's own booking of a service, or the offer before they book it: the page draws it
+   * slim, with its tracker in the top bar and only the facts that matter now.
+   */
+  booking: boolean;
+  /** Where the booking stands on Request, Deposit, Service and Done; null for no booking. */
+  tracker: BookingTracker | null;
   sheets: ReactNode;
 }
 
@@ -41,6 +53,8 @@ export interface ServicePromiseProps {
   /** The request's garden, whose pool pays any G$. */
   gardenName: string;
   heading: string;
+  /** The promise's own description, which a booking's card says once, before anyone books. */
+  note?: string | null;
   /** The promise has its own act (Confirm It Was Kept), which leads where the booking has none. */
   hasCoreAct: boolean;
   isOnline: boolean;

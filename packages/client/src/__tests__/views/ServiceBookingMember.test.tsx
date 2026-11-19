@@ -99,11 +99,12 @@ function sheet(view: ReturnType<typeof lesson>) {
 
 describe("a member's lesson on the promise page", () => {
   it("names the garden's stewards as who accepts, after the member approves", () => {
-    expect(fact("open", "next")).toMatchObject({
+    const how = (id: string) => lesson("open").howItWorks.find((entry) => entry.id === id);
+    expect(how("next")).toMatchObject({
       value: "Teo Alves approves, then the garden's stewards accept you",
       detail: "A steward can't approve for Teo Alves.",
     });
-    expect(fact("open", "back")).toMatchObject({
+    expect(how("back")).toMatchObject({
       value: "All of it, if you cancel before the booking is accepted",
       detail: "After that, by minutes delivered out of 60. You approve the split.",
     });
@@ -119,22 +120,31 @@ describe("a member's lesson on the promise page", () => {
     ],
     [
       "readyToDeposit",
-      "Teo Alves approved. Deposit your voucher into the escrow for this booking. The garden's stewards must accept by Nov 2.",
+      "Teo Alves approved. Deposit your voucher to hold your place. The garden's stewards accept by Nov 2.",
     ],
     [
       "confirmingDeposit",
-      "Your voucher is in escrow. Green Goods confirms the deposit before the garden's stewards can accept. This can take a few minutes.",
+      "Your voucher is held for this booking. The garden's stewards accept by Nov 2. Until then you can cancel and get it back.",
     ],
     [
       "waitingAcceptance",
-      "Your deposit is confirmed and Teo Alves approved. The garden's stewards accept by Nov 2. Until then, you can cancel and get your voucher back.",
+      "Your voucher is held for this booking. The garden's stewards accept by Nov 2. Until then you can cancel and get it back.",
     ],
     [
       "starting",
-      "You're accepted. The booking is starting on the voucher network. Starting fixes the terms; it doesn't mean the service happened.",
+      "You're accepted. Start the booking to fix its terms. Starting doesn't mean the service happened.",
     ],
   ] as const)("says who acts next while the booking is at %s", (stage, sentence) => {
     expect(lesson(stage).band.sentence).toBe(sentence);
+  });
+
+  // The steps a member's service waits on name who: Teo approves, the stewards accept.
+  it.each([
+    ["waitingApproval", 2, "waiting on Teo Alves"],
+    ["confirmingDeposit", 3, "waiting on the garden's stewards"],
+    ["waitingAcceptance", 3, "waiting on the garden's stewards"],
+  ] as const)("waits on whoever acts next at %s", (stage, at, waiting) => {
+    expect(lesson(stage).tracker).toMatchObject({ at, waiting });
   });
 
   it("counts the lesson in minutes and proposes half back", () => {
@@ -153,9 +163,10 @@ describe("a member's lesson on the promise page", () => {
       done: 30,
       of: 60,
     });
-    expect(lesson("transfersPending").facts.find((entry) => entry.id === "back")?.value).toBe(
+    expect(lesson("transfersPending").howItWorks.find((entry) => entry.id === "back")?.value).toBe(
       "By minutes delivered, out of 60"
     );
+    expect(fact("transfersPending", "reported")?.value).toBe("30 of 60 minutes");
   });
 
   it("closes an early end without promising the exchange or the capacity back", () => {
@@ -189,22 +200,24 @@ describe("a member's lesson on the promise page", () => {
     expect(screen.getByRole("button", { name: "Agree to These Terms" })).toBeDisabled();
   });
 
-  it("names the stewards in the booking's deadline fact", () => {
-    expect(fact("waitingAcceptance", "deadline")?.detail).toBe(
-      "Before the garden's stewards accept, you can cancel"
-    );
+  it("gives the booking's deadline as Accept by, until the stewards accept", () => {
+    expect(fact("waitingAcceptance", "deadline")).toMatchObject({
+      label: "Accept by",
+      value: "Nov 2",
+    });
+    expect(fact("inProgress", "deadline")).toBeUndefined();
   });
 
   // A member's terms set what a booking takes; the words count it.
   it("counts a member's booking that takes more than one voucher", () => {
     const of = (stage: BookingStoryStage) => lesson(stage, twoVouchers(stage));
     expect(of("readyToDeposit").band.sentence).toBe(
-      "Teo Alves approved. Deposit your 2 vouchers into the escrow for this booking. The garden's stewards must accept by Nov 2."
+      "Teo Alves approved. Deposit your 2 vouchers to hold your place. The garden's stewards accept by Nov 2."
     );
     expect(of("waitingAcceptance").band.sentence).toBe(
-      "Your deposit is confirmed and Teo Alves approved. The garden's stewards accept by Nov 2. Until then, you can cancel and get all 2 back."
+      "Your 2 vouchers are held for this booking. The garden's stewards accept by Nov 2. Until then you can cancel and get them back."
     );
-    expect(of("open").facts.find((entry) => entry.id === "back")?.value).toBe(
+    expect(of("open").howItWorks.find((entry) => entry.id === "back")?.value).toBe(
       "All of them, if you cancel before the booking is accepted"
     );
   });
@@ -235,6 +248,11 @@ describe("a member's lesson on the promise page", () => {
 
     sheet(lesson("waitingAcceptance"));
     expect(screen.getByText("Next: the garden's stewards accept you")).toBeInTheDocument();
+    // The sheet carries the page's own tracker, waiting on the stewards at Service.
+    const steps = screen.getByRole("list", { name: "Steps" });
+    expect(steps.querySelector('[aria-current="step"]')).toHaveTextContent(
+      "Service, waiting on the garden's stewards"
+    );
     expect(
       screen.getByText(
         "Green Goods checks the deposit first. Then the garden's stewards can accept you."

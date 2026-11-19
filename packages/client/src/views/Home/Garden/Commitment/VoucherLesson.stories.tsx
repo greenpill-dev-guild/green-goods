@@ -109,7 +109,7 @@ export const Paused: Story = {
     )?.(context);
     if (context.args.lang === "en")
       await expect(
-        within(context.canvasElement).getByRole("button", { name: "Review and Redeem" })
+        within(context.canvasElement).getByRole("button", { name: "Book" })
       ).toBeDisabled();
   },
 };
@@ -129,7 +129,7 @@ export const WaitingForTeo: Story = {
 /** Teo approved: the reader deposits the voucher, and the stewards accept by the deadline. */
 export const Deposit: Story = {
   args: { stage: "readyToDeposit" },
-  play: shows("The garden's stewards must accept by"),
+  play: shows("The garden's stewards accept by"),
 };
 
 /** The deposit is confirmed: the garden's stewards accept next. */

@@ -6,7 +6,11 @@ import { roleKeys } from "../src/config/query-keys/identity";
 import { usePrimaryAddress } from "../src/hooks/auth/usePrimaryAddress";
 import { useCurrentChain } from "../src/hooks/blockchain/useChainConfig";
 import { useProtocolRoles } from "../src/hooks/roles/useProtocolRoles";
-import { useServiceAccess, useServiceAccessMutation } from "../src/hooks/commitment-pooling/useServiceAccess";
+import {
+  useServiceAccess,
+  useServiceAccessMutation,
+  useServiceAccessReads,
+} from "../src/hooks/commitment-pooling/useServiceAccess";
 import { useServiceOfferLines } from "../src/hooks/commitment-pooling/useServiceOfferLines";
 import { unavailableServiceAccess } from "../src/modules/commitment-pooling/data-service-access";
 import {
@@ -132,6 +136,12 @@ const preview: Preview = {
       isLoading: false, isError: false, error: null,
       refetch: async () => ({ data: key ? unavailableServiceAccess(key) : undefined }),
     }) as ReturnType<typeof useServiceAccess>);
+    // A list's booking reads answer the same way, one per promise it lists.
+    mocked(useServiceAccessReads).mockImplementation((keys) =>
+      keys.map((key) => ({ data: unavailableServiceAccess(key) })) as unknown as ReturnType<
+        typeof useServiceAccessReads
+      >
+    );
     mocked(useServiceAccessMutation).mockReturnValue({
       isPending: false, error: null,
       mutateAsync: async () => { throw new Error("Service signing unavailable in Storybook"); },

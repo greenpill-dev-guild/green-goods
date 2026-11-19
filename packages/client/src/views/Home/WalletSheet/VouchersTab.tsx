@@ -1,5 +1,6 @@
 import {
   useCommitment,
+  useServiceAccess,
   useVoucherAwards,
   useCommitmentMetadataFor,
   type VoucherBookingEscrow,
@@ -13,6 +14,7 @@ import { Button } from "@green-goods/shared/components/Button";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { ItemRow, ItemRowSkeleton } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
 import type { Address } from "@green-goods/shared/types/domain";
 import {
   RiArrowGoBackLine,
@@ -25,6 +27,7 @@ import { type IntlShape, useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { voucherServiceDescriptions } from "@/components/Features/Commitments/voucherServices";
 import { PWA_SHEET_SCROLL_CLASSNAME } from "@/components/Pwa/sheetScrollStyles";
+import { bookingNeedsYouOf } from "../Garden/Commitment/serviceBooking";
 import {
   formatVouchers,
   selectVoucherWalletRows,
@@ -171,29 +174,58 @@ interface BookingRowProps {
   onOpen: () => void;
 }
 
-/** A voucher a booking holds: its offer's title, Booked, and what the escrow holds for it. */
+/**
+ * A booking: its offer's title, where it stands, and what the escrow holds for it, or what the
+ * deposit takes once approved. It reads the booking as its own page does, so it says Needs you
+ * exactly when the page does: the deposit, the split, a failed transfer.
+ */
 function VoucherBookingRow({
   escrow,
   issuer,
   onOpen,
 }: BookingRowProps & { escrow: VoucherBookingEscrow }) {
   const intl = useIntl();
+  const viewer = usePrimaryAddress() as Address | null;
   const { commitment } = useCommitment({
     chainId: escrow.booking.sourceChainId,
     commitmentId: escrow.booking.commitmentId,
   });
   const title = useCommitmentMetadataFor(commitment ?? undefined)?.title;
+  const booking = useServiceAccess(
+    viewer
+      ? {
+          sourceChainId: escrow.booking.sourceChainId,
+          coreModule: escrow.booking.coreModule,
+          commitmentId: escrow.booking.commitmentId,
+          buyer: viewer,
+        }
+      : null
+  );
+  const needsYou = bookingNeedsYouOf(booking.data, commitment?.derivedState);
+  const depositDue = escrow.stage === "awaiting-deposit";
+  const label = (id: string) => intl.formatMessage({ id });
   return (
     <ItemRow
       lead={{ kind: "icon", icon: <RiCalendarCheckLine /> }}
-      title={title ?? intl.formatMessage({ id: "app.voucher.wl.bk.untitled" })}
-      status={{ label: intl.formatMessage({ id: "app.voucher.wl.bk.booked" }), tone: "info" }}
-      edge="info"
+      title={title ?? label("app.voucher.wl.bk.untitled")}
+      status={
+        needsYou
+          ? { label: label("app.commitments.row.needsYou"), tone: "warning" }
+          : depositDue
+            ? { label: label("app.voucher.pp.chip.readyToDeposit"), tone: "warning" }
+            : { label: label("app.voucher.wl.bk.booked"), tone: "info" }
+      }
+      edge={needsYou || depositDue ? "warning" : "info"}
       details={[issuer]}
       // In the asset the escrow recorded, which holds for an issuer the wallet no longer lists.
+      // Before the deposit the vouchers are still the reader's, so the row says what it takes.
       amount={{
-        value: formatVouchers(escrow.held, escrow.asset.decimals, intl.locale),
-        caption: intl.formatMessage({ id: "app.voucher.wl.bk.cap" }),
+        value: formatVouchers(
+          depositDue ? escrow.agreed : escrow.held,
+          escrow.asset.decimals,
+          intl.locale
+        ),
+        caption: label(depositDue ? "app.voucher.wl.bk.capDeposit" : "app.voucher.wl.bk.cap"),
       }}
       onOpen={onOpen}
     />

@@ -4,15 +4,18 @@ import { Chip } from "@green-goods/shared/components/Chip";
 import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
-import type { Garden } from "@green-goods/shared/types/domain";
+import type { Address, Garden } from "@green-goods/shared/types/domain";
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
+import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
 import {
   type CommitmentPoolRecord,
   type CommitmentsInbox,
   type InboxCommitment,
   useCommitmentMetadata,
+  useServiceAccessReads,
   useServiceOfferLines,
 } from "@green-goods/shared/commitment-pooling";
+import { getNetworkContracts } from "@green-goods/shared/utils/blockchain/contracts";
 import { RiFilterOffLine } from "@remixicon/react";
 import { type ReactNode, useLayoutEffect, useMemo, useState } from "react";
 import type { CommitmentsDirectionFilter } from "@green-goods/shared/stores/useUIStore";
@@ -22,7 +25,15 @@ import { CommitmentStateLadder, PromiseRow } from "@/components/Features/Commitm
 import { serviceOfferDetail } from "@/components/Features/Commitments/serviceOfferDetail";
 import { PWA_SHEET_SCROLL_CLASSNAME } from "@/components/Pwa/sheetScrollStyles";
 import { AppSheet } from "@/components/Sheets/AppSheet";
-import { foldIdenticalCopies, gardenAddressFor, groupByGarden, type LiveEntry } from "./grouping";
+import { bookingNeedsYouOf } from "../Garden/Commitment/serviceBooking";
+import {
+  bookingReadKeys,
+  foldIdenticalCopies,
+  gardenAddressFor,
+  groupByGarden,
+  type LiveEntry,
+  withBookingNeedsYou,
+} from "./grouping";
 
 const DIRECTION_FILTERS: { id: CommitmentsDirectionFilter; labelId: string }[] = [
   { id: "all", labelId: "app.commitments.filter.all" },
@@ -108,6 +119,37 @@ export function LiveTab({
     [inbox.live, waiting]
   );
   const serviceLines = useServiceOfferLines({ chainId: DEFAULT_CHAIN_ID, offers: listed });
+  // A booking's own step (its deposit, its split) needs the reader before the promise's acts say
+  // so: each is read as its page reads it, sharing that page's cached read.
+  const viewer = usePrimaryAddress() as Address | null;
+  const bookingKeys = useMemo(
+    () =>
+      bookingReadKeys([...inbox.live, ...waiting], {
+        viewer,
+        sourceChainId: DEFAULT_CHAIN_ID,
+        coreModule: getNetworkContracts(DEFAULT_CHAIN_ID).commitmentPoolingModule as Address,
+      }),
+    [inbox.live, waiting, viewer]
+  );
+  const bookingReads = useServiceAccessReads(bookingKeys);
+  const { live, waitingRows } = useMemo(() => {
+    const stateOf = new Map(
+      [...inbox.live, ...waiting].map(({ commitment }) => [
+        commitment.commitmentId.toString(),
+        commitment.derivedState,
+      ])
+    );
+    const needs = new Set(
+      bookingKeys.flatMap((key, index) => {
+        const id = key.commitmentId.toString();
+        return bookingNeedsYouOf(bookingReads[index]?.data, stateOf.get(id)) ? [id] : [];
+      })
+    );
+    return {
+      live: withBookingNeedsYou(inbox.live, needs),
+      waitingRows: withBookingNeedsYou(waiting, needs),
+    };
+  }, [bookingKeys, bookingReads, inbox.live, waiting]);
   const serviceOf = (row: InboxCommitment) =>
     serviceOfferDetail(intl, serviceLines.get(row.commitment.commitmentId.toString()));
   /**
@@ -135,7 +177,7 @@ export function LiveTab({
   const { visible, groups, titleOf } = useMemo(() => {
     const titleOf = ({ commitment }: InboxCommitment) =>
       commitment.metadataCID ? (byCID.get(commitment.metadataCID)?.title ?? null) : null;
-    const filtered: InboxCommitment[] = inbox.live.filter(
+    const filtered: InboxCommitment[] = live.filter(
       (row) =>
         (direction === "all" || row.commitment.direction === direction) &&
         (cycleId === null || row.commitment.cycleId === cycleId)
@@ -158,7 +200,7 @@ export function LiveTab({
       })),
     };
   }, [
-    inbox.live,
+    live,
     inbox.failedCommitmentIds,
     byCID,
     direction,
@@ -170,7 +212,7 @@ export function LiveTab({
   ]);
 
   // A take-up request waits under the same chips and season as the list it heads.
-  const shownWaiting = waiting.filter(
+  const shownWaiting = waitingRows.filter(
     (row) =>
       (direction === "all" || row.commitment.direction === direction) &&
       (cycleId === null || row.commitment.cycleId === cycleId)

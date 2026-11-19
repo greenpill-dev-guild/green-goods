@@ -4,7 +4,7 @@ import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow"
 import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
 import { useId, useState } from "react";
 import { useIntl } from "react-intl";
-import { ServiceStepStrip } from "../Home/Garden/Commitment/ServiceStepStrip";
+import { FormProgress } from "@/components/Communication";
 import { type DraftFact, factValue } from "./serviceIssuerDraftFacts";
 
 /** The settings a member most needs in view while approving; the section lists all of them. */
@@ -70,15 +70,10 @@ export function ServiceIssuerApproveSheet({ draft, facts, approving, onClose, on
       }}
     >
       <div className="space-y-4" data-component="ServiceIssuerApproveSheet">
-        <ServiceStepStrip
-          label={t("sh.journey")}
-          steps={[
-            { id: "approve", label: t("j.approve"), state: "now" },
-            { id: "setup", label: t("j.setup"), state: "wait" },
-            { id: "register", label: t("j.register"), state: "wait" },
-            { id: "admit", label: t("j.admit"), state: "wait" },
-            { id: "enable", label: t("j.enable"), state: "todo" },
-          ]}
+        {/* Approving is the member's own step; Green Goods sets up, registers and admits after. */}
+        <FormProgress
+          currentStep={1}
+          steps={[t("j.approve"), t("j.setup"), t("j.register"), t("j.admit"), t("j.enable")]}
         />
         <FactList>
           {facts

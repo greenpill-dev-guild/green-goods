@@ -6,12 +6,12 @@ import {
 import type { Address } from "@green-goods/shared/types/domain";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import type { IntlShape } from "react-intl";
-import { bookingFacts, bookingSentence } from "./serviceBookingCopy";
+import { bookingFacts, bookingHowItWorks, bookingSentence } from "./serviceBookingCopy";
 import {
   ACTS,
-  CHIP,
+  bookingNeedsYou,
+  bookingPill,
   currentVoucherSetup,
-  NEEDS_YOU,
   POSITION,
   recoveryAct,
   same,
@@ -23,6 +23,7 @@ import {
   bookingDelivery,
   bookingDetails,
   bookingPhases,
+  bookingTracker,
   bookingTransfers,
 } from "./serviceBookingSteps";
 import type {
@@ -182,6 +183,20 @@ export function ownServiceOfferView(
   };
 }
 
+/**
+ * Whether a booking needs its reader, as a list row reads it: the booking's own stage, worked out
+ * from the same read the promise page uses, so a row and the page's band never disagree. A row
+ * the read hasn't answered for, or an offer with no voucher route, says nothing.
+ */
+export function bookingNeedsYouOf(
+  snapshot: ServiceAccessSnapshot | null | undefined,
+  coreState: ServiceBookingInput["coreState"] | null | undefined
+): boolean {
+  if (!snapshot || !coreState) return false;
+  const stage = serviceBookingStage({ snapshot, coreState, held: null });
+  return stage !== null && bookingNeedsYou(stage, currentVoucherSetup(snapshot));
+}
+
 /** Everything the promise page draws for one voucher offer or booking. */
 export function serviceBookingView(
   input: ServiceBookingInput,
@@ -271,7 +286,7 @@ export function serviceBookingView(
   };
   // A stage that waits on others still needs the reader when an act of theirs stopped partway.
   const recovery = recoveryAct(stage, setup);
-  const needsYou = stage === "requestNotSent" || NEEDS_YOU.has(stage) || recovery !== null;
+  const needsYou = bookingNeedsYou(stage, setup);
   const tone: ServiceBandTone = needsYou
     ? "attention"
     : kept
@@ -288,7 +303,7 @@ export function serviceBookingView(
               ? "wait.sendRequest"
               : stage === "notEnough"
                 ? "of.cta.reviewTerms"
-                : "of.cta.redeem"
+                : "of.cta.book"
           )
         : kind === "deposit"
           ? ctx.one
@@ -312,12 +327,6 @@ export function serviceBookingView(
     (stage === "open" || stage === "notEnough") && input.issuer?.standing.bookings === "paused";
   // A paused offer the reader can't afford has no act: nothing to exchange into, nothing to book.
   const actsPaused = issuerPaused && stage === "notEnough";
-  const pillId = endedEarly
-    ? "app.voucher.pp.st.endedEarly"
-    : stage === "requestInTransit" || stage === "activationInTransit"
-      ? "app.voucher.wait.messagePending"
-      : null;
-  const chipTone = CHIP[stage];
   const shortDoor = () => ({
     title: t("of.r.shortV.t", { have: count(held), unit: unit(held) }),
     body: t(
@@ -339,11 +348,11 @@ export function serviceBookingView(
       tone,
       sentence: bookingSentence(ctx),
       needsYou,
-      pillId,
-      chip:
-        chipTone && !pillId ? { labelId: `app.voucher.pp.chip.${stage}`, tone: chipTone } : null,
+      pill: bookingPill(stage, profile, { kept, endedEarly }),
     },
+    tracker: bookingTracker(ctx),
     facts: bookingFacts(ctx),
+    howItWorks: bookingHowItWorks(ctx),
     termsVersion: revision !== null ? t("pp.version", { v: revision.toString() }) : null,
     phases,
     transfers: bookingTransfers(ctx),
@@ -364,11 +373,6 @@ export function serviceBookingView(
           ? shortDoor()
           : null,
     issuerPaused,
-    // History keeps what happened; the step under way shows in the booking's steps.
-    events: phases
-      .flatMap((p) => p.steps)
-      .filter((entry) => entry.state !== "todo" && entry.state !== "now")
-      .reverse(),
     split:
       stage === "readyToClose" || stage === "returnProposed"
         ? { delivered, release, refund }
