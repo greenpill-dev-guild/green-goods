@@ -1,16 +1,6 @@
 /**
- * Client Offline Sync CI Tests
- *
- * Lightweight CI-runnable tests that validate offline detection and
- * sync UI behavior WITHOUT requiring real auth or blockchain.
- *
- * Strategy:
- * - Use Playwright's context.setOffline() to toggle network state
- * - Use the sessionStorage mock-auth seam for authenticated state
- * - Test offline indicator rendering and state transitions
- * - Verify service worker registration
- *
- * For full infrastructure tests, use: npx playwright test --project=client-full
+ * Offline detection and sync UI without real auth or a chain. The `client-full` project covers
+ * the full infrastructure.
  */
 
 import { expect, test } from "@playwright/test";
@@ -20,9 +10,6 @@ const CLIENT_URL = TEST_URLS.client;
 const PWA_DEV_SERVICE_WORKER_SCRIPT = "/dev-sw.js?dev-sw";
 const PWA_APP_SCOPE = "/home";
 
-/**
- * Set up mocked environment with auth and GraphQL mocking.
- */
 async function setupMockedEnvironment(page: import("@playwright/test").Page) {
   return setupAuthenticatedClient(page);
 }
@@ -141,7 +128,6 @@ test.describe("Offline Sync CI Tests", () => {
         timeout: 10000,
       });
 
-      // Restore online state for cleanup
       await context.setOffline(false);
     });
 
@@ -168,9 +154,7 @@ test.describe("Offline Sync CI Tests", () => {
       await page.waitForLoadState("domcontentloaded");
 
       await expect(page.getByText("Unexpected Application Error", { exact: true })).toHaveCount(0);
-      // The unauthenticated splash may open on either panel (sign-in exposes
-      // login-button; create-account exposes its own primary button) — the
-      // assertion is that an interactive auth screen rendered, not which panel.
+      // The splash may open on either panel; any interactive auth screen will do.
       await expect(
         page.getByTestId("login-button").or(page.getByRole("button", { name: "Create Account" }))
       ).toBeVisible({ timeout: 10000 });
@@ -200,7 +184,6 @@ test.describe("Offline Sync CI Tests", () => {
       const dashboardButton = page.locator('[data-testid="work-dashboard-button"]');
       await expect(dashboardButton).toBeVisible({ timeout: 10000 });
 
-      // Verify button is enabled while online
       await expect(dashboardButton).toBeEnabled();
 
       await context.setOffline(true);
@@ -208,11 +191,8 @@ test.describe("Offline Sync CI Tests", () => {
         timeout: 10000,
       });
 
-      // Button should still be interactive while offline
-      // (offline work management is a core feature)
       await expect(dashboardButton).toBeEnabled();
 
-      // Click it — should open the dashboard even offline
       await dashboardButton.click();
       await expect(page.getByRole("dialog")).toBeVisible({ timeout: 10000 });
 

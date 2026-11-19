@@ -1,12 +1,6 @@
 /**
- * Green Goods Hub Smoke Tests
- *
- * Deterministic browser checks for the current Hub routes.
- *
- * Strategy:
- * - Use the app's dev-only `mockAuth` seam instead of brittle wagmi storage injection
- * - Mock indexer gardens/actions queries so Hub routes have stable data
- * - Mock EAS GraphQL with empty attestations so `/review` renders predictable empty/loading states
+ * Hub smoke checks on the dev-only `mockAuth` seam, not brittle wagmi storage injection, with
+ * mocked indexer and EAS reads so each route renders stable data.
  */
 import { expect, type Page, type Route, test } from "@playwright/test";
 import { mockSepoliaRpc } from "../helpers/mock-backend";
@@ -221,14 +215,10 @@ test.describe("Green Goods Hub", () => {
     await expect(page.getByText("Mock Steward Garden", { exact: true })).toBeVisible({
       timeout: 15000,
     });
-    // Review is the workspace heading; its active pipeline stage appears in the tab rail below.
     await expect(page.getByRole("heading", { name: "Review", exact: true })).toBeVisible({
       timeout: 15000,
     });
-    // The Review tab rail renders pipeline stage tabs filtered by role
-    // capability. With mocked steward auth, canManage gates the work tab and
-    // history is always visible; canAssess / canCertify depend on hats role
-    // assignments that the mock cannot fake, so 1-4 tabs is acceptable.
+    // Stage tabs follow hats roles the mock cannot fake, so only the work tab is certain.
     const tablist = page.getByRole("tablist");
     await expect(tablist).toBeVisible();
     const tabCount = await tablist.getByRole("tab").count();
@@ -238,8 +228,7 @@ test.describe("Green Goods Hub", () => {
   });
 
   test("keeps mock auth active across full reloads on other Hub routes", async ({ page }) => {
-    // Two full signed-in loads, so room for both; the default 30s cut the second one short on
-    // a busy machine.
+    // Two full signed-in loads; the default 30s is too short for both on a busy machine.
     test.setTimeout(2 * SIGNED_IN_LOAD_MS);
     const helper = await setupMockSteward(page);
 
@@ -283,8 +272,6 @@ test.describe("Green Goods Hub", () => {
     await page.goto(helper.buildMockAuthPath("/profile"));
     await helper.waitForPageLoad();
 
-    // Profile workspace renders a "Profile" heading at the canvas root with
-    // Profile/Settings as secondary navigation.
     await expect(page.getByRole("heading", { name: "Profile" })).toBeVisible({ timeout: 15000 });
     await expect(page.getByRole("tab", { name: "Profile" })).toHaveAttribute(
       "aria-selected",
@@ -317,7 +304,7 @@ test.describe("Green Goods Hub", () => {
     await page.goto(helper.buildMockAuthPath("/profile?tab=settings"));
     await helper.waitForPageLoad();
 
-    // Review redirects /review → /review/<active-stage>. Default stage is "work".
+    // /review redirects to /review/<active-stage>.
     await expect
       .poll(() => new URL(page.url()).pathname, { timeout: 15000 })
       .toMatch(/^\/review(?:\/[a-z]+)?$/);

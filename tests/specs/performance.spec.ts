@@ -1,9 +1,3 @@
-/**
- * Performance E2E Tests
- *
- * Tests for page load times, resource usage, and performance metrics
- */
-
 import { expect, test } from "@playwright/test";
 import { TEST_URLS } from "../helpers/test-utils";
 
@@ -17,24 +11,20 @@ test.describe("Performance Tests", () => {
 
       const loadTime = Date.now() - startTime;
 
-      // Page should load in under 5 seconds
       expect(loadTime).toBeLessThan(5000);
 
-      // Check for Core Web Vitals
       const metrics = await page.evaluate(() => {
         return new Promise((resolve) => {
           let lcp = 0;
           const fid = 0;
           let cls = 0;
 
-          // LCP (Largest Contentful Paint)
           new PerformanceObserver((list) => {
             const entries = list.getEntries();
             const lastEntry = entries[entries.length - 1];
             lcp = lastEntry.startTime;
           }).observe({ entryTypes: ["largest-contentful-paint"] });
 
-          // CLS (Cumulative Layout Shift)
           new PerformanceObserver((list) => {
             for (const entry of list.getEntries()) {
               if (!(entry as any).hadRecentInput) {
@@ -43,7 +33,6 @@ test.describe("Performance Tests", () => {
             }
           }).observe({ entryTypes: ["layout-shift"] });
 
-          // Wait a bit for metrics to be collected
           setTimeout(() => {
             resolve({ lcp, cls, fid });
           }, 2000);
@@ -65,7 +54,6 @@ test.describe("Performance Tests", () => {
 
       const loadTime = Date.now() - startTime;
 
-      // Page should load in under 5 seconds
       expect(loadTime).toBeLessThan(5000);
     });
   });
@@ -82,11 +70,6 @@ test.describe("Performance Tests", () => {
       await page.waitForLoadState("domcontentloaded");
       await page.waitForTimeout(2000);
 
-      // Should have no failed requests (or only expected ones)
-      // Filter out:
-      // - favicon, analytics, error endpoints (expected to potentially fail)
-      // - Aborted requests to root URL (SPA redirect behavior)
-      // - Service worker related requests
       const criticalFailures = failedRequests.filter((failure) => {
         const isExpected =
           failure.includes("favicon") ||
@@ -102,11 +85,9 @@ test.describe("Performance Tests", () => {
     });
 
     test("bundles are appropriately sized", async ({ request }) => {
-      // Get the main page
       const response = await request.get(TEST_URLS.client);
       const html = await response.text();
 
-      // Extract script and style URLs
       const scriptMatches = html.matchAll(/<script[^>]+src=["']([^"']+)["']/g);
       const styleMatches = html.matchAll(/<link[^>]+href=["']([^"']+\.css)["']/g);
 
@@ -130,33 +111,28 @@ test.describe("Performance Tests", () => {
           const size = (await response.body()).length;
           bundles.push({ url: match[1], size });
         } catch {
-          // Ignore errors
+          // A bundle that fails to load is left out of the size total.
         }
       }
 
       const totalSize = bundles.reduce((sum, b) => sum + b.size, 0);
       const largestBundle = Math.max(...bundles.map((b) => b.size));
 
-      // Total JS/CSS should be under 1MB for initial load
       expect(totalSize).toBeLessThan(1024 * 1024);
 
-      // No single bundle should be over 500KB
       expect(largestBundle).toBeLessThan(500 * 1024);
     });
   });
 
   test.describe("Memory Usage", () => {
     test("no memory leaks during navigation", async ({ page }) => {
-      // Navigate to client app
       await page.goto(TEST_URLS.client);
       await page.waitForLoadState("domcontentloaded");
 
-      // Get initial memory usage
       const initialMemory = await page.evaluate(() => {
         return (performance as any).memory?.usedJSHeapSize || 0;
       });
 
-      // Navigate around a few times
       for (let i = 0; i < 5; i++) {
         await page.goto(`${TEST_URLS.client}/home/login?presentation=pwa`);
         await page.waitForLoadState("domcontentloaded");
@@ -164,7 +140,6 @@ test.describe("Performance Tests", () => {
         await page.waitForLoadState("domcontentloaded");
       }
 
-      // Force garbage collection if available
       await page.evaluate(() => {
         if ((window as any).gc) {
           (window as any).gc();
@@ -173,12 +148,10 @@ test.describe("Performance Tests", () => {
 
       await page.waitForTimeout(1000);
 
-      // Check final memory usage
       const finalMemory = await page.evaluate(() => {
         return (performance as any).memory?.usedJSHeapSize || 0;
       });
 
-      // Memory should not have grown by more than 50%
       if (initialMemory > 0 && finalMemory > 0) {
         const growth = (finalMemory - initialMemory) / initialMemory;
         expect(growth).toBeLessThan(0.5);
@@ -204,7 +177,6 @@ test.describe("Performance Tests", () => {
         const responseTime = Date.now() - startTime;
 
         expect(response.status()).toBe(200);
-        // GraphQL queries should respond in under 1 second
         expect(responseTime).toBeLessThan(1000);
       }
     });

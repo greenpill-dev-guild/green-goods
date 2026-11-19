@@ -76,7 +76,6 @@ const roles = [
 const allowlistAbi = parseAbi(["function isInAllowlist(address) view returns (bool)"]);
 const allowlistSelector = toFunctionSelector(allowlistAbi[0]);
 
-/** The registry's allowlist reads that answer true: one per allowlisted address. */
 function allowlistReads(addresses: readonly string[]) {
   return new Set(
     addresses.map((address) =>
@@ -108,7 +107,6 @@ export interface MockRpcRead {
   result: `0x${string}`;
 }
 
-/** The latest block as a node returns it without transactions, timed now. */
 function latestBlock(): Record<string, unknown> {
   const zero = `0x${"0".repeat(64)}`;
   return {

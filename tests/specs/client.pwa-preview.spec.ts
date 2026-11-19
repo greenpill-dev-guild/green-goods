@@ -239,7 +239,6 @@ test("production navigation cache restores the anonymous shell offline and is re
       await fetch("/fonts/jakarta-latin-normal.woff2", { cache: "reload" });
     })
   ).rejects.toThrow();
-  // Delete just the navigation entry, keeping the worker and JS cache intact.
   const removed = await page.evaluate(async () => {
     let count = 0;
     for (const name of await caches.keys()) {
