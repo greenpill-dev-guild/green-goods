@@ -29,6 +29,7 @@ import { useMemo, useRef } from "react";
 import { isChainSupported } from "../../config/chains";
 import { ENV } from "../../lib/env";
 import { useConfig, useWriteContract } from "wagmi";
+import { noteUnconfirmedSend } from "../../modules/app/sendActAnalytics";
 import { refuseWithoutWallet } from "../../modules/auth/wallet-reconnect";
 import {
   createTransactionSender,
@@ -78,6 +79,26 @@ function refuseUntilWalletAnswers(sender: TransactionSender, unanswered: () => b
     sender.signTypedData = async function (this: TransactionSender, request, options) {
       guard();
       return signTypedData.call(this, request, options);
+    };
+}
+
+/**
+ * A send handed back with no receipt, such as a Safe proposal, is noted by hash,
+ * so an act that keeps only the hash still records it as confirming (PRD-1553).
+ * The result and any error pass through unchanged.
+ */
+function noteUnconfirmedSends(sender: TransactionSender): void {
+  const { sendContractCall, sendAtomicBatch } = sender;
+  sender.sendContractCall = async function (this: TransactionSender, call, options) {
+    const result = await sendContractCall.call(this, call, options);
+    noteUnconfirmedSend(result);
+    return result;
+  };
+  if (sendAtomicBatch)
+    sender.sendAtomicBatch = async function (this: TransactionSender, calls, options) {
+      const result = await sendAtomicBatch.call(this, calls, options);
+      noteUnconfirmedSend(result);
+      return result;
     };
 }
 
@@ -181,6 +202,7 @@ export function useTransactionSender(): TransactionSender | null {
           throw new Error("submission-ownership-changed");
       };
       if (authMode === "wallet") refuseUntilWalletAnswers(sender, () => walletUnanswered.current);
+      noteUnconfirmedSends(sender);
       return sender;
     } catch {
       // If required deps aren't available yet (e.g., smartAccountClient

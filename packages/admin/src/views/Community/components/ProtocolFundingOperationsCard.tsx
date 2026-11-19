@@ -11,7 +11,9 @@ import {
   selectExceededTransferLimit,
   selectTransferLimitsRead,
 } from "@green-goods/shared/modules/commitment-pooling/pool-funding";
+import { SEND_STAGE_WORDS } from "@green-goods/shared/modules/transactions/send-stage";
 import type { Address } from "@green-goods/shared/types/domain";
+import { mayStillLand } from "@green-goods/shared/utils/errors/tx-error-classifier";
 import { type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
 import { parseUnits } from "viem";
@@ -65,7 +67,9 @@ export function ProtocolFundingOperationsCard({
   const exceededLimit = amountValue
     ? selectExceededTransferLimit(operations.sourceFunding, amountValue)
     : null;
-  const proposalWaiting = operations.lastAct?.phase === "proposed";
+  // A proposal, or a send past its receipt limit, holds queuing until the read shows it ran.
+  const proposalWaiting =
+    operations.lastAct?.phase === "proposed" || operations.lastAct?.phase === "still-confirming";
   // The module refuses a garden with no active settlement account, and a garden can be
   // listed without one, so the review waits for a read that shows the recipient can take it.
   const recipientInactive = Boolean(
@@ -300,16 +304,18 @@ export function ProtocolFundingOperationsCard({
                   defaultMessage:
                     "The transaction failed or was rejected. Nothing changed on chain.",
                 })
-              : operations.lastAct.phase === "proposed"
-                ? formatMessage({
-                    id: "hub.community.protocolFunding.status.proposed",
-                    defaultMessage:
-                      "Sent to your Safe. Queuing and dispatching stay closed until the chain shows it ran. If your Safe rejected it, reload this page.",
-                  })
-                : formatMessage({
-                    id: "hub.community.protocolFunding.status.submitted",
-                    defaultMessage: "Submitted. Refresh to follow the indexed settlement state.",
-                  })}
+              : operations.lastAct.phase === "still-confirming"
+                ? formatMessage(SEND_STAGE_WORDS["still-confirming"].detail!)
+                : operations.lastAct.phase === "proposed"
+                  ? formatMessage({
+                      id: "hub.community.protocolFunding.status.proposed",
+                      defaultMessage:
+                        "Sent to your Safe. Queuing and dispatching stay closed until the chain shows it ran. If your Safe rejected it, reload this page.",
+                    })
+                  : formatMessage({
+                      id: "hub.community.protocolFunding.status.submitted",
+                      defaultMessage: "Submitted. Refresh to follow the indexed settlement state.",
+                    })}
         </p>
       ) : null}
 
@@ -344,6 +350,10 @@ export function ProtocolFundingOperationsCard({
           if (!targetGarden || !amountValue || !canReview) return;
           await submit(() => operations.queueFunding(targetGarden, amountValue));
           setConfirmQueue(false);
+        }}
+        // One that may still land is never confirmed again; a failure keeps the review open.
+        onError={(error) => {
+          if (mayStillLand(error)) setConfirmQueue(false);
         }}
       >
         {/* A refresh can lower a limit, or lose them, while the review is open. */}

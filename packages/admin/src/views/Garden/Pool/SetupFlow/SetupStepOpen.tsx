@@ -173,7 +173,7 @@ export function SetupStepOpen({
   ).length;
   const statusLine = (): string => {
     if (phase === "running") {
-      return runningStatus(rows, promptNumbers, promptTotal, chainId, formatMessage);
+      return runningStatus(rows, promptNumbers, promptTotal, formatMessage);
     }
     if (phase === "stopped") {
       return formatMessage(

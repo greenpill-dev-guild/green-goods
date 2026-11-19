@@ -69,6 +69,17 @@ vi.mock("../../utils/blockchain/address", () => ({
 vi.mock("../../utils/contract/simulation", () => ({
   simulateJoinGarden: vi.fn().mockResolvedValue({ success: true }),
 }));
+vi.mock("../../utils/blockchain/simulation", () => ({
+  simulateJoinGarden: vi.fn().mockResolvedValue({ success: true }),
+}));
+// A wallet join asks the wallet onto the chain first; these tests have no wallet.
+vi.mock("../../modules/transactions/chain-guard", () => ({
+  ensureAppKitWalletChain: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock("../../modules/transactions/local-fork-safety", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../modules/transactions/local-fork-safety")>()),
+  assertLocalArbitrumForkWallet: vi.fn().mockResolvedValue(undefined),
+}));
 
 vi.mock("../../utils/blockchain/contracts", () => ({
   GardenAccountABI: [
@@ -128,6 +139,7 @@ import {
   trackGardenJoinFailed,
 } from "../../modules/app/analytics-events";
 import { trackContractError } from "../../modules/app/error-tracking";
+import { registerTelemetrySink } from "../../modules/app/telemetry-sink";
 import { gardensKeys } from "../../config/query-keys/garden";
 import { useActiveGardenStore } from "../../stores/useActiveGardenStore";
 import {
@@ -455,6 +467,70 @@ describe("hooks/garden/useJoinGarden", () => {
       // The signer address must never reach a PostHog property.
       const payload = JSON.stringify(vi.mocked(trackGardenJoinFailed).mock.calls[0]?.[0]);
       expect(payload).not.toContain(signerAddress);
+    });
+
+    it("records each join's start and ending, a join that may still land as confirming (PRD-1553)", async () => {
+      const captured: Array<[string, Record<string, unknown>]> = [];
+      const unregister = registerTelemetrySink({
+        capture: (event, properties) => {
+          if (event.startsWith("send_act_")) captured.push([event, properties]);
+        },
+      });
+      try {
+        const mockClient = createMockSmartAccountClient();
+        const timedOut = new Error(`Timed out waiting for ${MOCK_ADDRESSES.smartAccount}`);
+        timedOut.name = "WaitForUserOperationReceiptTimeoutError";
+        mockClient.sendTransaction
+          .mockResolvedValueOnce(MOCK_TX_HASH)
+          .mockRejectedValueOnce(timedOut);
+        mockUseUser.mockReturnValue({
+          smartAccountAddress: MOCK_ADDRESSES.smartAccount,
+          smartAccountClient: mockClient,
+          eoa: null,
+        });
+        const { result } = renderHookWithProviders(() => useJoinGarden(), { queryClient });
+
+        await act(async () => {
+          await result.current.joinGarden(MOCK_ADDRESSES.garden);
+          await expect(result.current.joinGarden(MOCK_ADDRESSES.garden)).rejects.toBe(timedOut);
+        });
+
+        expect(captured.map(([event, { act, outcome }]) => [event, act, outcome])).toEqual([
+          ["send_act_started", "garden_join", undefined],
+          ["send_act_ended", "garden_join", "confirmed"],
+          ["send_act_started", "garden_join", undefined],
+          ["send_act_ended", "garden_join", "confirming"],
+        ]);
+        expect(trackGardenJoinFailed).not.toHaveBeenCalled();
+
+        // A wallet join returns at broadcast, before its receipt, so it may still land. An
+        // embedded wallet joins the same way and records its own sign-in kind.
+        for (const authMode of ["wallet", "embedded"]) {
+          mockUseUser.mockReturnValue({
+            smartAccountAddress: null,
+            smartAccountClient: null,
+            eoa: { address: MOCK_ADDRESSES.smartAccount },
+            authMode,
+          });
+          const wallet = renderHookWithProviders(() => useJoinGarden(), { queryClient });
+          await act(async () => {
+            await wallet.result.current.joinGarden(MOCK_ADDRESSES.garden);
+          });
+        }
+        expect(
+          captured.slice(4).map(([event, { auth_mode, outcome }]) => [event, auth_mode, outcome])
+        ).toEqual([
+          ["send_act_started", "wallet", undefined],
+          ["send_act_ended", "wallet", "confirming"],
+          ["send_act_started", "embedded", undefined],
+          ["send_act_ended", "embedded", "confirming"],
+        ]);
+        const sent = JSON.stringify(captured);
+        expect(sent).not.toContain(MOCK_ADDRESSES.smartAccount);
+        expect(sent).not.toContain(MOCK_ADDRESSES.garden);
+      } finally {
+        unregister();
+      }
     });
   });
 

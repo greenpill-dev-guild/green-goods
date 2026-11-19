@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
 import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
 import { creditInvalidationKeys, creditKeys } from "../../config/query-keys/credit";
 import {
@@ -105,6 +106,12 @@ export function useCreditMutation(options: { creditRegistry: Address; chainId?: 
   const currentChainId = useCurrentChain();
   const chainId = options.chainId ?? currentChainId;
   const sender = useTransactionSender();
+  const act = ({ action }: CreditMutationInput): SendActContext => ({
+    act: "pool_credit",
+    operation: action,
+    authMode: sender?.authMode,
+    chainId,
+  });
   const queryClient = useQueryClient();
   const handleError = createMutationErrorHandler({
     source: "useCreditMutation",
@@ -112,7 +119,7 @@ export function useCreditMutation(options: { creditRegistry: Address; chainId?: 
   });
 
   return useMutation({
-    mutationFn: async (input: CreditMutationInput) => {
+    mutationFn: recordedSendAct(act, async (input: CreditMutationInput) => {
       if (!sender) throw new Error("Transaction sender is unavailable");
       if (isZeroAddress(options.creditRegistry)) {
         throw new Error("Credit Registry is not deployed on this chain");
@@ -132,7 +139,7 @@ export function useCreditMutation(options: { creditRegistry: Address; chainId?: 
         chainId,
       });
       return result.hash;
-    },
+    }),
     onSuccess: async (_hash, input) => {
       for (const queryKey of creditInvalidationKeys({
         chainId,

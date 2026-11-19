@@ -7,6 +7,9 @@ import test from "node:test";
 import { fixtureGitEnvironment } from "../lib/dev-shared.js";
 import {
   GATE_CRITICAL_PATHS,
+  GATE_INPUT_PATHS,
+  HOLD_DESCRIPTION,
+  WITHDRAWN_DESCRIPTION,
   classifyChange,
   decide,
   evaluate,
@@ -14,12 +17,16 @@ import {
   highestTier,
   loadMergePolicy,
   fetchCommit,
+  githubClient,
   main,
   markersFor,
   writersAmong,
   materializeShared,
   policyTier,
   pullNumbers,
+  skipDirective,
+  holdForSkipDirective,
+  pushChangedGateInputs,
   treeEntries,
 } from "./merge-gate.mjs";
 
@@ -144,6 +151,29 @@ test("each tier waits for its own proof at the head, and a pending description a
   assert.doesNotMatch(decide({ tier: "critical", reasons: ["a\n::warning::b"], markers: none, headSha: HEAD }).description, /\n/);
 });
 
+test("a skip directive in the title or body holds any tier, since the merge commit would skip develop's CI", () => {
+  const found = (title, body, commits) => skipDirective({ title, body }, commits);
+  for (const directive of ["[skip ci]", "[ci skip]", "[no ci]", "[skip actions]", "[actions skip]"]) {
+    assert.equal(found("t", `a ${directive} b`), directive);
+  }
+  // Printed in one canonical form, whatever the case or spacing it was written in.
+  assert.equal(found("t", "a [Skip CI] b"), "[skip ci]");
+  assert.equal(found("chore: x [ci skip]", null), "[ci skip]");
+  assert.equal(found("t", "line\r\n\r\nskip-checks:true\r\n"), "skip-checks: true");
+  assert.equal(found("t", `line\n\nskip-checks:${" ".repeat(80)}true\n`), "skip-checks: true");
+  // A squash merge builds its message from the commits, so their messages count too.
+  assert.equal(found("t", "clean", ["feat: a", "chore(release): 1.2.3 [skip actions]"]), "[skip actions]");
+  for (const clean of ["skip ci in prose", "[skip-ci]", "skip-checks: false", "the skip-checks: true trailer, inline"]) assert.equal(found("t", clean), null, clean);
+  const routine = { state: "success", description: "Routine: CI Gate is the proof.", needed: [] };
+  assert.equal(holdForSkipDirective(routine, null), routine);
+  const held = holdForSkipDirective(routine, "[skip ci]");
+  assert.equal(held.state, "pending");
+  assert.ok(held.description.length <= 140 && held.description.includes("develop's CI would not run"), held.description);
+  // A held sensitive or critical decision keeps the markers it still needs.
+  const pending = { state: "pending", description: "Critical (x). Waits for ...", needed: ["merge-gate: reviewed abc"] };
+  assert.deepEqual(holdForSkipDirective(pending, "[no ci]").needed, ["merge-gate: reviewed abc"]);
+});
+
 test("events name their open pull requests, a fork's by its head branch", async () => {
   const noLookup = () => assert.fail("no lookup expected");
   assert.deepEqual(await pullNumbers({ issue: { number: 7, pull_request: {} } }, "issue_comment", noLookup), [7]);
@@ -153,6 +183,8 @@ test("events name their open pull requests, a fork's by its head branch", async 
   assert.deepEqual(await pullNumbers({ workflow_run: { ...run, event: "push", pull_requests: [] } }, "workflow_run", noLookup), []);
   const lookup = async (head) => (head === "someone:fix" ? [{ number: 11, head: { sha: HEAD } }, { number: 12, head: { sha: OTHER } }] : []);
   assert.deepEqual(await pullNumbers({ workflow_run: { ...run, pull_requests: [] } }, "workflow_run", lookup), [11]);
+  // A push to develop that changes the gate's inputs decides every open pull request again.
+  assert.deepEqual(await pullNumbers({ ref: "refs/heads/develop" }, "push", noLookup, async () => [3, 5]), [3, 5]);
 });
 
 test("the head's files come from the object store: export-ignore hides nothing, links and submodules stay out", () => {
@@ -191,6 +223,15 @@ test("the repository's merge policy reads as intended: release workflows critica
   assert.equal(policyTier("package.json", repositoryPolicy), "sensitive");
   assert.equal(policyTier("packages/admin/package.json", repositoryPolicy), "sensitive");
   assert.equal(policyTier("docs/docs/index.mdx", repositoryPolicy), "routine");
+  // Build configuration that changes compiled contracts is critical; other lockfiles and tool config are sensitive.
+  for (const path of ["packages/contracts/foundry.toml", "packages/contracts/remappings.txt", ".gitmodules"]) assert.equal(policyTier(path, repositoryPolicy), "critical", path);
+  // So are the production Agent's deploy and the other build and deploy inputs.
+  const sensitive = ["packages/contracts/foundry.lock", "bunfig.toml", "packages/agent/bunfig.toml", "turbo.json", "packages/client/vitest.config.ts", ".oxlintrc.json"];
+  sensitive.push("fly.toml", "packages/agent/Dockerfile", "packages/client/vercel.json", "packages/shared/tsconfig.json", "env.schema", ".husky/pre-push", "scripts/ops/vercel-ignore.mjs");
+  for (const path of sensitive) {
+    assert.equal(policyTier(path, repositoryPolicy), "sensitive", path);
+  }
+  assert.deepEqual(repositoryPolicy.requiredChecks, ["CI Gate", "Merge Gate"]);
 });
 
 test("fetching a head never turns a full clone shallow", () => {
@@ -237,8 +278,10 @@ test("a pull request is decided from the API and its commits: a removed link, a 
       { id: 2, updated_at: "t2", user: { login: "writer" }, body: `merge-gate: reviewed ${head}` },
     ];
     const access = { writer: { role_name: "write", permission: "write" }, reader: { role_name: "read", permission: "read" } };
+    const commits = [];
     const github = async (route) => {
       if (route.startsWith("pulls/7/files")) return [{ filename: "docs/link.md", status: "removed" }, { filename: "docs/a.md", status: "modified" }];
+      if (route.startsWith("pulls/7/commits")) { const page = Number(route.match(/[?&]page=(\d+)/)?.[1] ?? 1); return commits.slice((page - 1) * 100, page * 100); }
       if (route.startsWith("compare/")) return { merge_base_commit: { sha: base } };
       if (route.startsWith("issues/7/comments")) return comments;
       const login = route.match(/^collaborators\/([^/]+)\/permission$/)?.[1];
@@ -254,6 +297,21 @@ test("a pull request is decided from the API and its commits: a removed link, a 
     comments.push({ id: 3, updated_at: "t3", user: { login: "writer" }, body: `merge-gate: full-gate ${head}` });
     assert.equal((await evaluate(pull("o"), head, options)).decision.state, "success");
     assert.ok((await evaluate(pull("fork"), head, options)).reasons.includes("a fork's pull request"));
+    // A skip directive in the body holds even a pull request whose proof is recorded.
+    const skipped = await evaluate({ ...pull("o"), body: "Merging this [skip ci]" }, head, options);
+    assert.equal(skipped.decision.state, "pending");
+    assert.match(skipped.decision.description, /Remove "\[skip ci\]"/);
+    assert.equal(skipped.reasons[0], "the title, body or a commit message carries [skip ci]");
+    // A commit message alone holds it as well.
+    commits.push({ commit: { message: "fix: y\n\n[no ci]" } });
+    assert.equal((await evaluate(pull("o"), head, options)).decision.state, "pending");
+    commits.length = 0;
+    // GitHub lists at most 250 commits; past that, later messages go unread, so it holds.
+    commits.push(...Array.from({ length: 250 }, () => ({ commit: { message: "feat: z" } })));
+    const long = await evaluate(pull("o"), head, options);
+    assert.equal(long.decision.state, "pending");
+    assert.equal(long.reasons[0], "250 or more commits");
+    commits.length = 0;
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -304,6 +362,46 @@ test("a run posts once for an open pull request into develop, unless its head or
   assert.deepEqual(await run({ pulls: [open], statuses: lost }), [[`statuses/${HEAD}`, "pending", "Merge Gate"]]);
   assert.deepEqual(await run({ pulls: [open, lost] }), [[`statuses/${HEAD}`, "pending", "Merge Gate"]]);
   assert.deepEqual(await run({ pulls: [open], markerComments: lost, state: "success", exit: 2 }), []);
+  // A body edited to carry a skip directive while the run read the pull request turns a success into a hold.
+  assert.deepEqual(await run({ pulls: [open, { ...open, body: "now [no ci]" }], state: "success" }), [[`statuses/${HEAD}`, "pending", "Merge Gate"]]);
+});
+
+test("a success holds again when a marker it counted is withdrawn as it posts, so a sweep cannot outlast the other queue", async () => {
+  const open = { number: 7, state: "open", base: { ref: "develop" }, head: { sha: HEAD } };
+  const reviewed = { id: 9, updated_at: "t", user: { login: "writer" }, body: `merge-gate: reviewed ${HEAD}` };
+  const run = async (readsAfterPost, exit = 0) => {
+    const posted = [];
+    const github = async (route, request = {}) => {
+      if (request.method === "POST") return void posted.push([request.body.state, request.body.description]);
+      if (route === "pulls/7") return open;
+      if (route.startsWith("issues/7/comments")) {
+        const now = posted.length ? readsAfterPost : [reviewed];
+        return now instanceof Error ? Promise.reject(now) : now;
+      }
+      if (route.startsWith(`commits/${HEAD}/statuses`)) return [];
+      throw new Error(`unexpected ${route}`);
+    };
+    const deps = {
+      env: { GITHUB_EVENT_NAME: "issue_comment" },
+      event: { issue: { number: 7, pull_request: {} } },
+      github,
+      evaluate: async () => ({
+        decision: { state: "success", description: "Sensitive: proof recorded.", needed: [] },
+        reasons: ["x"],
+        markers: { reviewed: true, fullGate: false },
+        authors: new Set(["writer"]),
+        writers: new Set(["writer"]),
+      }),
+      log: () => {},
+      summary: () => {},
+    };
+    assert.equal(await main([], deps), exit);
+    return posted;
+  };
+  const success = ["success", "Sensitive: proof recorded."];
+  assert.deepEqual(await run([reviewed]), [success]);
+  assert.deepEqual(await run([]), [success, ["pending", WITHDRAWN_DESCRIPTION]]);
+  assert.deepEqual(await run(new Error("HTTP 502"), 2), [success, ["pending", WITHDRAWN_DESCRIPTION]]);
 });
 
 test("evaluate reads every classification input: the merge base, Shared mutation, deletions, refusals and limits", async () => {
@@ -338,6 +436,7 @@ test("evaluate reads every classification input: the merge base, Shared mutation
     const pull = { number: 7, base: { sha: baseTip, repo: { full_name: "o/r" } }, head: { sha: head, repo: { full_name: "o/r" } } };
     const decideFiles = async (files) => {
       const github = async (route) => {
+        if (route.startsWith("pulls/7/commits")) return [];
         if (route.startsWith("pulls/7/files")) {
           const page = Number(route.match(/[?&]page=(\d+)/)[1]);
           return files.slice((page - 1) * 100, page * 100);
@@ -364,4 +463,170 @@ test("evaluate reads every classification input: the merge base, Shared mutation
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+test("the workflow posts when CI Gate starts, and runs on every push to develop to decide whether to sweep", () => {
+  const workflow = readFileSync(path.join(path.dirname(new URL(import.meta.url).pathname), "../../.github/workflows/merge-gate.yml"), "utf8");
+  assert.match(workflow, /workflow_run:\n(?:\s+#.*\n)?\s+workflows: \["CI Gate", "Pull Request Edited"\]\n\s+types: \[requested, completed\]/);
+  // An edited title, body or base re-decides through Pull Request Edited's completion, from develop:
+  // the guild guardrail forbids pull_request_target, and the marker workflow holds no permissions.
+  assert.doesNotMatch(workflow, /pull_request_target/);
+  const edited = readFileSync(path.join(path.dirname(new URL(import.meta.url).pathname), "../../.github/workflows/pull-request-edited.yml"), "utf8");
+  assert.match(edited, /^name: Pull Request Edited$/m);
+  assert.match(edited, /pull_request:\n\s+types: \[edited\]/);
+  assert.match(edited, /^permissions: \{\}$/m);
+  // No path filter: GitHub drops one for a file past the first 3,000 a push changes.
+  assert.match(workflow, /push:\n\s+branches: \[develop\]\n(?!\s+paths:)/);
+  // Detection sits outside the sweeps' queue, so an ordinary push cannot cancel a sweep; the sweep
+  // runs only when detection says a gate input changed.
+  const detect = workflow.slice(workflow.indexOf("  detect:\n"), workflow.indexOf("  gate:\n"));
+  assert.match(detect, /run: node scripts\/quality\/merge-gate\.mjs --push-changed/);
+  assert.doesNotMatch(detect, /concurrency:/);
+  assert.match(detect, /if: github\.event_name == 'push'\n/);
+  const gate = workflow.slice(workflow.indexOf("  gate:\n"));
+  assert.match(gate, /needs: detect/);
+  // !cancelled() keeps a skipped detect job (every event but a push) from skipping the gate.
+  assert.match(gate, /if: >-\n\s+!cancelled\(\) && \(/);
+  // A failed detection sweeps, as an unknown range does.
+  assert.match(gate, /github\.event_name == 'push' && \(needs\.detect\.outputs\.sweep == 'true' \|\| needs\.detect\.result == 'failure'\)/);
+  // The sweep reads develop's tip and compares freshness with that checkout.
+  assert.match(gate, /ref: develop\n/);
+  assert.match(gate, /\n\s+MERGE_GATE_CHECKOUT_SHA="\$\(git rev-parse HEAD\)"\n\s+export MERGE_GATE_CHECKOUT_SHA\n/);
+  // Every input the gate's decision reads is critical to change.
+  assert.deepEqual(GATE_INPUT_PATHS.filter((file) => !GATE_CRITICAL_PATHS.includes(file)), []);
+});
+
+test("a sweep after a push decides each open pull request into develop and skips the rest", async () => {
+  const pulls = [
+    { number: 3, state: "open", base: { ref: "develop" }, head: { sha: HEAD } },
+    { number: 4, state: "open", base: { ref: "main" }, head: { sha: OTHER } },
+  ];
+  const posted = [];
+  const github = async (route, request = {}) => {
+    if (request.method === "POST") return void posted.push([route, request.body.state, request.body.description]);
+    if (route.startsWith("pulls?state=open")) return route.includes("page=1") ? pulls : [];
+    const number = Number(route.match(/^pulls\/(\d+)$/)?.[1]);
+    if (number) return pulls.find((pull) => pull.number === number);
+    if (route.startsWith("issues/")) return [];
+    if (route.startsWith("commits/")) return [];
+    throw new Error(`unexpected ${route}`);
+  };
+  const deps = {
+    env: { GITHUB_EVENT_NAME: "push" },
+    event: { ref: "refs/heads/develop" },
+    github,
+    evaluate: async () => ({ decision: { state: "pending", description: "x", needed: [] }, reasons: [], markers: { reviewed: false, fullGate: false }, authors: new Set(), writers: new Set() }),
+    log: () => {},
+    summary: () => {},
+  };
+  assert.equal(await main([], deps), 0);
+  // The hold first, then the decision; the pull request into main is left alone.
+  assert.deepEqual(posted, [
+    [`statuses/${HEAD}`, "pending", HOLD_DESCRIPTION],
+    [`statuses/${HEAD}`, "pending", "x"],
+  ]);
+});
+
+test("a push sweeps only when it changed a gate input, was forced, or GitHub cannot say", async () => {
+  const BEFORE = "a".repeat(40);
+  const AFTER = "b".repeat(40);
+  const ask = (files, event = {}) =>
+    pushChangedGateInputs(async (route) => {
+      if (route !== `compare/${BEFORE}...${AFTER}`) throw new Error(`unexpected ${route}`);
+      return files === "error" ? Promise.reject(new Error("HTTP 502")) : { files };
+    }, { before: BEFORE, after: AFTER, ...event });
+  assert.equal(await ask([{ filename: "docs/a.md" }]), false);
+  assert.equal(await ask([{ filename: "docs/old.md", previous_filename: ".agents/merge-policy.json" }]), true);
+  assert.equal(await ask(Array.from({ length: 300 }, (_, index) => ({ filename: `docs/${index}.md` }))), true);
+  assert.equal(await ask(undefined), true);
+  assert.equal(await ask("error"), true);
+  assert.equal(await ask([{ filename: "docs/a.md" }], { forced: true }), true);
+  assert.equal(await ask([], { before: "0".repeat(40) }), true);
+  assert.equal(await ask([], { after: "0".repeat(40) }), true);
+  // The detect job writes the answer for the sweep job.
+  const folder = mkdtempSync(path.join(tmpdir(), "gg-merge-gate-detect-"));
+  try {
+    const output = path.join(folder, "output");
+    const answer = (filename) => async () => ({ files: [{ filename }] });
+    const detect = (filename) => main(["--push-changed"], { env: { GITHUB_OUTPUT: output }, event: { before: BEFORE, after: AFTER }, github: answer(filename), log: () => {} });
+    assert.equal(await detect("docs/a.md"), 0);
+    assert.equal(await detect(".agents/merge-policy.json"), 0);
+    assert.equal(readFileSync(output, "utf8"), "sweep=false\nsweep=true\n");
+  } finally {
+    rmSync(folder, { recursive: true, force: true });
+  }
+});
+
+test("a run that read an older or unknown policy posts no success but still holds, and a sweep goes on past one failure", async () => {
+  const CHECKOUT = "c".repeat(40);
+  const TIP = "d".repeat(40);
+  const POLICY = ".agents/merge-policy.json";
+  const run = async ({ moved, state = "success", eventName = "issue_comment", checkout, pulls = { 3: { number: 3, state: "open", base: { ref: "develop" }, head: { sha: HEAD } } }, exit = 0 }) => {
+    const posted = [];
+    const github = async (route, request = {}) => {
+      if (request.method === "POST") return void posted.push(route);
+      if (route.startsWith("pulls?state=open")) return route.includes("page=1") ? Object.values(pulls).map((pull) => pull ?? { number: 9, base: { ref: "develop" } }) : [];
+      const number = route.match(/^pulls\/(\d+)$/)?.[1];
+      if (number) return pulls[number] ?? Promise.reject(new Error("HTTP 502"));
+      if (route === "branches/develop") return { commit: { sha: TIP } };
+      if (route.startsWith(`compare/${CHECKOUT}...${TIP}`)) {
+        if (moved === "error") return Promise.reject(new Error("HTTP 502"));
+        if (moved === "behind" || moved === "diverged") return { status: moved, files: [] };
+        return { status: "ahead", files: moved?.map((filename) => ({ filename })) };
+      }
+      if (route.startsWith("issues/") || route.startsWith("commits/")) return [];
+      throw new Error(`unexpected ${route}`);
+    };
+    const deps = {
+      env: { GITHUB_EVENT_NAME: eventName, GITHUB_SHA: CHECKOUT, MERGE_GATE_CHECKOUT_SHA: checkout },
+      event: eventName === "push" ? { ref: "refs/heads/develop" } : { issue: { number: 3, pull_request: {} } },
+      github,
+      evaluate: async () => ({ decision: { state, description: state, needed: [] }, reasons: [], markers: { reviewed: false, fullGate: false }, authors: new Set(), writers: new Set() }),
+      log: () => {},
+      summary: () => {},
+    };
+    assert.equal(await main([], deps), exit);
+    return posted;
+  };
+  assert.deepEqual(await run({ moved: ["docs/a.md"] }), [`statuses/${HEAD}`]);
+  assert.deepEqual(await run({ moved: [POLICY] }), []);
+  // A hold still posts, since holding is always safe; it says the policy changed, so a pull request
+  // the newer policy passes asks for a recheck.
+  assert.deepEqual(await run({ moved: [POLICY], state: "pending" }), [`statuses/${HEAD}`]);
+  // A comparison that lists no files or is cut short counts as moved, and so does a base reset
+  // behind the checkout or rewritten, where the three-dot comparison lists nothing.
+  assert.deepEqual(await run({ moved: undefined }), []);
+  assert.deepEqual(await run({ moved: [] }), []);
+  assert.deepEqual(await run({ moved: "behind" }), []);
+  assert.deepEqual(await run({ moved: "diverged", state: "pending" }), [`statuses/${HEAD}`]);
+  assert.deepEqual(await run({ moved: Array.from({ length: 300 }, (_, index) => `docs/${index}.md`) }), []);
+  // A failed comparison confirms nothing: success waits, a hold still posts, and the run reports it.
+  assert.deepEqual(await run({ moved: "error", exit: 2 }), []);
+  assert.deepEqual(await run({ moved: "error", state: "pending", exit: 2 }), [`statuses/${HEAD}`]);
+  // A sweep whose checkout a newer policy push already passed holds, and leaves deciding to the
+  // sweep that push queues; one that checked out the tip decides.
+  assert.deepEqual(await run({ eventName: "push", moved: [POLICY] }), [`statuses/${HEAD}`]);
+  assert.deepEqual(await run({ eventName: "push", moved: [POLICY], checkout: TIP }), [`statuses/${HEAD}`, `statuses/${HEAD}`]);
+  // Pull request 9 fails to load; 3 is held, then decided, and the run reports the failure.
+  assert.deepEqual(await run({ eventName: "push", moved: ["docs/a.md"], pulls: { 3: { number: 3, state: "open", base: { ref: "develop" }, head: { sha: HEAD } }, 9: undefined }, exit: 2 }), [`statuses/${HEAD}`, `statuses/${HEAD}`]);
+});
+
+test("the GitHub client tries a call GitHub could not serve again, and gives up on the third failure or a refusal", async () => {
+  const call = async (answers) => {
+    const seen = [];
+    const waits = [];
+    const fetchImpl = async (url, request) => {
+      seen.push(request.method);
+      const answer = answers[Math.min(seen.length - 1, answers.length - 1)];
+      if (answer instanceof Error) throw answer;
+      return { ok: answer < 400, status: answer, json: async () => ({ answer }) };
+    };
+    const github = githubClient({ token: "t", repository: "o/r", fetchImpl, wait: async (ms) => void waits.push(ms) });
+    const result = await github("pulls?state=open", { method: "GET" }).then((value) => value, (error) => error.message);
+    return { result, calls: seen.length, waits };
+  };
+  assert.deepEqual(await call([502, 429, 200]), { result: { answer: 200 }, calls: 3, waits: [2000, 4000] });
+  assert.deepEqual(await call([new Error("socket hang up"), 200]), { result: { answer: 200 }, calls: 2, waits: [2000] });
+  assert.deepEqual(await call([503]), { result: "GET pulls: HTTP 503", calls: 3, waits: [2000, 4000] });
+  assert.deepEqual(await call([404]), { result: "GET pulls: HTTP 404", calls: 1, waits: [] });
 });

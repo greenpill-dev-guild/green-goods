@@ -8,6 +8,7 @@ import type {
   PoolFundingDisbursement,
   PoolFundingSnapshot,
 } from "../modules/commitment-pooling/pool-funding";
+import { ReceiptWaitLimitError } from "../modules/transactions/types";
 import type { Address } from "../types/domain";
 import { renderHookWithProviders } from "./test-utils/render-helpers";
 
@@ -266,6 +267,31 @@ describe("useProtocolFundingOperationsController", () => {
       { disbursementId: 8n, state: "DISPATCHED" },
       { disbursementId: 9n, state: "DISPATCHED" }
     );
+    rerender();
+    expect(result.current.lastAct?.phase).toBe("submitted");
+  });
+
+  it.each([
+    ["a wallet's", new ReceiptWaitLimitError(120_000, { hash: `0x${"ab".repeat(32)}` })],
+    // A passkey's operation names no transaction: only the read can show it ran.
+    [
+      "a passkey's",
+      Object.assign(new Error("timed out"), { name: "WaitForUserOperationReceiptTimeoutError" }),
+    ],
+  ])("holds %s dispatch past its receipt limit as still confirming until its transfer moves", async (_sender, error) => {
+    // It went out and may still land: read as failed, it would offer the dispatch again (PRD-1551).
+    mocks.capabilities = dispatcher;
+    mocks.mutateAsync.mockRejectedValue(error);
+    mocks.sourceSnapshot = transfers({ disbursementId: 8n });
+    const { result, rerender } = renderController();
+
+    await act(async () => {
+      await expect(result.current.dispatch(8n)).rejects.toThrow(error.message);
+    });
+    expect(result.current.lastAct).toMatchObject({ kind: "dispatch", phase: "still-confirming" });
+    expect(result.current.rows[0]).toMatchObject({ canDispatch: false, canCancel: false });
+
+    mocks.sourceSnapshot = transfers({ disbursementId: 8n, state: "DISPATCHED" });
     rerender();
     expect(result.current.lastAct?.phase).toBe("submitted");
   });

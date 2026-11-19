@@ -26,7 +26,7 @@ describe("buildGardenSettingsSaveRows", () => {
   it.each([
     ["queued", "pending", null, false],
     ["uploading", "active", "Uploading the image…", true],
-    ["waiting", "active", "Waiting for your wallet", true],
+    ["waiting", "active", "Confirm in your wallet", true],
     ["saved", "complete", "Confirmed", false],
     ["proposed", "warning", "Sent to your Safe", false],
     ["failed", "failed", "Didn’t go through", false],

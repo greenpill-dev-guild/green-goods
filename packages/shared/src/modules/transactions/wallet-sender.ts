@@ -45,9 +45,11 @@ import {
   type WalletBatchPort,
 } from "./wallet-atomic-batch";
 import type { Address } from "../../types/domain";
+import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { isCanonicalTransactionHash } from "./confirmation";
 import { type EstimateTransactionGas, walletGasLimit } from "./gas-headroom";
 import { waitForReceipt } from "./receipt-wait";
+import { readWalletAnswer, untilAbandoned, type WalletAnswer } from "./wallet-answer";
 import { reconcileWalletBroadcast } from "./wallet-reconciliation";
 import { quoteWalletBatch } from "./wallet-batch-preflight";
 import { logger } from "../app/logger";
@@ -61,6 +63,7 @@ import {
 import { assertLocalArbitrumForkWallet } from "./local-fork-safety";
 import {
   type AtomicBatchOptions,
+  asReceiptWaitLimit,
   TransactionReplacementError,
   assertTypedDataChain,
   TransactionRevertedError,
@@ -69,6 +72,7 @@ import {
   type TransactionSender,
   type TransactionSendOptions,
   type TxResult,
+  WalletAnswerAbandonedError,
 } from "./types";
 
 /** Injectable dependency for testability */
@@ -83,9 +87,13 @@ export interface WalletSenderDeps extends WalletBatchDeps {
     params: {
       hash: Hex;
       chainId?: number;
+      /** Milliseconds; rejects with viem's timeout error when it passes. */
+      timeout: number;
       onReplaced?: (replacement: { reason: "cancelled" | "replaced" | "repriced" }) => void;
     }
   ) => Promise<{ status: string; transactionHash?: Hex }>;
+  /** Whether the wallet's answer is a transaction or a Safe proposal; defaults to `readWalletAnswer` on the chain's client. */
+  readWalletAnswer?: (account: Address, hash: Hex, chainId: number) => Promise<WalletAnswer>;
 }
 
 export class WalletSender implements TransactionSender {
@@ -155,6 +163,19 @@ export class WalletSender implements TransactionSender {
         typeof defaultSignTypedData
       >[1]);
     this.deps.waitForTransactionReceipt ??= waitForReceipt;
+    this.deps.readWalletAnswer ??= async (account, hash, chainId) => {
+      const client = defaultGetPublicClient(this.config, { chainId });
+      if (!client) return "transaction";
+      return readWalletAnswer(
+        {
+          getCode: (args) => client.getCode(args),
+          readContract: (args) => client.readContract(args),
+          getTransaction: (args) => client.getTransaction(args),
+        },
+        account,
+        hash
+      );
+    };
     this.deps.getAccount ??= () => defaultGetAccount(this.config);
     this.deps.estimateGas ??= (request) => defaultEstimateGas(this.config, request);
     this.deps.assertWriteSafety ??= assertLocalArbitrumForkWallet;
@@ -209,6 +230,44 @@ export class WalletSender implements TransactionSender {
     await this.assertSigner(call, options);
   }
 
+  /**
+   * What the wallet's answer is. A read that cannot say leaves it a transaction, whose receipt
+   * wait has its limit: the send already went out, so nothing here may turn it into a failure.
+   */
+  private async walletAnswer(account: Address, hash: Hex, chainId: number): Promise<WalletAnswer> {
+    try {
+      return await this.deps.readWalletAnswer!(account, hash, chainId);
+    } catch {
+      return "transaction";
+    }
+  }
+
+  /**
+   * The wallet answered after the person stopped waiting: the request went out after all. It is
+   * reported as any broadcast is, so a caller that records its sends records this one, and a
+   * record that fails here is only logged. No hash goes in the log.
+   */
+  private async reportLateAnswer(
+    call: ContractCall,
+    hash: Hex,
+    options: TransactionSendOptions
+  ): Promise<void> {
+    logger.warn("The wallet answered after the send stopped waiting for it", {
+      source: "WalletSender",
+      functionName: call.functionName,
+    });
+    try {
+      await options.onBroadcastReference?.({ kind: "transaction", hash });
+      await options.onBroadcast?.(hash);
+    } catch (error) {
+      logger.warn("A late wallet answer could not be recorded", {
+        source: "WalletSender",
+        functionName: call.functionName,
+        error,
+      });
+    }
+  }
+
   async signTypedData(
     request: AccountTypedDataRequest,
     options: TransactionSendOptions = {}
@@ -233,11 +292,18 @@ export class WalletSender implements TransactionSender {
     // TODO: Try EIP-5792 sendCalls with paymasterService first when available.
     // Fall back to direct writeContractAsync if the wallet doesn't support it.
 
+    // Stopped before it reached the sender: neither a network switch nor a send is asked for.
+    if (options.signal?.aborted) throw new WalletAnswerAbandonedError();
     const call = this.forSigner(named);
     // Cast to string to allow non-canonical hash detection (Safe wallets
     // can return identifiers that don't match `0x${string}` at runtime).
     const chainId = call.chainId ?? DEFAULT_CHAIN_ID;
-    await this.readyWallet(call, chainId, options, "write");
+    // A network switch can ask the wallet too, and the person can stop waiting there as well.
+    await untilAbandoned(
+      this.readyWallet(call, chainId, options, "write"),
+      options.signal,
+      () => undefined
+    );
     let quote: BatchQuote | undefined;
     if (options.batchBudget) {
       quote = await this.preflightBatch([{ ...call, chainId }], options.batchBudget);
@@ -250,26 +316,33 @@ export class WalletSender implements TransactionSender {
         ? BigInt(quote.gas)
         : await walletGasLimit(call, call.account!, chainId, this.deps.estimateGas!);
     if (gas !== undefined) await this.assertSigner(call, options);
+    // Stopped before the wallet was asked: nothing was sent.
+    if (options.signal?.aborted) throw new WalletAnswerAbandonedError();
     // The wallet approves and broadcasts in one step, so the intent is recorded
     // before asking. A rejected prompt is recognised and clears it.
     await options.onBeforeBroadcast?.();
 
     // A wallet can change network between the guard and the write. viem then
     // refuses before the wallet is asked to sign, so every check runs again and
-    // one more attempt cannot send twice.
-    const hash: string = await retryOnWalletChainMismatch(
-      () =>
-        this.writeContractAsync({
-          ...(call.account ? { account: call.account } : {}),
-          address: call.address as `0x${string}`,
-          abi: call.abi as readonly unknown[],
-          functionName: call.functionName,
-          args: call.args,
-          chainId,
-          ...(call.value !== null && call.value !== undefined ? { value: call.value } : {}),
-          ...(gas !== undefined ? { gas } : {}),
-        }),
-      () => this.readyWallet(call, chainId, options, "retry")
+    // one more attempt cannot send twice. The person can stop waiting for the
+    // wallet's answer; one that comes later is still reported, below.
+    const hash: string = await untilAbandoned(
+      retryOnWalletChainMismatch(
+        () =>
+          this.writeContractAsync({
+            ...(call.account ? { account: call.account } : {}),
+            address: call.address as `0x${string}`,
+            abi: call.abi as readonly unknown[],
+            functionName: call.functionName,
+            args: call.args,
+            chainId,
+            ...(call.value !== null && call.value !== undefined ? { value: call.value } : {}),
+            ...(gas !== undefined ? { gas } : {}),
+          }),
+        () => this.readyWallet(call, chainId, options, "retry")
+      ),
+      options.signal,
+      (lateHash) => void this.reportLateAnswer(call, lateHash as Hex, options)
     );
 
     await options.onBroadcastReference?.({ kind: "transaction", hash: hash as `0x${string}` });
@@ -290,20 +363,35 @@ export class WalletSender implements TransactionSender {
       return { hash: hash as Hex, sponsored: false, confirmation: "pending" };
     }
 
-    // Wait for on-chain confirmation and verify the tx was not reverted
+    // Safe{Wallet} answers with its proposal's 32-byte hash, which no receipt
+    // ever follows: the proposal waits for the Safe's owners, not the network.
+    if ((await this.walletAnswer(call.account!, hash, chainId)) === "safe-proposal") {
+      logger.info("Skipping receipt wait for a Safe proposal", {
+        source: "WalletSender",
+        functionName: call.functionName,
+      });
+      options.onAwaiting?.("safe-signers");
+      return { hash, sponsored: false, confirmation: "pending", awaiting: "safe-signers" };
+    }
+
+    // Wait for on-chain confirmation, within the send's limit or else the
+    // sender's own, and verify the tx was not reverted. Past the limit the
+    // transaction is out and may still land: never a failure.
+    const limitMs = options.receiptWaitLimitMs || TX_RECEIPT_TIMEOUT_MS;
     let invalidReplacement: "cancelled" | "replaced" | undefined;
     let receipt: Awaited<ReturnType<NonNullable<WalletSenderDeps["waitForTransactionReceipt"]>>>;
     try {
       receipt = await this.deps.waitForTransactionReceipt!(this.config, {
         hash,
         chainId,
+        timeout: limitMs,
         onReplaced: ({ reason }) => {
           if (reason !== "repriced") invalidReplacement = reason;
         },
       });
     } catch (error) {
       if (invalidReplacement) throw new TransactionReplacementError(invalidReplacement);
-      throw error;
+      throw asReceiptWaitLimit(error, limitMs, hash);
     }
     if (invalidReplacement) throw new TransactionReplacementError(invalidReplacement);
     if (receipt.status === "reverted") {

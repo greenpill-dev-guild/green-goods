@@ -1,4 +1,4 @@
-import { Button } from "@green-goods/shared/components/Button";
+import type { SheetActionsProps } from "@green-goods/shared/components/Dialog/SheetActions";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import type {
   CommitmentEventRecord,
@@ -28,6 +28,10 @@ export interface GroupInspectorProps {
   rewarded: boolean;
   /** Edit Reward stays open until one copy is kept (D14). */
   canEditReward: boolean;
+  /** Some copy is still untaken, so its confirmers can change. */
+  canEditConfirmers?: boolean;
+  /** Edits are sent right away, never queued, so they wait for a connection. */
+  isOnline?: boolean;
   /** Rewarded templates cannot be copied while settlement is deferred. */
   canSeedMore?: boolean;
   /** The pool's recent activity, for when each copy was taken, proven and confirmed. */
@@ -37,6 +41,7 @@ export interface GroupInspectorProps {
   onOpenCommitment: (commitment: CommitmentReadModel) => void;
   onSeedMore: () => void;
   onEditReward: () => void;
+  onEditConfirmers?: () => void;
 }
 
 const bold = (chunks: ReactNode[]) => (
@@ -60,12 +65,15 @@ export function GroupInspector({
   terms,
   rewarded,
   canEditReward,
+  canEditConfirmers = false,
+  isOnline = true,
   canSeedMore = true,
   events,
   waitingOnYou,
   onOpenCommitment,
   onSeedMore,
   onEditReward,
+  onEditConfirmers,
 }: GroupInspectorProps) {
   const intl = useIntl();
   const { formatMessage } = intl;
@@ -120,47 +128,68 @@ export function GroupInspector({
     ],
   ];
 
-  const footer = (
-    <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
-      <p className="min-w-0 type-meta text-text-soft sm:flex-1">
-        {canEditReward
-          ? formatMessage({
-              id: "hub.garden.pool.group.editRewardNote",
-              defaultMessage: "Edit Reward is open until one of this group is kept.",
-            })
-          : !canSeedMore
-            ? formatMessage({ id: "hub.garden.pool.group.rewardDeferredNote" })
-            : formatMessage({
-                id: "hub.garden.pool.group.seedMoreNote",
-                defaultMessage: "Seed More Like This can add to this group or start a new one.",
-              })}
-      </p>
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-        {canEditReward ? (
-          <Button type="button" emphasis="secondary" size="sm" onClick={onEditReward}>
-            {formatMessage({
-              id: "hub.garden.pool.reward.title",
-              defaultMessage: "Edit Reward",
-            })}
-          </Button>
-        ) : null}
-        {canSeedMore ? (
-          <Button
-            type="button"
-            emphasis="secondary"
-            size="sm"
-            leadingIcon={<RiSeedlingLine className="h-[18px] w-[18px]" aria-hidden="true" />}
-            onClick={onSeedMore}
-          >
-            {formatMessage({
-              id: "hub.garden.pool.seedMore.title",
-              defaultMessage: "Seed More Like This",
-            })}
-          </Button>
-        ) : null}
-      </div>
-    </div>
-  );
+  const editsHeld = !isOnline && (canEditReward || canEditConfirmers);
+  const footer: SheetActionsProps = {
+    note: editsHeld ? (
+      <span className="text-warning-dark">
+        {formatMessage({
+          id: "hub.garden.pool.offline",
+          defaultMessage: "Needs a connection. Pool changes are sent right away, not queued.",
+        })}
+      </span>
+    ) : canEditReward ? (
+      formatMessage({
+        id: "hub.garden.pool.group.editRewardNote",
+        defaultMessage: "Edit Reward is open until one of this group is kept.",
+      })
+    ) : !canSeedMore ? (
+      formatMessage({ id: "hub.garden.pool.group.rewardDeferredNote" })
+    ) : (
+      formatMessage({
+        id: "hub.garden.pool.group.seedMoreNote",
+        defaultMessage: "Seed More Like This can add to this group or start a new one.",
+      })
+    ),
+    // Ways on from the group, none of them the main one, in reading order.
+    secondary: [
+      ...(canEditReward
+        ? [
+            {
+              label: formatMessage({
+                id: "hub.garden.pool.reward.title",
+                defaultMessage: "Edit Reward",
+              }),
+              onClick: onEditReward,
+              disabled: !isOnline,
+            },
+          ]
+        : []),
+      ...(canEditConfirmers && onEditConfirmers
+        ? [
+            {
+              label: formatMessage({
+                id: "hub.garden.pool.confirmers.title",
+                defaultMessage: "Edit Confirmers",
+              }),
+              onClick: onEditConfirmers,
+              disabled: !isOnline,
+            },
+          ]
+        : []),
+      ...(canSeedMore
+        ? [
+            {
+              label: formatMessage({
+                id: "hub.garden.pool.seedMore.title",
+                defaultMessage: "Seed More Like This",
+              }),
+              icon: <RiSeedlingLine className="h-[18px] w-[18px]" aria-hidden="true" />,
+              onClick: onSeedMore,
+            },
+          ]
+        : []),
+    ],
+  };
 
   return (
     <AdminDialog

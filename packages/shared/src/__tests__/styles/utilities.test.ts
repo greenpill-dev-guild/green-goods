@@ -301,6 +301,13 @@ describe("SheetActions layout contract (DL-016)", () => {
     expect(block('[data-component="SheetActions"][data-layout="steps"]')).toMatch(
       /flex-direction:\s*row/
     );
+    // A note takes a full line above that row, which wraps only when it carries one.
+    expect(block('[data-component="SheetActions"][data-layout="steps"][data-note]')).toMatch(
+      /flex-wrap:\s*wrap/
+    );
+    expect(
+      block('[data-component="SheetActions"][data-layout="steps"] > [data-slot="note"]')
+    ).toMatch(/flex:\s*0 0 100%/);
   });
 
   it("becomes one right-aligned row with the primary rightmost from 640px", () => {
@@ -312,6 +319,8 @@ describe("SheetActions layout contract (DL-016)", () => {
     );
     expect(wide).toMatch(/justify-content:\s*flex-end/);
     expect(wide).toMatch(/\[data-layout="stack"\] > \[data-action="primary"\]\s*\{\s*order:\s*2/);
+    // A note takes the start of that row and the room the actions leave.
+    expect(wide).toMatch(/> \[data-slot="note"\]\s*\{\s*flex:\s*1 1 0%;\s*order:\s*-2/);
   });
 
   it("draws the scroll-edge divider without script", () => {

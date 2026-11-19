@@ -1,4 +1,3 @@
-import { Button } from "@green-goods/shared/components/Button";
 import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
@@ -63,16 +62,16 @@ export function SeedMoreDialog({
         id: "hub.garden.pool.seedMore.title",
         defaultMessage: "Seed More Like This",
       })}
-      actions={
-        <>
-          <Button type="button" emphasis="tertiary" size="sm" onClick={onClose}>
-            {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-          </Button>
-          <Button type="button" emphasis="primary" size="sm" onClick={() => onContinue(choice)}>
-            {formatMessage({ id: "app.common.continue", defaultMessage: "Continue" })}
-          </Button>
-        </>
-      }
+      actions={{
+        primary: {
+          label: formatMessage({ id: "app.common.continue", defaultMessage: "Continue" }),
+          onClick: () => onContinue(choice),
+        },
+        secondary: {
+          label: formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" }),
+          onClick: onClose,
+        },
+      }}
     >
       <div className="space-y-3" data-testid="seed-more">
         <p className="type-body text-text-strong">{question}</p>

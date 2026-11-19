@@ -12,6 +12,8 @@
  * @module hooks/admin-ui/pool/useEditReward
  */
 
+import { recordedSendAct, type SendActContext } from "../../../modules/app/sendActAnalytics";
+import { copiesActEnding } from "../../../modules/commitment-pooling/send-act-outcome";
 import { SETTLEMENT_ENABLED } from "../../../config/app";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
@@ -94,7 +96,12 @@ export function useEditReward(input: { chainId: number }): EditRewardController 
     setCopies([...latest.values()]);
     setIsSending(true);
     try {
-      const ended = await sendRewardEdit({
+      const act: SendActContext = { act: "pool_reward_edit", authMode: sender.authMode, chainId };
+      const ended = await recordedSendAct(
+        act,
+        sendRewardEdit,
+        copiesActEnding
+      )({
         sender,
         chainId,
         moduleAddress,

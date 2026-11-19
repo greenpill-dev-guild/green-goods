@@ -20,6 +20,7 @@ import { logger } from "../app/logger";
 import { withGasHeadroom } from "./gas-headroom";
 import { assertLocalArbitrumForkSmartAccountsDisabled } from "./local-fork-safety";
 import {
+  asReceiptWaitLimit,
   assertTypedDataChain,
   TransactionRevertedError,
   type AtomicBatchOptions,
@@ -179,10 +180,15 @@ export class PasskeySender implements TransactionSender {
       ...(callGasLimit !== undefined ? { callGasLimit } : {}),
     });
     await options.onBroadcastReference?.({ kind: "user-operation", hash: operationHash, chainId });
-    const receipt = await client.waitForUserOperationReceipt({
-      hash: operationHash,
-      timeout: TX_RECEIPT_TIMEOUT_MS,
-    });
+    // The operation went out, so a receipt that outlasts the limit may still land. A caller that
+    // asked for a limit gets that news as `ReceiptWaitLimitError`; any other keeps viem's timeout,
+    // which its error copy already reads as one.
+    const ownLimitMs = options.receiptWaitLimitMs ? TX_RECEIPT_TIMEOUT_MS : undefined;
+    const receipt = await client
+      .waitForUserOperationReceipt({ hash: operationHash, timeout: TX_RECEIPT_TIMEOUT_MS })
+      .catch((error: unknown) => {
+        throw asReceiptWaitLimit(error, ownLimitMs);
+      });
     if (
       receipt.userOpHash.toLowerCase() !== operationHash.toLowerCase() ||
       receipt.sender.toLowerCase() !== client.account!.address.toLowerCase()
@@ -218,9 +224,20 @@ export class PasskeySender implements TransactionSender {
     const account = client.account!;
     const clientChainId = client.chain?.id;
     const signUserOperation: typeof account.signUserOperation = async (userOperation) => {
-      if (options.batchBudget) quoteUserOperation(userOperation, options.batchBudget);
+      const operation = { ...userOperation, sender: userOperation.sender ?? account.address };
+      // Both quotes run before viem can send, so a refusal proves the operation was not sent.
+      const quote = (quoted: typeof operation) => {
+        if (!options.batchBudget) return;
+        try {
+          quoteUserOperation(quoted, options.batchBudget);
+        } catch (error) {
+          throw new BatchNotSubmittedError(error);
+        }
+      };
+      quote(operation);
       const signature = await account.signUserOperation(userOperation);
-      if (options.batchBudget) quoteUserOperation(userOperation, options.batchBudget);
+      // Quoted again with the signature the bundler will carry in place of the stub.
+      quote({ ...operation, signature });
       // A WebAuthn prompt can outlive the session that opened it. Check again
       // at the last point before viem can submit the signed operation.
       assertSmartAccountClientResolverActive(this.deps.resolveSmartAccountClient);
@@ -406,7 +423,8 @@ export class PasskeySender implements TransactionSender {
         sponsored: true,
       };
     } catch (error) {
-      if (!reference || beforeBroadcastFailed) throw new BatchNotSubmittedError(error);
+      if (!reference || beforeBroadcastFailed)
+        throw error instanceof BatchNotSubmittedError ? error : new BatchNotSubmittedError(error);
       return {
         status: error instanceof TransactionRevertedError ? "reverted" : "unresolved",
         reference,

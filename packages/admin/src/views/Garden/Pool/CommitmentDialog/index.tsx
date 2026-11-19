@@ -26,6 +26,7 @@ import {
   CommitmentReasonDialogs,
 } from "./CommitmentReasonDialogs";
 import { CommitmentExpireDialog } from "../CommitmentExpireDialog";
+import { EditConfirmersDialog } from "../Group/EditConfirmersDialog";
 import { EditRewardDialog } from "../Group/EditRewardDialog";
 import { GardenPoolTarget } from "../PoolTarget";
 import { CommitmentRecovery } from "./CommitmentRecovery";
@@ -94,6 +95,7 @@ function CommitmentRecord({
   const [resolution, setResolution] = useState<DisputeResolutionKey>("RESTORE_PREVIOUS");
   const [assessmentUID, setAssessmentUID] = useState<string | null>(null);
   const [editingReward, setEditingReward] = useState(false);
+  const [editingConfirmers, setEditingConfirmers] = useState(false);
   const waitingRef = useRef<HTMLDivElement>(null);
   const loaded = Boolean(dialog.commitment);
   // The list mounts only once an ask is read, which a cached record may lack.
@@ -135,16 +137,23 @@ function CommitmentRecord({
   const target = <GardenPoolTarget chainId={chainId} garden={garden} record={title} />;
   const stage = stageIndex(commitment.onchainState, commitment.evidenceCount);
   const asks = detail?.claimRequests ?? [];
+  const untaken = commitment.onchainState === "OFFERED" || commitment.onchainState === "REQUESTED";
   // A promise in a group changes its reward from the group; one on its own, here,
   // while nobody has taken it (the chain locks a reward at take-up). Only a read
   // document can say it stands alone: one still loading, or unread, may be a copy.
   const rewardWei = commitment.considerationAmount ?? 0n;
-  const canEditReward =
-    SETTLEMENT_ENABLED &&
+  // Who confirms follows the same rule: from the group for a copy, here for one alone.
+  const editsTermsHere =
     dialog.isLocalSteward &&
     dialog.metadataKnown !== false &&
     !dialog.metadata?.displayGroup &&
-    (commitment.onchainState === "OFFERED" || commitment.onchainState === "REQUESTED") &&
+    (commitment.onchainState === "OFFERED" || commitment.onchainState === "REQUESTED");
+  // The edit writes the team fallback too, so it waits until that is read.
+  const canEditConfirmers =
+    editsTermsHere && typeof commitment.protocolFallbackEnabled === "boolean";
+  const canEditReward =
+    SETTLEMENT_ENABLED &&
+    editsTermsHere &&
     commitment.considerationRail === "CELO_SETTLEMENT" &&
     rewardWei > 0n;
   const fallbackPath =
@@ -243,14 +252,46 @@ function CommitmentRecord({
         fallbackPath={fallbackPath}
         onOpenDialog={setOpen}
         sendPhase={dialog.sendPhase}
-        chainId={chainId}
+        onCancelUntaken={can.cancel && untaken ? () => setOpen("cancel") : undefined}
         onSeedAnother={
           onSeedAnother && dialog.isLocalSteward
             ? () => onSeedAnother(commitment.commitmentId.toString())
             : undefined
         }
         onEditReward={canEditReward ? () => setEditingReward(true) : undefined}
+        onEditConfirmers={canEditConfirmers ? () => setEditingConfirmers(true) : undefined}
       />
+      {canEditConfirmers && editingConfirmers ? (
+        <EditConfirmersDialog
+          open
+          onClose={() => setEditingConfirmers(false)}
+          onChanged={() => {
+            setEditingConfirmers(false);
+            toastService.success({
+              title: formatMessage(
+                {
+                  id: "hub.garden.pool.group.confirmersChangedToast",
+                  defaultMessage:
+                    "{count, plural, one {Confirmers changed for # promise} other {Confirmers changed for # promises}}",
+                },
+                { count: 1 }
+              ),
+            });
+          }}
+          chainId={chainId}
+          garden={garden}
+          title={title}
+          available={[
+            {
+              commitmentId: commitment.commitmentId,
+              protocolFallbackEnabled: commitment.protocolFallbackEnabled === true,
+            },
+          ]}
+          current={commitment}
+          direction={commitment.direction}
+          taken={0}
+        />
+      ) : null}
       {canEditReward && editingReward ? (
         <PromiseRewardEdit
           onClose={() => setEditingReward(false)}
@@ -270,6 +311,7 @@ function CommitmentRecord({
         acts={acts}
         blockedReason={blockedReason}
         target={target}
+        untaken={untaken}
       />
       <CommitmentExpireDialog
         isOpen={open === "expire"}

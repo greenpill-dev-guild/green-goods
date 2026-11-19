@@ -17,6 +17,8 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
+import { recordedSendAct, type SendActContext } from "../../../modules/app/sendActAnalytics";
+import { copiesActEnding } from "../../../modules/commitment-pooling/send-act-outcome";
 import { SETTLEMENT_ENABLED } from "../../../config/app";
 import { creationRefusalOf } from "../../../modules/commitment-pooling/creation-standing";
 import { isDiscardableJob } from "../../../modules/job-queue/job-recovery";
@@ -150,7 +152,16 @@ export function useFinishCreating(input: {
       const latest = new Map<string, SeedCopyProgress>();
       setSendingGroupId(displayGroupId);
       try {
-        const ended = await sendCreationCopies({
+        const act: SendActContext = {
+          act: "pool_finish_creating",
+          authMode: sender.authMode,
+          chainId,
+        };
+        const ended = await recordedSendAct(
+          act,
+          sendCreationCopies,
+          copiesActEnding
+        )({
           copies: waiting,
           queue: jobQueue,
           sender,

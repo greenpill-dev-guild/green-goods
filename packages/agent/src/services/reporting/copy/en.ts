@@ -261,8 +261,9 @@ export const EN_REPORTING_COPY = {
     "I've checked the chain and still can't find your report, so I've stopped checking. I won't send it again. If it doesn't show in the garden, write to {support}.",
   "publish.linkExpired":
     "Your publishing link expired before anything was sent, so nothing was published. Your report is saved; reply RETRY for a new link.",
-  "publish.stillConfirming":
-    "Your report was sent and is still being confirmed, which can take a few minutes. You can leave this chat; I'll message you when it's published. You don't need to send it again.",
+  "publish.stillConfirming": "{stillConfirming} I'll message you when your report is published.",
+  "publish.publishedChecking":
+    "Your report is published. The Green Goods team is checking its record, so I can't send the link yet. You don't need to sign or send anything again.",
   "publish.attestationUnread":
     "The transaction is confirmed, but I still can't read its attestation details, so I've stopped checking. You don't need to sign or send anything again. If your report doesn't show in the garden, write to {support}.",
   "publish.rejected":
@@ -326,8 +327,11 @@ export const EN_REPORTING_COPY = {
   "review.reverted": "Recording your review failed on chain. Check it and confirm again to retry.",
   "review.unconfirmed":
     "I've checked the chain and still can't find your review, so I've stopped checking. I won't send it again. If it doesn't show on the work, write to {support}.",
-  "review.stillConfirming":
-    "Your review was sent and is still being confirmed, which can take a few minutes. You can leave this chat; I'll message you when it's recorded. You don't need to send it again.",
+  "review.stillConfirming": "{stillConfirming} I'll message you when your review is recorded.",
+  "review.recordedChecking":
+    "Your review is recorded. The Green Goods team is checking its record, so I can't send the link yet. You don't need to sign or send anything again.",
+  "review.linkExpired":
+    "Your signing link expired before anything was sent, so your review wasn't recorded. Your decision is saved; reply RETRY for a new link.",
   "review.attestationUnread":
     "The transaction is confirmed, but I still can't read its attestation details, so I've stopped checking. You don't need to sign or send anything again. If your review doesn't show on the work, write to {support}.",
   "recovery.started":

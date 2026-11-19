@@ -34,6 +34,7 @@ import type { Hex } from "viem";
 
 import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import { createPoolChainReader } from "../../modules/commitment-pooling/pool-chain-reads";
+import { recordedSetupRun } from "../../modules/commitment-pooling/send-act-outcome";
 import {
   assertCycleSplit,
   commitmentPoolCallArgs,
@@ -45,6 +46,7 @@ import {
   type PoolChainReader,
   type PoolSetupAction,
   type PoolSetupFailure,
+  type PoolSetupOutcome,
   type PoolSetupRunContext,
   type PoolSetupStep,
   type PoolStepVerdict,
@@ -87,6 +89,8 @@ export interface PoolSetupStepState {
   batched: boolean;
 }
 
+export type { PoolSetupOutcome } from "../../modules/commitment-pooling/pool-setup";
+
 /** Whether the wallet can take the setup writes as one approval, as last asked. */
 export type PoolSetupBatching = "checking" | "available" | "unavailable";
 
@@ -99,15 +103,6 @@ export interface PoolSetupSequenceState {
   failure: PoolSetupFailure | null;
   error: unknown;
   /** The cycle this run seeded or opened, once known. */
-  cycleId: bigint | null;
-}
-
-export interface PoolSetupOutcome {
-  status: "complete" | "failed";
-  landed: PoolSetupAction[];
-  failedStep: PoolSetupAction | null;
-  failure: PoolSetupFailure | null;
-  error: unknown;
   cycleId: bigint | null;
 }
 
@@ -172,7 +167,7 @@ export function useCommitmentPoolSetupSequence(
     [sender, chainId, pastCeilings]
   );
 
-  const run = useCallback(
+  const runSteps = useCallback(
     async (steps: PoolSetupStep[]): Promise<PoolSetupOutcome> => {
       stepsRef.current = steps;
       if (cycleIdRef.current === null) cycleIdRef.current = knownCycleId(steps);
@@ -483,6 +478,10 @@ export function useCommitmentPoolSetupSequence(
       return outcome;
     },
     [chainId, handleError, pastCeilings, queryClient, reader, sender]
+  );
+  const run = useMemo(
+    () => recordedSetupRun(sender, chainId, runSteps),
+    [sender, chainId, runSteps]
   );
 
   /** Walk the same steps again; what the chain already shows is skipped. */

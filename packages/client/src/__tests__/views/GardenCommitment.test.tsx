@@ -1081,6 +1081,29 @@ describe("GardenCommitment", () => {
     expect(screen.getByLabelText("What still needs doing?")).toHaveValue("The far bed");
   });
 
+  it("closes a Not yet note that may still land rather than offering it again", async () => {
+    // Its receipt outlasted the limit (PRD-1551): sent, so a second try could land twice.
+    mockActs.notYet.mockRejectedValue(
+      Object.assign(new Error("still confirming"), { name: "ReceiptWaitLimitError" })
+    );
+    mockUseController.mockReturnValue(
+      controller({
+        detail: detail({ commitment: { derivedState: "READY_FOR_CONFIRMATION" } }),
+        actKind: "confirm",
+      })
+    );
+    render();
+    await userEvent.click(screen.getByRole("button", { name: "Confirm It Was Kept" }));
+    await userEvent.click(screen.getByRole("button", { name: "Not Yet" }));
+    await userEvent.type(screen.getByLabelText("What still needs doing?"), "The far bed");
+    await userEvent.click(screen.getByRole("button", { name: "Send to the Stewards" }));
+
+    await waitFor(() =>
+      expect(screen.queryByLabelText("What still needs doing?")).not.toBeInTheDocument()
+    );
+    expect(screen.queryByText(/Could not reach the stewards/i)).not.toBeInTheDocument();
+  });
+
   it("confirms withdrawal locally and preserves a reason after pin failure", async () => {
     mockUseController.mockReturnValue(
       controller({
@@ -1649,6 +1672,35 @@ describe("GardenCommitment", () => {
     expect(mockRetryAndSend).toHaveBeenCalledWith("claim-9");
   });
 
+  // A Safe only proposed it: the row says so in the shared words, and still never resends (PRD-1564).
+  it("says a take-up a Safe only proposed waits for the Safe's signers", () => {
+    mockUseController.mockReturnValue(
+      controller({
+        actKind: null,
+        queue: {
+          ...controller().queue,
+          hasPendingJob: true,
+          pendingAct: {
+            jobId: "claim-9",
+            kind: "claim",
+            waitingReason: "awaiting-confirmation",
+            awaiting: "safe-signers",
+            discardable: false,
+            createdAt: 1,
+          },
+        },
+      })
+    );
+    render();
+    expect(screen.getByText("Waiting for the Safe's signers")).toBeInTheDocument();
+    expect(screen.getByText(/enough of the Safe's owners sign it/)).toBeInTheDocument();
+    expect(screen.queryByText("May already be sent")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Discard unsent take-up" })
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Check Again" })).toBeInTheDocument();
+  });
+
   it("says a proof from this phone is on its way, with no notice to send it twice", () => {
     mockUseController.mockReturnValue(
       controller({
@@ -1914,7 +1966,7 @@ describe("a voucher booking on the promise page", () => {
       {
         state: "CANCELLED",
         actKind: "offerAgain",
-        sentence: /^It has left the pool/,
+        sentence: /^This left the pool\. The reason stays in its history/,
         act: "Offer It Again",
       },
     ] as const)("keeps the promise's own sentence and act for its creator when $state", ({

@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
 import { useIntl } from "react-intl";
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
 import { toastService } from "../../components/toast";
 import { getWagmiConfig } from "../../config/appkit";
 import type { EnableAutoAllocateParams } from "../../types/vaults";
@@ -19,12 +20,17 @@ export function useEnableAutoAllocate() {
   const chainId = useCurrentChain();
   const { primaryAddress } = useUser();
   const sender = useTransactionSender();
+  const autoAllocateAct: SendActContext = {
+    act: "vault_auto_allocate",
+    authMode: sender?.authMode,
+    chainId,
+  };
   const handleError = createMutationErrorHandler({
     source: "useEnableAutoAllocate",
     toastContext: "vault configure",
   });
   const mutation = useMutation({
-    mutationFn: async (params: EnableAutoAllocateParams) => {
+    mutationFn: recordedSendAct(autoAllocateAct, async (params: EnableAutoAllocateParams) => {
       if (!sender) throw new Error("TransactionSender not available — auth not initialized");
       const octantModule = getOctantModuleAddress(chainId);
 
@@ -47,7 +53,7 @@ export function useEnableAutoAllocate() {
         args: [params.gardenAddress, params.assetAddress],
       });
       return result.hash;
-    },
+    }),
     onMutate: () => {
       const toastId = toastService.loading({
         title: formatMessage({ id: "app.treasury.enableAutoAllocate" }),

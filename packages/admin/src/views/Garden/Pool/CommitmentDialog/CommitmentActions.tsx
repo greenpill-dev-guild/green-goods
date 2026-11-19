@@ -17,10 +17,11 @@ export function CommitmentActions({
   isActing,
   fallbackPath,
   onOpenDialog,
+  onCancelUntaken,
   onSeedAnother,
   onEditReward,
+  onEditConfirmers,
   sendPhase,
-  chainId,
 }: {
   isOnline: boolean;
   /** Why the acts are out of reach while the reader has no connection. */
@@ -32,15 +33,21 @@ export function CommitmentActions({
   fallbackPath: FallbackPath;
   onOpenDialog: (open: OpenDialog) => void;
   /**
+   * Cancel a promise nobody has taken up, with a reason. Only a steward gets it; once taken up,
+   * the Accepted section carries the cancel instead.
+   */
+  onCancelUntaken?: () => void;
+  /**
    * Opens the seeding wizard on this commitment's answers. Absent wherever the
    * reader may not seed this pool, so the button is simply not drawn.
    */
   onSeedAnother?: () => void;
   /** Change the reward while nobody has taken the promise (PRD-1022 D14); only a steward gets it. */
   onEditReward?: () => void;
+  /** Change who confirms while nobody has taken the promise; only a steward gets it. */
+  onEditConfirmers?: () => void;
   /** Where Send for Confirmation stands, followed from the wallet to the chain. */
   sendPhase: CommitmentDialogController["sendPhase"];
-  chainId: number;
 }) {
   const { formatMessage } = useIntl();
   // Sent, or kept queued to send: the act stays closed until the record moves on.
@@ -69,6 +76,20 @@ export function CommitmentActions({
             {formatMessage({
               id: "hub.garden.pool.reward.title",
               defaultMessage: "Edit Reward",
+            })}
+          </Button>
+        ) : null}
+        {onEditConfirmers ? (
+          <Button
+            type="button"
+            emphasis="tertiary"
+            size="compact"
+            disabled={actDisabled}
+            onClick={onEditConfirmers}
+          >
+            {formatMessage({
+              id: "hub.garden.pool.confirmers.title",
+              defaultMessage: "Edit Confirmers",
             })}
           </Button>
         ) : null}
@@ -165,7 +186,6 @@ export function CommitmentActions({
       {can.sendForConfirmation || sendPhase.status !== "idle" ? (
         <ActPhaseLine
           phase={sendPhase}
-          chainId={chainId}
           confirmed={formatMessage({
             id: "hub.garden.pool.commitment.act.sent",
             defaultMessage: "Sent for confirmation. Its confirmers see it once the index shows it.",
@@ -188,6 +208,23 @@ export function CommitmentActions({
             {formatMessage({
               id: "hub.garden.pool.row.act.expire",
               defaultMessage: "Expire Now…",
+            })}
+          </Button>
+        </div>
+      ) : null}
+      {onCancelUntaken ? (
+        // Final too, so it takes the same row of its own as Expire Now.
+        <div className="flex justify-end border-t border-stroke-soft pt-3" data-slot="cancel">
+          <Button
+            type="button"
+            emphasis="secondary"
+            size="compact"
+            onClick={onCancelUntaken}
+            disabled={actDisabled}
+          >
+            {formatMessage({
+              id: "hub.garden.pool.commitment.act.cancel",
+              defaultMessage: "Cancel Promise…",
             })}
           </Button>
         </div>

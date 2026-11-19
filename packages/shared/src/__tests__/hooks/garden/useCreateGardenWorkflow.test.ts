@@ -4,6 +4,8 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { useCreateGardenWorkflow } from "../../../hooks/garden/useCreateGardenWorkflow";
 import { resetCreateGardenStore, useCreateGardenStore } from "../../../stores/useCreateGardenStore";
 import { renderHookWithProviders } from "../../test-utils/render-helpers";
+import { registerTelemetrySink } from "../../../modules/app/telemetry-sink";
+import { ReceiptWaitLimitError } from "../../../modules/transactions/types";
 
 const mocks = vi.hoisted(() => ({
   address: "0x1111111111111111111111111111111111111111",
@@ -301,6 +303,43 @@ it("starts a new deployment after Create Another even when draft cleanup failed"
   await waitFor(() => expect(result.current.state.matches("success")).toBe(true));
   expect(mocks.create).toHaveBeenCalledOnce();
   expect(result.current.state.context.txHash).toBe("0xNewExecution");
+});
+
+it("records a creation that may still land as confirming, never as failed (PRD-1553)", async () => {
+  const captured: Array<[string, Record<string, unknown>]> = [];
+  const unregister = registerTelemetrySink({
+    capture: (event, properties) => {
+      if (event.startsWith("send_act_")) captured.push([event, properties]);
+    },
+  });
+  try {
+    const store = useCreateGardenStore.getState();
+    store.setField("name", "Riverside commons");
+    store.setField("slug", "riverside-commons");
+    store.setField("description", "A private description");
+    store.setField("location", "Earth");
+    store.setField("domains", [0]);
+    store.addGardener(mocks.address);
+    mocks.create.mockRejectedValueOnce(new ReceiptWaitLimitError(120_000));
+    const { result } = renderHookWithProviders(() => useCreateGardenWorkflow());
+    act(() => {
+      result.current.openFlow();
+      result.current.goToReview();
+    });
+    act(() => result.current.submitCreation());
+    await waitFor(() => expect(captured).toHaveLength(2));
+
+    expect(captured.map(([event, { act, outcome }]) => [event, act, outcome])).toEqual([
+      ["send_act_started", "garden_create", undefined],
+      ["send_act_ended", "garden_create", "confirming"],
+    ]);
+    expect(mocks.trackFailed).not.toHaveBeenCalled();
+    const sent = JSON.stringify(captured);
+    expect(sent).not.toContain("Riverside commons");
+    expect(sent).not.toContain(mocks.address);
+  } finally {
+    unregister();
+  }
 });
 
 it("records a recovered garden failure once before removing its checkpoint", async () => {

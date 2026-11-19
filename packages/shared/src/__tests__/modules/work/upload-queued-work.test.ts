@@ -6,6 +6,7 @@ import type { EASConfig } from "../../../config/blockchain";
 import { initializeIpfsFromEnv } from "../../../modules/data/ipfs/client";
 import {
   type ContractCall,
+  ReceiptWaitLimitError,
   TransactionRevertedError,
   type TransactionSender,
 } from "../../../modules/transactions/types";
@@ -117,6 +118,8 @@ function harness(jobs: Job[], overrides: Partial<UploadQueuedWorkPorts> = {}) {
     simulate: vi.fn(async () => undefined),
     processJob: vi.fn(async () => ({ success: true, txHash: TX })),
     now: () => Date.parse("2026-09-17T10:00:00.000Z"),
+    receiptWaitLimitMs: 120_000,
+    receiptWaitLimitReached: vi.fn(),
     ...overrides,
   };
   return { ports, store, released, resumed };
@@ -172,6 +175,58 @@ describe("Upload all", () => {
       sent: 1,
       flagged: 0,
     });
+  });
+
+  // Upload all sends outside the processor, so it tells each item's screen itself (PRD-1552).
+  it("tells each item's screen where the one send stands, and lets go once each is finished", async () => {
+    const jobs = [work(), work()];
+    const seen: Array<[string, string | null]> = [];
+    const reportStage = vi.fn((job: Job, stage: string | null) => seen.push([job.id, stage]));
+    const processJob = vi.fn(async (id: string) => {
+      seen.push([id, "finished"]);
+      return { success: true, txHash: TX };
+    });
+    const { ports } = harness(jobs, { reportStage, processJob });
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+      await options?.onBeforeBroadcast?.();
+      await options?.onBroadcast?.(TX);
+      return { hash: TX, sponsored: false };
+    });
+
+    await expect(upload(ports, sender)).resolves.toMatchObject({ status: "uploaded", sent: 2 });
+    // Each item keeps saying confirming until the queue has finished it, never sent and stuck.
+    expect(seen).toEqual([
+      [jobs[0]!.id, "wallet"],
+      [jobs[1]!.id, "wallet"],
+      [jobs[0]!.id, "confirming"],
+      [jobs[1]!.id, "confirming"],
+      [jobs[0]!.id, "finished"],
+      [jobs[0]!.id, null],
+      [jobs[1]!.id, "finished"],
+      [jobs[1]!.id, null],
+    ]);
+  });
+
+  // The confirmation pass may already hold an item: it lets go when it finishes, not Upload all.
+  it("leaves an item another holder is finishing at confirming for that holder to let go", async () => {
+    const jobs = [work(), work()];
+    const reportStage = vi.fn();
+    const processJob = vi.fn(async (id: string) =>
+      id === jobs[1]!.id
+        ? { success: false, skipped: true, error: "already-processing" }
+        : { success: true, txHash: TX }
+    );
+    const { ports } = harness(jobs, { reportStage, processJob });
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+      await options?.onBroadcast?.(TX);
+      return { hash: TX, sponsored: false };
+    });
+
+    await upload(ports, sender);
+    const lettingGo = reportStage.mock.calls.filter(([, stage]) => stage === null);
+    expect(lettingGo.map(([job]) => job.id)).toEqual([jobs[0]!.id]);
   });
 
   it("refuses on an unconfirmed connection before claiming anything", async () => {
@@ -375,6 +430,28 @@ describe("Upload all", () => {
     });
     expect(sendOf(store, first.id)).not.toHaveProperty("broadcastPending");
     expect(store.get(first.id)?.meta?.preparation).toMatchObject({ status: "ready" });
+  });
+
+  it("waits the queue's limit for the call's receipt, and records the wait that ran out", async () => {
+    // Upload all sends outside the processor, so it states the limit and keeps the record
+    // itself, once per kind the call carried (PRD-1551).
+    const items = [work(), decision()];
+    const { ports, store } = harness(items);
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+      await options?.onBeforeBroadcast?.();
+      await options?.onBroadcast?.(TX);
+      throw new ReceiptWaitLimitError(options?.receiptWaitLimitMs ?? 0, { hash: TX });
+    });
+
+    await expect(upload(ports, sender)).resolves.toMatchObject({ status: "send-unconfirmed" });
+    expect(vi.mocked(sender.sendContractCall).mock.calls[0]?.[1]?.receiptWaitLimitMs).toBe(120_000);
+    expect(vi.mocked(ports.receiptWaitLimitReached).mock.calls).toEqual([
+      ["work", { limitMs: 120_000, explicit: true, authMode: "wallet" }],
+      ["approval", { limitMs: 120_000, explicit: true, authMode: "wallet" }],
+    ]);
+    // Still on record, so the queue confirms it rather than sending it again.
+    for (const { id } of items) expect(sendOf(store, id)).toMatchObject({ transactionHash: TX });
   });
 
   it("keeps the recorded send when the answer is lost, for the queue to confirm", async () => {

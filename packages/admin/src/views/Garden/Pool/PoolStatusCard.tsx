@@ -71,11 +71,11 @@ export function PoolStatusCard({
     defaultMessage: "Needs a connection. Pool changes are sent right away, not queued.",
   });
   const actDisabled = offline || isActing;
-  // Resume stays closed from the wallet until the pool reads open again.
-  const resumeHeld =
-    pool.resumePhase.status === "signing" ||
-    pool.resumePhase.status === "confirming" ||
-    pool.resumePhase.status === "confirmed";
+  // Resume stays closed from the wallet until the pool reads open again, and while a resume
+  // still confirming, waiting on a Safe's signers, or stopped in a wallet that may still hold
+  // it may land.
+  const { status: resumeStatus } = pool.resumePhase;
+  const resumeHeld = resumeStatus !== "idle" && resumeStatus !== "failed";
 
   return (
     <AdminCard variant="elevated" data-component="PoolStatusCard" className="space-y-4">
@@ -287,7 +287,6 @@ export function PoolStatusCard({
       {model.status === "paused" ? (
         <ActPhaseLine
           phase={pool.resumePhase}
-          chainId={pool.chainId}
           confirmed={formatMessage({
             id: "hub.garden.pool.act.resumed",
             defaultMessage: "Resumed. The pool reads open once the index shows it.",

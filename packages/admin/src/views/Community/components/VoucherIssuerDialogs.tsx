@@ -1,3 +1,4 @@
+import type { SheetActionsProps } from "@green-goods/shared/components/Dialog/SheetActions";
 import {
   type ServiceIssuerDraft,
   serviceIssuerApprovalProvenance,
@@ -8,7 +9,6 @@ import {
   useIssuerSafeThreshold,
 } from "@green-goods/shared/commitment-pooling";
 import { Alert } from "@green-goods/shared/components/Alert";
-import { Button } from "@green-goods/shared/components/Button";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import type { Address } from "@green-goods/shared/types/domain";
 import { RiCheckLine } from "@remixicon/react";
@@ -147,21 +147,23 @@ export function VoucherIssuerDialog({
       ))}
     </FactList>
   );
-  const action = (label: string, onClick: () => void, disabled = false, danger = false) => (
-    <Button
-      type="button"
-      size="sm"
-      tone={danger ? "danger" : undefined}
-      disabled={!canPrepare || rehearsal || disabled}
-      onClick={onClick}
-    >
-      {label}
-    </Button>
-  );
+  const action = (
+    label: string,
+    onClick: () => void,
+    disabled = false,
+    danger = false
+  ): SheetActionsProps => ({
+    primary: {
+      label,
+      onClick,
+      disabled: !canPrepare || rehearsal || disabled,
+      tone: danger ? "danger" : "default",
+    },
+  });
   let title = t("reviewTitle");
   let description: ReactNode = undefined;
   let body: ReactNode = null;
-  let actions: ReactNode = null;
+  let actions: SheetActionsProps | undefined;
   if (kind === "prepare" || kind === "awaiting") {
     const terms = draft!.terms;
     const decimals = terms.token.decimals;

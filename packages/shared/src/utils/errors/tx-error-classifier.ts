@@ -1,3 +1,4 @@
+import type { ParsedContractError } from "./contract-errors";
 import { extractErrorMessage } from "./extract-message";
 import { wrongWalletNetwork } from "./wallet-network-refusal";
 
@@ -319,18 +320,66 @@ export function classifyTxError(error: unknown): TxErrorView {
 
 const UNCONFIRMED_ERROR_NAMES: ReadonlySet<string> = new Set([
   "TransactionConfirmationPendingError",
+  // A send's receipt that outlasted its wait's limit (PRD-1551): sent, and still confirming.
+  "ReceiptWaitLimitError",
   "WaitForTransactionReceiptTimeoutError",
   "WaitForUserOperationReceiptTimeoutError",
 ]);
 
-/** Another send of the same thing still holds it, so this one has the same answer: not yet known. */
-const HELD_BY_ANOTHER_SEND = "batch-items-held";
+/**
+ * Another send of the same thing still holds it, so this one sent nothing and has the same
+ * answer: not yet known.
+ */
+export function isHeldByAnotherSend(error: unknown): boolean {
+  return error instanceof Error && error.message === "batch-items-held";
+}
 
 export function isUnconfirmedTxError(error: unknown): boolean {
-  return (
-    hasErrorName(error, UNCONFIRMED_ERROR_NAMES) ||
-    (error instanceof Error && error.message === HELD_BY_ANOTHER_SEND)
-  );
+  return hasErrorName(error, UNCONFIRMED_ERROR_NAMES) || isHeldByAnotherSend(error);
+}
+
+const STOPPED_WAITING_NAMES: ReadonlySet<string> = new Set(["WalletAnswerAbandonedError"]);
+
+/**
+ * A send that must not be offered again: it went out with no receipt yet, or the person stopped
+ * waiting while the wallet may still hold its request. Neither failed; a second send could land
+ * twice (PRD-1551).
+ */
+export function mayStillLand(error: unknown): boolean {
+  return isUnconfirmedTxError(error) || hasErrorName(error, STOPPED_WAITING_NAMES);
+}
+
+/**
+ * How `parseContractError` reads a send that went out with no receipt yet (its wait outlasted
+ * its limit, or the answer was a proposal or a lost reply): in the words `classifyTxError` uses,
+ * never as failed, nor as a timeout that invites trying again (PRD-1551).
+ */
+export function parseUnconfirmedSend(error: unknown, raw: string): ParsedContractError | null {
+  if (!isUnconfirmedTxError(error)) return null;
+  // A Safe proposal waits for the Safe's owners, not the network, and says so.
+  const submission = (error as { submission?: { awaiting?: string } }).submission;
+  if (submission?.awaiting === "safe-signers")
+    return {
+      raw,
+      name: "SafeProposalPending",
+      message:
+        "Your Safe has the proposal. It goes through once enough of the Safe's owners sign it.",
+      titleKey: "app.sendStage.safeSigners",
+      messageKey: "app.sendStage.safeSigners.detail",
+      isKnown: true,
+      recoverable: false,
+      suggestedAction: "check-wallet",
+    };
+  return {
+    raw,
+    name: "SendStillConfirming",
+    message: "It could still go through, so wait a moment and check before you try again.",
+    titleKey: "app.txFeedback.unconfirmed.title",
+    messageKey: "app.txFeedback.unconfirmed.message",
+    isKnown: true,
+    recoverable: false,
+    suggestedAction: "check-wallet",
+  };
 }
 
 /** Some non-standard tokens revert on allowance(), which is not the same as a failed read. */

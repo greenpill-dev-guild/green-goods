@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef } from "react";
 import { useIntl } from "react-intl";
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
 import { toastService } from "../../components/toast";
 import type { SetRoleHatIdsParams } from "../../types/conviction";
 import { HYPERCERT_SIGNAL_POOL_ABI } from "../../utils/blockchain/abis/conviction";
@@ -17,6 +18,8 @@ export function useSetRoleHatIds() {
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
   const sendContractTx = useContractTxSender();
+  const authMode = sendContractTx.authMode;
+  const act: SendActContext = { act: "conviction", operation: "setRoleHatIds", authMode, chainId };
   const handleError = createMutationErrorHandler({
     source: "useSetRoleHatIds",
     toastContext: "set role hat IDs",
@@ -35,14 +38,14 @@ export function useSetRoleHatIds() {
   );
 
   return useMutation({
-    mutationFn: async (params: SetRoleHatIdsParams) => {
+    mutationFn: recordedSendAct(act, async (params: SetRoleHatIdsParams) => {
       return sendContractTx({
         address: params.poolAddress,
         abi: HYPERCERT_SIGNAL_POOL_ABI,
         functionName: "setRoleHatIds",
         args: [params.hatIds],
       });
-    },
+    }),
     onMutate: () => {
       const toastId = toastService.loading({
         title: formatMessage({ id: "app.conviction.settingRoleHatIds" }),

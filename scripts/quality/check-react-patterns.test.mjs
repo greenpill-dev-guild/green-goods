@@ -316,11 +316,21 @@ test("the ratchet baseline may not grow over the base branch's copy", () => {
   assert.equal(parseRatchetBaseline(JSON.stringify({ note: "an old advisory inventory", rules: {} })), null);
 });
 
-test("a renamed file keeps its allowance, and the baseline key may move with it", () => {
+test("a renamed file keeps its allowance, and its old key must move before the rename merges", () => {
   const baseline = { "rule-1-raw-timer": { "old.ts": 2 } };
   const renames = new Map([["new.ts", "old.ts"]]);
   const counts = { "rule-1-raw-timer": { "new.ts": 2 } };
-  assert.deepEqual(compareRatchet(baseline, counts, renames), { grown: [], stale: [] });
+  // The rename grows nothing, but the old path's entry is stale in the rename's own change.
+  assert.deepEqual(compareRatchet(baseline, counts, renames), { grown: [], stale: [{ rule: "rule-1-raw-timer", file: "old.ts", was: 2, now: 0 }] });
+  const context = { base: "origin/develop", previous: baseline, changed: new Set(["old.ts", "new.ts"]), renames };
+  const hits = [{ rule: "rule-1-raw-timer", file: "new.ts", line: 1 }, { rule: "rule-1-raw-timer", file: "new.ts", line: 2 }];
+  assert.match(ratchetFailures({ hits, baseline, context }).failures.join("\n"), /old\.ts: 2 -> 0/);
+  // The shrink moves the key, and then the rename passes and so does the next change, which sees no rename.
+  const moved = shrinkRatchet(baseline, counts, renames);
+  assert.deepEqual(moved, { "rule-1-raw-timer": { "new.ts": 2 } });
+  assert.deepEqual(ratchetFailures({ hits, baseline: moved, context }).failures, []);
+  const next = { base: "origin/develop", previous: moved, changed: new Set(["other.ts"]), renames: new Map() };
+  assert.deepEqual(ratchetFailures({ hits, baseline: moved, context: next }).failures, []);
   assert.deepEqual(shrinkRatchet(baseline, { "rule-1-raw-timer": { "new.ts": 1 } }, renames), {
     "rule-1-raw-timer": { "new.ts": 1 },
   });

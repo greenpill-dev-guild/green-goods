@@ -1,9 +1,4 @@
-/**
- * Admin Authentication E2E Tests
- *
- * Deterministic CI coverage for the admin auth boundary. CI exercises the
- * dev-only mock-auth seam; real wagmi connector behaviour runs on an anvil fork.
- */
+/** CI covers the dev-only mock-auth seam; real wagmi connectors belong on an anvil fork. */
 
 import { expect, type Page, test } from "@playwright/test";
 import { mockSepoliaRpc } from "../helpers/mock-backend";
@@ -64,8 +59,7 @@ test.describe("Admin Authentication", () => {
       await helper.waitForPageLoad();
     }
 
-    // Real wagmi reconnection coverage belongs to the anvil-fork project. This
-    // clean-room check exercises the deterministic dev-auth persistence seam.
+    // Real wagmi reconnection belongs to the anvil-fork project; not covered yet.
     test("maintains mock auth state across page reloads", async ({ page }) => {
       const helper = new AdminTestHelper(page);
 
@@ -126,10 +120,8 @@ test.describe("Admin Authentication", () => {
         .toBe("disconnected");
     });
 
-    // Real wallet sharing remains an anvil-fork concern; this covers the
-    // context-level dev-auth init script used by deterministic CI flows.
+    // Real wallet sharing across tabs belongs to the anvil-fork project; not covered yet.
     test("maintains mock auth state across multiple tabs", async ({ context }) => {
-      // Create first page and helper WITH context for multi-tab support
       const page1 = await context.newPage();
       const helper1 = new AdminTestHelper(page1, context);
 
@@ -140,7 +132,6 @@ test.describe("Admin Authentication", () => {
       await waitForSignedInBoot(page1, helper1);
       await expect(page1.getByText("Connect to continue")).toHaveCount(0);
 
-      // Open a second tab after context-level initialization.
       const page2 = await context.newPage();
       await page2.goto("/review", { waitUntil: "domcontentloaded", timeout: 45000 });
       const helper2 = new AdminTestHelper(page2);

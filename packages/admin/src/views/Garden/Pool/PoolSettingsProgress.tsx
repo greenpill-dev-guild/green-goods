@@ -66,7 +66,7 @@ export function PoolSettingsProgress({
   const stopped = status === "failed";
   const line =
     status === "running"
-      ? runningStatus(rows, numbers, total, chainId, formatMessage)
+      ? runningStatus(rows, numbers, total, formatMessage)
       : status === "complete"
         ? formatMessage({
             id: "hub.garden.pool.settings.saved",

@@ -4,6 +4,7 @@ import { type IntlShape, useIntl } from "react-intl";
 import { toastService, validationToasts } from "../../../components/toast";
 import { isOfflineTxHash } from "../../../modules/job-queue/queue-policy";
 import { logger } from "../../../modules/app/logger";
+import { SEND_STAGE_WORDS } from "../../../modules/transactions/send-stage";
 import { isWorkMedia } from "../../../modules/work/work-attachments";
 import { validateWorkSubmissionContext } from "../../../modules/work/work-submission";
 import type { AuthStateValue } from "../../../providers/Auth";
@@ -134,7 +135,12 @@ export function useSubmitWorkController({
     retainSubmission: true,
     onProgress: (stage, message) => {
       setProgressMessage(
-        formatMessage({ id: `app.admin.work.submit.progress.${stage}`, defaultMessage: message })
+        formatMessage(
+          // The send's stages read as they do everywhere (PRD-1552); the rest are Submit's own.
+          stage === "wallet" || stage === "confirming"
+            ? SEND_STAGE_WORDS[stage].label
+            : { id: `app.admin.work.submit.progress.${stage}`, defaultMessage: message }
+        )
       );
     },
     // A sent submission stays on its Review, which says so in place (DL-080):

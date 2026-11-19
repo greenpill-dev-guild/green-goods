@@ -234,6 +234,37 @@ describe("Pending rows", () => {
     expect(card(offline, sent)?.status).toBe("Checks again when you're connected");
     expect(card({ ...wallet, ...offline }, sent)?.status).toBe("Check again when you're connected");
   });
+
+  // A Safe only proposed it: work, a review and proof each say who they wait for (PRD-1564).
+  it("says a send a Safe only proposed waits for the Safe's signers, on every kind of row", () => {
+    const safe = "Waiting for the Safe's signers";
+    const work = {
+      ...queuedWork("awaiting-confirmation"),
+      metadata: JSON.stringify({
+        submissionState: "awaiting-confirmation",
+        awaiting: "safe-signers",
+      }),
+    };
+    const workRow = submissionRow(work, true, context);
+    expect(workRow.type === "work" && workRow.card).toMatchObject({
+      kind: "checking",
+      status: safe,
+    });
+
+    const decision = decisionRow(
+      { ...work, id: "0xabc", status: "pending" as const },
+      { jobId: "approval-1", status: { state: "sent", awaiting: "safe-signers" }, savedAt: 1 },
+      context
+    );
+    expect(decision.type === "decision" && decision.card).toMatchObject({ status: safe });
+
+    const proposed = proof({ waitingReason: "awaiting-confirmation", awaiting: "safe-signers" });
+    const proofCard = proofRow(proposed, { ...context, sendsFromTap: true });
+    expect(proofCard.type === "proof" && proofCard.card).toMatchObject({
+      status: safe,
+      locked: false,
+    });
+  });
 });
 
 describe("a work for a promise taken up in the same tap (decision 18)", () => {

@@ -1,4 +1,6 @@
 import en from "@green-goods/shared/i18n/en";
+import es from "@green-goods/shared/i18n/es";
+import pt from "@green-goods/shared/i18n/pt";
 import { describe, expect, it } from "vitest";
 import {
   blockedReasonMessage,
@@ -47,15 +49,15 @@ describe("queuedWorkStatusMessage", () => {
     ["photo-pending", "To upload"],
     ["blocked", "Blocked"],
     ["photo-needs-attention", "Blocked"],
-    ["awaiting-confirmation", "Awaiting confirmation"],
+    ["awaiting-confirmation", "Still confirming…"],
     ["checking-submission", "Checking whether this work was sent"],
   ])("names %s work on its chip", (state, text) => {
-    expect(textOf(queuedWorkStatusMessage(state))).toBe(text);
+    expect(textOf(queuedWorkStatusMessage({ submissionState: state }))).toBe(text);
   });
 
   it("leaves the chip to the work status for other states", () => {
-    expect(queuedWorkStatusMessage("retry-required")).toBeUndefined();
-    expect(queuedWorkStatusMessage(undefined)).toBeUndefined();
+    expect(queuedWorkStatusMessage({ submissionState: "retry-required" })).toBeUndefined();
+    expect(queuedWorkStatusMessage({})).toBeUndefined();
   });
 });
 
@@ -155,12 +157,44 @@ describe("queuedWorkExplanation", () => {
       "reverted",
       "Your work didn't send. Your media is still saved, so try again when you're ready.",
     ],
-    ["awaiting-confirmation", messages["app.work.confirmationExplanation"]],
+    ["awaiting-confirmation", messages["app.sendStage.stillConfirming.detail"]],
     ["checking-submission", messages["app.work.checkingSubmissionInfo"]],
     ["sending", "Uploading to the garden record..."],
     [undefined, "Saved on your device. Upload it here when you're connected."],
   ])("has one sentence for %s work", (submissionState, text) => {
     expect(textOf(queuedWorkExplanation({ submissionState }, online))).toBe(text);
+  });
+
+  // The queue reports a send's stage on the row, Upload all's included (PRD-1552).
+  it.each([
+    ["wallet", "Confirm in your wallet"],
+    ["confirming", "Confirming…"],
+  ])("says a send at the %s stage in the shared words", (sendStage, text) => {
+    const state = readQueuedWorkState(JSON.stringify({ submissionState: "sending", sendStage }));
+    expect(textOf(queuedWorkExplanation(state, online))).toBe(text);
+    expect(textOf(queuedWorkDetailMessage(state))).toBe(text);
+  });
+
+  // A Safe only proposed it: the send's record says so, and so does the row (PRD-1564).
+  it.each([
+    ["en", en],
+    ["es", es],
+    ["pt", pt],
+  ])("says a send a Safe only proposed waits for the Safe's signers, in %s", (_locale, catalog) => {
+    const words = catalog as Record<string, string>;
+    const say = (descriptor: { id?: string } | undefined) =>
+      descriptor?.id ? words[descriptor.id] : undefined;
+    const proposed = readQueuedWorkState(
+      JSON.stringify({ submissionState: "awaiting-confirmation", awaiting: "safe-signers" })
+    );
+    expect(say(queuedWorkStatusMessage(proposed))).toBe(words["app.sendStage.safeSigners"]);
+    expect(say(queuedWorkExplanation(proposed, online))).toBe(
+      words["app.sendStage.safeSigners.detail"]
+    );
+    const live = readQueuedWorkState(
+      JSON.stringify({ submissionState: "sending", sendStage: "safe-signers" })
+    );
+    expect(say(queuedWorkExplanation(live, online))).toBe(words["app.sendStage.safeSigners"]);
   });
 
   it("says why refused work cannot go, instead of telling the person to upload it", () => {

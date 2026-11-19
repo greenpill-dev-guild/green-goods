@@ -23,6 +23,9 @@ interface ReasonDialogProps {
   target?: ReactNode;
 }
 
+/** `untaken`: nobody has taken the promise up yet, so the cancel's words speak to that. */
+type CancelReasonDialogProps = ReasonDialogProps & { untaken?: boolean };
+
 /**
  * The three reasoned acts on a live record — call it off, mark it ready over
  * the recipient's send, or freeze it for review. Each one records why, and the
@@ -35,7 +38,8 @@ export function CommitmentReasonDialogs({
   acts,
   blockedReason,
   target,
-}: ReasonDialogProps) {
+  untaken = false,
+}: CancelReasonDialogProps) {
   const { formatMessage } = useIntl();
 
   return (
@@ -50,11 +54,19 @@ export function CommitmentReasonDialogs({
           id: "hub.garden.pool.commitment.cancel.title",
           defaultMessage: "Cancel This Promise",
         })}
-        description={formatMessage({
-          id: "hub.garden.pool.commitment.cancel.description",
-          defaultMessage:
-            "Accepted becomes Canceled with a recorded reason. Committed units release; the member sees the reason, never “canceled” alone.",
-        })}
+        description={
+          untaken
+            ? formatMessage({
+                id: "hub.garden.pool.commitment.cancel.descriptionUntaken",
+                defaultMessage:
+                  "Nobody has taken this up yet. Canceling takes it out of the pool. The record and your reason stay in its history, where whoever made it, or asked to take it up, can read why.",
+              })
+            : formatMessage({
+                id: "hub.garden.pool.commitment.cancel.description",
+                defaultMessage:
+                  "Accepted becomes Canceled with a recorded reason. Committed units release; the member sees the reason, never “canceled” alone.",
+              })
+        }
         confirmLabel={formatMessage({
           id: "hub.garden.pool.commitment.cancel.confirm",
           defaultMessage: "Cancel Promise",

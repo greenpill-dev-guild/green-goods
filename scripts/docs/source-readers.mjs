@@ -410,6 +410,7 @@ export function workflowInventory(root, sources = workflowSourcePaths(root)) {
         branches: Array.isArray(config.branches) ? config.branches : [],
         tags: Array.isArray(config.tags) ? config.tags : [],
         paths: Array.isArray(config.paths) ? config.paths : [],
+        types: Array.isArray(config.types) ? config.types : [],
         crons: event === "schedule" && Array.isArray(options) ? options.map((entry) => entry?.cron).filter(Boolean) : [],
       };
     }

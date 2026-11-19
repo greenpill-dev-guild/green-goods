@@ -63,6 +63,12 @@ export interface WorkUploadCheckpoint {
    */
   transactionReplaced?: boolean;
   transactionHash?: `0x${string}`;
+  /**
+   * The wallet answered with a Safe proposal, so `transactionHash` is the Safe's own id and no
+   * receipt follows it: the send waits for the Safe's signers, and a screen says so (PRD-1564).
+   * It changes nothing about how the send is settled.
+   */
+  awaiting?: "safe-signers";
   submittedAt: string;
   files: Record<string, { attachmentId: string; contentHash: string; cid: string }>;
   metadata?: { contentHash: string; cid: string };

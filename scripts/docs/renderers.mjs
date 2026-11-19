@@ -1098,9 +1098,11 @@ function describeTriggers(triggers) {
   const code = (value) => `\`${esc(value)}\``;
   const parts = [];
   if (triggers.pull_request) {
-    parts.push(triggers.pull_request.paths.length ? `pull requests that touch its paths (${triggers.pull_request.paths.length} path filters)` : "every pull request");
+    const { paths, types } = triggers.pull_request;
+    if (types.length === 1 && types[0] === "edited") parts.push("edits to a pull request's title, body or base");
+    else parts.push(paths.length ? `pull requests that touch its paths (${paths.length} path filters)` : "every pull request");
   }
-  if (triggers.workflow_run) parts.push("completion of another workflow");
+  if (triggers.workflow_run) parts.push(triggers.workflow_run.types.includes("requested") ? "the start and completion of another workflow" : "completion of another workflow");
   if (triggers.issue_comment) parts.push("comments on issues and pull requests");
   if (triggers.push) {
     const { branches, tags, paths } = triggers.push;

@@ -25,9 +25,8 @@ test.describe("Work Submission CI Tests", () => {
       await page.goto("/home/garden?presentation=pwa", { waitUntil: "domcontentloaded" });
       await helper.waitForPageLoad();
 
-      // The account's one garden is its active garden, with one action and nothing owed, so
-      // Start's answer is known and the flow opens on Media with that action (DL-131). Start
-      // has no button to press, and the step markers still count four.
+      // The account's one garden is active, with one action and nothing owed, so the flow skips
+      // Start and opens on Media with that action. The step markers still count four.
       const steps = page.getByRole("list", { name: "Steps" }).getByRole("listitem");
       await expect(steps.nth(1)).toHaveAttribute("aria-current", "step", { timeout: 15000 });
       await expect(steps).toHaveCount(4);

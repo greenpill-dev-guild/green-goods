@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef } from "react";
 import { useIntl } from "react-intl";
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
 import { toastService } from "../../components/toast";
 import type { AllocateHypercertSupportParams } from "../../types/conviction";
 import { HYPERCERT_SIGNAL_POOL_ABI } from "../../utils/blockchain/abis/conviction";
@@ -19,6 +20,13 @@ export function useAllocateHypercertSupport() {
   const chainId = useCurrentChain();
   const { primaryAddress } = useUser();
   const sendContractTx = useContractTxSender();
+  const authMode = sendContractTx.authMode;
+  const act: SendActContext = {
+    act: "conviction",
+    operation: "allocateSupport",
+    authMode,
+    chainId,
+  };
   const handleError = createMutationErrorHandler({
     source: "useAllocateHypercertSupport",
     toastContext: "conviction support",
@@ -42,7 +50,7 @@ export function useAllocateHypercertSupport() {
   );
 
   return useMutation({
-    mutationFn: async (params: AllocateHypercertSupportParams) => {
+    mutationFn: recordedSendAct(act, async (params: AllocateHypercertSupportParams) => {
       const signals = params.signals.map((s) => ({
         hypercertId: s.hypercertId,
         deltaSupport: s.deltaSupport,
@@ -54,7 +62,7 @@ export function useAllocateHypercertSupport() {
         functionName: "allocateSupport",
         args: [signals],
       });
-    },
+    }),
     onMutate: () => {
       const toastId = toastService.loading({
         title: formatMessage({ id: "app.signal.allocating" }),

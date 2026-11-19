@@ -211,7 +211,7 @@ interface GardenSettingsBatchInput {
 export type GardenSettingsBatchOutcome =
   | { status: "saved"; transactionHash: Hex }
   /** Nothing landed, so the whole draft can be sent again. */
-  | { status: "not-saved" }
+  | { status: "not-saved"; declined?: true }
   /** It may have landed: its fields are held until someone reads it or moves on. */
   | { status: "unknown" }
   /** Nothing was sent, and these changes can still go one at a time. */
@@ -238,6 +238,7 @@ export async function sendGardenSettingsBatch(
     });
     if (record.status === "confirmed")
       return { status: "saved", transactionHash: record.receipts[0].transactionHash };
+    if (record.status === "declined") return { status: "not-saved", declined: true };
     return { status: UNKNOWN_BATCH_STATES.has(record.status) ? "unknown" : "not-saved" };
   } catch (error) {
     if (error instanceof Error && NOT_BATCHABLE.has(error.message))

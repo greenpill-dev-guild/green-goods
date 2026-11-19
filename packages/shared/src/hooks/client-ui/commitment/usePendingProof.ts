@@ -100,6 +100,8 @@ export interface PendingProof {
   contents: ProofContents;
   /** Queued proof: why it waits, as the promise's notice would say. */
   waitingReason: string | null;
+  /** Queued proof a Safe only proposed waits for the Safe's signers (PRD-1564). */
+  awaiting?: "safe-signers";
   /** Queued proof that stopped after its tries. */
   failed: boolean;
   /** This phone is sending it right now. */
@@ -156,6 +158,7 @@ export function usePendingProof(input: { chainId: number; viewer: Address | null
         savedAt: job.createdAt,
         contents: proofContentsOf(payload),
         waitingReason: waiting?.jobId === job.id ? waiting.waitingReason : null,
+        ...(waiting?.jobId === job.id && waiting.awaiting ? { awaiting: waiting.awaiting } : {}),
         failed: failed?.jobId === job.id,
         sending: isSending(payload.commitmentId),
         discardable: !isSending(payload.commitmentId) && (own?.discardable ?? false),

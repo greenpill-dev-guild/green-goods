@@ -169,6 +169,7 @@ export interface FakeWagmiDeps extends WalletSenderDeps, EmbeddedSenderDeps {
   >;
   assertWriteSafety: ReturnType<typeof vi.fn<NonNullable<WalletSenderDeps["assertWriteSafety"]>>>;
   ensureWalletChain: ReturnType<typeof vi.fn<NonNullable<WalletSenderDeps["ensureWalletChain"]>>>;
+  readWalletAnswer: ReturnType<typeof vi.fn<NonNullable<WalletSenderDeps["readWalletAnswer"]>>>;
 }
 
 export interface FakeWagmiDepsOptions {
@@ -204,6 +205,10 @@ export function createFakeWagmiDeps(options: FakeWagmiDepsOptions = {}): FakeWag
     ensureWalletChain: vi
       .fn<NonNullable<WalletSenderDeps["ensureWalletChain"]>>()
       .mockResolvedValue(),
+    // A plain account answers with a transaction; a test of a Safe says otherwise.
+    readWalletAnswer: vi
+      .fn<NonNullable<WalletSenderDeps["readWalletAnswer"]>>()
+      .mockResolvedValue("transaction"),
   };
 }
 

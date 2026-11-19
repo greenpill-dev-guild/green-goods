@@ -23,11 +23,6 @@ const CLIENT_URL = TEST_URLS.client;
 let anvilContext: AnvilForkContext;
 let snapshotId: string;
 
-/**
- * Before all fork tests:
- * 1. Start Anvil fork of Sepolia
- * 2. Create initial snapshot for fast test isolation
- */
 test.beforeAll(async () => {
   console.log("\n🔨 Starting Anvil fork for E2E tests...");
 
@@ -36,7 +31,6 @@ test.beforeAll(async () => {
     console.log(`   Chain ID: ${anvilContext.chain.id}`);
     console.log(`   GardenToken: ${anvilContext.deployment.gardenToken}`);
 
-    // Create initial snapshot after setup
     snapshotId = await snapshotState(anvilContext.testClient);
     console.log(`   Snapshot: ${snapshotId}\n`);
   } catch (error) {
@@ -45,9 +39,6 @@ test.beforeAll(async () => {
   }
 });
 
-/**
- * After all fork tests: cleanup Anvil process
- */
 test.afterAll(async () => {
   if (anvilContext) {
     console.log("\n🧹 Cleaning up Anvil fork...");
@@ -55,13 +46,10 @@ test.afterAll(async () => {
   }
 });
 
-/**
- * Before each test: revert to clean snapshot
- */
 test.beforeEach(async () => {
   if (anvilContext && snapshotId) {
     await revertToSnapshot(anvilContext.testClient, snapshotId);
-    // Re-snapshot for next test
+    // Anvil drops a snapshot once it is reverted to, so take a fresh one.
     snapshotId = await snapshotState(anvilContext.testClient);
   }
 });
@@ -71,7 +59,6 @@ test.describe("Fork Integration Tests", () => {
 
   test.describe("Contract Interactions", () => {
     test("can read GardenToken contract state", async () => {
-      // Verify the fork is working by reading contract state
       expect(anvilContext).toBeDefined();
       expect(anvilContext.deployment.gardenToken).toBeDefined();
 
@@ -79,7 +66,6 @@ test.describe("Fork Integration Tests", () => {
       expect(blockNumber).toBeGreaterThan(0);
       console.log(`   Block number: ${blockNumber}`);
 
-      // Verify GardenToken has code
       const code = await anvilContext.publicClient.getCode({
         address: anvilContext.deployment.gardenToken,
       });
@@ -103,7 +89,6 @@ test.describe("Fork Integration Tests", () => {
       expect(garden.name).toBe("E2E Test Garden");
       console.log(`   Garden created: ${garden.address}`);
 
-      // Verify gardener was added
       const gardener1IsGardener = await isGardener(
         anvilContext,
         garden.address,
@@ -119,10 +104,9 @@ test.describe("Fork Integration Tests", () => {
         address: anvilContext.accounts.gardener1.address,
       });
 
-      // Send some ETH (modifying state)
       await anvilContext.testClient.setBalance({
         address: anvilContext.accounts.gardener1.address,
-        value: BigInt(0), // Set to 0
+        value: BigInt(0),
       });
 
       const zeroBalance = await anvilContext.publicClient.getBalance({
@@ -130,13 +114,11 @@ test.describe("Fork Integration Tests", () => {
       });
       expect(zeroBalance).toBe(BigInt(0));
 
-      // Create new snapshot (unused, just verifying it works)
+      // Unused: only checks that a second snapshot can be taken.
       await snapshotState(anvilContext.testClient);
 
-      // Revert to initial snapshot
       await revertToSnapshot(anvilContext.testClient, snapshotId);
 
-      // Balance should be restored
       const restoredBalance = await anvilContext.publicClient.getBalance({
         address: anvilContext.accounts.gardener1.address,
       });
@@ -150,14 +132,12 @@ test.describe("Fork Integration Tests", () => {
       await page.goto("/");
       await page.waitForLoadState("domcontentloaded");
 
-      // Client should load without errors
       const hasAppError = await page
         .locator('text="Unexpected Application Error"')
         .isVisible({ timeout: 2000 })
         .catch(() => false);
       expect(hasAppError).toBe(false);
 
-      // Should redirect to login or show landing
       const url = page.url();
       expect(url).toMatch(/\/(login|landing)?$/);
     });
@@ -174,7 +154,6 @@ test.describe("Fork Integration Tests", () => {
         stewards: [anvilContext.accounts.steward.address],
       });
 
-      // Initially, gardener2 should not be a gardener
       const before = await isGardener(
         anvilContext,
         garden.address,
@@ -185,7 +164,6 @@ test.describe("Fork Integration Tests", () => {
       // Open gardens are joined by the gardener signing their own transaction.
       await joinGarden(anvilContext, garden.address, anvilContext.accounts.gardener2);
 
-      // Now gardener2 should be a gardener
       const after = await isGardener(
         anvilContext,
         garden.address,

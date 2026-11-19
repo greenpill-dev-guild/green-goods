@@ -8,6 +8,7 @@ import { useSettlementAccount } from "@green-goods/shared/hooks/commitment-pooli
 import { useSeedTrayRoom } from "@green-goods/shared/hooks/admin-ui/pool/useSeedTray";
 import {
   displayBucketOf,
+  selectConfirmerEdit,
   selectRewardEdit,
 } from "@green-goods/shared/modules/commitment-pooling/display-groups";
 import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment-pooling/types-core";
@@ -21,10 +22,11 @@ import { cycleName } from "../poolPresentation";
 import { exactTime } from "../poolTime";
 import { AddToGroupDialog } from "./AddToGroupDialog";
 import { addToGroupRefusal } from "./addToGroupStatus";
+import { EditConfirmersDialog } from "./EditConfirmersDialog";
 import { EditRewardDialog } from "./EditRewardDialog";
 import { GroupInspector } from "./GroupInspector";
 import { groupSetAt } from "./groupInspectorModel";
-import { groupReward, groupTerms } from "./groupTerms";
+import { confirmerRulesAgree, groupReward, groupTerms } from "./groupTerms";
 import { SeedMoreDialog } from "./SeedMoreDialog";
 
 /** How far back the inspector reads the pool's activity for its dates. */
@@ -41,13 +43,13 @@ export interface GroupDialogsProps {
   onSeedNew: (from: CommitmentReadModel) => void;
 }
 
-type GroupStep = "inspect" | "seed-more" | "add" | "edit-reward";
+type GroupStep = "inspect" | "seed-more" | "add" | "edit-reward" | "edit-confirmers";
 
 /**
  * The group inspector and where it leads (PRD-1022 D4, D14): Seed More Like
- * This, which adds to the group or starts a new one, and Edit Reward while no
- * copy is kept. Each dialog closes back to the inspector, which says what
- * changed.
+ * This, which adds to the group or starts a new one, Edit Reward while no
+ * copy is kept, and Edit Confirmers while any copy is untaken. Each dialog
+ * closes back to the inspector, which says what changed.
  */
 export function GroupDialogs({
   pool,
@@ -95,6 +97,7 @@ export function GroupDialogs({
   const unsent = pool.queuedGroupCopies.get(group.displayGroupId)?.length ?? 0;
   const edit = selectRewardEdit(group.children, { unsent });
   const canEditReward = SETTLEMENT_ENABLED && reward.currentWei !== null && edit.open;
+  const confirmerEdit = selectConfirmerEdit(group.children, { unsent });
   const cycle = pool.cycles.find((row) => row.cycleId === first.cycleId);
   const dueMs = Number(first.dueDate ?? 0n) * 1000;
   const template =
@@ -116,6 +119,12 @@ export function GroupDialogs({
     viewer,
     now: Date.now(),
   });
+  // An edit whose copies were all taken meanwhile has nothing left to change: back to the inspector.
+  const shown =
+    (step === "edit-reward" && !canEditReward) ||
+    (step === "edit-confirmers" && !confirmerEdit.open)
+      ? "inspect"
+      : step;
   const done = (message: string) => {
     toastService.success({ title: message });
     setStep("inspect");
@@ -124,7 +133,7 @@ export function GroupDialogs({
   return (
     <>
       <GroupInspector
-        open={step === "inspect"}
+        open={shown === "inspect"}
         onClose={onClose}
         group={group}
         title={title}
@@ -142,6 +151,9 @@ export function GroupDialogs({
         onOpenCommitment={onOpenCommitment}
         onSeedMore={() => setStep("seed-more")}
         onEditReward={() => setStep("edit-reward")}
+        canEditConfirmers={confirmerEdit.open}
+        isOnline={pool.isOnline}
+        onEditConfirmers={() => setStep("edit-confirmers")}
       />
       <SeedMoreDialog
         open={step === "seed-more"}
@@ -186,7 +198,7 @@ export function GroupDialogs({
           offerRoom={first.direction === "OFFER" ? room : null}
         />
       ) : null}
-      {step === "edit-reward" && canEditReward && reward.currentWei !== null ? (
+      {shown === "edit-reward" && reward.currentWei !== null ? (
         <EditRewardDialog
           open
           onClose={() => setStep("inspect")}
@@ -215,6 +227,37 @@ export function GroupDialogs({
           currentWei={reward.currentWei}
           currentCentsAsSet={reward.centsAsSet}
           settlementActive={Boolean(settlement.detail?.account?.active)}
+        />
+      ) : null}
+      {shown === "edit-confirmers" && confirmerEdit.open ? (
+        <EditConfirmersDialog
+          open
+          onClose={() => setStep("inspect")}
+          onChanged={(count) =>
+            done(
+              formatMessage(
+                {
+                  id: "hub.garden.pool.group.confirmersChangedToast",
+                  defaultMessage:
+                    "{count, plural, one {Confirmers changed for # promise} other {Confirmers changed for # promises}}",
+                },
+                { count }
+              )
+            )
+          }
+          chainId={chainId}
+          garden={garden}
+          isProtocol={isProtocol}
+          title={title}
+          available={confirmerEdit.targets.map((child) => ({
+            commitmentId: child.commitmentId,
+            // Grouped copies always carry it (`hasKnownDisplayTerms`).
+            protocolFallbackEnabled: child.protocolFallbackEnabled === true,
+          }))}
+          current={confirmerEdit.targets[0]}
+          mixed={!confirmerRulesAgree(confirmerEdit.targets)}
+          direction={first.direction}
+          taken={group.counts.inProgress + group.counts.kept}
         />
       ) : null}
     </>

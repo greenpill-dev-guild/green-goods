@@ -2,6 +2,7 @@ import { type QueryKey, useMutation, useQueryClient } from "@tanstack/react-quer
 import { readContract } from "@wagmi/core";
 import { useCallback, useRef } from "react";
 import { useIntl } from "react-intl";
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
 import { toastService } from "../../components/toast";
 import { getWagmiConfig } from "../../config/appkit";
 import { batchKeys } from "../../config/query-keys/garden";
@@ -53,6 +54,11 @@ export function useCookieJarDepositMutation({
   const { primaryAddress } = useUser();
   const showErrorToast = shouldShowErrorToast(options.errorMode);
   const sender = useTransactionSender();
+  const depositAct: SendActContext = {
+    act: "cookie_jar_deposit",
+    authMode: sender?.authMode,
+    chainId,
+  };
   const routes = useDepositRoute("jar-deposit");
   const handleError = createMutationErrorHandler({
     source,
@@ -98,7 +104,7 @@ export function useCookieJarDepositMutation({
 
   const mutation = useMutation({
     mutationKey: batchKeys.depositSend(primaryAddress ?? "", chainId),
-    mutationFn: async (params: CookieJarDepositParams) => {
+    mutationFn: recordedSendAct(depositAct, async (params: CookieJarDepositParams) => {
       if (!sender) throw new Error("TransactionSender not available — auth not initialized");
       if (!primaryAddress) {
         throw new Error("Connected account required");
@@ -172,7 +178,7 @@ export function useCookieJarDepositMutation({
         chainId,
       });
       return requireConfirmed(result).hash;
-    },
+    }),
     onMutate: async (params) => {
       await queryClient.cancelQueries({ queryKey: holdKeyFor(params) });
       const toastId = toastService.loading({

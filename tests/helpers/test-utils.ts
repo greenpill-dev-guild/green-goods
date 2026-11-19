@@ -15,7 +15,7 @@ export const TEST_URLS = {
   indexer: process.env.TEST_INDEXER_URL ?? "http://localhost:3006/v1/graphql",
 };
 
-// Storage keys used by Green Goods auth (from shared/src/modules/auth/session.ts)
+// Mirrors AUTH_MODE_STORAGE_KEY in packages/shared/src/modules/auth/session.ts.
 const AUTH_STORAGE_KEYS = {
   authMode: "greengoods_auth_mode",
 };
@@ -78,10 +78,8 @@ export class ClientTestHelper {
   async injectWalletAuth(address: string = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266") {
     await this.page.addInitScript(
       ({ address, authModeKey }) => {
-        // Set auth mode to wallet
         localStorage.setItem(authModeKey, "wallet");
 
-        // Mock wagmi storage (used by Reown AppKit)
         const wagmiState = {
           state: {
             connections: {
@@ -101,7 +99,7 @@ export class ClientTestHelper {
         };
         localStorage.setItem("wagmi.store", JSON.stringify(wagmiState));
 
-        // Also set reown/appkit state
+        // Reown AppKit (formerly Web3Modal) keeps its connection under the @w3m prefix.
         localStorage.setItem("@w3m/connected_connector", '"mock"');
         localStorage.setItem("@w3m/active_caip_network_id", '"eip155:11155111"');
       },
@@ -155,7 +153,7 @@ export class ClientTestHelper {
       .locator('[data-testid="loading"], .loading, .spinner, .animate-spin')
       .waitFor({ state: "hidden", timeout: 10000 })
       .catch(() => {
-        // No spinner is fine
+        // Best effort: a spinner still showing after 10s is not a failure here.
       });
   }
 }
@@ -180,8 +178,6 @@ export async function setupAuthenticatedClient(
   const scenario = await mockClientBackend(page, backend);
   return Object.assign(helper, { backend: scenario });
 }
-
-// ADMIN AUTH HELPERS (Dev mockAuth)
 
 /**
  * Helper for admin app testing with deterministic dev auth.
@@ -261,7 +257,7 @@ export class AdminTestHelper {
       .locator('[data-testid="loading"], .loading, .spinner, .animate-spin')
       .waitFor({ state: "hidden", timeout: 10000 })
       .catch(() => {
-        // No spinner is fine
+        // Best effort: a spinner still showing after 10s is not a failure here.
       });
   }
 }

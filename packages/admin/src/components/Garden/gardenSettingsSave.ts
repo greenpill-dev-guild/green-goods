@@ -1,4 +1,5 @@
 import type { GardenSettingsChange } from "@green-goods/shared/hooks/garden/useUpdateGarden";
+import { SEND_STAGE_WORDS } from "@green-goods/shared/modules/transactions/send-stage";
 import type { TxProgressRow, TxProgressTone } from "@/components/TxProgressList";
 import type { TxStepMarkerState } from "@/components/TxStepMarker";
 import { DOMAIN_OPTIONS, type GardenSettingsField } from "./gardenSettingsDraft";
@@ -83,16 +84,15 @@ function stateLabel(
         id: "app.garden.settings.save.uploading",
         defaultMessage: "Uploading the image…",
       });
+    // One request may be a passkey's or a wallet's, so it waits on a signature. Separate
+    // requests each wait on the wallet, in the words that wait has everywhere (PRD-1552).
     case "waiting":
       return oneSignature
         ? formatMessage({
             id: "app.garden.settings.save.waitingSignature",
             defaultMessage: "Waiting for your signature",
           })
-        : formatMessage({
-            id: "app.garden.settings.save.waiting",
-            defaultMessage: "Waiting for your wallet",
-          });
+        : formatMessage(SEND_STAGE_WORDS.wallet.label);
     case "saved":
       return oneSignature
         ? formatMessage({ id: "app.garden.settings.save.savedTogether", defaultMessage: "Saved" })

@@ -10,6 +10,7 @@ import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { parseAbi, zeroAddress } from "viem";
 import { logger } from "../../modules/app/logger";
+import { recordSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
 import { gardensKeys } from "../../config/query-keys/garden";
 import type { Address } from "../../types/domain";
 import { GARDENS_MODULE_ABI } from "../../utils/blockchain/abis/conviction";
@@ -319,7 +320,13 @@ export function useGardenSetup(garden: Address | undefined, canManage: boolean):
 
       setFinishing(step);
       try {
-        await executeWithToast(() => sendContractTx(call as never), {
+        const act: SendActContext = {
+          act: "garden_update",
+          operation: `setup:${step}`,
+          authMode: sendContractTx.authMode,
+          chainId,
+        };
+        await executeWithToast(() => recordSendAct(act, () => sendContractTx(call as never)), {
           loadingMessage: formatMessage({ id: "hub.garden.setup.working" }),
           successMessage: formatMessage({ id: "hub.garden.setup.done" }),
           errorMessage: formatMessage({ id: "hub.garden.setup.failed" }),

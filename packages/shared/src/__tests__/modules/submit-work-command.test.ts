@@ -202,7 +202,7 @@ describe("submitWork", () => {
 
   it("submits an online wallet directly and forwards wallet stages", async () => {
     const direct = vi.fn<SubmitWorkPorts["direct"]["submitWork"]>(async (_input, onStage) => {
-      onStage?.("confirming", "Confirm in your wallet...");
+      onStage?.("wallet", "Confirm in your wallet");
       return DIRECT_HASH;
     });
     const { ports, enqueue, onWalletStage } = createPorts({ direct });
@@ -210,7 +210,7 @@ describe("submitWork", () => {
       kind: "direct",
       txHash: DIRECT_HASH,
     });
-    expect(onWalletStage).toHaveBeenCalledWith("confirming", "Confirm in your wallet...");
+    expect(onWalletStage).toHaveBeenCalledWith("wallet", "Confirm in your wallet");
     expect(enqueue).not.toHaveBeenCalled();
   });
 

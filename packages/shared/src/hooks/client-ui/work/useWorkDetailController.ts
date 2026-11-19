@@ -8,7 +8,10 @@ import { logger } from "../../../modules/app/logger";
 import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import { worksKeys } from "../../../config/query-keys/work";
 import { jobQueue } from "../../../modules/job-queue/default-instance";
+import type { JobSendPhase } from "../../../modules/job-queue/ports";
+import { recordedSendAwaiting } from "../../../modules/job-queue/queue-policy";
 import { takeUpOf } from "../../../modules/job-queue/take-up-hold";
+import { SEND_STAGE_WORDS } from "../../../modules/transactions/send-stage";
 import { readWorkByUID } from "../../../modules/work/work-list";
 import {
   type OverlayWork,
@@ -129,6 +132,10 @@ export function useWorkDetailController() {
   const transactionSender = useTransactionSender();
   const permissions = useGardenPermissions();
   const [isRetrying, setIsRetrying] = useState(false);
+  // The work's own send reports its stage on its row, through the queue (PRD-1552). A promise
+  // taken up in the same tap is another job that Upload now sends first, so its stage is followed
+  // here, for the button to say while the work waits on it.
+  const [takeUpStage, setTakeUpStage] = useState<JobSendPhase["stage"] | null>(null);
 
   const viewingMode = useMemo<WorkViewingMode>(() => {
     if (!garden || !work) return "viewer";
@@ -180,7 +187,22 @@ export function useWorkDetailController() {
    * was lost, or that is already being sent (by this tab's sync or another tab), is being
    * checked, and any other is not sent yet and still saved.
    */
-  const reportUploadNowOutcome = ({ error, skipped }: { error?: string; skipped?: boolean }) => {
+  const reportUploadNowOutcome = (
+    { error, skipped }: { error?: string; skipped?: boolean },
+    { safeSigners = false }: { safeSigners?: boolean } = {}
+  ) => {
+    // A Safe only proposed it: it is not being checked, it waits for the Safe's signers (PRD-1564).
+    if (skipped && safeSigners && error === "awaiting-confirmation") {
+      const { label, detail } = SEND_STAGE_WORDS["safe-signers"];
+      toastService.info({
+        id: "work-upload",
+        title: intl.formatMessage(label),
+        message: intl.formatMessage(detail),
+        devMessage: error,
+        context: "work upload",
+      });
+      return;
+    }
     if (skipped) {
       const checking = error === "awaiting-confirmation" || error === "already-processing";
       toastService.info({
@@ -217,7 +239,8 @@ export function useWorkDetailController() {
       // The queue refuses a work that reverted or used up its retries, so the
       // tap gives it its retries back first. Without this, Upload now on either
       // one answers with the refusal instead of sending.
-      const queued = await jobQueue.getJobs(user?.id ?? work.gardenerAddress, { synced: false });
+      const owner = user?.id ?? work.gardenerAddress;
+      const queued = await jobQueue.getJobs(owner, { synced: false });
       const job = queued.find((candidate) => candidate.id === work.id);
       if (job && ["failed", "reverted"].includes(queuedUploadStatus(job).state))
         await jobQueue.retryJob(work.id);
@@ -226,7 +249,11 @@ export function useWorkDetailController() {
       const takeUp = job ? takeUpOf(job, queued) : null;
       if (takeUp) {
         await jobQueue.retryJob(takeUp.id);
-        const taken = await jobQueue.processJob(takeUp.id, { transactionSender, explicit: true });
+        const taken = await jobQueue.processJob(takeUp.id, {
+          transactionSender,
+          explicit: true,
+          onPhase: (phase) => setTakeUpStage(phase.stage),
+        });
         if (!taken.success) {
           // A wallet that has not answered was already asked to reconnect by its own prompt.
           if (
@@ -255,6 +282,8 @@ export function useWorkDetailController() {
           createQueueToasts(intl.formatMessage).takeUpFailed();
           return;
         }
+        // The take-up landed. The work's own send starts with its uploads, not a stage.
+        setTakeUpStage(null);
       }
       const result = await jobQueue.processJob(work.id, { transactionSender, explicit: true });
       // Declining the prompt is not a failure; the work stays ready to send. A wallet that has
@@ -265,7 +294,24 @@ export function useWorkDetailController() {
         return;
       }
       if (!result.success) {
-        reportUploadNowOutcome(result);
+        // A send a Safe only proposed says so on its record, whichever try sent it (PRD-1564). A
+        // read that fails says checking: the send is on record, so it never reads as failed.
+        const held =
+          result.error === "awaiting-confirmation"
+            ? await jobQueue
+                .getJobs(owner, { synced: false })
+                .then((jobs) => jobs.find(({ id }) => id === work.id))
+                .catch((error: unknown) => {
+                  logger.warn("[WorkDetail] Could not read the held work's send record", {
+                    error,
+                    workId: work.id,
+                  });
+                  return undefined;
+                })
+            : undefined;
+        reportUploadNowOutcome(result, {
+          safeSigners: Boolean(held && recordedSendAwaiting(held) === "safe-signers"),
+        });
         return;
       }
       queryClient.invalidateQueries({ queryKey: worksKeys.merged(gardenId, chainId) });
@@ -286,6 +332,7 @@ export function useWorkDetailController() {
       reportUploadNowOutcome({ error: error instanceof Error ? error.message : String(error) });
     } finally {
       setIsRetrying(false);
+      setTakeUpStage(null);
     }
   };
 
@@ -377,6 +424,7 @@ export function useWorkDetailController() {
     onChainWorkId,
     retry,
     retryMetadata: metadata.retryFetch,
+    takeUpStage,
     share,
     viewAttestation,
     viewingMode,

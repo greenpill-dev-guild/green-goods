@@ -5,7 +5,8 @@ import type { Address } from "@green-goods/shared/types/domain";
  * interpretation, so STOP, DELETE and HELP can never be misread as report content. An account
  * address sent on its own is a command too: it asks to link that account, and proves nothing.
  * A short message that is nothing but a request to log in, log out or switch account is read as
- * that command as well, so linking never depends on knowing the command word.
+ * that command as well, so linking never depends on knowing the command word. Asking for a new
+ * link is not asking for another account: it is read as a request for the link itself.
  */
 export type ChatCommand =
   | { kind: "help" }
@@ -17,6 +18,8 @@ export type ChatCommand =
   | { kind: "status" }
   | { kind: "edit" }
   | { kind: "retry" }
+  /** A fresh copy of the link the chat sent last: RETRY's link, or CONNECT's before an account. */
+  | { kind: "newLink" }
   | { kind: "skip" }
   | { kind: "recover" }
   | { kind: "confirm"; token: string | null }
@@ -166,6 +169,44 @@ const ACCOUNT_REQUESTS: Array<{ kind: "disconnect" | "switch" | "connect"; phras
   },
 ];
 
+const LINK_NOUN = /\b(link|enlace)\b/u;
+const NEW_LINK = /\b(new|another|fresh|nuevo|otro|novo|outro)\b/u;
+/** Words that may sit around a request for a new link without making it about anything else. */
+const LINK_REQUEST_FILLER = new Set([
+  ...REQUEST_FILLER,
+  ..."you get send give me resend envía envíame enviar dame manda mándame envia envie me".split(
+    " "
+  ),
+]);
+
+/**
+ * A short message that asks only for a new link: "new link", "send me another link", "nuevo
+ * enlace", "novo link". A message that names an account ("link a new account") or links another
+ * ("link another") is an account request instead, and a story that mentions a link still reaches
+ * the report.
+ */
+function linkRequest(text: string): ChatCommand | null {
+  const said = text.replace(/[.,!?¿¡]+/gu, " ").trim();
+  if (said.split(/\s+/u).length > MAX_REQUEST_WORDS || ACCOUNT_NOUN.test(said)) return null;
+  // "New" comes before "link": "link another" uses link as the verb, for another account.
+  const noun = LINK_NOUN.exec(said);
+  const fresh = NEW_LINK.exec(said);
+  if (!noun || !fresh || fresh.index > noun.index) return null;
+  const plain = said
+    .replace(LINK_NOUN, " ")
+    .replace(NEW_LINK, " ")
+    .split(/\s+/u)
+    .filter(Boolean)
+    .every((word) => LINK_REQUEST_FILLER.has(word));
+  return plain ? { kind: "newLink" } : null;
+}
+
+/** A new link is RETRY's fresh signing link once an account is linked, and CONNECT's link before. */
+export function linkCommand(command: ChatCommand, linked: boolean): ChatCommand {
+  if (command.kind !== "newLink") return command;
+  return linked ? { kind: "retry" } : { kind: "connect", account: null };
+}
+
 /**
  * A short message that asks for nothing but an account action: "I would like to log in",
  * "sign me out", "connect another account". Every other word has to be filler, so a story that
@@ -218,7 +259,7 @@ export function parseCommand(text: string | undefined): ChatCommand | null {
   const said = text.trim().toLowerCase();
   const words = said.split(/\s+/u);
   if (words.length === 0) return null;
-  return commandWord(words) ?? accountRequest(said);
+  return commandWord(words) ?? linkRequest(said) ?? accountRequest(said);
 }
 
 function commandWord(words: string[]): ChatCommand | null {

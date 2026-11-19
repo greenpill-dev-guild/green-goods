@@ -11,7 +11,7 @@ import {
   stewardAccount,
 } from "./support/flows";
 import { TAS } from "./support/fixtures";
-import { ADA, BOLA, Harness } from "./support/harness";
+import { ADA, BOLA, Harness, summaryToken } from "./support/harness";
 
 /**
  * Steward review through chat and the signing page: a linked operator lists pending work, records
@@ -228,6 +228,104 @@ describe("steward review", () => {
     expect(harness.core.db.query("SELECT count(*) AS n FROM work_drafts").get()).toEqual({ n: 1 });
   });
 
+  it("says once when a decision's signing link expires unused, and RETRY sends a fresh one", async () => {
+    const LINK_EXPIRED =
+      "Your signing link expired before anything was sent, so your review wasn't recorded. Your decision is saved; reply RETRY for a new link.";
+    await publishedWork();
+    await linkedSteward();
+    const summary = await decide("Approve", "Looks right");
+    const token = /CONFIRM (\d{4})/.exec(summary[0] ?? "")?.[1];
+    await harness.say(BOLA, `CONFIRM ${token}`);
+    const expired = latestLink(harness);
+
+    harness.clock.advance(harness.core.settings.linkChallengeTtlMs);
+    await harness.drain();
+    expect(sentTexts().at(-1)).toBe(LINK_EXPIRED);
+    harness.clock.advance(60 * 60_000);
+    await harness.drain();
+    expect(sentTexts().filter((text) => text === LINK_EXPIRED)).toHaveLength(1);
+    expect(await harness.say(BOLA, "STATUS")).toEqual([LINK_EXPIRED]);
+
+    const fresh = await harness.say(BOLA, "RETRY");
+    expect(fresh[0]).toContain("Open this page to check and sign your decision with your wallet.");
+    expect(latestLink(harness)).not.toBe(expired);
+
+    // The fresh link signs the decision already confirmed, and records it.
+    const { browser, view } = await openDecisionPage();
+    const envelope = view.operation?.envelope;
+    if (!envelope) throw new Error("Expected an envelope");
+    const attempt = await reserve(browser, view, envelope);
+    expect(attempt.status).toBe(200);
+    await reportOutcome(browser, view, envelope, attempt.body.attemptId, {
+      kind: "broadcast",
+      transactionHash: harness.chain.submit({
+        attester: stewardAccount.address,
+        to: envelope.call.to,
+        data: envelope.call.data,
+      }),
+    });
+    await harness.drain();
+    expect(sentTexts().at(-1)).toBe("Your review is recorded ✅");
+    // The fresh link's own expiry comes after the send, so it says nothing.
+    const said = sentTexts().length;
+    harness.clock.advance(
+      harness.core.settings.linkChallengeTtlMs + harness.core.settings.browserSessionTtlMs
+    );
+    await harness.drain();
+    expect(sentTexts().slice(said)).not.toContain(LINK_EXPIRED);
+  });
+
+  it("sends a lapsed decision's fresh link on RETRY even while a report is open beside it", async () => {
+    await publishedWork();
+    await linkedSteward();
+    const summary = await decide("Approve", "Looks right");
+    const token = /CONFIRM (\d{4})/.exec(summary[0] ?? "")?.[1];
+    await harness.say(BOLA, `CONFIRM ${token}`);
+    const expired = latestLink(harness);
+    // The steward starts a report of their own while the decision waits for its signature.
+    await harness.say(BOLA, "Today I planted twelve baobab seedlings by the fence");
+    expect(harness.core.db.query("SELECT count(*) AS n FROM work_drafts").get()).toEqual({ n: 2 });
+    // The decision's link is the last one the chat sent, so NEW LINK refreshes it, lapsed or not.
+    const live = await harness.say(BOLA, "new link");
+    expect(live[0]).toContain("Open this page to check and sign your decision with your wallet.");
+    expect(latestLink(harness)).not.toBe(expired);
+    harness.clock.advance(harness.core.settings.linkChallengeTtlMs);
+    await harness.drain();
+
+    const lapsed = latestLink(harness);
+    const fresh = await harness.say(BOLA, "RETRY");
+    expect(fresh[0]).toContain("Open this page to check and sign your decision with your wallet.");
+    expect(latestLink(harness)).not.toBe(lapsed);
+  });
+
+  it("sends NEW LINK to the report when its link went out after the decision's, in the same instant", async () => {
+    await publishedWork();
+    await linkedSteward();
+    const summary = await decide("Approve", "Looks right");
+    const token = /CONFIRM (\d{4})/.exec(summary[0] ?? "")?.[1];
+    await harness.say(BOLA, `CONFIRM ${token}`);
+    // The steward then reports work of their own and is sent its publishing link. The test clock
+    // has not moved, so both links carry the same time and only their order tells them apart.
+    harness.chain.grantRole(TAS.address, stewardAccount.address, {
+      gardener: true,
+      operator: true,
+    });
+    await harness.say(BOLA, "Today I planted twelve baobab seedlings by the fence");
+    await harness.press(BOLA, "Tree planting");
+    await harness.say(BOLA, "12");
+    await harness.say(BOLA, "2");
+    const report = await harness.say(BOLA, "3 hours");
+    expect((await harness.say(BOLA, `CONFIRM ${summaryToken(report)}`))[0]).toContain(
+      "Open this page to review and sign the exact publication"
+    );
+    harness.clock.advance(harness.core.settings.linkChallengeTtlMs);
+    await harness.drain();
+
+    expect((await harness.say(BOLA, "new link"))[0]).toContain(
+      "Open this page to review and sign the exact publication with your wallet."
+    );
+  });
+
   it("never offers or accepts a steward's own work", async () => {
     await publishedWork();
     harness.chain.grantRole(TAS.address, adaAccount.address, { gardener: true, operator: true });
@@ -337,7 +435,7 @@ describe("steward review", () => {
       }
     };
     const confirming =
-      "Your review was sent and is still being confirmed, which can take a few minutes. You can leave this chat; I'll message you when it's recorded. You don't need to send it again.";
+      "Sent. Confirming is taking longer than usual. You can leave, and you don't need to send it again. I'll message you when your review is recorded.";
     await passes(6);
     expect(sentTexts().filter((text) => text === confirming)).toHaveLength(1);
 

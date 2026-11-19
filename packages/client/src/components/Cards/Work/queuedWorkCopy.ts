@@ -1,25 +1,38 @@
+import {
+  type LiveSendStageReport,
+  SEND_STAGE_WORDS,
+} from "@green-goods/shared/modules/transactions/send-stage";
 import type { MessageDescriptor } from "react-intl";
 
 /** Where a queued work stands, as its metadata records it. */
 export interface QueuedWorkState {
   submissionState?: string;
+  /** Where its send stands while it is sending (PRD-1552). */
+  sendStage?: LiveSendStageReport["stage"];
   /** The contract error the chain would refuse a blocked work with. */
   blockedReason?: string;
   /** The file a held work waits on is a video, not a photo. */
   heldVideo?: true;
+  /** Its send on record is a Safe proposal, waiting for the Safe's signers (PRD-1564). */
+  awaiting?: "safe-signers";
 }
+
+const LIVE_SEND_STAGES = new Set<string>(["wallet", "confirming", "safe-signers"]);
 
 /** Reads the queued state from work metadata. Remote metadata can be a CID, which has none. */
 export function readQueuedWorkState(metadata: string | undefined): QueuedWorkState {
   try {
-    const { submissionState, blockedReason, heldVideo } = JSON.parse(metadata || "{}") as Record<
-      string,
-      unknown
-    >;
+    const { submissionState, blockedReason, heldVideo, sendStage, awaiting } = JSON.parse(
+      metadata || "{}"
+    ) as Record<string, unknown>;
     return {
       submissionState: typeof submissionState === "string" ? submissionState : undefined,
       blockedReason: typeof blockedReason === "string" ? blockedReason : undefined,
       ...(heldVideo === true ? { heldVideo } : {}),
+      ...(typeof sendStage === "string" && LIVE_SEND_STAGES.has(sendStage)
+        ? { sendStage: sendStage as LiveSendStageReport["stage"] }
+        : {}),
+      ...(awaiting === "safe-signers" ? { awaiting } : {}),
     };
   } catch {
     return {};
@@ -37,10 +50,13 @@ const BLOCKED_CHIP = {
   defaultMessage: "Blocked",
 } satisfies MessageDescriptor;
 
-const AWAITING_CONFIRMATION = {
-  id: "app.work.awaitingConfirmation",
-  defaultMessage: "Awaiting confirmation",
-} satisfies MessageDescriptor;
+/**
+ * Sent, with its receipt not seen yet: the shared still confirming words, or the Safe's signers
+ * when a Safe only proposed it (PRD-1564).
+ */
+function sentWords({ awaiting }: Pick<QueuedWorkState, "awaiting">) {
+  return SEND_STAGE_WORDS[awaiting ?? "still-confirming"];
+}
 
 const CHECKING_SUBMISSION = {
   id: "app.work.checkingSubmission",
@@ -116,6 +132,11 @@ const UPLOADING_NOW = {
   defaultMessage: "Uploading to the garden record...",
 } satisfies MessageDescriptor;
 
+/** A send under way says its stage once the queue reported one, in the shared words. */
+function sendingMessage(stage: QueuedWorkState["sendStage"]): MessageDescriptor {
+  return stage ? SEND_STAGE_WORDS[stage].label : UPLOADING_NOW;
+}
+
 const UPLOAD_FAILED = {
   id: "app.work.retryRequiredInfo",
   defaultMessage: "Your media stays saved. Choose Upload now when you’re ready to try again.",
@@ -183,9 +204,10 @@ export function blockedShortReasonMessage(state: QueuedWorkState): MessageDescri
 }
 
 /** The status chip for work still on this device, when its state has a name. */
-export function queuedWorkStatusMessage(
-  submissionState: string | undefined
-): MessageDescriptor | undefined {
+export function queuedWorkStatusMessage({
+  submissionState,
+  awaiting,
+}: Pick<QueuedWorkState, "submissionState" | "awaiting">): MessageDescriptor | undefined {
   switch (submissionState) {
     case "ready":
     case "preparing":
@@ -195,7 +217,7 @@ export function queuedWorkStatusMessage(
     case "photo-needs-attention":
       return BLOCKED_CHIP;
     case "awaiting-confirmation":
-      return AWAITING_CONFIRMATION;
+      return sentWords({ awaiting }).label;
     case "checking-submission":
       return CHECKING_SUBMISSION;
     default:
@@ -211,12 +233,13 @@ export function queuedWorkDetailMessage({
   submissionState,
   blockedReason,
   heldVideo,
+  sendStage,
 }: QueuedWorkState): MessageDescriptor | undefined {
   switch (submissionState) {
     case "reverted":
       return CONFIRMATION_FAILED;
     case "sending":
-      return UPLOADING_NOW;
+      return sendingMessage(sendStage);
     case "retry-required":
       return UPLOAD_FAILED;
     case "preparing":
@@ -259,10 +282,7 @@ export function queuedWorkExplanation(
   };
   switch (state.submissionState) {
     case "awaiting-confirmation":
-      return {
-        id: "app.work.confirmationExplanation",
-        defaultMessage: "Your work was sent. We will check its status automatically when online.",
-      };
+      return sentWords(state).detail;
     case "checking-submission":
       return {
         id: "app.work.checkingSubmissionInfo",
@@ -274,7 +294,7 @@ export function queuedWorkExplanation(
       return UPLOAD_FAILED;
     // Only an observed send says so: offline, nothing is being sent.
     case "sending":
-      return isOnline ? UPLOADING_NOW : waiting;
+      return isOnline ? sendingMessage(state.sendStage) : waiting;
     default:
       if (sendFailed) return UPLOAD_FAILED;
       return queuedWorkDetailMessage(state) ?? waiting;

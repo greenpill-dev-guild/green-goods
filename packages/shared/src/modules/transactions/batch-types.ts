@@ -64,6 +64,11 @@ export interface BatchExecution {
   reference?: BatchReference;
   receipts: readonly BatchReceipt[];
   sponsored: boolean;
+  /**
+   * On an unresolved batch, the limit its status wait ran out of: it went out and may still
+   * land, as a single send's `ReceiptWaitLimitError` says.
+   */
+  waitLimitMs?: number;
 }
 
 export type BatchSendOptions = TransactionSendOptions;

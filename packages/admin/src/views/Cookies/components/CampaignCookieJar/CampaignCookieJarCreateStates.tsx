@@ -144,39 +144,31 @@ export function CampaignCookieJarSubmittedState({
         </p>
         <p className="mt-1 break-all type-meta text-text-sub">{hash}</p>
       </div>
-      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
-        <AdminTextField
-          id="campaign-cookie-jar-created-address"
-          className="min-w-0"
-          label={formatMessage({
-            id: "hub.community.cookies.createdJarAddressInput",
-            defaultMessage: "Created jar address",
-          })}
-          value={manualInput}
-          onChange={(event) => onManualInputChange(event.target.value)}
-          error={
-            manualInput && !manualAddress
-              ? formatMessage({
-                  id: "hub.community.cookies.invalidAddress",
-                  defaultMessage: "Enter a valid Ethereum address.",
-                })
-              : undefined
-          }
-        />
-        {/* Lifted over the field's reserved supporting line, so it lines up with the field. */}
-        <Button
-          size="sm"
-          type="button"
-          onClick={onUseManualAddress}
-          disabled={!manualAddress}
-          className="md:mb-9"
-        >
-          {formatMessage({
-            id: "hub.community.cookies.useCreatedJar",
-            defaultMessage: "Use jar address",
-          })}
-        </Button>
-      </div>
+      <AdminTextField
+        id="campaign-cookie-jar-created-address"
+        label={formatMessage({
+          id: "hub.community.cookies.createdJarAddressInput",
+          defaultMessage: "Created jar address",
+        })}
+        value={manualInput}
+        onChange={(event) => onManualInputChange(event.target.value)}
+        error={
+          manualInput && !manualAddress
+            ? formatMessage({
+                id: "hub.community.cookies.invalidAddress",
+                defaultMessage: "Enter a valid Ethereum address.",
+              })
+            : undefined
+        }
+        action={
+          <Button size="sm" type="button" onClick={onUseManualAddress} disabled={!manualAddress}>
+            {formatMessage({
+              id: "hub.community.cookies.useCreatedJar",
+              defaultMessage: "Use jar address",
+            })}
+          </Button>
+        }
+      />
     </div>
   );
 }

@@ -19,7 +19,6 @@ async function waitForAppBoot(helper: ClientTestHelper) {
   await helper.waitForPageLoad();
 }
 
-// Home opens in the account's one garden, and its header chip names that garden.
 async function expectHomeInGarden(page: Page) {
   const chip = page.locator('[data-component="HomeHeader"] [data-component="GardenChip"]');
   await expect(chip).toBeVisible();

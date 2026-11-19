@@ -1,0 +1,21 @@
+name: Pull Request Edited
+
+# Marks an edit to a pull request's title, body or base, so the Merge Gate, which runs from develop
+# on this workflow's completion, decides again: a CI skip directive added to the body after a
+# success would otherwise reach the merge commit. It holds no permissions and runs nothing from the
+# pull request. A pull_request_target trigger on the gate itself would do this directly, but the
+# guild's supply-chain guardrail forbids pull_request_target.
+on:
+  pull_request:
+    types: [edited]
+
+permissions: {}
+
+jobs:
+  mark:
+    name: Record the edit
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Record the edit
+        run: echo "Title, body or base edited; the Merge Gate decides again on completion."

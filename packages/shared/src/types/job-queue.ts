@@ -119,6 +119,7 @@ export type SendCheckpoint = Pick<
   | "transactionNonce"
   | "transactionHash"
   | "transactionReplaced"
+  | "awaiting"
 >;
 
 export interface ApprovalJobPayload {

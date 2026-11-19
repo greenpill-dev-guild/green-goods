@@ -645,9 +645,9 @@ describe("GardenPoolTab (W7)", () => {
     // The act in flight takes the pill and leads the details, and its line is still announced.
     expect(within(rows[1]).getByText("Confirming…")).toBeInTheDocument();
     expect(phaseLine(rows[1])).toHaveAttribute("role", "status");
-    expect(phaseLine(rows[1])).toHaveTextContent("Confirm in your wallet.");
+    expect(phaseLine(rows[1])).toHaveTextContent("Confirm in your wallet");
     expect(rows[1].querySelector(".gg-item-row-details")).toHaveTextContent(
-      "Confirm in your wallet."
+      "Confirm in your wallet"
     );
     // A failed act leads in the error color, as its phase line did.
     expect(rows[2].querySelector('.gg-item-row-detail[data-tone="error"]')).toHaveTextContent(

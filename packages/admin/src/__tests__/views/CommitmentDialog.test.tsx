@@ -83,18 +83,21 @@ vi.mock("@/components/AdminReasonDialog", () => ({
   AdminReasonDialog: ({
     isOpen,
     title,
+    description,
     confirmLabel,
     onConfirm,
     children,
   }: {
     isOpen: boolean;
     title: string;
+    description?: string;
     confirmLabel: string;
     onConfirm: (reason: string) => void | Promise<void>;
     children?: React.ReactNode;
   }) =>
     isOpen ? (
       <div role="dialog" aria-label={title}>
+        {description ? <p>{description}</p> : null}
         {children}
         <button type="button" onClick={() => void onConfirm("because")}>
           {confirmLabel}
@@ -647,6 +650,41 @@ describe("CommitmentDialogPanel (W10)", () => {
     expect(within(asks[1]!).queryByRole("button")).not.toBeInTheDocument();
   });
 
+  it("says an ask closed with its canceled promise, not that another ask was approved", () => {
+    const record = commitment({
+      onchainState: "CANCELLED",
+      derivedState: "CANCELLED",
+      state: "CANCELLED",
+      direction: "REQUEST",
+      leadProvider: null,
+      counterparty: null,
+    });
+    mocks.controller = controller({
+      commitment: record,
+      detail: commitmentDetailFixture({
+        commitment: record,
+        claimRequests: [
+          claimFixture({
+            commitmentId: 9n,
+            claimant: TAKER,
+            state: "SUPERSEDED",
+            resolutionCode: "COMMITMENT_CANCELLED",
+            resolvedAt: 1_755_950_000,
+          }),
+        ],
+      }),
+    });
+    renderPanel();
+    const [ask] = within(screen.getByRole("region", { name: "Who asked" })).getAllByRole(
+      "listitem"
+    );
+
+    expect(ask).toHaveAttribute("data-state", "closed");
+    expect(within(ask!).getByText("Closed")).toBeInTheDocument();
+    expect(ask).toHaveTextContent(/promise canceled/);
+    expect(ask).not.toHaveTextContent(/Not chosen|another ask was approved/);
+  });
+
   it("offers Edit Reward on a promise that stands alone, only while nobody has taken it", () => {
     const untaken = {
       onchainState: "REQUESTED" as const,
@@ -698,6 +736,33 @@ describe("CommitmentDialogPanel (W10)", () => {
     expect(within(routine).queryByRole("button", { name: /expire now/i })).not.toBeInTheDocument();
     const expire = screen.getByRole("button", { name: /expire now/i });
     expect(expire.closest('[data-slot="expire"]')).not.toBeNull();
+  });
+
+  it("lets a steward cancel a promise nobody has taken up, with a reason, in its own row", async () => {
+    mocks.controller = controller({
+      commitment: { onchainState: "OFFERED", derivedState: "OFFERED", state: "OFFERED" },
+      can: can({ cancel: true, acceptClaim: true, declineClaim: true }),
+    });
+    const steward = renderPanel();
+    const cancel = screen.getByRole("button", { name: /^cancel promise…$/i });
+    expect(cancel.closest('[data-slot="cancel"]')).not.toBeNull();
+    // The Accepted section, with its own cancel, is not drawn on an untaken record.
+    expect(screen.queryByTestId("commitment-accepted-acts")).not.toBeInTheDocument();
+
+    fireEvent.click(cancel);
+    const dialog = screen.getByRole("dialog", { name: /cancel this promise/i });
+    expect(dialog).toHaveTextContent("Nobody has taken this up yet.");
+    fireEvent.click(within(dialog).getByRole("button", { name: /^cancel promise$/i }));
+    await waitFor(() => expect(mocks.controller!.acts.cancel).toHaveBeenCalledWith("because"));
+    steward.unmount();
+
+    // Without the steward's cancel, an untaken record offers none.
+    mocks.controller = controller({
+      commitment: { onchainState: "REQUESTED", derivedState: "REQUESTED", state: "REQUESTED" },
+      can: can({ cancel: false }),
+    });
+    renderPanel();
+    expect(screen.queryByRole("button", { name: /cancel promise/i })).not.toBeInTheDocument();
   });
 
   // ConfirmLib.markReadyForConfirmation waives the requirement counters and the

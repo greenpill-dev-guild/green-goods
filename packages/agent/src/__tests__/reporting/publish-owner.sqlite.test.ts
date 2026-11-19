@@ -50,10 +50,12 @@ const CHECK_STOPPED =
 const ATTESTATION_UNREAD =
   "The transaction is confirmed, but I still can't read its attestation details, so I've stopped checking. You don't need to sign or send anything again. If your report doesn't show in the garden, write to contact@greengoods.app.";
 const STILL_CONFIRMING =
-  "Your report was sent and is still being confirmed, which can take a few minutes. You can leave this chat; I'll message you when it's published. You don't need to send it again.";
+  "Sent. Confirming is taking longer than usual. You can leave, and you don't need to send it again. I'll message you when your report is published.";
 const LINK_EXPIRED =
   "Your publishing link expired before anything was sent, so nothing was published. Your report is saved; reply RETRY for a new link.";
 const AWAITING_SIGNATURE = "Your report for TAS is waiting for your signature.";
+const PUBLISHED_CHECKING =
+  "Your report is published. The Green Goods team is checking its record, so I can't send the link yet. You don't need to sign or send anything again.";
 
 function count(text: string): number {
   return sentTexts().filter((sent) => sent === text).length;
@@ -507,6 +509,9 @@ describe("owner publication", () => {
     await exhaustChainCheck();
     expect(checks()).toEqual([{ state: "failed" }, { state: "failed" }]);
     expect(sentTexts().filter((text) => text === CHECK_STOPPED)).toHaveLength(1);
+    // The chat already said it can't tell whether this was sent, so the late hash brings no
+    // still-confirming line to contradict it.
+    expect(sentTexts()).not.toContain(STILL_CONFIRMING);
   });
 
   it("lets chain evidence that a replayed check finds override its earlier stop, and says when that check stops too", async () => {
@@ -685,6 +690,49 @@ describe("owner publication", () => {
     expect(sentTexts().at(-1)).toBe("Your report is published ✅");
     expect(count(STILL_CONFIRMING)).toBe(1);
     expect(sentTexts().some((text) => /fail/i.test(text))).toBe(false);
+  });
+
+  it("tells the reporter once that a report found on chain twice is published and being checked", async () => {
+    await confirmLinkAndPublish(harness);
+    const { browser, view, envelope } = await openSigningPage(harness);
+    const attempt = await reserve(browser, view, envelope);
+    // The same exact report lands twice, and the page reports a hash the chain has no receipt
+    // for, so the check searches the range and finds both. That is for an operator to settle.
+    send(envelope);
+    send(envelope);
+    const sentBefore = sentTexts().length;
+    await reportOutcome(browser, view, envelope, attempt.body.attemptId, {
+      kind: "broadcast",
+      transactionHash: `0x${"ab".repeat(32)}`,
+    });
+    await harness.drain();
+    expect(row("SELECT state, failure_code FROM execution_operations")).toEqual({
+      state: "reconciling",
+      failure_code: "multiple_matches",
+    });
+    expect(sentTexts().slice(sentBefore)).toEqual([PUBLISHED_CHECKING]);
+    // Every later pass finds the same two, and the chat hears it only once.
+    await exhaustChainCheck();
+    expect(count(PUBLISHED_CHECKING)).toBe(1);
+    expect(sentTexts()).not.toContain(CHECK_STOPPED);
+    expect(sentTexts()).not.toContain(STILL_CONFIRMING);
+    // STATUS agrees with what the chat said, rather than that the report is being published.
+    expect(await harness.say(ADA, "STATUS")).toEqual([PUBLISHED_CHECKING]);
+  });
+
+  it("still tells a reporter who sent STOP that a report found on chain twice is published", async () => {
+    await confirmLinkAndPublish(harness);
+    const { browser, view, envelope } = await openSigningPage(harness);
+    const attempt = await reserve(browser, view, envelope);
+    send(envelope);
+    send(envelope);
+    await harness.say(ADA, "STOP");
+    await reportOutcome(browser, view, envelope, attempt.body.attemptId, {
+      kind: "broadcast",
+      transactionHash: `0x${"ab".repeat(32)}`,
+    });
+    await harness.drain();
+    expect(sentTexts().at(-1)).toBe(PUBLISHED_CHECKING);
   });
 
   it("waits for a reported hash that is not mined yet instead of calling it a conflict", async () => {
@@ -901,6 +949,32 @@ describe("signing links", () => {
     );
     await harness.drain();
     expect(count(LINK_EXPIRED)).toBe(said);
+  });
+
+  it("reads NEW LINK as asking for a fresh signing link, not for another account", async () => {
+    await confirmLinkAndPublish(harness);
+    const expired = latestLink(harness);
+    harness.clock.advance(harness.core.settings.linkChallengeTtlMs);
+    await harness.drain();
+    expect(sentTexts().at(-1)).toBe(LINK_EXPIRED);
+
+    const fresh = await harness.say(ADA, "new link");
+    expect(fresh[0]).toContain(
+      "Open this page to review and sign the exact publication with your wallet."
+    );
+    expect(latestLink(harness)).not.toBe(expired);
+    // The chat is still linked to the same account.
+    expect((await harness.say(ADA, "ACCOUNT"))[0]).toContain(
+      `This chat is connected to ${adaAccount.address.toLowerCase()}.`
+    );
+  });
+
+  it("reads NEW LINK in a chat with no account as asking for the link to connect one", async () => {
+    await harness.say(ADA, "START");
+    await harness.say(ADA, "yes");
+    expect((await harness.say(ADA, "new link"))[0]).toContain(
+      "To connect your Green Goods account (wallet or passkey), verify it here."
+    );
   });
 
   it("says the link expired once when STATUS asks before the expiry notice goes out", async () => {

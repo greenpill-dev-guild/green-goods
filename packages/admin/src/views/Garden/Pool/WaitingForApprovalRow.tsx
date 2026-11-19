@@ -1,7 +1,10 @@
 import { Button } from "@green-goods/shared/components/Button";
 import type { ItemRowTone } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
-import type { WaitingRow } from "@green-goods/shared/hooks/admin-ui/pool/useWaitingForApproval";
+import {
+  isStillWaiting,
+  type WaitingRow,
+} from "@green-goods/shared/hooks/admin-ui/pool/useWaitingForApproval";
 import { useLocalizedRelativeTime } from "@green-goods/shared/hooks/app/useLocalizedRelativeTime";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiCheckLine, RiLoader4Line } from "@remixicon/react";
@@ -60,11 +63,8 @@ export function WaitingForApprovalRow({
   const { formatMessage } = intl;
   const age = useLocalizedRelativeTime();
   const { row, state } = item;
-  const decided =
-    state.status === "approved" ||
-    state.status === "declined" ||
-    state.status === "not-chosen" ||
-    state.status === "gone";
+  // Every state past waiting is decided, so a new kind of outcome never offers the buttons again.
+  const decided = !isStillWaiting(state);
   const name = (
     <ClaimantName
       claim={row.claim}
@@ -140,9 +140,12 @@ export function WaitingForApprovalRow({
           className="h-4 w-4 shrink-0 animate-spin text-text-soft motion-reduce:animate-none"
           aria-hidden
         />
-        <ActPhaseLine phase={item.phase} chainId={chainId} confirmed="" />
+        <ActPhaseLine phase={item.phase} confirmed="" />
       </span>
     );
+  } else if (state.status === "held") {
+    // It may still land, or the wallet may still hold it: the line says which, and no Approve.
+    action = <ActPhaseLine phase={item.phase} confirmed="" />;
   } else if (state.status === "approved") {
     action = (
       <StatusBadge variant="success" size="sm" icon={<RiCheckLine className="h-3 w-3" />}>

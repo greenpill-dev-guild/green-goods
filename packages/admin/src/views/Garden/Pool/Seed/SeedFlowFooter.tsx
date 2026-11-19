@@ -1,4 +1,4 @@
-import { Button } from "@green-goods/shared/components/Button";
+import { SheetActions } from "@green-goods/shared/components/Dialog/SheetActions";
 import {
   CREATION_BUNDLE_SIZE,
   type CreationSendMode,
@@ -42,6 +42,7 @@ export function SeedFlowNote({
   mode,
   count,
   reason,
+  testId,
 }: {
   phase: string;
   busy: boolean;
@@ -50,6 +51,7 @@ export function SeedFlowNote({
   count: number;
   /** Why the button is off, when it is. */
   reason: string | null;
+  testId?: string;
 }) {
   const { formatMessage } = useIntl();
   const note =
@@ -94,7 +96,7 @@ export function SeedFlowNote({
                       "They wait in this device's queue until you send them from the Promises tab.",
                   })
                 : null));
-  return note ? <span role="status">{note}</span> : null;
+  return note ? <span data-testid={testId}>{note}</span> : null;
 }
 
 /**
@@ -126,117 +128,90 @@ export function SeedFlowFooter({
 
   if (!isLast) {
     return (
-      <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-        <Button
-          type="button"
-          emphasis={stepIndex === 0 ? "tertiary" : "secondary"}
-          size="sm"
-          onClick={() => (stepIndex === 0 ? onCancel() : onBack())}
-          className="self-start sm:self-auto"
-        >
-          {stepIndex === 0
-            ? formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })
-            : formatMessage({ id: "app.common.back", defaultMessage: "Back" })}
-        </Button>
-        <Button
-          type="button"
-          emphasis="primary"
-          size="sm"
-          onClick={onNext}
-          className="w-full sm:w-auto"
-        >
-          {formatMessage({ id: "app.common.next", defaultMessage: "Next" })}
-        </Button>
-      </div>
+      <SheetActions
+        layout="steps"
+        primary={{
+          label: formatMessage({ id: "app.common.next", defaultMessage: "Next" }),
+          onClick: onNext,
+        }}
+        secondary={{
+          label:
+            stepIndex === 0
+              ? formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })
+              : formatMessage({ id: "app.common.back", defaultMessage: "Back" }),
+          onClick: () => (stepIndex === 0 ? onCancel() : onBack()),
+        }}
+      />
     );
   }
 
   if (status.phase === "created" || status.phase === "finishLater") {
     return (
-      <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-        <Button
-          type="button"
-          emphasis="primary"
-          size="sm"
-          onClick={onDone}
-          className="w-full sm:w-auto"
-        >
-          {formatMessage({ id: "app.common.done", defaultMessage: "Done" })}
-        </Button>
-      </div>
+      <SheetActions
+        primary={{
+          label: formatMessage({ id: "app.common.done", defaultMessage: "Done" }),
+          onClick: onDone,
+        }}
+      />
     );
   }
 
   const retrying = status.retry > 0;
+  const back = {
+    label: formatMessage({ id: "app.common.back", defaultMessage: "Back" }),
+    onClick: onBack,
+    disabled: busy || backDisabled,
+  };
+  const addAnother = canAddAnother && !retrying;
 
   return (
-    <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
-      <p className="min-w-0 type-meta text-text-soft sm:flex-1" data-testid="seed-prompt-count">
+    <SheetActions
+      // Back and Create share a row; a third choice stacks them instead.
+      layout={addAnother ? "stack" : "steps"}
+      note={
         <SeedFlowNote
+          testId="seed-prompt-count"
           phase={status.phase}
           busy={busy}
           mode={mode}
           count={retrying ? status.retry : total}
           reason={createDisabled ? blockedReason : null}
         />
-      </p>
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-        <Button
-          type="button"
-          emphasis="secondary"
-          size="sm"
-          onClick={onBack}
-          disabled={busy || backDisabled}
-          className="self-start sm:self-auto"
-        >
-          {formatMessage({ id: "app.common.back", defaultMessage: "Back" })}
-        </Button>
-        {canAddAnother && !retrying ? (
-          <Button
-            type="button"
-            emphasis="secondary"
-            size="sm"
-            onClick={onAddAnother}
-            disabled={busy || addAnotherDisabled}
-            className="w-full sm:w-auto"
-          >
-            {formatMessage({
-              id: "hub.garden.pool.seed.addAnother",
-              defaultMessage: "Add Another Like This",
-            })}
-          </Button>
-        ) : null}
-        <Button
-          type="button"
-          emphasis="primary"
-          size="sm"
-          onClick={onCreate}
-          disabled={busy || createDisabled}
-          loading={busy}
-          className="w-full sm:w-auto"
-        >
-          {retrying
-            ? status.phase === "partial"
-              ? formatMessage(
-                  {
-                    id: "hub.garden.pool.seed.tryAgainCount",
-                    defaultMessage: "Try Again ({count})",
-                  },
-                  { count: status.retry }
-                )
-              : formatMessage({
-                  id: "hub.garden.pool.setup.retry",
-                  defaultMessage: "Try Again",
-                })
-            : formatMessage(
-                {
-                  id: "hub.garden.pool.seed.create",
-                  defaultMessage: "{count, plural, one {Create Promise} other {Create # Promises}}",
-                },
-                { count: total }
-              )}
-        </Button>
-      </div>
-    </div>
+      }
+      primary={{
+        label: retrying
+          ? status.phase === "partial"
+            ? formatMessage(
+                { id: "hub.garden.pool.seed.tryAgainCount", defaultMessage: "Try Again ({count})" },
+                { count: status.retry }
+              )
+            : formatMessage({ id: "hub.garden.pool.setup.retry", defaultMessage: "Try Again" })
+          : formatMessage(
+              {
+                id: "hub.garden.pool.seed.create",
+                defaultMessage: "{count, plural, one {Create Promise} other {Create # Promises}}",
+              },
+              { count: total }
+            ),
+        onClick: onCreate,
+        disabled: busy || createDisabled,
+        loading: busy,
+      }}
+      secondary={
+        addAnother
+          ? [
+              back,
+              {
+                label: formatMessage({
+                  id: "hub.garden.pool.seed.addAnother",
+                  defaultMessage: "Add Another Like This",
+                }),
+                onClick: onAddAnother,
+                disabled: busy || addAnotherDisabled,
+              },
+            ]
+          : back
+      }
+    />
   );
 }
