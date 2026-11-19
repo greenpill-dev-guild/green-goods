@@ -1001,10 +1001,13 @@ function invert(renames) {
 
 /**
  * Counts above the baseline (grown, including files it does not list) and below it (stale).
- * `renames` maps a new path to its old one, so a moved file keeps its old path's allowance.
+ * `renames` maps a new path to its old one, so a moved file keeps its old path's allowance. Every
+ * baseline entry is judged at its own path, so a renamed file's old entry is stale in the rename's
+ * own change until `--baseline-shrink` moves it. Judging it at the new path let the rename merge
+ * with the old key, and then every later change failed: the new path read as grown, and the shrink
+ * refused while anything grew.
  */
 export function compareRatchet(baselineCounts, counts, renames = new Map()) {
-  const movedTo = invert(renames);
   const grown = [];
   const stale = [];
   eachCount(counts, (rule, file, now) => {
@@ -1012,8 +1015,8 @@ export function compareRatchet(baselineCounts, counts, renames = new Map()) {
     if (now > was) grown.push({ rule, file, was, now });
   });
   eachCount(baselineCounts, (rule, file, was) => {
-    const now = counts?.[rule]?.[file] ?? counts?.[rule]?.[movedTo.get(file)] ?? 0;
-    if (now < was) stale.push({ rule, file: movedTo.get(file) ?? file, was, now });
+    const now = counts?.[rule]?.[file] ?? 0;
+    if (now < was) stale.push({ rule, file, was, now });
   });
   return { grown, stale };
 }
