@@ -331,9 +331,9 @@ export function PoolCommitmentsCard({
                     takes && voucher ? { takes, booking: voucher.note, promisedBy: "" } : undefined
                   }
                   amount={
-                    holder
+                    bookedBy
                       ? {
-                          value: holder,
+                          value: bookedBy,
                           caption: formatMessage({
                             id: "hub.garden.pool.voucher.row.holder",
                             defaultMessage: "booked",
