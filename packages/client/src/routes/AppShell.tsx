@@ -3,7 +3,10 @@ import { configureConnectivityProbe } from "@green-goods/shared/hooks/app/useOnl
 import { scrollAppToTop } from "@green-goods/shared/hooks/app/useScrollToTop";
 import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
 import { useWalletNetworkAlignment } from "@green-goods/shared/hooks/blockchain/useWalletNetworkAlignment";
-import { useActiveGarden } from "@green-goods/shared/hooks/garden/useActiveGarden";
+import {
+  useActiveGarden,
+  useFollowRememberedGarden,
+} from "@green-goods/shared/hooks/garden/useActiveGarden";
 import { useDocumentScrollLockLifecycle } from "@green-goods/shared/hooks/ui/useDocumentScrollLock";
 import { logger } from "@green-goods/shared/modules/app/logger";
 import { JobQueueProvider } from "@green-goods/shared/providers/JobQueue";
@@ -51,6 +54,9 @@ export default function AppShell() {
   // aside, and immersive routes draw their own fixed bar where the nav would sit, so both keep it.
   const { gardenId } = useActiveGarden();
   const reservesAppBar = gardenId !== null || isImmersiveAppRoute(pathname);
+  // A list of the account's gardens that leaves the remembered one out is read again soon, so
+  // Home returns to that garden (PRD-1505).
+  useFollowRememberedGarden();
 
   useDocumentScrollLockLifecycle(pathname);
 
