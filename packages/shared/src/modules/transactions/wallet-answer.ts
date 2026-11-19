@@ -1,17 +1,53 @@
 /**
- * Safe proposal answers
+ * The wallet's answer to a send: waiting for it, and what it is (PRD-1551).
+ *
+ * The person can stop waiting for a wallet that has not answered. The wallet may still hold the
+ * request, so an answer that comes after that is handed on rather than dropped.
  *
  * A Safe is a contract, so it cannot send a transaction itself. Safe{Wallet} answers a send with
  * the proposal's own hash (its safeTxHash): 32 bytes, so it looks like a transaction hash, but no
  * transaction has it and no receipt ever comes. The proposal lands only once the Safe's owners
  * approve it and someone runs it, under another hash. A receipt wait on that answer has nothing to
- * wait for (PRD-1551, from the PRD-1262 fork walk).
+ * wait for (from the PRD-1262 fork walk).
  *
- * @module modules/transactions/safe-proposal
+ * @module modules/transactions/wallet-answer
  */
 
 import { type Hex, parseAbi } from "viem";
 import type { Address } from "../../types/domain";
+import { WalletAnswerAbandonedError } from "./types";
+
+/**
+ * The wallet's answer, or `WalletAnswerAbandonedError` once the person stops waiting for it. An
+ * answer that comes after that goes to `late`, since the wallet may still send what it was asked.
+ */
+export function untilAbandoned<T>(
+  answer: Promise<T>,
+  signal: AbortSignal | undefined,
+  late: (value: T) => void
+): Promise<T> {
+  if (!signal) return answer;
+  return new Promise<T>((resolve, reject) => {
+    let abandoned = signal.aborted;
+    if (abandoned) reject(new WalletAnswerAbandonedError());
+    const abandon = () => {
+      abandoned = true;
+      reject(new WalletAnswerAbandonedError());
+    };
+    signal.addEventListener("abort", abandon, { once: true });
+    answer.then(
+      (value) => {
+        signal.removeEventListener("abort", abandon);
+        if (abandoned) late(value);
+        else resolve(value);
+      },
+      (error: unknown) => {
+        signal.removeEventListener("abort", abandon);
+        if (!abandoned) reject(error);
+      }
+    );
+  });
+}
 
 /** What the wallet's answer to a send is: a transaction, or a proposal for a Safe's owners. */
 export type WalletAnswer = "transaction" | "safe-proposal";

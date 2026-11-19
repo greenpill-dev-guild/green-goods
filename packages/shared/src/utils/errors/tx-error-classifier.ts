@@ -1,3 +1,4 @@
+import type { ParsedContractError } from "./contract-errors";
 import { extractErrorMessage } from "./extract-message";
 import { wrongWalletNetwork } from "./wallet-network-refusal";
 
@@ -333,6 +334,25 @@ export function isUnconfirmedTxError(error: unknown): boolean {
     hasErrorName(error, UNCONFIRMED_ERROR_NAMES) ||
     (error instanceof Error && error.message === HELD_BY_ANOTHER_SEND)
   );
+}
+
+/**
+ * How `parseContractError` reads a send that went out with no receipt yet (its wait outlasted
+ * its limit, or the answer was a proposal or a lost reply): in the words `classifyTxError` uses,
+ * never as failed, nor as a timeout that invites trying again (PRD-1551).
+ */
+export function parseUnconfirmedSend(error: unknown, raw: string): ParsedContractError | null {
+  if (!isUnconfirmedTxError(error)) return null;
+  return {
+    raw,
+    name: "SendStillConfirming",
+    message: "It could still go through, so wait a moment and check before you try again.",
+    titleKey: "app.txFeedback.unconfirmed.title",
+    messageKey: "app.txFeedback.unconfirmed.message",
+    isKnown: true,
+    recoverable: false,
+    suggestedAction: "check-wallet",
+  };
 }
 
 /** Some non-standard tokens revert on allowance(), which is not the same as a failed read. */

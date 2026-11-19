@@ -49,7 +49,7 @@ import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { isCanonicalTransactionHash } from "./confirmation";
 import { type EstimateTransactionGas, walletGasLimit } from "./gas-headroom";
 import { waitForReceipt } from "./receipt-wait";
-import { readWalletAnswer, type WalletAnswer } from "./safe-proposal";
+import { readWalletAnswer, untilAbandoned, type WalletAnswer } from "./wallet-answer";
 import { reconcileWalletBroadcast } from "./wallet-reconciliation";
 import { quoteWalletBatch } from "./wallet-batch-preflight";
 import { logger } from "../app/logger";
@@ -94,38 +94,6 @@ export interface WalletSenderDeps extends WalletBatchDeps {
   ) => Promise<{ status: string; transactionHash?: Hex }>;
   /** Whether the wallet's answer is a transaction or a Safe proposal; defaults to `readWalletAnswer` on the chain's client. */
   readWalletAnswer?: (account: Address, hash: Hex, chainId: number) => Promise<WalletAnswer>;
-}
-
-/**
- * The wallet's answer, or `WalletAnswerAbandonedError` once the person stops waiting for it. An
- * answer that comes after that goes to `late`, since the wallet may still send what it was asked.
- */
-function untilAbandoned<T>(
-  answer: Promise<T>,
-  signal: AbortSignal | undefined,
-  late: (value: T) => void
-): Promise<T> {
-  if (!signal) return answer;
-  return new Promise<T>((resolve, reject) => {
-    let abandoned = signal.aborted;
-    if (abandoned) reject(new WalletAnswerAbandonedError());
-    const abandon = () => {
-      abandoned = true;
-      reject(new WalletAnswerAbandonedError());
-    };
-    signal.addEventListener("abort", abandon, { once: true });
-    answer.then(
-      (value) => {
-        signal.removeEventListener("abort", abandon);
-        if (abandoned) late(value);
-        else resolve(value);
-      },
-      (error: unknown) => {
-        signal.removeEventListener("abort", abandon);
-        if (!abandoned) reject(error);
-      }
-    );
-  });
 }
 
 export class WalletSender implements TransactionSender {

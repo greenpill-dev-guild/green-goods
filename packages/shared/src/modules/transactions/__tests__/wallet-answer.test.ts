@@ -1,7 +1,7 @@
 // TEST-QUALITY: allow-small-test-file - the senders inject this read, so only here do its account kinds meet the answer they decide.
 import type { Hex } from "viem";
 import { describe, expect, it, vi } from "vitest";
-import { readWalletAnswer, type WalletAnswerReader } from "../safe-proposal";
+import { readWalletAnswer, type WalletAnswerReader } from "../wallet-answer";
 
 const ACCOUNT = "0x1111111111111111111111111111111111111111";
 const ANSWER = `0x${"5a".repeat(32)}` as Hex;
