@@ -32,7 +32,7 @@
 | D | Hub queue, folded list, reserve card, phone order | side session | building |
 | E | Accept and Start; one Confirm Your Visit sheet | orchestrator | after C and D |
 | F | Offer and Request wording sweep | orchestrator | last |
-| G | Protocol scoping note (RESR-119) | orchestrator | while C and D build |
+| G | Protocol scoping note (RESR-119), folded into B: `.plans/backlog/cosmo-local-credit-interop/research/voucher-booking-protocol-changes-2026-11-19.md` | orchestrator | written |
 
 ## Coordination
 
