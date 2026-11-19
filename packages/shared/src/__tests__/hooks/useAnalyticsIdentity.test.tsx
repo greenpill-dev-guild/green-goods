@@ -23,6 +23,11 @@ vi.mock("../../modules/app/posthog", () => ({
   track: (...args: unknown[]) => mockTrack(...args),
 }));
 
+const mockSetTelemetryAccount = vi.fn(async () => "unknown");
+vi.mock("../../modules/app/telemetry-context", () => ({
+  setTelemetryAccount: (address: string | null) => mockSetTelemetryAccount(address),
+}));
+
 // Mock useAuth hook
 const mockUseAuth = vi.fn();
 vi.mock("../../hooks/auth/useAuth", () => ({
@@ -129,6 +134,10 @@ describe("useAnalyticsIdentity", () => {
       auth_mode: "passkey",
       app: "client",
     });
+    // Later events say whether this account is one of ours.
+    expect(mockSetTelemetryAccount).toHaveBeenCalledWith(
+      "0x1234567890abcdef1234567890abcdef12345678"
+    );
   });
 
   it("should reset on logout", () => {
@@ -171,6 +180,7 @@ describe("useAnalyticsIdentity", () => {
       app: "admin",
     });
     expect(mockReset).toHaveBeenCalled();
+    expect(mockSetTelemetryAccount).toHaveBeenCalledWith(null);
   });
 
   it("should re-identify when address changes while authenticated", () => {

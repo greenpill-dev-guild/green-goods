@@ -7,6 +7,7 @@ import {
   dropSkippedTransitionExceptions,
   initializePostHog,
   protectReportingCeremonies,
+  tagExternalExceptions,
 } from "../../modules/app/posthog-browser";
 import { recordCrash } from "../../modules/app/crash-reports";
 import { restoreExceptionTopLevelProps } from "../../modules/app/posthog";
@@ -229,7 +230,7 @@ describe("initializePostHog", () => {
     vi.clearAllMocks();
   });
 
-  it("protects ceremony pages, then drops development-host exceptions before other filtering", () => {
+  it("protects ceremony pages, drops development-host exceptions first, and tags external ones last", () => {
     initializePostHog("test-project-key");
 
     expect(posthogMock.init).toHaveBeenCalledWith(
@@ -241,6 +242,7 @@ describe("initializePostHog", () => {
           restoreExceptionTopLevelProps,
           dropExtensionExceptions,
           dropSkippedTransitionExceptions,
+          tagExternalExceptions,
         ],
       })
     );

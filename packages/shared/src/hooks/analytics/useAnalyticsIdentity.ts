@@ -19,6 +19,7 @@
 import { useEffect, useRef } from "react";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { identifyWithProperties, reset, track } from "../../modules/app/posthog";
+import { setTelemetryAccount } from "../../modules/app/telemetry-context";
 import { useAuth } from "../auth/useAuth";
 import { useUser } from "../auth/useUser";
 
@@ -80,6 +81,9 @@ export function useAnalyticsIdentity(options: UseAnalyticsIdentityOptions) {
       current.primaryAddress;
 
     if (justLoggedIn || addressChanged) {
+      // Place the account against the deployment's test-account records (PRD-1560).
+      void setTelemetryAccount(current.primaryAddress);
+
       // Identify with the new address
       identifyWithProperties(current.primaryAddress!, {
         auth_mode: current.authMode,
@@ -107,6 +111,7 @@ export function useAnalyticsIdentity(options: UseAnalyticsIdentityOptions) {
 
       // Reset PostHog identity
       reset();
+      void setTelemetryAccount(null);
     }
 
     // Update ref for next comparison

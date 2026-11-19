@@ -18,6 +18,7 @@ import {
   assertSentryDsnResolvable,
   dropVercelFrameworkVariables,
 } from "../../scripts/lib/env-parity.mjs";
+import { telemetryBuildDefines } from "../../scripts/lib/telemetry-build.mjs";
 import { resolveTunnelHmrConfig } from "../../scripts/lib/vite-tunnel-hmr.js";
 import {
   createPwaManifestBranding,
@@ -564,6 +565,7 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
       "import.meta.env.VITE_APP_VERSION": JSON.stringify(shortAppVersion),
       "import.meta.env.VITE_SENTRY_CLIENT_DSN": JSON.stringify(sentryDsn ?? ""),
       "import.meta.env.VITE_SENTRY_ENVIRONMENT": JSON.stringify(sentryEnvironment),
+      ...telemetryBuildDefines({ surface: "app", release: sentryRelease }),
       "process.env.NODE_ENV": JSON.stringify(nodeEnv),
     },
     oxc: {

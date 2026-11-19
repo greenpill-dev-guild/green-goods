@@ -1,5 +1,6 @@
 import { type CaptureResult, posthog } from "posthog-js";
 import { flushCrashReports } from "./crash-reports";
+import { classifyExternalError, externalErrorTags } from "./external-errors";
 import { getAppContext, restoreExceptionTopLevelProps, track } from "./posthog";
 import { isReportingCeremonyPath, redactPrivatePaths } from "./private-paths";
 import { registerTelemetrySink } from "./telemetry-sink";
@@ -20,6 +21,8 @@ type ExceptionEntry = {
   stacktrace?: { frames?: unknown };
   value?: unknown;
 };
+
+type ExceptionFrame = { abs_path?: unknown; filename?: unknown } | null;
 
 /** Drop extension-owned exceptions while preserving frameless application failures. */
 export function dropExtensionExceptions(event: CaptureResult | null): CaptureResult | null {
@@ -64,6 +67,41 @@ export function dropSkippedTransitionExceptions(event: CaptureResult | null): Ca
   );
 
   return isSkippedTransition ? null : event;
+}
+
+/**
+ * Tag WalletConnect relay and beta toolbar exceptions as external (PRD-1560). A relay reconnect
+ * that nothing of ours handled drops to a warning; see `external-errors`.
+ */
+export function tagExternalExceptions(event: CaptureResult | null): CaptureResult | null {
+  if (!event || event.event !== "$exception" || !event.properties) return event;
+
+  const list = event.properties.$exception_list;
+  if (!Array.isArray(list)) return event;
+
+  const entries = list as ExceptionEntry[];
+  const external = classifyExternalError({
+    messages: entries.map((entry) => entry?.value),
+    locations: entries.flatMap((entry) =>
+      Array.isArray(entry?.stacktrace?.frames)
+        ? (entry.stacktrace.frames as ExceptionFrame[]).flatMap((frame) => [
+            frame?.abs_path,
+            frame?.filename,
+          ])
+        : []
+    ),
+  });
+  if (!external) return event;
+
+  const unhandled = entries.some((entry) => entry?.mechanism?.handled === false);
+  return {
+    ...event,
+    properties: {
+      ...event.properties,
+      ...externalErrorTags(external),
+      ...(external.recoverable && unhandled ? { $exception_level: "warning" } : {}),
+    },
+  };
 }
 
 /** Development hosts whose exceptions must never reach the shared production project. */
@@ -144,6 +182,7 @@ export function initializePostHog(apiKey: string): void {
       restoreExceptionTopLevelProps,
       dropExtensionExceptions,
       dropSkippedTransitionExceptions,
+      tagExternalExceptions,
     ],
     debug: import.meta.env.VITE_POSTHOG_DEBUG === "true",
   });
