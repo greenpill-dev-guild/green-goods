@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { jobQueueEventBus, useJobQueueEvents } from "../../modules/job-queue/event-bus";
 import type { JobSendPhase } from "../../modules/job-queue/ports";
+import { sendCheckpointOf } from "../../modules/job-queue/queue-policy";
 import type { Job } from "../../types/job-queue";
 
 /** A work job being sent now, and the stage its send reported, if it reported one yet. */
@@ -14,6 +15,15 @@ function isOwnWork(job: Job, account: string | null | undefined, chainId: number
     job.userAddress.toLowerCase() === account?.toLowerCase() &&
     (job.chainId ?? DEFAULT_CHAIN_ID) === chainId
   );
+}
+
+/**
+ * Where a try of this work starts: a work whose broadcast is on record went out, so a recheck of
+ * it is confirming, never uploading. Any other try reports its stage as it goes.
+ */
+function startingStage(job: Job): JobSendPhase["stage"] | null {
+  const sent = sendCheckpointOf(job);
+  return sent?.broadcast || sent?.transactionHash ? "confirming" : null;
 }
 
 /** The account's sends under way now, as the bus holds them. */
@@ -54,7 +64,7 @@ export function useSendingWork(account: string | null | undefined, chainId: numb
         const next = new Map(previous);
         // A try of a work Upload all just sent keeps saying confirming while the queue finishes it.
         if (event === "job:processing") {
-          if (!next.has(data.job.id)) next.set(data.job.id, null);
+          if (!next.has(data.job.id)) next.set(data.job.id, startingStage(data.job));
         } else if (event === "job:stage" && "stage" in data && data.stage)
           next.set(data.job.id, data.stage);
         else next.delete(data.job.id);

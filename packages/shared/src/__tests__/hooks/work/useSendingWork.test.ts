@@ -72,3 +72,20 @@ it("keeps a send's stage through an unrelated flush, dropping only marks with no
   expect([...result.current]).toEqual([[job.id, "wallet"]]);
   act(() => jobQueueEventBus.emit("job:stage", { jobId: job.id, job, stage: null }));
 });
+it("says a recheck of a work whose broadcast is on record is confirming, not uploading", () => {
+  const sent: Job = {
+    ...job,
+    id: "sent",
+    payload: { uploadCheckpoint: { transactionHash: `0x${"a".repeat(64)}`, files: {} } },
+  };
+  const { result } = renderHook(() => useSendingWork(account, 11155111));
+  act(() => jobQueueEventBus.emit("job:processing", { jobId: sent.id, job: sent }));
+  expect(result.current.get(sent.id)).toBe("confirming");
+  act(() => jobQueueEventBus.emit("job:processing", { jobId: job.id, job }));
+  expect(result.current.get(job.id)).toBeNull();
+  act(() =>
+    jobQueueEventBus.emit("queue:sync-completed", {
+      result: { processed: 2, failed: 0, skipped: 0 },
+    })
+  );
+});
