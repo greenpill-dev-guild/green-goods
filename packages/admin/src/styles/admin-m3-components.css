@@ -111,7 +111,8 @@
  * draws its hairline, the way DialogShell and ConfirmDialog set the bar's
  * padding from their own selectors (DL-117). The bar fills that row, so a note
  * takes the start and the actions keep to the end. */
-[data-component="AdminDialog"] [data-slot="actions"] > [data-component="SheetActions"] {
+[data-component="AdminDialog"] [data-slot="actions"] > [data-component="SheetActions"],
+[data-region="form-flow-actions"] > [data-component="SheetActions"] {
   flex: 1 1 auto;
   min-width: 0;
   padding: 0;

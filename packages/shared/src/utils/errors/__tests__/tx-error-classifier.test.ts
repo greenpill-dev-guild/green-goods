@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { TransactionConfirmationPendingError } from "../../../modules/transactions/types";
+import {
+  ReceiptWaitLimitError,
+  TransactionConfirmationPendingError,
+} from "../../../modules/transactions/types";
 import { classifyTxError, isCancelledTxError, isUnconfirmedTxError } from "../tx-error-classifier";
 
 describe("tx-error-classifier", () => {
   it.each([
     ["a send with no receipt", new TransactionConfirmationPendingError()],
+    ["a receipt that outlasted its send's limit", new ReceiptWaitLimitError(120_000)],
     ["a wallet receipt wait that ran out", named("WaitForTransactionReceiptTimeoutError")],
     ["a passkey receipt wait that ran out", named("WaitForUserOperationReceiptTimeoutError")],
     [

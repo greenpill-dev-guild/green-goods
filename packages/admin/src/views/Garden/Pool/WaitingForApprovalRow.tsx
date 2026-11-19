@@ -143,6 +143,9 @@ export function WaitingForApprovalRow({
         <ActPhaseLine phase={item.phase} chainId={chainId} confirmed="" />
       </span>
     );
+  } else if (state.status === "held") {
+    // It may still land, or the wallet may still hold it: the line says which, and no Approve.
+    action = <ActPhaseLine phase={item.phase} chainId={chainId} confirmed="" />;
   } else if (state.status === "approved") {
     action = (
       <StatusBadge variant="success" size="sm" icon={<RiCheckLine className="h-3 w-3" />}>

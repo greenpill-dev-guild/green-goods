@@ -1,4 +1,3 @@
-// TEST-QUALITY: allow-small-test-file - two sweeps of admin source, plus the anchor that keeps the exception list to files that still need it
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -14,7 +13,8 @@ import { describe, expect, it } from "vitest";
  * 2. The actions a dialog or flow stacks under its body are the shared
  *    `SheetActions` bar: 40px buttons 8px apart, the primary on top below 640px.
  *    A hand-built footer stacks the Hub's 32px buttons with their finger-box
- *    reserve, which leaves 20px between them.
+ *    reserve, which leaves 20px between them. A dialog cannot build one: its
+ *    `actions` are the bar's props, and the dialog draws the bar.
  */
 
 const ADMIN_SRC = join(__dirname, "..", "..");
@@ -71,6 +71,14 @@ describe("a field's button and a sheet's actions come from the system", () => {
       const file = files.find((entry) => entry.path === path);
       expect(file ? hits(file.text, HAND_LIFT).length : 0, path).toBeGreaterThan(0);
     }
+  });
+
+  it("types a dialog's footer as the action bar's props, so no caller lays out its own buttons", () => {
+    const dialog = files.find((file) => file.path === "components/AdminDialog.tsx");
+    expect(dialog?.text).toMatch(/\bactions\?: SheetActionsProps;/);
+    expect(dialog?.text).toContain("<SheetActions {...actions} />");
+    const formFlow = files.find((file) => file.path === "components/Layout/FormFlow.tsx");
+    expect(formFlow?.text).toMatch(/\bactions\?: SheetActionsProps;/);
   });
 
   it("stacks a dialog's or flow's actions with the shared SheetActions bar", () => {

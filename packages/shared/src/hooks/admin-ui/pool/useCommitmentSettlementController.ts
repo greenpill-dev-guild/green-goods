@@ -47,6 +47,7 @@ import type {
 import type { CommitmentDetail } from "../../../modules/commitment-pooling/types-relations";
 import type { Address } from "../../../types/domain";
 import { isZeroAddress } from "../../../utils/blockchain/address";
+import { mayStillLand } from "../../../utils/errors/tx-error-classifier";
 import { useOnlineStatus } from "../../app/useOnlineStatus";
 import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
 import { useCommitmentPoolingAvailability } from "../../commitment-pooling/useCommitmentPoolingAvailability";
@@ -166,7 +167,12 @@ export function useCommitmentSettlementController(input: {
         await refetch();
         return hash;
       } catch (error) {
-        setLastAct({ kind, phase: "failed", error });
+        // A send past its receipt limit went out and may still land: the step stays closed, as
+        // for a proposal, until the chain moves, and it never reads as failed (PRD-1551).
+        if (mayStillLand(error)) {
+          setProposedAt(before);
+          setLastAct({ kind, phase: "still-confirming" });
+        } else setLastAct({ kind, phase: "failed", error });
         // A rejected or reverted call changes nothing on chain; the read that
         // follows is what the panel renders from, never the attempt itself.
         await refetch().catch(() => undefined);
@@ -331,9 +337,9 @@ export function useCommitmentSettlementController(input: {
       resolved: !payerRoles.isLoading && !capabilities.isLoading,
     },
     acts,
-    // Once the chain moves, the proposal ran: the read says so, never the wallet.
+    // Once the chain moves, the proposal or the send ran: the read says so, never the wallet.
     lastAct:
-      lastAct?.phase === "proposed" && !proposalPending
+      (lastAct?.phase === "proposed" || lastAct?.phase === "still-confirming") && !proposalPending
         ? { ...lastAct, phase: "confirmed" }
         : lastAct,
     isActing,

@@ -1,10 +1,11 @@
+import type { SheetActionsProps } from "@green-goods/shared/components/Dialog/SheetActions";
 import { Button } from "@green-goods/shared/components/Button";
 import type { useGardenWorkspaceController } from "@green-goods/shared/hooks/admin-ui/garden/useGardenWorkspaceController";
 import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
 import type { Address } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiArrowGoBackLine, RiCloseLine, RiImageLine } from "@remixicon/react";
-import { type ReactNode, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminCard } from "@/components/AdminCard";
 import { AdminDialog } from "@/components/AdminDialog";
@@ -105,84 +106,62 @@ export function EditGardenDialog({
     void settingsEditorRef.current?.save();
   };
 
-  const buttons = (): ReactNode => {
+  const buttons = (): Pick<SheetActionsProps, "primary" | "secondary"> => {
     if (run?.status === "complete") {
-      return (
-        <Button
-          type="button"
-          emphasis="primary"
-          size="sm"
-          onClick={() => settingsDirtyClose.onOpenChange(false)}
-        >
-          {formatMessage({ id: "app.common.done", defaultMessage: "Done" })}
-        </Button>
-      );
+      return {
+        primary: {
+          label: formatMessage({ id: "app.common.done", defaultMessage: "Done" }),
+          onClick: () => settingsDirtyClose.onOpenChange(false),
+        },
+      };
     }
     if (
       run?.status === "stopped" ||
       run?.status === "unconfirmed" ||
       (run?.status === "running" && retrying)
     ) {
-      return (
-        <>
-          <Button
-            type="button"
-            emphasis="tertiary"
-            size="sm"
-            onClick={() => settingsEditorRef.current?.dismissRun()}
-            disabled={settingsForm.isSaving}
-          >
-            {formatMessage({
-              id: "app.garden.settings.save.keepEditing",
-              defaultMessage: "Keep Editing",
-            })}
-          </Button>
-          {/* An unknown save is not sent again: its alert says what can happen next. */}
-          {run.status === "unconfirmed" ? null : (
-            <Button
-              type="button"
-              emphasis="primary"
-              size="sm"
-              onClick={() => save(true)}
-              disabled={
-                !settingsForm.isDirty || settingsForm.isSaving || settingsForm.isSettlingHold
-              }
-              loading={settingsForm.isSaving}
-            >
-              {formatMessage({ id: "app.common.tryAgain", defaultMessage: "Try Again" })}
-            </Button>
-          )}
-        </>
-      );
+      return {
+        // An unknown save is not sent again: its alert says what can happen next.
+        primary:
+          run.status === "unconfirmed"
+            ? undefined
+            : {
+                label: formatMessage({ id: "app.common.tryAgain", defaultMessage: "Try Again" }),
+                onClick: () => save(true),
+                disabled:
+                  !settingsForm.isDirty || settingsForm.isSaving || settingsForm.isSettlingHold,
+                loading: settingsForm.isSaving,
+              },
+        secondary: {
+          label: formatMessage({
+            id: "app.garden.settings.save.keepEditing",
+            defaultMessage: "Keep Editing",
+          }),
+          onClick: () => settingsEditorRef.current?.dismissRun(),
+          disabled: settingsForm.isSaving,
+        },
+      };
     }
-    return (
-      <>
-        <Button
-          type="button"
-          emphasis="tertiary"
-          size="sm"
-          onClick={() => settingsDirtyClose.onOpenChange(false)}
-          disabled={settingsForm.isSaving}
-        >
-          {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-        </Button>
-        <Button
-          type="button"
-          emphasis="primary"
-          size="sm"
-          onClick={() => save(false)}
-          disabled={
-            !settingsForm.isDirty ||
-            settingsForm.hasValidationError ||
-            settingsForm.isSaving ||
-            settingsForm.isSettlingHold
-          }
-          loading={settingsForm.isSaving}
-        >
-          {formatMessage({ id: "app.garden.settings.saveChanges", defaultMessage: "Save Changes" })}
-        </Button>
-      </>
-    );
+    return {
+      primary: {
+        label: formatMessage({
+          id: "app.garden.settings.saveChanges",
+          defaultMessage: "Save Changes",
+        }),
+        onClick: () => save(false),
+        disabled:
+          !settingsForm.isDirty ||
+          settingsForm.hasValidationError ||
+          settingsForm.isSaving ||
+          settingsForm.isSettlingHold,
+        loading: settingsForm.isSaving,
+      },
+      secondary: {
+        label: formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" }),
+        onClick: () => settingsDirtyClose.onOpenChange(false),
+        disabled: settingsForm.isSaving,
+      },
+    };
   };
 
   return (
@@ -199,26 +178,24 @@ export function EditGardenDialog({
         })}
         bodyClassName="space-y-6"
         actions={
-          settingsForm.canEdit ? (
-            <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <p
-                className={cn(
-                  "type-meta",
-                  settingsForm.isDirty ? "text-warning-dark" : "text-text-soft"
-                )}
-                aria-live="polite"
-                data-slot="dirty-state"
-              >
-                {gardenSettingsSaveLine(
-                  run,
-                  settingsForm.dirtyCount,
-                  formatMessage,
-                  settingsForm.oneSignature
-                )}
-              </p>
-              <div className="flex items-center justify-end gap-2">{buttons()}</div>
-            </div>
-          ) : undefined
+          settingsForm.canEdit
+            ? {
+                note: (
+                  <span
+                    className={settingsForm.isDirty ? "text-warning-dark" : undefined}
+                    data-slot="dirty-state"
+                  >
+                    {gardenSettingsSaveLine(
+                      run,
+                      settingsForm.dirtyCount,
+                      formatMessage,
+                      settingsForm.oneSignature
+                    )}
+                  </span>
+                ),
+                ...buttons(),
+              }
+            : undefined
         }
       >
         {settingsForm.hold ? (

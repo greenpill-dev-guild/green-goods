@@ -7,11 +7,16 @@
  * The optional note is stored off-chain with the recent recipient; ERC-20 transfers
  * carry no on-chain memo.
  *
+ * A wallet send that waits on the wallet past `WALLET_NUDGE_MS` turns `notice` to
+ * `wallet-slow`, and `cancelWalletWait` stops waiting for the wallet's answer. The
+ * notice also says when a send stopped that way, went out and is still confirming,
+ * or is a Safe proposal waiting for its signers: none of those is a failure (PRD-1551).
+ *
  * @module hooks/blockchain/useSendToken
  */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits, isAddress, maxUint256 } from "viem";
 import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
@@ -23,12 +28,20 @@ import {
   type GoodDollarFeeQuote,
   quoteGoodDollarTransfer,
 } from "../../modules/wallet/good-dollar-fees";
+import { SEND_STAGE_WORDS, WALLET_NUDGE_MS } from "../../modules/transactions/send-stage";
+import {
+  asReceiptWaitLimit,
+  type TxResult,
+  WalletAnswerAbandonedError,
+} from "../../modules/transactions/types";
 import type { Address } from "../../types/domain";
 import { ERC20_BALANCE_ABI, ERC20_TRANSFER_ABI } from "../../utils/blockchain/abis/erc20";
+import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
+import { isUnconfirmedTxError, mayStillLand } from "../../utils/errors/tx-error-classifier";
 import { useUser } from "../auth/useUser";
 import { useSafeMutation } from "../utils/useSafeMutation";
-import { useDelayedInvalidation } from "../utils/useTimeout";
+import { useDelayedInvalidation, useTimeout } from "../utils/useTimeout";
 import { addRecentRecipient } from "./useRecentRecipients";
 import { useTransactionSender } from "./useTransactionSender";
 
@@ -43,6 +56,36 @@ export interface SendTokenParams {
   note?: string;
   /** The quote explicitly reviewed by the user; a change requires another review. */
   reviewedFee?: GoodDollarFeeQuote;
+}
+
+/**
+ * Where the send stands, beyond sending or failed. While it runs: the wallet is asked to
+ * approve it, has not answered for a while (offer Cancel), or the network has it and it is
+ * confirming. Once it settles: the person stopped waiting for the wallet, the send went out and
+ * is still confirming, or the wallet answered with a Safe proposal. The words are PRD-1552's
+ * send stages (`SEND_STAGE_WORDS`).
+ */
+export type TokenSendNotice =
+  | "wallet"
+  | "wallet-slow"
+  | "confirming"
+  | "stopped"
+  | "still-confirming"
+  | "safe-signers";
+
+/**
+ * The notice a settled send leaves, from how it ended. A send the person stopped waiting for
+ * that the wallet then sent anyway went out after all: it is still confirming.
+ */
+function settledNotice(
+  error: unknown,
+  data: { awaiting?: TxResult["awaiting"] } | undefined,
+  answeredLate: boolean
+): TokenSendNotice | null {
+  if (error instanceof WalletAnswerAbandonedError)
+    return answeredLate ? "still-confirming" : "stopped";
+  if (error && isUnconfirmedTxError(error)) return "still-confirming";
+  return data?.awaiting === "safe-signers" ? "safe-signers" : null;
 }
 
 export function useSendToken() {
@@ -62,6 +105,15 @@ export function useSendToken() {
     toastContext: "token send",
   });
   const sentRef = useRef<{ account: string; chainId: number } | null>(null);
+  // One send at a time: its way to stop waiting on the wallet, and whether that wait is slow.
+  const walletWait = useRef<AbortController | null>(null);
+  const [walletSlow, setWalletSlow] = useState(false);
+  const [liveStage, setLiveStage] = useState<"wallet" | "confirming" | null>(null);
+  // The send whose wallet answered after Cancel, so only that send reads as still confirming.
+  const [answeredLateFor, setAnsweredLateFor] = useState<AbortController | null>(null);
+  const lastWait = useRef<AbortController | null>(null);
+  const { set: setNudge, clear: clearNudge } = useTimeout();
+  const cancelWalletWait = useCallback(() => walletWait.current?.abort(), []);
 
   // Balances are direct RPC reads, so one delayed refetch covers read-after-write
   // staleness — no indexer-lag schedule needed.
@@ -134,14 +186,61 @@ export function useSendToken() {
       ) {
         throw new Error("Wallet session changed. Review the send again.");
       }
-      const result = await sender.sendContractCall({
-        account: primaryAddress as Address,
-        address: token.address,
-        abi: ERC20_TRANSFER_ABI,
-        functionName: "transfer",
-        args: [to, amount],
-        chainId: token.chainId,
-      });
+      // Only a wallet asks the person; a passkey approves in the app and an embedded wallet
+      // asks nobody, so only a wallet send waits on a wallet, turns slow, or can be stopped.
+      const wait = new AbortController();
+      walletWait.current = wait;
+      lastWait.current = wait;
+      const asksWallet = sender.authMode === "wallet";
+      // The 20 seconds count from here: a wallet can ask to switch network before the send.
+      if (asksWallet) setNudge(() => setWalletSlow(true), WALLET_NUDGE_MS);
+      const answered = () => {
+        clearNudge();
+        setWalletSlow(false);
+      };
+      // The wallet sent it after the person stopped waiting: say it went out, refresh the
+      // balance, and leave any newer send's wait alone.
+      const answeredAfterCancel = () => {
+        setAnsweredLateFor(wait);
+        // Said in a toast too, in case another send has started in the meantime.
+        const { label, detail } = SEND_STAGE_WORDS["still-confirming"];
+        toastService.info({ title: formatMessage(label), message: formatMessage(detail!) });
+        sentRef.current = { account: primaryAddress.toLowerCase(), chainId: token.chainId };
+        scheduleRefetch();
+      };
+      let result: TxResult;
+      try {
+        result = await sender.sendContractCall(
+          {
+            account: primaryAddress as Address,
+            address: token.address,
+            abi: ERC20_TRANSFER_ABI,
+            functionName: "transfer",
+            args: [to, amount],
+            chainId: token.chainId,
+          },
+          {
+            signal: wait.signal,
+            // The wallet is asked to approve the send just after this.
+            onBeforeBroadcast: async () => {
+              if (asksWallet && !wait.signal.aborted) setLiveStage("wallet");
+            },
+            // The network has it: a wallet answered, or a passkey's operation was accepted.
+            onBroadcastReference: async () => {
+              if (wait.signal.aborted) return;
+              answered();
+              setLiveStage("confirming");
+            },
+            onBroadcast: async () => (wait.signal.aborted ? answeredAfterCancel() : answered()),
+          }
+        );
+      } finally {
+        if (walletWait.current === wait) {
+          answered();
+          setLiveStage(null);
+          walletWait.current = null;
+        }
+      }
       if (celo) {
         // A submission identifier alone (including a Safe proposal) cannot prove inclusion.
         if (!/^0x[0-9a-f]{64}$/i.test(result.hash))
@@ -152,13 +251,23 @@ export function useSendToken() {
         if (result.confirmation !== "pending") {
           return { ...result, account: primaryAddress.toLowerCase() };
         }
+        // A Safe proposal's hash never gets a receipt: it waits for the Safe's signers, and
+        // the notice says so rather than that it was sent.
+        if (result.awaiting === "safe-signers")
+          return { ...result, account: primaryAddress.toLowerCase() };
         let changedTransaction = false;
-        const receipt = await client.waitForTransactionReceipt({
-          hash: result.hash,
-          onReplaced: ({ reason }) => {
-            if (reason !== "repriced") changedTransaction = true;
-          },
-        });
+        const receipt = await client
+          .waitForTransactionReceipt({
+            hash: result.hash,
+            timeout: TX_RECEIPT_TIMEOUT_MS,
+            onReplaced: ({ reason }) => {
+              if (reason !== "repriced") changedTransaction = true;
+            },
+          })
+          .catch((error: unknown) => {
+            // Sent, and still confirming: never a failure to send again.
+            throw asReceiptWaitLimit(error, TX_RECEIPT_TIMEOUT_MS, result.hash);
+          });
         if (changedTransaction) throw new Error("Transaction cancelled or replaced");
         if (receipt.status !== "success") throw new Error("Transaction reverted on-chain");
         return {
@@ -179,16 +288,22 @@ export function useSendToken() {
     }),
     onSuccess: (result, params, context) => {
       if (context?.toastId) toastService.dismiss(context.toastId);
-      toastService.success({
-        title: formatMessage({ id: "app.send.title" }),
-        message: formatMessage(
-          { id: "app.send.success" },
-          {
-            amount: formatUnits(params.amount, params.token.decimals),
-            symbol: params.token.symbol,
-          }
-        ),
-      });
+      // A Safe proposal has not sent anything yet: it waits for the Safe's signers.
+      if (result.awaiting === "safe-signers") {
+        const { label, detail } = SEND_STAGE_WORDS["safe-signers"];
+        toastService.info({ title: formatMessage(label), message: formatMessage(detail!) });
+      } else {
+        toastService.success({
+          title: formatMessage({ id: "app.send.title" }),
+          message: formatMessage(
+            { id: "app.send.success" },
+            {
+              amount: formatUnits(params.amount, params.token.decimals),
+              symbol: params.token.symbol,
+            }
+          ),
+        });
+      }
 
       addRecentRecipient(params.to, params.note);
       sentRef.current = { account: result.account, chainId: params.token.chainId };
@@ -199,6 +314,11 @@ export function useSendToken() {
     },
     onError: (error, params, context) => {
       if (context?.toastId) toastService.dismiss(context.toastId);
+      // A send still confirming, or one the wallet may still send, may move the balance.
+      if (primaryAddress && params?.token && mayStillLand(error)) {
+        sentRef.current = { account: primaryAddress.toLowerCase(), chainId: params.token.chainId };
+        scheduleRefetch();
+      }
       handleError(error, {
         metadata: { chainId: params?.token?.chainId, token: params?.token?.symbol },
         showToast: true,
@@ -206,5 +326,15 @@ export function useSendToken() {
     },
   });
 
-  return useSafeMutation(mutation);
+  const send = useSafeMutation(mutation);
+  const notice: TokenSendNotice | null = send.isPending
+    ? walletSlow
+      ? "wallet-slow"
+      : liveStage
+    : settledNotice(
+        send.error,
+        send.data,
+        answeredLateFor !== null && answeredLateFor === lastWait.current
+      );
+  return { ...send, notice, cancelWalletWait };
 }

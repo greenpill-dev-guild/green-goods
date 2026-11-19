@@ -662,7 +662,15 @@ describe("hooks/vault/useVaultOperations", () => {
     expect(lifecycleSteps).toEqual(["error"]);
   });
 
-  it("records an Endow whose deposit may still land as confirming, not failed (PRD-1553)", async () => {
+  const sentHash = `0x${"de".repeat(32)}` as const;
+  it.each([
+    ["past its receipt limit, naming no transaction", new ReceiptWaitLimitError(120_000)],
+    ["past its receipt limit", new ReceiptWaitLimitError(120_000, { hash: sentHash })],
+    [
+      "proposed to a Safe",
+      { hash: sentHash, sponsored: false, confirmation: "pending", awaiting: "safe-signers" },
+    ],
+  ])("records an Endow deposit %s as confirming, not failed (PRD-1553)", async (_case, answer) => {
     const endings: unknown[] = [];
     const unregister = registerTelemetrySink({
       capture: (event, properties) => {
@@ -676,16 +684,17 @@ describe("hooks/vault/useVaultOperations", () => {
         .mockResolvedValueOnce(10n) // preApprovalPreview
         .mockResolvedValueOnce(10n) // allowance (enough, so no approval)
         .mockResolvedValueOnce(10n); // post-approval previewDeposit
-      const limit = new ReceiptWaitLimitError(120_000);
-      mockSendContractCall.mockRejectedValueOnce(limit);
+      if (answer instanceof Error) mockSendContractCall.mockRejectedValueOnce(answer);
+      else mockSendContractCall.mockResolvedValueOnce(answer);
       const { result } = renderHookWithProviders(
         () => useOctantVaultWalletEndow({ errorMode: "inline" }),
         { queryClient: trackedQueryClient() }
       );
 
       await act(async () => {
-        await expect(
-          result.current.mutateAsync({
+        // A deposit naming no transaction still rejects; the others settle as submitted.
+        await result.current
+          .mutateAsync({
             intentKind: "wallet_endow",
             paymentMethod: "wallet",
             chainId: TEST_OCTANT_CHAIN_ID,
@@ -702,7 +711,7 @@ describe("hooks/vault/useVaultOperations", () => {
               receiverAddress: TEST_PRIMARY_ADDRESS as `0x${string}`,
             },
           })
-        ).rejects.toMatchObject({ name: "VaultDepositStageError", cause: limit });
+          .catch(() => undefined);
       });
 
       expect(endings).toEqual(["confirming"]);

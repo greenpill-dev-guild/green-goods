@@ -6,7 +6,6 @@ import type {
 } from "@green-goods/shared/commitment-pooling";
 import { parseServiceIssuerDraft } from "@green-goods/shared/modules/commitment-pooling/service-issuer-desk-protocol";
 import { Alert } from "@green-goods/shared/components/Alert";
-import { Button } from "@green-goods/shared/components/Button";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { useId, useState } from "react";
 import { useIntl } from "react-intl";
@@ -168,27 +167,16 @@ export function VoucherIssuerDraftEditor({
       height="stable"
       tone="community"
       preventClose={pending}
-      actions={
-        <div className="flex flex-wrap justify-end gap-2">
-          <Button
-            type="button"
-            emphasis="tertiary"
-            disabled={pending}
-            onClick={reviewed ? () => setReviewed(null) : onClose}
-          >
-            {t(reviewed ? "back" : "cancel")}
-          </Button>
-          {reviewed ? (
-            <Button type="button" disabled={pending} onClick={() => void save()}>
-              {t("save")}
-            </Button>
-          ) : (
-            <Button type="submit" form={formId} disabled={pending}>
-              {t("review")}
-            </Button>
-          )}
-        </div>
-      }
+      actions={{
+        primary: reviewed
+          ? { label: t("save"), disabled: pending, onClick: () => void save() }
+          : { label: t("review"), type: "submit", form: formId, disabled: pending },
+        secondary: {
+          label: t(reviewed ? "back" : "cancel"),
+          disabled: pending,
+          onClick: reviewed ? () => setReviewed(null) : onClose,
+        },
+      }}
     >
       {invalid || failed ? (
         <Alert variant="error">{t(failed ? "failed" : "required")}</Alert>

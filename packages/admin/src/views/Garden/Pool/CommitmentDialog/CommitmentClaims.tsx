@@ -214,7 +214,9 @@ export function CommitmentClaims({
               </div>
               <span className="flex items-center gap-2">
                 <AskOutcome state={state} />
-                {state.status === "signing" || state.status === "confirming" ? (
+                {state.status === "signing" ||
+                state.status === "confirming" ||
+                state.status === "held" ? (
                   <ActPhaseLine phase={phase} chainId={chainId} confirmed="" />
                 ) : waiting && can.acceptClaim ? (
                   <>

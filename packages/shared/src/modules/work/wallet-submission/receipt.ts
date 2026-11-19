@@ -1,4 +1,4 @@
-import { TransactionRevertedError } from "../../transactions/types";
+import { isReceiptWaitTimeout, TransactionRevertedError } from "../../transactions/types";
 export { TransactionRevertedError } from "../../transactions/types";
 import { getWagmiConfig } from "../../../config/appkit";
 import { TX_RECEIPT_TIMEOUT_MS } from "../../../utils/blockchain/polling";
@@ -36,7 +36,15 @@ export async function waitForReceiptWithTimeout(
     }, timeoutMs);
   });
 
-  const receiptPromise = waitForReceipt(getWagmiConfig(), { hash, chainId });
+  // The wait itself ends at the same limit, so nothing keeps polling for a receipt once the
+  // timer above has answered; whichever ends first, the caller reads one timeout.
+  const receiptPromise = waitForReceipt(getWagmiConfig(), {
+    hash,
+    chainId,
+    timeout: timeoutMs,
+  }).catch((error: unknown) => {
+    throw isReceiptWaitTimeout(error) ? new TransactionReceiptTimeoutError(timeoutMs) : error;
+  });
 
   try {
     const receipt = await Promise.race([receiptPromise, timeoutPromise]);

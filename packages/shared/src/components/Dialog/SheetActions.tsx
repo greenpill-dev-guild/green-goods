@@ -59,7 +59,10 @@ export interface SheetActionsProps {
   secondary?: SheetAction | readonly SheetAction[];
   /** A rare third choice, rendered as a text button. */
   tertiary?: SheetAction;
-  /** One short line about the actions, beside them from 640px and above them below it. */
+  /**
+   * One short line about the actions, beside them from 640px and above them
+   * below it. Pass null while a note that comes and goes has nothing to say.
+   */
   note?: ReactNode;
   /** `steps` keeps Back (secondary) and Continue (primary) in one row at every width. */
   layout?: "stack" | "steps";
@@ -94,7 +97,10 @@ function renderAction(role: ActionRole, action: SheetAction | undefined, key: st
     <Button
       data-piece-control
       {...buttonProps}
-      key={key}
+      // A slot whose action changes kind is a new button, never the pressed one
+      // re-typed: a press that swaps Try Again for a form's submit must not
+      // submit that form as it lands.
+      key={`${key}:${type ?? "button"}:${buttonProps.form ?? ""}`}
       type={type ?? "button"}
       emphasis={role}
       tone={toneFor(role, tone)}
@@ -118,6 +124,14 @@ function renderAction(role: ActionRole, action: SheetAction | undefined, key: st
   );
 }
 
+/** Whether the bar has anything to draw; a host shows its footer only then. */
+export function hasSheetActions(props: SheetActionsProps | undefined): props is SheetActionsProps {
+  if (!props) return false;
+  const { primary, secondary, tertiary, note } = props;
+  const outlined = secondary !== undefined && ("label" in secondary || secondary.length > 0);
+  return Boolean(primary || outlined || tertiary || note);
+}
+
 export function SheetActions({
   primary,
   secondary,
@@ -126,9 +140,9 @@ export function SheetActions({
   layout = "stack",
   safeArea = false,
 }: SheetActionsProps) {
+  if (!hasSheetActions({ primary, secondary, tertiary, note })) return null;
   const secondaries: readonly SheetAction[] =
     secondary === undefined ? [] : "label" in secondary ? [secondary] : secondary;
-  if (!primary && secondaries.length === 0 && !tertiary && !note) return null;
 
   const outlined = secondaries.map((action, index) =>
     renderAction("secondary", action, `secondary-${index}`)
@@ -143,11 +157,17 @@ export function SheetActions({
       data-component="SheetActions"
       data-layout={layout}
       data-safe-area={safeArea ? "" : undefined}
-      data-note={note ? "" : undefined}
+      data-note={note !== undefined ? "" : undefined}
     >
-      {note ? (
-        // A div, since a note may be a progress bar as well as a line of text.
-        <div data-slot="note" className="type-meta text-text-soft">
+      {note !== undefined ? (
+        // A div, since a note may be a progress bar as well as a line of text. It
+        // is the bar's one live region: the line changes as a send moves, or as a
+        // choice above it does, so a note brings no live region of its own. It
+        // takes no role, so an empty one never reads as a status on the page. A
+        // caller whose note comes and goes passes null while it has none, which
+        // keeps the region mounted (and hidden) so the line is announced when it
+        // appears.
+        <div data-slot="note" aria-live="polite" className="type-meta text-text-soft">
           {note}
         </div>
       ) : null}

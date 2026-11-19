@@ -1,4 +1,4 @@
-import { SheetActions } from "@green-goods/shared/components/Dialog/SheetActions";
+import type { SheetActionsProps } from "@green-goods/shared/components/Dialog/SheetActions";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useEditConfirmers } from "@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController";
 import {
@@ -234,43 +234,44 @@ export function EditConfirmersDialog({
                   { requests: Math.ceil(count / PER_APPROVAL) }
                 )));
 
-  const footer = finished ? (
-    <SheetActions
-      primary={{
-        label: formatMessage({ id: "app.common.done", defaultMessage: "Done" }),
-        onClick: () => onChanged(available.length),
-      }}
-    />
-  ) : (
-    <SheetActions
-      note={note ? <span role="status">{note}</span> : undefined}
-      primary={{
-        label: retrying
-          ? status.phase === "partial"
-            ? formatMessage(
-                { id: "hub.garden.pool.seed.tryAgainCount", defaultMessage: "Try Again ({count})" },
+  const footer: SheetActionsProps = finished
+    ? {
+        primary: {
+          label: formatMessage({ id: "app.common.done", defaultMessage: "Done" }),
+          onClick: () => onChanged(available.length),
+        },
+      }
+    : {
+        note,
+        primary: {
+          label: retrying
+            ? status.phase === "partial"
+              ? formatMessage(
+                  {
+                    id: "hub.garden.pool.seed.tryAgainCount",
+                    defaultMessage: "Try Again ({count})",
+                  },
+                  { count }
+                )
+              : formatMessage({ id: "hub.garden.pool.setup.retry", defaultMessage: "Try Again" })
+            : formatMessage(
+                {
+                  id: "hub.garden.pool.confirmers.change",
+                  defaultMessage:
+                    "{count, plural, one {Change Confirmers} other {Change Confirmers on # Promises}}",
+                },
                 { count }
-              )
-            : formatMessage({ id: "hub.garden.pool.setup.retry", defaultMessage: "Try Again" })
-          : formatMessage(
-              {
-                id: "hub.garden.pool.confirmers.change",
-                defaultMessage:
-                  "{count, plural, one {Change Confirmers} other {Change Confirmers on # Promises}}",
-              },
-              { count }
-            ),
-        onClick: () => void change(),
-        loading: status.busy,
-        disabled: !status.busy && (pending || (!locked && Boolean(blocked))),
-      }}
-      secondary={{
-        label: formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" }),
-        onClick: onClose,
-        disabled: status.busy,
-      }}
-    />
-  );
+              ),
+          onClick: () => void change(),
+          loading: status.busy,
+          disabled: !status.busy && (pending || (!locked && Boolean(blocked))),
+        },
+        secondary: {
+          label: formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" }),
+          onClick: onClose,
+          disabled: status.busy,
+        },
+      };
 
   return (
     <AdminDialog
