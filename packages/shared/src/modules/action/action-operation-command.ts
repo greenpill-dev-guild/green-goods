@@ -1,5 +1,7 @@
 import type { Abi } from "viem";
 import type { ToastActionOptions } from "../../hooks/app/useToastAction";
+import type { AuthMode } from "../app/analytics-events";
+import type { SendActContext, SendActEndingDetail, SendActOutcome } from "../app/sendActAnalytics";
 import {
   TransactionConfirmationPendingError,
   type TransactionSender,
@@ -42,6 +44,28 @@ export interface ActionOperationPorts {
     }>;
   };
   sender: { send(call: ActionOperationCall): Promise<`0x${string}`> };
+}
+
+/** The act a registration or an edit records, named by its contract call (PRD-1571). */
+export function actionOperationAct(
+  call: ActionOperationCall,
+  authMode: AuthMode | undefined
+): SendActContext {
+  return {
+    act: call.functionName === "registerAction" ? "action_register" : "action_edit",
+    operation: call.functionName,
+    authMode,
+    chainId: call.chainId,
+  };
+}
+
+/** A simulation that refuses sent nothing: it ends failed, under its own error's name. */
+export function actionOperationEnding(
+  result: ActionOperationResult
+): SendActOutcome | SendActEndingDetail {
+  return result.success
+    ? "confirmed"
+    : { outcome: "failed", parsedErrorFamily: result.error?.name ?? "Unknown" };
 }
 
 export async function executeActionOperation(
