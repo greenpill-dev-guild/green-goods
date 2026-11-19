@@ -240,7 +240,7 @@ describe("wallet-submission", () => {
       );
       expect(waitForReceipt).toHaveBeenCalledWith(
         {},
-        { hash: "0xTransactionHash", chainId: mockChainId }
+        { hash: "0xTransactionHash", chainId: mockChainId, timeout: 120_000 }
       );
     });
 
@@ -600,7 +600,7 @@ describe("wallet-submission", () => {
       );
       expect(waitForReceipt).toHaveBeenCalledWith(
         {},
-        { hash: "0xApprovalTxHash", chainId: mockChainId }
+        { hash: "0xApprovalTxHash", chainId: mockChainId, timeout: 60_000 }
       );
       expect(onLifecycle.mock.calls).toEqual([
         [{ stage: "handoff" }],

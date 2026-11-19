@@ -78,6 +78,8 @@ import {
   jobQueueEventBus,
 } from "../../modules/job-queue";
 import { encodeWorkData } from "../../utils/eas/encoders";
+import { track } from "../../modules/app/posthog";
+import { ReceiptWaitLimitError } from "../../modules/transactions/types";
 
 // Test user address for scoped queue operations
 const TEST_USER_ADDRESS = "0xTestUser123";
@@ -333,6 +335,55 @@ describe("modules/job-queue", () => {
       jobQueue.processJob(jobId, { transactionSender: sender, explicit: true })
     ).resolves.toMatchObject({ error: "awaiting-confirmation" });
     expect(sender.sendContractCall).toHaveBeenCalledOnce();
+  });
+
+  it("ends a wallet's wait for a decision's receipt at the queue's limit, as still confirming", async () => {
+    const sent = `0x${"cd".repeat(32)}` as const;
+    const jobId = await jobQueue.addJob(
+      "approval",
+      {
+        actionUID: 1,
+        workUID: `0x${"44".repeat(32)}`,
+        gardenAddress: "0x123",
+        gardenerAddress: "0x456",
+        approved: true,
+        confidence: 2,
+        verificationMethod: 1,
+      },
+      TEST_USER_ADDRESS,
+      { chainId: 11155111 }
+    );
+    // The wallet broadcasts, and the network never answers with a receipt.
+    const sender = createMockTransactionSender({
+      authMode: "wallet",
+      sendContractCall: async (_call, options) => {
+        await options?.onBeforeBroadcast?.();
+        await options?.onBroadcast?.(sent);
+        if (!options?.receiptWaitLimitMs) throw new Error("waited for a receipt with no limit");
+        throw new ReceiptWaitLimitError(options.receiptWaitLimitMs);
+      },
+    });
+
+    await expect(
+      jobQueue.processJob(jobId, { transactionSender: sender, explicit: true })
+    ).resolves.toEqual({ success: false, error: "awaiting-confirmation", skipped: true });
+    expect(sender.sendContractCall.mock.calls[0]?.[1]?.receiptWaitLimitMs).toBe(120_000);
+    // Never a failure: no try is spent, and the record confirms it later.
+    const waiting = await jobQueueDB.getJob(jobId);
+    expect(waiting?.attempts).toBe(0);
+    expect(waiting?.meta?.waitingReason).toBe("awaiting-confirmation");
+    expect((waiting?.payload as ApprovalJobPayload).sendCheckpoint?.transactionHash).toBe(sent);
+    // Recorded without the transaction or whose it is.
+    const recorded = vi
+      .mocked(track)
+      .mock.calls.filter(([event]) => event === "offline_job_receipt_wait_limit");
+    expect(recorded).toEqual([
+      [
+        "offline_job_receipt_wait_limit",
+        { job_kind: "approval", limit_ms: 120_000, explicit: true, auth_mode: "wallet" },
+        { includeSessionId: false },
+      ],
+    ]);
   });
 
   it("never fails a sent decision when its checkpoint cannot be saved", async () => {

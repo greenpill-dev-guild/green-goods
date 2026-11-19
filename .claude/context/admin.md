@@ -137,12 +137,17 @@ presentation on mobile. Pass the mounting workspace's `tone` prop — the portal
 `[data-tone]` and the prop re-establishes it. Full-surface creation/commit flows use
 `variant="flow"` with `ADMIN_FLOW_DIALOG_CLASS`.
 
+The footer is the shared action bar: pass its props as `actions`, never buttons, and the dialog
+draws the bar (frontend-design Rule 14).
+
 ```typescript
-import { Button } from "@green-goods/shared/components/Button";
 import { AdminDialog } from "@/components/AdminDialog";
 
 <AdminDialog open={open} onOpenChange={setOpen} title="Add member" tone="community"
-  actions={<Button type="button" size="sm" onClick={handleSubmit}>Save</Button>}>
+  actions={{
+    primary: { label: "Save", onClick: handleSubmit },
+    secondary: { label: "Cancel", onClick: () => setOpen(false) },
+  }}>
   {/* form fields */}
 </AdminDialog>
 ```

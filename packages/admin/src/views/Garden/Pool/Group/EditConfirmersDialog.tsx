@@ -1,4 +1,4 @@
-import { Button } from "@green-goods/shared/components/Button";
+import type { SheetActionsProps } from "@green-goods/shared/components/Dialog/SheetActions";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useEditConfirmers } from "@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController";
 import {
@@ -9,10 +9,12 @@ import {
 } from "@green-goods/shared/modules/commitment-pooling/pool-console";
 import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import type { Address } from "@green-goods/shared/types/domain";
-import { useMemo, useRef, useState } from "react";
+import { formatAddress } from "@green-goods/shared/utils/app/text";
+import { Fragment, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminDialog } from "@/components/AdminDialog";
 import { FlowStatusRow } from "@/components/Layout/FlowStatusRow";
+import { PersonName } from "@/components/PersonName";
 import { GardenPoolTarget } from "../PoolTarget";
 import { ConfirmerGroupEditor } from "../Seed/SeedConfirmerList";
 import { seedMembers } from "../Seed/seedStepModel";
@@ -25,6 +27,28 @@ import { confirmerRuleText, confirmersSplitText } from "./groupTerms";
 
 /** Copies a batching wallet changes per request, as Shared sends them (`sendConfirmerEdit`). */
 const PER_APPROVAL = 50;
+
+/**
+ * The people a confirmer change names, on one line: each by the name the Hub
+ * shows them under, with a short address after a name so two people who share
+ * one can be told apart. Someone with no name shows as their short address.
+ */
+function ConfirmerNames({ addresses }: { addresses: readonly Address[] }) {
+  return addresses.map((address, index) => (
+    <Fragment key={address}>
+      {index > 0 ? ", " : null}
+      <PersonName address={address}>
+        {(name) => (
+          <span title={address}>
+            {name.startsWith("0x")
+              ? name
+              : `${name} (${formatAddress(address, { variant: "card" })})`}
+          </span>
+        )}
+      </PersonName>
+    </Fragment>
+  ));
+}
 
 export interface EditConfirmersDialogProps {
   open: boolean;
@@ -145,10 +169,15 @@ export function EditConfirmersDialog({
     }
   };
 
+  const isNamed = (address: Address, group: readonly Address[]) =>
+    group.some((entry) => entry.toLowerCase() === address.toLowerCase());
+  const added = draft.confirmers.filter((address) => !isNamed(address, current.confirmers));
+  const removed = current.confirmers.filter((address) => !isNamed(address, draft.confirmers));
   const summary = editConfirmersSummary({
     available: available.length,
     taken,
-    // After a change that didn't finish, the copies don't share one rule to name.
+    // After a change that didn't finish, the copies share no one rule to name or
+    // compare with, so the summary names the whole new group instead.
     from: mixed ? confirmersSplitText(formatMessage) : confirmerRuleText(formatMessage, current),
     to: ruleError
       ? "—"
@@ -156,6 +185,10 @@ export function EditConfirmersDialog({
           confirmers: draft.confirmers,
           confirmationThreshold: draft.threshold,
         }),
+    names:
+      mixed && draft.confirmers.length > 0 ? <ConfirmerNames addresses={draft.confirmers} /> : null,
+    adds: !mixed && added.length > 0 ? <ConfirmerNames addresses={added} /> : null,
+    removes: !mixed && removed.length > 0 ? <ConfirmerNames addresses={removed} /> : null,
     formatMessage,
   });
 
@@ -201,35 +234,17 @@ export function EditConfirmersDialog({
                   { requests: Math.ceil(count / PER_APPROVAL) }
                 )));
 
-  const footer = finished ? (
-    <Button type="button" emphasis="primary" size="sm" onClick={() => onChanged(available.length)}>
-      {formatMessage({ id: "app.common.done", defaultMessage: "Done" })}
-    </Button>
-  ) : (
-    <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
-      <p className="min-w-0 type-meta text-text-soft sm:flex-1">
-        {note ? <span role="status">{note}</span> : null}
-      </p>
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-        <Button
-          type="button"
-          emphasis="tertiary"
-          size="sm"
-          onClick={onClose}
-          disabled={status.busy}
-        >
-          {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-        </Button>
-        <Button
-          type="button"
-          emphasis="primary"
-          size="sm"
-          onClick={() => void change()}
-          disabled={status.busy || pending || (!locked && Boolean(blocked))}
-          loading={status.busy}
-          className="w-full sm:w-auto"
-        >
-          {retrying
+  const footer: SheetActionsProps = finished
+    ? {
+        primary: {
+          label: formatMessage({ id: "app.common.done", defaultMessage: "Done" }),
+          onClick: () => onChanged(available.length),
+        },
+      }
+    : {
+        note,
+        primary: {
+          label: retrying
             ? status.phase === "partial"
               ? formatMessage(
                   {
@@ -246,11 +261,17 @@ export function EditConfirmersDialog({
                     "{count, plural, one {Change Confirmers} other {Change Confirmers on # Promises}}",
                 },
                 { count }
-              )}
-        </Button>
-      </div>
-    </div>
-  );
+              ),
+          onClick: () => void change(),
+          loading: status.busy,
+          disabled: !status.busy && (pending || (!locked && Boolean(blocked))),
+        },
+        secondary: {
+          label: formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" }),
+          onClick: onClose,
+          disabled: status.busy,
+        },
+      };
 
   return (
     <AdminDialog

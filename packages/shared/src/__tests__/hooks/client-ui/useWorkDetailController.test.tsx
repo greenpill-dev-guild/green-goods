@@ -1,6 +1,6 @@
 /** @vitest-environment happy-dom */
 
-import { act, renderHook, screen } from "@testing-library/react";
+import { act, renderHook, screen, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -368,11 +368,29 @@ describe("useWorkDetailController", () => {
 
     // A ready job keeps its prepared media and is never reset before sending.
     expect(jobQueue.retryJob).not.toHaveBeenCalled();
-    expect(jobQueue.processJob).toHaveBeenCalledWith("work-1", {
-      transactionSender: mocks.sender,
-      explicit: true,
-    });
+    // A passkey reports its stages only after each wait ended, so Upload now does not follow them.
+    expect(vi.mocked(jobQueue.processJob).mock.calls[0]).toEqual([
+      "work-1",
+      { transactionSender: mocks.sender, explicit: true },
+    ]);
     expect(toastService.error).not.toHaveBeenCalled();
+  });
+
+  // The queue reports the work's stage on its row, however the send started (PRD-1552).
+  it("leaves the work's own send stage to the queue, wiring nothing for it", async () => {
+    mocks.sender = { authMode: "wallet" };
+    const { jobQueue } = await import("../../../modules/job-queue/default-instance");
+    vi.mocked(jobQueue.processJob).mockResolvedValue({ success: true, txHash: "0x1" });
+    const { result } = renderHook(() => useWorkDetailController(), { wrapper: RouterWrapper });
+
+    await act(async () => {
+      await result.current.retry();
+    });
+    expect(vi.mocked(jobQueue.processJob).mock.calls[0]).toEqual([
+      "work-1",
+      { transactionSender: mocks.sender, explicit: true },
+    ]);
+    expect(result.current.takeUpStage).toBeNull();
   });
 
   it("checks the connection on Upload now and says nothing was sent when it is not confirmed", async () => {
@@ -520,19 +538,37 @@ describe("useWorkDetailController", () => {
       const { connectivityStore } = await import("../../../stores/connectivity");
       const confirm = vi.spyOn(connectivityStore, "confirmOnline").mockResolvedValue(true);
       vi.mocked(jobQueue.getJobs).mockResolvedValue(chain());
-      vi.mocked(jobQueue.processJob).mockResolvedValue({ success: true, txHash: "0x1" });
+      let finish: (() => void) | undefined;
+      vi.mocked(jobQueue.processJob).mockImplementation(async (jobId, context) => {
+        if (jobId === "take-up") {
+          context.onPhase?.({ stage: "wallet" });
+          await new Promise<void>((resolve) => {
+            finish = resolve;
+          });
+        }
+        return { success: true, txHash: "0x1" };
+      });
       try {
         const { result } = renderHook(() => useWorkDetailController(), { wrapper: RouterWrapper });
 
+        let sending: Promise<void> | undefined;
+        act(() => {
+          sending = result.current.retry();
+        });
+        // The take-up is another job, so the page follows its stage while the work waits on it.
+        await waitFor(() => expect(result.current.takeUpStage).toBe("wallet"));
         await act(async () => {
-          await result.current.retry();
+          finish?.();
+          await sending;
         });
 
+        expect(result.current.takeUpStage).toBeNull();
         expect(jobQueue.retryJob).toHaveBeenCalledWith("take-up");
         expect(vi.mocked(jobQueue.processJob).mock.calls.map(([jobId]) => jobId)).toEqual([
           "take-up",
           "work-1",
         ]);
+        expect(vi.mocked(jobQueue.processJob).mock.calls[1]?.[1]).not.toHaveProperty("onPhase");
       } finally {
         confirm.mockRestore();
       }

@@ -1081,6 +1081,29 @@ describe("GardenCommitment", () => {
     expect(screen.getByLabelText("What still needs doing?")).toHaveValue("The far bed");
   });
 
+  it("closes a Not yet note that may still land rather than offering it again", async () => {
+    // Its receipt outlasted the limit (PRD-1551): sent, so a second try could land twice.
+    mockActs.notYet.mockRejectedValue(
+      Object.assign(new Error("still confirming"), { name: "ReceiptWaitLimitError" })
+    );
+    mockUseController.mockReturnValue(
+      controller({
+        detail: detail({ commitment: { derivedState: "READY_FOR_CONFIRMATION" } }),
+        actKind: "confirm",
+      })
+    );
+    render();
+    await userEvent.click(screen.getByRole("button", { name: "Confirm It Was Kept" }));
+    await userEvent.click(screen.getByRole("button", { name: "Not Yet" }));
+    await userEvent.type(screen.getByLabelText("What still needs doing?"), "The far bed");
+    await userEvent.click(screen.getByRole("button", { name: "Send to the Stewards" }));
+
+    await waitFor(() =>
+      expect(screen.queryByLabelText("What still needs doing?")).not.toBeInTheDocument()
+    );
+    expect(screen.queryByText(/Could not reach the stewards/i)).not.toBeInTheDocument();
+  });
+
   it("confirms withdrawal locally and preserves a reason after pin failure", async () => {
     mockUseController.mockReturnValue(
       controller({

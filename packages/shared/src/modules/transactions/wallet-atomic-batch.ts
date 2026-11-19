@@ -12,6 +12,7 @@ import { ConnectorNotConnectedError, type Config } from "@wagmi/core";
 import type { Abi, Hex } from "viem";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import type { Address } from "../../types/domain";
+import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import type { WalletNetworkSwitchReason } from "../app/walletNetworkSwitchAnalytics";
 import {
   assertBatchCapabilityKnown,
@@ -24,13 +25,16 @@ import {
   type BatchScope,
 } from "./batch-types";
 import { assertWalletAccount, walletErrorCodes } from "./chain-guard";
-import type { AtomicBatchOptions, ContractCall, TransactionSender } from "./types";
+import {
+  type AtomicBatchOptions,
+  type ContractCall,
+  isReceiptWaitTimeout,
+  type TransactionSender,
+} from "./types";
 import { walletBatchExecution, type WalletBatchStatus } from "./wallet-batch-status";
 
 /** How long a wallet may take to say what it can do before we assume it can't batch. */
 const CAPABILITY_TIMEOUT_MS = 4_000;
-/** How long an accepted batch may take to reach a receipt before its outcome is unknown. */
-const BATCH_STATUS_TIMEOUT_MS = 180_000;
 /** EIP-1193 4200 and JSON-RPC -32601 and -32004: the wallet has no such method. */
 const NO_SUCH_METHOD: ReadonlySet<number> = new Set([4200, -32601, -32004]);
 
@@ -181,6 +185,8 @@ export async function sendWalletAtomicBatch(
     })),
   });
   const reference: BatchReference = { kind: "wallet-calls", id, account, chainId };
+  // As long as a single send waits for its receipt (PRD-1551).
+  const limitMs = options.receiptWaitLimitMs || TX_RECEIPT_TIMEOUT_MS;
   try {
     if (typeof id !== "string" || !id) throw new Error("batch-invalid-wallet-id");
     await options.onBatchReference?.(reference);
@@ -189,12 +195,18 @@ export async function sendWalletAtomicBatch(
     // read the chain before sending anything again.
     const result = await deps.waitForCallsStatus!(config, {
       id,
-      timeout: BATCH_STATUS_TIMEOUT_MS,
+      timeout: limitMs,
       throwOnFailure: false,
     });
     return walletBatchExecution(reference, result);
-  } catch {
-    return { status: "unresolved", reference, receipts: [], sponsored: false };
+  } catch (error) {
+    return {
+      status: "unresolved",
+      reference,
+      receipts: [],
+      sponsored: false,
+      ...(isReceiptWaitTimeout(error) ? { waitLimitMs: limitMs } : {}),
+    };
   }
 }
 

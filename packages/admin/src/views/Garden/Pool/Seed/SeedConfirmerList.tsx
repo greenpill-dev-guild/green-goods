@@ -204,59 +204,56 @@ export function ConfirmerGroupEditor({
           ))}
         </div>
       ) : null}
-      <div className="flex items-end gap-2">
-        <AdminTextField
-          label={formatMessage({
-            id: "hub.garden.pool.seed.confirmerAddLabel",
-            defaultMessage: "Add a confirmer",
-          })}
-          value={entry.input}
-          onChange={(event) => {
-            entry.setInput(event.target.value);
-            onPendingChange?.(event.target.value.trim().length > 0);
-          }}
-          placeholder={formatMessage({
-            id: "hub.garden.pool.seed.confirmerPlaceholder",
-            defaultMessage: "A name.eth or an address",
-          })}
-          helperText={
-            entry.resolvingEns
-              ? formatMessage({
-                  id: "hub.garden.pool.seed.confirmerResolving",
-                  defaultMessage: "Looking up that name…",
-                })
-              : formatMessage({
-                  id: "hub.garden.pool.seed.confirmerHint",
-                  defaultMessage: "Names like lina.eth resolve to their account.",
-                })
-          }
-          error={entry.error ?? draft.errors.confirmers}
-          className="flex-1"
-          inputProps={{
-            onKeyDown: (event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                void entry.handleAdd();
-              }
-            },
-          }}
-        />
-        {/* Lifted over the field's reserved supporting line, so it lines up with the field. */}
-        <Button
-          type="button"
-          emphasis="secondary"
-          size="compact"
-          className="mb-9"
-          leadingIcon={<RiAddLine className="h-4 w-4" aria-hidden="true" />}
-          onClick={() => void entry.handleAdd()}
-          disabled={busy || entry.trimmedInput.length === 0}
-        >
-          {formatMessage({
-            id: "hub.garden.pool.seed.confirmerAdd",
-            defaultMessage: "Add",
-          })}
-        </Button>
-      </div>
+      <AdminTextField
+        label={formatMessage({
+          id: "hub.garden.pool.seed.confirmerAddLabel",
+          defaultMessage: "Add a confirmer",
+        })}
+        value={entry.input}
+        onChange={(event) => {
+          entry.setInput(event.target.value);
+          onPendingChange?.(event.target.value.trim().length > 0);
+        }}
+        placeholder={formatMessage({
+          id: "hub.garden.pool.seed.confirmerPlaceholder",
+          defaultMessage: "A name.eth or an address",
+        })}
+        helperText={
+          entry.resolvingEns
+            ? formatMessage({
+                id: "hub.garden.pool.seed.confirmerResolving",
+                defaultMessage: "Looking up that name…",
+              })
+            : formatMessage({
+                id: "hub.garden.pool.seed.confirmerHint",
+                defaultMessage: "Names like lina.eth resolve to their account.",
+              })
+        }
+        error={entry.error ?? draft.errors.confirmers}
+        inputProps={{
+          onKeyDown: (event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              void entry.handleAdd();
+            }
+          },
+        }}
+        action={
+          <Button
+            type="button"
+            emphasis="secondary"
+            size="compact"
+            leadingIcon={<RiAddLine className="h-4 w-4" aria-hidden="true" />}
+            onClick={() => void entry.handleAdd()}
+            disabled={busy || entry.trimmedInput.length === 0}
+          >
+            {formatMessage({
+              id: "hub.garden.pool.seed.confirmerAdd",
+              defaultMessage: "Add",
+            })}
+          </Button>
+        }
+      />
       {offered.length > 0 ? (
         <div className="flex flex-wrap items-center gap-2" data-testid="seed-confirmer-suggestions">
           <span className="type-label-sm text-text-soft">

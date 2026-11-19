@@ -337,7 +337,7 @@ describe("steward review", () => {
       }
     };
     const confirming =
-      "Your review was sent and is still being confirmed, which can take a few minutes. You can leave this chat; I'll message you when it's recorded. You don't need to send it again.";
+      "Sent. Confirming is taking longer than usual. You can leave, and you don't need to send it again. I'll message you when your review is recorded.";
     await passes(6);
     expect(sentTexts().filter((text) => text === confirming)).toHaveLength(1);
 

@@ -34,10 +34,11 @@ import { WorkSendCancelledError } from "../../modules/work/send-outcome";
 import { StrandedSendReopened } from "../../modules/work/stranded-intent";
 import { PendingHeicConversionError } from "../../modules/work/work-attachments";
 import { AwaitingWorkConfirmation } from "../../modules/work/work-confirmation";
-import type {
-  AtomicBatchOptions,
-  ContractCall,
-  TransactionSender,
+import {
+  type AtomicBatchOptions,
+  type ContractCall,
+  ReceiptWaitLimitError,
+  type TransactionSender,
 } from "../../modules/transactions/types";
 import type { Address } from "../../types/domain";
 import type { ApprovalJobPayload, Job, WorkJobPayload } from "../../types/job-queue";
@@ -539,6 +540,81 @@ describe("commitment queue executor", () => {
     expect((queued.payload as CommitmentCreationPayload).metadataCID).toBe("bafy-published");
     expect(queueStore.updateJob).toHaveBeenCalledOnce();
     expect(sender.sendContractCall).toHaveBeenCalledOnce();
+  });
+
+  it("keeps a creation whose receipt outlasted the queue's limit as submitted, with its nonce", async () => {
+    // Its transaction is out and may still land: the next pass waits for the chain to show
+    // it rather than send a second promise, and keeps the nonce that can later show another
+    // took its place (PRD-1551).
+    const sender = createMockTransactionSender({
+      sendContractCall: vi.fn(async () => {
+        throw new ReceiptWaitLimitError(120_000, { hash: MOCK_TX_HASH });
+      }),
+    });
+    const queued = job("commitment", commitmentPayload());
+
+    await expect(
+      executeCommitmentQueueJob("job-commitment", queued, 42161, sender, {
+        demoActive: () => false,
+        reads: { ...reads(chainClock()), readTransactionNonce: vi.fn(async () => 7) },
+        store: store(),
+      })
+    ).resolves.toEqual({ status: "submitted", txHash: MOCK_TX_HASH });
+    expect(queued.meta).toMatchObject({ submittedTxNonce: 7 });
+  });
+
+  it("holds a creation whose UserOperation outlasted the limit as waiting, never failed", async () => {
+    // A passkey's operation names no transaction, yet it went out and may still land: failing
+    // it would spend an attempt and read as failed (PRD-1551).
+    const sender = createMockTransactionSender({
+      sendContractCall: vi.fn(async () => {
+        throw new ReceiptWaitLimitError(120_000);
+      }),
+    });
+
+    await expect(
+      executeCommitmentQueueJob(
+        "job-commitment",
+        job("commitment", commitmentPayload()),
+        42161,
+        sender,
+        { demoActive: () => false, reads: reads(chainClock()), store: store() }
+      )
+    ).resolves.toEqual({ status: "waiting", reason: "awaiting-confirmation" });
+  });
+
+  it.each([
+    ["reverted", { reverted: true, superseded: false }, true],
+    ["lost its nonce to another", { reverted: false, superseded: true }, true],
+    ["still pending", { reverted: false, superseded: false }, false],
+  ] as const)("sends a kept creation again only once its transaction %s", async (_case, chain, again) => {
+    // Kept as submitted after the limit, it made nothing if its transaction then reverted or
+    // can never land; one pending or unknown waits for the chain instead (PRD-1551).
+    const sender = createMockTransactionSender();
+    const kept = job("commitment", commitmentPayload(), {
+      meta: { submittedTxHash: HASH, submittedTxNonce: 7 },
+    });
+
+    await expect(
+      executeCommitmentQueueJob("job-commitment", kept, 42161, sender, {
+        demoActive: () => false,
+        reads: {
+          ...reads(chainClock()),
+          transactionReverted: vi.fn(async () => chain.reverted),
+          transactionSuperseded: vi.fn(
+            async (hash: string, _account: string, nonce: number) =>
+              chain.superseded && hash === HASH && nonce === 7
+          ),
+        },
+        store: store(),
+      })
+    ).resolves.toEqual(
+      again
+        ? { status: "submitted", txHash: MOCK_TX_HASH }
+        : { status: "waiting", reason: "pending-first-send" }
+    );
+    expect(sender.sendContractCall).toHaveBeenCalledTimes(again ? 1 : 0);
+    expect(kept.meta).toEqual(again ? {} : { submittedTxHash: HASH, submittedTxNonce: 7 });
   });
 
   it("never publishes the words of a promise composed offline that the chain can no longer keep", async () => {

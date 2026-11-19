@@ -104,31 +104,35 @@ vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
 }));
 
-vi.mock("@/components/AdminDialog", () => ({
-  AdminDialog: ({
-    actions,
-    children,
-    description,
-    open,
-    title,
-  }: {
-    actions: React.ReactNode;
-    children: React.ReactNode;
-    description: string;
-    open: boolean;
-    title: string;
-  }) =>
-    open
-      ? React.createElement(
-          "div",
-          { "aria-label": title, role: "dialog" },
-          React.createElement("h2", null, title),
-          React.createElement("p", null, description),
-          children,
-          actions
-        )
-      : null,
-}));
+vi.mock("@/components/AdminDialog", async () => {
+  // The stand-in draws the footer from the action bar's props, as the dialog does.
+  const { SheetActions } = await import("@green-goods/shared/components/Dialog/SheetActions");
+  return {
+    AdminDialog: ({
+      actions,
+      children,
+      description,
+      open,
+      title,
+    }: {
+      actions?: React.ComponentProps<typeof SheetActions>;
+      children: React.ReactNode;
+      description: string;
+      open: boolean;
+      title: string;
+    }) =>
+      open
+        ? React.createElement(
+            "div",
+            { "aria-label": title, role: "dialog" },
+            React.createElement("h2", null, title),
+            React.createElement("p", null, description),
+            children,
+            actions ? React.createElement(SheetActions, actions) : null
+          )
+        : null,
+  };
+});
 
 import { WithdrawModal } from "@/components/Vault/WithdrawModal";
 

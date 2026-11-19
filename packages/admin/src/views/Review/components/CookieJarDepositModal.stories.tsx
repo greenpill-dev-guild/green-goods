@@ -65,11 +65,7 @@ function CookieJarDepositModalHarness({
         onOpenChange={(open) => !open && onClose()}
         title="Fund Cookie Jar"
         description="Fund a jar from your connected wallet."
-        actions={
-          <Button type="button" emphasis="tertiary" size="sm" onClick={onClose}>
-            Cancel
-          </Button>
-        }
+        actions={{ secondary: { label: "Cancel", onClick: onClose } }}
       >
         <Alert variant={readNotice.variant} title={readNotice.title}>
           {readNotice.body}
@@ -84,16 +80,12 @@ function CookieJarDepositModalHarness({
       onOpenChange={(open) => !open && !isPending && onClose()}
       title="Fund Cookie Jar"
       actions={
-        lowLimit ? (
-          <>
-            <Button type="button" emphasis="secondary" size="sm" onClick={fn()}>
-              Deposit Anyway
-            </Button>
-            <Button size="sm" type="button" onClick={fn()}>
-              Fix Limit First
-            </Button>
-          </>
-        ) : undefined
+        lowLimit
+          ? {
+              primary: { label: "Fix Limit First", onClick: fn() },
+              secondary: { label: "Deposit Anyway", onClick: fn() },
+            }
+          : undefined
       }
     >
       <div className="space-y-4">

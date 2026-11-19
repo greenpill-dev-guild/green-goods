@@ -13,8 +13,9 @@ violated half of these. Validators check structure; this contract is what "desig
 
 - **Action clusters are end-aligned. Always.** Header action rows, dialog footers, card actions,
   row trailing acts, sheet footers: every group of action buttons sits at the end of its
-  container. Proof: `PageHeader.tsx` `route-header-actions` (`justify-end`); `AdminDialog.tsx`
-  footer (`sm:justify-end`, doc: "buttons right-aligned"); in-content clusters
+  container. Proof: `PageHeader.tsx` `route-header-actions` (`justify-end`); `AdminDialog.tsx`'s
+  footer, which draws the shared `SheetActions` bar (end-aligned from 640px in Shared's
+  `utilities.css`); in-content clusters
   `flex items-center justify-end gap-2` ([GardenWorkspaceContent.tsx:195](../../../packages/admin/src/views/Garden/components/GardenWorkspaceContent.tsx)).
   A left-aligned action cluster anywhere is a defect. (Jakob's Law; Refactoring UI alignment.)
 - **A view declares ONE stable action set, identical across its tabs.** The set never changes
@@ -47,6 +48,21 @@ violated half of these. Validators check structure; this contract is what "desig
   DL-050's primary-action icon). Proof:
   [FabButton.tsx](../../../packages/admin/src/components/Shell/FabButton.tsx), where `FabIcon` is
   `RiAddLine` unless a dial is open. (NN/g consistency and standards.)
+- **A button beside a field sits in the field's own row.** A button that acts on what a field
+  holds (Add, Max, Remove, Use) goes in the field's `action` slot: centered on the control at both
+  field heights, at its own size, with the message line under both. A button that acts on a list
+  (Select Visible, Clear) sits with the list's count, not beside its search field (DL-188). Proof:
+  [AdminTextField.tsx](../../../packages/admin/src/components/AdminTextField.tsx), where `action`
+  renders in the control's row; `.claude/rules/frontend-design.md` Rule 15 has the example.
+- **A dialog's or flow's footer actions are the shared action bar.** `SheetActions` draws them:
+  40px buttons 8px apart, the main action on top when they stack below 640px and rightmost from
+  it, Cancel outlined, Back beside the way on in one row, and the line that says how often the
+  wallet will ask, or a send's progress, in the bar's `note` slot (DL-189). `AdminDialog`'s
+  `actions` are the bar's props and the dialog draws the bar, so that slot cannot hold a
+  hand-built footer (DL-190); a flow's `footer` and a `SheetFooter` pinned in a dialog's body are
+  still held by review. Proof:
+  [SheetActions.tsx](../../../packages/shared/src/components/Dialog/SheetActions.tsx);
+  `AdminFieldActionAndFooter.guard` fails on a hand-stacked footer button.
 
 ## 2. Dialog taxonomy and continuity
 

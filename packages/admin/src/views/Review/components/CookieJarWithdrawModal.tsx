@@ -127,28 +127,19 @@ export function CookieJarWithdrawModal({
         defaultMessage: "Withdraw from a jar and record what the funds are for.",
       })}
       preventClose={isPending}
-      actions={
-        <>
-          <Button
-            type="button"
-            emphasis="tertiary"
-            size="sm"
-            onClick={onClose}
-            disabled={isPending}
-          >
-            {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-          </Button>
-          <Button
-            size="sm"
-            type="button"
-            loading={isPending}
-            disabled={!selectedWithdrawJar || parsedWithdrawAmount <= 0n}
-            onClick={handleWithdraw}
-          >
-            {formatMessage({ id: "app.cookieJar.withdraw", defaultMessage: "Claim" })}
-          </Button>
-        </>
-      }
+      actions={{
+        primary: {
+          label: formatMessage({ id: "app.cookieJar.withdraw", defaultMessage: "Claim" }),
+          loading: isPending,
+          disabled: !selectedWithdrawJar || parsedWithdrawAmount <= 0n,
+          onClick: handleWithdraw,
+        },
+        secondary: {
+          label: formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" }),
+          onClick: onClose,
+          disabled: isPending,
+        },
+      }}
     >
       <div className="space-y-4">
         {/* Jar select */}

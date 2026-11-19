@@ -141,30 +141,20 @@ export function WithdrawModal({
       title={formatMessage({ id: "app.treasury.withdraw" })}
       description={formatMessage({ id: "app.treasury.withdrawDescription" })}
       preventClose={withdrawMutation.isPending}
-      actions={
-        <>
-          <Button
-            type="button"
-            emphasis="tertiary"
-            size="sm"
-            onClick={onClose}
-            disabled={withdrawMutation.isPending}
-          >
-            {formatMessage({ id: "app.common.cancel" })}
-          </Button>
-          <Button
-            size="sm"
-            type="button"
-            onClick={onSubmit}
-            disabled={
-              Boolean(amountError) || amount <= 0n || depositsError || withdrawMutation.isPending
-            }
-            loading={withdrawMutation.isPending}
-          >
-            {formatMessage({ id: "app.treasury.withdraw" })}
-          </Button>
-        </>
-      }
+      actions={{
+        primary: {
+          label: formatMessage({ id: "app.treasury.withdraw" }),
+          onClick: onSubmit,
+          disabled:
+            Boolean(amountError) || amount <= 0n || depositsError || withdrawMutation.isPending,
+          loading: withdrawMutation.isPending,
+        },
+        secondary: {
+          label: formatMessage({ id: "app.common.cancel" }),
+          onClick: onClose,
+          disabled: withdrawMutation.isPending,
+        },
+      }}
     >
       <div className="space-y-4">
         <AssetSelector
@@ -227,28 +217,26 @@ export function WithdrawModal({
           </p>
         </div>
 
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
-          <AdminTextField
-            id="withdraw-amount"
-            className="min-w-0 flex-1"
-            label={formatMessage({ id: "app.treasury.withdrawAmount" })}
-            required
-            value={amountInput}
-            onChange={(event) => setAmountInput(event.target.value)}
-            placeholder={`0.0 ${assetSymbol}`}
-            error={amountError ? formatMessage({ id: amountError }) : undefined}
-            inputProps={{ inputMode: "decimal" }}
-          />
-          <Button
-            type="button"
-            emphasis="secondary"
-            size="compact"
-            className="w-full sm:mt-8 sm:w-auto"
-            onClick={() => setAmountInput(formatUnits(maxWithdrawable, assetDecimals))}
-          >
-            {formatMessage({ id: "app.treasury.max" })}
-          </Button>
-        </div>
+        <AdminTextField
+          id="withdraw-amount"
+          label={formatMessage({ id: "app.treasury.withdrawAmount" })}
+          required
+          value={amountInput}
+          onChange={(event) => setAmountInput(event.target.value)}
+          placeholder={`0.0 ${assetSymbol}`}
+          error={amountError ? formatMessage({ id: amountError }) : undefined}
+          inputProps={{ inputMode: "decimal" }}
+          action={
+            <Button
+              type="button"
+              emphasis="secondary"
+              size="compact"
+              onClick={() => setAmountInput(formatUnits(maxWithdrawable, assetDecimals))}
+            >
+              {formatMessage({ id: "app.treasury.max" })}
+            </Button>
+          }
+        />
 
         <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 type-body text-text-sub">
           <p>

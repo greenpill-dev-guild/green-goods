@@ -101,16 +101,10 @@ function OpenGeometryDialog({
         onOpenChange={() => undefined}
         title={title}
         description={description}
-        actions={
-          <>
-            <Button type="button" emphasis="tertiary" size="sm" onClick={() => undefined}>
-              Cancel
-            </Button>
-            <Button type="button" emphasis="primary" size="sm" onClick={() => undefined}>
-              Confirm
-            </Button>
-          </>
-        }
+        actions={{
+          primary: { label: "Confirm", onClick: () => undefined },
+          secondary: { label: "Cancel", onClick: () => undefined },
+        }}
       >
         {body}
       </AdminDialog>
@@ -173,16 +167,10 @@ function DialogPreview({
         onOpenChange={setOpen}
         title={title}
         description={description}
-        actions={
-          <>
-            <Button type="button" emphasis="tertiary" size="sm" onClick={() => setOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="button" emphasis="primary" size="sm" onClick={() => setOpen(false)}>
-              {confirmLabel}
-            </Button>
-          </>
-        }
+        actions={{
+          primary: { label: confirmLabel, onClick: () => setOpen(false) },
+          secondary: { label: "Cancel", onClick: () => setOpen(false) },
+        }}
       >
         <div>{body}</div>
       </AdminDialog>
@@ -456,11 +444,7 @@ export const CloseButtonGeometry: Story = {
         onOpenChange={() => undefined}
         title="Close button clearance"
         description="The close affordance anchors top-right, clear of the headline."
-        actions={
-          <Button type="button" emphasis="primary" size="sm" onClick={() => undefined}>
-            Done
-          </Button>
-        }
+        actions={{ primary: { label: "Done", onClick: () => undefined } }}
       >
         <div>Body content used to anchor the geometry assertions.</div>
       </AdminDialog>
@@ -918,16 +902,10 @@ function FormDialogPreview() {
         title="Edit Garden"
         description="Change the name and summary members see."
         tone="garden"
-        actions={
-          <>
-            <Button type="button" emphasis="tertiary" size="sm" onClick={() => setOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="button" emphasis="primary" size="sm" onClick={() => setOpen(false)}>
-              Save
-            </Button>
-          </>
-        }
+        actions={{
+          primary: { label: "Save", onClick: () => setOpen(false) },
+          secondary: { label: "Cancel", onClick: () => setOpen(false) },
+        }}
       >
         <div className="space-y-4">
           <AdminTextField
@@ -1040,11 +1018,7 @@ function NestedPreview() {
         title="Manage Member"
         description="Rosa Lima gardens in North Meadow."
         tone="community"
-        actions={
-          <Button type="button" emphasis="tertiary" size="sm" onClick={() => setOpen(false)}>
-            Done
-          </Button>
-        }
+        actions={{ secondary: { label: "Done", onClick: () => setOpen(false) } }}
       >
         <Button type="button" emphasis="secondary" size="sm" onClick={() => setConfirming(true)}>
           Remove member

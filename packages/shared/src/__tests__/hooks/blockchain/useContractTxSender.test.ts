@@ -246,7 +246,12 @@ describe("useContractTxSender", () => {
       expect(mockWaitForTransactionReceipt).toHaveBeenCalledOnce();
       expect(mockWaitForTransactionReceipt).toHaveBeenCalledWith(
         {},
-        { hash: MOCK_TX_HASH, chainId: 42161, onReplaced: expect.any(Function) }
+        {
+          hash: MOCK_TX_HASH,
+          chainId: 42161,
+          timeout: 120_000,
+          onReplaced: expect.any(Function),
+        }
       );
     });
 

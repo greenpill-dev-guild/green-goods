@@ -348,7 +348,9 @@ describe("useWorkMutationWithProgress", () => {
     it.each([
       ["validating", "compressing"],
       ["uploading", "uploading"],
-      ["confirming", "confirming"],
+      // The wallet asked is its confirming step; the network confirming is its syncing step.
+      ["wallet", "confirming"],
+      ["confirming", "syncing"],
       ["syncing", "syncing"],
       ["complete", "complete"],
       ["unknown-stage", "idle"],

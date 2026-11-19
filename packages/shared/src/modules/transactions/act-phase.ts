@@ -8,7 +8,14 @@
  * `confirmed` means the receipt landed; the read models may still lag, so a
  * view keeps the act closed on that row until the record it reads moves on.
  * `queued` is an act the job queue kept on this device to send later: it did
- * not fail, and nothing says it landed.
+ * not fail, and nothing says it landed. One the queue kept after its broadcast
+ * went out, so it reads as still confirming instead (PRD-1552).
+ *
+ * Waiting on the wallet past `WALLET_NUDGE_MS`, the act is `slow`, and an act
+ * that can be cancelled carries its `cancel` (PRD-1551). Three endings never
+ * read as failed: `still-confirming` (sent, its receipt outlasted the wait's
+ * limit), `safe-signers` (the wallet answered with a Safe proposal) and
+ * `stopped` (the person stopped waiting; the wallet may still hold the request).
  *
  * @module modules/transactions/act-phase
  */
@@ -17,17 +24,24 @@ import type { Hex } from "viem";
 
 export type TxActPhase =
   | { status: "idle" }
-  | { status: "signing"; key: string }
+  | { status: "signing"; key: string; slow?: true; cancel?: () => void }
   | { status: "confirming"; key: string; hash: Hex }
   | { status: "confirmed"; key: string; hash: Hex | null }
   | { status: "queued"; key: string }
+  | { status: "still-confirming"; key: string }
+  | { status: "safe-signers"; key: string }
+  | { status: "stopped"; key: string }
   | { status: "failed"; key: string };
 
 export type TxActPhaseEvent =
-  | { type: "start"; key: string }
+  | { type: "start"; key: string; cancel?: () => void }
+  | { type: "wallet-slow"; key: string }
   | { type: "broadcast"; key: string; hash: Hex }
   | { type: "confirmed"; key: string }
   | { type: "queued"; key: string }
+  | { type: "still-confirming"; key: string }
+  | { type: "safe-signers"; key: string }
+  | { type: "stopped"; key: string }
   | { type: "failed"; key: string };
 
 /** What an act that reports its own ending says: broadcast, landed, or left queued. */
@@ -41,31 +55,38 @@ export type ActPhaseReport = (event: ActPhaseReportEvent) => void;
 export const IDLE_ACT_PHASE: TxActPhase = { status: "idle" };
 
 export function actPhaseReducer(state: TxActPhase, event: TxActPhaseEvent): TxActPhase {
-  if (event.type === "start") return { status: "signing", key: event.key };
+  if (event.type === "start")
+    return { status: "signing", key: event.key, ...(event.cancel ? { cancel: event.cancel } : {}) };
   // Only the act that is running moves the line; a late event from an older
   // act, or one after the line settled, changes nothing.
   if (state.status === "idle" || state.key !== event.key) return state;
+  const running = state.status === "signing" || state.status === "confirming";
   switch (event.type) {
+    case "wallet-slow":
+      return state.status === "signing" ? { ...state, slow: true } : state;
     case "broadcast":
       return state.status === "signing"
         ? { status: "confirming", key: state.key, hash: event.hash }
         : state;
     case "confirmed":
-      return state.status === "signing" || state.status === "confirming"
+      return running
         ? {
             status: "confirmed",
             key: state.key,
             hash: state.status === "confirming" ? state.hash : null,
           }
         : state;
+    case "stopped":
+      return state.status === "signing" ? { status: "stopped", key: state.key } : state;
     case "queued":
-      return state.status === "signing" || state.status === "confirming"
-        ? { status: "queued", key: state.key }
-        : state;
+      // Kept by the queue after its broadcast: it went out, so it is still confirming
+      // (PRD-1552). Kept before any broadcast, it is queued on this device.
+      if (state.status === "confirming") return { status: "still-confirming", key: state.key };
+      return running ? { status: "queued", key: state.key } : state;
+    case "still-confirming":
+    case "safe-signers":
     case "failed":
-      return state.status === "signing" || state.status === "confirming"
-        ? { status: "failed", key: state.key }
-        : state;
+      return running ? { status: event.type, key: state.key } : state;
   }
 }
 

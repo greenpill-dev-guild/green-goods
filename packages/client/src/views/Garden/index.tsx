@@ -5,6 +5,7 @@ import {
   useSubmissionFlowController,
 } from "@green-goods/shared/hooks/client-ui/submission/useSubmissionFlowController";
 import { useWorkSubmissionFlowController } from "@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowController";
+import { SEND_STAGE_WORDS } from "@green-goods/shared/modules/transactions/send-stage";
 import type { Address } from "@green-goods/shared/types/domain";
 import { RiErrorWarningLine, RiRefreshLine } from "@remixicon/react";
 import type React from "react";
@@ -235,7 +236,7 @@ const Work: React.FC = () => {
           <>
             {namedSubmissionGarden ? <SubmissionGardenLine garden={namedSubmissionGarden} /> : null}
             {controller.submissionOutcome?.kind === "awaiting-confirmation" && (
-              <p role="status">{intl.formatMessage({ id: "app.work.awaitingConfirmation" })}</p>
+              <p role="status">{intl.formatMessage(SEND_STAGE_WORDS["still-confirming"].label)}</p>
             )}
             <DraftStatus draft={draft} submissionCompleted={submissionCompleted} />
           </>

@@ -478,8 +478,7 @@ export function useCommitmentDialogController(input: {
       refetch: workDecisions.refetch,
     },
     acts,
-    claimPhase: (claimant: Address) =>
-      actPhaseFor(claimDecisions.phase, claimActKey(commitmentId, claimant)),
+    claimPhase: (claimant: Address) => claimDecisions.phaseOf(claimActKey(commitmentId, claimant)),
     claimDecisions: claimDecisions.decisions,
     claimInFlight:
       claimDecisions.phase.status === "signing" || claimDecisions.phase.status === "confirming",

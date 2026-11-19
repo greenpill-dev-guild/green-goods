@@ -1,4 +1,3 @@
-import { Button } from "@green-goods/shared/components/Button";
 import {
   TxHoldFeedback,
   TxInlineFeedback,
@@ -114,39 +113,27 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
         size="lg"
         tone="community"
         preventClose={syncPending}
-        actions={
-          // One row at every width, so this line appearing never moves the buttons under a finger.
-          <div className="flex w-full flex-wrap items-center justify-end gap-2">
-            <p className="mr-auto type-meta text-text-soft empty:hidden" aria-live="polite">
-              {syncSignatureLine}
-            </p>
-            {/* Disabled while a write is in flight: the sync reports its outcome
-                inline, so a Cancel-close mid-write would render it into a dialog
-                nobody can see. */}
-            <Button
-              type="button"
-              emphasis="tertiary"
-              size="sm"
-              onClick={() => setSelectedCampaign(null)}
-              disabled={syncPending}
-            >
-              {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-            </Button>
-            <Button
-              size="sm"
-              type="button"
-              leadingIcon={<RiRefreshLine className="h-[18px] w-[18px]" aria-hidden="true" />}
-              onClick={handleSync}
-              disabled={!canSync || syncPending}
-              loading={syncPending}
-            >
-              {formatMessage({
-                id: "hub.community.cookies.sync",
-                defaultMessage: "Sync Allowlist",
-              })}
-            </Button>
-          </div>
-        }
+        actions={{
+          note: syncSignatureLine || null,
+          primary: {
+            label: formatMessage({
+              id: "hub.community.cookies.sync",
+              defaultMessage: "Sync Allowlist",
+            }),
+            icon: <RiRefreshLine className="h-[18px] w-[18px]" aria-hidden="true" />,
+            onClick: handleSync,
+            disabled: !canSync || syncPending,
+            loading: syncPending,
+          },
+          // Disabled while a write is in flight: the sync reports its outcome
+          // inline, so a Cancel-close mid-write would render it into a dialog
+          // nobody can see.
+          secondary: {
+            label: formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" }),
+            onClick: () => setSelectedCampaign(null),
+            disabled: syncPending,
+          },
+        }}
       >
         {selectedCampaign ? (
           <div className="space-y-5">

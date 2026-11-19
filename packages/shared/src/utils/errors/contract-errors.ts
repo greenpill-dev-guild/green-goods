@@ -1,5 +1,6 @@
 import { extractErrorMessage } from "./extract-message";
 import { HATS_COOKIE_JAR_ERRORS } from "./hats-cookie-jar-errors";
+import { parseUnconfirmedSend } from "./tx-error-classifier";
 import { offlineFailure, parseUnsentFailure } from "./unsent-failures";
 import { VOUCHER_ENTITLEMENT_ERRORS } from "./voucher-entitlement-errors";
 
@@ -466,10 +467,9 @@ export function parseContractError(error: unknown): ParsedContractError {
   // specific patterns precede generic ones.)
   // ============================================================================
 
-  // 0. The app's own refusals: an earlier version queued, a wallet on another network.
-  const unsent = parseUnsentFailure(error, errorStr);
-  if (unsent) return unsent;
-
+  // 0. The app's own readings: refused before sending, or sent and still confirming (PRD-1551).
+  const known = parseUnsentFailure(error, errorStr) ?? parseUnconfirmedSend(error, errorStr);
+  if (known) return known;
   const lowerStr = errorStr.toLowerCase();
   const hasWalletRequestExpiryCode = /\baa(?:22|32)\b[^\n\r]*(?:expired|not due)/i.test(errorStr);
 

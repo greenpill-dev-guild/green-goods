@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { WorkStatusNotice } from "@/views/Home/Garden/WorkStatusNotice";
 import { WorkUploadFooter, type WorkUploadFooterProps } from "@/views/Home/Garden/WorkUploadFooter";
 
-function queuedWork(submissionState: string, blockedReason?: string): Work {
+function queuedWork(submissionState: string, blockedReason?: string, sendStage?: string): Work {
   return {
     id: "job-1",
     title: "Planting Event",
@@ -14,7 +14,7 @@ function queuedWork(submissionState: string, blockedReason?: string): Work {
     gardenerAddress: "0x1111111111111111111111111111111111111111",
     gardenAddress: "0x2222222222222222222222222222222222222222",
     feedback: "",
-    metadata: JSON.stringify({ submissionState, blockedReason }),
+    metadata: JSON.stringify({ submissionState, blockedReason, sendStage }),
     media: [],
     createdAt: 1_700_000_000,
     status: "offline",
@@ -102,9 +102,33 @@ describe("WorkUploadFooter", () => {
     expect(screen.getByRole("button", { name: "Discard" })).toBeEnabled();
   });
 
-  it("holds discard while an explicit send is active", () => {
+  it("offers no discard while an explicit send is active", () => {
     renderFooter(queuedWork("ready"), { isRetrying: true });
-    expect(screen.getByRole("button", { name: "Discard" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
+  });
+
+  it("says on Upload now when the wallet is asked and when the send is confirming", () => {
+    renderFooter(queuedWork("sending", undefined, "wallet"), { isRetrying: true });
+    expect(screen.getByRole("button", { name: "Confirm in your wallet" })).toBeInTheDocument();
+    cleanup();
+
+    renderFooter(queuedWork("sending", undefined, "confirming"), { isRetrying: true });
+    expect(screen.getByRole("button", { name: "Confirming…" })).toBeInTheDocument();
+  });
+
+  // The queue puts the stage on the row however the send started (PRD-1552).
+  it("says the stage of a send this page did not start, and offers nothing while it runs", () => {
+    renderFooter(queuedWork("sending", undefined, "confirming"));
+    expect(screen.getByRole("button", { name: "Confirming…" })).toHaveAttribute(
+      "aria-busy",
+      "true"
+    );
+    expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
+  });
+
+  it("says where a promise taken up in the same tap stands while it goes first", () => {
+    renderFooter(queuedWork("ready"), { isRetrying: true, takeUpStage: "wallet" });
+    expect(screen.getByRole("button", { name: "Confirm in your wallet" })).toBeInTheDocument();
   });
 
   it("does not offer signing while a photo is still preparing", () => {
@@ -269,5 +293,18 @@ describe("WorkStatusNotice", () => {
         "It may already be on its way, so it can't be discarded or edited until we know."
       )
     ).toBeInTheDocument();
+  });
+
+  // Its broadcast is on record, so it went out: still confirming, never "may already be sent".
+  it("says a sent work is still confirming and that nothing needs sending again", () => {
+    renderNotice(queuedWork("awaiting-confirmation"));
+
+    expect(screen.getByText("Still confirming…")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Sent. Confirming is taking longer than usual. You can leave, and you don't need to send it again."
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByText("May already be sent")).not.toBeInTheDocument();
   });
 });
