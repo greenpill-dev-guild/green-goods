@@ -298,15 +298,14 @@ describe("steward review", () => {
     expect(latestLink(harness)).not.toBe(lapsed);
   });
 
-  it("sends NEW LINK to the report when its link went out after the decision's lapsed", async () => {
+  it("sends NEW LINK to the report when its link went out after the decision's, in the same instant", async () => {
     await publishedWork();
     await linkedSteward();
     const summary = await decide("Approve", "Looks right");
     const token = /CONFIRM (\d{4})/.exec(summary[0] ?? "")?.[1];
     await harness.say(BOLA, `CONFIRM ${token}`);
-    harness.clock.advance(harness.core.settings.linkChallengeTtlMs);
-    await harness.drain();
-    // The steward then reports work of their own and is sent its publishing link, which lapses too.
+    // The steward then reports work of their own and is sent its publishing link. The test clock
+    // has not moved, so both links carry the same time and only their order tells them apart.
     harness.chain.grantRole(TAS.address, stewardAccount.address, {
       gardener: true,
       operator: true,
