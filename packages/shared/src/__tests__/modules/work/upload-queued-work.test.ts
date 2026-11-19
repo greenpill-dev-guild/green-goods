@@ -208,6 +208,27 @@ describe("Upload all", () => {
     ]);
   });
 
+  // The confirmation pass may already hold an item: it lets go when it finishes, not Upload all.
+  it("leaves an item another holder is finishing at confirming for that holder to let go", async () => {
+    const jobs = [work(), work()];
+    const reportStage = vi.fn();
+    const processJob = vi.fn(async (id: string) =>
+      id === jobs[1]!.id
+        ? { success: false, skipped: true, error: "already-processing" }
+        : { success: true, txHash: TX }
+    );
+    const { ports } = harness(jobs, { reportStage, processJob });
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+      await options?.onBroadcast?.(TX);
+      return { hash: TX, sponsored: false };
+    });
+
+    await upload(ports, sender);
+    const lettingGo = reportStage.mock.calls.filter(([, stage]) => stage === null);
+    expect(lettingGo.map(([job]) => job.id)).toEqual([jobs[0]!.id]);
+  });
+
   it("refuses on an unconfirmed connection before claiming anything", async () => {
     const { ports } = harness([work()], { confirmOnline: vi.fn(async () => false) });
     const sender = createMockTransactionSender();

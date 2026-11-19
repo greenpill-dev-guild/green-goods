@@ -247,14 +247,16 @@ export async function uploadQueuedWork(
       // The queue confirms each sent item and finishes it the way every send finishes.
       // One it cannot finish now keeps its recorded send for the next confirmation pass.
       for (const { job } of confirmedItems) {
-        await ports.processJob(job.id, explicitSend).catch((error: unknown) => {
+        const finished = await ports.processJob(job.id, explicitSend).catch((error: unknown) => {
           logger.warn("[UploadAll] Sent item will be confirmed later", {
             jobId: job.id,
             error: error instanceof Error ? error.message : String(error),
           });
+          return undefined;
         });
-        // Its screen said confirming until the queue finished it; now its record speaks.
-        tellStage([job], null);
+        // Its screen said confirming until the queue finished it; now its record speaks. One
+        // another holder is finishing, such as the confirmation pass, is let go by that holder.
+        if (finished?.error !== "already-processing") tellStage([job], null);
       }
     }
 

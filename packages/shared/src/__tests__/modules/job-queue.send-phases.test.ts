@@ -147,12 +147,15 @@ describe("send phase reports", () => {
       executors: sendingExecutor(checkpoints),
     });
 
-    await queue.processJob("job-1", { transactionSender: walletSender().sender });
+    await expect(
+      queue.processJob("job-1", { transactionSender: walletSender().sender })
+    ).resolves.toEqual({ success: true, txHash: "0xsent" });
     expect(stagesSeen(deps)).toEqual(["wallet", "confirming", null]);
     expect(checkpoints.onBeforeBroadcast).toHaveBeenCalledOnce();
     expect(checkpoints.onBroadcast).toHaveBeenCalledWith("0xsent");
     // Let go only once the job completed: between the two, a row would read as sent and stuck.
     const order = vi.mocked(deps.events.emit).mock.calls.map(([type]) => type);
+    expect(order.indexOf("job:completed")).toBeGreaterThanOrEqual(0);
     expect(order.lastIndexOf("job:stage")).toBeGreaterThan(order.indexOf("job:completed"));
   });
 
