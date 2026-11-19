@@ -83,9 +83,23 @@ it("says a recheck of a work whose broadcast is on record is confirming, not upl
   expect(result.current.get(sent.id)).toBe("confirming");
   act(() => jobQueueEventBus.emit("job:processing", { jobId: job.id, job }));
   expect(result.current.get(job.id)).toBeNull();
+  // A Safe only proposed it: the recheck waits for the Safe's signers, not the network (PRD-1564).
+  const proposed: Job = {
+    ...job,
+    id: "proposed",
+    payload: {
+      uploadCheckpoint: {
+        transactionHash: `0x${"a".repeat(64)}`,
+        files: {},
+        awaiting: "safe-signers",
+      },
+    },
+  };
+  act(() => jobQueueEventBus.emit("job:processing", { jobId: proposed.id, job: proposed }));
+  expect(result.current.get(proposed.id)).toBe("safe-signers");
   act(() =>
     jobQueueEventBus.emit("queue:sync-completed", {
-      result: { processed: 2, failed: 0, skipped: 0 },
+      result: { processed: 3, failed: 0, skipped: 0 },
     })
   );
 });

@@ -255,7 +255,8 @@ describe("send phase reports", () => {
       awaiting: "safe-signers",
     });
 
-    // The queue settles it as before: from its record, without asking the wallet again.
+    // The record keeps the send, so the next pass goes to settlement, never to the wallet: this
+    // stand-in settles as the commitment executor does when the Safe has not run it yet.
     await expect(
       queue.processJob("job-1", { transactionSender: sender, explicit: true })
     ).resolves.toEqual(settled);

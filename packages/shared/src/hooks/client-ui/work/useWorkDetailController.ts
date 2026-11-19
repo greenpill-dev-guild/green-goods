@@ -9,7 +9,9 @@ import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import { worksKeys } from "../../../config/query-keys/work";
 import { jobQueue } from "../../../modules/job-queue/default-instance";
 import type { JobSendPhase } from "../../../modules/job-queue/ports";
+import { recordedSendAwaiting } from "../../../modules/job-queue/queue-policy";
 import { takeUpOf } from "../../../modules/job-queue/take-up-hold";
+import { SEND_STAGE_WORDS } from "../../../modules/transactions/send-stage";
 import { readWorkByUID } from "../../../modules/work/work-list";
 import {
   type OverlayWork,
@@ -185,7 +187,22 @@ export function useWorkDetailController() {
    * was lost, or that is already being sent (by this tab's sync or another tab), is being
    * checked, and any other is not sent yet and still saved.
    */
-  const reportUploadNowOutcome = ({ error, skipped }: { error?: string; skipped?: boolean }) => {
+  const reportUploadNowOutcome = (
+    { error, skipped }: { error?: string; skipped?: boolean },
+    { safeSigners = false }: { safeSigners?: boolean } = {}
+  ) => {
+    // A Safe only proposed it: it is not being checked, it waits for the Safe's signers (PRD-1564).
+    if (skipped && safeSigners && error === "awaiting-confirmation") {
+      const { label, detail } = SEND_STAGE_WORDS["safe-signers"];
+      toastService.info({
+        id: "work-upload",
+        title: intl.formatMessage(label),
+        message: intl.formatMessage(detail),
+        devMessage: error,
+        context: "work upload",
+      });
+      return;
+    }
     if (skipped) {
       const checking = error === "awaiting-confirmation" || error === "already-processing";
       toastService.info({
@@ -222,7 +239,8 @@ export function useWorkDetailController() {
       // The queue refuses a work that reverted or used up its retries, so the
       // tap gives it its retries back first. Without this, Upload now on either
       // one answers with the refusal instead of sending.
-      const queued = await jobQueue.getJobs(user?.id ?? work.gardenerAddress, { synced: false });
+      const owner = user?.id ?? work.gardenerAddress;
+      const queued = await jobQueue.getJobs(owner, { synced: false });
       const job = queued.find((candidate) => candidate.id === work.id);
       if (job && ["failed", "reverted"].includes(queuedUploadStatus(job).state))
         await jobQueue.retryJob(work.id);
@@ -276,7 +294,14 @@ export function useWorkDetailController() {
         return;
       }
       if (!result.success) {
-        reportUploadNowOutcome(result);
+        // A send a Safe only proposed says so on its record, whichever try sent it (PRD-1564).
+        const held =
+          result.error === "awaiting-confirmation"
+            ? (await jobQueue.getJobs(owner, { synced: false })).find(({ id }) => id === work.id)
+            : undefined;
+        reportUploadNowOutcome(result, {
+          safeSigners: Boolean(held && recordedSendAwaiting(held) === "safe-signers"),
+        });
         return;
       }
       queryClient.invalidateQueries({ queryKey: worksKeys.merged(gardenId, chainId) });

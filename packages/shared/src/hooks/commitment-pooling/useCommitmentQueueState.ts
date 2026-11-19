@@ -416,6 +416,7 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
       if (commitmentId) {
         pendingCommitmentIds.add(commitmentId);
         if (waitsForQueuedProof(job)) continue;
+        const awaiting = recordedSendAwaiting(job);
         pendingActs.set(commitmentId, {
           jobId: job.id,
           kind: job.kind as CommitmentJobKind,
@@ -423,7 +424,7 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
             ? { confirmationAction: (job.payload as ConfirmationJobPayload).action }
             : {}),
           waitingReason: pendingActWaitingReason(job),
-          ...(recordedSendAwaiting(job) ? { awaiting: recordedSendAwaiting(job) } : {}),
+          ...(awaiting ? { awaiting } : {}),
           discardable: isDiscardableJob(job),
           sendFailure: explainFailedSend(job.lastError),
           createdAt: job.createdAt,

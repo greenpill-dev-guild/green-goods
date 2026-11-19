@@ -19,11 +19,13 @@ function isOwnWork(job: Job, account: string | null | undefined, chainId: number
 
 /**
  * Where a try of this work starts: a work whose broadcast is on record went out, so a recheck of
- * it is confirming, never uploading. Any other try reports its stage as it goes.
+ * it is confirming, never uploading, or waiting for the Safe's signers when a Safe only proposed
+ * it (PRD-1564). Any other try reports its stage as it goes.
  */
 function startingStage(job: Job): JobSendPhase["stage"] | null {
   const sent = sendCheckpointOf(job);
-  return sent?.broadcast || sent?.transactionHash ? "confirming" : null;
+  if (!sent?.broadcast && !sent?.transactionHash) return null;
+  return sent.awaiting ?? "confirming";
 }
 
 /** The account's sends under way now, as the bus holds them. */
