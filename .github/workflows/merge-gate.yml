@@ -76,7 +76,8 @@ jobs:
     # One queue per pull request for runs that evaluate. A comment without a marker skips the job, so
     # it never takes a queue slot from a real run. A fork's CI Gate run names no pull request and
     # queues by its head, and sweeps after pushes to develop share one queue; the gate rereads each
-    # head and its writers' markers before it posts.
+    # head and its writers' markers before it posts, and the markers again after a success, so a
+    # sweep cannot leave a success a marker's withdrawal in the other queue already held.
     concurrency:
       group: ${{ github.event_name == 'push' && 'merge-gate-sweep' || format('merge-gate-{0}', github.event.issue.number || github.event.workflow_run.pull_requests[0].number || github.event.workflow_run.head_sha) }}
       # A newer sweep supersedes an older one; per pull request runs all decide in turn.

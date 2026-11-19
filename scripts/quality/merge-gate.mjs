@@ -427,11 +427,25 @@ export async function evaluate(pull, headSha, { github, cwd = repoRoot, env = pr
 // What a sweep posts before it decides; if a stopped sweep leaves it, a recheck comment decides.
 export const HOLD_DESCRIPTION = "Deciding again under a changed merge policy; comment merge-gate: recheck if this stays.";
 
-// Whether a gate input changed between two commits. A comparison GitHub cut short, or one that lists
-// no files, counts as changed; a failed lookup throws.
+// What a run posts when a marker its success counted was withdrawn, or could not be read, as it posted.
+export const WITHDRAWN_DESCRIPTION = "A marker this decision counted is gone or unreadable; comment merge-gate: recheck if this stays.";
+
+// The writers' markers a pull request's comments record for this head now. Authors the evaluation
+// already looked up keep its answer; a new marker author is looked up.
+async function currentMarkers(github, number, headSha, outcome) {
+  const comments = await paginate(github, `issues/${number}/comments`);
+  const newcomers = comments.filter((comment) => hasMarker(comment) && comment.user?.login && !outcome.authors.has(comment.user.login));
+  const writers = new Set([...outcome.writers, ...(await writersAmong(newcomers, accessLookup(github)))]);
+  return markersFor(comments, headSha, (login) => writers.has(login));
+}
+
+// Whether a gate input changed between two commits. The three-dot comparison lists only what `to`
+// added since the merge base, so when `to` is behind `from` or has diverged from it (develop reset or
+// rewritten) it can list nothing while a policy went back; that, a comparison GitHub cut short, and
+// one that lists no files all count as changed. A failed lookup throws.
 async function gateInputsChanged(github, from, to) {
-  const files = (await github(`compare/${from}...${to}`)).files;
-  if (!Array.isArray(files)) return true;
+  const { files, status } = await github(`compare/${from}...${to}`);
+  if (status === "behind" || status === "diverged" || !Array.isArray(files) || files.length === 0) return true;
   return files.length >= 300 || files.some((entry) => GATE_INPUT_PATHS.includes(entry.filename) || GATE_INPUT_PATHS.includes(entry.previous_filename));
 }
 
@@ -536,10 +550,7 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
           continue;
         }
         if (outcome.markers) {
-          const reread = await paginate(github, `issues/${number}/comments`);
-          const newcomers = reread.filter((comment) => hasMarker(comment) && comment.user?.login && !outcome.authors.has(comment.user.login));
-          const writers = new Set([...outcome.writers, ...(await writersAmong(newcomers, accessLookup(github)))]);
-          const now = markersFor(reread, headSha, (login) => writers.has(login));
+          const now = await currentMarkers(github, number, headSha, outcome);
           if (now.reviewed !== outcome.markers.reviewed || now.fullGate !== outcome.markers.fullGate) {
             log(`#${number}: a writer's marker changed while ${head} was read; nothing posted.`);
             continue;
@@ -559,10 +570,11 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
         // A run that read an older policy posts nothing: a success could carry a looser policy through,
         // and a hold could stall a pull request the newer policy passes. The sweep that change started
         // decides every open pull request, this one included, since its head predates this run. A
-        // lookup that fails confirms no change, so only a success waits; a hold still posts.
+        // lookup that fails confirms no change, so only a success waits; a hold still posts, since
+        // holding a merge is always safe, and the run reports the failure either way.
         const moved = await gateInputsMovedSince(github, checkout, pull.base.ref).catch(() => null);
+        if (moved === null) failed = true;
         if (moved === true || (moved === null && decision.state === "success")) {
-          if (moved === null) failed = true;
           const why = moved ? `the gate's inputs changed on ${pull.base.ref} since this run checked it out` : "the policy's freshness could not be checked";
           log(`#${number}: ${why}; ${decision.state} not posted.`);
           continue;
@@ -581,6 +593,28 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
           method: "POST",
           body: { state: decision.state, context: STATUS_CONTEXT, description: decision.description, target_url: runUrl },
         });
+        // A sweep and the run a marker's change starts sit in different queues, so a marker withdrawn
+        // between the re-read above and this post would leave the sweep's success after the other
+        // run's hold. Reading once more after a success closes that: a withdrawal before this read
+        // holds here, and one after it starts a run that posts after this one.
+        if (decision.state === "success" && (outcome.markers?.reviewed || outcome.markers?.fullGate)) {
+          const withdrawn = await currentMarkers(github, number, headSha, outcome).then(
+            (now) => (outcome.markers.reviewed && !now.reviewed) || (outcome.markers.fullGate && !now.fullGate),
+            (error) => {
+              failed = true;
+              log(`#${number}: could not re-read the markers after posting (${printable(error.message)}).`);
+              return true;
+            },
+          );
+          if (withdrawn) {
+            await github(`statuses/${headSha}`, {
+              method: "POST",
+              body: { state: "pending", context: STATUS_CONTEXT, description: WITHDRAWN_DESCRIPTION, target_url: runUrl },
+            });
+            log(`#${number} at ${head}: a marker this run counted is gone, so it holds again.`);
+            continue;
+          }
+        }
       }
       log(line);
       summary(line);

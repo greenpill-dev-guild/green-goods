@@ -9,6 +9,7 @@ import {
   GATE_CRITICAL_PATHS,
   GATE_INPUT_PATHS,
   HOLD_DESCRIPTION,
+  WITHDRAWN_DESCRIPTION,
   classifyChange,
   decide,
   evaluate,
@@ -320,6 +321,44 @@ test("a run posts once for an open pull request into develop, unless its head or
   assert.deepEqual(await run({ pulls: [open], markerComments: lost, state: "success", exit: 2 }), []);
 });
 
+test("a success holds again when a marker it counted is withdrawn as it posts, so a sweep cannot outlast the other queue", async () => {
+  const open = { number: 7, state: "open", base: { ref: "develop" }, head: { sha: HEAD } };
+  const reviewed = { id: 9, updated_at: "t", user: { login: "writer" }, body: `merge-gate: reviewed ${HEAD}` };
+  const run = async (readsAfterPost, exit = 0) => {
+    const posted = [];
+    const github = async (route, request = {}) => {
+      if (request.method === "POST") return void posted.push([request.body.state, request.body.description]);
+      if (route === "pulls/7") return open;
+      if (route.startsWith("issues/7/comments")) {
+        const now = posted.length ? readsAfterPost : [reviewed];
+        return now instanceof Error ? Promise.reject(now) : now;
+      }
+      if (route.startsWith(`commits/${HEAD}/statuses`)) return [];
+      throw new Error(`unexpected ${route}`);
+    };
+    const deps = {
+      env: { GITHUB_EVENT_NAME: "issue_comment" },
+      event: { issue: { number: 7, pull_request: {} } },
+      github,
+      evaluate: async () => ({
+        decision: { state: "success", description: "Sensitive: proof recorded.", needed: [] },
+        reasons: ["x"],
+        markers: { reviewed: true, fullGate: false },
+        authors: new Set(["writer"]),
+        writers: new Set(["writer"]),
+      }),
+      log: () => {},
+      summary: () => {},
+    };
+    assert.equal(await main([], deps), exit);
+    return posted;
+  };
+  const success = ["success", "Sensitive: proof recorded."];
+  assert.deepEqual(await run([reviewed]), [success]);
+  assert.deepEqual(await run([]), [success, ["pending", WITHDRAWN_DESCRIPTION]]);
+  assert.deepEqual(await run(new Error("HTTP 502"), 2), [success, ["pending", WITHDRAWN_DESCRIPTION]]);
+});
+
 test("evaluate reads every classification input: the merge base, Shared mutation, deletions, refusals and limits", async () => {
   const root = mkdtempSync(path.join(tmpdir(), "gg-merge-gate-inputs-"));
   try {
@@ -477,7 +516,11 @@ test("a run that read an older policy posts nothing, a failed freshness check ho
       const number = route.match(/^pulls\/(\d+)$/)?.[1];
       if (number) return pulls[number] ?? Promise.reject(new Error("HTTP 502"));
       if (route === "branches/develop") return { commit: { sha: TIP } };
-      if (route.startsWith(`compare/${CHECKOUT}...${TIP}`)) return moved === "error" ? Promise.reject(new Error("HTTP 502")) : { files: moved?.map((filename) => ({ filename })) };
+      if (route.startsWith(`compare/${CHECKOUT}...${TIP}`)) {
+        if (moved === "error") return Promise.reject(new Error("HTTP 502"));
+        if (moved === "behind" || moved === "diverged") return { status: moved, files: [] };
+        return { status: "ahead", files: moved?.map((filename) => ({ filename })) };
+      }
       if (route.startsWith("issues/") || route.startsWith("commits/")) return [];
       throw new Error(`unexpected ${route}`);
     };
@@ -496,16 +539,20 @@ test("a run that read an older policy posts nothing, a failed freshness check ho
   assert.deepEqual(await run({ moved: [POLICY] }), []);
   // A hold from an older policy could stall a pull request the newer one passes, so it waits for the sweep too.
   assert.deepEqual(await run({ moved: [POLICY], state: "pending" }), []);
-  // A comparison that lists no files or is cut short counts as moved.
+  // A comparison that lists no files or is cut short counts as moved, and so does a base reset
+  // behind the checkout or rewritten, where the three-dot comparison lists nothing.
   assert.deepEqual(await run({ moved: undefined }), []);
+  assert.deepEqual(await run({ moved: [] }), []);
+  assert.deepEqual(await run({ moved: "behind" }), []);
+  assert.deepEqual(await run({ moved: "diverged", state: "pending" }), []);
   assert.deepEqual(await run({ moved: Array.from({ length: 300 }, (_, index) => `docs/${index}.md`) }), []);
-  // A failed comparison confirms nothing: success waits and the run reports it, but a hold still posts.
+  // A failed comparison confirms nothing: success waits, a hold still posts, and the run reports it.
   assert.deepEqual(await run({ moved: "error", exit: 2 }), []);
-  assert.deepEqual(await run({ moved: "error", state: "pending" }), [`statuses/${HEAD}`]);
+  assert.deepEqual(await run({ moved: "error", state: "pending", exit: 2 }), [`statuses/${HEAD}`]);
   // A sweep whose checkout a newer policy push already passed holds, and leaves deciding to the
   // sweep that push queues; one that checked out the tip decides.
   assert.deepEqual(await run({ eventName: "push", moved: [POLICY] }), [`statuses/${HEAD}`]);
   assert.deepEqual(await run({ eventName: "push", moved: [POLICY], checkout: TIP }), [`statuses/${HEAD}`, `statuses/${HEAD}`]);
   // Pull request 9 fails to load; 3 is held, then decided, and the run reports the failure.
-  assert.deepEqual(await run({ eventName: "push", moved: [], pulls: { 3: { number: 3, state: "open", base: { ref: "develop" }, head: { sha: HEAD } }, 9: undefined }, exit: 2 }), [`statuses/${HEAD}`, `statuses/${HEAD}`]);
+  assert.deepEqual(await run({ eventName: "push", moved: ["docs/a.md"], pulls: { 3: { number: 3, state: "open", base: { ref: "develop" }, head: { sha: HEAD } }, 9: undefined }, exit: 2 }), [`statuses/${HEAD}`, `statuses/${HEAD}`]);
 });
