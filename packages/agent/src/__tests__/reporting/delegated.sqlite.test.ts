@@ -20,6 +20,8 @@ import { ADA, Harness, summaryToken } from "./support/harness";
  */
 let harness: Harness;
 const KERNEL = "0x00000000000000000000000000000000000000ca" as const;
+const STILL_CONFIRMING =
+  "Sent. Confirming is taking longer than usual. You can leave, and you don't need to send it again. I'll message you when your report is published.";
 
 beforeEach(() => {
   harness = new Harness();
@@ -254,6 +256,30 @@ describe("Kernel reporting grant", () => {
     await harness.drain();
     expect(harness.sender.signed).toBe(1);
     expect(one("SELECT state FROM execution_operations")).toEqual({ state: "published" });
+  });
+
+  it("says a send the bundler did not accept is still confirming, two minutes into its check", async () => {
+    await establishGrant();
+    await harness.drain();
+    harness.sender.refuseSubmit = true;
+    const sentBefore = harness.transport.sent.length;
+    await nextReport();
+    await harness.drain();
+    expect(
+      one("SELECT state, reason_code FROM execution_attempts ORDER BY rowid DESC LIMIT 1")
+    ).toEqual({ state: "uncertain", reason_code: "bundler_refused" });
+    const said = () => harness.transport.texts().slice(sentBefore);
+    const pass = async () => {
+      harness.clock.advance(30_000);
+      await harness.drain();
+    };
+    for (let n = 0; n < 3; n += 1) await pass();
+    expect(said()).not.toContain(STILL_CONFIRMING);
+    await pass();
+    expect(said().at(-1)).toBe(STILL_CONFIRMING);
+    for (let n = 0; n < 4; n += 1) await pass();
+    expect(said().filter((text) => text === STILL_CONFIRMING)).toHaveLength(1);
+    expect(harness.sender.signed).toBe(2);
   });
 
   it("never lets a reporting grant stand in for a review or another garden", async () => {

@@ -43,7 +43,7 @@ import {
   requestConnection,
   welcome,
 } from "./account-steps";
-import type { ChatCommand } from "./commands";
+import { type ChatCommand, linkCommand } from "./commands";
 import {
   answerConsent,
   answerVoiceConsent,
@@ -63,6 +63,7 @@ import {
   answerReviewSelection,
   handleReviewCommand,
   requestReview,
+  reviewOwnsCommand,
 } from "./review-steps";
 import { startRecovery } from "../recovery";
 import { StaleReviewError } from "../reviews";
@@ -352,11 +353,12 @@ function applyTurn(
 function routeCommand(
   deps: CoordinatorDeps,
   writer: TurnWriter,
-  plan: Extract<TurnPlan, { kind: "command" }>,
+  asked: Extract<TurnPlan, { kind: "command" }>,
   external: TurnExternal
 ): void {
-  const { command } = plan;
   const { review } = writer.ctx;
+  const plan = { ...asked, command: linkCommand(asked.command, writer.ctx.account !== null) };
+  const { command } = plan;
   if (command.kind === "stop" || command.kind === "delete")
     return withdrawProcessing(writer, command.kind);
   if (command.kind === "pair") return handlePairing(writer, command.code, external);
@@ -369,7 +371,9 @@ function routeCommand(
   if (command.kind === "help" || command.kind === "start") return writer.say("help");
   if (command.kind === "review") return requestReview(writer, command.index);
   if (command.kind === "recover") return startRecovery(writer);
-  if (review && reviewOwnsCommand(writer) && handleReviewCommand(writer, review, command)) return;
+  if (review && reviewOwnsCommand(writer, review, command)) {
+    if (handleReviewCommand(writer, review, command)) return;
+  }
   const owned = deps.commands?.[command.kind];
   if (owned) return owned(writer, plan);
   handleReportCommand(writer, command, external);
@@ -379,12 +383,6 @@ function routeCommand(
 function startsIdle(writer: TurnWriter): boolean {
   const { binding, draft, review } = writer.ctx;
   return Boolean(binding) && !draft && !review;
-}
-
-/** Commands such as CONFIRM or CANCEL belong to an open decision while its question is showing. */
-function reviewOwnsCommand(writer: TurnWriter): boolean {
-  const { review, prompt, draft } = writer.ctx;
-  return Boolean(review && (isReviewPrompt(prompt?.kind) || !draft));
 }
 
 /** Settles the turn's event, and the rest of its album with it. */

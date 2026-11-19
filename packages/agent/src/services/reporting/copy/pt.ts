@@ -267,6 +267,8 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "publish.linkExpired":
     "Seu link para publicar expirou antes de qualquer envio, então nada foi publicado. Seu relato está guardado; responda RETRY para receber um link novo.",
   "publish.stillConfirming": "{stillConfirming} Aviso quando seu relato for publicado.",
+  "publish.publishedChecking":
+    "Seu relato foi publicado. A equipe do Green Goods está verificando o registro dele, então ainda não posso enviar o link. Você não precisa assinar nem enviar nada de novo.",
   "publish.attestationUnread":
     "A transação está confirmada, mas ainda não consigo ler os detalhes da atestação, então parei de verificar. Você não precisa assinar nem enviar nada de novo. Se seu relato não aparecer no jardim, escreva para {support}.",
   "publish.rejected":
@@ -333,6 +335,10 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "review.unconfirmed":
     "Verifiquei a blockchain e ainda não encontro sua revisão, então parei de procurar. Não vou enviá-la de novo. Se ela não aparecer no trabalho, escreva para {support}.",
   "review.stillConfirming": "{stillConfirming} Aviso quando sua revisão for registrada.",
+  "review.recordedChecking":
+    "Sua revisão foi registrada. A equipe do Green Goods está verificando o registro dela, então ainda não posso enviar o link. Você não precisa assinar nem enviar nada de novo.",
+  "review.linkExpired":
+    "Seu link para assinar expirou antes de qualquer envio, então sua revisão não foi registrada. Sua decisão está guardada; responda RETRY para receber um link novo.",
   "review.attestationUnread":
     "A transação está confirmada, mas ainda não consigo ler os detalhes da atestação, então parei de verificar. Você não precisa assinar nem enviar nada de novo. Se sua revisão não aparecer no trabalho, escreva para {support}.",
   "recovery.started":

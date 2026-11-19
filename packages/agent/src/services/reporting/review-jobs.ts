@@ -21,6 +21,7 @@ import { activeAccount, participantEpoch } from "./participants";
 import { commitReview, loadReview, openReviewIntent, reviewState } from "./reviews";
 import { gardenByKey, type ReportingGarden } from "./gardens";
 import type { ReportingCore } from "./runtime";
+import { sendReviewSigningLink } from "./signing-links";
 import type { JobOutcome } from "./worker";
 
 /**
@@ -261,25 +262,8 @@ export async function resolveReviewAuthority(
     }
     const out = writer();
     if (!out?.target.binding) return;
-    const { url } = issueContinuation(core, {
-      purpose: "review_decision",
-      participantId: review.participantId,
-      subjectId: out.target.subjectId,
-      bindingId: out.target.binding.bindingId,
-      conversationId: review.conversationId,
-      providerRealm: conversationRealm(core, review.conversationId),
-      resourceKind: "review",
-      resourceId: review.id,
-      resourceRevision: review.revision,
-      resourceDigest: envelope.payloadDigest,
-      expectedAccount: account.address,
-      identityEpoch: epoch,
-    });
-    out.say(
-      "review.signLink",
-      { kind: out.text(account.kind === "eoa" ? "account.wallet" : "account.passkey") },
-      { url, label: out.text("review.signLabel") }
-    );
+    if (!sendReviewSigningLink(core, out, current, { ...operation, envelope }, account, epoch))
+      return;
     const module = deps.delegationModules.find((entry) => entry.chainId === review.chainId);
     if (
       account.kind === "kernel" &&

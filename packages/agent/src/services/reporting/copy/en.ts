@@ -262,6 +262,8 @@ export const EN_REPORTING_COPY = {
   "publish.linkExpired":
     "Your publishing link expired before anything was sent, so nothing was published. Your report is saved; reply RETRY for a new link.",
   "publish.stillConfirming": "{stillConfirming} I'll message you when your report is published.",
+  "publish.publishedChecking":
+    "Your report is published. The Green Goods team is checking its record, so I can't send the link yet. You don't need to sign or send anything again.",
   "publish.attestationUnread":
     "The transaction is confirmed, but I still can't read its attestation details, so I've stopped checking. You don't need to sign or send anything again. If your report doesn't show in the garden, write to {support}.",
   "publish.rejected":
@@ -326,6 +328,10 @@ export const EN_REPORTING_COPY = {
   "review.unconfirmed":
     "I've checked the chain and still can't find your review, so I've stopped checking. I won't send it again. If it doesn't show on the work, write to {support}.",
   "review.stillConfirming": "{stillConfirming} I'll message you when your review is recorded.",
+  "review.recordedChecking":
+    "Your review is recorded. The Green Goods team is checking its record, so I can't send the link yet. You don't need to sign or send anything again.",
+  "review.linkExpired":
+    "Your signing link expired before anything was sent, so your review wasn't recorded. Your decision is saved; reply RETRY for a new link.",
   "review.attestationUnread":
     "The transaction is confirmed, but I still can't read its attestation details, so I've stopped checking. You don't need to sign or send anything again. If your review doesn't show on the work, write to {support}.",
   "recovery.started":
