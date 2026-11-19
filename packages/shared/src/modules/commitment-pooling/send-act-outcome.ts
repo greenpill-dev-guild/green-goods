@@ -14,6 +14,7 @@ import {
   type SendActOutcome,
   sendActEnding,
 } from "../app/sendActAnalytics";
+import { UNKNOWN_BATCH_STATES } from "../transactions/batch-types";
 import type { TransactionSender } from "../transactions/types";
 import type { VoucherAwardRecord } from "../../public-contracts/voucher-awards";
 import type { CopyEditStatus } from "./copy-edit-send";
@@ -95,8 +96,9 @@ export function issuerActOutcome(outcome: ServiceIssuerOutcome): SendActOutcome 
 
 /**
  * A voucher award's send. One whose execution the owner declined sent nothing;
- * one submitted, waiting on the reserve's other signers, or left to reconcile
- * went out and may still land.
+ * one whose execution is still live (a retry of a failed award included), or
+ * whose record waits on the reserve's other signers or a reconcile, went out and
+ * may still land.
  */
 export function voucherAwardActOutcome(result: {
   record: Pick<VoucherAwardRecord, "state">;
@@ -104,5 +106,6 @@ export function voucherAwardActOutcome(result: {
 }): SendActOutcome {
   if (result.record.state === "confirmed") return "confirmed";
   if (result.operation?.status === "declined") return "cancelled";
+  if (result.operation && UNKNOWN_BATCH_STATES.has(result.operation.status)) return "confirming";
   return result.record.state === "failed" ? "failed" : "confirming";
 }

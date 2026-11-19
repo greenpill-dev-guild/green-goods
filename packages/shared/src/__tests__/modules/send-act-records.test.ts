@@ -266,6 +266,10 @@ describe("pool and batch endings", () => {
         operation: { status: "declined" },
       })
     ).toBe("cancelled");
+    // A retry of a failed award whose new execution has no receipt yet may still land.
+    expect(
+      voucherAwardActOutcome({ record: { state: "failed" }, operation: { status: "submitted" } })
+    ).toBe("confirming");
   });
 
   it("classifies a thrown error the same way for every caller", () => {
