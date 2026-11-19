@@ -231,21 +231,25 @@ export function decide({ tier, reasons, markers, headSha }) {
 }
 
 /**
- * The CI skip directive a pull request's title or body carries, if any. A merge commit copies both,
- * and GitHub then starts no push or pull request workflow for that commit: no checks on develop and
- * no Merge Gate sweep after a policy change (#1666's own merge skipped one this way).
+ * The CI skip directive a pull request's title, body or commit messages carry, if any, printed in
+ * one canonical form. A merge commit copies the title and body and a squash copies the commit
+ * messages, and GitHub then starts no push workflow for that commit: no checks on develop and no
+ * Merge Gate sweep after a policy change (#1666's own merge skipped one this way). Not seen: a
+ * message typed into the merge dialog. The trailer form matches anywhere, which only holds more.
  */
-export function skipDirective(pull) {
-  const text = `${pull.title ?? ""}\n${pull.body ?? ""}`;
-  return text.match(/\[(?:skip ci|ci skip|no ci|skip actions|actions skip)\]/i)?.[0] ?? text.match(/^skip-checks:[ \t]*true[ \t]*$/im)?.[0] ?? null;
+export function skipDirective(pull, commitMessages = []) {
+  const text = [pull.title ?? "", pull.body ?? "", ...commitMessages].join("\n");
+  const bracket = text.match(/\[(skip ci|ci skip|no ci|skip actions|actions skip)\]/i)?.[1];
+  if (bracket) return `[${bracket.toLowerCase()}]`;
+  return /^skip-checks:[ \t]*true[ \t]*$/im.test(text) ? "skip-checks: true" : null;
 }
 
-/** A skip directive holds any tier: the description says how to clear it, since a body edit starts no run. */
+/** A skip directive holds any tier. Editing the title or body, or pushing new commits, re-decides. */
 export function holdForSkipDirective(decision, directive) {
   if (!directive) return decision;
   return {
     state: "pending",
-    description: fit(`Remove "${printable(directive)}" from the title or body (the merge commit copies it), then comment merge-gate: recheck.`, DESCRIPTION_LIMIT),
+    description: fit(`Remove "${directive}" from the title, body and commit messages: the merge commit copies them, and develop's CI would not run.`, DESCRIPTION_LIMIT),
     needed: decision.needed,
   };
 }
@@ -258,6 +262,7 @@ export function holdForSkipDirective(decision, directive) {
 export async function pullNumbers(event, eventName, findByHead, listOpen = async () => []) {
   if (eventName === "push") return listOpen();
   if (eventName === "issue_comment") return event.issue?.pull_request ? [event.issue.number] : [];
+  if (eventName === "pull_request_target") return event.pull_request?.number ? [event.pull_request.number] : [];
   const run = event.workflow_run;
   if (eventName !== "workflow_run" || run?.event !== "pull_request") return [];
   const numbers = (run.pull_requests ?? []).map((pull) => pull.number);
@@ -457,9 +462,10 @@ export async function evaluate(pull, headSha, { github, cwd = repoRoot, env = pr
     const authors = new Set(comments.filter(hasMarker).map((comment) => comment.user?.login).filter(Boolean));
     const writers = await writersAmong(comments, accessLookup(github));
     const markers = markersFor(comments, headSha, (login) => writers.has(login));
-    const directive = skipDirective(pull);
+    const commits = await paginate(github, `pulls/${pull.number}/commits`);
+    const directive = skipDirective(pull, commits.map((commit) => commit.commit?.message ?? ""));
     const decision = holdForSkipDirective(decide({ ...change, reasons, markers, headSha }), directive);
-    return { decision, reasons: directive ? [`the title or body carries ${directive}`, ...reasons] : reasons, markers, authors, writers };
+    return { decision, reasons: directive ? [`the title, body or a commit message carries ${directive}`, ...reasons] : reasons, markers, authors, writers };
   } finally {
     rmSync(sharedRoot, { recursive: true, force: true });
   }

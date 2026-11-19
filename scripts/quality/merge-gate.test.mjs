@@ -152,18 +152,26 @@ test("each tier waits for its own proof at the head, and a pending description a
 });
 
 test("a skip directive in the title or body holds any tier, since the merge commit would skip develop's CI", () => {
-  const found = (title, body) => skipDirective({ title, body });
-  for (const directive of ["[skip ci]", "[ci skip]", "[no ci]", "[skip actions]", "[actions skip]", "[Skip CI]"]) {
+  const found = (title, body, commits) => skipDirective({ title, body }, commits);
+  for (const directive of ["[skip ci]", "[ci skip]", "[no ci]", "[skip actions]", "[actions skip]"]) {
     assert.equal(found("t", `a ${directive} b`), directive);
   }
+  // Printed in one canonical form, whatever the case or spacing it was written in.
+  assert.equal(found("t", "a [Skip CI] b"), "[skip ci]");
   assert.equal(found("chore: x [ci skip]", null), "[ci skip]");
-  assert.equal(found("t", "line\n\nskip-checks: true\n"), "skip-checks: true");
+  assert.equal(found("t", "line\r\n\r\nskip-checks:true\r\n"), "skip-checks: true");
+  assert.equal(found("t", `line\n\nskip-checks:${" ".repeat(80)}true\n`), "skip-checks: true");
+  // A squash merge builds its message from the commits, so their messages count too.
+  assert.equal(found("t", "clean", ["feat: a", "chore(release): 1.2.3 [skip actions]"]), "[skip actions]");
   for (const clean of ["skip ci in prose", "[skip-ci]", "skip-checks: false", "the skip-checks: true trailer, inline"]) assert.equal(found("t", clean), null, clean);
   const routine = { state: "success", description: "Routine: CI Gate is the proof.", needed: [] };
   assert.equal(holdForSkipDirective(routine, null), routine);
   const held = holdForSkipDirective(routine, "[skip ci]");
   assert.equal(held.state, "pending");
-  assert.ok(held.description.length <= 140 && held.description.endsWith("comment merge-gate: recheck."), held.description);
+  assert.ok(held.description.length <= 140 && held.description.includes("develop's CI would not run"), held.description);
+  // A held sensitive or critical decision keeps the markers it still needs.
+  const pending = { state: "pending", description: "Critical (x). Waits for ...", needed: ["merge-gate: reviewed abc"] };
+  assert.deepEqual(holdForSkipDirective(pending, "[no ci]").needed, ["merge-gate: reviewed abc"]);
 });
 
 test("events name their open pull requests, a fork's by its head branch", async () => {
@@ -175,6 +183,8 @@ test("events name their open pull requests, a fork's by its head branch", async 
   assert.deepEqual(await pullNumbers({ workflow_run: { ...run, event: "push", pull_requests: [] } }, "workflow_run", noLookup), []);
   const lookup = async (head) => (head === "someone:fix" ? [{ number: 11, head: { sha: HEAD } }, { number: 12, head: { sha: OTHER } }] : []);
   assert.deepEqual(await pullNumbers({ workflow_run: { ...run, pull_requests: [] } }, "workflow_run", lookup), [11]);
+  // An edited title, body or base names its pull request.
+  assert.deepEqual(await pullNumbers({ action: "edited", pull_request: { number: 9 } }, "pull_request_target", noLookup), [9]);
   // A push to develop that changes the gate's inputs decides every open pull request again.
   assert.deepEqual(await pullNumbers({ ref: "refs/heads/develop" }, "push", noLookup, async () => [3, 5]), [3, 5]);
 });
@@ -270,8 +280,10 @@ test("a pull request is decided from the API and its commits: a removed link, a 
       { id: 2, updated_at: "t2", user: { login: "writer" }, body: `merge-gate: reviewed ${head}` },
     ];
     const access = { writer: { role_name: "write", permission: "write" }, reader: { role_name: "read", permission: "read" } };
+    const commits = [];
     const github = async (route) => {
       if (route.startsWith("pulls/7/files")) return [{ filename: "docs/link.md", status: "removed" }, { filename: "docs/a.md", status: "modified" }];
+      if (route.startsWith("pulls/7/commits")) return commits;
       if (route.startsWith("compare/")) return { merge_base_commit: { sha: base } };
       if (route.startsWith("issues/7/comments")) return comments;
       const login = route.match(/^collaborators\/([^/]+)\/permission$/)?.[1];
@@ -291,7 +303,11 @@ test("a pull request is decided from the API and its commits: a removed link, a 
     const skipped = await evaluate({ ...pull("o"), body: "Merging this [skip ci]" }, head, options);
     assert.equal(skipped.decision.state, "pending");
     assert.match(skipped.decision.description, /Remove "\[skip ci\]"/);
-    assert.equal(skipped.reasons[0], "the title or body carries [skip ci]");
+    assert.equal(skipped.reasons[0], "the title, body or a commit message carries [skip ci]");
+    // A commit message alone holds it as well.
+    commits.push({ commit: { message: "fix: y\n\n[no ci]" } });
+    assert.equal((await evaluate(pull("o"), head, options)).decision.state, "pending");
+    commits.length = 0;
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -414,6 +430,7 @@ test("evaluate reads every classification input: the merge base, Shared mutation
     const pull = { number: 7, base: { sha: baseTip, repo: { full_name: "o/r" } }, head: { sha: head, repo: { full_name: "o/r" } } };
     const decideFiles = async (files) => {
       const github = async (route) => {
+        if (route.startsWith("pulls/7/commits")) return [];
         if (route.startsWith("pulls/7/files")) {
           const page = Number(route.match(/[?&]page=(\d+)/)[1]);
           return files.slice((page - 1) * 100, page * 100);
@@ -445,6 +462,9 @@ test("evaluate reads every classification input: the merge base, Shared mutation
 test("the workflow posts when CI Gate starts, and runs on every push to develop to decide whether to sweep", () => {
   const workflow = readFileSync(path.join(path.dirname(new URL(import.meta.url).pathname), "../../.github/workflows/merge-gate.yml"), "utf8");
   assert.match(workflow, /workflow_run:\n\s+workflows: \["CI Gate"\]\n\s+types: \[requested, completed\]/);
+  // An edited title, body or base re-decides, from develop: the job never checks the pull request out.
+  assert.match(workflow, /pull_request_target:\n\s+types: \[edited\]/);
+  assert.doesNotMatch(workflow, /github\.event\.pull_request\.head\.(sha|ref)/);
   // No path filter: GitHub drops one for a file past the first 3,000 a push changes.
   assert.match(workflow, /push:\n\s+branches: \[develop\]\n(?!\s+paths:)/);
   // Detection sits outside the sweeps' queue, so an ordinary push cannot cancel a sweep; the sweep
