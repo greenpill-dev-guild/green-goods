@@ -144,16 +144,36 @@ family the shared `SheetActions` (DL-117); consumers must NOT restate `max-w-*` 
 `AdminDialogStandard.guard` test fails ad-hoc `max-w-*` on AdminDialog). Only a hand-rolled
 modal (avoid building these) needs `max-w-[calc(100vw-2rem)] sm:max-w-lg` to survive 375px.
 
-A Hub dialog's or flow's footer is the shared `SheetActions` bar, passed as `AdminDialog`'s
-`actions` or `ActionFlowShell`'s `footer` (DL-189): 40px buttons 8px apart, the main action on top when they stack below 640px
-and rightmost from it, Cancel outlined, Back beside the way on in one row (`layout="steps"`), and a
-note or a send's progress in the bar's `note` slot. An inspector whose actions are ways on with no
-main one passes several `secondary` actions. Never stack your own buttons in a footer: the Hub's
-32px buttons keep a 6px finger-box reserve, so a hand-built stack sits 20px apart.
-`AdminFieldActionAndFooter.guard` fails on a hand-stacked footer button (`w-full sm:w-auto`) in
-`packages/admin/src`. Some dialogs still pass their own buttons straight to `actions`, which
-`AdminDialog` stacks itself with the same 20px gap; the guard does not catch those, so move a
-dialog onto the bar when you touch its footer.
+A Hub dialog's or flow's footer is the shared `SheetActions` bar (DL-189): 40px buttons 8px apart,
+the main action on top when they stack below 640px and rightmost from it, Cancel outlined, Back
+beside the way on in one row (`layout="steps"`), and a note or a send's progress in the bar's
+`note` slot. An inspector whose actions are ways on with no main one passes several `secondary`
+actions. A dialog cannot build its own: `AdminDialog`'s `actions` and `FormFlow`'s `actions` take
+the bar's props (`SheetActionsProps`), never buttons, and the dialog draws the bar. A flow passes
+the bar as `ActionFlowShell`'s `footer`, where `AdminFieldActionAndFooter.guard` fails on a
+hand-stacked footer button (`w-full sm:w-auto`) in `packages/admin/src`; the same guard anchors the
+`actions` type.
+
+```tsx
+// Good: the dialog draws the bar from its props
+<AdminDialog
+  actions={{
+    note: signatureLine || null,
+    primary: { label: "Deposit", onClick: deposit, disabled: !canDeposit, loading: isPending },
+    secondary: { label: "Cancel", onClick: onClose, disabled: isPending },
+  }}
+/>
+```
+
+Three things the bar does for every footer, so no caller repeats them:
+
+- The `note` is the bar's one polite live region. Pass plain text or content with no `role="status"`
+  of its own, and pass `null` while a note that comes and goes has nothing to say, which keeps the
+  region mounted so the line is announced when it appears.
+- A loading action stays focusable and ignores activation; pass `disabled` as well only where the
+  act must also be unavailable.
+- An action slot whose kind changes is a new button. A press that swaps Try Again for a form's
+  submit never lands on a button that has just become that submit.
 
 ## Rule 15: Form Fields
 

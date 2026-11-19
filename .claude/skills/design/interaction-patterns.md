@@ -56,8 +56,9 @@ violated half of these. Validators check structure; this contract is what "desig
 - **A dialog's or flow's footer actions are the shared action bar.** `SheetActions` draws them:
   40px buttons 8px apart, the main action on top when they stack below 640px and rightmost from
   it, Cancel outlined, Back beside the way on in one row, and the line that says how often the
-  wallet will ask, or a send's progress, in the bar's `note` slot (DL-189). Dialogs that still
-  pass their own buttons to the footer slot are debt against this rule. Proof:
+  wallet will ask, or a send's progress, in the bar's `note` slot (DL-189). A dialog passes
+  the bar's props as `actions` and the dialog draws the bar, so no dialog lays out its own footer
+  buttons. Proof:
   [SheetActions.tsx](../../../packages/shared/src/components/Dialog/SheetActions.tsx);
   `AdminFieldActionAndFooter.guard` fails on a hand-stacked footer button.
 
