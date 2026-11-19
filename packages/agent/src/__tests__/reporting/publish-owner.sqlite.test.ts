@@ -51,6 +51,8 @@ const ATTESTATION_UNREAD =
   "The transaction is confirmed, but I still can't read its attestation details, so I've stopped checking. You don't need to sign or send anything again. If your report doesn't show in the garden, write to contact@greengoods.app.";
 const STILL_CONFIRMING =
   "Sent. Confirming is taking longer than usual. You can leave, and you don't need to send it again. I'll message you when your report is published.";
+const SAFE_SIGNERS =
+  "Waiting for the Safe's signers. Your Safe has the proposal. It goes through once enough of the Safe's owners sign it. I'll message you when your report is published.";
 const LINK_EXPIRED =
   "Your publishing link expired before anything was sent, so nothing was published. Your report is saved; reply RETRY for a new link.";
 const AWAITING_SIGNATURE = "Your report for TAS is waiting for your signature.";
@@ -690,6 +692,86 @@ describe("owner publication", () => {
     expect(sentTexts().at(-1)).toBe("Your report is published ✅");
     expect(count(STILL_CONFIRMING)).toBe(1);
     expect(sentTexts().some((text) => /fail/i.test(text))).toBe(false);
+  });
+
+  // PRD-1568: Safe{Wallet} answers with its proposal's hash (the page reports it as a hash before
+  // it knows), and the report lands only when the Safe's owners sign and run it, hours later.
+  it("waits for the Safe's signers on a report a Safe only proposed, and finds it once the Safe runs it", async () => {
+    const SAFE_TX = `0x${"5a".repeat(32)}` as const;
+    await confirmLinkAndPublish(harness);
+    const { browser, view, envelope } = await openSigningPage(harness);
+    const attempt = await reserve(browser, view, envelope);
+    const { attemptId } = attempt.body;
+    await reportOutcome(browser, view, envelope, attemptId, {
+      kind: "broadcast",
+      transactionHash: SAFE_TX,
+    });
+    // A proposal for some other hash is not this send's.
+    const other = await reportOutcome(
+      browser,
+      view,
+      envelope,
+      attemptId,
+      { kind: "safe_proposal", safeTxHash: `0x${"6b".repeat(32)}` },
+      "outcome-key-other"
+    );
+    expect(other.status).toBe(409);
+    const proposed = await reportOutcome(
+      browser,
+      view,
+      envelope,
+      attemptId,
+      { kind: "safe_proposal", safeTxHash: SAFE_TX },
+      "outcome-key-2"
+    );
+    expect(proposed.body).toEqual({
+      ok: true,
+      operationState: "reconciling",
+      attemptState: "broadcast",
+    });
+    // Sent, so no second attempt can start, but the proposal's hash names no transaction.
+    expect(row("SELECT state, transaction_hash, reason_code FROM execution_attempts")).toEqual({
+      state: "broadcast",
+      transaction_hash: null,
+      reason_code: "safe_signers",
+    });
+    await harness.drain();
+    expect(count(SAFE_SIGNERS)).toBe(1);
+
+    // A node outage waits as long as an ordinary pass would, so it cannot spend the week's checks.
+    harness.chain.rpcDown = true;
+    harness.clock.advance(10 * 60_000);
+    await harness.drain();
+    harness.chain.rpcDown = false;
+    expect(
+      row<{ wait: number }>(
+        "SELECT run_after - $now AS wait FROM processing_jobs WHERE dedupe_key LIKE '%:safe'",
+        { now: harness.clock.now() }
+      )
+    ).toEqual({ wait: 10 * 60_000 });
+
+    // Hours pass, well past the ordinary check's 20 minutes, and the chain moves past the block
+    // the send started from: no "still confirming", no stop, and STATUS says what it waits for.
+    for (let pass = 0; pass < 48; pass += 1) {
+      harness.clock.advance(10 * 60_000);
+      harness.chain.block += 2_400n;
+      await harness.drain();
+    }
+    expect(count(STILL_CONFIRMING)).toBe(0);
+    expect(count(CHECK_STOPPED)).toBe(0);
+    expect(count(SAFE_SIGNERS)).toBe(1);
+    expect(await harness.say(ADA, "STATUS")).toEqual([SAFE_SIGNERS]);
+
+    // The owners sign and someone runs it, under a hash of its own.
+    const executed = send(envelope);
+    harness.clock.advance(10 * 60_000);
+    await harness.drain();
+    expect(sentTexts().at(-1)).toBe("Your report is published ✅");
+    expect(row("SELECT state, transaction_hash FROM execution_operations")).toEqual({
+      state: "published",
+      transaction_hash: executed,
+    });
+    expect(row("SELECT count(*) AS n FROM execution_attempts")).toEqual({ n: 1 });
   });
 
   it("tells the reporter once that a report found on chain twice is published and being checked", async () => {

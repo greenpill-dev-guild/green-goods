@@ -1,7 +1,7 @@
 import type { PublicationEnvelope } from "@green-goods/shared/modules/agent-reporting";
 import { decodeAbiParameters, type Hex, pad, parseAbiParameters, zeroHash } from "viem";
 import { entryPoint07Address } from "viem/account-abstraction";
-import { latestAttempt, updateAttempt } from "./attempts";
+import { latestAttempt, SAFE_SIGNERS, updateAttempt } from "./attempts";
 import {
   ATTESTED_TOPIC,
   type Addr,
@@ -38,6 +38,14 @@ export interface ReconciliationDeps {
   chain: ReportingChain;
   scanWindowBlocks: bigint;
 }
+
+/**
+ * How often, and how many times, a send a Safe only proposed is looked for: every ten minutes for
+ * a week. Its owners may take that long to sign, and nothing here can tell a proposal they will
+ * never run from one they have not run yet (PRD-1568).
+ */
+const SAFE_CHECK_INTERVAL_MS = 10 * 60_000;
+export const SAFE_CHECK_PASSES = (7 * 24 * 60 * 60_000) / SAFE_CHECK_INTERVAL_MS;
 
 interface Verified {
   uid: Hex;
@@ -165,8 +173,14 @@ async function resolve(
     }
   }
   // No usable hash, or the reported one does not carry this envelope: search the bounded range.
-  const fromBlock = BigInt(operation.fromBlock ?? attempt?.fromBlock ?? 0);
+  const sentFrom = BigInt(operation.fromBlock ?? attempt?.fromBlock ?? 0);
   const latest = await chain.blockNumber(envelope.chainId);
+  // A Safe's proposal can be run hours or days after it went out, long past the range a sent
+  // transaction lands in, so its check follows the chain's head instead (PRD-1568).
+  const fromBlock =
+    attempt?.reasonCode === SAFE_SIGNERS && latest - deps.scanWindowBlocks > sentFrom
+      ? latest - deps.scanWindowBlocks
+      : sentFrom;
   const toBlock =
     latest < fromBlock + deps.scanWindowBlocks ? latest : fromBlock + deps.scanWindowBlocks;
   const events = await chain.attestedEvents(envelope.chainId, {
@@ -277,14 +291,16 @@ export async function reconcileOperation(
   try {
     resolution = await resolve(deps, operation, envelope);
   } catch {
-    inTransaction(core.db, () => {
+    const safe = inTransaction(core.db, () => {
       const current = operationById(core, operation.id);
       if (current?.state === "reconciling") announceStillConfirming(core, current, job);
+      return latestAttempt(core, operation.id)?.reasonCode === SAFE_SIGNERS;
     });
     return {
       status: "retry",
       errorCode: "dependency_unavailable",
-      delayMs: 30_000,
+      // An outage must not spend a Safe's week of checks in a few hours.
+      delayMs: safe ? SAFE_CHECK_INTERVAL_MS : 30_000,
       onParked: stopped("dependency_unavailable"),
     };
   }
@@ -333,7 +349,15 @@ export async function reconcileOperation(
             ? {}
             : { onParked: stopped(resolution.reason) }),
         };
-      case "pending":
+      case "pending": {
+        // A Safe's proposal waits on its owners, not the network: checked less often, for longer.
+        if (latestAttempt(core, current.id)?.reasonCode === SAFE_SIGNERS)
+          return {
+            status: "retry",
+            errorCode: SAFE_SIGNERS,
+            delayMs: SAFE_CHECK_INTERVAL_MS,
+            onParked: stopped(SAFE_SIGNERS),
+          };
         announceStillConfirming(core, current, job);
         return {
           status: "retry",
@@ -341,6 +365,7 @@ export async function reconcileOperation(
           delayMs: 30_000,
           onParked: stopped("receipt_pending"),
         };
+      }
     }
   });
 }
