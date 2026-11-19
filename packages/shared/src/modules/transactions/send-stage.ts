@@ -44,24 +44,36 @@ export type LiveSendStageReport = Exclude<SendStageReport, { stage: "still-confi
  * The send options with its stages reported as they happen. Only a wallet asks the person, just
  * before the send can reach the network, so only a wallet sender reports the wallet stage: a
  * passkey's `onBeforeBroadcast` comes after its prompt was approved, and an embedded wallet asks
- * nobody. Every sender reports confirming once the network has the send. The send's own callbacks
- * run first and keep their say, so a checkpoint that fails to save still stops the send; `report`
- * runs after and must not throw.
+ * nobody. Every sender reports confirming once, as soon as the network has the send: at its
+ * broadcast reference, which a passkey's UserOperation (and a bundled request) has long before
+ * its receipt and its `onBroadcast`, or else at its broadcast. The send's own callbacks run first
+ * and keep their say, so a checkpoint that fails to save still stops the send; `report` runs
+ * after and must not throw.
  */
 export function withSendStageReports(
   options: TransactionSendOptions,
   authMode: TransactionSender["authMode"],
   report: (stage: LiveSendStageReport) => void
 ): TransactionSendOptions {
+  let confirming = false;
+  const reportConfirming = (txHash: Hex) => {
+    if (confirming) return;
+    confirming = true;
+    report({ stage: "confirming", txHash });
+  };
   return {
     ...options,
     onBeforeBroadcast: async (reference) => {
       await options.onBeforeBroadcast?.(reference);
       if (authMode === "wallet") report({ stage: "wallet" });
     },
+    onBroadcastReference: async (reference) => {
+      await options.onBroadcastReference?.(reference);
+      reportConfirming(reference.hash);
+    },
     onBroadcast: async (hash) => {
       await options.onBroadcast?.(hash);
-      report({ stage: "confirming", txHash: hash });
+      reportConfirming(hash);
     },
   };
 }

@@ -45,7 +45,7 @@ vi.mock("../../../modules/job-queue/default-instance", () => ({
   jobQueue: { getJobs: seams.jobs },
 }));
 vi.mock("../../../modules/job-queue/event-bus", () => ({
-  jobQueueEventBus: { onMultiple: () => () => {} },
+  jobQueueEventBus: { onMultiple: () => () => {}, currentSendStages: () => new Map() },
   useJobQueueEvents: () => {},
 }));
 vi.mock("../../../modules/job-queue/db", () => ({

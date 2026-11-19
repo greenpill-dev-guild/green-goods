@@ -1,6 +1,7 @@
 import React from "react";
 import { logger } from "../app/logger";
-import type { JobQueueEventMap, JobQueueEventType } from "./ports";
+import type { Job } from "../../types/job-queue";
+import type { JobQueueEventMap, JobQueueEventType, JobSendPhase } from "./ports";
 
 /**
  * Event Bus for Job Queue
@@ -20,7 +21,25 @@ class JobQueueEventBus extends EventTarget {
   /**
    * Emit a typed event
    */
+  /** Each job's send stage while one is under way (PRD-1552). */
+  private readonly sendStages = new Map<string, { job: Job; stage: JobSendPhase["stage"] }>();
+
+  /**
+   * The sends under way now and the stage each reported, so a screen that mounts in the middle
+   * of a send starts from where it stands instead of waiting for its next report.
+   */
+  currentSendStages(): ReadonlyMap<string, { job: Job; stage: JobSendPhase["stage"] }> {
+    return this.sendStages;
+  }
+
   emit<T extends JobQueueEventType>(type: T, data: JobQueueEventData<T>): void {
+    if (type === "job:stage") {
+      const { jobId, job, stage } = data as JobQueueEventMap["job:stage"];
+      if (stage) this.sendStages.set(jobId, { job, stage });
+      else this.sendStages.delete(jobId);
+    } else if (type === "job:completed" || type === "job:failed") {
+      this.sendStages.delete((data as JobQueueEventMap["job:completed"]).jobId);
+    }
     if (import.meta.env?.VITE_QUEUE_DEBUG === "true") {
       logger.debug("[JobQueueEventBus] emit", { type, data });
     }

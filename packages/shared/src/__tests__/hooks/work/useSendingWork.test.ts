@@ -52,3 +52,23 @@ it("keeps the stage of a work Upload all sent while the queue finishes it", () =
   act(() => jobQueueEventBus.emit("job:completed", { jobId: job.id, job, txHash: "0x1" }));
   expect(result.current.has(job.id)).toBe(false);
 });
+it("starts a screen mounted in the middle of a send from the stage that send reported", () => {
+  act(() => jobQueueEventBus.emit("job:stage", { jobId: job.id, job, stage: "confirming" }));
+  const { result } = renderHook(() => useSendingWork(account, 11155111));
+  expect(result.current.get(job.id)).toBe("confirming");
+  act(() => jobQueueEventBus.emit("job:stage", { jobId: job.id, job, stage: null }));
+  expect(result.current.has(job.id)).toBe(false);
+});
+it("keeps a send's stage through an unrelated flush, dropping only marks with no stage", () => {
+  const other: Job = { ...job, id: "other" };
+  const { result } = renderHook(() => useSendingWork(account, 11155111));
+  act(() => jobQueueEventBus.emit("job:stage", { jobId: job.id, job, stage: "wallet" }));
+  act(() => jobQueueEventBus.emit("job:processing", { jobId: other.id, job: other }));
+  act(() =>
+    jobQueueEventBus.emit("queue:sync-completed", {
+      result: { processed: 1, failed: 0, skipped: 0 },
+    })
+  );
+  expect([...result.current]).toEqual([[job.id, "wallet"]]);
+  act(() => jobQueueEventBus.emit("job:stage", { jobId: job.id, job, stage: null }));
+});
