@@ -62,12 +62,25 @@ interface ReviewStoryArgs {
   /** The stage the send says it is on, while it sends. */
   progressMessage: string;
   values: Record<string, unknown>;
+  /** Sent, its receipt not seen yet. */
+  awaitingConfirmation?: boolean;
 }
 
 /** The Review at one moment of the send: only the status row and the Edit links change. */
-function ReviewAt({ phase, progressMessage, values, images }: ReviewStoryArgs) {
+function ReviewAt({
+  phase,
+  progressMessage,
+  values,
+  images,
+  awaitingConfirmation,
+}: ReviewStoryArgs) {
   const { formatMessage } = useIntl();
-  const status = submitWorkSendStatus({ phase, progressMessage, formatMessage });
+  const status = submitWorkSendStatus({
+    phase,
+    progressMessage,
+    formatMessage,
+    awaitingConfirmation,
+  });
   return (
     <SubmitWorkReview
       action={ACTION}
@@ -204,5 +217,11 @@ export const InFlowSending: Story = {
 };
 
 export const InFlowSent: Story = { ...inFlow, args: { phase: "sent" } };
+
+/** Sent, its receipt not seen yet: the shared still confirming words (PRD-1552). */
+export const InFlowStillConfirming: Story = {
+  ...inFlow,
+  args: { phase: "sent", awaitingConfirmation: true },
+};
 
 export const InFlowFailed: Story = { ...inFlow, args: { phase: "failed" } };

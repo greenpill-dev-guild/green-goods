@@ -45,6 +45,13 @@ function page(work: Work, submissionState?: string): Work {
 /** The ready work as it was before preparation answered for it. */
 const PREPARING = page(QUEUED_WORK_PAGES.ready, "preparing");
 
+/** The ready work while a send of it runs, at the stage the queue reported (PRD-1552). */
+function sendingAt(sendStage: "wallet" | "confirming"): Work {
+  const work = page(QUEUED_WORK_PAGES.ready, "sending");
+  const metadata = JSON.parse(work.metadata) as Record<string, unknown>;
+  return { ...work, status: "uploading", metadata: JSON.stringify({ ...metadata, sendStage }) };
+}
+
 interface QueuedWorkPageProps {
   work: Work;
   isOnline?: boolean;
@@ -114,6 +121,22 @@ export const Attention: Story = { args: { work: page(QUEUED_WORK_PAGES.attention
 
 /** Frame `work-checking`: may already be sent, so only Check again. */
 export const Checking: Story = { args: { work: page(QUEUED_WORK_PAGES.checking) } };
+
+/** Sent, its receipt not seen yet: still confirming, and nothing to send again (PRD-1552). */
+export const StillConfirming: Story = {
+  args: { work: page(QUEUED_WORK_PAGES.checking, "awaiting-confirmation") },
+};
+
+export const StillConfirmingSpanish: Story = {
+  args: { work: page(QUEUED_WORK_PAGES.checking, "awaiting-confirmation") },
+  parameters: { locale: "es" },
+};
+
+/** Upload all is sending it and the wallet is asked: the page says so, though it sent nothing. */
+export const SendingAtWallet: Story = { args: { work: sendingAt("wallet") } };
+
+/** The network is confirming a send this page did not start. */
+export const SendingConfirming: Story = { args: { work: sendingAt("confirming") } };
 
 export const ReadyOffline: Story = {
   args: { work: page(QUEUED_WORK_PAGES.ready), isOnline: false },
