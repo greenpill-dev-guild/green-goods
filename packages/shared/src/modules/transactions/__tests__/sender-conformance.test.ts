@@ -585,7 +585,7 @@ const laws: ConformanceLaw<SenderCase>[] = [
           onBeforeBroadcast,
         })
       ).rejects.toBeInstanceOf(WalletAnswerAbandonedError);
-      expect(early.trace).not.toContain("send");
+      expect(early.trace).toEqual([]);
       expect(onBeforeBroadcast).not.toHaveBeenCalled();
     },
   },

@@ -542,28 +542,59 @@ describe("commitment queue executor", () => {
     expect(sender.sendContractCall).toHaveBeenCalledOnce();
   });
 
-  it("keeps a creation whose receipt outlasted the queue's limit as submitted, never failed", async () => {
+  it("keeps a creation whose receipt outlasted the queue's limit as submitted, with its nonce", async () => {
     // Its transaction is out and may still land: the next pass waits for the chain to show
-    // it rather than send a second promise (PRD-1551).
+    // it rather than send a second promise, and keeps the nonce that can later show another
+    // took its place (PRD-1551).
     const sender = createMockTransactionSender({
       sendContractCall: vi.fn(async () => {
         throw new ReceiptWaitLimitError(120_000, { hash: MOCK_TX_HASH });
       }),
     });
+    const queued = job("commitment", commitmentPayload());
 
     await expect(
-      executeCommitmentQueueJob(
-        "job-commitment",
-        job("commitment", commitmentPayload()),
-        42161,
-        sender,
-        {
-          demoActive: () => false,
-          reads: reads(chainClock()),
-          store: store(),
-        }
-      )
+      executeCommitmentQueueJob("job-commitment", queued, 42161, sender, {
+        demoActive: () => false,
+        reads: { ...reads(chainClock()), readTransactionNonce: vi.fn(async () => 7) },
+        store: store(),
+      })
     ).resolves.toEqual({ status: "submitted", txHash: MOCK_TX_HASH });
+    expect(queued.meta).toMatchObject({ submittedTxNonce: 7 });
+  });
+
+  it.each([
+    ["reverted", { reverted: true, superseded: false }, true],
+    ["lost its nonce to another", { reverted: false, superseded: true }, true],
+    ["still pending", { reverted: false, superseded: false }, false],
+  ] as const)("sends a kept creation again only once its transaction %s", async (_case, chain, again) => {
+    // Kept as submitted after the limit, it made nothing if its transaction then reverted or
+    // can never land; one pending or unknown waits for the chain instead (PRD-1551).
+    const sender = createMockTransactionSender();
+    const kept = job("commitment", commitmentPayload(), {
+      meta: { submittedTxHash: HASH, submittedTxNonce: 7 },
+    });
+
+    await expect(
+      executeCommitmentQueueJob("job-commitment", kept, 42161, sender, {
+        demoActive: () => false,
+        reads: {
+          ...reads(chainClock()),
+          transactionReverted: vi.fn(async () => chain.reverted),
+          transactionSuperseded: vi.fn(
+            async (hash: string, _account: string, nonce: number) =>
+              chain.superseded && hash === HASH && nonce === 7
+          ),
+        },
+        store: store(),
+      })
+    ).resolves.toEqual(
+      again
+        ? { status: "submitted", txHash: MOCK_TX_HASH }
+        : { status: "waiting", reason: "pending-first-send" }
+    );
+    expect(sender.sendContractCall).toHaveBeenCalledTimes(again ? 1 : 0);
+    expect(kept.meta).toEqual(again ? {} : { submittedTxHash: HASH, submittedTxNonce: 7 });
   });
 
   it("never publishes the words of a promise composed offline that the chain can no longer keep", async () => {

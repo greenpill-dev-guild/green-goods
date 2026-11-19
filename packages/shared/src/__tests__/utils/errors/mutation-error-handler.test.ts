@@ -18,12 +18,14 @@ import { WalletAnswerAbandonedError } from "../../../modules/transactions/types"
 
 const {
   mockToastError,
+  mockToastInfo,
   mockWalletProgressError,
   mockTrackContractError,
   mockDebugError,
   mockParseAndFormatError,
 } = vi.hoisted(() => ({
   mockToastError: vi.fn(),
+  mockToastInfo: vi.fn(),
   mockWalletProgressError: vi.fn(),
   mockTrackContractError: vi.fn(),
   mockDebugError: vi.fn(),
@@ -33,6 +35,7 @@ const {
 vi.mock("../../../components/toast", () => ({
   toastService: {
     error: (...args: unknown[]) => mockToastError(...args),
+    info: (...args: unknown[]) => mockToastInfo(...args),
   },
   walletProgressToasts: {
     error: (...args: unknown[]) => mockWalletProgressError(...args),
@@ -145,6 +148,26 @@ describe("createMutationErrorHandler", () => {
       handler(new WalletAnswerAbandonedError());
 
       expect(mockToastError).not.toHaveBeenCalled();
+    });
+
+    it("tells a send still confirming in an info toast, never an error", () => {
+      mockParseAndFormatError.mockReturnValueOnce({
+        title: "Send Still Confirming",
+        message: "It could still go through",
+        parsed: {
+          raw: "",
+          name: "SendStillConfirming",
+          message: "",
+          isKnown: true,
+          recoverable: false,
+        },
+      });
+      const handler = createMutationErrorHandler({ source: "pool", toastContext: "pool act" });
+
+      handler(new Error("No receipt within 120s"));
+
+      expect(mockToastError).not.toHaveBeenCalled();
+      expect(mockToastInfo).toHaveBeenCalledOnce();
     });
 
     it("returns parsed error result", () => {

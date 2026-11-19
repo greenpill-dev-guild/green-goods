@@ -168,7 +168,9 @@ export function createMutationErrorHandler(config: MutationErrorHandlerConfig) {
             ? getFallbackDescription(authMode ?? null)
             : undefined;
 
-        toastService.error({
+        // A send still confirming went out and may still land: it never shows as an error.
+        const show = parsed.name === "SendStillConfirming" ? toastService.info : toastService.error;
+        show({
           id: toastId,
           title: displayTitle,
           message: displayMessage,

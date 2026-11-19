@@ -19,6 +19,7 @@ import {
   type DeferredWorkIdentityResolution,
   resolveDeferredWorkIdentity,
 } from "../commitment-pooling/work-identity";
+import { isCanonicalTransactionHash } from "../transactions/confirmation";
 import { ReceiptWaitLimitError, type TransactionSender } from "../transactions/types";
 import type { StrandedCommitmentLookup } from "../work/stranded-intent";
 import {
@@ -161,6 +162,20 @@ async function publishPendingCommitmentMetadata(
   }
 }
 
+/**
+ * Whether a creation kept as submitted ended without landing: its transaction reverted, or
+ * another took the nonce it used. A read that cannot say leaves it waiting.
+ */
+async function keptCreationEnded(job: Job, reads: CommitmentChainReads): Promise<boolean> {
+  const hash = job.meta?.submittedTxHash;
+  if (job.kind !== "commitment" && job.kind !== "commitmentSeries") return false;
+  if (typeof hash !== "string" || !isCanonicalTransactionHash(hash)) return false;
+  if (await reads.transactionReverted?.(hash)) return true;
+  const nonce = job.meta?.submittedTxNonce;
+  if (typeof nonce !== "number" || !reads.transactionSuperseded) return false;
+  return reads.transactionSuperseded(hash, job.userAddress as Address, nonce).catch(() => false);
+}
+
 export async function executeCommitmentQueueJob(
   jobId: string,
   job: Job,
@@ -178,6 +193,16 @@ export async function executeCommitmentQueueJob(
   const store = deps.store ?? jobQueueDB;
   const moduleAddress = getNetworkContracts(chainId).commitmentPoolingModule;
   const chainReads = deps.reads ?? createCommitmentChainReads({ chainId, moduleAddress });
+  // A creation kept as submitted when its receipt outlasted the queue's limit (PRD-1551) made
+  // nothing if that transaction then reverted, or can never land once another took its nonce
+  // (a cancel or a replacement). Its hash is cleared so the creation can go again, as one that
+  // ended so inside the wait always could; the chain is still asked for it first, so a
+  // replacement that landed is recovered, not sent twice. One pending or unknown keeps waiting.
+  if (await keptCreationEnded(job, chainReads)) {
+    const { submittedTxHash: _ended, submittedTxNonce: _nonce, ...meta } = job.meta ?? {};
+    job.meta = meta;
+    await store.updateJob({ ...job });
+  }
   if (recordsSends(job.kind) && (hasRecordedSend(job) || retainedWorkBroadcastReference(jobId))) {
     return settleActSend(jobId, job, chainId, sender, store, chainReads, deps);
   }
@@ -289,8 +314,12 @@ export async function executeCommitmentQueueJob(
           try {
             return (await sender.sendContractCall(call)).hash;
           } catch (error) {
-            if (error instanceof ReceiptWaitLimitError && error.hash) return error.hash;
-            throw error;
+            if (!(error instanceof ReceiptWaitLimitError && error.hash)) throw error;
+            // Keep the nonce it used while the network holds it: only that can later show
+            // another transaction took its place.
+            const nonce = await chainReads.readTransactionNonce?.(error.hash).catch(() => null);
+            if (typeof nonce === "number") job.meta = { ...job.meta, submittedTxNonce: nonce };
+            return error.hash;
           }
         }
         // A wallet estimates inside its own send, after the intent is recorded;

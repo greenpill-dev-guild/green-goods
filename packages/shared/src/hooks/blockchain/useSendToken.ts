@@ -64,12 +64,17 @@ export interface SendTokenParams {
  */
 export type TokenSendNotice = "wallet-slow" | "stopped" | "still-confirming" | "safe-signers";
 
-/** The notice a settled send leaves, from how it ended. */
+/**
+ * The notice a settled send leaves, from how it ended. A send the person stopped waiting for
+ * that the wallet then sent anyway went out after all: it is still confirming.
+ */
 function settledNotice(
   error: unknown,
-  data: { awaiting?: TxResult["awaiting"] } | undefined
+  data: { awaiting?: TxResult["awaiting"] } | undefined,
+  answeredLate: boolean
 ): TokenSendNotice | null {
-  if (error instanceof WalletAnswerAbandonedError) return "stopped";
+  if (error instanceof WalletAnswerAbandonedError)
+    return answeredLate ? "still-confirming" : "stopped";
   if (error && isUnconfirmedTxError(error)) return "still-confirming";
   return data?.awaiting === "safe-signers" ? "safe-signers" : null;
 }
@@ -89,6 +94,7 @@ export function useSendToken() {
   // One send at a time: its way to stop waiting on the wallet, and whether that wait is slow.
   const walletWait = useRef<AbortController | null>(null);
   const [walletSlow, setWalletSlow] = useState(false);
+  const [answeredLate, setAnsweredLate] = useState(false);
   const { set: setNudge, clear: clearNudge } = useTimeout();
   const cancelWalletWait = useCallback(() => walletWait.current?.abort(), []);
 
@@ -166,10 +172,21 @@ export function useSendToken() {
       // asks nobody, so only a wallet send can turn slow or be stopped.
       const wait = new AbortController();
       walletWait.current = wait;
+      setAnsweredLate(false);
       if (sender.authMode === "wallet") setNudge(() => setWalletSlow(true), WALLET_NUDGE_MS);
       const answered = () => {
         clearNudge();
         setWalletSlow(false);
+      };
+      // The wallet sent it after the person stopped waiting: say it went out, refresh the
+      // balance, and leave any newer send's wait alone.
+      const answeredAfterCancel = () => {
+        setAnsweredLate(true);
+        // Said in a toast too, in case another send has started in the meantime.
+        const { label, detail } = SEND_STAGE_WORDS["still-confirming"];
+        toastService.info({ title: formatMessage(label), message: formatMessage(detail!) });
+        sentRef.current = { account: primaryAddress.toLowerCase(), chainId: token.chainId };
+        scheduleRefetch();
       };
       let result: TxResult;
       try {
@@ -182,11 +199,16 @@ export function useSendToken() {
             args: [to, amount],
             chainId: token.chainId,
           },
-          { signal: wait.signal, onBroadcast: async () => answered() }
+          {
+            signal: wait.signal,
+            onBroadcast: async () => (wait.signal.aborted ? answeredAfterCancel() : answered()),
+          }
         );
       } finally {
-        answered();
-        if (walletWait.current === wait) walletWait.current = null;
+        if (walletWait.current === wait) {
+          answered();
+          walletWait.current = null;
+        }
       }
       if (celo) {
         // A submission identifier alone (including a Safe proposal) cannot prove inclusion.
@@ -268,6 +290,8 @@ export function useSendToken() {
 
   const send = useSafeMutation(mutation);
   const notice: TokenSendNotice | null =
-    send.isPending && walletSlow ? "wallet-slow" : settledNotice(send.error, send.data);
+    send.isPending && walletSlow
+      ? "wallet-slow"
+      : settledNotice(send.error, send.data, answeredLate);
   return { ...send, notice, cancelWalletWait };
 }
