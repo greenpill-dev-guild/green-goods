@@ -282,20 +282,21 @@ describe("ReviewConfirmQueue (W13)", () => {
     expect(screen.queryByRole("button", { name: /confirm all/i })).not.toBeInTheDocument();
   });
 
-  // PRD-957: a Safe's proposal is not a confirmation queued on this device, nor a done one.
-  it("says a confirmation a Safe only proposed waits for the Safe's signers", () => {
+  // PRD-957: a send on its way is not a confirmation queued on this device, nor a done one.
+  it.each([
+    ["a Safe only proposed", "safe-signers", "Waiting for the Safe's signers"],
+    ["sent with its receipt still out", "still-confirming", "Still confirming…"],
+  ] as const)("says what a confirmation %s waits for", (_case, status, words) => {
     mocks.queue = queue({
-      rows: [row({ state: { status: "safe-signers", at: Date.parse("2026-09-30T15:42:00Z") } })],
+      rows: [row({ state: { status, at: Date.parse("2026-09-30T15:42:00Z") } })],
     });
     renderQueue();
 
-    const proposed = screen.getByTestId("review-confirm-9");
-    expect(within(proposed).getByText("Waiting for the Safe's signers")).toBeInTheDocument();
-    expect(within(proposed).queryByText("Confirmed")).not.toBeInTheDocument();
-    expect(within(proposed).queryByText("Queued on this device")).not.toBeInTheDocument();
-    expect(
-      within(proposed).queryByRole("button", { name: /confirm kept/i })
-    ).not.toBeInTheDocument();
+    const sent = screen.getByTestId("review-confirm-9");
+    expect(within(sent).getByText(words)).toBeInTheDocument();
+    expect(within(sent).queryByText("Confirmed")).not.toBeInTheDocument();
+    expect(within(sent).queryByText("Queued on this device")).not.toBeInTheDocument();
+    expect(within(sent).queryByRole("button", { name: /confirm kept/i })).not.toBeInTheDocument();
   });
 
   it("names the pool a commitment lives in when it is not the acting garden's own", () => {

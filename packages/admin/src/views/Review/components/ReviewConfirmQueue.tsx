@@ -426,7 +426,7 @@ export function ReviewConfirmQueue({
 /**
  * A row's outcome this visit, in place of its buttons, the way Waiting for
  * approval keeps its decisions: confirmed here with its time, queued on this
- * device, waiting for a Safe's signers, or settled elsewhere.
+ * device, still confirming, waiting for a Safe's signers, or settled elsewhere.
  */
 function ConfirmOutcome({
   state,
@@ -454,11 +454,12 @@ function ConfirmOutcome({
       </span>
     );
   }
-  // A Safe's proposal is sent and kept, so it is neither confirmed nor queued here (PRD-957).
-  if (state.status === "safe-signers") {
+  // A send on its way, or a Safe's proposal, is kept and settled from the chain, so it is neither
+  // confirmed nor queued here (PRD-957), in the shared send stage words.
+  if (state.status === "safe-signers" || state.status === "still-confirming") {
     return (
       <StatusBadge variant="info" size="sm" showIcon={false}>
-        {formatMessage(SEND_STAGE_WORDS["safe-signers"].label)}
+        {formatMessage(SEND_STAGE_WORDS[state.status].label)}
       </StatusBadge>
     );
   }

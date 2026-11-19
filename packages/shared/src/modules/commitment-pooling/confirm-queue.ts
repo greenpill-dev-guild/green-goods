@@ -187,12 +187,13 @@ export function reconcileConfirmVisit<
 }
 
 /**
- * A confirmation made here this visit: landed, queued on this device to send, or proposed to a
- * Safe and waiting for its signers (PRD-957). The queue keeps a Safe's proposal and settles it from
- * the chain, so it is neither confirmed nor waiting here to be sent.
+ * A confirmation made here this visit: landed, queued on this device to send, sent with its receipt
+ * still out (`still-confirming`, PRD-1552), or proposed to a Safe and waiting for its signers
+ * (PRD-957). The queue keeps the last two and settles them from the chain, so neither is confirmed
+ * nor waiting here to be sent.
  */
 export interface ConfirmDecision {
-  kind: "confirmed" | "queued" | "safe-signers";
+  kind: "confirmed" | "queued" | "still-confirming" | "safe-signers";
   /** When it settled, in milliseconds. */
   at: number;
 }
@@ -201,15 +202,21 @@ export type ConfirmRowState =
   | { status: "waiting" }
   | { status: "confirmed"; at: number }
   | { status: "queued"; at: number }
+  | { status: "still-confirming"; at: number }
   | { status: "safe-signers"; at: number }
   | { status: "gone" };
 
-/** Where one row stands this visit: this visit's decision, then whether the queue still lists it. */
+/**
+ * Where one row stands this visit: this visit's decision, then whether the queue still lists it. A
+ * send still on its way that the queue no longer lists has landed, so it reads as settled.
+ */
 export function confirmRowState(
   key: string,
   input: { live: ReadonlySet<string>; decisions: Readonly<Record<string, ConfirmDecision>> }
 ): ConfirmRowState {
   const decision = input.decisions[key];
-  if (decision) return { status: decision.kind, at: decision.at };
+  const onItsWay = decision?.kind === "still-confirming" || decision?.kind === "safe-signers";
+  if (decision && (input.live.has(key) || !onItsWay))
+    return { status: decision.kind, at: decision.at };
   return input.live.has(key) ? { status: "waiting" } : { status: "gone" };
 }
