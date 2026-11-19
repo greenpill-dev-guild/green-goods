@@ -10,6 +10,7 @@
  */
 
 import type { Address } from "../../../types/domain";
+import type { getCommitmentActivity as readCommitmentActivity } from "../data-activity";
 import type {
   CommitmentClaimRequestRecord,
   CommitmentCycleRecord,
@@ -128,13 +129,14 @@ export async function getCommitmentClaimRequests(
  * A withdrawn promise's history, so its page can show who withdrew it and why: its creation, any
  * request to take it up, and the withdrawal, by the reader when it is theirs and by the demo
  * steward otherwise. The demo keeps no other activity, so every other promise reads none.
+ * Filters, order and paging are the indexer query's: newest first, then by id.
  */
-export async function getCommitmentActivity(input: {
-  chainId: number;
-  commitmentId?: bigint;
-  limit?: number;
-}): Promise<CommitmentEventRecord[]> {
+export async function getCommitmentActivity(
+  input: Parameters<typeof readCommitmentActivity>[0]
+): Promise<CommitmentEventRecord[]> {
   const w = world();
+  const offset =
+    Number.isSafeInteger(input.offset) && (input.offset ?? 0) >= 0 ? (input.offset ?? 0) : 0;
   const event = (
     row: CommitmentReadModel,
     eventType: string,
@@ -158,6 +160,8 @@ export async function getCommitmentActivity(input: {
   });
   return w.commitments
     .filter((row) => row.chainId === input.chainId && row.onchainState === "CANCELLED")
+    .filter((row) => input.poolId === undefined || row.poolId === input.poolId)
+    .filter((row) => input.cycleId === undefined || row.cycleId === input.cycleId)
     .filter((row) => input.commitmentId === undefined || row.commitmentId === input.commitmentId)
     .flatMap((row) => {
       const withdrawnBy = same(row.creator, w.viewer) ? w.viewer : DEMO_VIEWER_ADDRESSES.steward;
@@ -169,8 +173,17 @@ export async function getCommitmentActivity(input: {
         event(row, "CREATED", row.creator ?? null, NOW - 86_400 * 10),
       ];
     })
-    .sort((left, right) => right.timestamp - left.timestamp)
-    .slice(0, input.limit ?? 50);
+    .sort(newestFirst)
+    .filter((row) => !input.before || newestFirst(input.before, row) < 0)
+    .slice(offset, offset + (input.limit ?? 50));
+}
+
+function newestFirst(
+  left: { timestamp: number; id: string },
+  right: { timestamp: number; id: string }
+): number {
+  if (left.timestamp !== right.timestamp) return right.timestamp - left.timestamp;
+  return left.id < right.id ? 1 : left.id > right.id ? -1 : 0;
 }
 
 export async function getCommitmentPools(
