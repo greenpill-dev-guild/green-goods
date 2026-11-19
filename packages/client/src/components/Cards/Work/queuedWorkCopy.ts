@@ -1,8 +1,14 @@
+import {
+  type LiveSendStageReport,
+  SEND_STAGE_WORDS,
+} from "@green-goods/shared/modules/transactions/send-stage";
 import type { MessageDescriptor } from "react-intl";
 
 /** Where a queued work stands, as its metadata records it. */
 export interface QueuedWorkState {
   submissionState?: string;
+  /** Where its send stands while it is sending (PRD-1552). */
+  sendStage?: LiveSendStageReport["stage"];
   /** The contract error the chain would refuse a blocked work with. */
   blockedReason?: string;
   /** The file a held work waits on is a video, not a photo. */
@@ -12,14 +18,14 @@ export interface QueuedWorkState {
 /** Reads the queued state from work metadata. Remote metadata can be a CID, which has none. */
 export function readQueuedWorkState(metadata: string | undefined): QueuedWorkState {
   try {
-    const { submissionState, blockedReason, heldVideo } = JSON.parse(metadata || "{}") as Record<
-      string,
-      unknown
-    >;
+    const { submissionState, blockedReason, heldVideo, sendStage } = JSON.parse(
+      metadata || "{}"
+    ) as Record<string, unknown>;
     return {
       submissionState: typeof submissionState === "string" ? submissionState : undefined,
       blockedReason: typeof blockedReason === "string" ? blockedReason : undefined,
       ...(heldVideo === true ? { heldVideo } : {}),
+      ...(sendStage === "wallet" || sendStage === "confirming" ? { sendStage } : {}),
     };
   } catch {
     return {};
@@ -37,10 +43,8 @@ const BLOCKED_CHIP = {
   defaultMessage: "Blocked",
 } satisfies MessageDescriptor;
 
-const AWAITING_CONFIRMATION = {
-  id: "app.work.awaitingConfirmation",
-  defaultMessage: "Awaiting confirmation",
-} satisfies MessageDescriptor;
+/** Sent, with its receipt not seen yet: the shared still confirming words. */
+const STILL_CONFIRMING = SEND_STAGE_WORDS["still-confirming"];
 
 const CHECKING_SUBMISSION = {
   id: "app.work.checkingSubmission",
@@ -115,6 +119,11 @@ const UPLOADING_NOW = {
   id: "app.home.work.syncingInfo",
   defaultMessage: "Uploading to the garden record...",
 } satisfies MessageDescriptor;
+
+/** A send under way says its stage once the queue reported one, in the shared words. */
+function sendingMessage(stage: QueuedWorkState["sendStage"]): MessageDescriptor {
+  return stage ? SEND_STAGE_WORDS[stage].label : UPLOADING_NOW;
+}
 
 const UPLOAD_FAILED = {
   id: "app.work.retryRequiredInfo",
@@ -195,7 +204,7 @@ export function queuedWorkStatusMessage(
     case "photo-needs-attention":
       return BLOCKED_CHIP;
     case "awaiting-confirmation":
-      return AWAITING_CONFIRMATION;
+      return STILL_CONFIRMING.label;
     case "checking-submission":
       return CHECKING_SUBMISSION;
     default:
@@ -211,12 +220,13 @@ export function queuedWorkDetailMessage({
   submissionState,
   blockedReason,
   heldVideo,
+  sendStage,
 }: QueuedWorkState): MessageDescriptor | undefined {
   switch (submissionState) {
     case "reverted":
       return CONFIRMATION_FAILED;
     case "sending":
-      return UPLOADING_NOW;
+      return sendingMessage(sendStage);
     case "retry-required":
       return UPLOAD_FAILED;
     case "preparing":
@@ -259,10 +269,7 @@ export function queuedWorkExplanation(
   };
   switch (state.submissionState) {
     case "awaiting-confirmation":
-      return {
-        id: "app.work.confirmationExplanation",
-        defaultMessage: "Your work was sent. We will check its status automatically when online.",
-      };
+      return STILL_CONFIRMING.detail;
     case "checking-submission":
       return {
         id: "app.work.checkingSubmissionInfo",
@@ -274,7 +281,7 @@ export function queuedWorkExplanation(
       return UPLOAD_FAILED;
     // Only an observed send says so: offline, nothing is being sent.
     case "sending":
-      return isOnline ? UPLOADING_NOW : waiting;
+      return isOnline ? sendingMessage(state.sendStage) : waiting;
     default:
       if (sendFailed) return UPLOAD_FAILED;
       return queuedWorkDetailMessage(state) ?? waiting;

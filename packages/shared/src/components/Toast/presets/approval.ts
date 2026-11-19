@@ -1,3 +1,4 @@
+import { SEND_STAGE_WORDS } from "../../../modules/transactions/send-stage";
 import { toastService } from "../toast.service";
 import { type FormatMessageFn, toastMessageIds } from "./types";
 
@@ -5,7 +6,10 @@ import { type FormatMessageFn, toastMessageIds } from "./types";
 const approvalDefaults = {
   submittingApproval: { title: "Submitting approval", message: "Approving work..." },
   submittingDecision: { title: "Submitting decision", message: "Recording decision..." },
-  walletConfirm: { title: "Confirm in your wallet", message: "Waiting for wallet confirmation..." },
+  walletConfirm: {
+    title: SEND_STAGE_WORDS.wallet.label.defaultMessage,
+    message: "Approve it there to send your decision.",
+  },
   success: { title: "Approval submitted", message: "Decision recorded." },
   decisionSuccess: { title: "Decision submitted", message: "Feedback recorded." },
   savedOfflineApproval: { title: "Approval saved offline" },

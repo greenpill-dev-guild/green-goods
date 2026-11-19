@@ -953,7 +953,7 @@ describe("hooks/work/useWorkApproval", () => {
         expect.objectContaining({ stage: "handoff" })
       );
       expect(toastService.loading).not.toHaveBeenCalledWith(
-        expect.objectContaining({ title: en["app.toast.approval.walletConfirm.title"] })
+        expect.objectContaining({ title: en["app.sendStage.wallet"] })
       );
     });
 
@@ -988,7 +988,7 @@ describe("hooks/work/useWorkApproval", () => {
         expect.objectContaining({ stage: "handoff" })
       );
       expect(toastService.loading).not.toHaveBeenCalledWith(
-        expect.objectContaining({ title: en["app.toast.approval.walletConfirm.title"] })
+        expect.objectContaining({ title: en["app.sendStage.wallet"] })
       );
       expect(toastService.success).toHaveBeenLastCalledWith(
         expect.objectContaining({ message: en["app.toast.approval.savedOffline.message"] })
@@ -1021,7 +1021,7 @@ describe("hooks/work/useWorkApproval", () => {
         expect.objectContaining({ stage: "handoff" })
       );
       expect(toastService.loading).not.toHaveBeenCalledWith(
-        expect.objectContaining({ title: en["app.toast.approval.walletConfirm.title"] })
+        expect.objectContaining({ title: en["app.sendStage.wallet"] })
       );
     });
 

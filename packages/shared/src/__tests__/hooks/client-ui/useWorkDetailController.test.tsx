@@ -376,31 +376,21 @@ describe("useWorkDetailController", () => {
     expect(toastService.error).not.toHaveBeenCalled();
   });
 
-  it("follows Upload now's send from the wallet to the chain, and lets go when it ends", async () => {
+  // The queue reports the work's stage on its row, however the send started (PRD-1552).
+  it("leaves the work's own send stage to the queue, wiring nothing for it", async () => {
     mocks.sender = { authMode: "wallet" };
     const { jobQueue } = await import("../../../modules/job-queue/default-instance");
-    let finish: (() => void) | undefined;
-    vi.mocked(jobQueue.processJob).mockImplementation(async (_jobId, context) => {
-      context.onPhase?.({ stage: "wallet" });
-      await new Promise<void>((resolve) => {
-        finish = resolve;
-      });
-      context.onPhase?.({ stage: "confirming", txHash: "0xsent" });
-      return { success: false, error: "awaiting-confirmation", skipped: true };
-    });
+    vi.mocked(jobQueue.processJob).mockResolvedValue({ success: true, txHash: "0x1" });
     const { result } = renderHook(() => useWorkDetailController(), { wrapper: RouterWrapper });
 
-    let sending: Promise<void> | undefined;
-    act(() => {
-      sending = result.current.retry();
-    });
-    await waitFor(() => expect(result.current.sendStage).toBe("wallet"));
     await act(async () => {
-      finish?.();
-      await sending;
+      await result.current.retry();
     });
-    expect(result.current.sendStage).toBeNull();
-    expect(result.current.isRetrying).toBe(false);
+    expect(vi.mocked(jobQueue.processJob).mock.calls[0]).toEqual([
+      "work-1",
+      { transactionSender: mocks.sender, explicit: true },
+    ]);
+    expect(result.current.takeUpStage).toBeNull();
   });
 
   it("checks the connection on Upload now and says nothing was sent when it is not confirmed", async () => {
@@ -548,19 +538,37 @@ describe("useWorkDetailController", () => {
       const { connectivityStore } = await import("../../../stores/connectivity");
       const confirm = vi.spyOn(connectivityStore, "confirmOnline").mockResolvedValue(true);
       vi.mocked(jobQueue.getJobs).mockResolvedValue(chain());
-      vi.mocked(jobQueue.processJob).mockResolvedValue({ success: true, txHash: "0x1" });
+      let finish: (() => void) | undefined;
+      vi.mocked(jobQueue.processJob).mockImplementation(async (jobId, context) => {
+        if (jobId === "take-up") {
+          context.onPhase?.({ stage: "wallet" });
+          await new Promise<void>((resolve) => {
+            finish = resolve;
+          });
+        }
+        return { success: true, txHash: "0x1" };
+      });
       try {
         const { result } = renderHook(() => useWorkDetailController(), { wrapper: RouterWrapper });
 
+        let sending: Promise<void> | undefined;
+        act(() => {
+          sending = result.current.retry();
+        });
+        // The take-up is another job, so the page follows its stage while the work waits on it.
+        await waitFor(() => expect(result.current.takeUpStage).toBe("wallet"));
         await act(async () => {
-          await result.current.retry();
+          finish?.();
+          await sending;
         });
 
+        expect(result.current.takeUpStage).toBeNull();
         expect(jobQueue.retryJob).toHaveBeenCalledWith("take-up");
         expect(vi.mocked(jobQueue.processJob).mock.calls.map(([jobId]) => jobId)).toEqual([
           "take-up",
           "work-1",
         ]);
+        expect(vi.mocked(jobQueue.processJob).mock.calls[1]?.[1]).not.toHaveProperty("onPhase");
       } finally {
         confirm.mockRestore();
       }

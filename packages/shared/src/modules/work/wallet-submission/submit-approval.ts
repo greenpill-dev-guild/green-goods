@@ -10,6 +10,7 @@ import { workApprovalsKeys } from "../../../config/query-keys/work";
 import { ensureWagmiWalletChain } from "../../../modules/transactions/chain-guard";
 import { withGasHeadroom } from "../../../modules/transactions/gas-headroom";
 import { assertLocalArbitrumForkWallet } from "../../../modules/transactions/local-fork-safety";
+import { SEND_STAGE_WORDS } from "../../../modules/transactions/send-stage";
 import { logger } from "../../app/logger";
 import { DEBUG_ENABLED, debugError, debugLog } from "../../../utils/debug";
 import { APPROVAL_GAS_HEADROOM_PERCENT } from "../../../utils/eas/constants";
@@ -83,7 +84,7 @@ export async function submitApprovalDirectly(
         ])
       : undefined;
 
-    onProgress?.("confirming", "Confirm in your wallet...");
+    onProgress?.("wallet", SEND_STAGE_WORDS.wallet.label.defaultMessage);
     onLifecycle?.({ stage: "handoff" });
     debugLog("[WalletSubmission] Sending approval transaction", { to: txParams.to });
     await assertLocalArbitrumForkWallet();
@@ -96,6 +97,7 @@ export async function submitApprovalDirectly(
     });
 
     debugLog("[WalletSubmission] Approval transaction sent", { hash });
+    onProgress?.("confirming", SEND_STAGE_WORDS.confirming.label.defaultMessage);
     onLifecycle?.({ stage: "broadcast", txHash: hash });
 
     let confirmed = false;

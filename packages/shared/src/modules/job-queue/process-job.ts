@@ -1,9 +1,6 @@
 import { BatchConfirmationPendingError, BundleIncompleteError } from "../transactions/batch-types";
-import {
-  ReceiptWaitLimitError,
-  type TransactionSender,
-  type TransactionSendOptions,
-} from "../transactions/types";
+import { withSendStageReports } from "../transactions/send-stage";
+import { ReceiptWaitLimitError, type TransactionSender } from "../transactions/types";
 import {
   acquireWorkJobs,
   retainedWorkBroadcast,
@@ -99,39 +96,29 @@ async function completeJob(
 }
 
 /**
- * The send options with the context's phase reports added, when it asked for
- * them. The executor's own callbacks run first and keep their say: a checkpoint
- * that fails to save still stops the send. The report runs after and can never
- * stop it. Without `onPhase` the options pass through untouched.
+ * Reports where a send of this job stands: on the queue's events, for any screen that shows the
+ * job (PRD-1552), and to the caller's `onPhase` when it asked. Report-only: a report that throws
+ * is logged, and the send goes on.
  */
-function withPhaseReports(
-  options: TransactionSendOptions,
+function stageReporter(
   jobId: string,
+  job: Job,
   context: ProcessJobContext,
-  logger: JobQueueLogger
-): TransactionSendOptions {
-  const onPhase = context.onPhase;
-  if (!onPhase) return options;
-  const report = (phase: JobSendPhase) => {
+  deps: ProcessJobDependencies
+): (stage: JobSendPhase | null) => void {
+  const safely = (report: () => void) => {
     try {
-      onPhase(phase);
+      report();
     } catch (error) {
-      logger.warn("[JobQueue] a send phase report threw", {
+      deps.logger.warn("[JobQueue] a send phase report threw", {
         jobId,
         error: error instanceof Error ? error.message : String(error),
       });
     }
   };
-  return {
-    ...options,
-    onBeforeBroadcast: async (reference) => {
-      await options.onBeforeBroadcast?.(reference);
-      report({ stage: "wallet" });
-    },
-    onBroadcast: async (hash) => {
-      await options.onBroadcast?.(hash);
-      report({ stage: "confirming", txHash: hash });
-    },
+  return (phase) => {
+    safely(() => deps.events.emit("job:stage", { jobId, job, stage: phase?.stage ?? null }));
+    if (phase && context.onPhase) safely(() => context.onPhase?.(phase));
   };
 }
 
@@ -250,6 +237,7 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
     started = true;
     const chainId = job.chainId || deps.config.defaultChainId;
     const startedAt = deps.clock.now();
+    const reportStage = stageReporter(jobId, job, context, deps);
 
     try {
       await context.assertOwnership?.();
@@ -269,7 +257,7 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
       guardedSender.sendContractCall = async (call, options = {}) => {
         try {
           return await sender.sendContractCall(call, {
-            ...withPhaseReports(options, jobId, context, deps.logger),
+            ...withSendStageReports(options, sender.authMode, reportStage),
             receiptWaitLimitMs,
             assertOwnership: async () => {
               await context.assertOwnership?.();
@@ -331,7 +319,9 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
         });
         return skipped("pending_materialization", execution.txHash);
       }
-      return completeJob(jobId, job, execution.txHash, startedAt, deps);
+      // Awaited, so the stage is let go only after the job completes: a row must never fall back
+      // to its sent state between its send and its completion.
+      return await completeJob(jobId, job, execution.txHash, startedAt, deps);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       const processingDuration = deps.clock.now() - startedAt;
@@ -388,6 +378,10 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
         error
       );
       return { success: false, error: errorMessage };
+    } finally {
+      // The try stopped, however it ended, and whether or not it reported a stage: no screen
+      // keeps saying it is under way.
+      reportStage(null);
     }
   }
   return async (jobId: string, context: ProcessJobContext): Promise<ProcessJobResult> => {

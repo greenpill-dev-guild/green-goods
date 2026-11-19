@@ -25,7 +25,7 @@ import { retireWorkCompletionSnapshots } from "../../modules/job-queue/work-comp
 import { logger } from "../../modules/app/logger";
 import { useLiveQuery } from "../utils/useLiveQuery";
 import { useQueuedWorkPreviews } from "./useQueuedWorkPreviews";
-import { useSendingWorkIds } from "./useSendingWorkIds";
+import { useSendingWork } from "./useSendingWork";
 import { useWorkVisibility } from "./useWorkVisibility";
 
 export interface UseMyWorksOptions {
@@ -92,7 +92,7 @@ export function useMyWorks(options: UseMyWorksOptions = {}) {
   const queryKey = worksKeys.mine(activeAddress, chainId, false, timeFilter, limit);
 
   const isOnline = useOnlineStatus();
-  const sendingJobs = useSendingWorkIds(activeAddress, chainId);
+  const sendingJobs = useSendingWork(activeAddress, chainId);
   const online = useQuery({
     queryKey,
     queryFn: async () => {
@@ -238,13 +238,17 @@ export function useMyWorks(options: UseMyWorksOptions = {}) {
       const work = queuedPreviews.has(record.id)
         ? { ...record, media: queuedPreviews.get(record.id)! }
         : record;
-      return isOnline && sendingJobs.has(work.id) && work.status === "offline"
-        ? {
-            ...work,
-            status: "uploading" as const,
-            metadata: JSON.stringify({ ...JSON.parse(work.metadata), submissionState: "sending" }),
-          }
-        : work;
+      if (!isOnline || !sendingJobs.has(work.id) || work.status !== "offline") return work;
+      const sendStage = sendingJobs.get(work.id);
+      return {
+        ...work,
+        status: "uploading" as const,
+        metadata: JSON.stringify({
+          ...JSON.parse(work.metadata),
+          submissionState: "sending",
+          ...(sendStage ? { sendStage } : {}),
+        }),
+      };
     });
     let rows: Work[] = includeOffline ? mergeAndDeduplicateByClientId(remote, localRows) : remote;
     if (timeFilter) rows = filterByTimeRange(rows, timeFilter);

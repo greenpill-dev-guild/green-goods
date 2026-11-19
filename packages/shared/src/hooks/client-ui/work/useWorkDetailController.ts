@@ -130,13 +130,10 @@ export function useWorkDetailController() {
   const transactionSender = useTransactionSender();
   const permissions = useGardenPermissions();
   const [isRetrying, setIsRetrying] = useState(false);
-  // Where Upload now's send stands while it runs: the wallet is asked, then the chain confirms.
-  // Only a wallet reports those as they happen; a passkey reports each after its wait ended.
-  const [sendStage, setSendStage] = useState<JobSendPhase["stage"] | null>(null);
-  const followStages =
-    transactionSender?.authMode === "wallet"
-      ? { onPhase: (phase: JobSendPhase) => setSendStage(phase.stage) }
-      : {};
+  // The work's own send reports its stage on its row, through the queue (PRD-1552). A promise
+  // taken up in the same tap is another job that Upload now sends first, so its stage is followed
+  // here, for the button to say while the work waits on it.
+  const [takeUpStage, setTakeUpStage] = useState<JobSendPhase["stage"] | null>(null);
 
   const viewingMode = useMemo<WorkViewingMode>(() => {
     if (!garden || !work) return "viewer";
@@ -237,7 +234,7 @@ export function useWorkDetailController() {
         const taken = await jobQueue.processJob(takeUp.id, {
           transactionSender,
           explicit: true,
-          ...followStages,
+          onPhase: (phase) => setTakeUpStage(phase.stage),
         });
         if (!taken.success) {
           // A wallet that has not answered was already asked to reconnect by its own prompt.
@@ -268,13 +265,9 @@ export function useWorkDetailController() {
           return;
         }
         // The take-up landed. The work's own send starts with its uploads, not a stage.
-        setSendStage(null);
+        setTakeUpStage(null);
       }
-      const result = await jobQueue.processJob(work.id, {
-        transactionSender,
-        explicit: true,
-        ...followStages,
-      });
+      const result = await jobQueue.processJob(work.id, { transactionSender, explicit: true });
       // Declining the prompt is not a failure; the work stays ready to send. A wallet that has
       // not answered was already asked to reconnect by its own prompt.
       if (result.error === "send-cancelled" || result.error === WALLET_RECONNECT_REQUIRED) return;
@@ -304,7 +297,7 @@ export function useWorkDetailController() {
       reportUploadNowOutcome({ error: error instanceof Error ? error.message : String(error) });
     } finally {
       setIsRetrying(false);
-      setSendStage(null);
+      setTakeUpStage(null);
     }
   };
 
@@ -396,7 +389,7 @@ export function useWorkDetailController() {
     onChainWorkId,
     retry,
     retryMetadata: metadata.retryFetch,
-    sendStage,
+    takeUpStage,
     share,
     viewAttestation,
     viewingMode,

@@ -16,7 +16,6 @@ const meta: Meta<typeof ActPhaseLine> = {
     },
   },
   args: {
-    chainId: 42161,
     confirmed: "Accepted. The request leaves this list once the index shows it.",
     phase: { status: "signing", key: "row" },
   },
@@ -52,7 +51,7 @@ export const WalletSlow: Story = {
   args: { phase: { status: "signing", key: "row", slow: true, cancel: () => undefined } },
 };
 
-/** Its receipt outlasted the wait's limit: sent, and may still land. */
+/** Its receipt outlasted the wait's limit, or the queue kept it after its broadcast: sent, and may still land. */
 export const StillConfirming: Story = {
   args: { phase: { status: "still-confirming", key: "row" } },
 };

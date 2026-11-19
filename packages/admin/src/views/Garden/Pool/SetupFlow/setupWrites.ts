@@ -12,7 +12,7 @@ import {
   type PoolSetupAction,
   walletPrompts,
 } from "@green-goods/shared/modules/commitment-pooling/pool-setup";
-import { getChainName } from "@green-goods/shared/config/chains";
+import { SEND_STAGE_WORDS } from "@green-goods/shared/modules/transactions/send-stage";
 import type { PoolSetupIntent } from "./setupFlowModel";
 
 type FormatMessage = (
@@ -114,7 +114,6 @@ export function runningStatus(
   rows: readonly PoolSetupStepState[],
   numbers: readonly (number | null)[],
   total: number,
-  chainId: number,
   formatMessage: FormatMessage
 ): string {
   const current = rows.findIndex((row) => row.status === "signing" || row.status === "confirming");
@@ -132,9 +131,9 @@ export function runningStatus(
       : formatMessage(
           {
             id: "hub.garden.pool.setup.live.confirming",
-            defaultMessage: "Confirming on {network} ({current} of {total})",
+            defaultMessage: "Confirming… ({current} of {total})",
           },
-          { network: getChainName(chainId), current: prompt, total }
+          { current: prompt, total }
         );
   }
   return formatMessage({
@@ -285,16 +284,11 @@ export function writeStatus(
   formatMessage: FormatMessage
 ): string | null {
   switch (status) {
+    // A write's own stages are the shared stage words (PRD-1552).
     case "signing":
-      return formatMessage({
-        id: "hub.garden.pool.setup.status.signing",
-        defaultMessage: "Confirm in your wallet",
-      });
+      return formatMessage(SEND_STAGE_WORDS.wallet.label);
     case "confirming":
-      return formatMessage({
-        id: "hub.garden.pool.setup.status.confirming",
-        defaultMessage: "Confirming…",
-      });
+      return formatMessage(SEND_STAGE_WORDS.confirming.label);
     case "landed":
       return formatMessage({
         id: "hub.garden.pool.setup.status.landed",

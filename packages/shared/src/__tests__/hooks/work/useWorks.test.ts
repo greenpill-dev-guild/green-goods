@@ -75,6 +75,7 @@ vi.mock("../../../modules/job-queue/db", () => ({
 vi.mock("../../../modules/job-queue/event-bus", () => ({
   jobQueueEventBus: {
     onMultiple: mockOnMultiple,
+    currentSendStages: () => new Map(),
   },
   useJobQueueEvents: vi.fn(),
 }));
