@@ -335,7 +335,7 @@ export function NotificationsSheet({
     >
       {/* Keyed by tab, so a tab change mounts a fresh scroller at its top. It keeps the body's
           scroll containment and both edge hairlines, so nothing else moves; the header row
-          sits 12px under the rail, as Your Work's does (DL-194). */}
+          sits 12px under the rail, as Your Work's does (DL-198). */}
       <div
         key={tab}
         className={cn(PWA_SHEET_SCROLL_CLASSNAME, "overscroll-contain")}

@@ -19,7 +19,7 @@ interface SheetListHeaderProps {
 /**
  * The one header row a sheet tab's list shares, in Your Work and the bell's sheet: status line
  * and compact Refresh on the left, filters on the right (DL-032). It sits 12px under the tab rail
- * and the list starts 8px under it, the rhythm of the garden's own header row (DL-194). The row
+ * and the list starts 8px under it, the rhythm of the garden's own header row (DL-198). The row
  * keeps the height of a tab that has a filter, so a tab without one (Drafts) starts its list at
  * the same place, and it never shrinks when the list below it scrolls.
  *

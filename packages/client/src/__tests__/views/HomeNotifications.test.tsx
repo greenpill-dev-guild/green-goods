@@ -428,7 +428,7 @@ describe("the sheet", () => {
     const sheet = openSheet();
 
     expect(readAgain).toHaveBeenCalledTimes(1);
-    // Your Work's header row: 12px under the rail (DL-194), the count in words, Refresh, then the period.
+    // Your Work's header row: 12px under the rail (DL-198), the count in words, Refresh, then the period.
     const header = within(within(sheet).getByRole("tabpanel")).getByTestId("sheet-list-header");
     expect(header).toHaveClass("pt-3", "mb-2");
     expect(within(header).getByRole("status")).toHaveTextContent(/^5 notifications$/);
