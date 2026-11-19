@@ -15,7 +15,7 @@ name: Merge Gate
 # path filter misses a file past the first 3,000 a large push changes. Only a push that changed
 # what the gate reads (or whose detection failed) starts a sweep, so an ordinary push never cancels
 # one. A sweep holds every open pull request, then decides each again from develop's tip; a run
-# that read an older policy posts nothing. Any `merge-gate:` comment, such as
+# that read an older policy posts no success, only a hold. Any `merge-gate:` comment, such as
 # `merge-gate: recheck` after a pull request is retargeted, asks for a fresh decision. The job
 # reads pull requests through the API and fetched objects; nothing from them is checked out or run.
 on:

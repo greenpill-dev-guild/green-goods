@@ -305,20 +305,39 @@ export function fetchCommit(sha, { cwd = repoRoot, env = process.env } = {}) {
 }
 
 /** GitHub's REST API for one repository: `call(path, { method, body })` returns the parsed response. */
-export function githubClient({ token, repository }) {
+// A sweep that one transient failure stops leaves the older policy's successes standing, so a call
+// GitHub could not serve (a network error, 429 or 5xx) is tried again after a pause. Every call the
+// gate makes is a read or a status post, which is safe to repeat.
+const GITHUB_ATTEMPTS = 3;
+const GITHUB_RETRY_MS = 2000;
+
+export function githubClient({ token, repository, fetchImpl = fetch, wait = (ms) => new Promise((done) => setTimeout(done, ms)) }) {
   return async (path, { method = "GET", body } = {}) => {
-    const response = await fetch(`https://api.github.com/repos/${repository}/${path}`, {
-      method,
-      headers: {
-        authorization: `Bearer ${token}`,
-        accept: "application/vnd.github+json",
-        "x-github-api-version": "2022-11-28",
-        ...(body ? { "content-type": "application/json" } : {}),
-      },
-      body: body ? JSON.stringify(body) : undefined,
-    });
-    if (!response.ok) throw Object.assign(new Error(`${method} ${path.split("?")[0]}: HTTP ${response.status}`), { status: response.status });
-    return response.status === 204 ? null : response.json();
+    for (let attempt = 1; ; attempt += 1) {
+      let response;
+      try {
+        response = await fetchImpl(`https://api.github.com/repos/${repository}/${path}`, {
+          method,
+          headers: {
+            authorization: `Bearer ${token}`,
+            accept: "application/vnd.github+json",
+            "x-github-api-version": "2022-11-28",
+            ...(body ? { "content-type": "application/json" } : {}),
+          },
+          body: body ? JSON.stringify(body) : undefined,
+        });
+      } catch (error) {
+        if (attempt >= GITHUB_ATTEMPTS) throw error;
+        await wait(GITHUB_RETRY_MS * attempt);
+        continue;
+      }
+      if (response.ok) return response.status === 204 ? null : response.json();
+      if ((response.status === 429 || response.status >= 500) && attempt < GITHUB_ATTEMPTS) {
+        await wait(GITHUB_RETRY_MS * attempt);
+        continue;
+      }
+      throw Object.assign(new Error(`${method} ${path.split("?")[0]}: HTTP ${response.status}`), { status: response.status });
+    }
   };
 }
 
@@ -567,18 +586,20 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
       }
       const line = `#${number} at ${head}: ${decision.state}. ${decision.description}`;
       if (!dryRun) {
-        // A run that read an older policy posts nothing: a success could carry a looser policy through,
-        // and a hold could stall a pull request the newer policy passes. The sweep that change started
-        // decides every open pull request, this one included, since its head predates this run. A
-        // lookup that fails confirms no change, so only a success waits; a hold still posts, since
-        // holding a merge is always safe, and the run reports the failure either way.
+        // A run that read an older policy never posts a success, which could carry a looser policy
+        // through. It still holds, since holding a merge is always safe: a comparison can read as moved
+        // when no sweep started (a change and its revert in two pushes), and a hold it skipped would
+        // leave an older success standing. Its hold says the policy changed, so a pull request a newer
+        // policy passes asks for a recheck. A lookup that fails confirms no change: a success waits
+        // the same way, the decision's own hold posts, and the run reports the failure.
         const moved = await gateInputsMovedSince(github, checkout, pull.base.ref).catch(() => null);
         if (moved === null) failed = true;
-        if (moved === true || (moved === null && decision.state === "success")) {
+        if (moved !== false && decision.state === "success") {
           const why = moved ? `the gate's inputs changed on ${pull.base.ref} since this run checked it out` : "the policy's freshness could not be checked";
-          log(`#${number}: ${why}; ${decision.state} not posted.`);
+          log(`#${number}: ${why}; success not posted.`);
           continue;
         }
+        if (moved === true) Object.assign(decision, { state: "pending", description: HOLD_DESCRIPTION });
         // GitHub keeps at most 1,000 statuses for a head and context, so an unchanged decision is not
         // posted again. A failed lookup posts anyway, so an older success never outlives its proof.
         const latest = await github(`commits/${headSha}/statuses?per_page=100`).then(

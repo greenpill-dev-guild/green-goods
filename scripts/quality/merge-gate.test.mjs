@@ -17,6 +17,7 @@ import {
   highestTier,
   loadMergePolicy,
   fetchCommit,
+  githubClient,
   main,
   markersFor,
   writersAmong,
@@ -504,7 +505,7 @@ test("a push sweeps only when it changed a gate input, was forced, or GitHub can
   }
 });
 
-test("a run that read an older policy posts nothing, a failed freshness check holds back only success, and a sweep goes on past one failure", async () => {
+test("a run that read an older or unknown policy posts no success but still holds, and a sweep goes on past one failure", async () => {
   const CHECKOUT = "c".repeat(40);
   const TIP = "d".repeat(40);
   const POLICY = ".agents/merge-policy.json";
@@ -537,14 +538,15 @@ test("a run that read an older policy posts nothing, a failed freshness check ho
   };
   assert.deepEqual(await run({ moved: ["docs/a.md"] }), [`statuses/${HEAD}`]);
   assert.deepEqual(await run({ moved: [POLICY] }), []);
-  // A hold from an older policy could stall a pull request the newer one passes, so it waits for the sweep too.
-  assert.deepEqual(await run({ moved: [POLICY], state: "pending" }), []);
+  // A hold still posts, since holding is always safe; it says the policy changed, so a pull request
+  // the newer policy passes asks for a recheck.
+  assert.deepEqual(await run({ moved: [POLICY], state: "pending" }), [`statuses/${HEAD}`]);
   // A comparison that lists no files or is cut short counts as moved, and so does a base reset
   // behind the checkout or rewritten, where the three-dot comparison lists nothing.
   assert.deepEqual(await run({ moved: undefined }), []);
   assert.deepEqual(await run({ moved: [] }), []);
   assert.deepEqual(await run({ moved: "behind" }), []);
-  assert.deepEqual(await run({ moved: "diverged", state: "pending" }), []);
+  assert.deepEqual(await run({ moved: "diverged", state: "pending" }), [`statuses/${HEAD}`]);
   assert.deepEqual(await run({ moved: Array.from({ length: 300 }, (_, index) => `docs/${index}.md`) }), []);
   // A failed comparison confirms nothing: success waits, a hold still posts, and the run reports it.
   assert.deepEqual(await run({ moved: "error", exit: 2 }), []);
@@ -555,4 +557,24 @@ test("a run that read an older policy posts nothing, a failed freshness check ho
   assert.deepEqual(await run({ eventName: "push", moved: [POLICY], checkout: TIP }), [`statuses/${HEAD}`, `statuses/${HEAD}`]);
   // Pull request 9 fails to load; 3 is held, then decided, and the run reports the failure.
   assert.deepEqual(await run({ eventName: "push", moved: ["docs/a.md"], pulls: { 3: { number: 3, state: "open", base: { ref: "develop" }, head: { sha: HEAD } }, 9: undefined }, exit: 2 }), [`statuses/${HEAD}`, `statuses/${HEAD}`]);
+});
+
+test("the GitHub client tries a call GitHub could not serve again, and gives up on the third failure or a refusal", async () => {
+  const call = async (answers) => {
+    const seen = [];
+    const waits = [];
+    const fetchImpl = async (url, request) => {
+      seen.push(request.method);
+      const answer = answers[Math.min(seen.length - 1, answers.length - 1)];
+      if (answer instanceof Error) throw answer;
+      return { ok: answer < 400, status: answer, json: async () => ({ answer }) };
+    };
+    const github = githubClient({ token: "t", repository: "o/r", fetchImpl, wait: async (ms) => void waits.push(ms) });
+    const result = await github("pulls?state=open", { method: "GET" }).then((value) => value, (error) => error.message);
+    return { result, calls: seen.length, waits };
+  };
+  assert.deepEqual(await call([502, 429, 200]), { result: { answer: 200 }, calls: 3, waits: [2000, 4000] });
+  assert.deepEqual(await call([new Error("socket hang up"), 200]), { result: { answer: 200 }, calls: 2, waits: [2000] });
+  assert.deepEqual(await call([503]), { result: "GET pulls: HTTP 503", calls: 3, waits: [2000, 4000] });
+  assert.deepEqual(await call([404]), { result: "GET pulls: HTTP 404", calls: 1, waits: [] });
 });
