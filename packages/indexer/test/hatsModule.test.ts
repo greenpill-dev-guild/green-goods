@@ -61,8 +61,6 @@ describe("HatsModule protocol delegation", () => {
   });
 });
 
-// ROLE GRANT — ALL 6 ROLE TYPES
-
 describe("Garden role event history", () => {
   it("records a role grant with normalized identity and its chain position", async () => {
     const garden = "0xaBcDEF0000000000000000000000000000000001";
@@ -178,8 +176,6 @@ describe("Garden role event history", () => {
   });
 });
 
-// ROLE GRANT — ALL 6 ROLE TYPES
-
 describe("HatsModule.RoleGranted", () => {
   it("grants Gardener role (role=0)", async () => {
     let mockDb = seedGarden(createTestIndexer(), addr(10));
@@ -188,7 +184,7 @@ describe("HatsModule.RoleGranted", () => {
     const event = HatsModule.RoleGranted.createMockEvent({
       garden: addr(10),
       account,
-      role: 0n, // Gardener
+      role: 0n,
       mockEventData: mockEvent(CHAIN_ID, 2000),
     });
 
@@ -208,7 +204,7 @@ describe("HatsModule.RoleGranted", () => {
     const event = HatsModule.RoleGranted.createMockEvent({
       garden: addr(10),
       account,
-      role: 1n, // Evaluator
+      role: 1n,
       mockEventData: mockEvent(CHAIN_ID, 2000),
     });
 
@@ -226,7 +222,7 @@ describe("HatsModule.RoleGranted", () => {
     const event = HatsModule.RoleGranted.createMockEvent({
       garden: addr(10),
       account,
-      role: 2n, // Steward
+      role: 2n,
       mockEventData: mockEvent(CHAIN_ID, 2000),
     });
 
@@ -255,7 +251,7 @@ describe("HatsModule.RoleGranted", () => {
     const event = HatsModule.RoleGranted.createMockEvent({
       garden: addr(10),
       account,
-      role: 3n, // Owner
+      role: 3n,
       mockEventData: mockEvent(CHAIN_ID, 2000),
     });
 
@@ -274,7 +270,7 @@ describe("HatsModule.RoleGranted", () => {
     const event = HatsModule.RoleGranted.createMockEvent({
       garden: addr(10),
       account,
-      role: 4n, // Funder
+      role: 4n,
       mockEventData: mockEvent(CHAIN_ID, 2000),
     });
 
@@ -292,7 +288,7 @@ describe("HatsModule.RoleGranted", () => {
     const event = HatsModule.RoleGranted.createMockEvent({
       garden: addr(10),
       account,
-      role: 5n, // Community
+      role: 5n,
       mockEventData: mockEvent(CHAIN_ID, 2000),
     });
 
@@ -314,7 +310,6 @@ describe("HatsModule.RoleGranted", () => {
       mockEventData: mockEvent(CHAIN_ID, 2000),
     });
 
-    // Grant same role again
     const event2 = HatsModule.RoleGranted.createMockEvent({
       garden: addr(10),
       account,
@@ -356,7 +351,7 @@ describe("HatsModule.RoleGranted", () => {
     const event = HatsModule.RoleGranted.createMockEvent({
       garden: addr(10),
       account,
-      role: 99n, // Unknown role
+      role: 99n,
       mockEventData: mockEvent(CHAIN_ID, 2000),
     });
 
@@ -405,14 +400,12 @@ describe("HatsModule.RoleGranted — Gardener entity", () => {
     const account = addr(20);
     const gardenerId = `${CHAIN_ID}-${account.toLowerCase()}`;
 
-    // Grant gardener role for first garden
     const event1 = HatsModule.RoleGranted.createMockEvent({
       garden: addr(10),
       account,
       role: 0n,
       mockEventData: mockEvent(CHAIN_ID, 2000),
     });
-    // Grant gardener role for second garden
     const event2 = HatsModule.RoleGranted.createMockEvent({
       garden: addr(11),
       account,
@@ -440,7 +433,6 @@ describe("HatsModule.RoleGranted — Gardener entity", () => {
       role: 0n,
       mockEventData: mockEvent(CHAIN_ID, 2000),
     });
-    // Grant again to same garden
     const event2 = HatsModule.RoleGranted.createMockEvent({
       garden: addr(10),
       account,
@@ -619,7 +611,6 @@ describe("HatsModule.RoleRevoked", () => {
     const account = addr(20);
     const gardenerId = `${CHAIN_ID}-${account.toLowerCase()}`;
 
-    // Grant gardener role for two gardens
     const grant1 = HatsModule.RoleGranted.createMockEvent({
       garden: addr(10),
       account,
@@ -632,7 +623,6 @@ describe("HatsModule.RoleRevoked", () => {
       role: 0n,
       mockEventData: mockEvent(CHAIN_ID, 2500),
     });
-    // Revoke from first garden
     const revokeEvent = HatsModule.RoleRevoked.createMockEvent({
       garden: addr(10),
       account,

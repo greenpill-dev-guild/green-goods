@@ -14,8 +14,7 @@ import {
   ZERO_ADDRESS,
 } from "./shared";
 
-// Handler for HypercertMinter TransferSingle event (detects mints)
-// Fetch only mints; ordinary transfers and burns do not change these projections.
+// Mints only; ordinary transfers and burns do not change these projections.
 indexer.onEvent(
   {
     contract: "HypercertMinter",
@@ -23,7 +22,6 @@ indexer.onEvent(
     where: { params: { from: ZERO_ADDRESS } },
   },
   async ({ event, context }) => {
-    // Only process mints (from zero address)
     if (event.params.from.toLowerCase() !== ZERO_ADDRESS) {
       return;
     }
@@ -32,11 +30,10 @@ indexer.onEvent(
     const hypercertId = `${event.chainId}-${tokenId.toString()}`;
     const timestamp = event.block.timestamp;
 
-    // Check if hypercert already exists (may be created by ClaimStored event first)
+    // ClaimStored may have created it first.
     const existingHypercert = await context.Hypercert.get(hypercertId);
 
     if (existingHypercert) {
-      // Idempotency: skip if this is the same transaction replaying
       if (existingHypercert.txHash === getTxHash(event.transaction)) {
         return;
       }
@@ -44,7 +41,6 @@ indexer.onEvent(
       const hasMintedBy = Boolean(existingHypercert.mintedBy);
 
       if (!hasMintedBy) {
-        // Update with mint details
         const updatedHypercert: Hypercert = {
           ...existingHypercert,
           totalUnits: existingHypercert.totalUnits || event.params.value,
@@ -68,7 +64,6 @@ indexer.onEvent(
       const claimant = event.params.to;
       const claimId = `${event.chainId}-${tokenId.toString()}-${claimant}`;
 
-      // Idempotency: check if claim already exists
       const existingClaim = await context.HypercertClaim.get(claimId);
       if (existingClaim) {
         return;
@@ -108,7 +103,6 @@ indexer.onEvent(
       return;
     }
 
-    // Create new hypercert entity
     const newHypercert: Hypercert = {
       ...createDefaultHypercert(hypercertId, event.chainId, tokenId, timestamp),
       totalUnits: event.params.value,
@@ -127,7 +121,6 @@ indexer.onEvent(
   }
 );
 
-// Handler for HypercertMinter ClaimStored event (stores metadata URI)
 indexer.onEvent(
   { contract: "HypercertMinter", event: "ClaimStored" },
   async ({ event, context }) => {

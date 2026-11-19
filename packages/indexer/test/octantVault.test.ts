@@ -168,7 +168,7 @@ describe("OctantVault.Deposit", () => {
     const vault = await mockDb.GardenVault.get(vaultId());
     assert.ok(vault);
     assert.equal(vault.totalDeposited, 150n);
-    assert.equal(vault.depositorCount, 1); // Same depositor, count stays 1
+    assert.equal(vault.depositorCount, 1);
   });
 
   it("increments depositor count for new depositors", async () => {
@@ -251,7 +251,7 @@ describe("OctantVault.Deposit", () => {
   });
 
   it("ignores deposit when vault address not indexed", async () => {
-    const mockDb = createTestIndexer(); // No vault setup
+    const mockDb = createTestIndexer();
 
     const event = OctantVault.Deposit.createMockEvent({
       sender: addr(30),
@@ -259,14 +259,13 @@ describe("OctantVault.Deposit", () => {
       assets: 100n,
       shares: 100n,
       mockEventData: mockEvent(CHAIN_ID, 2000, {
-        srcAddress: addr(50), // Unknown vault
+        srcAddress: addr(50),
         txHash: txHash(200),
         logIndex: 1,
       }),
     });
 
-    // Envio rejects an event whose address is not indexed rather than silently
-    // skipping it, so the guarantee is now enforced before the handler runs.
+    // Envio rejects an event from an unindexed address before the handler runs.
     await assert.rejects(
       () => OctantVault.Deposit.processEvent({ event, mockDb }),
       /never reached a handler/
@@ -311,7 +310,7 @@ describe("OctantVault.Withdraw", () => {
     const depositId = `${CHAIN_ID}-${VAULT.toLowerCase()}-${addr(31).toLowerCase()}`;
     const depositRecord = await mockDb.VaultDeposit.get(depositId);
     assert.ok(depositRecord);
-    assert.equal(depositRecord.shares, 60n); // 100 - 40
+    assert.equal(depositRecord.shares, 60n);
     assert.equal(depositRecord.totalWithdrawn, 40n);
   });
 
@@ -329,7 +328,6 @@ describe("OctantVault.Withdraw", () => {
         logIndex: 1,
       }),
     });
-    // Withdraw 100 (more than deposited)
     const withdraw = OctantVault.Withdraw.createMockEvent({
       sender: addr(30),
       receiver: addr(31),
@@ -347,7 +345,7 @@ describe("OctantVault.Withdraw", () => {
     const depositId = `${CHAIN_ID}-${VAULT.toLowerCase()}-${addr(31).toLowerCase()}`;
     const depositRecord = await mockDb.VaultDeposit.get(depositId);
     assert.ok(depositRecord);
-    assert.equal(depositRecord.shares, 0n); // Clamped to 0
+    assert.equal(depositRecord.shares, 0n);
   });
 
   it("creates VaultEvent with WITHDRAW type", async () => {
@@ -385,8 +383,6 @@ describe("OctantVault.Withdraw", () => {
     assert.equal(vaultEvent.amount, 25n);
   });
 });
-
-// HARVEST + EMERGENCY PAUSE
 
 describe("OctantModule.HarvestTriggered", () => {
   it("increments harvest count", async () => {
@@ -524,7 +520,7 @@ describe("OctantModule.DonationAddressUpdated", () => {
 
     // Should not throw
     const result = await OctantModule.DonationAddressUpdated.processEvent({ event, mockDb });
-    assert.ok(result); // Just verifying no crash
+    assert.ok(result);
   });
 
   it("updates all assets for the same garden", async () => {
@@ -532,7 +528,6 @@ describe("OctantModule.DonationAddressUpdated", () => {
     const secondAsset = addr(23);
     const secondVault = addr(24);
 
-    // Create second vault for same garden
     const createEvent = OctantModule.VaultCreated.createMockEvent({
       garden: GARDEN,
       vault: secondVault,

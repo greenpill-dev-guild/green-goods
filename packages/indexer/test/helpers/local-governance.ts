@@ -10,7 +10,7 @@ import {
 } from "viem";
 import { arbitrum } from "viem/chains";
 
-// PRD-937: production module ownership is already behind this controller.
+// Production module ownership sits behind this controller.
 export const LOCAL_GOVERNANCE_MANAGER: Address = "0xfBf07b2d0e5eA8249756F205e5214B9d7cDF4e66";
 const SAFE: Address = "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19";
 const RPC = "http://127.0.0.1:3009";
