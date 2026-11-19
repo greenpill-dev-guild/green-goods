@@ -25,3 +25,5 @@ export function assertSentryDsnResolvable(options: {
 }): boolean;
 
 export function dropVercelFrameworkVariables(env?: Environment): void;
+
+export function clearAlphaAnalyticsKeys(env?: Environment): boolean;

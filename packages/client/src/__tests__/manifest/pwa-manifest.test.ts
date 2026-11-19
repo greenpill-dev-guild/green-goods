@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { createPwaManifestBranding, resolvePwaManifestFlavor } from "../../config/pwaManifest";
@@ -105,6 +105,39 @@ describe("PWA manifest branding", () => {
       sizes: "180x180",
       src: "staging-apple-icon.png",
     });
+  });
+
+  it("presents the alpha build as its own app beside beta and production", () => {
+    const alpha = createPwaManifestBranding("alpha");
+    const beta = createPwaManifestBranding("staging");
+
+    expect(alpha.manifestId).toBe("/?gg_pwa=alpha");
+    expect(alpha.manifestId).not.toBe(beta.manifestId);
+    expect(alpha.manifestId).not.toBe(PWA_MANIFEST_ID);
+    expect(alpha.name).toBe("Green Goods Alpha");
+    expect(alpha.shortName).not.toBe(beta.shortName);
+    expect(alpha.themeColor).toBe(beta.themeColor);
+    // Every icon is alpha's own, and each one is shipped.
+    const icons = [
+      alpha.browserIcon,
+      alpha.shortcutIcon,
+      alpha.msTileImage,
+      ...alpha.manifestIcons.map((icon) => icon.src),
+      ...alpha.appleTouchIcons.map((icon) => icon.src),
+      ...alpha.includeAssets.filter((asset) => asset.endsWith(".png")),
+    ];
+    for (const icon of icons) {
+      expect(icon).toContain("alpha-");
+      expect(existsSync(resolve(process.cwd(), "public", icon)), icon).toBe(true);
+    }
+  });
+
+  it("brands every build of the alpha branch as alpha", () => {
+    expect(
+      resolvePwaManifestFlavor({ VERCEL_GIT_COMMIT_REF: "alpha", VERCEL_ENV: "preview" })
+    ).toBe("alpha");
+    expect(resolvePwaManifestFlavor({ PWA_MANIFEST_FLAVOR: "alpha" })).toBe("alpha");
+    expect(resolvePwaManifestFlavor({ VERCEL_GIT_COMMIT_REF: "develop" })).toBe("production");
   });
 
   it("uses Vercel's custom environment signal for staging builds", () => {
