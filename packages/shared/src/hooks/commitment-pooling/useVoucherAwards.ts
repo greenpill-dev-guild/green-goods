@@ -132,7 +132,12 @@ export function useVoucherAwards(reserve?: Address | null) {
       throw new Error("Select the award reserve and connect its signer");
     return { record, actor: user.primaryAddress, sender, client: required(), assertCurrent };
   };
-  const awardAct: SendActContext = { act: "pool_voucher_award", authMode: user.authMode };
+  // `sendVoucherAward` signs and sends every award on Gnosis.
+  const awardAct: SendActContext = {
+    act: "pool_voucher_award",
+    authMode: user.authMode,
+    chainId: 100,
+  };
   const send = useMutation({
     ...mutationOptions,
     mutationFn: recordedSendAct(

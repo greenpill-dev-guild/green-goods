@@ -94,12 +94,15 @@ export function issuerActOutcome(outcome: ServiceIssuerOutcome): SendActOutcome 
 }
 
 /**
- * A voucher award's send. One submitted, waiting on the reserve's other signers,
- * or left to reconcile went out and may still land.
+ * A voucher award's send. One whose execution the owner declined sent nothing;
+ * one submitted, waiting on the reserve's other signers, or left to reconcile
+ * went out and may still land.
  */
 export function voucherAwardActOutcome(result: {
   record: Pick<VoucherAwardRecord, "state">;
+  operation?: { status: string } | null;
 }): SendActOutcome {
   if (result.record.state === "confirmed") return "confirmed";
+  if (result.operation?.status === "declined") return "cancelled";
   return result.record.state === "failed" ? "failed" : "confirming";
 }

@@ -49,8 +49,13 @@ export class VaultDepositStageError extends Error {
   reason?: VaultDepositFailureReason;
   diagnostics?: Record<string, string>;
 
-  constructor(stage: VaultDepositStage, message: string, reason?: VaultDepositFailureReason) {
-    super(message);
+  constructor(
+    stage: VaultDepositStage,
+    message: string,
+    reason?: VaultDepositFailureReason,
+    options?: { cause?: unknown }
+  ) {
+    super(message, options);
     this.name = "VaultDepositStageError";
     this.stage = stage;
     this.reason = reason;

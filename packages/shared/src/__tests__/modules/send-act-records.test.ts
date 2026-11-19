@@ -14,6 +14,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   batchSaveActOutcome,
   copiesEnding,
+  noteUnconfirmedSend,
   recordedSendAct,
   recordSendAct,
   type SendActContext,
@@ -86,6 +87,19 @@ describe("recordSendAct", () => {
     await recordSendAct(context, async () => ({ hash: "0xabc", confirmation: "pending" }));
 
     expect(ended()).toMatchObject({ outcome: "confirming" });
+  });
+
+  it("reads a noted pending hash as confirming, unless the result says it landed", async () => {
+    noteUnconfirmedSend({ hash: "0xAAA", confirmation: "pending" });
+    noteUnconfirmedSend({ hash: "0xBBB", confirmation: "pending" });
+    await recordSendAct(context, async () => "0xaaa");
+    await recordSendAct(context, async () => ({ hash: "0xBBB", confirmation: undefined }));
+
+    const endings = captured.filter(({ event }) => event === "send_act_ended");
+    expect(endings.map(({ properties }) => properties.outcome)).toEqual([
+      "confirming",
+      "confirmed",
+    ]);
   });
 
   it.each([
@@ -232,6 +246,7 @@ describe("pool and batch endings", () => {
     [{ status: "saved" }, "confirmed"],
     [{ status: "unknown" }, "confirming"],
     [{ status: "not-saved" }, "failed"],
+    [{ status: "not-saved", declined: true }, "cancelled"],
     [{ status: "not-batchable" }, "failed"],
   ] as const)("reads a batched save %j as %s", (outcome, expected) => {
     expect(batchSaveActOutcome(outcome)).toBe(expected);
@@ -245,6 +260,12 @@ describe("pool and batch endings", () => {
       "confirming"
     );
     expect(voucherAwardActOutcome({ record: { state: "failed" } })).toBe("failed");
+    expect(
+      voucherAwardActOutcome({
+        record: { state: "awaiting_authorization" },
+        operation: { status: "declined" },
+      })
+    ).toBe("cancelled");
   });
 
   it("classifies a thrown error the same way for every caller", () => {

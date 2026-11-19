@@ -163,6 +163,8 @@ export function useSendToken() {
         if (receipt.status !== "success") throw new Error("Transaction reverted on-chain");
         return {
           ...result,
+          // Its receipt proved inclusion, so it is no longer pending.
+          confirmation: undefined,
           hash: receipt.transactionHash ?? result.hash,
           account: primaryAddress.toLowerCase(),
         };

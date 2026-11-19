@@ -103,7 +103,9 @@ function trackedQueryClient() {
 const operationsModule = await import("../../../hooks/vault/useVaultOperations");
 const { isUnconfirmedTxError } = await import("../../../utils/errors/tx-error-classifier");
 const { useTxErrorMessages } = await import("../../../hooks/utils/useTxErrorMessages");
-const { TransactionConfirmationPendingError } = await import("../../../modules/transactions/types");
+const { ReceiptWaitLimitError, TransactionConfirmationPendingError } = await import(
+  "../../../modules/transactions/types"
+);
 const {
   useVaultDeposit,
   useOctantVaultWalletEndow,
@@ -658,6 +660,55 @@ describe("hooks/vault/useVaultOperations", () => {
     });
 
     expect(lifecycleSteps).toEqual(["error"]);
+  });
+
+  it("records an Endow whose deposit may still land as confirming, not failed (PRD-1553)", async () => {
+    const endings: unknown[] = [];
+    const unregister = registerTelemetrySink({
+      capture: (event, properties) => {
+        if (event === "send_act_ended") endings.push(properties.outcome);
+      },
+    });
+    try {
+      mockReadContract
+        .mockResolvedValueOnce(100n) // maxDeposit
+        .mockResolvedValueOnce(10n) // balanceOf
+        .mockResolvedValueOnce(10n) // preApprovalPreview
+        .mockResolvedValueOnce(10n) // allowance (enough, so no approval)
+        .mockResolvedValueOnce(10n); // post-approval previewDeposit
+      const limit = new ReceiptWaitLimitError(120_000);
+      mockSendContractCall.mockRejectedValueOnce(limit);
+      const { result } = renderHookWithProviders(
+        () => useOctantVaultWalletEndow({ errorMode: "inline" }),
+        { queryClient: trackedQueryClient() }
+      );
+
+      await act(async () => {
+        await expect(
+          result.current.mutateAsync({
+            intentKind: "wallet_endow",
+            paymentMethod: "wallet",
+            chainId: TEST_OCTANT_CHAIN_ID,
+            vaultAddress: TEST_VAULT as `0x${string}`,
+            assetAddress: TEST_ASSET as `0x${string}`,
+            assetSymbol: "WETH",
+            assetDecimals: 18,
+            amount: 10n,
+            receiver: {
+              intentKind: "wallet_endow",
+              paymentMethod: "wallet",
+              receiverKind: "connected_wallet",
+              receiverCustody: "connected_wallet",
+              receiverAddress: TEST_PRIMARY_ADDRESS as `0x${string}`,
+            },
+          })
+        ).rejects.toMatchObject({ name: "VaultDepositStageError", cause: limit });
+      });
+
+      expect(endings).toEqual(["confirming"]);
+    } finally {
+      unregister();
+    }
   });
 
   it("wraps ETH into canonical mainnet WETH before the existing vault deposit path", async () => {

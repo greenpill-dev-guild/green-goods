@@ -149,21 +149,29 @@ export function sendActEnding(error: unknown): {
 
 /**
  * A batched save's ending. `unknown` may have landed and is held until someone
- * reads it, so it is still confirming; `not-saved` and `not-batchable` sent
- * nothing that can still land.
+ * reads it, so it is still confirming; a `not-saved` the wallet declined is
+ * cancelled; any other `not-saved`, and `not-batchable`, sent nothing that can
+ * still land.
  */
 export function batchSaveActOutcome(outcome: {
   status: "saved" | "not-saved" | "unknown" | "not-batchable";
+  declined?: true;
 }): SendActOutcome {
   if (outcome.status === "saved") return "confirmed";
-  return outcome.status === "unknown" ? "confirming" : "failed";
+  if (outcome.status === "unknown") return "confirming";
+  return outcome.declined ? "cancelled" : "failed";
 }
 
-/** A send result on record without a receipt, or the hash of one, has not landed yet. */
+/**
+ * A send result on record without a receipt, or the hash of one, has not landed
+ * yet. A result that says whether it is pending is believed; a bare hash, or a
+ * result that says nothing, is checked against the sends noted as pending.
+ */
 function outcomeOfResult(result: unknown): Extract<SendActOutcome, "confirmed" | "confirming"> {
   const record =
     typeof result === "object" && result !== null ? (result as Record<string, unknown>) : {};
-  if (record.confirmation === "pending") return "confirming";
+  if ("confirmation" in record)
+    return record.confirmation === "pending" ? "confirming" : "confirmed";
   const hash = typeof result === "string" ? result : record.hash;
   return typeof hash === "string" && unconfirmedHashes.delete(hash.toLowerCase())
     ? "confirming"

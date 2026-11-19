@@ -238,9 +238,12 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
             );
           }
         } catch (error) {
+          // The cause stays, so a send that may still land reads as one.
           throw new VaultDepositStageError(
             "approval",
-            error instanceof Error ? error.message : "Approval failed"
+            error instanceof Error ? error.message : "Approval failed",
+            undefined,
+            { cause: error }
           );
         }
       }
@@ -289,7 +292,9 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
       } catch (error) {
         throw new VaultDepositStageError(
           "deposit",
-          error instanceof Error ? error.message : "Deposit failed"
+          error instanceof Error ? error.message : "Deposit failed",
+          undefined,
+          { cause: error }
         );
       }
     }),
