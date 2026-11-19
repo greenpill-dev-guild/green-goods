@@ -1,4 +1,3 @@
-import { Button } from "@green-goods/shared/components/Button";
 import { RiSearchLine } from "@remixicon/react";
 import { useRef, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -101,16 +100,7 @@ describe("AdminDialog", () => {
         onOpenChange={vi.fn()}
         title="Edit Domains"
         description="Choose supported work domains"
-        actions={
-          <>
-            <Button type="button" emphasis="tertiary" size="sm">
-              Cancel
-            </Button>
-            <Button type="button" size="sm">
-              Save
-            </Button>
-          </>
-        }
+        actions={{ primary: { label: "Save" }, secondary: { label: "Cancel" } }}
       >
         <p>Domain form body</p>
       </AdminDialog>
@@ -137,6 +127,10 @@ describe("AdminDialog", () => {
     expect(screen.getByTestId("admin-dialog-actions")).toContainElement(
       screen.getByRole("button", { name: "Save" })
     );
+    // The dialog draws the shared action bar from props; no caller lays out its own footer.
+    expect(
+      screen.getByTestId("admin-dialog-actions").querySelector('[data-component="SheetActions"]')
+    ).toContainElement(screen.getByRole("button", { name: "Cancel" }));
     // From 640px the centered dialog keeps its own surface and takes the shared
     // header, which carries the close on the title's line (DL-117).
     expect(dialog).not.toHaveAttribute("data-sheet-surface");

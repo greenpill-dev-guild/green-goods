@@ -141,30 +141,20 @@ export function WithdrawModal({
       title={formatMessage({ id: "app.treasury.withdraw" })}
       description={formatMessage({ id: "app.treasury.withdrawDescription" })}
       preventClose={withdrawMutation.isPending}
-      actions={
-        <>
-          <Button
-            type="button"
-            emphasis="tertiary"
-            size="sm"
-            onClick={onClose}
-            disabled={withdrawMutation.isPending}
-          >
-            {formatMessage({ id: "app.common.cancel" })}
-          </Button>
-          <Button
-            size="sm"
-            type="button"
-            onClick={onSubmit}
-            disabled={
-              Boolean(amountError) || amount <= 0n || depositsError || withdrawMutation.isPending
-            }
-            loading={withdrawMutation.isPending}
-          >
-            {formatMessage({ id: "app.treasury.withdraw" })}
-          </Button>
-        </>
-      }
+      actions={{
+        primary: {
+          label: formatMessage({ id: "app.treasury.withdraw" }),
+          onClick: onSubmit,
+          disabled:
+            Boolean(amountError) || amount <= 0n || depositsError || withdrawMutation.isPending,
+          loading: withdrawMutation.isPending,
+        },
+        secondary: {
+          label: formatMessage({ id: "app.common.cancel" }),
+          onClick: onClose,
+          disabled: withdrawMutation.isPending,
+        },
+      }}
     >
       <div className="space-y-4">
         <AssetSelector

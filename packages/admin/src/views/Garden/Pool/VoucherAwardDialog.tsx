@@ -2,7 +2,6 @@ import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { Button } from "@green-goods/shared/components/Button";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
-import { SheetActions } from "@green-goods/shared/components/Dialog/SheetActions";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import type {
@@ -143,30 +142,28 @@ export function VoucherAwardDialog(props: VoucherAwardDialogProps) {
       tone="garden"
       preventClose={busy}
       actions={
-        review ? (
-          <SheetActions
-            primary={{
-              label: t("prepare"),
-              disabled: blocked,
-              onClick: () => void prepare(review),
-            }}
-            secondary={{ label: t("edit"), disabled: blocked, onClick: () => setReview(null) }}
-          />
-        ) : (
-          <SheetActions
-            primary={{
-              label: t("review"),
-              type: "submit",
-              form: formId,
-              disabled: blocked || !valid,
-            }}
-            secondary={{
-              label: formatMessage({ id: "app.common.cancel" }),
-              disabled: busy,
-              onClick: onClose,
-            }}
-          />
-        )
+        review
+          ? {
+              primary: {
+                label: t("prepare"),
+                disabled: blocked,
+                onClick: () => void prepare(review),
+              },
+              secondary: { label: t("edit"), disabled: blocked, onClick: () => setReview(null) },
+            }
+          : {
+              primary: {
+                label: t("review"),
+                type: "submit",
+                form: formId,
+                disabled: blocked || !valid,
+              },
+              secondary: {
+                label: formatMessage({ id: "app.common.cancel" }),
+                disabled: busy,
+                onClick: onClose,
+              },
+            }
       }
     >
       <div className="space-y-5">

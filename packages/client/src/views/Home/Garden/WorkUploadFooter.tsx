@@ -2,6 +2,7 @@ import { Button } from "@green-goods/shared/components/Button";
 import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
 import type { useWorkDetailController } from "@green-goods/shared/hooks/client-ui/work/useWorkDetailController";
 import type { ItemPreparation } from "@green-goods/shared/hooks/work/useWorkUploads";
+import { SEND_STAGE_WORDS } from "@green-goods/shared/modules/transactions/send-stage";
 import type { Work } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { type FC, useState } from "react";
@@ -65,19 +66,8 @@ export const WorkUploadFooter: FC<WorkUploadFooterProps> = ({
 
   // While a send runs, its button says where it stands: before the wallet is asked, the work's
   // media are still uploading.
-  const stageLabel = !isRetrying
-    ? null
-    : sendStage === "wallet"
-      ? intl.formatMessage({
-          id: "app.home.work.sendStage.wallet",
-          defaultMessage: "Confirm in your wallet",
-        })
-      : sendStage === "confirming"
-        ? intl.formatMessage({
-            id: "app.home.work.sendStage.confirming",
-            defaultMessage: "Confirming…",
-          })
-        : null;
+  const stageLabel =
+    isRetrying && sendStage ? intl.formatMessage(SEND_STAGE_WORDS[sendStage].label) : null;
 
   const primary = (() => {
     switch (group) {

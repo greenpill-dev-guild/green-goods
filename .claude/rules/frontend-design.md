@@ -144,6 +144,17 @@ family the shared `SheetActions` (DL-117); consumers must NOT restate `max-w-*` 
 `AdminDialogStandard.guard` test fails ad-hoc `max-w-*` on AdminDialog). Only a hand-rolled
 modal (avoid building these) needs `max-w-[calc(100vw-2rem)] sm:max-w-lg` to survive 375px.
 
+A Hub dialog's or flow's footer is the shared `SheetActions` bar, passed as `AdminDialog`'s
+`actions` or `ActionFlowShell`'s `footer` (DL-189): 40px buttons 8px apart, the main action on top when they stack below 640px
+and rightmost from it, Cancel outlined, Back beside the way on in one row (`layout="steps"`), and a
+note or a send's progress in the bar's `note` slot. An inspector whose actions are ways on with no
+main one passes several `secondary` actions. Never stack your own buttons in a footer: the Hub's
+32px buttons keep a 6px finger-box reserve, so a hand-built stack sits 20px apart.
+`AdminFieldActionAndFooter.guard` fails on a hand-stacked footer button (`w-full sm:w-auto`) in
+`packages/admin/src`. Some dialogs still pass their own buttons straight to `actions`, which
+`AdminDialog` stacks itself with the same 20px gap; the guard does not catch those, so move a
+dialog onto the bar when you touch its footer.
+
 ## Rule 15: Form Fields
 
 **Admin**: fields ride the admin field family — `AdminTextField` / `AdminTextArea` /
@@ -160,6 +171,38 @@ render the `Admin*` wrappers, never the controls: a shared `FormField`/`TextInpu
 wrapper-adoption sweep in `check:design-tokens`. For an inline **setting row** (field title
 left, `Switch` or compact control right), use the shared `FactRow` with no value and the control as
 its `action`, in a `FactList` (DL-109): its label reads as a field title.
+
+**A button beside an admin field goes in the field's `action` slot** (DL-188). `AdminTextField`
+and `AdminSelect` draw it in the control's own row, centered on the control at both field heights,
+at the button's own size, with the message line under both. Never lay a button beside the whole
+field and lift it with a margin (`mb-9`, `sm:mt-8`): the lift has to be worked out again for every
+label, field height and message line, and the sites that got it wrong sat up to 8px off the
+control's center. A button that acts on a list (Select Visible, Clear) sits with
+the list's count, not beside its search field. In a file that renders `AdminTextField` or
+`AdminSelect`, `AdminFieldActionAndFooter.guard` fails on `mb-9` and on a top or bottom margin at the
+`sm`, `md`, `lg` or `xl` breakpoint, on any element. One file is exempt, for a button whose
+neighboring field changes with the container's width. A lift written any other way passes the
+guard, so review still holds the rule.
+
+```tsx
+// Bad: beside the whole field, lifted over the reserved message line
+<div className="flex items-end gap-2">
+  <AdminTextField label="Add a confirmer" className="flex-1" />
+  <Button type="button" emphasis="secondary" size="compact" className="mb-9">
+    Add
+  </Button>
+</div>
+
+// Good: in the control's own row, centered on it
+<AdminTextField
+  label="Add a confirmer"
+  action={
+    <Button type="button" emphasis="secondary" size="compact">
+      Add
+    </Button>
+  }
+/>
+```
 
 **Client**: use the `FormField` component from `@green-goods/shared` for label+input+error
 patterns, with the shared `TextInput`, `Textarea`, `NativeSelect`, `Switch`,

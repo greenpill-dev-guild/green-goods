@@ -63,6 +63,9 @@ function sendFooter(props: Partial<FlowSendFooterProps> = {}) {
   return handlers;
 }
 
+/** The footer's note: the action bar's live region, beside the buttons it explains. */
+const footerNote = () => document.querySelector('[data-slot="note"]') as HTMLElement;
+
 describe("the flow footers", () => {
   it("say why creating is off, under the buttons", () => {
     renderWithProviders(
@@ -76,7 +79,7 @@ describe("the flow footers", () => {
     );
 
     expect(screen.getByRole("button", { name: "Create 10 Promises" })).toBeDisabled();
-    expect(screen.getByRole("status")).toHaveTextContent("Open the pool before seeding into it.");
+    expect(footerNote()).toHaveTextContent("Open the pool before seeding into it.");
   });
 
   it("say how many times the wallet asks, beside the button that asks", () => {
@@ -89,9 +92,7 @@ describe("the flow footers", () => {
       />
     );
 
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "Your wallet will ask you once, for all 10."
-    );
+    expect(footerNote()).toHaveTextContent("Your wallet will ask you once, for all 10.");
   });
 
   it("say why Try Again is off once a pass has left promises unsent", () => {
@@ -106,7 +107,7 @@ describe("the flow footers", () => {
     );
 
     expect(screen.getByRole("button", { name: "Try Again (2)" })).toBeDisabled();
-    expect(screen.getByRole("status")).toHaveTextContent("today's G$ price can't be read");
+    expect(footerNote()).toHaveTextContent("today's G$ price can't be read");
   });
 
   it("say why Next is off in the setup flow", () => {
@@ -133,7 +134,7 @@ describe("the flow footers", () => {
     );
 
     expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
-    expect(screen.getByRole("status")).toHaveTextContent("Say what this pool is for.");
+    expect(footerNote()).toHaveTextContent("Say what this pool is for.");
   });
 
   it("name the first thing a setup step still needs", () => {
@@ -175,7 +176,7 @@ describe("the flow footers", () => {
   it("send from the Review, and say how often the wallet asks", () => {
     const handlers = sendFooter();
 
-    expect(screen.getByRole("status")).toHaveTextContent("Your wallet will ask you once.");
+    expect(footerNote()).toHaveTextContent("Your wallet will ask you once.");
     fireEvent.click(screen.getByRole("button", { name: "Submit Assessment" }));
     expect(handlers.onSend).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("button", { name: "Done" })).not.toBeInTheDocument();
@@ -189,9 +190,7 @@ describe("the flow footers", () => {
     const submit = screen.getByRole("button", { name: "Submit Assessment" });
     expect(submit).toHaveAttribute("aria-disabled", "true");
     expect(submit).toHaveAttribute("aria-busy", "true");
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "The dialog stays open until your wallet answers."
-    );
+    expect(footerNote()).toHaveTextContent("The dialog stays open until your wallet answers.");
   });
 
   it("offer Try Again and the way back after a send that failed", () => {
