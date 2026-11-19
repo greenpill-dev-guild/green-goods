@@ -231,6 +231,26 @@ export function decide({ tier, reasons, markers, headSha }) {
 }
 
 /**
+ * The CI skip directive a pull request's title or body carries, if any. A merge commit copies both,
+ * and GitHub then starts no push or pull request workflow for that commit: no checks on develop and
+ * no Merge Gate sweep after a policy change (#1666's own merge skipped one this way).
+ */
+export function skipDirective(pull) {
+  const text = `${pull.title ?? ""}\n${pull.body ?? ""}`;
+  return text.match(/\[(?:skip ci|ci skip|no ci|skip actions|actions skip)\]/i)?.[0] ?? text.match(/^skip-checks:[ \t]*true[ \t]*$/im)?.[0] ?? null;
+}
+
+/** A skip directive holds any tier: the description says how to clear it, since a body edit starts no run. */
+export function holdForSkipDirective(decision, directive) {
+  if (!directive) return decision;
+  return {
+    state: "pending",
+    description: fit(`Remove "${printable(directive)}" from the title or body (the merge commit copies it), then comment merge-gate: recheck.`, DESCRIPTION_LIMIT),
+    needed: decision.needed,
+  };
+}
+
+/**
  * The open pull requests an event concerns. `findByHead` looks a fork's pull request up by its head
  * branch; `listOpen` lists every open pull request into the gate's bases, which a push to develop
  * that changes the gate's inputs decides again.
@@ -437,7 +457,9 @@ export async function evaluate(pull, headSha, { github, cwd = repoRoot, env = pr
     const authors = new Set(comments.filter(hasMarker).map((comment) => comment.user?.login).filter(Boolean));
     const writers = await writersAmong(comments, accessLookup(github));
     const markers = markersFor(comments, headSha, (login) => writers.has(login));
-    return { decision: decide({ ...change, reasons, markers, headSha }), reasons, markers, authors, writers };
+    const directive = skipDirective(pull);
+    const decision = holdForSkipDirective(decide({ ...change, reasons, markers, headSha }), directive);
+    return { decision, reasons: directive ? [`the title or body carries ${directive}`, ...reasons] : reasons, markers, authors, writers };
   } finally {
     rmSync(sharedRoot, { recursive: true, force: true });
   }

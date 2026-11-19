@@ -24,6 +24,8 @@ import {
   materializeShared,
   policyTier,
   pullNumbers,
+  skipDirective,
+  holdForSkipDirective,
   pushChangedGateInputs,
   treeEntries,
 } from "./merge-gate.mjs";
@@ -149,6 +151,21 @@ test("each tier waits for its own proof at the head, and a pending description a
   assert.doesNotMatch(decide({ tier: "critical", reasons: ["a\n::warning::b"], markers: none, headSha: HEAD }).description, /\n/);
 });
 
+test("a skip directive in the title or body holds any tier, since the merge commit would skip develop's CI", () => {
+  const found = (title, body) => skipDirective({ title, body });
+  for (const directive of ["[skip ci]", "[ci skip]", "[no ci]", "[skip actions]", "[actions skip]", "[Skip CI]"]) {
+    assert.equal(found("t", `a ${directive} b`), directive);
+  }
+  assert.equal(found("chore: x [ci skip]", null), "[ci skip]");
+  assert.equal(found("t", "line\n\nskip-checks: true\n"), "skip-checks: true");
+  for (const clean of ["skip ci in prose", "[skip-ci]", "skip-checks: false", "the skip-checks: true trailer, inline"]) assert.equal(found("t", clean), null, clean);
+  const routine = { state: "success", description: "Routine: CI Gate is the proof.", needed: [] };
+  assert.equal(holdForSkipDirective(routine, null), routine);
+  const held = holdForSkipDirective(routine, "[skip ci]");
+  assert.equal(held.state, "pending");
+  assert.ok(held.description.length <= 140 && held.description.endsWith("comment merge-gate: recheck."), held.description);
+});
+
 test("events name their open pull requests, a fork's by its head branch", async () => {
   const noLookup = () => assert.fail("no lookup expected");
   assert.deepEqual(await pullNumbers({ issue: { number: 7, pull_request: {} } }, "issue_comment", noLookup), [7]);
@@ -270,6 +287,11 @@ test("a pull request is decided from the API and its commits: a removed link, a 
     comments.push({ id: 3, updated_at: "t3", user: { login: "writer" }, body: `merge-gate: full-gate ${head}` });
     assert.equal((await evaluate(pull("o"), head, options)).decision.state, "success");
     assert.ok((await evaluate(pull("fork"), head, options)).reasons.includes("a fork's pull request"));
+    // A skip directive in the body holds even a pull request whose proof is recorded.
+    const skipped = await evaluate({ ...pull("o"), body: "Merging this [skip ci]" }, head, options);
+    assert.equal(skipped.decision.state, "pending");
+    assert.match(skipped.decision.description, /Remove "\[skip ci\]"/);
+    assert.equal(skipped.reasons[0], "the title or body carries [skip ci]");
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
