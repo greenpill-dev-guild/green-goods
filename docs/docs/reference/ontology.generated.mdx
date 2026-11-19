@@ -10,7 +10,7 @@ generator: scripts/quality/check-ontology.mjs
 generated_from:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:bc39164209288db650874f9c71f19644431912c36257ef2c9b33527da60f8940"
+source_digest: "sha256:de6b3ef31afb147a96d2081c8dbe8a6f28a20390df5bd574330d7fffb0899f6f"
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
@@ -637,7 +637,7 @@ GraphQL execution-result mirror with an explicit UNKNOWN sentinel.
 
 ### `commitment-claim-request-state`
 
-Indexer lifecycle of a commitment claim request, including peer supersession after one request is accepted.
+Indexer lifecycle of a commitment claim request. A request still pending is superseded when its commitment is taken up by someone else, canceled or expires, and its resolution code (COMMITMENT_ACCEPTED, COMMITMENT_CANCELLED or COMMITMENT_EXPIRED) says which.
 
 **Canonical members:** PENDING · ACCEPTED · DECLINED · SUPERSEDED
 

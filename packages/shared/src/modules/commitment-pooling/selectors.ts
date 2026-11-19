@@ -2,6 +2,7 @@ import type { OntologyChainCapability } from "../../ontology/types";
 import type { Address } from "../../types/domain";
 import { isDemoPoolingActive } from "./demo/demo-mode";
 import type {
+  CommitmentClaimRequestRecord,
   CommitmentDerivedState,
   CommitmentPoolingAvailability,
   CommitmentReadModel,
@@ -358,6 +359,24 @@ export function selectClaimPreflight(input: {
     blockers.push("protocol-self-target");
   }
   return { allowed: blockers.length === 0, blockers };
+}
+
+/** What closed a superseded claim request: a take-up, or the promise ending before one. */
+export type ClaimSupersededBy = "taken-up" | "canceled" | "expired";
+
+/**
+ * Why the index superseded a claim request, or null when it did not. A request still pending when
+ * its promise is taken up, canceled or runs out of time closes as superseded, and its resolution
+ * code says which. A code this read does not know reads as a take-up, the case superseding first
+ * named.
+ */
+export function selectClaimSupersededBy(
+  claim: Pick<CommitmentClaimRequestRecord, "state" | "resolutionCode">
+): ClaimSupersededBy | null {
+  if (claim.state !== "SUPERSEDED") return null;
+  if (claim.resolutionCode === "COMMITMENT_CANCELLED") return "canceled";
+  if (claim.resolutionCode === "COMMITMENT_EXPIRED") return "expired";
+  return "taken-up";
 }
 
 export function selectContributorRemoval(input: {

@@ -189,6 +189,8 @@ describe("an ask in its promise's inspector", () => {
     ["taken up", "COMMITMENT_ACCEPTED", { status: "not-chosen", at: 1_800_000 }],
     ["canceled", "COMMITMENT_CANCELLED", { status: "closed", ending: "canceled", at: 1_800_000 }],
     ["expired", "COMMITMENT_EXPIRED", { status: "closed", ending: "expired", at: 1_800_000 }],
+    // A row from before the index named its reason reads as the take-up superseding first meant.
+    ["closed for no recorded reason", null, { status: "not-chosen", at: 1_800_000 }],
   ])("closes an ask whose promise was %s for the reason the index gives", (_ending, resolutionCode, expected) => {
     const closed = claimFixture({
       commitmentId: 3n,

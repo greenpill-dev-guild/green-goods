@@ -15,6 +15,7 @@
 
 import { claimActKey, type TxActPhase } from "../transactions/act-phase";
 import type { Address } from "../../types/domain";
+import { type ClaimSupersededBy, selectClaimSupersededBy } from "./selectors";
 import type {
   CommitmentClaimRequestRecord,
   CommitmentReadModel,
@@ -70,7 +71,7 @@ export type WaitingRowState =
   | { status: "declined"; at: number }
   | { status: "not-chosen"; at: number }
   /** The promise was canceled or ran out of time while the ask waited, so the ask closed with it. */
-  | { status: "closed"; ending: "canceled" | "expired"; at: number }
+  | { status: "closed"; ending: Exclude<ClaimSupersededBy, "taken-up">; at: number }
   | { status: "gone" };
 
 /** The key an ask's act, and its decision, go by. */
@@ -163,15 +164,10 @@ export function askState(
   const at = (claim.resolvedAt ?? claim.updatedAt) * 1000;
   if (claim.state === "ACCEPTED") return { status: "approved", at };
   if (claim.state === "DECLINED") return { status: "declined", at };
-  // The index closes a waiting ask when its promise is taken up, canceled or runs out of time, and
-  // its resolution code says which: only a take-up means another ask was chosen.
-  if (claim.state === "SUPERSEDED") {
-    if (claim.resolutionCode === "COMMITMENT_CANCELLED")
-      return { status: "closed", ending: "canceled", at };
-    if (claim.resolutionCode === "COMMITMENT_EXPIRED")
-      return { status: "closed", ending: "expired", at };
-    return { status: "not-chosen", at };
-  }
+  // Only a take-up means another ask was chosen; an ending closed the ask with its promise.
+  const supersededBy = selectClaimSupersededBy(claim);
+  if (supersededBy === "taken-up") return { status: "not-chosen", at };
+  if (supersededBy) return { status: "closed", ending: supersededBy, at };
   return onTheLine(input.phase) ?? { status: "waiting", isNew: false };
 }
 

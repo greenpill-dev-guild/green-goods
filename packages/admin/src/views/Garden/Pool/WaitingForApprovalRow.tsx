@@ -1,7 +1,10 @@
 import { Button } from "@green-goods/shared/components/Button";
 import type { ItemRowTone } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
-import type { WaitingRow } from "@green-goods/shared/hooks/admin-ui/pool/useWaitingForApproval";
+import {
+  isStillWaiting,
+  type WaitingRow,
+} from "@green-goods/shared/hooks/admin-ui/pool/useWaitingForApproval";
 import { useLocalizedRelativeTime } from "@green-goods/shared/hooks/app/useLocalizedRelativeTime";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiCheckLine, RiLoader4Line } from "@remixicon/react";
@@ -60,11 +63,8 @@ export function WaitingForApprovalRow({
   const { formatMessage } = intl;
   const age = useLocalizedRelativeTime();
   const { row, state } = item;
-  const decided =
-    state.status === "approved" ||
-    state.status === "declined" ||
-    state.status === "not-chosen" ||
-    state.status === "gone";
+  // Every state past waiting is decided, so a new kind of outcome never offers the buttons again.
+  const decided = !isStillWaiting(state);
   const name = (
     <ClaimantName
       claim={row.claim}
