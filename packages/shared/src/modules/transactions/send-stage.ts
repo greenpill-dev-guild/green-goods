@@ -45,8 +45,9 @@ export type LiveSendStageReport = Exclude<SendStageReport, { stage: "still-confi
  * before the send can reach the network, so only a wallet sender reports the wallet stage: a
  * passkey's `onBeforeBroadcast` comes after its prompt was approved, and an embedded wallet asks
  * nobody. Every sender reports confirming once, as soon as the network has the send: at its
- * broadcast reference, which a passkey's UserOperation (and a bundled request) has long before
- * its receipt and its `onBroadcast`, or else at its broadcast. The send's own callbacks run first
+ * broadcast reference, which a passkey's UserOperation and a passkey batch have long before their
+ * receipt and their `onBroadcast`, or else at its broadcast. A wallet's bundled request has only
+ * a batch id when accepted, so it says confirming from its broadcast. The send's own callbacks run first
  * and keep their say, so a checkpoint that fails to save still stops the send; `report` runs
  * after and must not throw.
  */

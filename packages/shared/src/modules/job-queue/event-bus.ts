@@ -18,9 +18,6 @@ class JobQueueEventBus extends EventTarget {
   private listenerRegistry = new Map<string, Set<{ type: string; listener: EventListener }>>();
   private listenerId = 0;
 
-  /**
-   * Emit a typed event
-   */
   /** Each job's send stage while one is under way (PRD-1552). */
   private readonly sendStages = new Map<string, { job: Job; stage: JobSendPhase["stage"] }>();
 
@@ -32,6 +29,9 @@ class JobQueueEventBus extends EventTarget {
     return this.sendStages;
   }
 
+  /**
+   * Emit a typed event
+   */
   emit<T extends JobQueueEventType>(type: T, data: JobQueueEventData<T>): void {
     if (type === "job:stage") {
       const { jobId, job, stage } = data as JobQueueEventMap["job:stage"];
