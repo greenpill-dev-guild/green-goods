@@ -20,7 +20,8 @@ name: Merge Gate
 # reads pull requests through the API and fetched objects; nothing from them is checked out or run.
 on:
   workflow_run:
-    workflows: ["CI Gate"]
+    # Pull Request Edited marks an edited title, body or base: a skip directive added after a success.
+    workflows: ["CI Gate", "Pull Request Edited"]
     types: [requested, completed]
   issue_comment:
     types: [created, edited, deleted]

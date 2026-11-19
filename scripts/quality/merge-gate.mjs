@@ -24,6 +24,8 @@ const repoRoot = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 export const STATUS_CONTEXT = "Merge Gate";
 // GitHub lists at most 3,000 files for a pull request; past that the change cannot be classified.
 const GITHUB_FILE_LIMIT = 3000;
+// The pull request commits endpoint lists at most this many; later messages cannot be read.
+const GITHUB_COMMIT_LIMIT = 250;
 const TIERS = ["routine", "sensitive", "critical"];
 // The gate, the code it loads, the policies and selector it reads, CI Gate (the routine tier's
 // whole proof), and the release workflow: a change to any of them changes what every later merge
@@ -227,6 +229,30 @@ export function decide({ tier, reasons, markers, headSha }) {
     state: "pending",
     description: `${label} (${fit(printable(reasons[0] ?? "no reason given"), room)}${more}${tail}`,
     needed: missing.map((kind) => `merge-gate: ${kind} ${headSha}`),
+  };
+}
+
+/**
+ * The CI skip directive a pull request's title, body or commit messages carry, if any, printed in
+ * one canonical form. A merge commit copies the title and body and a squash copies the commit
+ * messages, and GitHub then starts no push workflow for that commit: no checks on develop and no
+ * Merge Gate sweep after a policy change (#1666's own merge skipped one this way). Not seen: a
+ * message typed into the merge dialog. The trailer form matches anywhere, which only holds more.
+ */
+export function skipDirective(pull, commitMessages = []) {
+  const text = [pull.title ?? "", pull.body ?? "", ...commitMessages].join("\n");
+  const bracket = text.match(/\[(skip ci|ci skip|no ci|skip actions|actions skip)\]/i)?.[1];
+  if (bracket) return `[${bracket.toLowerCase()}]`;
+  return /^skip-checks:[ \t]*true[ \t]*$/im.test(text) ? "skip-checks: true" : null;
+}
+
+/** A skip directive holds any tier. Editing the title or body, or pushing new commits, re-decides. */
+export function holdForSkipDirective(decision, directive) {
+  if (!directive) return decision;
+  return {
+    state: "pending",
+    description: fit(`Remove "${directive}" from the title, body and commit messages: the merge commit copies them, and develop's CI would not run.`, DESCRIPTION_LIMIT),
+    needed: decision.needed,
   };
 }
 
@@ -437,7 +463,16 @@ export async function evaluate(pull, headSha, { github, cwd = repoRoot, env = pr
     const authors = new Set(comments.filter(hasMarker).map((comment) => comment.user?.login).filter(Boolean));
     const writers = await writersAmong(comments, accessLookup(github));
     const markers = markersFor(comments, headSha, (login) => writers.has(login));
-    return { decision: decide({ ...change, reasons, markers, headSha }), reasons, markers, authors, writers };
+    const commits = await paginate(github, `pulls/${pull.number}/commits`);
+    const directive = skipDirective(pull, commits.map((commit) => commit.commit?.message ?? ""));
+    let decision = holdForSkipDirective(decide({ ...change, reasons, markers, headSha }), directive);
+    const extra = directive ? [`the title, body or a commit message carries ${directive}`] : [];
+    // A squash copies every commit message; past the endpoint's limit some go unread, so the gate holds.
+    if (!directive && commits.length >= GITHUB_COMMIT_LIMIT) {
+      decision = { state: "pending", description: `GitHub lists only ${GITHUB_COMMIT_LIMIT} commits, so later messages were not checked for a CI skip directive; rewrite the branch to fewer commits.`, needed: decision.needed };
+      extra.push(`${GITHUB_COMMIT_LIMIT} or more commits`);
+    }
+    return { decision, reasons: [...extra, ...reasons], markers, authors, writers };
   } finally {
     rmSync(sharedRoot, { recursive: true, force: true });
   }
@@ -556,7 +591,7 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
         const description = fit(printable(`Could not decide, so nothing passes: ${error.message}`), DESCRIPTION_LIMIT);
         outcome = { decision: { state: "error", description, needed: [] }, reasons: [], markers: null };
       }
-      const { decision } = outcome;
+      let { decision } = outcome;
       // A push, or a writer's marker written while the run read the pull request, leaves a mixed
       // snapshot; the run for the newer state decides instead. Only a change to what the writers'
       // markers prove counts, so nobody else's comments can stop a post. A re-read that fails confirms
@@ -568,6 +603,9 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
           log(`#${number}: the head moved to ${current.head.sha.slice(0, SHORT_SHA)} while ${head} was read; nothing posted.`);
           continue;
         }
+        // An edit while this run read the pull request may have added a directive: hold for it.
+        const added = skipDirective(current);
+        if (added && decision.state === "success") decision = holdForSkipDirective(decision, added);
         if (outcome.markers) {
           const now = await currentMarkers(github, number, headSha, outcome);
           if (now.reviewed !== outcome.markers.reviewed || now.fullGate !== outcome.markers.fullGate) {
