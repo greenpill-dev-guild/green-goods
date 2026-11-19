@@ -1,6 +1,7 @@
 import type { SmartAccountClient } from "permissionless";
 import type { Address, Hex } from "viem";
 import { createPublicClientForChain } from "../../config/pimlico";
+import { hasErrorName } from "../../utils/errors/tx-error-classifier";
 import { recordSendAct, type SendActEndingDetail, sendActEnding } from "../app/sendActAnalytics";
 import type { PasskeyAdapters } from "../../workflows/auth-passkey-adapters";
 import type { PasskeySessionResult } from "../../workflows/authMachine.types";
@@ -47,11 +48,17 @@ export class PilotAccountProofError extends Error {
   }
 }
 
-/** A proof sent and awaiting its receipt may still land; any other ending reads its cause. */
+const REVERTED: ReadonlySet<string> = new Set(["TransactionRevertedError"]);
+
+/**
+ * A proof sent and awaiting its receipt may still land. A receipt that names a revert is final
+ * even while the pending record stays, and any other ending reads its cause.
+ */
 function pilotProofEnding(error: unknown): SendActEndingDetail {
-  if (error instanceof PilotAccountProofError && error.pending)
+  const cause = error instanceof PilotAccountProofError ? error.cause : error;
+  if (error instanceof PilotAccountProofError && error.pending && !hasErrorName(cause, REVERTED))
     return { outcome: "confirming", parsedErrorFamily: "PilotProofPending" };
-  return sendActEnding(error instanceof PilotAccountProofError ? error.cause : error);
+  return sendActEnding(cause);
 }
 
 type Candidate = {
@@ -236,13 +243,16 @@ export function createPilotAccountEnrollment(input: {
     candidate = undefined;
   };
 
+  // Selecting a proof that already exists sends nothing, so only a new proof is an act.
   const confirm = (reviewedHash?: Hex): Promise<void> =>
-    recordSendAct(
-      { act: "pilot_enrollment", authMode: "passkey", chainId: PROOF_CHAIN_ID },
-      () => confirmProof(reviewedHash),
-      () => "confirmed",
-      pilotProofEnding
-    );
+    candidate?.proof
+      ? confirmProof(reviewedHash)
+      : recordSendAct(
+          { act: "pilot_enrollment", authMode: "passkey", chainId: PROOF_CHAIN_ID },
+          () => confirmProof(reviewedHash),
+          () => "confirmed",
+          pilotProofEnding
+        );
 
   const confirmProof = async (reviewedHash?: Hex): Promise<void> => {
     const value = current();

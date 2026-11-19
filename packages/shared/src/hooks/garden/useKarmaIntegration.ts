@@ -1,6 +1,6 @@
 import { readContract } from "@wagmi/core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 
 import { getWagmiConfig } from "../../config/appkit";
@@ -114,6 +114,27 @@ function karmaSyncEnding(run: KarmaReconcileRun): SendActEndingDetail {
     ...Array.from({ length: notSent }, () => notSentOutcome),
   ]);
   return stopped ? { ...ending, parsedErrorFamily: stopped.parsedErrorFamily } : ending;
+}
+
+/**
+ * A sequential run that stopped on an error: the calls before it landed, the one that threw
+ * ended as its error says, and the rest never went out.
+ */
+function sequentialStopEnding(
+  error: unknown,
+  progress: { confirmed: number; total: number }
+): SendActEndingDetail {
+  const stop = sendActEnding(error);
+  if (progress.confirmed === 0) return stop;
+  const notSent: SendActCopyOutcome = stop.outcome === "cancelled" ? "cancelled" : "failed";
+  return {
+    ...copiesEnding([
+      ...Array.from({ length: progress.confirmed }, (): SendActCopyOutcome => "confirmed"),
+      stop.outcome,
+      ...Array.from({ length: progress.total - progress.confirmed - 1 }, () => notSent),
+    ]),
+    parsedErrorFamily: stop.parsedErrorFamily,
+  };
 }
 
 export function useKarmaIntegration(garden?: Garden | null) {
@@ -274,6 +295,8 @@ export function useKarmaIntegration(garden?: Garden | null) {
     }
   };
 
+  // How far a sequential run got, so a call that stops it does not hide the ones that landed.
+  const sequentialProgress = useRef({ confirmed: 0, total: 0 });
   const reconcileMutation = useMutation({
     mutationFn: recordedSendAct(
       () => ({
@@ -304,17 +327,20 @@ export function useKarmaIntegration(garden?: Garden | null) {
           }
           // Today's path: one signature per call, each waiting for the one before it.
           let confirming = false;
+          sequentialProgress.current = { confirmed: 0, total: calls.length };
           for (const [index, { call }] of calls.entries()) {
             onSignature(index + 1, calls.length);
             const result = await transactionSender.sendContractCall(call);
             if (result.confirmation === "pending") confirming = true;
+            sequentialProgress.current.confirmed += 1;
           }
           return { batched: false, confirming };
         } finally {
           setProgress(null);
         }
       },
-      karmaSyncEnding
+      karmaSyncEnding,
+      (error) => sequentialStopEnding(error, sequentialProgress.current)
     ),
     onMutate: async () => {
       // A hold read still in flight would find this send's own record and call it held.

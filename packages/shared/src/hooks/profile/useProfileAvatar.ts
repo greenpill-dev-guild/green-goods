@@ -15,12 +15,17 @@ import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useEnsAvatar } from "../blockchain/useEnsAvatar";
 import { useEnsName } from "../blockchain/useEnsName";
 import { uploadFileToIPFS } from "../../modules/data/ipfs/upload";
-import { recordSendAct } from "../../modules/app/sendActAnalytics";
+import {
+  recordSendAct,
+  type SendActEndingDetail,
+  sendActEnding,
+} from "../../modules/app/sendActAnalytics";
 import {
   clearProfileAvatarDraft,
   classifyProfileAvatarFailure,
   loadProfileAvatarDraft,
   normalizeProfileAvatarFile,
+  ProfileAvatarTransportError,
   publishProfileAvatar,
   profileAvatarTransport,
   resolveProfileAvatar,
@@ -60,6 +65,13 @@ export interface ProfileAvatarReadOptions {
    * already reads.
    */
   list?: boolean;
+}
+
+/** A save the server may have taken, which a read could not prove, may still have landed. */
+function profileAvatarSaveEnding(error: unknown): SendActEndingDetail {
+  if (error instanceof ProfileAvatarTransportError && error.isAmbiguous)
+    return { outcome: "confirming", parsedErrorFamily: "ProfileAvatarSaveUnconfirmed" };
+  return sendActEnding(error);
 }
 
 export function useProfileAvatar(
@@ -214,30 +226,27 @@ export function useProfileAvatarEditor(chainIdOrOptions?: number | ProfileAvatar
           if (!isCurrentOperation()) throw new UploadPolicyCancelledError();
           assertWorkUploadConsent(consent, address);
         }
-        // The act starts once the photo may be shared: a declined consent sent nothing.
-        const record = await recordSendAct(
-          {
-            act: "profile_avatar",
-            operation: input.action,
-            authMode: auth.authMode,
-            chainId,
+        const record = await publishProfileAvatar(chainId, address, input, {
+          get: profileAvatarTransport.get,
+          save: profileAvatarTransport.save,
+          normalize: normalizeProfileAvatarFile,
+          upload: (file) => uploadFileToIPFS(file, { source: "profile-avatar" }),
+          sign,
+          saveDraft: (draftInput) => saveProfileAvatarDraft(chainId, address, draftInput),
+          clearDraft: () => clearProfileAvatarDraft(chainId, address),
+          onStage: (nextStage) => {
+            if (isCurrentOperation()) setStage(nextStage);
           },
-          () =>
-            publishProfileAvatar(chainId, address, input, {
-              get: profileAvatarTransport.get,
-              save: profileAvatarTransport.save,
-              normalize: normalizeProfileAvatarFile,
-              upload: (file) => uploadFileToIPFS(file, { source: "profile-avatar" }),
-              sign,
-              saveDraft: (draftInput) => saveProfileAvatarDraft(chainId, address, draftInput),
-              clearDraft: () => clearProfileAvatarDraft(chainId, address),
-              onStage: (nextStage) => {
-                if (isCurrentOperation()) setStage(nextStage);
-              },
-              getFactoryArgs,
-            }),
-          () => "confirmed"
-        );
+          getFactoryArgs,
+          // The signature and the save are the act; a photo already in place records none.
+          recordSend: (run) =>
+            recordSendAct(
+              { act: "profile_avatar", operation: input.action, authMode: auth.authMode, chainId },
+              run,
+              () => "confirmed",
+              profileAvatarSaveEnding
+            ),
+        });
         queryClient.setQueryData(profileAvatarKeys.record(chainId, address), record);
         if (isCurrentOperation()) {
           setDraft(null);

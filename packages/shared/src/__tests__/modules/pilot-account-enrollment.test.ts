@@ -19,6 +19,7 @@ import {
 } from "../../modules/auth/pilot-account-proof";
 import { LEGACY_PASSKEY_PROFILE, PILOT_PASSKEY_PROFILE } from "../../modules/auth/account-profile";
 import { defaultPasskeyAdapters } from "../../workflows/auth-passkey-adapters";
+import { TransactionRevertedError } from "../../modules/transactions/types";
 import { captureSendActs } from "../test-utils/send-acts";
 import {
   preparePilotProofOperation,
@@ -462,10 +463,21 @@ describe("pilot account enrollment", () => {
     await uncertain.enrollment.prepare();
     const second = await uncertain.enrollment.quote();
     uncertain.wait.mockRejectedValueOnce(new Error("timeout"));
+    // A reverted receipt is final, though the pending record stays until it is reconciled.
+    const reverted = harness();
+    await reverted.enrollment.prepare();
+    const third = await reverted.enrollment.quote();
+    reverted.wait.mockRejectedValueOnce(new TransactionRevertedError(TRANSACTION));
+    // Choosing a proof that already exists sends nothing, so it is not an act.
+    const existing = harness();
+    existing.discover.mockResolvedValue(existing.proof);
+    await existing.enrollment.prepare();
 
     const { acts, sent } = await captureSendActs(async () => {
       await landed.enrollment.confirm(first.operationHash);
       await expect(uncertain.enrollment.confirm(second.operationHash)).rejects.toThrow("timeout");
+      await expect(reverted.enrollment.confirm(third.operationHash)).rejects.toThrow();
+      await existing.enrollment.confirm();
     });
 
     expect(acts).toEqual([
@@ -473,7 +485,10 @@ describe("pilot account enrollment", () => {
       ["send_act_ended", "pilot_enrollment", "confirmed"],
       ["send_act_started", "pilot_enrollment", undefined],
       ["send_act_ended", "pilot_enrollment", "confirming"],
+      ["send_act_started", "pilot_enrollment", undefined],
+      ["send_act_ended", "pilot_enrollment", "failed"],
     ]);
+    expect(existing.selectSession).toHaveBeenCalled();
     for (const value of [OLD, NEW, TRANSACTION]) expect(sent).not.toContain(value.slice(2));
   });
 

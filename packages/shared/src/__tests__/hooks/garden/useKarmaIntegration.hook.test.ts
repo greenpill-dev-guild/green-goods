@@ -198,15 +198,18 @@ describe("useKarmaIntegration query and mutation seams", () => {
     const { result } = renderHookWithProviders(() => useKarmaIntegration(garden), { queryClient });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    const { acts } = await captureSendActs(() =>
+    const { acts, sent } = await captureSendActs(() =>
       act(async () => {
         await expect(result.current.reconcile()).rejects.toBe(partialFailure);
       })
     );
+    // The first call landed before the second failed: the act keeps both (PRD-1571).
     expect(acts).toEqual([
       ["send_act_started", "karma_sync", undefined],
-      ["send_act_ended", "karma_sync", "failed"],
+      ["send_act_ended", "karma_sync", "partial"],
     ]);
+    expect(sent).toContain('"copies_confirmed":1');
+    expect(sent).toContain('"copies_failed":1');
 
     expect(mocks.sendContractCall).toHaveBeenNthCalledWith(
       1,

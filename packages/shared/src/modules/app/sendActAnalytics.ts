@@ -334,7 +334,8 @@ type SendActRun = (variables: never, ...rest: never[]) => Promise<unknown>;
 export function recordedSendAct<F extends SendActRun>(
   context: SendActContext | ((variables: Parameters<F>[0]) => SendActContext),
   run: F,
-  outcomeOf?: (result: Awaited<ReturnType<F>>) => SendActOutcome | SendActEndingDetail
+  outcomeOf?: (result: Awaited<ReturnType<F>>) => SendActOutcome | SendActEndingDetail,
+  endingOfError?: (error: unknown) => SendActEndingDetail
 ): F {
   const call = run as unknown as (...args: Parameters<F>) => Promise<Awaited<ReturnType<F>>>;
   const recorded = (...args: Parameters<F>) => {
@@ -348,7 +349,7 @@ export function recordedSendAct<F extends SendActRun>(
       });
       return call(...args);
     }
-    return recordSendAct(resolved, () => call(...args), outcomeOf);
+    return recordSendAct(resolved, () => call(...args), outcomeOf, endingOfError);
   };
   return recorded as unknown as F;
 }
