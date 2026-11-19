@@ -15,6 +15,7 @@ import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useEnsAvatar } from "../blockchain/useEnsAvatar";
 import { useEnsName } from "../blockchain/useEnsName";
 import { uploadFileToIPFS } from "../../modules/data/ipfs/upload";
+import { recordSendAct } from "../../modules/app/sendActAnalytics";
 import {
   clearProfileAvatarDraft,
   classifyProfileAvatarFailure,
@@ -213,19 +214,30 @@ export function useProfileAvatarEditor(chainIdOrOptions?: number | ProfileAvatar
           if (!isCurrentOperation()) throw new UploadPolicyCancelledError();
           assertWorkUploadConsent(consent, address);
         }
-        const record = await publishProfileAvatar(chainId, address, input, {
-          get: profileAvatarTransport.get,
-          save: profileAvatarTransport.save,
-          normalize: normalizeProfileAvatarFile,
-          upload: (file) => uploadFileToIPFS(file, { source: "profile-avatar" }),
-          sign,
-          saveDraft: (draftInput) => saveProfileAvatarDraft(chainId, address, draftInput),
-          clearDraft: () => clearProfileAvatarDraft(chainId, address),
-          onStage: (nextStage) => {
-            if (isCurrentOperation()) setStage(nextStage);
+        // The act starts once the photo may be shared: a declined consent sent nothing.
+        const record = await recordSendAct(
+          {
+            act: "profile_avatar",
+            operation: input.action,
+            authMode: auth.authMode,
+            chainId,
           },
-          getFactoryArgs,
-        });
+          () =>
+            publishProfileAvatar(chainId, address, input, {
+              get: profileAvatarTransport.get,
+              save: profileAvatarTransport.save,
+              normalize: normalizeProfileAvatarFile,
+              upload: (file) => uploadFileToIPFS(file, { source: "profile-avatar" }),
+              sign,
+              saveDraft: (draftInput) => saveProfileAvatarDraft(chainId, address, draftInput),
+              clearDraft: () => clearProfileAvatarDraft(chainId, address),
+              onStage: (nextStage) => {
+                if (isCurrentOperation()) setStage(nextStage);
+              },
+              getFactoryArgs,
+            }),
+          () => "confirmed"
+        );
         queryClient.setQueryData(profileAvatarKeys.record(chainId, address), record);
         if (isCurrentOperation()) {
           setDraft(null);

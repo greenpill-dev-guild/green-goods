@@ -19,6 +19,7 @@ import {
 } from "../../modules/auth/pilot-account-proof";
 import { LEGACY_PASSKEY_PROFILE, PILOT_PASSKEY_PROFILE } from "../../modules/auth/account-profile";
 import { defaultPasskeyAdapters } from "../../workflows/auth-passkey-adapters";
+import { captureSendActs } from "../test-utils/send-acts";
 import {
   preparePilotProofOperation,
   sendReviewedPilotProof,
@@ -451,6 +452,29 @@ describe("pilot account enrollment", () => {
       expect.objectContaining({ smartAccountAddress: NEW, accountProfile: PILOT_PASSKEY_PROFILE })
     );
     expect(h.records.size).toBe(0);
+  });
+
+  it("records each proof as one act, still confirming while its receipt is unknown (PRD-1571)", async () => {
+    const landed = harness();
+    await landed.enrollment.prepare();
+    const first = await landed.enrollment.quote();
+    const uncertain = harness();
+    await uncertain.enrollment.prepare();
+    const second = await uncertain.enrollment.quote();
+    uncertain.wait.mockRejectedValueOnce(new Error("timeout"));
+
+    const { acts, sent } = await captureSendActs(async () => {
+      await landed.enrollment.confirm(first.operationHash);
+      await expect(uncertain.enrollment.confirm(second.operationHash)).rejects.toThrow("timeout");
+    });
+
+    expect(acts).toEqual([
+      ["send_act_started", "pilot_enrollment", undefined],
+      ["send_act_ended", "pilot_enrollment", "confirmed"],
+      ["send_act_started", "pilot_enrollment", undefined],
+      ["send_act_ended", "pilot_enrollment", "confirming"],
+    ]);
+    for (const value of [OLD, NEW, TRANSACTION]) expect(sent).not.toContain(value.slice(2));
   });
 
   it("submits the reviewed request once when the installed SDK's sponsor and fee quotes rotate", async () => {

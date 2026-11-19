@@ -1,6 +1,7 @@
 import type { SmartAccountClient } from "permissionless";
 import type { Address, Hex } from "viem";
 import { createPublicClientForChain } from "../../config/pimlico";
+import { recordSendAct, type SendActEndingDetail, sendActEnding } from "../app/sendActAnalytics";
 import type { PasskeyAdapters } from "../../workflows/auth-passkey-adapters";
 import type { PasskeySessionResult } from "../../workflows/authMachine.types";
 import { PILOT_PASSKEY_PROFILE, getPilotCredentialId } from "./account-profile";
@@ -38,11 +39,19 @@ export type PilotAccountPreview = {
 export class PilotAccountProofError extends Error {
   constructor(
     message: string,
-    readonly pending: boolean
+    readonly pending: boolean,
+    options?: { cause?: unknown }
   ) {
-    super(message);
+    super(message, options);
     this.name = "PilotAccountProofError";
   }
+}
+
+/** A proof sent and awaiting its receipt may still land; any other ending reads its cause. */
+function pilotProofEnding(error: unknown): SendActEndingDetail {
+  if (error instanceof PilotAccountProofError && error.pending)
+    return { outcome: "confirming", parsedErrorFamily: "PilotProofPending" };
+  return sendActEnding(error instanceof PilotAccountProofError ? error.cause : error);
 }
 
 type Candidate = {
@@ -227,7 +236,15 @@ export function createPilotAccountEnrollment(input: {
     candidate = undefined;
   };
 
-  const confirm = async (reviewedHash?: Hex): Promise<void> => {
+  const confirm = (reviewedHash?: Hex): Promise<void> =>
+    recordSendAct(
+      { act: "pilot_enrollment", authMode: "passkey", chainId: PROOF_CHAIN_ID },
+      () => confirmProof(reviewedHash),
+      () => "confirmed",
+      pilotProofEnding
+    );
+
+  const confirmProof = async (reviewedHash?: Hex): Promise<void> => {
     const value = current();
     if (sending) throw new Error("A pilot proof is already awaiting confirmation");
     sending = true;
@@ -273,7 +290,8 @@ export function createPilotAccountEnrollment(input: {
       }
       throw new PilotAccountProofError(
         error instanceof Error ? error.message : "Pilot proof failed",
-        storage.getItem(pendingKey(value.address)) !== null
+        storage.getItem(pendingKey(value.address)) !== null,
+        { cause: error }
       );
     } finally {
       sending = false;

@@ -49,7 +49,17 @@ type SendActName =
   // Garden creation and settings
   | "garden_create"
   | "garden_update"
+  | "garden_creator_allowlist"
+  | "karma_sync"
+  | "action_register"
   | "action_edit"
+  // Hypercerts and the marketplace
+  | "hypercert_listing"
+  | "marketplace_approval"
+  // A person's own account and profile
+  | "pilot_enrollment"
+  | "gardener_profile"
+  | "profile_avatar"
   // The Hub's pool and season acts
   | "pool_lifecycle"
   | "pool_setup"
@@ -155,6 +165,17 @@ export function sendActEnding(error: unknown): {
 }
 
 /**
+ * How a run that keeps its own pending record ended: refused because an earlier send of the same
+ * thing still holds it, or sent and either landed or still confirming.
+ */
+export type HeldOrSent = "held" | "confirming" | "confirmed";
+
+/** Refused before sending: the earlier send that holds the same thing keeps its own record. */
+export function heldOrSentEnding(ending: HeldOrSent): SendActOutcome | SendActEndingDetail {
+  return ending === "held" ? { outcome: "failed", parsedErrorFamily: "HeldByAnotherSend" } : ending;
+}
+
+/**
  * A batched save's ending. `unknown` may have landed and is held until someone
  * reads it, so it is still confirming; a `not-saved` the wallet declined is
  * cancelled; any other `not-saved` sent nothing that can still land. A
@@ -245,12 +266,15 @@ function trackSendActEnded(
  * result or rethrows its error unchanged. A result with `confirmation:
  * "pending"` ends as `confirming`; `outcomeOf` names the ending of an act whose
  * result says more, such as one the job queue kept to send later, or one of
- * several copies (`copiesEnding`).
+ * several copies (`copiesEnding`). `endingOfError` reads an act's own error
+ * that knows more than its type says, such as one that names a send still
+ * awaiting confirmation; it defaults to `sendActEnding`.
  */
 export async function recordSendAct<T>(
   context: SendActContext,
   run: () => Promise<T>,
-  outcomeOf: (result: T) => SendActOutcome | SendActEndingDetail = outcomeOfResult
+  outcomeOf: (result: T) => SendActOutcome | SendActEndingDetail = outcomeOfResult,
+  endingOfError: (error: unknown) => SendActEndingDetail = sendActEnding
 ): Promise<T> {
   const startedAt = Date.now();
   trackSendActStarted(context);
@@ -261,7 +285,7 @@ export async function recordSendAct<T>(
     recordEnding(
       context,
       startedAt,
-      () => sendActEnding(error),
+      () => endingOfError(error),
       () => "failed"
     );
     throw error;

@@ -32,6 +32,7 @@ vi.mock("../../../hooks/work/useUploadPolicy", () => ({
 }));
 import { onWalletReconnectAsk } from "../../../modules/auth/wallet-reconnect";
 import { uploadConsent } from "../../test-utils/upload-policy";
+import { captureSendActs } from "../../test-utils/send-acts";
 import { UploadPolicyCancelledError } from "../../../modules/work/upload-policy";
 vi.mock("wagmi", () => ({
   useSignMessage: () => ({ signMessageAsync: mocks.signMessage }),
@@ -163,21 +164,32 @@ describe("useProfileAvatarEditor", () => {
     });
     await waitFor(() => expect(mocks.consent).toHaveBeenCalledOnce());
     expect(mocks.publishAvatar).not.toHaveBeenCalled();
-    await act(async () => {
-      waiting.resolve(uploadConsent(ADDRESS_A));
-      await publishing;
-    });
+    const { acts, sent } = await captureSendActs(() =>
+      act(async () => {
+        waiting.resolve(uploadConsent(ADDRESS_A));
+        await publishing;
+      })
+    );
     expect(mocks.publishAvatar).toHaveBeenCalledOnce();
+    // The act starts once the photo may be shared (PRD-1571).
+    expect(acts).toEqual([
+      ["send_act_started", "profile_avatar", undefined],
+      ["send_act_ended", "profile_avatar", "confirmed"],
+    ]);
+    expect(sent).not.toContain(ADDRESS_A.slice(2).toLowerCase());
   });
   it("cancels consent without publishing, signing or showing a photo failure", async () => {
     mocks.consent.mockRejectedValue(new UploadPolicyCancelledError());
     const { result } = renderHookWithQueryClient(() => useProfileAvatarEditor(CHAIN_ID));
     await waitFor(() => expect(mocks.loadDraft).toHaveBeenCalled());
-    await act(async () => {
-      await expect(result.current.save(new File(["photo"], "photo.jpg"))).rejects.toThrow(
-        "User cancelled upload"
-      );
-    });
+    const { acts } = await captureSendActs(() =>
+      act(async () => {
+        await expect(result.current.save(new File(["photo"], "photo.jpg"))).rejects.toThrow(
+          "User cancelled upload"
+        );
+      })
+    );
+    expect(acts).toEqual([]);
     expect(mocks.publishAvatar).not.toHaveBeenCalled();
     expect(mocks.signMessage).not.toHaveBeenCalled();
     expect(result.current.error).toBeNull();

@@ -35,6 +35,13 @@ import { wasAskedToReconnect } from "../../utils/errors/unsent-failures";
 import { useUser } from "../auth/useUser";
 import { useAtomicBatchRoute } from "../blockchain/useAtomicBatchRoute";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
+import {
+  copiesEnding,
+  recordedSendAct,
+  type SendActCopyOutcome,
+  type SendActEndingDetail,
+  sendActEnding,
+} from "../../modules/app/sendActAnalytics";
 import { useProgressiveInvalidation } from "../utils/useTimeout";
 import { useHeldBatches } from "./useHeldBatches";
 import {
@@ -70,7 +77,44 @@ interface KarmaSyncProgress {
 }
 
 /** A press either went one call at a time, as it always has, or under one signature per group. */
-type KarmaReconcileRun = { batched: false } | { batched: true; outcome: KarmaReconcileOutcome };
+type KarmaReconcileRun =
+  | { batched: false; confirming: boolean }
+  | { batched: true; outcome: KarmaReconcileOutcome };
+
+/** Why a run stopped, when that reason is not an error of its own to read. */
+const STOPPED_ENDINGS: Record<
+  Exclude<NonNullable<KarmaReconcileOutcome["stoppedBy"]>, "error">,
+  { outcome: SendActCopyOutcome; parsedErrorFamily: string }
+> = {
+  declined: { outcome: "cancelled", parsedErrorFamily: "UserRejected" },
+  reverted: { outcome: "failed", parsedErrorFamily: "TransactionReverted" },
+  "over-ceilings": { outcome: "failed", parsedErrorFamily: "NotBatchable" },
+  "no-project": { outcome: "failed", parsedErrorFamily: "NoKarmaProject" },
+};
+
+/**
+ * How a sync ended, call by call: a call the chain recorded is confirmed, even when its sync
+ * failed inside the transaction; one that may have landed is still confirming; the rest went
+ * out with nothing and end the way the run stopped (PRD-1571).
+ */
+function karmaSyncEnding(run: KarmaReconcileRun): SendActEndingDetail {
+  if (!run.batched) return { outcome: run.confirming ? "confirming" : "confirmed" };
+  const { recorded, unknown, notSent, stoppedBy, failure } = run.outcome;
+  const stopped = stoppedBy
+    ? stoppedBy === "error"
+      ? sendActEnding(failure)
+      : STOPPED_ENDINGS[stoppedBy]
+    : null;
+  // Nothing went out for these, so none of them can still land.
+  const notSentOutcome: SendActCopyOutcome =
+    stopped?.outcome === "cancelled" ? "cancelled" : "failed";
+  const ending = copiesEnding([
+    ...recorded.map((): SendActCopyOutcome => "confirmed"),
+    ...Array.from({ length: unknown }, (): SendActCopyOutcome => "confirming"),
+    ...Array.from({ length: notSent }, () => notSentOutcome),
+  ]);
+  return stopped ? { ...ending, parsedErrorFamily: stopped.parsedErrorFamily } : ending;
+}
 
 export function useKarmaIntegration(garden?: Garden | null) {
   const { formatMessage } = useIntl();
@@ -231,36 +275,47 @@ export function useKarmaIntegration(garden?: Garden | null) {
   };
 
   const reconcileMutation = useMutation({
-    mutationFn: async (): Promise<KarmaReconcileRun> => {
-      if (!garden || !gardenAddress) throw new Error("Garden is required");
-      if (!canReconcile) throw new Error("Garden Owner or Steward role is required");
-      if (!supported) throw new Error("Karma reconciliation is not supported on this chain");
-      if (!transactionSender) throw new Error("Transaction sender is not available");
-      const onSignature = (signature: number, total: number) =>
-        setProgress({ signature, signatures: total });
-      try {
-        if (inBatches && route.rail) {
-          const outcome = await reconcileKarmaBatch({
-            batches: batches!,
-            scope: { account: primaryAddress!, chainId },
-            garden: gardenAddress,
-            chain: createKarmaReconcileChain(chainId),
-            rail: route.rail,
-            calls,
-            onSignature,
-          });
-          return { batched: true, outcome };
+    mutationFn: recordedSendAct(
+      () => ({
+        act: "karma_sync",
+        operation: inBatches && route.rail ? "batched" : "sequential",
+        authMode: transactionSender?.authMode,
+        chainId,
+      }),
+      async (): Promise<KarmaReconcileRun> => {
+        if (!garden || !gardenAddress) throw new Error("Garden is required");
+        if (!canReconcile) throw new Error("Garden Owner or Steward role is required");
+        if (!supported) throw new Error("Karma reconciliation is not supported on this chain");
+        if (!transactionSender) throw new Error("Transaction sender is not available");
+        const onSignature = (signature: number, total: number) =>
+          setProgress({ signature, signatures: total });
+        try {
+          if (inBatches && route.rail) {
+            const outcome = await reconcileKarmaBatch({
+              batches: batches!,
+              scope: { account: primaryAddress!, chainId },
+              garden: gardenAddress,
+              chain: createKarmaReconcileChain(chainId),
+              rail: route.rail,
+              calls,
+              onSignature,
+            });
+            return { batched: true, outcome };
+          }
+          // Today's path: one signature per call, each waiting for the one before it.
+          let confirming = false;
+          for (const [index, { call }] of calls.entries()) {
+            onSignature(index + 1, calls.length);
+            const result = await transactionSender.sendContractCall(call);
+            if (result.confirmation === "pending") confirming = true;
+          }
+          return { batched: false, confirming };
+        } finally {
+          setProgress(null);
         }
-        // Today's path: one signature per call, each waiting for the one before it.
-        for (const [index, { call }] of calls.entries()) {
-          onSignature(index + 1, calls.length);
-          await transactionSender.sendContractCall(call);
-        }
-        return { batched: false };
-      } finally {
-        setProgress(null);
-      }
-    },
+      },
+      karmaSyncEnding
+    ),
     onMutate: async () => {
       // A hold read still in flight would find this send's own record and call it held.
       await queryClient.cancelQueries({ queryKey: holdKey });
