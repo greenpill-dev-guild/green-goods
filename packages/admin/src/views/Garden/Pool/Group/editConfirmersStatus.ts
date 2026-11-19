@@ -8,6 +8,7 @@
 import type { ConfirmerEditProgress } from "@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController";
 import type { confirmerRuleError } from "@green-goods/shared/modules/commitment-pooling/pool-console";
 import type { CreationSendMode } from "@green-goods/shared/hooks/admin-ui/pool/useSeedTray";
+import type { ReactNode } from "react";
 import type { FlowStatusTone } from "@/components/Layout/FlowStatusRow";
 import { copiesInRequest, type EditRewardPhase } from "./editRewardStatus";
 
@@ -54,16 +55,24 @@ export function confirmerRuleMessage(
   }
 }
 
-/** The summary's rows: the available copies' rule before and after, and the taken ones kept. */
+/**
+ * The summary's rows: the available copies' rule before and after, who the
+ * change adds and removes (or, with no one rule to compare with, who it
+ * names), and the taken copies kept. The people come ready to draw, since the
+ * Hub names them through its own component.
+ */
 export function editConfirmersSummary(input: {
   available: number;
   taken: number;
   from: string;
   to: string;
+  adds: ReactNode | null;
+  removes: ReactNode | null;
+  names: ReactNode | null;
   formatMessage: FormatMessage;
-}): Array<[string, string]> {
-  const { available, taken, from, to, formatMessage } = input;
-  const rows: Array<[string, string]> = [
+}): Array<[string, ReactNode]> {
+  const { available, taken, from, to, adds, removes, names, formatMessage } = input;
+  const rows: Array<[string, ReactNode]> = [
     [
       formatMessage(
         { id: "hub.garden.pool.reward.availableRow", defaultMessage: "{count} available" },
@@ -75,6 +84,24 @@ export function editConfirmersSummary(input: {
       ),
     ],
   ];
+  if (names) {
+    rows.push([
+      formatMessage({ id: "hub.garden.pool.confirmers.names", defaultMessage: "Names" }),
+      names,
+    ]);
+  }
+  if (adds) {
+    rows.push([
+      formatMessage({ id: "hub.garden.pool.confirmers.adds", defaultMessage: "Adds" }),
+      adds,
+    ]);
+  }
+  if (removes) {
+    rows.push([
+      formatMessage({ id: "hub.garden.pool.confirmers.removes", defaultMessage: "Removes" }),
+      removes,
+    ]);
+  }
   if (taken > 0) {
     rows.push([
       formatMessage(

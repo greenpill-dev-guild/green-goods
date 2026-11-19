@@ -206,10 +206,11 @@ describe("the flow footers", () => {
   it("leave only Done and a fresh start once a create flow has sent", () => {
     const handlers = sendFooter({ phase: "sent" });
 
-    // No way back into the steps, and nothing left to send.
+    // No way back into the steps, and nothing left to send. The shared bar reads
+    // primary first, as it stacks on a phone, and draws it rightmost from 640px.
     expect(screen.getAllByRole("button").map((button) => button.textContent)).toEqual([
-      "Create Another",
       "Done",
+      "Create Another",
     ]);
     fireEvent.click(screen.getByRole("button", { name: "Create Another" }));
     fireEvent.click(screen.getByRole("button", { name: "Done" }));

@@ -705,8 +705,37 @@
     text-wrap: balance;
   }
 
+  /* A note about the actions sits above them, and at the start of the row
+   * from 640px, where it takes the room the actions leave. */
+  [data-component="SheetActions"] > [data-slot="note"] {
+    min-width: 0;
+    margin: 0;
+  }
+
+  [data-component="SheetActions"] > [data-slot="note"]:empty {
+    display: none;
+  }
+
   [data-component="SheetActions"][data-layout="steps"] {
     flex-direction: row;
+  }
+
+  /* With a note, the steps row wraps so the note keeps its own line above it. */
+  [data-component="SheetActions"][data-layout="steps"][data-note] {
+    flex-wrap: wrap;
+  }
+
+  [data-component="SheetActions"][data-layout="steps"] > [data-slot="note"] {
+    flex: 0 0 100%;
+  }
+
+  /* A sheet footer pads and fills its own row, so the bar inside takes that
+   * row and brings no padding or fill of its own. */
+  [data-component="SheetFooter"] > [data-component="SheetActions"] {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0;
+    background-color: transparent;
   }
 
   [data-component="SheetActions"][data-layout="steps"] > [data-action="secondary"] {
@@ -741,6 +770,16 @@
     [data-component="SheetActions"] > [data-action="tertiary"] {
       order: -1;
       margin-inline-end: auto;
+    }
+
+    [data-component="SheetActions"][data-layout="steps"][data-note] {
+      flex-wrap: nowrap;
+    }
+
+    [data-component="SheetActions"] > [data-slot="note"],
+    [data-component="SheetActions"][data-layout="steps"] > [data-slot="note"] {
+      flex: 1 1 0%;
+      order: -2;
     }
   }
 
