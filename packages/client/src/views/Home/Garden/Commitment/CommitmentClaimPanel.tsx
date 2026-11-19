@@ -66,7 +66,7 @@ export function CommitmentClaimPanel({
       : outcome === "WITHDRAWN"
         ? commitment.cancelReasonCID
         : null;
-  const { reason, isUnavailable } = useCommitmentReason(reasonCID);
+  const { reason, isLoading: reasonLoading } = useCommitmentReason(reasonCID);
   const isGardenClaim = request.claimType === "GARDEN";
   const requestedByYou = request.requestedBy.toLowerCase() === viewer.toLowerCase();
   const state = request.state;
@@ -139,9 +139,7 @@ export function CommitmentClaimPanel({
             label={formatMessage({ id: "app.claim.row.reason" })}
             value={
               reason?.reason ??
-              (isUnavailable || !reasonCID
-                ? "—"
-                : formatMessage({ id: "app.claim.row.reasonLoading" }))
+              (reasonLoading ? formatMessage({ id: "app.claim.row.reasonLoading" }) : "—")
             }
           />
         ) : null}
