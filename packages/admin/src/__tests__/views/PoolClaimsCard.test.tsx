@@ -565,6 +565,29 @@ describe("PoolClaimsCard (Review Promises)", () => {
         view.rerender({}, bookingsFor([], {}, [{ ...kwesiAsk, commitmentId: 41n, buyer: LINA }]));
         expect(within(row).getByRole("button", { name: "Accept…" })).toBeEnabled();
       });
+
+      it("keeps Approve… on a booking whose Safe needs more signatures than the steward's", async () => {
+        const approveBooking = vi.fn().mockResolvedValue(undefined);
+        const pool = poolConsoleControllerFixture({ claims: [linaRow], titles: bookingTitles });
+        renderWithProviders(
+          <PoolClaimsCard
+            console={pool}
+            vouchers={bookingsFor([], { approveBooking }, [linaAsk])}
+            target={TARGET}
+            safe={{ ...safeOwnedBy(VIEWER, KWESI), threshold: 2 }}
+            onDecline={vi.fn()}
+            onOpen={vi.fn()}
+            onOpenPromise={vi.fn()}
+          />
+        );
+        fireEvent.click(screen.getByRole("button", { name: "Approve…" }));
+        const dialog = await screen.findByRole("dialog");
+        fireEvent.click(within(dialog).getByRole("button", { name: "Approve Booking" }));
+        await waitFor(() => expect(approveBooking).toHaveBeenCalledWith(linaAsk));
+        await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+        expect(screen.queryByText("Approved")).not.toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Approve…" })).toBeEnabled();
+      });
     });
 
     // An open dialog kept its confirm after the row went quiet (Codex on #1320).

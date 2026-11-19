@@ -158,7 +158,10 @@ export function PoolClaimsCard({
     if (!approves(ask))
       throw new Error("Only an owner of the issuer's Safe can approve this booking");
     await vouchers.acts.approveBooking(ask);
-    if (sendsDirectly(ask.issuer)) record(bookingRowKey({ ...ask, holder: ask.buyer }), "approve");
+    // Approved only once it is: a Safe that needs more than this signature still waits on others.
+    const completes = safe?.status === "observed" && safe.threshold === 1;
+    if (sendsDirectly(ask.issuer) && completes)
+      record(bookingRowKey({ ...ask, holder: ask.buyer }), "approve");
   };
   const bookingActs: Pick<VoucherConsoleView, "acts"> = {
     acts: {
