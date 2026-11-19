@@ -114,7 +114,8 @@ export function createMutationErrorHandler(config: MutationErrorHandlerConfig) {
     // Neither is a failure (PRD-1551): a send still confirming went out and may still land, and
     // a send the person stopped waiting for may still be in the wallet. Neither is recorded as a
     // contract failure or shown in red; the act's own line, or an info toast, says where it stands.
-    const stillConfirming = parsed.name === "SendStillConfirming";
+    const stillConfirming =
+      parsed.name === "SendStillConfirming" || parsed.name === "SafeProposalPending";
     const stoppedWaiting = error instanceof Error && error.name === "WalletAnswerAbandonedError";
 
     // Track error with analytics if provided

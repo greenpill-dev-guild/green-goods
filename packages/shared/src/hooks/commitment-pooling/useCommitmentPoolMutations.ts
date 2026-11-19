@@ -38,7 +38,10 @@ import {
 } from "../../modules/commitment-pooling/pool-lifecycle";
 import { pinCommitmentReason } from "../../modules/commitment-pooling/reasons";
 import { selectCommitmentPoolingAvailability } from "../../modules/commitment-pooling/selectors";
-import type { TransactionSendOptions } from "../../modules/transactions/types";
+import {
+  TransactionConfirmationPendingError,
+  type TransactionSendOptions,
+} from "../../modules/transactions/types";
 import { getOntologyChainMaturity } from "../../ontology/query";
 import type { Address } from "../../types/domain";
 import { isZeroAddress } from "../../utils/blockchain/address";
@@ -155,6 +158,9 @@ export function useCommitmentPoolMutation(options: { chainId?: number } = {}) {
       const result = send
         ? await sender.sendContractCall(contractCall, send)
         : await sender.sendContractCall(contractCall);
+      // A Safe proposal, or any answer with no receipt yet, has not run: the act stays open and
+      // its error says it is waiting, never that it is done (PRD-1551).
+      if (result.confirmation === "pending") throw new TransactionConfirmationPendingError(result);
       return result.hash;
     },
     onSuccess: async (_hash, input) => {

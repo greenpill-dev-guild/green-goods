@@ -201,6 +201,32 @@ describe("useCommitmentPoolMutation", () => {
     expect(mocks.sender.sendContractCall.mock.lastCall).toHaveLength(1);
   });
 
+  it("keeps an act a Safe has only proposed open, never done", async () => {
+    // A Safe proposal has not run until its owners sign it (PRD-1551).
+    mocks.sender.sendContractCall.mockResolvedValueOnce({
+      hash: `0x${"5a".repeat(32)}`,
+      sponsored: false,
+      confirmation: "pending",
+      awaiting: "safe-signers",
+    });
+    const queryClient = createTestQueryClient();
+    const invalidate = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue();
+    const { result } = renderHookWithProviders(
+      () => useCommitmentPoolMutation({ chainId: 42161 }),
+      { queryClient }
+    );
+
+    await act(async () => {
+      await expect(
+        result.current.mutateAsync({ action: "resumePool", poolId: 7n })
+      ).rejects.toMatchObject({
+        name: "TransactionConfirmationPendingError",
+        submission: { awaiting: "safe-signers" },
+      });
+    });
+    expect(invalidate).not.toHaveBeenCalled();
+  });
+
   it("invalidates the chain prefix plus the pool or cycle that changed", async () => {
     const queryClient = createTestQueryClient();
     const invalidate = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue();

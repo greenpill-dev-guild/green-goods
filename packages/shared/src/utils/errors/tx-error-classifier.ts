@@ -343,6 +343,20 @@ export function isUnconfirmedTxError(error: unknown): boolean {
  */
 export function parseUnconfirmedSend(error: unknown, raw: string): ParsedContractError | null {
   if (!isUnconfirmedTxError(error)) return null;
+  // A Safe proposal waits for the Safe's owners, not the network, and says so.
+  const submission = (error as { submission?: { awaiting?: string } }).submission;
+  if (submission?.awaiting === "safe-signers")
+    return {
+      raw,
+      name: "SafeProposalPending",
+      message:
+        "Your Safe has the proposal. It goes through once enough of the Safe's owners sign it.",
+      titleKey: "app.sendStage.safeSigners",
+      messageKey: "app.sendStage.safeSigners.detail",
+      isKnown: true,
+      recoverable: false,
+      suggestedAction: "check-wallet",
+    };
   return {
     raw,
     name: "SendStillConfirming",
