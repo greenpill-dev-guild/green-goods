@@ -185,8 +185,10 @@ const STILL_CONFIRMING_AFTER_MS = 120_000;
  * heard that the chain is being checked and that it will hear back.
  */
 function sentSilently(attempt: AttemptRecord | null): boolean {
-  if (attempt?.state === "broadcast") return true;
-  return attempt?.state === "uncertain" && attempt.mode === "delegated";
+  // A late hash moves a callback-missing attempt to broadcast and keeps its reason.
+  if (!attempt || attempt.reasonCode === "callback_missing") return false;
+  if (attempt.state === "broadcast") return true;
+  return attempt.state === "uncertain" && attempt.mode === "delegated";
 }
 
 /**

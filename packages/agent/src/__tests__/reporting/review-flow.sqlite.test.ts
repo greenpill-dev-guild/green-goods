@@ -11,7 +11,7 @@ import {
   stewardAccount,
 } from "./support/flows";
 import { TAS } from "./support/fixtures";
-import { ADA, BOLA, Harness } from "./support/harness";
+import { ADA, BOLA, Harness, summaryToken } from "./support/harness";
 
 /**
  * Steward review through chat and the signing page: a linked operator lists pending work, records
@@ -285,12 +285,46 @@ describe("steward review", () => {
     // The steward starts a report of their own while the decision waits for its signature.
     await harness.say(BOLA, "Today I planted twelve baobab seedlings by the fence");
     expect(harness.core.db.query("SELECT count(*) AS n FROM work_drafts").get()).toEqual({ n: 2 });
+    // The decision's link is the last one the chat sent, so NEW LINK refreshes it, lapsed or not.
+    const live = await harness.say(BOLA, "new link");
+    expect(live[0]).toContain("Open this page to check and sign your decision with your wallet.");
+    expect(latestLink(harness)).not.toBe(expired);
     harness.clock.advance(harness.core.settings.linkChallengeTtlMs);
     await harness.drain();
 
-    const fresh = await harness.say(BOLA, "new link");
+    const lapsed = latestLink(harness);
+    const fresh = await harness.say(BOLA, "RETRY");
     expect(fresh[0]).toContain("Open this page to check and sign your decision with your wallet.");
-    expect(latestLink(harness)).not.toBe(expired);
+    expect(latestLink(harness)).not.toBe(lapsed);
+  });
+
+  it("sends NEW LINK to the report when its link went out after the decision's lapsed", async () => {
+    await publishedWork();
+    await linkedSteward();
+    const summary = await decide("Approve", "Looks right");
+    const token = /CONFIRM (\d{4})/.exec(summary[0] ?? "")?.[1];
+    await harness.say(BOLA, `CONFIRM ${token}`);
+    harness.clock.advance(harness.core.settings.linkChallengeTtlMs);
+    await harness.drain();
+    // The steward then reports work of their own and is sent its publishing link, which lapses too.
+    harness.chain.grantRole(TAS.address, stewardAccount.address, {
+      gardener: true,
+      operator: true,
+    });
+    await harness.say(BOLA, "Today I planted twelve baobab seedlings by the fence");
+    await harness.press(BOLA, "Tree planting");
+    await harness.say(BOLA, "12");
+    await harness.say(BOLA, "2");
+    const report = await harness.say(BOLA, "3 hours");
+    expect((await harness.say(BOLA, `CONFIRM ${summaryToken(report)}`))[0]).toContain(
+      "Open this page to review and sign the exact publication"
+    );
+    harness.clock.advance(harness.core.settings.linkChallengeTtlMs);
+    await harness.drain();
+
+    expect((await harness.say(BOLA, "new link"))[0]).toContain(
+      "Open this page to review and sign the exact publication with your wallet."
+    );
   });
 
   it("never offers or accepts a steward's own work", async () => {

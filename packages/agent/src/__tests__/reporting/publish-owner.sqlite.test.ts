@@ -509,6 +509,9 @@ describe("owner publication", () => {
     await exhaustChainCheck();
     expect(checks()).toEqual([{ state: "failed" }, { state: "failed" }]);
     expect(sentTexts().filter((text) => text === CHECK_STOPPED)).toHaveLength(1);
+    // The chat already said it can't tell whether this was sent, so the late hash brings no
+    // still-confirming line to contradict it.
+    expect(sentTexts()).not.toContain(STILL_CONFIRMING);
   });
 
   it("lets chain evidence that a replayed check finds override its earlier stop, and says when that check stops too", async () => {
@@ -715,6 +718,21 @@ describe("owner publication", () => {
     expect(sentTexts()).not.toContain(STILL_CONFIRMING);
     // STATUS agrees with what the chat said, rather than that the report is being published.
     expect(await harness.say(ADA, "STATUS")).toEqual([PUBLISHED_CHECKING]);
+  });
+
+  it("still tells a reporter who sent STOP that a report found on chain twice is published", async () => {
+    await confirmLinkAndPublish(harness);
+    const { browser, view, envelope } = await openSigningPage(harness);
+    const attempt = await reserve(browser, view, envelope);
+    send(envelope);
+    send(envelope);
+    await harness.say(ADA, "STOP");
+    await reportOutcome(browser, view, envelope, attempt.body.attemptId, {
+      kind: "broadcast",
+      transactionHash: `0x${"ab".repeat(32)}`,
+    });
+    await harness.drain();
+    expect(sentTexts().at(-1)).toBe(PUBLISHED_CHECKING);
   });
 
   it("waits for a reported hash that is not mined yet instead of calling it a conflict", async () => {

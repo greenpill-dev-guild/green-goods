@@ -371,7 +371,8 @@ function routeCommand(
   if (command.kind === "help" || command.kind === "start") return writer.say("help");
   if (command.kind === "review") return requestReview(writer, command.index);
   if (command.kind === "recover") return startRecovery(writer);
-  if (review && reviewOwnsCommand(writer, review, command)) {
+  // Ownership reads the command as asked, so NEW LINK can find the link the chat sent last.
+  if (review && reviewOwnsCommand(writer, review, asked.command)) {
     if (handleReviewCommand(writer, review, command)) return;
   }
   const owned = deps.commands?.[command.kind];
