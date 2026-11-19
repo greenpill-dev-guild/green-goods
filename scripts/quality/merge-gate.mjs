@@ -40,6 +40,17 @@ export const GATE_CRITICAL_PATHS = [
   "scripts/quality/select-validation.mjs",
   "scripts/quality/shared-mutation-surface.mjs",
 ];
+// What the gate's decision reads. A push to develop that changes any of them starts a sweep that
+// decides every open pull request again (the workflow's detect job compares each push with them).
+export const GATE_INPUT_PATHS = [
+  ".agents/merge-policy.json",
+  ".github/workflows/merge-gate.yml",
+  "scripts/data/validation-policy.json",
+  "scripts/lib/dev-shared.js",
+  "scripts/quality/merge-gate.mjs",
+  "scripts/quality/select-validation.mjs",
+  "scripts/quality/shared-mutation-surface.mjs",
+];
 const SYMLINK_MODE = "120000";
 const SUBMODULE_MODE = "160000";
 // Only accounts that can push write proof. An organization's read-only members comment as MEMBER
@@ -219,8 +230,13 @@ export function decide({ tier, reasons, markers, headSha }) {
   };
 }
 
-/** The open pull requests an event concerns. `findByHead` looks a fork's pull request up by its head branch. */
-export async function pullNumbers(event, eventName, findByHead) {
+/**
+ * The open pull requests an event concerns. `findByHead` looks a fork's pull request up by its head
+ * branch; `listOpen` lists every open pull request into the gate's bases, which a push to develop
+ * that changes the gate's inputs decides again.
+ */
+export async function pullNumbers(event, eventName, findByHead, listOpen = async () => []) {
+  if (eventName === "push") return listOpen();
   if (eventName === "issue_comment") return event.issue?.pull_request ? [event.issue.number] : [];
   const run = event.workflow_run;
   if (eventName !== "workflow_run" || run?.event !== "pull_request") return [];
@@ -289,20 +305,39 @@ export function fetchCommit(sha, { cwd = repoRoot, env = process.env } = {}) {
 }
 
 /** GitHub's REST API for one repository: `call(path, { method, body })` returns the parsed response. */
-export function githubClient({ token, repository }) {
+// A sweep that one transient failure stops leaves the older policy's successes standing, so a call
+// GitHub could not serve (a network error, 429 or 5xx) is tried again after a pause. Every call the
+// gate makes is a read or a status post, which is safe to repeat.
+const GITHUB_ATTEMPTS = 3;
+const GITHUB_RETRY_MS = 2000;
+
+export function githubClient({ token, repository, fetchImpl = fetch, wait = (ms) => new Promise((done) => setTimeout(done, ms)) }) {
   return async (path, { method = "GET", body } = {}) => {
-    const response = await fetch(`https://api.github.com/repos/${repository}/${path}`, {
-      method,
-      headers: {
-        authorization: `Bearer ${token}`,
-        accept: "application/vnd.github+json",
-        "x-github-api-version": "2022-11-28",
-        ...(body ? { "content-type": "application/json" } : {}),
-      },
-      body: body ? JSON.stringify(body) : undefined,
-    });
-    if (!response.ok) throw Object.assign(new Error(`${method} ${path.split("?")[0]}: HTTP ${response.status}`), { status: response.status });
-    return response.status === 204 ? null : response.json();
+    for (let attempt = 1; ; attempt += 1) {
+      let response;
+      try {
+        response = await fetchImpl(`https://api.github.com/repos/${repository}/${path}`, {
+          method,
+          headers: {
+            authorization: `Bearer ${token}`,
+            accept: "application/vnd.github+json",
+            "x-github-api-version": "2022-11-28",
+            ...(body ? { "content-type": "application/json" } : {}),
+          },
+          body: body ? JSON.stringify(body) : undefined,
+        });
+      } catch (error) {
+        if (attempt >= GITHUB_ATTEMPTS) throw error;
+        await wait(GITHUB_RETRY_MS * attempt);
+        continue;
+      }
+      if (response.ok) return response.status === 204 ? null : response.json();
+      if ((response.status === 429 || response.status >= 500) && attempt < GITHUB_ATTEMPTS) {
+        await wait(GITHUB_RETRY_MS * attempt);
+        continue;
+      }
+      throw Object.assign(new Error(`${method} ${path.split("?")[0]}: HTTP ${response.status}`), { status: response.status });
+    }
   };
 }
 
@@ -408,6 +443,51 @@ export async function evaluate(pull, headSha, { github, cwd = repoRoot, env = pr
   }
 }
 
+// What a sweep posts before it decides; if a stopped sweep leaves it, a recheck comment decides.
+export const HOLD_DESCRIPTION = "Deciding again under a changed merge policy; comment merge-gate: recheck if this stays.";
+
+// What a run posts when a marker its success counted was withdrawn, or could not be read, as it posted.
+export const WITHDRAWN_DESCRIPTION = "A marker this decision counted is gone or unreadable; comment merge-gate: recheck if this stays.";
+
+// The writers' markers a pull request's comments record for this head now. Authors the evaluation
+// already looked up keep its answer; a new marker author is looked up.
+async function currentMarkers(github, number, headSha, outcome) {
+  const comments = await paginate(github, `issues/${number}/comments`);
+  const newcomers = comments.filter((comment) => hasMarker(comment) && comment.user?.login && !outcome.authors.has(comment.user.login));
+  const writers = new Set([...outcome.writers, ...(await writersAmong(newcomers, accessLookup(github)))]);
+  return markersFor(comments, headSha, (login) => writers.has(login));
+}
+
+// Whether a gate input changed between two commits. The three-dot comparison lists only what `to`
+// added since the merge base, so when `to` is behind `from` or has diverged from it (develop reset or
+// rewritten) it can list nothing while a policy went back; that, a comparison GitHub cut short, and
+// one that lists no files all count as changed. A failed lookup throws.
+async function gateInputsChanged(github, from, to) {
+  const { files, status } = await github(`compare/${from}...${to}`);
+  if (status === "behind" || status === "diverged" || !Array.isArray(files) || files.length === 0) return true;
+  return files.length >= 300 || files.some((entry) => GATE_INPUT_PATHS.includes(entry.filename) || GATE_INPUT_PATHS.includes(entry.previous_filename));
+}
+
+// Whether the gate's inputs changed on the base branch since this run checked it out. Such a run
+// would post an older policy's decision, so the sweep that change started decides instead.
+async function gateInputsMovedSince(github, checkout, base) {
+  if (!checkout) return false;
+  const tip = (await github(`branches/${encodeURIComponent(base)}`)).commit.sha;
+  return tip !== checkout && gateInputsChanged(github, checkout, tip);
+}
+
+/**
+ * Whether a push to develop changed what the gate reads. The workflow's detect job asks on every
+ * push, since a path filter misses a file past the first 3,000 a large push changes. A force push,
+ * an unknown range, or a comparison that fails sweeps: the three-dot comparison of a rewritten
+ * history starts at the merge base, so it can miss a reverted policy.
+ */
+export async function pushChangedGateInputs(github, event) {
+  const zero = /^0+$/;
+  if (event.forced || !event.before || !event.after || zero.test(event.before) || zero.test(event.after)) return true;
+  return gateInputsChanged(github, event.before, event.after).catch(() => true);
+}
+
 /**
  * In the workflow, decide every pull request the event concerns and post its status. With
  * `--dry-run <number>`, decide that pull request and print the decision without posting. `deps`
@@ -416,87 +496,156 @@ export async function evaluate(pull, headSha, { github, cwd = repoRoot, env = pr
 export async function main(argv = process.argv.slice(2), deps = {}) {
   const env = deps.env ?? process.env;
   const dryRun = argv[0] === "--dry-run" ? Number(argv[1]) : null;
-  if (argv.length && !(dryRun > 0 && argv.length === 2)) {
-    console.error("usage: node scripts/quality/merge-gate.mjs [--dry-run <pull request number>]");
+  const detect = argv.length === 1 && argv[0] === "--push-changed";
+  if (argv.length && !detect && !(dryRun > 0 && argv.length === 2)) {
+    console.error("usage: node scripts/quality/merge-gate.mjs [--dry-run <pull request number> | --push-changed]");
     return 2;
   }
   const github = deps.github ?? githubClient({ token: env.GITHUB_TOKEN, repository: env.GITHUB_REPOSITORY });
+  if (detect) {
+    const sweep = await pushChangedGateInputs(github, deps.event ?? JSON.parse(readFileSync(env.GITHUB_EVENT_PATH, "utf8")));
+    (deps.log ?? ((line) => console.log(line)))(sweep ? "A gate input may have changed: sweep." : "No gate input changed in this push.");
+    if (env.GITHUB_OUTPUT) appendFileSync(env.GITHUB_OUTPUT, `sweep=${sweep}\n`);
+    return 0;
+  }
   const decideHead = deps.evaluate ?? evaluate;
   const log = deps.log ?? ((line) => console.log(line));
   const summary = deps.summary ?? ((line) => env.GITHUB_STEP_SUMMARY && appendFileSync(env.GITHUB_STEP_SUMMARY, `${line}\n`));
   const bases = (env.MERGE_GATE_BASES ?? "develop").split(",").map((base) => base.trim()).filter(Boolean);
   const runUrl = `${env.GITHUB_SERVER_URL}/${env.GITHUB_REPOSITORY}/actions/runs/${env.GITHUB_RUN_ID}`;
   const findByHead = (head) => github(`pulls?state=open&head=${encodeURIComponent(head)}`);
+  const listOpen = async () => (await paginate(github, "pulls?state=open")).filter((pull) => bases.includes(pull.base.ref)).map((pull) => pull.number);
   const numbers = dryRun
     ? [dryRun]
-    : await pullNumbers(deps.event ?? JSON.parse(readFileSync(env.GITHUB_EVENT_PATH, "utf8")), env.GITHUB_EVENT_NAME, findByHead);
+    : await pullNumbers(deps.event ?? JSON.parse(readFileSync(env.GITHUB_EVENT_PATH, "utf8")), env.GITHUB_EVENT_NAME, findByHead, listOpen);
   let failed = false;
-  for (const number of numbers) {
-    const pull = await github(`pulls/${number}`);
-    if (!dryRun && (pull.state !== "open" || !bases.includes(pull.base.ref))) continue;
-    // The snapshot: every read below, and the status, are for this commit only.
-    const headSha = pull.head.sha;
-    const head = headSha.slice(0, SHORT_SHA);
-    let outcome;
-    try {
-      outcome = await decideHead(pull, headSha, { github });
-    } catch (error) {
-      failed = true;
-      const description = fit(printable(`Could not decide, so nothing passes: ${error.message}`), DESCRIPTION_LIMIT);
-      outcome = { decision: { state: "error", description, needed: [] }, reasons: [], markers: null };
-    }
-    const { decision } = outcome;
-    // A push, or a writer's marker written while the run read the pull request, leaves a mixed
-    // snapshot; the run for the newer state decides instead. Only a change to what the writers'
-    // markers prove counts, so nobody else's comments can stop a post. A re-read that fails confirms
-    // nothing: pending or error still posts, since holding a merge is always safe, but success does not.
-    let confirmed = true;
-    try {
-      const current = await github(`pulls/${number}`);
-      if (current.head.sha !== headSha) {
-        log(`#${number}: the head moved to ${current.head.sha.slice(0, SHORT_SHA)} while ${head} was read; nothing posted.`);
-        continue;
+  const eventName = env.GITHUB_EVENT_NAME;
+  // The commit this run's gate code and policies came from: develop's tip at checkout.
+  const checkout = env.MERGE_GATE_CHECKOUT_SHA || env.GITHUB_SHA;
+  if (!dryRun && eventName === "push") {
+    // The detect job decided this push needs a sweep. The job checked out develop's tip when it
+    // started, not the push, so whichever sweep the queue keeps read the newest policy.
+    // Hold every open pull request first, so a sweep that stops part-way never leaves a success the
+    // older policy granted. Holding a merge is always safe.
+    for (const number of numbers) {
+      try {
+        const pull = await github(`pulls/${number}`);
+        if (pull.state !== "open" || !bases.includes(pull.base.ref)) continue;
+        await github(`statuses/${pull.head.sha}`, {
+          method: "POST",
+          body: { state: "pending", context: STATUS_CONTEXT, description: HOLD_DESCRIPTION, target_url: runUrl },
+        });
+      } catch (error) {
+        failed = true;
+        log(`#${number}: could not hold before the sweep (${printable(error.message)}).`);
       }
-      if (outcome.markers) {
-        const reread = await paginate(github, `issues/${number}/comments`);
-        const newcomers = reread.filter((comment) => hasMarker(comment) && comment.user?.login && !outcome.authors.has(comment.user.login));
-        const writers = new Set([...outcome.writers, ...(await writersAmong(newcomers, accessLookup(github)))]);
-        const now = markersFor(reread, headSha, (login) => writers.has(login));
-        if (now.reviewed !== outcome.markers.reviewed || now.fullGate !== outcome.markers.fullGate) {
-          log(`#${number}: a writer's marker changed while ${head} was read; nothing posted.`);
+    }
+  }
+  for (const number of numbers) {
+    try {
+      const pull = await github(`pulls/${number}`);
+      if (!dryRun && (pull.state !== "open" || !bases.includes(pull.base.ref))) continue;
+      // The snapshot: every read below, and the status, are for this commit only.
+      const headSha = pull.head.sha;
+      const head = headSha.slice(0, SHORT_SHA);
+      let outcome;
+      try {
+        outcome = await decideHead(pull, headSha, { github });
+      } catch (error) {
+        failed = true;
+        const description = fit(printable(`Could not decide, so nothing passes: ${error.message}`), DESCRIPTION_LIMIT);
+        outcome = { decision: { state: "error", description, needed: [] }, reasons: [], markers: null };
+      }
+      const { decision } = outcome;
+      // A push, or a writer's marker written while the run read the pull request, leaves a mixed
+      // snapshot; the run for the newer state decides instead. Only a change to what the writers'
+      // markers prove counts, so nobody else's comments can stop a post. A re-read that fails confirms
+      // nothing: pending or error still posts, since holding a merge is always safe, but success does not.
+      let confirmed = true;
+      try {
+        const current = await github(`pulls/${number}`);
+        if (current.head.sha !== headSha) {
+          log(`#${number}: the head moved to ${current.head.sha.slice(0, SHORT_SHA)} while ${head} was read; nothing posted.`);
           continue;
         }
+        if (outcome.markers) {
+          const now = await currentMarkers(github, number, headSha, outcome);
+          if (now.reviewed !== outcome.markers.reviewed || now.fullGate !== outcome.markers.fullGate) {
+            log(`#${number}: a writer's marker changed while ${head} was read; nothing posted.`);
+            continue;
+          }
+        }
+      } catch (error) {
+        confirmed = false;
+        log(`#${number}: could not re-read the pull request (${printable(error.message)}).`);
       }
-    } catch (error) {
-      confirmed = false;
-      log(`#${number}: could not re-read the pull request (${printable(error.message)}).`);
-    }
-    if (decision.state === "success" && !confirmed) {
-      failed = true;
-      log(`#${number} at ${head}: success not posted, since the snapshot could not be confirmed.`);
-      continue;
-    }
-    const line = `#${number} at ${head}: ${decision.state}. ${decision.description}`;
-    if (!dryRun) {
-      // GitHub keeps at most 1,000 statuses for a head and context, so an unchanged decision is not
-      // posted again. A failed lookup posts anyway, so an older success never outlives its proof.
-      const latest = await github(`commits/${headSha}/statuses?per_page=100`).then(
-        (statuses) => statuses.find((status) => status.context === STATUS_CONTEXT),
-        () => undefined,
-      );
-      if (latest?.state === decision.state && latest?.description === decision.description) {
-        log(`${line} Unchanged, so not posted again.`);
+      if (decision.state === "success" && !confirmed) {
+        failed = true;
+        log(`#${number} at ${head}: success not posted, since the snapshot could not be confirmed.`);
         continue;
       }
-      await github(`statuses/${headSha}`, {
-        method: "POST",
-        body: { state: decision.state, context: STATUS_CONTEXT, description: decision.description, target_url: runUrl },
-      });
+      const line = `#${number} at ${head}: ${decision.state}. ${decision.description}`;
+      if (!dryRun) {
+        // A run that read an older policy never posts a success, which could carry a looser policy
+        // through. It still holds, since holding a merge is always safe: a comparison can read as moved
+        // when no sweep started (a change and its revert in two pushes), and a hold it skipped would
+        // leave an older success standing. Its hold says the policy changed, so a pull request a newer
+        // policy passes asks for a recheck. A lookup that fails confirms no change: a success waits
+        // the same way, the decision's own hold posts, and the run reports the failure.
+        const moved = await gateInputsMovedSince(github, checkout, pull.base.ref).catch(() => null);
+        if (moved === null) failed = true;
+        if (moved !== false && decision.state === "success") {
+          const why = moved ? `the gate's inputs changed on ${pull.base.ref} since this run checked it out` : "the policy's freshness could not be checked";
+          log(`#${number}: ${why}; success not posted.`);
+          continue;
+        }
+        if (moved === true) Object.assign(decision, { state: "pending", description: HOLD_DESCRIPTION });
+        // GitHub keeps at most 1,000 statuses for a head and context, so an unchanged decision is not
+        // posted again. A failed lookup posts anyway, so an older success never outlives its proof.
+        const latest = await github(`commits/${headSha}/statuses?per_page=100`).then(
+          (statuses) => statuses.find((status) => status.context === STATUS_CONTEXT),
+          () => undefined,
+        );
+        if (latest?.state === decision.state && latest?.description === decision.description) {
+          log(`${line} Unchanged, so not posted again.`);
+          continue;
+        }
+        await github(`statuses/${headSha}`, {
+          method: "POST",
+          body: { state: decision.state, context: STATUS_CONTEXT, description: decision.description, target_url: runUrl },
+        });
+        // A sweep and the run a marker's change starts sit in different queues, so a marker withdrawn
+        // between the re-read above and this post would leave the sweep's success after the other
+        // run's hold. Reading once more after a success closes that: a withdrawal before this read
+        // holds here, and one after it starts a run that posts after this one.
+        if (decision.state === "success" && (outcome.markers?.reviewed || outcome.markers?.fullGate)) {
+          const withdrawn = await currentMarkers(github, number, headSha, outcome).then(
+            (now) => (outcome.markers.reviewed && !now.reviewed) || (outcome.markers.fullGate && !now.fullGate),
+            (error) => {
+              failed = true;
+              log(`#${number}: could not re-read the markers after posting (${printable(error.message)}).`);
+              return true;
+            },
+          );
+          if (withdrawn) {
+            await github(`statuses/${headSha}`, {
+              method: "POST",
+              body: { state: "pending", context: STATUS_CONTEXT, description: WITHDRAWN_DESCRIPTION, target_url: runUrl },
+            });
+            log(`#${number} at ${head}: a marker this run counted is gone, so it holds again.`);
+            continue;
+          }
+        }
+      }
+      log(line);
+      summary(line);
+      for (const reason of outcome.reasons) summary(`- ${printable(reason)}`);
+      for (const marker of decision.needed) summary(`- record with: \`${marker}\``);
+    } catch (error) {
+      // One pull request's failure leaves the rest of a sweep to decide.
+      failed = true;
+      log(`#${number}: could not decide (${printable(error.message)}); left as it was.`);
     }
-    log(line);
-    summary(line);
-    for (const reason of outcome.reasons) summary(`- ${printable(reason)}`);
-    for (const marker of decision.needed) summary(`- record with: \`${marker}\``);
   }
   return failed ? 2 : 0;
 }
