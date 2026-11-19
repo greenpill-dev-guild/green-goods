@@ -7,8 +7,12 @@
  * release here, so a PostHog event and the Sentry report beside it filter the same way.
  *
  * The account flag follows whoever is signed in: `useAnalyticsIdentity` hands the address over at
- * sign-in and takes it back at sign-out. Until the digest is checked, and for a visitor who is not
- * signed in, the flag stays `"unknown"`.
+ * sign-in and takes it back at sign-out, through `posthog`, which also registers the flag for
+ * autocaptured events. Until the digest is checked, and for a visitor who is not signed in, the
+ * flag stays `"unknown"`.
+ *
+ * It imports no transport: the client keeps it in its startup error-reporting chunk, and a sink
+ * import from there would split the sink into one more file every page preloads.
  *
  * @module modules/app/telemetry-context
  */
@@ -25,7 +29,6 @@ import {
   type TestTrafficFlag,
 } from "../../public-contracts/telemetry-segmentation";
 import type { Address } from "../../types/domain";
-import { getTelemetrySink } from "./telemetry-sink";
 
 function readSurface(): AppSurface | typeof TELEMETRY_UNKNOWN {
   const surface = import.meta.env.VITE_APP_SURFACE;
@@ -57,15 +60,6 @@ async function digest(normalized: string): Promise<string | null> {
   return Array.from(new Uint8Array(bytes), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-function publishAccountFlag(): void {
-  // Autocaptured events ($pageview, $exception) take it as a registered property.
-  try {
-    getTelemetrySink().register?.({ is_test_account: accountFlag });
-  } catch {
-    // Telemetry is best effort.
-  }
-}
-
 /**
  * Place the signed-in account against the test-account records, or forget it at sign-out.
  * Resolves to the flag later events carry. A newer call supersedes one still checking.
@@ -73,7 +67,6 @@ function publishAccountFlag(): void {
 export async function setTelemetryAccount(address: Address | null): Promise<TestTrafficFlag> {
   const generation = ++accountGeneration;
   accountFlag = TELEMETRY_UNKNOWN;
-  publishAccountFlag();
 
   const normalized = normalizeTelemetryAddress(address);
   const records = parseTestTrafficDigests(import.meta.env.VITE_TELEMETRY_TEST_ACCOUNT_DIGESTS);
@@ -87,7 +80,6 @@ export async function setTelemetryAccount(address: Address | null): Promise<Test
   }
   if (generation !== accountGeneration) return accountFlag;
   accountFlag = classifyTestTraffic(records, accountDigest);
-  publishAccountFlag();
   return accountFlag;
 }
 

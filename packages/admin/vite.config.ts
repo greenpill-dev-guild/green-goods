@@ -15,7 +15,7 @@ import {
   assertSentryDsnResolvable,
   dropVercelFrameworkVariables,
 } from "../../scripts/lib/env-parity.mjs";
-import { telemetryBuildDefines } from "../../scripts/lib/telemetry-build.mjs";
+import { telemetryBuildDefines } from "../../scripts/lib/telemetry-build";
 import { defineConfig, loadEnv, type Plugin, type ProxyOptions, type UserConfig } from "vite";
 import mkcert from "vite-plugin-mkcert";
 

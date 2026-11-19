@@ -106,6 +106,13 @@ describe("errors from WalletConnect's relay and the beta toolbar", () => {
     expect(
       classifyExternalError({ messages: ["Load failed"], locations: [OUR_SCRIPT] })
     ).toBeNull();
+    // A refusal outranks a reconnect message elsewhere in the same chain.
+    expect(
+      classifyExternalError({
+        messages: [RELAY_CONNECT_FAILED, RELAY_REFUSED_ORIGIN],
+        locations: [],
+      })
+    ).toEqual({ source: "walletconnect", recoverable: false });
   });
 
   it("leaves our own errors as they were", () => {

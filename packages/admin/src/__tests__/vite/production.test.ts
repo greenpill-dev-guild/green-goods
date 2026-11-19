@@ -71,4 +71,19 @@ describe("admin telemetry segmentation", () => {
     });
     expect(JSON.stringify(config.define)).not.toContain(account.slice(2).toLowerCase());
   });
+
+  it("leaves out a list holding an entry that is not an address, so its events say unknown", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.stubEnv("SENTRY_AUTH_TOKEN", "");
+    vi.stubEnv("TELEMETRY_TEST_ACCOUNTS", "0x00000000000000000000000000000000000000aa,0xtypo");
+
+    const config = await (adminConfig as (env: ConfigEnv) => Promise<UserConfig>)({
+      command: "serve",
+      mode: "development",
+    });
+
+    expect(config.define).toMatchObject({
+      "import.meta.env.VITE_TELEMETRY_TEST_ACCOUNT_DIGESTS": '""',
+    });
+  });
 });

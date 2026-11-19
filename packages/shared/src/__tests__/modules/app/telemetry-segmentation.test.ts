@@ -87,8 +87,12 @@ describe("telemetry segmentation on App and Hub events", () => {
     );
   });
 
-  it("says unknown, not false, when the deployment lists no test traffic", async () => {
-    stubBuild("app", {});
+  it.each([
+    ["lists no test traffic", {}],
+    // One mistyped entry would read its own account or garden as real.
+    ["lists an entry that is not an address", { gardens: [TEST_GARDEN, "0xnot-an-address"] }],
+  ])("says unknown, not false, when the deployment %s", async (_case, records) => {
+    stubBuild("app", records);
 
     const events = await enrichFixtures();
 

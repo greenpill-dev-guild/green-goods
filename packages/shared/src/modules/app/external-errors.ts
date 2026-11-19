@@ -38,6 +38,8 @@ const WALLETCONNECT_RELAY =
   /relay\.walletconnect\.(?:org|com)|WebSocket connection closed abnormally with code: \d+|Connection interrupted while trying to subscribe/i;
 const WALLETCONNECT_RECONNECT =
   /WebSocket connection failed for host|Socket stalled when trying to connect|Connection interrupted while trying to subscribe/i;
+// The relay refusing this site's origin or project key: nothing will reconnect it.
+const WALLETCONNECT_REFUSED = /WebSocket connection closed abnormally with code: 3000/i;
 
 function strings(values: readonly unknown[]): string[] {
   return values.filter((value): value is string => typeof value === "string");
@@ -52,9 +54,11 @@ export function classifyExternalError(
   }
   const messages = strings(evidence.messages);
   if (messages.some((message) => WALLETCONNECT_RELAY.test(message))) {
+    // A refusal anywhere in the chain outranks reconnect evidence beside it.
+    const refused = messages.some((message) => WALLETCONNECT_REFUSED.test(message));
     return {
       source: "walletconnect",
-      recoverable: messages.some((message) => WALLETCONNECT_RECONNECT.test(message)),
+      recoverable: !refused && messages.some((message) => WALLETCONNECT_RECONNECT.test(message)),
     };
   }
   return null;

@@ -17,15 +17,12 @@ const mockIdentifyWithProperties = vi.fn();
 const mockReset = vi.fn();
 const mockTrack = vi.fn();
 
+const mockIdentifyTelemetryAccount = vi.fn(async (_address: string | null) => undefined);
 vi.mock("../../modules/app/posthog", () => ({
   identifyWithProperties: (...args: unknown[]) => mockIdentifyWithProperties(...args),
+  identifyTelemetryAccount: (address: string | null) => mockIdentifyTelemetryAccount(address),
   reset: () => mockReset(),
   track: (...args: unknown[]) => mockTrack(...args),
-}));
-
-const mockSetTelemetryAccount = vi.fn(async () => "unknown");
-vi.mock("../../modules/app/telemetry-context", () => ({
-  setTelemetryAccount: (address: string | null) => mockSetTelemetryAccount(address),
 }));
 
 // Mock useAuth hook
@@ -135,7 +132,7 @@ describe("useAnalyticsIdentity", () => {
       app: "client",
     });
     // Later events say whether this account is one of ours.
-    expect(mockSetTelemetryAccount).toHaveBeenCalledWith(
+    expect(mockIdentifyTelemetryAccount).toHaveBeenCalledWith(
       "0x1234567890abcdef1234567890abcdef12345678"
     );
   });
@@ -180,7 +177,7 @@ describe("useAnalyticsIdentity", () => {
       app: "admin",
     });
     expect(mockReset).toHaveBeenCalled();
-    expect(mockSetTelemetryAccount).toHaveBeenCalledWith(null);
+    expect(mockIdentifyTelemetryAccount).toHaveBeenCalledWith(null);
   });
 
   it("should re-identify when address changes while authenticated", () => {

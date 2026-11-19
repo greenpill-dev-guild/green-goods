@@ -49,9 +49,11 @@ function parseList(value: string | null | undefined, accept: RegExp): ReadonlySe
   const entries = value
     .split(",")
     .map((entry) => entry.trim().toLowerCase())
-    .filter((entry) => accept.test(entry));
-  // A deployment that lists nothing has not said which traffic is ours.
-  return entries.length > 0 ? new Set(entries) : null;
+    .filter(Boolean);
+  // A deployment that lists nothing has not said which traffic is ours. One that lists something
+  // unreadable has not either: a mistyped entry would read its own account or garden as real.
+  if (entries.length === 0 || !entries.every((entry) => accept.test(entry))) return null;
+  return new Set(entries);
 }
 
 /** A comma-separated address list; null when the deployment lists none. */
