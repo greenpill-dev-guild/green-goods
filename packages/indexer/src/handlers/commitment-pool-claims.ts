@@ -187,14 +187,14 @@ export async function sweepClaimRequests(
   for (const requestId of requestIndex?.requestIds ?? []) {
     const request = await context.CommitmentClaimRequest.get(requestId);
     if (!request) continue;
-    // A promise ends only after its take-up, so an acceptance indexed after a newer ending (events
-    // delivered out of order) is what closed the requests that ending swept: it takes them back.
+    // The chain never takes a promise up after it ends, so a request an ending closed, on a promise
+    // whose acceptance is only now indexed (events delivered out of order), was closed by that
+    // acceptance first: it takes the request back, whatever time the ending's row carries.
     const sweptByLaterEnding =
       resolutionCode === "COMMITMENT_ACCEPTED" &&
       request.state === "SUPERSEDED" &&
       (request.resolutionCode === "COMMITMENT_CANCELLED" ||
-        request.resolutionCode === "COMMITMENT_EXPIRED") &&
-      (request.resolvedAt ?? 0) >= timestamp;
+        request.resolutionCode === "COMMITMENT_EXPIRED");
     if (request.state !== "PENDING" && !sweptByLaterEnding) continue;
     const accepted =
       resolutionCode === "COMMITMENT_ACCEPTED" &&
