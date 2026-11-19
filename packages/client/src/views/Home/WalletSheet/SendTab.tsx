@@ -122,6 +122,10 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
   // called failed (PRD-1551).
   const sendLine = () => {
     switch (sendMutation.notice) {
+      case "wallet":
+        return formatMessage(SEND_STAGE_WORDS.wallet.label);
+      case "confirming":
+        return formatMessage(SEND_STAGE_WORDS.confirming.label);
       case "wallet-slow":
         return formatMessage(SEND_STAGE_WORDS.wallet.detail!);
       case "stopped":
@@ -179,6 +183,19 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
           ))}
         </div>
       </div>
+
+      {/* A Safe proposal settles the send but has not paid yet: the line stays above whichever
+          view the tab returns to, until the next send (PRD-1551). */}
+      {sendMutation.notice === "safe-signers" ? (
+        <div role="status" aria-live="polite" className="shrink-0 px-4 pt-3">
+          <p className="text-sm font-medium text-text-strong-950">
+            {formatMessage(SEND_STAGE_WORDS["safe-signers"].label)}
+          </p>
+          <p className="text-sm text-text-sub-600">
+            {formatMessage(SEND_STAGE_WORDS["safe-signers"].detail!)}
+          </p>
+        </div>
+      ) : null}
 
       {mode === "balance" ? (
         <div className={PWA_SHEET_SCROLL_CLASSNAME}>

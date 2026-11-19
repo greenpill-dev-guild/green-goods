@@ -402,6 +402,25 @@ describe("SendTab", () => {
     expect(screen.queryByRole("button", { name: "Cancel" })).not.toBeInTheDocument();
   });
 
+  it("says each stage of a running send, and a Safe proposal above the view once it settles", async () => {
+    mockSendPending = true;
+    mockSendNotice = "wallet";
+    const user = userEvent.setup();
+    const view = render(<SendTab />);
+    await user.click(screen.getByRole("tab", { name: "Send" }));
+    expect(screen.getByText("Confirm in your wallet")).toBeInTheDocument();
+
+    mockSendNotice = "confirming";
+    view.rerender(<SendTab />);
+    expect(screen.getByText("Confirming…")).toBeInTheDocument();
+
+    // Settled as a Safe proposal: nothing has paid yet, and the line says what it waits for.
+    mockSendPending = false;
+    mockSendNotice = "safe-signers";
+    view.rerender(<SendTab />);
+    expect(screen.getByText("Waiting for the Safe's signers")).toBeInTheDocument();
+  });
+
   it("keeps the review step ready to retry when a send does not succeed", async () => {
     // The mutation reports its own toast; the flow only resets on success.
     mockSend.mockImplementation(() => undefined);

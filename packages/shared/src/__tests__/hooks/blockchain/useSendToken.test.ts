@@ -501,16 +501,20 @@ describe("Celo send safety", () => {
     Object.assign(mockSender, { authMode: "wallet" });
     try {
       mockSendContractCall.mockImplementationOnce(
-        (_call: unknown, options: { signal: AbortSignal }) =>
-          new Promise((_resolve, reject) => {
+        async (
+          _call: unknown,
+          options: { signal: AbortSignal; onBeforeBroadcast: () => Promise<void> }
+        ) => {
+          // As a wallet sender does: the intent, then the wallet is asked.
+          await options.onBeforeBroadcast();
+          return new Promise((_resolve, reject) => {
             options.signal.addEventListener(
               "abort",
               () => reject(new WalletAnswerAbandonedError()),
-              {
-                once: true,
-              }
+              { once: true }
             );
-          })
+          });
+        }
       );
       vi.useFakeTimers({ shouldAdvanceTime: true });
       const { result } = renderSendToken();
@@ -519,7 +523,7 @@ describe("Celo send safety", () => {
         sent = result.current.mutateAsync(SEND_PARAMS).catch(() => undefined);
       });
       await waitFor(() => expect(mockSendContractCall).toHaveBeenCalledOnce());
-      expect(result.current.notice).toBeNull();
+      await waitFor(() => expect(result.current.notice).toBe("wallet"));
 
       act(() => {
         vi.advanceTimersByTime(20_000);
@@ -534,10 +538,12 @@ describe("Celo send safety", () => {
       expect(toastService.success).not.toHaveBeenCalled();
 
       // The wallet sends it after all: it went out, so it reads as still confirming.
-      const { onBroadcast } = mockSendContractCall.mock.calls[0]![1] as {
+      const { onBroadcast, onBroadcastReference } = mockSendContractCall.mock.calls[0]![1] as {
         onBroadcast: (hash: string) => Promise<void>;
+        onBroadcastReference: (reference: unknown) => Promise<void>;
       };
       await act(async () => {
+        await onBroadcastReference({ kind: "transaction", hash: "0xlate" });
         await onBroadcast("0xlate");
       });
       await waitFor(() => expect(result.current.notice).toBe("still-confirming"));
@@ -545,6 +551,47 @@ describe("Celo send safety", () => {
         title: "app.sendStage.stillConfirming",
         message: "app.sendStage.stillConfirming.detail",
       });
+    } finally {
+      delete (mockSender as { authMode?: string }).authMode;
+    }
+  });
+
+  it("says to confirm in the wallet while it is asked, then confirming once the network has it", async () => {
+    Object.assign(mockSender, { authMode: "wallet" });
+    try {
+      let accepted!: () => Promise<void>;
+      let land!: () => void;
+      mockSendContractCall.mockImplementationOnce(
+        async (
+          _call: unknown,
+          options: {
+            onBeforeBroadcast: () => Promise<void>;
+            onBroadcastReference: (reference: unknown) => Promise<void>;
+          }
+        ) => {
+          await options.onBeforeBroadcast();
+          accepted = () => options.onBroadcastReference({ kind: "transaction", hash: "0xhash" });
+          await new Promise<void>((resolve) => {
+            land = resolve;
+          });
+          return { hash: "0xhash", sponsored: false };
+        }
+      );
+      const { result } = renderSendToken();
+      let sent!: Promise<unknown>;
+      act(() => {
+        sent = result.current.mutateAsync(SEND_PARAMS);
+      });
+      await waitFor(() => expect(result.current.notice).toBe("wallet"));
+      await act(async () => {
+        await accepted();
+      });
+      await waitFor(() => expect(result.current.notice).toBe("confirming"));
+      await act(async () => {
+        land();
+        await sent;
+      });
+      await waitFor(() => expect(result.current.notice).toBeNull());
     } finally {
       delete (mockSender as { authMode?: string }).authMode;
     }

@@ -111,6 +111,11 @@ export function createMutationErrorHandler(config: MutationErrorHandlerConfig) {
 
     // Parse contract error for user-friendly message
     const { title, message, parsed } = parseAndFormatError(error);
+    // Neither is a failure (PRD-1551): a send still confirming went out and may still land, and
+    // a send the person stopped waiting for may still be in the wallet. Neither is recorded as a
+    // contract failure or shown in red; the act's own line, or an info toast, says where it stands.
+    const stillConfirming = parsed.name === "SendStillConfirming";
+    const stoppedWaiting = error instanceof Error && error.name === "WalletAnswerAbandonedError";
 
     // Track error with analytics if provided
     if (trackError) {
@@ -122,17 +127,18 @@ export function createMutationErrorHandler(config: MutationErrorHandlerConfig) {
     }
 
     // Track as structured exception for error dashboard
-    trackContractError(error, {
-      source,
-      gardenAddress: gardenAddress ?? undefined,
-      authMode,
-      userAction: toastContext,
-      metadata: {
-        parsedErrorName: parsed.name,
-        isKnown: parsed.isKnown,
-        ...metadata,
-      },
-    });
+    if (!stillConfirming && !stoppedWaiting)
+      trackContractError(error, {
+        source,
+        gardenAddress: gardenAddress ?? undefined,
+        authMode,
+        userAction: toastContext,
+        metadata: {
+          parsedErrorName: parsed.name,
+          isKnown: parsed.isKnown,
+          ...metadata,
+        },
+      });
 
     const localized = (key: string | undefined, fallback: string) =>
       key && formatMessage
@@ -155,9 +161,8 @@ export function createMutationErrorHandler(config: MutationErrorHandlerConfig) {
 
     // Show error toast, unless the wallet reconnect prompt already asked for this act, or the
     // person stopped waiting for the wallet: the act's own line says so, and nothing failed.
-    const stoppedWaiting = error instanceof Error && error.name === "WalletAnswerAbandonedError";
     if (showToast && !wasAskedToReconnect(error) && !stoppedWaiting) {
-      if (useWalletProgressToast && authMode === "wallet") {
+      if (useWalletProgressToast && authMode === "wallet" && !stillConfirming) {
         walletProgressToasts.error(displayMessage, parsed.recoverable ?? false);
       } else {
         const description = parsed.isKnown
@@ -168,8 +173,7 @@ export function createMutationErrorHandler(config: MutationErrorHandlerConfig) {
             ? getFallbackDescription(authMode ?? null)
             : undefined;
 
-        // A send still confirming went out and may still land: it never shows as an error.
-        const show = parsed.name === "SendStillConfirming" ? toastService.info : toastService.error;
+        const show = stillConfirming ? toastService.info : toastService.error;
         show({
           id: toastId,
           title: displayTitle,

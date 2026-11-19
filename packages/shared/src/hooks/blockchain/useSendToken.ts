@@ -58,11 +58,19 @@ export interface SendTokenParams {
 }
 
 /**
- * What the send's line says besides sending or failed: the wallet has not answered for a while
- * (offer Cancel), the person stopped waiting for it, the send went out and is still confirming,
- * or the wallet answered with a Safe proposal.
+ * Where the send stands, beyond sending or failed. While it runs: the wallet is asked to
+ * approve it, has not answered for a while (offer Cancel), or the network has it and it is
+ * confirming. Once it settles: the person stopped waiting for the wallet, the send went out and
+ * is still confirming, or the wallet answered with a Safe proposal. The words are PRD-1552's
+ * send stages (`SEND_STAGE_WORDS`).
  */
-export type TokenSendNotice = "wallet-slow" | "stopped" | "still-confirming" | "safe-signers";
+export type TokenSendNotice =
+  | "wallet"
+  | "wallet-slow"
+  | "confirming"
+  | "stopped"
+  | "still-confirming"
+  | "safe-signers";
 
 /**
  * The notice a settled send leaves, from how it ended. A send the person stopped waiting for
@@ -94,6 +102,7 @@ export function useSendToken() {
   // One send at a time: its way to stop waiting on the wallet, and whether that wait is slow.
   const walletWait = useRef<AbortController | null>(null);
   const [walletSlow, setWalletSlow] = useState(false);
+  const [liveStage, setLiveStage] = useState<"wallet" | "confirming" | null>(null);
   const [answeredLate, setAnsweredLate] = useState(false);
   const { set: setNudge, clear: clearNudge } = useTimeout();
   const cancelWalletWait = useCallback(() => walletWait.current?.abort(), []);
@@ -169,11 +178,11 @@ export function useSendToken() {
         throw new Error("Wallet session changed. Review the send again.");
       }
       // Only a wallet asks the person; a passkey approves in the app and an embedded wallet
-      // asks nobody, so only a wallet send can turn slow or be stopped.
+      // asks nobody, so only a wallet send waits on a wallet, turns slow, or can be stopped.
       const wait = new AbortController();
       walletWait.current = wait;
       setAnsweredLate(false);
-      if (sender.authMode === "wallet") setNudge(() => setWalletSlow(true), WALLET_NUDGE_MS);
+      const asksWallet = sender.authMode === "wallet";
       const answered = () => {
         clearNudge();
         setWalletSlow(false);
@@ -201,12 +210,25 @@ export function useSendToken() {
           },
           {
             signal: wait.signal,
+            // The wallet is asked just after this; the 20 seconds count from here.
+            onBeforeBroadcast: async () => {
+              if (!asksWallet || wait.signal.aborted) return;
+              setLiveStage("wallet");
+              setNudge(() => setWalletSlow(true), WALLET_NUDGE_MS);
+            },
+            // The network has it: a wallet answered, or a passkey's operation was accepted.
+            onBroadcastReference: async () => {
+              if (wait.signal.aborted) return;
+              answered();
+              setLiveStage("confirming");
+            },
             onBroadcast: async () => (wait.signal.aborted ? answeredAfterCancel() : answered()),
           }
         );
       } finally {
         if (walletWait.current === wait) {
           answered();
+          setLiveStage(null);
           walletWait.current = null;
         }
       }
@@ -289,9 +311,10 @@ export function useSendToken() {
   });
 
   const send = useSafeMutation(mutation);
-  const notice: TokenSendNotice | null =
-    send.isPending && walletSlow
+  const notice: TokenSendNotice | null = send.isPending
+    ? walletSlow
       ? "wallet-slow"
-      : settledNotice(send.error, send.data, answeredLate);
+      : liveStage
+    : settledNotice(send.error, send.data, answeredLate);
   return { ...send, notice, cancelWalletWait };
 }
