@@ -1,6 +1,7 @@
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
 import { useActiveGarden } from "@green-goods/shared/hooks/garden/useActiveGarden";
+import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import { useEffect } from "react";
 import { useIntl } from "react-intl";
 
@@ -24,18 +25,26 @@ export interface AddedGardensToastProps {
  * itself. The first-login page lists every garden of the member's; the toast waits until one is
  * chosen, then names the others. The news belongs to its account: when that account signs out or
  * another signs in, the toast goes, unanswered, so it never shows one account's garden to another.
+ * It shows only while Home is the page on screen, under Home's top bar so the chip and the
+ * launchers stay usable. It goes, unanswered, when a page, a sheet or a dialog opens over Home, as
+ * the app bar steps aside for one (DL-015), or when its garden is no longer news, such as one the
+ * member was removed from (PRD-1505); Home shows it again once nothing covers it.
  * Renders nothing.
  */
 export function AddedGardensToast({ home, onSwitch, onChoose }: AddedGardensToastProps) {
   const intl = useIntl();
   const account = usePrimaryAddress();
   const { status, addedGardens, acknowledgeAddedGardens } = useActiveGarden();
+  const covered = useUIStore((state) => state.openSheetCount > 0);
 
   // Another account, or none, takes the account's toast with it.
   useEffect(() => () => toastService.dismiss(GARDEN_ADDED_TOAST), [account]);
 
   useEffect(() => {
-    if (!home || status !== "ready" || addedGardens.length === 0) return;
+    if (!home || covered || status !== "ready" || addedGardens.length === 0) {
+      toastService.dismiss(GARDEN_ADDED_TOAST);
+      return;
+    }
     const gardenIds = addedGardens.map(({ id }) => id);
     const told = () => acknowledgeAddedGardens(gardenIds);
     const single = addedGardens.length === 1 ? addedGardens[0] : undefined;
@@ -48,6 +57,7 @@ export function AddedGardensToast({ home, onSwitch, onChoose }: AddedGardensToas
         id: single ? "app.home.added.message" : "app.home.added.messageMany",
       }),
       persistent: true,
+      belowTopBar: true,
       action: {
         label: intl.formatMessage({
           id: single ? "app.home.added.action" : "app.home.chooser.action",
@@ -63,7 +73,7 @@ export function AddedGardensToast({ home, onSwitch, onChoose }: AddedGardensToas
       onDismiss: told,
       suppressLogging: true,
     });
-  }, [acknowledgeAddedGardens, addedGardens, home, intl, onChoose, onSwitch, status]);
+  }, [acknowledgeAddedGardens, addedGardens, covered, home, intl, onChoose, onSwitch, status]);
 
   return null;
 }
