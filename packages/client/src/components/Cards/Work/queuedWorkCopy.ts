@@ -13,19 +13,26 @@ export interface QueuedWorkState {
   blockedReason?: string;
   /** The file a held work waits on is a video, not a photo. */
   heldVideo?: true;
+  /** Its send on record is a Safe proposal, waiting for the Safe's signers (PRD-1564). */
+  awaiting?: "safe-signers";
 }
+
+const LIVE_SEND_STAGES = new Set<string>(["wallet", "confirming", "safe-signers"]);
 
 /** Reads the queued state from work metadata. Remote metadata can be a CID, which has none. */
 export function readQueuedWorkState(metadata: string | undefined): QueuedWorkState {
   try {
-    const { submissionState, blockedReason, heldVideo, sendStage } = JSON.parse(
+    const { submissionState, blockedReason, heldVideo, sendStage, awaiting } = JSON.parse(
       metadata || "{}"
     ) as Record<string, unknown>;
     return {
       submissionState: typeof submissionState === "string" ? submissionState : undefined,
       blockedReason: typeof blockedReason === "string" ? blockedReason : undefined,
       ...(heldVideo === true ? { heldVideo } : {}),
-      ...(sendStage === "wallet" || sendStage === "confirming" ? { sendStage } : {}),
+      ...(typeof sendStage === "string" && LIVE_SEND_STAGES.has(sendStage)
+        ? { sendStage: sendStage as LiveSendStageReport["stage"] }
+        : {}),
+      ...(awaiting === "safe-signers" ? { awaiting } : {}),
     };
   } catch {
     return {};
@@ -43,8 +50,13 @@ const BLOCKED_CHIP = {
   defaultMessage: "Blocked",
 } satisfies MessageDescriptor;
 
-/** Sent, with its receipt not seen yet: the shared still confirming words. */
-const STILL_CONFIRMING = SEND_STAGE_WORDS["still-confirming"];
+/**
+ * Sent, with its receipt not seen yet: the shared still confirming words, or the Safe's signers
+ * when a Safe only proposed it (PRD-1564).
+ */
+function sentWords({ awaiting }: Pick<QueuedWorkState, "awaiting">) {
+  return SEND_STAGE_WORDS[awaiting ?? "still-confirming"];
+}
 
 const CHECKING_SUBMISSION = {
   id: "app.work.checkingSubmission",
@@ -192,9 +204,10 @@ export function blockedShortReasonMessage(state: QueuedWorkState): MessageDescri
 }
 
 /** The status chip for work still on this device, when its state has a name. */
-export function queuedWorkStatusMessage(
-  submissionState: string | undefined
-): MessageDescriptor | undefined {
+export function queuedWorkStatusMessage({
+  submissionState,
+  awaiting,
+}: Pick<QueuedWorkState, "submissionState" | "awaiting">): MessageDescriptor | undefined {
   switch (submissionState) {
     case "ready":
     case "preparing":
@@ -204,7 +217,7 @@ export function queuedWorkStatusMessage(
     case "photo-needs-attention":
       return BLOCKED_CHIP;
     case "awaiting-confirmation":
-      return STILL_CONFIRMING.label;
+      return sentWords({ awaiting }).label;
     case "checking-submission":
       return CHECKING_SUBMISSION;
     default:
@@ -269,7 +282,7 @@ export function queuedWorkExplanation(
   };
   switch (state.submissionState) {
     case "awaiting-confirmation":
-      return STILL_CONFIRMING.detail;
+      return sentWords(state).detail;
     case "checking-submission":
       return {
         id: "app.work.checkingSubmissionInfo",

@@ -13,16 +13,18 @@ function queuedSubmissionState(job: Job<WorkJobPayload>): {
   blockedReason?: string;
   /** The file a held work waits on is a video. */
   heldVideo?: true;
+  /** A send on record a Safe only proposed waits for the Safe's signers (PRD-1564). */
+  awaiting?: "safe-signers";
 } {
   const upload = queuedUploadStatus(job);
   switch (upload.state) {
     case "sent": {
       const checkpoint = job.payload.uploadCheckpoint;
+      if (!checkpoint?.broadcast && !checkpoint?.transactionHash)
+        return { submissionState: "checking-submission" };
       return {
-        submissionState:
-          checkpoint?.broadcast || checkpoint?.transactionHash
-            ? "awaiting-confirmation"
-            : "checking-submission",
+        submissionState: "awaiting-confirmation",
+        ...(upload.awaiting ? { awaiting: upload.awaiting } : {}),
       };
     }
     case "failed":

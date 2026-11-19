@@ -69,13 +69,39 @@ export interface CheckpointedSend {
 }
 
 export type CheckpointedSendResult =
-  | { status: "sent"; hash: Hex; confirmation?: TxResult["confirmation"] }
+  | {
+      status: "sent";
+      hash: Hex;
+      confirmation?: TxResult["confirmation"];
+      awaiting?: TxResult["awaiting"];
+    }
   /** Mined and reverted. The record is left alone: what a revert means is the caller's call. */
   | { status: "reverted"; error: TransactionRevertedError }
   /** Nothing reached the network, and the intent is cleared so the job may be sent again. */
   | { status: "not-sent"; cancelled: boolean; error: unknown }
   /** The answer was lost. The record is kept, so the send is confirmed and never repeated. */
   | { status: "may-have-sent"; error: unknown };
+
+/**
+ * Notes on the record what a sent call waits for, such as a Safe's signers, so a screen can say so
+ * after this send ends (PRD-1564). Its broadcast is already on record, which is all that keeps it
+ * from going out twice, so a write that fails here is logged and the send stays sent.
+ */
+async function recordAwaiting(
+  write: RecordSend,
+  jobIds: readonly string[],
+  awaiting: NonNullable<TxResult["awaiting"]>
+): Promise<void> {
+  try {
+    await write((current) => ({ ...current, awaiting }));
+  } catch (error) {
+    logger.warn("[SendCheckpoint] Could not note what a sent call waits for", {
+      jobIds,
+      awaiting,
+      error,
+    });
+  }
+}
 
 export async function sendWithCheckpoint({
   sender,
@@ -172,7 +198,13 @@ export async function sendWithCheckpoint({
       }
       await onBroadcast(result.hash);
     }
-    return { status: "sent", hash: result.hash, confirmation: result.confirmation };
+    if (result.awaiting) await recordAwaiting(write, jobIds, result.awaiting);
+    return {
+      status: "sent",
+      hash: result.hash,
+      confirmation: result.confirmation,
+      ...(result.awaiting ? { awaiting: result.awaiting } : {}),
+    };
   } catch (error) {
     if (error instanceof TransactionRevertedError) return { status: "reverted", error };
     if (error instanceof TransactionReplacementError && error.code === "transaction_cancelled") {

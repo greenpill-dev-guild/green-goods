@@ -1672,6 +1672,35 @@ describe("GardenCommitment", () => {
     expect(mockRetryAndSend).toHaveBeenCalledWith("claim-9");
   });
 
+  // A Safe only proposed it: the row says so in the shared words, and still never resends (PRD-1564).
+  it("says a take-up a Safe only proposed waits for the Safe's signers", () => {
+    mockUseController.mockReturnValue(
+      controller({
+        actKind: null,
+        queue: {
+          ...controller().queue,
+          hasPendingJob: true,
+          pendingAct: {
+            jobId: "claim-9",
+            kind: "claim",
+            waitingReason: "awaiting-confirmation",
+            awaiting: "safe-signers",
+            discardable: false,
+            createdAt: 1,
+          },
+        },
+      })
+    );
+    render();
+    expect(screen.getByText("Waiting for the Safe's signers")).toBeInTheDocument();
+    expect(screen.getByText(/enough of the Safe's owners sign it/)).toBeInTheDocument();
+    expect(screen.queryByText("May already be sent")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Discard unsent take-up" })
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Check Again" })).toBeInTheDocument();
+  });
+
   it("says a proof from this phone is on its way, with no notice to send it twice", () => {
     mockUseController.mockReturnValue(
       controller({

@@ -1,4 +1,6 @@
 import en from "@green-goods/shared/i18n/en";
+import es from "@green-goods/shared/i18n/es";
+import pt from "@green-goods/shared/i18n/pt";
 import { describe, expect, it } from "vitest";
 import {
   blockedReasonMessage,
@@ -50,12 +52,12 @@ describe("queuedWorkStatusMessage", () => {
     ["awaiting-confirmation", "Still confirming…"],
     ["checking-submission", "Checking whether this work was sent"],
   ])("names %s work on its chip", (state, text) => {
-    expect(textOf(queuedWorkStatusMessage(state))).toBe(text);
+    expect(textOf(queuedWorkStatusMessage({ submissionState: state }))).toBe(text);
   });
 
   it("leaves the chip to the work status for other states", () => {
-    expect(queuedWorkStatusMessage("retry-required")).toBeUndefined();
-    expect(queuedWorkStatusMessage(undefined)).toBeUndefined();
+    expect(queuedWorkStatusMessage({ submissionState: "retry-required" })).toBeUndefined();
+    expect(queuedWorkStatusMessage({})).toBeUndefined();
   });
 });
 
@@ -171,6 +173,28 @@ describe("queuedWorkExplanation", () => {
     const state = readQueuedWorkState(JSON.stringify({ submissionState: "sending", sendStage }));
     expect(textOf(queuedWorkExplanation(state, online))).toBe(text);
     expect(textOf(queuedWorkDetailMessage(state))).toBe(text);
+  });
+
+  // A Safe only proposed it: the send's record says so, and so does the row (PRD-1564).
+  it.each([
+    ["en", en],
+    ["es", es],
+    ["pt", pt],
+  ])("says a send a Safe only proposed waits for the Safe's signers, in %s", (_locale, catalog) => {
+    const words = catalog as Record<string, string>;
+    const say = (descriptor: { id?: string } | undefined) =>
+      descriptor?.id ? words[descriptor.id] : undefined;
+    const proposed = readQueuedWorkState(
+      JSON.stringify({ submissionState: "awaiting-confirmation", awaiting: "safe-signers" })
+    );
+    expect(say(queuedWorkStatusMessage(proposed))).toBe(words["app.sendStage.safeSigners"]);
+    expect(say(queuedWorkExplanation(proposed, online))).toBe(
+      words["app.sendStage.safeSigners.detail"]
+    );
+    const live = readQueuedWorkState(
+      JSON.stringify({ submissionState: "sending", sendStage: "safe-signers" })
+    );
+    expect(say(queuedWorkExplanation(live, online))).toBe(words["app.sendStage.safeSigners"]);
   });
 
   it("says why refused work cannot go, instead of telling the person to upload it", () => {

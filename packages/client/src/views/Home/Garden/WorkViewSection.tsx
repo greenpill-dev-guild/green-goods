@@ -220,7 +220,9 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       });
     if (isOfflineStatus) {
       if (submissionState === "awaiting-confirmation")
-        return intl.formatMessage(SEND_STAGE_WORDS["still-confirming"].label);
+        return intl.formatMessage(
+          SEND_STAGE_WORDS[queuedState.awaiting ?? "still-confirming"].label
+        );
       if (submissionState === "checking-submission")
         return intl.formatMessage({
           id: "app.work.checkingSubmission",

@@ -44,11 +44,15 @@ export type TxActPhaseEvent =
   | { type: "stopped"; key: string }
   | { type: "failed"; key: string };
 
-/** What an act that reports its own ending says: broadcast, landed, or left queued. */
+/**
+ * What an act that reports its own ending says: broadcast, landed, left queued, or waiting for a
+ * Safe's signers, which the queue reports when the wallet answers with a proposal (PRD-1564).
+ */
 export type ActPhaseReportEvent =
   | { type: "broadcast"; hash: Hex }
   | { type: "confirmed" }
-  | { type: "queued" };
+  | { type: "queued" }
+  | { type: "safe-signers" };
 
 export type ActPhaseReport = (event: ActPhaseReportEvent) => void;
 

@@ -146,6 +146,7 @@ vi.mock("../../../hooks/work/useWorks", () => ({
 }));
 
 import { useWorkDetailController } from "../../../hooks/client-ui/work/useWorkDetailController";
+import { SEND_STAGE_WORDS } from "../../../modules/transactions/send-stage";
 import { useUIStore } from "../../../stores/useUIStore";
 import { createMockAction } from "../../test-utils/mock-factories";
 import { queuedTakeUpChain } from "../../test-utils/queued-jobs";
@@ -523,6 +524,63 @@ describe("useWorkDetailController", () => {
       ]);
     } finally {
       confirm.mockRestore();
+    }
+  });
+
+  // A Safe only proposed it: the send's record says so, and Upload now says who it waits for.
+  it("says an Upload now a Safe only proposed waits for the Safe's signers (PRD-1564)", async () => {
+    mocks.sender = { authMode: "wallet" };
+    const { jobQueue } = await import("../../../modules/job-queue/default-instance");
+    const { toastService } = await import("../../../components/Toast/toast.service");
+    const { connectivityStore } = await import("../../../stores/connectivity");
+    const confirm = vi.spyOn(connectivityStore, "confirmOnline").mockResolvedValue(true);
+    const hash = `0x${"5a".repeat(32)}` as const;
+    const unsent = {
+      id: "work-1",
+      kind: "work",
+      payload: {},
+      userAddress: "0x1111111111111111111111111111111111111111",
+      createdAt: 1,
+      attempts: 0,
+      synced: false,
+    } as never;
+    // Nothing is on record before the tap; the try's own send leaves the Safe's mark.
+    vi.mocked(jobQueue.getJobs)
+      .mockResolvedValueOnce([unsent])
+      .mockResolvedValue([
+        {
+          id: "work-1",
+          kind: "work",
+          payload: {
+            uploadCheckpoint: { transactionHash: hash, files: {}, awaiting: "safe-signers" },
+          },
+          userAddress: "0x1111111111111111111111111111111111111111",
+          createdAt: 1,
+          attempts: 0,
+          synced: false,
+        } as never,
+      ]);
+    vi.mocked(jobQueue.processJob).mockResolvedValueOnce({
+      success: false,
+      error: "awaiting-confirmation",
+      skipped: true,
+      txHash: hash,
+    });
+    try {
+      const { result } = renderHook(() => useWorkDetailController(), { wrapper: RouterWrapper });
+      await act(async () => {
+        await result.current.retry();
+      });
+      expect(toastService.info).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          id: "work-upload",
+          title: SEND_STAGE_WORDS["safe-signers"].label.defaultMessage,
+          message: SEND_STAGE_WORDS["safe-signers"].detail.defaultMessage,
+        })
+      );
+    } finally {
+      confirm.mockRestore();
+      vi.mocked(jobQueue.getJobs).mockResolvedValue([]);
     }
   });
 

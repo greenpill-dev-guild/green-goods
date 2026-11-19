@@ -17,8 +17,10 @@
  * The words are message descriptors whose text is in the Shared catalogs (`app.sendStage.*`),
  * so a screen formats them with its own `formatMessage` and the bot reads the same entries.
  *
- * A send reports the first two as they happen (`withSendStageReports`). Still confirming is a
- * send's record, not a moment: its broadcast is on record and its receipt has not been seen.
+ * A send reports the wallet, confirming and the Safe's signers as they happen
+ * (`withSendStageReports`). Still confirming is a send's record, not a moment: its broadcast is on
+ * record and its receipt has not been seen. A queued send keeps the Safe's signers on its record
+ * too, since that wait outlives the send (PRD-1564).
  *
  * @module modules/transactions/send-stage
  */
@@ -35,7 +37,8 @@ export const WALLET_NUDGE_MS = 20_000;
 export type SendStageReport =
   | { stage: "wallet" }
   | { stage: "confirming"; txHash: Hex }
-  | { stage: "still-confirming" };
+  | { stage: "still-confirming" }
+  | { stage: "safe-signers" };
 
 /** The stages a send reports while it runs. */
 export type LiveSendStageReport = Exclude<SendStageReport, { stage: "still-confirming" }>;
@@ -47,9 +50,10 @@ export type LiveSendStageReport = Exclude<SendStageReport, { stage: "still-confi
  * nobody. Every sender reports confirming once, as soon as the network has the send: at its
  * broadcast reference, which a passkey's UserOperation and a passkey batch have long before their
  * receipt and their `onBroadcast`, or else at its broadcast. A wallet's bundled request has only
- * a batch id when accepted, so it says confirming from its broadcast. The send's own callbacks run first
- * and keep their say, so a checkpoint that fails to save still stops the send; `report` runs
- * after and must not throw.
+ * a batch id when accepted, so it says confirming from its broadcast. A wallet that answers with a
+ * Safe proposal says so (`onAwaiting`) after its broadcast, so the Safe's signers come last. The
+ * send's own callbacks run first and keep their say, so a checkpoint that fails to save still stops
+ * the send; `report` runs after and must not throw.
  */
 export function withSendStageReports(
   options: TransactionSendOptions,
@@ -75,6 +79,10 @@ export function withSendStageReports(
     onBroadcast: async (hash) => {
       await options.onBroadcast?.(hash);
       reportConfirming(hash);
+    },
+    onAwaiting: (awaiting) => {
+      options.onAwaiting?.(awaiting);
+      report({ stage: awaiting });
     },
   };
 }

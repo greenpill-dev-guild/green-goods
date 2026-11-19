@@ -94,6 +94,17 @@ export function hasRecordedSend(job: Pick<Job, "kind" | "payload">): boolean {
   );
 }
 
+/**
+ * What a send on record waits for besides its receipt: a Safe's signers, when the wallet answered
+ * with a Safe proposal (PRD-1564). A screen that shows the job says so in place of still
+ * confirming; the queue settles the send the same way either way.
+ */
+export function recordedSendAwaiting(
+  job: Pick<Job, "kind" | "payload">
+): SendCheckpoint["awaiting"] | undefined {
+  return hasRecordedSend(job) ? sendCheckpointOf(job)?.awaiting : undefined;
+}
+
 /** A confirmed revert permits a fresh Work send. A missing receipt does not. */
 export function hasRevertedWorkSend(job: Pick<Job, "kind" | "payload" | "meta">): boolean {
   return (
@@ -123,6 +134,7 @@ export function writeSendCheckpoint(job: Job, send: SendCheckpoint | undefined):
     intentNonce: _legacyNonce,
     transactionHash: _hash,
     transactionReplaced: _replaced,
+    awaiting: _awaiting,
     ...rest
   } = (payload[record.field] ?? {}) as Record<string, unknown>;
   if (!send && (!record.keepsOtherState || payload[record.field] === undefined)) {

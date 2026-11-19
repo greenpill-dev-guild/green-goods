@@ -180,11 +180,13 @@ const SEND_FAILED = "The commitment could not be sent";
 
 /**
  * A send's reports, fed to a view's act-phase line: broadcast when the chain
- * has the transaction, then either landed or left queued on this device.
+ * has the transaction, then either landed, waiting for a Safe's signers, or
+ * left queued on this device.
  */
 export function toActPhaseReport(report: ActPhaseReport): (event: CommitmentSendReport) => void {
   return (event) => {
     if (event.stage === "confirming") report({ type: "broadcast", hash: event.txHash as Hex });
+    else if (event.stage === "safe-signers") report({ type: "safe-signers" });
     else if (event.stage === "landed") report({ type: "confirmed" });
     else if (event.stage === "queued") report({ type: "queued" });
   };
