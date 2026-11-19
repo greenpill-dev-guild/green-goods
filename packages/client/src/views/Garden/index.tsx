@@ -104,6 +104,10 @@ const Work: React.FC = () => {
     workSubmissionJourneyId,
   } = controller;
 
+  // The garden is named once, on the flow's first step: Start, or Media when Start's answer was
+  // known (decision 17). Later steps do not repeat it; Review names it in its summary (PRD-1522).
+  const onFirstStep = flow.stage === (start.skipped ? "media" : "start");
+
   // The work kind's piece at each stage. Once a promise is chosen at Start, every later step
   // names it after its heading (D16, O9): the shell hands the pinned card in, and its sheet
   // can unlink the work. Start's own pieces come from the controller's Start model (DL-131).
@@ -234,7 +238,9 @@ const Work: React.FC = () => {
         tallBar={isSchedulingDependentLink || hasPendingLinkRecovery}
         lead={
           <>
-            {namedSubmissionGarden ? <SubmissionGardenLine garden={namedSubmissionGarden} /> : null}
+            {namedSubmissionGarden && onFirstStep ? (
+              <SubmissionGardenLine garden={namedSubmissionGarden} />
+            ) : null}
             {controller.submissionOutcome?.kind === "awaiting-confirmation" && (
               <p role="status">{intl.formatMessage(SEND_STAGE_WORDS["still-confirming"].label)}</p>
             )}
