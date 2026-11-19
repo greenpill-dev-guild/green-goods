@@ -87,7 +87,8 @@ function proposedEffect(act: FundingAct, read: FundingRead): ProposedEffect {
 
 /** A proposal a Safe took, by the identifier its wallet returned, and what it will change. */
 interface Proposal {
-  hash: HexString;
+  /** What the wallet is asked about; a passkey's operation past its receipt limit names none. */
+  hash?: HexString;
   effect: ProposedEffect;
 }
 
@@ -125,6 +126,8 @@ function effectShown(effect: ProposedEffect, read: FundingRead): boolean {
 function proposalSettled(proposal: Proposal, outcome: ProposalOutcome, read: FundingRead) {
   if (outcome === "reverted") return true;
   const { effect } = proposal;
+  // With nothing to ask the wallet about, only the read can show it ran.
+  if (!proposal.hash) return effectShown(effect, read);
   if (effect.kind === "transfer-moves") return outcome === "confirmed" || effectShown(effect, read);
   return outcome === "confirmed" && effectShown(effect, read);
 }
@@ -174,11 +177,11 @@ export function useProtocolFundingOperationsController(input: {
   // can't be proposed twice. This lasts as long as the panel: reloading is how a
   // proposal the Safe never runs is sent again.
   const [proposed, setProposed] = useState<Proposal | null>(null);
-  const asksWallet = proposed !== null && Boolean(sender?.reconcileBroadcast);
+  const asksWallet = Boolean(proposed?.hash && sender?.reconcileBroadcast);
   const outcomeQuery = useQuery({
     queryKey: commitmentPoolingKeys.settlementProposal(chainId, proposed?.hash ?? ""),
     queryFn: async (): Promise<ProposalOutcome> => {
-      if (!proposed || !sender?.reconcileBroadcast) return "unresolved";
+      if (!proposed?.hash || !sender?.reconcileBroadcast) return "unresolved";
       const outcome = await sender.reconcileBroadcast({
         kind: "transaction",
         hash: proposed.hash,
@@ -308,10 +311,10 @@ export function useProtocolFundingOperationsController(input: {
       } catch (error) {
         // A send past its receipt limit went out and may still land: sends stay closed until it
         // settles, as for a proposal, and it never reads as failed (PRD-1551).
-        const hash = mayStillLand(error) ? (error as { hash?: HexString }).hash : undefined;
-        if (hash) {
-          setProposed({ hash, effect: proposedEffect(action, before) });
-          setLastAct({ kind, phase: "still-confirming", hash });
+        if (mayStillLand(error)) {
+          const hash = (error as { hash?: HexString }).hash;
+          setProposed({ ...(hash ? { hash } : {}), effect: proposedEffect(action, before) });
+          setLastAct({ kind, phase: "still-confirming", ...(hash ? { hash } : {}) });
         } else setLastAct({ kind, phase: "failed", error });
         await refetch().catch(() => undefined);
         throw error;

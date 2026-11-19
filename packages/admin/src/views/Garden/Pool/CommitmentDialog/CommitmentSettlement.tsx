@@ -291,7 +291,8 @@ export function CommitmentSettlement({ settlement, tone, target }: CommitmentSet
             </p>
           ) : null}
 
-          {settlement.lastAct?.phase === "proposed" ? (
+          {settlement.lastAct?.phase === "proposed" ||
+          settlement.lastAct?.phase === "still-confirming" ? (
             <div className="flex justify-end">
               <Button
                 type="button"

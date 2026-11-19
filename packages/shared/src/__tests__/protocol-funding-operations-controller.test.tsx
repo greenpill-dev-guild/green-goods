@@ -271,17 +271,22 @@ describe("useProtocolFundingOperationsController", () => {
     expect(result.current.lastAct?.phase).toBe("submitted");
   });
 
-  it("holds a dispatch past its receipt limit as still confirming until its transfer moves", async () => {
+  it.each([
+    ["a wallet's", new ReceiptWaitLimitError(120_000, { hash: `0x${"ab".repeat(32)}` })],
+    // A passkey's operation names no transaction: only the read can show it ran.
+    [
+      "a passkey's",
+      Object.assign(new Error("timed out"), { name: "WaitForUserOperationReceiptTimeoutError" }),
+    ],
+  ])("holds %s dispatch past its receipt limit as still confirming until its transfer moves", async (_sender, error) => {
     // It went out and may still land: read as failed, it would offer the dispatch again (PRD-1551).
     mocks.capabilities = dispatcher;
-    mocks.mutateAsync.mockRejectedValue(
-      new ReceiptWaitLimitError(120_000, { hash: `0x${"ab".repeat(32)}` })
-    );
+    mocks.mutateAsync.mockRejectedValue(error);
     mocks.sourceSnapshot = transfers({ disbursementId: 8n });
     const { result, rerender } = renderController();
 
     await act(async () => {
-      await expect(result.current.dispatch(8n)).rejects.toThrow(ReceiptWaitLimitError);
+      await expect(result.current.dispatch(8n)).rejects.toThrow(error.message);
     });
     expect(result.current.lastAct).toMatchObject({ kind: "dispatch", phase: "still-confirming" });
     expect(result.current.rows[0]).toMatchObject({ canDispatch: false, canCancel: false });
