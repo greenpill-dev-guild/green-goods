@@ -27,6 +27,7 @@ import {
   selectCommitmentOtherParty,
 } from "../../../modules/commitment-pooling/selectors";
 import type { CommitmentReadModel } from "../../../modules/commitment-pooling/types-core";
+import { SEND_STAGE_WORDS } from "../../../modules/transactions/send-stage";
 import {
   ItemRow,
   type ItemRowDetail,
@@ -41,7 +42,7 @@ export type CommitmentRowDirection = NonNullable<CommitmentReadModel["direction"
 export type CommitmentRowPending = "confirming" | "notSent" | "sendFailed";
 
 const PENDING: Record<CommitmentRowPending, { id: string; tone: ItemRowTone }> = {
-  confirming: { id: "app.commitments.row.confirming", tone: "info" },
+  confirming: { id: SEND_STAGE_WORDS.confirming.label.id, tone: "info" },
   notSent: { id: "app.pool.queued.notSent", tone: "warning" },
   sendFailed: { id: "app.commitments.row.sendFailed", tone: "error" },
 };
