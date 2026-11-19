@@ -192,6 +192,7 @@ export function buildDemoWorld(viewer: Address): DemoWorld {
     claim(1005n, V, "DECLINED", { reasonCID: "bafy-demo-reason-1005", resolutionCode: "DECLINED" }),
     claim(1006n, V, "SUPERSEDED"),
     claim(1006n, TUNDE, "ACCEPTED", { requestedAt: NOW - 86_400 * 4 }),
+    claim(1027n, V, "SUPERSEDED", { resolutionCode: "COMMITMENT_CANCELLED" }),
   ];
 
   const workAttributions: CommitmentWorkAttributionRecord[] = [
@@ -303,6 +304,14 @@ export function buildDemoWorld(viewer: Address): DemoWorld {
     },
     "bafy-demo-season-7": { version: 1, name: "Spring 2026" },
     "bafy-demo-campaign-8": { version: 1, name: "Community work day" },
+    "bafy-demo-reason-1014": {
+      version: 1,
+      reason: "A neighbor is driving to the seed swap anyway, so the ride isn't needed.",
+    },
+    "bafy-demo-reason-1027": {
+      version: 1,
+      reason: "The teacher is away until June and will offer the sessions again then.",
+    },
     "bafy-demo-reason-1005": {
       version: 1,
       reason: "We already have two people on repairs this month. Ask again in May.",
@@ -340,6 +349,7 @@ export function buildDemoWorld(viewer: Address): DemoWorld {
     "bafy-demo-c1018": metadata("Field day recorded for Edu"),
     "bafy-demo-c1019": metadata("Fix the greenhouse door"),
     "bafy-demo-c1020": metadata("Compost delivery, taken up by the garden"),
+    "bafy-demo-c1027": metadata("Pruning lessons for new members"),
     "bafy-demo-c1021": metadata(
       "Facilitation for a neighboring garden",
       "Any garden in the network may take this up."

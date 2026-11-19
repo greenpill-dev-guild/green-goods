@@ -8,11 +8,23 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { BookingHistoryAnchor } from "../../views/Home/Garden/Commitment/serviceBookingTypes";
 import { renderWithProviders, screen } from "../test-utils";
 
-const mocks = vi.hoisted(() => ({ events: [] as CommitmentEventRecord[] }));
+const mocks = vi.hoisted(() => ({
+  events: [] as CommitmentEventRecord[],
+  reason: { reason: null, isLoading: false, isUnavailable: false } as {
+    reason: { version: 1; reason: string } | null;
+    isLoading: boolean;
+    isUnavailable: boolean;
+  },
+  reasonCIDs: [] as (string | null | undefined)[],
+}));
 
 vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling")>()),
   useCommitmentActivity: () => ({ events: mocks.events, isError: false }),
+  useCommitmentReason: (cid: string | null | undefined) => {
+    mocks.reasonCIDs.push(cid);
+    return mocks.reason;
+  },
 }));
 
 const { CommitmentHistory } = await import("../../views/Home/Garden/Commitment/CommitmentHistory");
@@ -152,5 +164,75 @@ describe("a voucher booking in History", () => {
     const lines = renderHistory([]);
     expect(lines[0]).toEqual({ text: "You confirmed it was kept", latest: true });
     expect(lines.at(-1)?.text).toBe("You offered this");
+  });
+});
+
+describe("a withdrawn promise in History", () => {
+  const STEWARD = "0x3333333333333333333333333333333333333333" as const;
+
+  function renderWithdrawn() {
+    const withdrawn = event("CANCELLED", 20);
+    withdrawn.actor = STEWARD;
+    mocks.events = [withdrawn, event("CREATED", 0)];
+    mocks.reasonCIDs = [];
+    renderWithProviders(
+      <CommitmentHistory
+        chainId={42161}
+        commitment={commitmentFixture({
+          commitmentId: 4101n,
+          direction: "OFFER",
+          cancelReasonCID: "bafy-cancel-reason",
+        })}
+        viewer={VIEWER}
+      />
+    );
+    return screen.getAllByRole("listitem")[0]!;
+  }
+
+  // The creator reads why a steward withdrew it, under the line that says so.
+  it.each([
+    {
+      shown: "the steward's reason",
+      reason: {
+        reason: { version: 1 as const, reason: "Duplicate promise" },
+        isLoading: false,
+        isUnavailable: false,
+      },
+      detail: "Reason: Duplicate promise",
+    },
+    {
+      shown: "a quiet note while it loads",
+      reason: { reason: null, isLoading: true, isUnavailable: false },
+      detail: "Reading the reason…",
+    },
+    {
+      shown: "a quiet note when it can't be read",
+      reason: { reason: null, isLoading: false, isUnavailable: true },
+      detail: "The reason can't be read right now.",
+    },
+  ])("shows $shown under the withdrawn line", ({ reason, detail }) => {
+    mocks.reason = reason;
+    const line = renderWithdrawn();
+    const texts = [...line.querySelectorAll("p")].map((p) => p.textContent);
+    expect(texts[0]).toMatch(/withdrew it$/);
+    expect(texts[1]).toBe(detail);
+    expect(mocks.reasonCIDs).toContain("bafy-cancel-reason");
+  });
+
+  it("reads no reason for a promise that was never withdrawn", () => {
+    mocks.events = [event("CREATED", 0)];
+    mocks.reasonCIDs = [];
+    mocks.reason = { reason: null, isLoading: false, isUnavailable: false };
+    renderWithProviders(
+      <CommitmentHistory
+        chainId={42161}
+        commitment={commitmentFixture({
+          commitmentId: 4101n,
+          cancelReasonCID: "bafy-cancel-reason",
+        })}
+        viewer={VIEWER}
+      />
+    );
+    expect(mocks.reasonCIDs.every((cid) => cid === null || cid === undefined)).toBe(true);
   });
 });

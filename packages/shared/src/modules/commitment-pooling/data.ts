@@ -56,10 +56,13 @@ export const getCommitmentCycleDetail = demoAware(
   "getCommitmentCycleDetail",
   defaultRepository.getCommitmentCycleDetail
 );
-// Activity, member history and the steward console reads have no fixtures; the
-// demo world simply has none. The console is a steward surface, not one of
-// the member screens `?mockPooling=1` stands in for.
-export const getCommitmentActivity = defaultRepository.getCommitmentActivity;
+// A promise's activity has fixtures only for the demo's withdrawn promises, so their pages can show
+// who withdrew them and why. Member history and the steward console reads have none; the console
+// is a steward surface, not one of the member screens `?mockPooling=1` stands in for.
+export const getCommitmentActivity = demoAware(
+  "getCommitmentActivity",
+  defaultRepository.getCommitmentActivity
+);
 export const getPoolMemberHistory = defaultRepository.getPoolMemberHistory;
 export const getPoolClaimRequests = defaultRepository.getPoolClaimRequests;
 export const getFallbackConfirmationCandidates =

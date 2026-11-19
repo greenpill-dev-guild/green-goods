@@ -41,7 +41,8 @@ function requestOutcome({ state, resolutionCode }: CommitmentClaimRequestRecord)
  * Pending keeps the commitment available to everyone else eligible. Declined
  * shows the steward's reason and offers a fresh request, never a retry of the
  * old record. Superseded says someone else took it up, or that the promise was
- * withdrawn or lapsed before anyone did, and offers the way out.
+ * withdrawn or lapsed before anyone did, and offers the way out; a withdrawal
+ * shows the reason it was withdrawn with.
  * Accepted names the provider, which for a garden claim is the garden, with
  * the steward who asked shown beside it: the two identities are different
  * things and are never collapsed.
@@ -56,13 +57,19 @@ export function CommitmentClaimPanel({
   onBackToBrowse,
 }: CommitmentClaimPanelProps) {
   const { formatMessage, formatDate } = useIntl();
-  const { reason, isUnavailable } = useCommitmentReason(
-    request.state === "DECLINED" ? request.reasonCID : null
-  );
+  const outcome = requestOutcome(request);
+  // A declined request carries the steward's own reason; a withdrawn promise carries the one
+  // given when it was withdrawn, which closed the request with it.
+  const reasonCID =
+    outcome === "DECLINED"
+      ? request.reasonCID
+      : outcome === "WITHDRAWN"
+        ? commitment.cancelReasonCID
+        : null;
+  const { reason, isUnavailable } = useCommitmentReason(reasonCID);
   const isGardenClaim = request.claimType === "GARDEN";
   const requestedByYou = request.requestedBy.toLowerCase() === viewer.toLowerCase();
   const state = request.state;
-  const outcome = requestOutcome(request);
   const tone =
     state === "PENDING"
       ? "warning"
@@ -127,12 +134,12 @@ export function CommitmentClaimPanel({
             day: "numeric",
           })}
         />
-        {state === "DECLINED" ? (
+        {outcome === "DECLINED" || outcome === "WITHDRAWN" ? (
           <FactRow
             label={formatMessage({ id: "app.claim.row.reason" })}
             value={
               reason?.reason ??
-              (isUnavailable || !request.reasonCID
+              (isUnavailable || !reasonCID
                 ? "—"
                 : formatMessage({ id: "app.claim.row.reasonLoading" }))
             }
