@@ -2771,6 +2771,7 @@
   "app.garden.settings.save.plan": "{count, plural, one {# cambio · # confirmación en tu billetera} other {# cambios · # confirmaciones en tu billetera}}",
   "app.garden.settings.save.stopped": "Se detuvo en {field}. {saved} de {total} guardados. Tus otras ediciones siguen aquí.",
   "app.garden.settings.save.uploading": "Subiendo la imagen…",
+  "app.garden.settings.save.waitingSignature": "Esperando tu firma",
   "app.garden.settings.save.saved": "Confirmado",
   "app.garden.settings.save.proposed": "Enviado a tu Safe",
   "app.garden.settings.save.proposedAll": "Enviado a tu Safe. Los cambios se aplican cuando el Safe los ejecute.",

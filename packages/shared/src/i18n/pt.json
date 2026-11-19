@@ -2771,6 +2771,7 @@
   "app.garden.settings.save.plan": "{count, plural, one {# alteração · # confirmação na sua carteira} other {# alterações · # confirmações na sua carteira}}",
   "app.garden.settings.save.stopped": "Parou em {field}. {saved} de {total} salvos. Suas outras edições continuam aqui.",
   "app.garden.settings.save.uploading": "Enviando a imagem…",
+  "app.garden.settings.save.waitingSignature": "Aguardando sua assinatura",
   "app.garden.settings.save.saved": "Confirmado",
   "app.garden.settings.save.proposed": "Enviado ao seu Safe",
   "app.garden.settings.save.proposedAll": "Enviado ao seu Safe. As alterações entram em vigor quando o Safe as executar.",

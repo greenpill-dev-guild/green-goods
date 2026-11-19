@@ -281,7 +281,7 @@ describe("GardenSettingsEditor explicit save", () => {
       { field: "location", value: "Lisbon, Portugal" },
     ]);
     const rows = () => within(screen.getByTestId("garden-settings-save")).getAllByRole("listitem");
-    await waitFor(() => expect(screen.getAllByText("Confirm in your wallet")).toHaveLength(2));
+    await waitFor(() => expect(screen.getAllByText("Waiting for your signature")).toHaveLength(2));
 
     land({ status: "saved", transactionHash: `0x${"ab".repeat(32)}` });
 

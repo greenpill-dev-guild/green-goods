@@ -2771,6 +2771,7 @@
   "app.garden.settings.save.plan": "{count, plural, one {# change · # wallet confirmation} other {# changes · # wallet confirmations}}",
   "app.garden.settings.save.stopped": "Stopped at {field}. {saved} of {total} saved. Your other edits are still here.",
   "app.garden.settings.save.uploading": "Uploading the image…",
+  "app.garden.settings.save.waitingSignature": "Waiting for your signature",
   "app.garden.settings.save.saved": "Confirmed",
   "app.garden.settings.save.proposed": "Sent to your Safe",
   "app.garden.settings.save.proposedAll": "Sent to your Safe. The changes apply once the Safe executes them.",

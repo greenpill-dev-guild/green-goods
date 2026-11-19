@@ -95,8 +95,8 @@ describe("a save under one signature", () => {
   it("numbers its rows as one prompt and says what they wait for", () => {
     const rows = buildGardenSettingsSaveRows(together("waiting", "running"), formatMessage);
     expect(rows.map((row) => [row.prompt, row.label])).toEqual([
-      [1, "Confirm in your wallet"],
-      [1, "Confirm in your wallet"],
+      [1, "Waiting for your signature"],
+      [1, "Waiting for your signature"],
     ]);
     expect(buildGardenSettingsSaveRows(together("saved", "complete"), formatMessage)[0].label).toBe(
       "Saved"

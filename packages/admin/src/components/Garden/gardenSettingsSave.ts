@@ -84,9 +84,15 @@ function stateLabel(
         id: "app.garden.settings.save.uploading",
         defaultMessage: "Uploading the image…",
       });
-    // Waiting on the wallet reads as it does everywhere (PRD-1552).
+    // One request may be a passkey's or a wallet's, so it waits on a signature. Separate
+    // requests each wait on the wallet, in the words that wait has everywhere (PRD-1552).
     case "waiting":
-      return formatMessage(SEND_STAGE_WORDS.wallet.label);
+      return oneSignature
+        ? formatMessage({
+            id: "app.garden.settings.save.waitingSignature",
+            defaultMessage: "Waiting for your signature",
+          })
+        : formatMessage(SEND_STAGE_WORDS.wallet.label);
     case "saved":
       return oneSignature
         ? formatMessage({ id: "app.garden.settings.save.savedTogether", defaultMessage: "Saved" })
