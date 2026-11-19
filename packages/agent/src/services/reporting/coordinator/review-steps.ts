@@ -159,10 +159,8 @@ export function reviewOwnsCommand(
   command: ChatCommand
 ): boolean {
   const { core, ctx } = writer;
-  if (command.kind === "newLink" && decisionLinkIsLatest(core, review, ctx.draft?.id ?? null))
-    return true;
-  if ((command.kind === "retry" || command.kind === "newLink") && reviewLinkLapsed(core, review))
-    return true;
+  if (command.kind === "newLink") return decisionLinkIsLatest(core, review, ctx.draft?.id ?? null);
+  if (command.kind === "retry" && reviewLinkLapsed(core, review)) return true;
   return isReviewPrompt(ctx.prompt?.kind) || !ctx.draft;
 }
 
