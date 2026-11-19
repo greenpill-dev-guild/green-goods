@@ -164,10 +164,32 @@ describe("createMutationErrorHandler", () => {
       });
       const handler = createMutationErrorHandler({ source: "pool", toastContext: "pool act" });
 
-      handler(new Error("No receipt within 120s"));
+      handler(new Error("No receipt within 120s"), { authMode: "wallet" });
 
       expect(mockToastError).not.toHaveBeenCalled();
       expect(mockToastInfo).toHaveBeenCalledOnce();
+      // Not a contract failure either: it went out and may still land.
+      expect(mockTrackContractError).not.toHaveBeenCalled();
+
+      // Nor in the wallet progress toast, which only says failures.
+      mockParseAndFormatError.mockReturnValueOnce({
+        title: "Send Still Confirming",
+        message: "It could still go through",
+        parsed: {
+          raw: "",
+          name: "SendStillConfirming",
+          message: "",
+          isKnown: true,
+          recoverable: false,
+        },
+      });
+      createMutationErrorHandler({
+        source: "work",
+        toastContext: "work upload",
+        useWalletProgressToast: true,
+      })(new Error("No receipt within 120s"), { authMode: "wallet" });
+      expect(mockWalletProgressError).not.toHaveBeenCalled();
+      expect(mockToastInfo).toHaveBeenCalledTimes(2);
     });
 
     it("returns parsed error result", () => {

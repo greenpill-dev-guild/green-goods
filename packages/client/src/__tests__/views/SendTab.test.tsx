@@ -351,6 +351,22 @@ describe("SendTab", () => {
     expect(screen.queryByText(/Sending to/i)).not.toBeInTheDocument();
   });
 
+  it("clears a send that may still pay, so the same draft cannot go out twice (PRD-1551)", async () => {
+    // Its receipt outlasted the limit: it went out and may still land.
+    mockSend.mockImplementation((_params, opts) =>
+      opts?.onError?.(Object.assign(new Error("No receipt"), { name: "ReceiptWaitLimitError" }))
+    );
+    const user = userEvent.setup();
+    render(<SendTab />);
+    await pickMemberAndToken(user, /USDC/);
+    await user.click(screen.getByRole("button", { name: "Review" }));
+    await user.click(screen.getByRole("button", { name: "Send" }));
+    await user.click(screen.getByTestId("confirm-send"));
+
+    expect(await screen.findByRole("button", { name: /^Send USDC/ })).toBeInTheDocument();
+    expect(screen.queryByText(/Sending to/i)).not.toBeInTheDocument();
+  });
+
   it("lands back on the Balance view after a successful send", async () => {
     mockSend.mockImplementation((_params, opts) => opts?.onSuccess?.());
     const user = userEvent.setup();
@@ -400,6 +416,25 @@ describe("SendTab", () => {
     expect(screen.getByText(/^Stopped waiting\./)).toBeInTheDocument();
     expect(screen.queryByText(/didn't complete/)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Cancel" })).not.toBeInTheDocument();
+  });
+
+  it("says each stage of a running send, and a Safe proposal above the view once it settles", async () => {
+    mockSendPending = true;
+    mockSendNotice = "wallet";
+    const user = userEvent.setup();
+    const view = render(<SendTab />);
+    await user.click(screen.getByRole("tab", { name: "Send" }));
+    expect(screen.getByText("Confirm in your wallet")).toBeInTheDocument();
+
+    mockSendNotice = "confirming";
+    view.rerender(<SendTab />);
+    expect(screen.getByText("Confirming…")).toBeInTheDocument();
+
+    // Settled as a Safe proposal: nothing has paid yet, and the line says what it waits for.
+    mockSendPending = false;
+    mockSendNotice = "safe-signers";
+    view.rerender(<SendTab />);
+    expect(screen.getByText("Waiting for the Safe's signers")).toBeInTheDocument();
   });
 
   it("keeps the review step ready to retry when a send does not succeed", async () => {

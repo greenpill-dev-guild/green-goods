@@ -366,6 +366,11 @@ export async function executeCommitmentQueueJob(
     if (waiting) return waiting;
     if (error instanceof EarnedRewardWaiting && !hasRecordedSend(job))
       return { status: "waiting", reason: error.reason };
+    // A creation's UserOperation that outlasted the limit names no transaction to keep, but it
+    // went out and may still land: it waits, spending no attempt. The next pass asks the chain
+    // for the creation first, and the contract keeps one per request key (PRD-1551).
+    if (!recordsSends(job.kind) && error instanceof ReceiptWaitLimitError && !error.hash)
+      return { status: "waiting", reason: "awaiting-confirmation" };
     throw error;
   }
 

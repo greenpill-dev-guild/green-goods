@@ -230,6 +230,32 @@ describe("ProtocolFundingOperationsCard", () => {
     expect(review).toBeEnabled();
   });
 
+  it("closes a queue that may still land, and keeps queuing shut while it confirms", async () => {
+    // Past its receipt limit it went out: a second confirm would queue the transfer twice (PRD-1551).
+    const queueFunding = vi.fn(async (): Promise<HexString> => {
+      throw Object.assign(new Error("still confirming"), { name: "ReceiptWaitLimitError" });
+    });
+    const card = (lastAct: ProtocolFundingOperationsController["lastAct"]) => (
+      <ProtocolFundingOperationsCard
+        operations={controller({ queueFunding, lastAct })}
+        gardens={gardens}
+        targetGarden={AIYELOJA}
+        onTargetGardenChange={vi.fn()}
+      />
+    );
+    const view = renderWithProviders(card(null));
+    fireEvent.click(screen.getByRole("button", { name: "Review Seed or Top-Up…" }));
+    const dialog = await screen.findByRole("alertdialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Queue Seed or Top-Up" }));
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+
+    view.rerender(card({ kind: "queue-funding", phase: "still-confirming" }));
+    expect(screen.getByTestId("protocol-funding-status")).toHaveTextContent(
+      /^Sent\. Confirming is taking longer than usual\./
+    );
+    expect(screen.getByRole("button", { name: "Review Seed or Top-Up…" })).toBeDisabled();
+  });
+
   it("shuts the review while a Safe proposal is out, and says why a transfer is held", () => {
     renderWithProviders(
       <ProtocolFundingOperationsCard

@@ -38,6 +38,8 @@ import {
 } from "../../modules/commitment-pooling/pool-lifecycle";
 import { pinCommitmentReason } from "../../modules/commitment-pooling/reasons";
 import { selectCommitmentPoolingAvailability } from "../../modules/commitment-pooling/selectors";
+import { toastService } from "../../components/toast";
+import { SEND_STAGE_WORDS } from "../../modules/transactions/send-stage";
 import type { TransactionSendOptions } from "../../modules/transactions/types";
 import { getOntologyChainMaturity } from "../../ontology/query";
 import type { Address } from "../../types/domain";
@@ -155,6 +157,19 @@ export function useCommitmentPoolMutation(options: { chainId?: number } = {}) {
       const result = send
         ? await sender.sendContractCall(contractCall, send)
         : await sender.sendContractCall(contractCall);
+      // A Safe proposal, or any answer with no receipt yet, has not run: it says what it waits
+      // for, never that it is done (PRD-1551). It still settles, so a dialog closes rather than
+      // offering a second send of the same act.
+      if (result.confirmation === "pending") {
+        const words =
+          result.awaiting === "safe-signers"
+            ? SEND_STAGE_WORDS["safe-signers"]
+            : SEND_STAGE_WORDS["still-confirming"];
+        toastService.info({
+          title: words.label.defaultMessage,
+          message: words.detail!.defaultMessage,
+        });
+      }
       return result.hash;
     },
     onSuccess: async (_hash, input) => {

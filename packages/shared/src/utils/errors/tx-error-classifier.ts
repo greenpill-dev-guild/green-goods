@@ -336,6 +336,17 @@ export function isUnconfirmedTxError(error: unknown): boolean {
   );
 }
 
+const STOPPED_WAITING_NAMES: ReadonlySet<string> = new Set(["WalletAnswerAbandonedError"]);
+
+/**
+ * A send that must not be offered again: it went out with no receipt yet, or the person stopped
+ * waiting while the wallet may still hold its request. Neither failed; a second send could land
+ * twice (PRD-1551).
+ */
+export function mayStillLand(error: unknown): boolean {
+  return isUnconfirmedTxError(error) || hasErrorName(error, STOPPED_WAITING_NAMES);
+}
+
 /**
  * How `parseContractError` reads a send that went out with no receipt yet (its wait outlasted
  * its limit, or the answer was a proposal or a lost reply): in the words `classifyTxError` uses,
@@ -343,6 +354,20 @@ export function isUnconfirmedTxError(error: unknown): boolean {
  */
 export function parseUnconfirmedSend(error: unknown, raw: string): ParsedContractError | null {
   if (!isUnconfirmedTxError(error)) return null;
+  // A Safe proposal waits for the Safe's owners, not the network, and says so.
+  const submission = (error as { submission?: { awaiting?: string } }).submission;
+  if (submission?.awaiting === "safe-signers")
+    return {
+      raw,
+      name: "SafeProposalPending",
+      message:
+        "Your Safe has the proposal. It goes through once enough of the Safe's owners sign it.",
+      titleKey: "app.sendStage.safeSigners",
+      messageKey: "app.sendStage.safeSigners.detail",
+      isKnown: true,
+      recoverable: false,
+      suggestedAction: "check-wallet",
+    };
   return {
     raw,
     name: "SendStillConfirming",

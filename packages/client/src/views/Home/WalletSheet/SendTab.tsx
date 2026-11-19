@@ -120,14 +120,25 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
 
   // A send that went out and may still land, or that the person stopped waiting for, is never
   // called failed (PRD-1551).
+  const settledLine =
+    sendMutation.notice === "safe-signers"
+      ? {
+          title: formatMessage(SEND_STAGE_WORDS["safe-signers"].label),
+          detail: formatMessage(SEND_STAGE_WORDS["safe-signers"].detail!),
+        }
+      : sendMutation.notice === "still-confirming"
+        ? { detail: formatMessage(SEND_STAGE_WORDS["still-confirming"].detail!) }
+        : sendMutation.notice === "stopped"
+          ? { detail: formatMessage(SEND_STAGE_WORDS.wallet.stopped!) }
+          : null;
   const sendLine = () => {
     switch (sendMutation.notice) {
+      case "wallet":
+        return formatMessage(SEND_STAGE_WORDS.wallet.label);
+      case "confirming":
+        return formatMessage(SEND_STAGE_WORDS.confirming.label);
       case "wallet-slow":
         return formatMessage(SEND_STAGE_WORDS.wallet.detail!);
-      case "stopped":
-        return formatMessage(SEND_STAGE_WORDS.wallet.stopped!);
-      case "still-confirming":
-        return formatMessage(SEND_STAGE_WORDS["still-confirming"].detail!);
       default:
         return formatMessage({
           id: isSending
@@ -179,6 +190,18 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
           ))}
         </div>
       </div>
+
+      {/* A send that may still land, or that the wallet may still send, clears the form as a
+          sent one does: its line stays above whichever view the tab returns to, until the
+          next send (PRD-1551). */}
+      {settledLine ? (
+        <div role="status" aria-live="polite" className="shrink-0 px-4 pt-3">
+          {settledLine.title ? (
+            <p className="text-sm font-medium text-text-strong-950">{settledLine.title}</p>
+          ) : null}
+          <p className="text-sm text-text-sub-600">{settledLine.detail}</p>
+        </div>
+      ) : null}
 
       {mode === "balance" ? (
         <div className={PWA_SHEET_SCROLL_CLASSNAME}>
@@ -312,7 +335,7 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
                 />
               </>
             ) : null}
-            {isSending || sendMutation.isError ? (
+            {isSending || (sendMutation.isError && !settledLine) ? (
               <div
                 role="status"
                 aria-live="polite"

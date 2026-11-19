@@ -59,6 +59,12 @@ export type WaitingRowState =
   | { status: "waiting"; isNew: boolean }
   | { status: "signing" }
   | { status: "confirming" }
+  /**
+   * An approval that may still land (still confirming, or waiting on a Safe's signers), or one
+   * the steward stopped waiting for while the wallet may still hold it (PRD-1551). The ask stays
+   * closed for the visit and its line says which; the index moves it on once one lands.
+   */
+  | { status: "held" }
   | { status: "failed" }
   | { status: "approved"; at: number }
   | { status: "declined"; at: number }
@@ -113,13 +119,13 @@ function decidedHere(
 
 /**
  * An approval with the wallet or the chain, or one that failed and left the ask waiting. One
- * still confirming, or waiting on a Safe's signers, may still land, so the ask stays held on
- * the chain's side and its line says which (PRD-1551). One the steward stopped waiting for
- * leaves the ask waiting.
+ * that may still land, or that the steward stopped waiting for while the wallet may still hold
+ * it, holds the ask, so Approve cannot send a second request (PRD-1551).
  */
 function onTheLine(phase: TxActPhase): WaitingRowState | null {
   const { status } = phase;
-  if (status === "still-confirming" || status === "safe-signers") return { status: "confirming" };
+  if (status === "still-confirming" || status === "safe-signers" || status === "stopped")
+    return { status: "held" };
   return status === "signing" || status === "confirming" || status === "failed" ? { status } : null;
 }
 
@@ -131,10 +137,13 @@ export function waitingRowState(
   entry: WaitingVisitEntry,
   input: { live: ReadonlySet<string>; decisions: ClaimDecisions; phase: TxActPhase }
 ): WaitingRowState {
+  const live = input.live.has(entry.key);
+  const line = onTheLine(input.phase);
   return (
     decidedHere(entry.key, entry.row.claim, input.decisions) ??
-    onTheLine(input.phase) ??
-    (input.live.has(entry.key) ? { status: "waiting", isNew: entry.isNew } : { status: "gone" })
+    // A held ask the index no longer lists has been decided, by this approval or another.
+    (line?.status === "held" && !live ? { status: "gone" } : line) ??
+    (live ? { status: "waiting", isNew: entry.isNew } : { status: "gone" })
   );
 }
 
@@ -213,6 +222,7 @@ export function isStillWaiting(state: WaitingRowState): boolean {
     state.status === "waiting" ||
     state.status === "signing" ||
     state.status === "confirming" ||
+    state.status === "held" ||
     state.status === "failed"
   );
 }
