@@ -69,6 +69,8 @@ export type WaitingRowState =
   | { status: "approved"; at: number }
   | { status: "declined"; at: number }
   | { status: "not-chosen"; at: number }
+  /** The promise was canceled or ran out of time while the ask waited, so the ask closed with it. */
+  | { status: "closed"; ending: "canceled" | "expired"; at: number }
   | { status: "gone" };
 
 /** The key an ask's act, and its decision, go by. */
@@ -161,7 +163,15 @@ export function askState(
   const at = (claim.resolvedAt ?? claim.updatedAt) * 1000;
   if (claim.state === "ACCEPTED") return { status: "approved", at };
   if (claim.state === "DECLINED") return { status: "declined", at };
-  if (claim.state === "SUPERSEDED") return { status: "not-chosen", at };
+  // The index closes a waiting ask when its promise is taken up, canceled or runs out of time, and
+  // its resolution code says which: only a take-up means another ask was chosen.
+  if (claim.state === "SUPERSEDED") {
+    if (claim.resolutionCode === "COMMITMENT_CANCELLED")
+      return { status: "closed", ending: "canceled", at };
+    if (claim.resolutionCode === "COMMITMENT_EXPIRED")
+      return { status: "closed", ending: "expired", at };
+    return { status: "not-chosen", at };
+  }
   return onTheLine(input.phase) ?? { status: "waiting", isNew: false };
 }
 

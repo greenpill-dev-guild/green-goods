@@ -650,6 +650,41 @@ describe("CommitmentDialogPanel (W10)", () => {
     expect(within(asks[1]!).queryByRole("button")).not.toBeInTheDocument();
   });
 
+  it("says an ask closed with its canceled promise, not that another ask was approved", () => {
+    const record = commitment({
+      onchainState: "CANCELLED",
+      derivedState: "CANCELLED",
+      state: "CANCELLED",
+      direction: "REQUEST",
+      leadProvider: null,
+      counterparty: null,
+    });
+    mocks.controller = controller({
+      commitment: record,
+      detail: commitmentDetailFixture({
+        commitment: record,
+        claimRequests: [
+          claimFixture({
+            commitmentId: 9n,
+            claimant: TAKER,
+            state: "SUPERSEDED",
+            resolutionCode: "COMMITMENT_CANCELLED",
+            resolvedAt: 1_755_950_000,
+          }),
+        ],
+      }),
+    });
+    renderPanel();
+    const [ask] = within(screen.getByRole("region", { name: "Who asked" })).getAllByRole(
+      "listitem"
+    );
+
+    expect(ask).toHaveAttribute("data-state", "closed");
+    expect(within(ask!).getByText("Closed")).toBeInTheDocument();
+    expect(ask).toHaveTextContent(/promise canceled/);
+    expect(ask).not.toHaveTextContent(/Not chosen|another ask was approved/);
+  });
+
   it("offers Edit Reward on a promise that stands alone, only while nobody has taken it", () => {
     const untaken = {
       onchainState: "REQUESTED" as const,

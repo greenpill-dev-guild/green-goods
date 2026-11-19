@@ -146,32 +146,48 @@ export function CommitmentClaims({
                       defaultMessage: "another ask was approved",
                     }),
                   ]
-                : [
-                    formatMessage(
-                      { id: "hub.garden.pool.asks.askedAt", defaultMessage: "Asked {when}" },
-                      { when: timelineTime(intl, claim.requestedAt * 1000, now) }
-                    ),
-                    ...(claim.requestedBy.toLowerCase() !== claim.claimant.toLowerCase()
-                      ? [
-                          formatMessage(
-                            {
-                              id: "hub.garden.pool.claims.requestedBy",
-                              defaultMessage: "asked by {who}",
-                            },
-                            {
-                              who: (
-                                <PersonName
-                                  key="by"
-                                  address={claim.requestedBy}
-                                  className="type-meta font-normal text-text-sub"
-                                />
-                              ),
-                            }
-                          ),
-                        ]
-                      : []),
-                    ...standing(claim),
-                  ];
+                : state.status === "closed"
+                  ? [
+                      formatMessage(
+                        {
+                          id:
+                            state.ending === "canceled"
+                              ? "hub.garden.pool.asks.promiseCanceledAt"
+                              : "hub.garden.pool.asks.promiseExpiredAt",
+                          defaultMessage:
+                            state.ending === "canceled"
+                              ? "promise canceled {when}"
+                              : "promise expired {when}",
+                        },
+                        { when: timelineTime(intl, state.at, now) }
+                      ),
+                    ]
+                  : [
+                      formatMessage(
+                        { id: "hub.garden.pool.asks.askedAt", defaultMessage: "Asked {when}" },
+                        { when: timelineTime(intl, claim.requestedAt * 1000, now) }
+                      ),
+                      ...(claim.requestedBy.toLowerCase() !== claim.claimant.toLowerCase()
+                        ? [
+                            formatMessage(
+                              {
+                                id: "hub.garden.pool.claims.requestedBy",
+                                defaultMessage: "asked by {who}",
+                              },
+                              {
+                                who: (
+                                  <PersonName
+                                    key="by"
+                                    address={claim.requestedBy}
+                                    className="type-meta font-normal text-text-sub"
+                                  />
+                                ),
+                              }
+                            ),
+                          ]
+                        : []),
+                      ...standing(claim),
+                    ];
           return (
             <li
               key={claim.id}
@@ -275,7 +291,7 @@ function AskOutcome({ state }: { state: WaitingRowState }) {
       </StatusBadge>
     );
   }
-  if (state.status === "declined" || state.status === "not-chosen") {
+  if (state.status === "declined" || state.status === "not-chosen" || state.status === "closed") {
     return (
       <StatusBadge variant="neutral" size="sm" showIcon={false}>
         {state.status === "declined"
@@ -283,10 +299,15 @@ function AskOutcome({ state }: { state: WaitingRowState }) {
               id: "hub.garden.pool.approvals.declined",
               defaultMessage: "Declined",
             })
-          : formatMessage({
-              id: "hub.garden.pool.approvals.notChosen",
-              defaultMessage: "Not chosen",
-            })}
+          : state.status === "closed"
+            ? formatMessage({
+                id: "hub.garden.pool.approvals.closed",
+                defaultMessage: "Closed",
+              })
+            : formatMessage({
+                id: "hub.garden.pool.approvals.notChosen",
+                defaultMessage: "Not chosen",
+              })}
       </StatusBadge>
     );
   }
