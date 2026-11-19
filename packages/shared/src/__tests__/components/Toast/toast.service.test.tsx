@@ -176,6 +176,25 @@ describe("toastService auto-dismiss (service-owned timers)", () => {
     expect(placed("Drops from the top.")?.style.marginTop).toBe("");
   });
 
+  // Home's join notice leaves unanswered when Home stops showing (PRD-1505): only the member's
+  // own dismissal may mark it read.
+  it("runs onDismiss for the member's close, never for toastService.dismiss", () => {
+    const onDismiss = vi.fn();
+    render(<Toaster />);
+    act(() => {
+      toastService.info({ id: "news", message: "News.", persistent: true, onDismiss });
+    });
+
+    act(() => toastService.dismiss("news"));
+    expect(onDismiss).not.toHaveBeenCalled();
+
+    act(() => {
+      toastService.info({ id: "news", message: "News.", persistent: true, onDismiss });
+    });
+    fireEvent.click(screen.getAllByRole("button", { name: /close|dismiss/i })[0]);
+    expect(onDismiss).toHaveBeenCalledOnce();
+  });
+
   it("does not add an action control to notifications without actions", () => {
     render(<Toaster />);
 

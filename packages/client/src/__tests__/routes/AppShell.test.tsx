@@ -24,9 +24,10 @@ vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
 
 // The bottom bar waits for a garden (DL-155); the scroller's reserve follows it.
 const activeGarden = vi.hoisted(() => ({ gardenId: "garden-1" as string | null }));
+const followRememberedGarden = vi.hoisted(() => vi.fn());
 vi.mock("@green-goods/shared/hooks/garden/useActiveGarden", () => ({
   useActiveGarden: () => ({ gardenId: activeGarden.gardenId }),
-  useFollowRememberedGarden: () => {},
+  useFollowRememberedGarden: followRememberedGarden,
 }));
 
 // The queue's failure toast opens Home's switcher through what the shell hands the provider.
@@ -387,6 +388,8 @@ describe("AppShell", () => {
     expect(reserveOn("/home/profile", "garden-1")).toBe("bar");
     // An immersive route keeps the space for the fixed bar it draws where the nav would sit.
     expect(reserveOn("/home/garden-1/work/work-1", null)).toBe("bar");
+    // PRD-1505: the shell reads a short garden list again, so Home returns to the remembered one.
+    expect(followRememberedGarden).toHaveBeenCalled();
   });
 
   it("clears stale dashboard state and document locks on route changes", () => {

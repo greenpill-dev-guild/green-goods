@@ -215,6 +215,30 @@ describe("useActiveGarden", () => {
     expect(getGardens).toHaveBeenCalledTimes(2);
   });
 
+  // Codex on #1720: a failed read left the next wait timed from the last list, so the reads
+  // after it ran back to back.
+  it("times the next read from a failed read, not from the last list", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    useActiveGardenStore.getState().rememberGarden(ALICE_SCOPE, alicesOwn.id);
+    getGardens
+      .mockResolvedValueOnce([shared, alicesOwnWithoutHer])
+      .mockRejectedValueOnce(new Error("indexer unavailable"))
+      .mockResolvedValue([shared, alicesOwn]);
+
+    const { result } = renderInAppShell();
+    await waitFor(() => expect(result.current.gardenId).toBe(shared.id));
+
+    await act(() => vi.advanceTimersByTimeAsync(5_000));
+    await waitFor(() => expect(getGardens).toHaveBeenCalledTimes(2));
+    // 16 seconds after the failure: 21 after the list, but the wait is 20 from the failure.
+    await act(() => vi.advanceTimersByTimeAsync(16_000));
+    expect(getGardens).toHaveBeenCalledTimes(2);
+
+    await act(() => vi.advanceTimersByTimeAsync(5_000));
+    await waitFor(() => expect(result.current.gardenId).toBe(alicesOwn.id));
+    expect(getGardens).toHaveBeenCalledTimes(3);
+  });
+
   it("stops reading again after a few lists that still leave it out, and keeps the choice", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     useActiveGardenStore.getState().rememberGarden(ALICE_SCOPE, alicesOwn.id);

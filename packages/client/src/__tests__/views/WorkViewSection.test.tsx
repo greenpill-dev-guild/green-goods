@@ -239,7 +239,7 @@ describe("WorkViewSection — all WorkDisplayStatus values (#405)", () => {
     const queued = JSON.stringify({
       clientWorkId: "client-1",
       submissionState: "ready",
-      details: { plantCount: 12, species: ["Oak", "Ash"] },
+      details: { plantCount: 12, species: ["Oak", "Ash"], _location: { lat: 1, lng: 2 } },
       timeSpentMinutes: 45,
       tags: ["hedge"],
     });
@@ -257,6 +257,7 @@ describe("WorkViewSection — all WorkDisplayStatus values (#405)", () => {
     expect(screen.getByText("Species: Oak, Ash")).toBeInTheDocument();
     expect(screen.getByText("Tags: hedge")).toBeInTheDocument();
     expect(screen.queryByText(/Not available/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/location/i)).not.toBeInTheDocument();
   });
 
   it("shows gardener-specific info for pending status", () => {

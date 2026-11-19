@@ -858,6 +858,33 @@ describe("a garden the member was added to", () => {
     expect(shownToast()).toMatchObject({ title: "You're now part of Vida Verde" });
   });
 
+  // Codex on #1720: once the launchers were usable, a sheet they opened sat under the toast, whose
+  // Switch still acted on the Home underneath.
+  it("steps aside while a sheet or dialog covers Home, and comes back once it closes", () => {
+    setActive(
+      "ready",
+      [
+        [TAS, ["steward"]],
+        [VIDA, ["steward"]],
+      ],
+      TAS.id,
+      [VIDA]
+    );
+    renderHome();
+    expect(toastService.info).toHaveBeenCalledOnce();
+
+    let release = () => {};
+    act(() => {
+      release = useUIStore.getState().registerOpenSheet();
+    });
+    expect(toastService.dismiss).toHaveBeenCalledWith("garden-added");
+    expect(acknowledgeAddedGardens).not.toHaveBeenCalled();
+
+    vi.mocked(toastService.info).mockClear();
+    act(() => release());
+    expect(shownToast()).toMatchObject({ title: "You're now part of Vida Verde" });
+  });
+
   // PRD-1505: a garden the member was removed from before answering kept its toast and Switch.
   it("goes unanswered when its garden is no longer the member's", () => {
     setActive(

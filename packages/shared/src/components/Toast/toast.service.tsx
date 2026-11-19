@@ -57,7 +57,7 @@ export interface ToastDescriptor {
   dismissible?: boolean;
   /** Whether to render an explicit close (X) button. Defaults to false. */
   closable?: boolean;
-  /** Callback invoked when the toast is dismissed (via tap, X button, or programmatic dismiss). */
+  /** Runs when the member dismisses the toast (tap or X), never on `toastService.dismiss`. */
   onDismiss?: () => void;
   /** Start under the installed app's top bar, so its controls stay usable (PRD-1505). */
   belowTopBar?: boolean;

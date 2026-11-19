@@ -117,7 +117,8 @@ function buildMetadataDetails(
     // Dynamic details
     if (metadata.details) {
       for (const [key, value] of Object.entries(metadata.details)) {
-        if (value === undefined || value === null) continue;
+        // A job queued by an older build may still carry its raw location, which never shows.
+        if (value === undefined || value === null || key === "_location") continue;
         let display: string;
         if (Array.isArray(value)) {
           display = value.join(", ");

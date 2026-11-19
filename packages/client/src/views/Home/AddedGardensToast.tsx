@@ -1,6 +1,7 @@
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
 import { useActiveGarden } from "@green-goods/shared/hooks/garden/useActiveGarden";
+import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import { useEffect } from "react";
 import { useIntl } from "react-intl";
 
@@ -25,20 +26,22 @@ export interface AddedGardensToastProps {
  * chosen, then names the others. The news belongs to its account: when that account signs out or
  * another signs in, the toast goes, unanswered, so it never shows one account's garden to another.
  * It shows only while Home is the page on screen, under Home's top bar so the chip and the
- * launchers stay usable, and it goes, unanswered, when a page opens over Home or its garden is no
- * longer news, such as one the member was removed from (PRD-1505); Home shows it again on return.
+ * launchers stay usable. It goes, unanswered, when a page, a sheet or a dialog opens over Home, as
+ * the app bar steps aside for one (DL-015), or when its garden is no longer news, such as one the
+ * member was removed from (PRD-1505); Home shows it again once nothing covers it.
  * Renders nothing.
  */
 export function AddedGardensToast({ home, onSwitch, onChoose }: AddedGardensToastProps) {
   const intl = useIntl();
   const account = usePrimaryAddress();
   const { status, addedGardens, acknowledgeAddedGardens } = useActiveGarden();
+  const covered = useUIStore((state) => state.openSheetCount > 0);
 
   // Another account, or none, takes the account's toast with it.
   useEffect(() => () => toastService.dismiss(GARDEN_ADDED_TOAST), [account]);
 
   useEffect(() => {
-    if (!home || status !== "ready" || addedGardens.length === 0) {
+    if (!home || covered || status !== "ready" || addedGardens.length === 0) {
       toastService.dismiss(GARDEN_ADDED_TOAST);
       return;
     }
@@ -70,7 +73,7 @@ export function AddedGardensToast({ home, onSwitch, onChoose }: AddedGardensToas
       onDismiss: told,
       suppressLogging: true,
     });
-  }, [acknowledgeAddedGardens, addedGardens, home, intl, onChoose, onSwitch, status]);
+  }, [acknowledgeAddedGardens, addedGardens, covered, home, intl, onChoose, onSwitch, status]);
 
   return null;
 }

@@ -174,7 +174,9 @@ export function useFollowRememberedGarden(chainId: number = DEFAULT_CHAIN_ID): v
     scope ? (state.gardenIdsByScope[scope] ?? null) : null
   );
   const { gardens, isLoaded } = useMyGardens(account, chainId);
-  const { dataUpdatedAt, isFetching, refetch } = useGardens(chainId);
+  const { dataUpdatedAt, errorUpdatedAt, isFetching, isPaused, refetch } = useGardens(chainId);
+  // Each wait runs from the last read, whether it brought a list or failed.
+  const lastRead = Math.max(dataUpdatedAt, errorUpdatedAt);
   const leftOut =
     isLoaded &&
     rememberedId !== null &&
@@ -186,7 +188,8 @@ export function useFollowRememberedGarden(chainId: number = DEFAULT_CHAIN_ID): v
   const { set, clear } = useTimeout();
   useEffect(() => {
     if (!leftOut || reads.current.followed !== followed) reads.current = { followed, count: 0 };
-    if (!leftOut || isFetching) return;
+    // A read paused offline resumes by itself; it is not one of the tries.
+    if (!leftOut || isFetching || isPaused) return;
     const wait = SHORT_LIST_REREADS_MS[reads.current.count];
     if (wait === undefined) return;
     set(
@@ -194,8 +197,8 @@ export function useFollowRememberedGarden(chainId: number = DEFAULT_CHAIN_ID): v
         reads.current.count += 1;
         void refetch({ cancelRefetch: false });
       },
-      Math.max(0, dataUpdatedAt + wait - Date.now())
+      Math.max(0, lastRead + wait - Date.now())
     );
     return clear;
-  }, [clear, dataUpdatedAt, followed, isFetching, leftOut, refetch, set]);
+  }, [clear, followed, isFetching, isPaused, lastRead, leftOut, refetch, set]);
 }
