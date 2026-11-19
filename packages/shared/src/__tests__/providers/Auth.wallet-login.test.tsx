@@ -1158,6 +1158,91 @@ describe("AuthProvider wallet login bridge", () => {
     }
   });
 
+  // PRD-1540: Reconnect sends a phone to the wallet app to approve a new pairing. Coming back
+  // ran the kept session's own reconnect while that pairing was still landing; it reported the
+  // wallet gone mid-connect and could delete the new session, so the notice kept returning.
+  it("leaves a Reconnect in progress alone, and stays quiet once the wallet answers", async () => {
+    vi.useFakeTimers();
+    let modalOpen = false;
+    mocks.mockGetAppKit.mockReturnValue({
+      open: () => {
+        modalOpen = true;
+      },
+      close: mocks.mockCloseAppKit,
+      getState: () => ({ open: modalOpen }),
+      subscribeState: () => () => {},
+    });
+    const setVisibility = (value: "hidden" | "visible") => {
+      Object.defineProperty(document, "visibilityState", { configurable: true, value });
+      act(() => document.dispatchEvent(new Event("visibilitychange")));
+    };
+    const settle = (ms = 0) => act(async () => void (await vi.advanceTimersByTimeAsync(ms)));
+    const goOnline = async (online: boolean) => {
+      Object.defineProperty(navigator, "onLine", { configurable: true, value: online });
+      await act(async () => void (await connectivityStore.check()));
+    };
+    try {
+      localStorage.setItem(AUTH_MODE_STORAGE_KEY, "wallet");
+      actor.stop();
+      actor = createAuthTestActor("wallet", TEST_WALLET);
+      actor.start();
+      mocks.mockGetAuthActor.mockReturnValue(actor);
+      const view = renderAuth();
+      await settle(15_000);
+      expect(view.result.current.walletRestore).toBe("failed");
+
+      // Reconnect: the modal opens a new pairing and the phone switches to the wallet app.
+      act(() => view.result.current.loginWithWallet());
+      setAccount({ isConnecting: true });
+      view.rerender();
+      setVisibility("hidden");
+      await settle(30_000);
+      const reconnects = mocks.mockReconnect.mock.calls.length;
+
+      // Back from the wallet app while the approval is still landing: the App waits for it.
+      setVisibility("visible");
+      await goOnline(false);
+      await goOnline(true);
+      expect(mocks.mockReconnect).toHaveBeenCalledTimes(reconnects);
+
+      // The person closes the modal before approving. wagmi can stay connecting for a minute
+      // after that; the kept session asks again on the next return all the same.
+      modalOpen = false;
+      view.rerender();
+      setVisibility("hidden");
+      setVisibility("visible");
+      expect(mocks.mockReconnect).toHaveBeenCalledTimes(reconnects + 1);
+      expect(view.result.current.walletRestore).toBe("failed");
+
+      // Reconnect again, and this time the wallet answers.
+      act(() => view.result.current.loginWithWallet());
+      view.rerender();
+      setAccount({ address: TEST_WALLET, isConnected: true, connector: walletConnectConnector });
+      modalOpen = false;
+      view.rerender();
+      await settle();
+      expect(view.result.current.walletRestore).toBeNull();
+
+      // Returning, and going offline and back, leave the answered wallet alone.
+      setVisibility("hidden");
+      setVisibility("visible");
+      await goOnline(false);
+      await goOnline(true);
+      await settle(20_000);
+      expect(mocks.mockReconnect).toHaveBeenCalledTimes(reconnects + 1);
+      expect(view.result.current.walletRestore).toBeNull();
+      // One failure, told once: the notice is raised only when a restore window ends unanswered.
+      const failures = mocks.mockTrackWalletRestore.mock.calls.filter(
+        ([event]) => event.outcome === "failed"
+      );
+      expect(failures).toHaveLength(1);
+    } finally {
+      Object.defineProperty(navigator, "onLine", { configurable: true, value: true });
+      await connectivityStore.check();
+      vi.useRealTimers();
+    }
+  });
+
   it("keeps asking the remembered wallet when only an embedded connector answers", async () => {
     vi.useFakeTimers();
     try {
