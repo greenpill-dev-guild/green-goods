@@ -60,6 +60,7 @@ const mockReviewProps = vi.fn();
 const mockWorkForSheetProps = vi.fn();
 let mockActiveTab = "Intro";
 let mockStartSkipped = false;
+let mockShowSkeleton = false;
 interface MockWorkLinkIntent {
   commitmentId: bigint;
   requirementIndex: number;
@@ -186,7 +187,7 @@ vi.mock("@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowControlle
     reviewConfig: {},
     reviewData: { garden: mockGardens[0], action: mockActions[0] },
     setAudioNotes: mockWorkFlowState.setAudioNotes,
-    showSkeleton: false,
+    showSkeleton: mockShowSkeleton,
     start: { skipped: mockStartSkipped, waiting: false, back: mockStartBack },
     submissionCompleted: false,
     submit: vi.fn(),
@@ -336,6 +337,7 @@ describe("Garden (Work) View", () => {
     mockSelection.gardenAddress = null;
     mockActiveTab = "Intro";
     mockStartSkipped = false;
+    mockShowSkeleton = false;
     mockLinkIntent = null;
     mockLinkIntentStatus = "none";
     mockHasPendingLinkRecovery = false;
@@ -420,6 +422,34 @@ describe("Garden (Work) View", () => {
     mockActiveTab = "Details";
     view.rerender(view.tree());
     expect(screen.queryByTestId("submission-garden")).toBeNull();
+  });
+
+  // Afo on PRD-1522: a draft that reopens past Start named its garden on no step it opened on.
+  it("names the garden on the step a resumed draft opens on, and not on the steps around it", () => {
+    mockNamedGarden = {
+      id: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      name: "Hilltop Garden",
+      bannerImage: "",
+    };
+    // The draft is still being read: the flow holds its place.
+    mockShowSkeleton = true;
+    const view = renderWithProviders();
+
+    // It picks up at Details, its first step still to do.
+    mockShowSkeleton = false;
+    mockActiveTab = "Details";
+    view.rerender(view.tree());
+    expect(screen.getByTestId("submission-garden")).toHaveTextContent("Hilltop Garden");
+
+    mockActiveTab = "Media";
+    view.rerender(view.tree());
+    expect(screen.queryByTestId("submission-garden")).toBeNull();
+    mockActiveTab = "Review";
+    view.rerender(view.tree());
+    expect(screen.queryByTestId("submission-garden")).toBeNull();
+    mockActiveTab = "Details";
+    view.rerender(view.tree());
+    expect(screen.getByTestId("submission-garden")).toBeInTheDocument();
   });
 
   it("names no garden until the flow has one, and settles the Start step's garden", () => {

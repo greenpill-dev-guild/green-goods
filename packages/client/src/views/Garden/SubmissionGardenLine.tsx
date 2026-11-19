@@ -1,24 +1,33 @@
 import { GardenBannerFallback } from "@green-goods/shared/components/Display/GardenBannerFallback";
 import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageWithFallback";
+import type { SubmissionKind } from "@green-goods/shared/hooks/client-ui/submission/useSubmissionFlowController";
 import type { Garden } from "@green-goods/shared/types/domain";
 import { useIntl } from "react-intl";
 
+const LINE_MESSAGES = {
+  work: { id: "app.garden.submit.gardenLine", defaultMessage: "Logging work in {garden}" },
+  evidence: { id: "app.proof.gardenLine", defaultMessage: "Adding proof in {garden}" },
+} as const;
+
 /**
- * Where the work goes, said once under the steps on the flow's first step,
- * whether the work is for the active garden or another that a resumed draft, a
- * promise link or navigation state chose (decision 28, PRD-1492): Submit Work
- * hides Home's chip, so nothing else names it before Review. Later steps do not
- * repeat it (PRD-1522). The garden's banner leads, as the chip's does.
+ * Where the work or the proof goes, said once under the steps: on the flow's first step,
+ * and on the step a resumed draft opens on, whether the work is for the active garden or
+ * another that a resumed draft, a promise link or navigation state chose (decision 28,
+ * PRD-1492): the submission flow hides Home's chip, so nothing else names it before Review.
+ * Other steps do not repeat it (PRD-1522). The garden's banner leads, as the chip's does.
  * The line is written to fit one line; a long name wraps rather than losing
  * the end that tells two gardens apart, and clips at two lines, as the info
  * panel does.
  */
-export function SubmissionGardenLine({ garden }: { garden: Pick<Garden, "name" | "bannerImage"> }) {
+export function SubmissionGardenLine({
+  garden,
+  kind = "work",
+}: {
+  garden: Pick<Garden, "name" | "bannerImage">;
+  kind?: SubmissionKind;
+}) {
   const intl = useIntl();
-  const sentence = intl.formatMessage(
-    { id: "app.garden.submit.gardenLine", defaultMessage: "Logging work in {garden}" },
-    { garden: garden.name }
-  );
+  const sentence = intl.formatMessage(LINE_MESSAGES[kind], { garden: garden.name });
   return (
     <p
       data-testid="submission-garden"
@@ -36,16 +45,13 @@ export function SubmissionGardenLine({ garden }: { garden: Pick<Garden, "name" |
         />
       </span>
       <span className="min-w-0 flex-1 line-clamp-2 [overflow-wrap:anywhere]" title={sentence}>
-        {intl.formatMessage(
-          { id: "app.garden.submit.gardenLine", defaultMessage: "Logging work in {garden}" },
-          {
-            garden: (
-              <span className="font-semibold text-text-strong-950" key="garden">
-                {garden.name}
-              </span>
-            ),
-          }
-        )}
+        {intl.formatMessage(LINE_MESSAGES[kind], {
+          garden: (
+            <span className="font-semibold text-text-strong-950" key="garden">
+              {garden.name}
+            </span>
+          ),
+        })}
       </span>
     </p>
   );

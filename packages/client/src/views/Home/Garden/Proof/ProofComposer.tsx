@@ -4,6 +4,7 @@ import { Button } from "@green-goods/shared/components/Button";
 import { WorkUploadConsentDialog } from "@green-goods/shared/components/Dialog/WorkUploadConsentDialog";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useProofComposerController } from "@green-goods/shared/hooks/client-ui/commitment/useProofComposerController";
 import {
   type SubmissionStage,
@@ -16,6 +17,7 @@ import {
   isVideoFile,
   isWorkDocument,
 } from "@green-goods/shared/modules/work/media-processing";
+import { compareAddresses } from "@green-goods/shared/utils/blockchain/address";
 import { RiCheckboxCircleFill, RiFileFill, RiImageFill } from "@remixicon/react";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
@@ -25,6 +27,7 @@ import { FormInfo } from "@/components/Cards";
 import { ImagePreviewDialog } from "@/components/Display";
 import { describeProofContents } from "@/components/Features/Commitments";
 import { MediaRulePill, SubmissionFlow } from "@/components/Features/Work";
+import { SubmissionGardenLine } from "@/views/Garden/SubmissionGardenLine";
 import { confirmerOf } from "../Commitment/CommitmentPeople";
 import { type NoteHint, ProofDetails } from "./ProofDetails";
 import { ProofForSheet } from "./ProofForSheet";
@@ -99,6 +102,9 @@ export function ProofComposer() {
           controller.commitment.unitLabel
         )
       : formatMessage({ id: "app.commitments.row.untitled" }));
+  // The garden the proof is added in, as the garden page above this one reads it.
+  const { data: gardens = [] } = useGardens(DEFAULT_CHAIN_ID);
+  const garden = gardens.find((candidate) => compareAddresses(candidate.id, gardenAddress));
   const flow = useSubmissionFlowController({
     kind: "evidence",
     controller,
@@ -299,7 +305,17 @@ export function ProofComposer() {
 
   return (
     <>
-      <SubmissionFlow flow={flow} keepFormStill renderStage={renderStage} />
+      <SubmissionFlow
+        flow={flow}
+        keepFormStill
+        renderStage={renderStage}
+        // Adding proof opens on Media, its first step, which alone names the garden (PRD-1522).
+        lead={
+          garden && flow.stage === "media" ? (
+            <SubmissionGardenLine garden={garden} kind="evidence" />
+          ) : null
+        }
+      />
       <WorkUploadConsentDialog kind="evidence" prompt={controller.uploadPolicy} />
 
       <ImagePreviewDialog

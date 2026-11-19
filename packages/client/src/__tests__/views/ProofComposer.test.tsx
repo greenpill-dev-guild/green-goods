@@ -56,6 +56,13 @@ vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", async (importOriginal) 
   };
 });
 
+vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
+    useGardens: () => ({ data: [{ id: GARDEN, name: "Riverside Commons", bannerImage: "" }] }),
+  };
+});
+
 const { ProofComposer } = await import("../../views/Home/Garden/Proof");
 
 function PromiseDestination() {
@@ -129,6 +136,20 @@ describe("ProofComposer", () => {
       routeGarden: GARDEN,
       onOpenYourWork: expect.any(Function),
     });
+  });
+
+  // Afo on PRD-1522: adding proof named no garden on any step.
+  it("names the garden on Media, its first step, and not after it", async () => {
+    const user = userEvent.setup();
+    render();
+    expect(screen.getByTestId("submission-garden")).toHaveTextContent(
+      "Adding proof in Riverside Commons"
+    );
+
+    await user.click(forward("Details"));
+    expect(screen.queryByTestId("submission-garden")).toBeNull();
+    await user.click(forward("Review Proof"));
+    expect(screen.queryByTestId("submission-garden")).toBeNull();
   });
 
   it("renders controller states without exposing the form", () => {

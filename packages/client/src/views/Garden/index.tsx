@@ -8,8 +8,7 @@ import { useWorkSubmissionFlowController } from "@green-goods/shared/hooks/clien
 import { SEND_STAGE_WORDS } from "@green-goods/shared/modules/transactions/send-stage";
 import type { Address } from "@green-goods/shared/types/domain";
 import { RiErrorWarningLine, RiRefreshLine } from "@remixicon/react";
-import type React from "react";
-import type { ReactNode } from "react";
+import { type FC, type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
 import { FlowBarNote, SubmissionFlow, WorkViewSkeleton } from "@/components/Features/Work";
 import { DraftSheet } from "@/components/Sheets";
@@ -34,7 +33,7 @@ const trackControllerMediaEvent = (
  * on the shared shell, with the work kind's pieces at each stage and its own queue path, the
  * Work send and its dependent link to the promise, unchanged.
  */
-const Work: React.FC = () => {
+const Work: FC = () => {
   const intl = useIntl();
   const controller = useWorkSubmissionFlowController({
     homeRoute: APP_ROUTES.home,
@@ -104,9 +103,12 @@ const Work: React.FC = () => {
     workSubmissionJourneyId,
   } = controller;
 
-  // The garden is named once, on the flow's first step: Start, or Media when Start's answer was
-  // known (decision 17). Later steps do not repeat it; Review names it in its summary (PRD-1522).
-  const onFirstStep = flow.stage === (start.skipped ? "media" : "start");
+  // The garden is named on the flow's first step, Start or Media when Start's answer was known
+  // (decision 17), and on the step this visit opened on once its draft was read: a resumed draft
+  // picks up past Start. Other steps do not repeat it; Review names it in its summary (PRD-1522).
+  const [openedOn, setOpenedOn] = useState<SubmissionStage | null>(null);
+  if (openedOn === null && !showSkeleton) setOpenedOn(flow.stage);
+  const namesGarden = flow.stage === (start.skipped ? "media" : "start") || flow.stage === openedOn;
 
   // The work kind's piece at each stage. Once a promise is chosen at Start, every later step
   // names it after its heading (D16, O9): the shell hands the pinned card in, and its sheet
@@ -238,7 +240,7 @@ const Work: React.FC = () => {
         tallBar={isSchedulingDependentLink || hasPendingLinkRecovery}
         lead={
           <>
-            {namedSubmissionGarden && onFirstStep ? (
+            {namedSubmissionGarden && namesGarden ? (
               <SubmissionGardenLine garden={namedSubmissionGarden} />
             ) : null}
             {controller.submissionOutcome?.kind === "awaiting-confirmation" && (
