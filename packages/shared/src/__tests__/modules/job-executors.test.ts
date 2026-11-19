@@ -34,10 +34,11 @@ import { WorkSendCancelledError } from "../../modules/work/send-outcome";
 import { StrandedSendReopened } from "../../modules/work/stranded-intent";
 import { PendingHeicConversionError } from "../../modules/work/work-attachments";
 import { AwaitingWorkConfirmation } from "../../modules/work/work-confirmation";
-import type {
-  AtomicBatchOptions,
-  ContractCall,
-  TransactionSender,
+import {
+  type AtomicBatchOptions,
+  type ContractCall,
+  ReceiptWaitLimitError,
+  type TransactionSender,
 } from "../../modules/transactions/types";
 import type { Address } from "../../types/domain";
 import type { ApprovalJobPayload, Job, WorkJobPayload } from "../../types/job-queue";
@@ -539,6 +540,30 @@ describe("commitment queue executor", () => {
     expect((queued.payload as CommitmentCreationPayload).metadataCID).toBe("bafy-published");
     expect(queueStore.updateJob).toHaveBeenCalledOnce();
     expect(sender.sendContractCall).toHaveBeenCalledOnce();
+  });
+
+  it("keeps a creation whose receipt outlasted the queue's limit as submitted, never failed", async () => {
+    // Its transaction is out and may still land: the next pass waits for the chain to show
+    // it rather than send a second promise (PRD-1551).
+    const sender = createMockTransactionSender({
+      sendContractCall: vi.fn(async () => {
+        throw new ReceiptWaitLimitError(120_000, { hash: MOCK_TX_HASH });
+      }),
+    });
+
+    await expect(
+      executeCommitmentQueueJob(
+        "job-commitment",
+        job("commitment", commitmentPayload()),
+        42161,
+        sender,
+        {
+          demoActive: () => false,
+          reads: reads(chainClock()),
+          store: store(),
+        }
+      )
+    ).resolves.toEqual({ status: "submitted", txHash: MOCK_TX_HASH });
   });
 
   it("never publishes the words of a promise composed offline that the chain can no longer keep", async () => {

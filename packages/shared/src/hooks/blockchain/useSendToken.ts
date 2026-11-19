@@ -22,8 +22,13 @@ import {
   type GoodDollarFeeQuote,
   quoteGoodDollarTransfer,
 } from "../../modules/wallet/good-dollar-fees";
+import {
+  asReceiptWaitLimit,
+  TransactionConfirmationPendingError,
+} from "../../modules/transactions/types";
 import type { Address } from "../../types/domain";
 import { ERC20_BALANCE_ABI, ERC20_TRANSFER_ABI } from "../../utils/blockchain/abis/erc20";
+import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useUser } from "../auth/useUser";
 import { useSafeMutation } from "../utils/useSafeMutation";
@@ -145,13 +150,22 @@ export function useSendToken() {
         if (result.confirmation !== "pending") {
           return { ...result, account: primaryAddress.toLowerCase() };
         }
+        // A Safe proposal's hash never gets a receipt: it waits for the Safe's signers.
+        if (result.awaiting === "safe-signers")
+          throw new TransactionConfirmationPendingError(result);
         let changedTransaction = false;
-        const receipt = await client.waitForTransactionReceipt({
-          hash: result.hash,
-          onReplaced: ({ reason }) => {
-            if (reason !== "repriced") changedTransaction = true;
-          },
-        });
+        const receipt = await client
+          .waitForTransactionReceipt({
+            hash: result.hash,
+            timeout: TX_RECEIPT_TIMEOUT_MS,
+            onReplaced: ({ reason }) => {
+              if (reason !== "repriced") changedTransaction = true;
+            },
+          })
+          .catch((error: unknown) => {
+            // Sent, and still confirming: never a failure to send again.
+            throw asReceiptWaitLimit(error, TX_RECEIPT_TIMEOUT_MS, result.hash);
+          });
         if (changedTransaction) throw new Error("Transaction cancelled or replaced");
         if (receipt.status !== "success") throw new Error("Transaction reverted on-chain");
         return {

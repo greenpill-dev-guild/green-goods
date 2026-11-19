@@ -161,6 +161,7 @@ describe("EmbeddedSender", () => {
         onReplaced: expect.any(Function),
         hash: MOCK_TX_HASH,
         chainId: 42220,
+        timeout: 120_000,
       });
       expect(result.sponsored).toBe(false);
     });

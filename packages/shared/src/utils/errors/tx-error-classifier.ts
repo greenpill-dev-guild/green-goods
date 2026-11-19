@@ -319,6 +319,8 @@ export function classifyTxError(error: unknown): TxErrorView {
 
 const UNCONFIRMED_ERROR_NAMES: ReadonlySet<string> = new Set([
   "TransactionConfirmationPendingError",
+  // A send's receipt that outlasted its wait's limit (PRD-1551): sent, and still confirming.
+  "ReceiptWaitLimitError",
   "WaitForTransactionReceiptTimeoutError",
   "WaitForUserOperationReceiptTimeoutError",
 ]);

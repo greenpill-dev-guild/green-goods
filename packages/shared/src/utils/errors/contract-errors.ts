@@ -1,5 +1,6 @@
 import { extractErrorMessage } from "./extract-message";
 import { HATS_COOKIE_JAR_ERRORS } from "./hats-cookie-jar-errors";
+import { isUnconfirmedTxError } from "./tx-error-classifier";
 import { offlineFailure, parseUnsentFailure } from "./unsent-failures";
 import { VOUCHER_ENTITLEMENT_ERRORS } from "./voucher-entitlement-errors";
 
@@ -469,6 +470,22 @@ export function parseContractError(error: unknown): ParsedContractError {
   // 0. The app's own refusals: an earlier version queued, a wallet on another network.
   const unsent = parseUnsentFailure(error, errorStr);
   if (unsent) return unsent;
+
+  // A send that went out with no receipt yet (its wait outlasted its limit, or the answer was a
+  // proposal or a lost reply) may still land. It never reads as failed, nor as a timeout that
+  // invites trying again (PRD-1551), and says what `classifyTxError` says.
+  if (isUnconfirmedTxError(error)) {
+    return {
+      raw: errorStr,
+      name: "SendStillConfirming",
+      message: "It could still go through, so wait a moment and check before you try again.",
+      titleKey: "app.txFeedback.unconfirmed.title",
+      messageKey: "app.txFeedback.unconfirmed.message",
+      isKnown: true,
+      recoverable: false,
+      suggestedAction: "check-wallet",
+    };
+  }
 
   const lowerStr = errorStr.toLowerCase();
   const hasWalletRequestExpiryCode = /\baa(?:22|32)\b[^\n\r]*(?:expired|not due)/i.test(errorStr);
