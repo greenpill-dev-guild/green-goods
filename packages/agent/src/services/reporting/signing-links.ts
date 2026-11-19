@@ -252,7 +252,9 @@ export function sendReviewSigningLink(
   out: ConversationWriter,
   review: ReviewRecord,
   operation: OperationRecord,
-  account: AccountBinding
+  account: AccountBinding,
+  /** The epoch the decision's confirmation was checked against; the current one by default. */
+  identityEpoch = participantEpoch(core, review.participantId)
 ): boolean {
   const binding = out.target.binding;
   if (!binding || !operation.envelope) return false;
@@ -268,7 +270,7 @@ export function sendReviewSigningLink(
     resourceRevision: review.revision,
     resourceDigest: operation.envelope.payloadDigest,
     expectedAccount: account.address,
-    identityEpoch: participantEpoch(core, review.participantId),
+    identityEpoch,
   });
   out.say(
     "review.signLink",

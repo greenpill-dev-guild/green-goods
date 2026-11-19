@@ -63,6 +63,7 @@ import {
   answerReviewSelection,
   handleReviewCommand,
   requestReview,
+  reviewOwnsCommand,
 } from "./review-steps";
 import { startRecovery } from "../recovery";
 import { StaleReviewError } from "../reviews";
@@ -370,7 +371,9 @@ function routeCommand(
   if (command.kind === "help" || command.kind === "start") return writer.say("help");
   if (command.kind === "review") return requestReview(writer, command.index);
   if (command.kind === "recover") return startRecovery(writer);
-  if (review && reviewOwnsCommand(writer) && handleReviewCommand(writer, review, command)) return;
+  if (review && reviewOwnsCommand(writer, review, command)) {
+    if (handleReviewCommand(writer, review, command)) return;
+  }
   const owned = deps.commands?.[command.kind];
   if (owned) return owned(writer, plan);
   handleReportCommand(writer, command, external);
@@ -380,12 +383,6 @@ function routeCommand(
 function startsIdle(writer: TurnWriter): boolean {
   const { binding, draft, review } = writer.ctx;
   return Boolean(binding) && !draft && !review;
-}
-
-/** Commands such as CONFIRM or CANCEL belong to an open decision while its question is showing. */
-function reviewOwnsCommand(writer: TurnWriter): boolean {
-  const { review, prompt, draft } = writer.ctx;
-  return Boolean(review && (isReviewPrompt(prompt?.kind) || !draft));
 }
 
 /** Settles the turn's event, and the rest of its album with it. */

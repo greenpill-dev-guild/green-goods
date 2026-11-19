@@ -36,6 +36,9 @@ describe("account requests in plain words", () => {
     ["me manda outro link", "newLink"],
     ["link a new account", "switch"],
     ["link another wallet", "switch"],
+    // "Link" first is the verb: linking another account, not a new copy of a link.
+    ["link another", "switch"],
+    ["can i link another", "switch"],
   ])("reads %s as %s", (text, kind) => {
     expect(parseCommand(text)?.kind).toBe(kind);
   });

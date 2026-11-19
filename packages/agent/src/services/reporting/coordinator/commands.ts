@@ -181,13 +181,17 @@ const LINK_REQUEST_FILLER = new Set([
 
 /**
  * A short message that asks only for a new link: "new link", "send me another link", "nuevo
- * enlace", "novo link". A message that names an account ("link a new account") is an account
- * request instead, and a story that mentions a link still reaches the report.
+ * enlace", "novo link". A message that names an account ("link a new account") or links another
+ * ("link another") is an account request instead, and a story that mentions a link still reaches
+ * the report.
  */
 function linkRequest(text: string): ChatCommand | null {
   const said = text.replace(/[.,!?¿¡]+/gu, " ").trim();
   if (said.split(/\s+/u).length > MAX_REQUEST_WORDS || ACCOUNT_NOUN.test(said)) return null;
-  if (!LINK_NOUN.test(said) || !NEW_LINK.test(said)) return null;
+  // "New" comes before "link": "link another" uses link as the verb, for another account.
+  const noun = LINK_NOUN.exec(said);
+  const fresh = NEW_LINK.exec(said);
+  if (!noun || !fresh || fresh.index > noun.index) return null;
   const plain = said
     .replace(LINK_NOUN, " ")
     .replace(NEW_LINK, " ")

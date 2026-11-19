@@ -275,6 +275,24 @@ describe("steward review", () => {
     expect(sentTexts().slice(said)).not.toContain(LINK_EXPIRED);
   });
 
+  it("sends a lapsed decision's fresh link on RETRY even while a report is open beside it", async () => {
+    await publishedWork();
+    await linkedSteward();
+    const summary = await decide("Approve", "Looks right");
+    const token = /CONFIRM (\d{4})/.exec(summary[0] ?? "")?.[1];
+    await harness.say(BOLA, `CONFIRM ${token}`);
+    const expired = latestLink(harness);
+    // The steward starts a report of their own while the decision waits for its signature.
+    await harness.say(BOLA, "Today I planted twelve baobab seedlings by the fence");
+    expect(harness.core.db.query("SELECT count(*) AS n FROM work_drafts").get()).toEqual({ n: 2 });
+    harness.clock.advance(harness.core.settings.linkChallengeTtlMs);
+    await harness.drain();
+
+    const fresh = await harness.say(BOLA, "new link");
+    expect(fresh[0]).toContain("Open this page to check and sign your decision with your wallet.");
+    expect(latestLink(harness)).not.toBe(expired);
+  });
+
   it("never offers or accepts a steward's own work", async () => {
     await publishedWork();
     harness.chain.grantRole(TAS.address, adaAccount.address, { gardener: true, operator: true });

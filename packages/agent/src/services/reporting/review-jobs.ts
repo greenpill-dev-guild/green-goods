@@ -262,7 +262,8 @@ export async function resolveReviewAuthority(
     }
     const out = writer();
     if (!out?.target.binding) return;
-    if (!sendReviewSigningLink(core, out, current, { ...operation, envelope }, account)) return;
+    if (!sendReviewSigningLink(core, out, current, { ...operation, envelope }, account, epoch))
+      return;
     const module = deps.delegationModules.find((entry) => entry.chainId === review.chainId);
     if (
       account.kind === "kernel" &&

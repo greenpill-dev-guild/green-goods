@@ -148,6 +148,19 @@ function applyReviewContent(
   nextReviewStep(writer, next, account);
 }
 
+/**
+ * Commands such as CONFIRM or CANCEL belong to an open decision while its question is showing, and
+ * RETRY to a decision whose signing link lapsed, as the chat told the steward, report or not.
+ */
+export function reviewOwnsCommand(
+  writer: TurnWriter,
+  review: ReviewRecord,
+  command: ChatCommand
+): boolean {
+  if (command.kind === "retry" && reviewLinkLapsed(writer.core, review)) return true;
+  return isReviewPrompt(writer.ctx.prompt?.kind) || !writer.ctx.draft;
+}
+
 /** Review commands take precedence while a review question or summary is open. */
 export function handleReviewCommand(
   writer: TurnWriter,
