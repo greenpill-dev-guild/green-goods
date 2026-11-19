@@ -151,6 +151,13 @@ function normalizeFlavor(value: string | undefined): PwaManifestFlavor | undefin
   return undefined;
 }
 
+// Deployment signals choose only between beta and production, as they did before alpha: alpha comes
+// from an explicit flavor or the alpha branch, so an `alpha` here falls through to the next signal.
+function normalizeDeploymentFlavor(value: string | undefined): PwaManifestFlavor | undefined {
+  const flavor = normalizeFlavor(value);
+  return flavor === "alpha" ? undefined : flavor;
+}
+
 export function resolvePwaManifestFlavor(
   env: Record<string, string | undefined>
 ): PwaManifestFlavor {
@@ -165,12 +172,12 @@ export function resolvePwaManifestFlavor(
   if (env.VERCEL_GIT_COMMIT_REF === ALPHA_BRANCH) return "alpha";
 
   const deploymentFlavor =
-    normalizeFlavor(env.VERCEL_TARGET_ENV) ||
-    normalizeFlavor(env.VITE_VERCEL_TARGET_ENV) ||
-    normalizeFlavor(env.SENTRY_ENVIRONMENT) ||
-    normalizeFlavor(env.VITE_SENTRY_ENVIRONMENT) ||
-    normalizeFlavor(env.APP_ENV) ||
-    normalizeFlavor(env.VITE_APP_ENV);
+    normalizeDeploymentFlavor(env.VERCEL_TARGET_ENV) ||
+    normalizeDeploymentFlavor(env.VITE_VERCEL_TARGET_ENV) ||
+    normalizeDeploymentFlavor(env.SENTRY_ENVIRONMENT) ||
+    normalizeDeploymentFlavor(env.VITE_SENTRY_ENVIRONMENT) ||
+    normalizeDeploymentFlavor(env.APP_ENV) ||
+    normalizeDeploymentFlavor(env.VITE_APP_ENV);
 
   return deploymentFlavor === "staging" ? "staging" : "production";
 }

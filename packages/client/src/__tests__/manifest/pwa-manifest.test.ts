@@ -138,6 +138,10 @@ describe("PWA manifest branding", () => {
     ).toBe("alpha");
     expect(resolvePwaManifestFlavor({ PWA_MANIFEST_FLAVOR: "alpha" })).toBe("alpha");
     expect(resolvePwaManifestFlavor({ VERCEL_GIT_COMMIT_REF: "develop" })).toBe("production");
+    // A deployment signal naming alpha off the alpha branch passes to the next signal, as before.
+    expect(resolvePwaManifestFlavor({ SENTRY_ENVIRONMENT: "alpha", APP_ENV: "staging" })).toBe(
+      "staging"
+    );
   });
 
   it("uses Vercel's custom environment signal for staging builds", () => {

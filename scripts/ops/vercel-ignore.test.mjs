@@ -167,3 +167,11 @@ test("the App and the Hub build only main, develop and alpha", () => {
     );
   }
 });
+
+test("alpha's first deployment builds even when nothing it is built from differs from develop", () => {
+  const alpha = { ...compared, site: "client", ref: "alpha", changed: ["docs/docs/intro.mdx"] };
+  assert.equal(decide(alpha).build, true);
+  // Later pushes compare with alpha's own last deployment, like any other branch.
+  assert.equal(decide({ ...alpha, previous: "ccccccc" }).build, false);
+  assert.equal(decide({ ...alpha, ref: "feature/x" }).build, false);
+});

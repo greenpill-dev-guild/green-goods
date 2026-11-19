@@ -22,7 +22,7 @@ Green Goods runs a **staging → production** flow:
 
 - **`develop`** is the integration/staging branch. Open your PRs here. A merge to `develop` deploys the Agent straight to production. It also deploys the QA app to production and the website, app and admin to staging for validation, unless Vercel's ignore step finds that nothing a site is built from changed since its last deployment.
 - **`main`** is production for the website, app and admin. Maintainers promote `develop → main` once changes are validated on staging.
-- **`alpha`** serves experiments at `alpha.greengoods.app` (App) and `alpha.admin.greengoods.app` (Hub) for a few testers before they reach beta. It runs against the same chain, indexer and Agent as beta, so its writes are real, and it sends no product analytics. Cut it from `develop` and merge experiment branches into it; it never merges back. An experiment that graduates reaches `develop` through its own pull request.
+- **`alpha`** serves experiments at `alpha.greengoods.app` (App) and `alpha.admin.greengoods.app` (Hub) for a few testers before they reach beta. It runs against the same chain, indexer and Agent as beta, so its writes are real. Its pages send no PostHog analytics, though events the shared Agent records for its requests still count. Cut it from `develop` and merge experiment branches into it; it never merges back. An experiment that graduates reaches `develop` through its own pull request.
 
 Only `main`, `develop` and `alpha` create Vercel deployments for the App and the Hub: the `git.deploymentEnabled` rule in their `vercel.json` turns every other branch off, which keeps preview builds from running for each feature branch.
 
