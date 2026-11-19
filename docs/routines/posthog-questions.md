@@ -154,7 +154,7 @@ instead. Read App acts in the App project (163591) and Hub acts in the Hub proje
 | `act` | Which act, such as `garden_join`, `vault_deposit`, `garden_create`, `pool_lifecycle` or `pool_setup`. The full list is `SendActName` in `packages/shared/src/modules/app/sendActAnalytics.ts`. |
 | `operation` | Which of the act's operations ran, a fixed name from code: a contract function such as `pausePool`, or the writes of a setup run such as `seedCycle,openCycle`. |
 | `auth_mode`, `chain_id` | The sign-in kind and the chain. |
-| `outcome` (ended only) | `confirmed` landed. `confirming` went out and may still land: a receipt wait past its limit, a send on record without a receipt, a Safe proposal. `queued` was kept on this device. `cancelled` was declined in the wallet. `failed` is anything else. `partial` is an act of several copies whose copies ended differently. |
+| `outcome` (ended only) | `confirmed` landed. `confirming` went out and may still land: a receipt wait past its limit, a send on record without a receipt, a Safe proposal, a wallet answer the person stopped waiting for, or a wallet join, which returns once it is broadcast. `queued` was kept on this device. `cancelled` was declined in the wallet. `failed` is anything else. `partial` is an act of several copies whose copies ended differently. |
 | `copies_<outcome>` (ended only) | For an act of several copies, how many copies ended each way. |
 | `parsed_error_family`, `duration_ms` (ended only) | The parsed error family of an act that did not land, never its message, and how long the act took. |
 
