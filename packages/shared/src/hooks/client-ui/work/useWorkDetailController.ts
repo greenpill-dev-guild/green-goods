@@ -294,10 +294,20 @@ export function useWorkDetailController() {
         return;
       }
       if (!result.success) {
-        // A send a Safe only proposed says so on its record, whichever try sent it (PRD-1564).
+        // A send a Safe only proposed says so on its record, whichever try sent it (PRD-1564). A
+        // read that fails says checking: the send is on record, so it never reads as failed.
         const held =
           result.error === "awaiting-confirmation"
-            ? (await jobQueue.getJobs(owner, { synced: false })).find(({ id }) => id === work.id)
+            ? await jobQueue
+                .getJobs(owner, { synced: false })
+                .then((jobs) => jobs.find(({ id }) => id === work.id))
+                .catch((error: unknown) => {
+                  logger.warn("[WorkDetail] Could not read the held work's send record", {
+                    error,
+                    workId: work.id,
+                  });
+                  return undefined;
+                })
             : undefined;
         reportUploadNowOutcome(result, {
           safeSigners: Boolean(held && recordedSendAwaiting(held) === "safe-signers"),

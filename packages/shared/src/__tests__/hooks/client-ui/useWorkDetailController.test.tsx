@@ -535,19 +535,31 @@ describe("useWorkDetailController", () => {
     const { connectivityStore } = await import("../../../stores/connectivity");
     const confirm = vi.spyOn(connectivityStore, "confirmOnline").mockResolvedValue(true);
     const hash = `0x${"5a".repeat(32)}` as const;
-    vi.mocked(jobQueue.getJobs).mockResolvedValue([
-      {
-        id: "work-1",
-        kind: "work",
-        payload: {
-          uploadCheckpoint: { transactionHash: hash, files: {}, awaiting: "safe-signers" },
-        },
-        userAddress: "0x1111111111111111111111111111111111111111",
-        createdAt: 1,
-        attempts: 0,
-        synced: false,
-      } as never,
-    ]);
+    const unsent = {
+      id: "work-1",
+      kind: "work",
+      payload: {},
+      userAddress: "0x1111111111111111111111111111111111111111",
+      createdAt: 1,
+      attempts: 0,
+      synced: false,
+    } as never;
+    // Nothing is on record before the tap; the try's own send leaves the Safe's mark.
+    vi.mocked(jobQueue.getJobs)
+      .mockResolvedValueOnce([unsent])
+      .mockResolvedValue([
+        {
+          id: "work-1",
+          kind: "work",
+          payload: {
+            uploadCheckpoint: { transactionHash: hash, files: {}, awaiting: "safe-signers" },
+          },
+          userAddress: "0x1111111111111111111111111111111111111111",
+          createdAt: 1,
+          attempts: 0,
+          synced: false,
+        } as never,
+      ]);
     vi.mocked(jobQueue.processJob).mockResolvedValueOnce({
       success: false,
       error: "awaiting-confirmation",
