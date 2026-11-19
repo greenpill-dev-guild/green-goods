@@ -73,10 +73,10 @@ function latestSigningRequest(
   core: ReportingCore,
   resourceId: string,
   purposes: SigningPurposes = REPORT_SIGNING
-): { id: string; revision: number | null; createdAt: number } | null {
+): { id: string; revision: number | null; createdAt: number; rowid: number } | null {
   const row = core.db
     .query(
-      `SELECT id, resource_revision, created_at FROM continuation_requests
+      `SELECT id, resource_revision, created_at, rowid FROM continuation_requests
        WHERE resource_id = $resource AND purpose IN ${purposes}
        ORDER BY created_at DESC, rowid DESC LIMIT 1`
     )
@@ -84,8 +84,11 @@ function latestSigningRequest(
     id: string;
     resource_revision: number | null;
     created_at: number;
+    rowid: number;
   } | null;
-  return row ? { id: row.id, revision: row.resource_revision, createdAt: row.created_at } : null;
+  return row
+    ? { id: row.id, revision: row.resource_revision, createdAt: row.created_at, rowid: row.rowid }
+    : null;
 }
 
 /**
@@ -100,7 +103,13 @@ export function decisionLinkIsLatest(
   if (reviewState(review) !== "awaitingSignature") return false;
   const decision = latestSigningRequest(core, review.id, REVIEW_SIGNING);
   const report = draftId ? latestSigningRequest(core, draftId) : null;
-  return decision !== null && (report === null || decision.createdAt >= report.createdAt);
+  if (!decision) return false;
+  // Links sent in the same instant are told apart by the order they were stored in.
+  return (
+    !report ||
+    decision.createdAt > report.createdAt ||
+    (decision.createdAt === report.createdAt && decision.rowid > report.rowid)
+  );
 }
 
 /**
