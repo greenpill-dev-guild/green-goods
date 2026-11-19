@@ -6,6 +6,7 @@ import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import {
   type CommitmentClaimRequestRecord,
   type CommitmentReadModel,
+  selectClaimSupersededBy,
   useCommitmentReason,
 } from "@green-goods/shared/commitment-pooling";
 import { RiArrowLeftLine, RiRefreshLine } from "@remixicon/react";
@@ -24,15 +25,14 @@ export interface CommitmentClaimPanelProps {
 }
 
 /**
- * What the reader is told about their request. The index closes a request still pending when its
- * promise ends as superseded, with the ending as the resolution code, so a promise withdrawn or
- * lapsed before anyone took it up never reads as taken up by someone else.
+ * What the reader is told about their request: a promise withdrawn or lapsed before anyone took it
+ * up never reads as taken up by someone else.
  */
-function requestOutcome({ state, resolutionCode }: CommitmentClaimRequestRecord) {
-  if (state !== "SUPERSEDED") return state;
-  if (resolutionCode === "COMMITMENT_CANCELLED") return "WITHDRAWN";
-  if (resolutionCode === "COMMITMENT_EXPIRED") return "EXPIRED";
-  return state;
+function requestOutcome(request: CommitmentClaimRequestRecord) {
+  const supersededBy = selectClaimSupersededBy(request);
+  if (supersededBy === "canceled") return "WITHDRAWN";
+  if (supersededBy === "expired") return "EXPIRED";
+  return request.state;
 }
 
 /**

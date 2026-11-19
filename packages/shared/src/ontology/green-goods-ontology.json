@@ -2967,7 +2967,7 @@
     },
     {
       "id": "commitment-claim-request-state",
-      "definition": "Indexer lifecycle of a commitment claim request, including peer supersession after one request is accepted.",
+      "definition": "Indexer lifecycle of a commitment claim request. A request still pending is superseded when its commitment is taken up, canceled or expires, and its resolution code (COMMITMENT_ACCEPTED, COMMITMENT_CANCELLED or COMMITMENT_EXPIRED) says which.",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
       "canonical": {
         "ordered": true,

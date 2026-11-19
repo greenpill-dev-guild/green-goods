@@ -929,6 +929,49 @@ describe("Commitment Pooling review regressions", () => {
     assert.equal(takenUpClaim?.resolvedAt, START_BLOCK + 6);
   });
 
+  it("lets an acceptance delivered after a newer cancel take back the requests it closed", async () => {
+    const request = (claimant: number, block: number) =>
+      CommitmentPoolingModule.ClaimRequested.createMockEvent({
+        commitmentId: 49n,
+        claimant: address(claimant),
+        requestedBy: address(claimant),
+        kind: 1n,
+        gardenContext: address(4),
+        requestedAt: BigInt(block),
+        mockEventData: eventData(block),
+      });
+    const db = await processEvents(createTestIndexer(), [
+      poolRegistered(START_BLOCK),
+      cycleSeeded(START_BLOCK + 1),
+      commitmentCreated(49n, START_BLOCK + 2, 1n),
+      request(3, START_BLOCK + 3),
+      request(8, START_BLOCK + 4),
+      CommitmentPoolingModule.CommitmentCancelled.createMockEvent({
+        commitmentId: 49n,
+        canceller: address(2),
+        reasonCID: "ipfs://cancelled",
+        mockEventData: eventData(START_BLOCK + 7),
+      }),
+    ]);
+    const claimOf = (claimant: number) =>
+      db.CommitmentClaimRequest.get(`${CHAIN_ID}-49-${address(claimant).toLowerCase()}`);
+    assert.equal((await claimOf(8))?.resolutionCode, "COMMITMENT_CANCELLED");
+
+    await handleAccepted(
+      runtimeEvent(accepted(49n, START_BLOCK + 6), "CommitmentAccepted"),
+      db as unknown as PoolingContext
+    );
+
+    const takenUp = await claimOf(3);
+    const passedOver = await claimOf(8);
+    assert.equal(takenUp?.state, "ACCEPTED");
+    assert.equal(takenUp?.resolutionCode, "COMMITMENT_ACCEPTED");
+    assert.equal(takenUp?.resolvedAt, START_BLOCK + 6);
+    assert.equal(passedOver?.state, "SUPERSEDED");
+    assert.equal(passedOver?.resolutionCode, "COMMITMENT_ACCEPTED");
+    assert.equal(passedOver?.resolvedAt, START_BLOCK + 6);
+  });
+
   it("applies every signed unit delta and refreshes ownership on a winning relink", async () => {
     let db = await processEvents(createTestIndexer(), [
       poolRegistered(START_BLOCK),
