@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { Address } from "../../types/domain";
 import {
   publicRehearsalCycles,
+  publicReviewedWorkExclusionIds,
   publicWorkReviewStatus,
 } from "../../config/public-record-visibility";
 
@@ -32,5 +33,22 @@ describe("reviewed public record policy", () => {
     expect(
       publicWorkReviewStatus({ id: "0x" + "a".repeat(64), gardenAddress }, 42161)
     ).toBeUndefined();
+  });
+
+  it("hides a reviewed record only in the garden it was reviewed for", () => {
+    const qaFixture = "0x6fce9a2a5647cbee87300d1a5874e2d196afda0433cc8f6926f192390be16b58";
+    const familyGarden = "0xF7b892886998DAe960D64a9db488336684F137A0" as Address;
+    expect(publicWorkReviewStatus({ id: qaFixture, gardenAddress: familyGarden }, 42161)).toBe(
+      "test"
+    );
+    expect(publicWorkReviewStatus({ id: qaFixture, gardenAddress }, 42161)).toBeUndefined();
+    expect(
+      publicWorkReviewStatus({ id: testId, gardenAddress: familyGarden }, 42161)
+    ).toBeUndefined();
+    expect(publicReviewedWorkExclusionIds(42161)).toEqual(
+      expect.arrayContaining([testId, pendingId, qaFixture])
+    );
+    expect(publicReviewedWorkExclusionIds(42161)).toHaveLength(20);
+    expect(publicReviewedWorkExclusionIds(11155111)).toEqual([]);
   });
 });
