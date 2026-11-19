@@ -2,11 +2,12 @@
 
 /**
  * The issuer's acts in the Promises console (PRD-1297 surface 6): a booking
- * under way offers its act on its own row in Offers and Asks, grouped or
- * past due, each act's dialog sends exactly what it reviewed and waits while
- * the console can't act, a return above the issuer's terms or below the
- * escrow's ceiling is refused, a failed return needs recovery, and a short
- * allowance is repaired from the reserve card with enough for what waits.
+ * under way waits for its act in Review Promises, and its promise keeps one row
+ * in Offers and Asks, grouped or past due; each act's dialog sends exactly what
+ * it reviewed and waits while the console can't act, a return above the
+ * issuer's terms or below the escrow's ceiling is refused, a failed return
+ * needs recovery, and Your Reserve leads with three numbers and repairs a short
+ * allowance with enough for what waits.
  */
 
 import { commitmentFixture } from "@green-goods/shared/__tests__/test-utils/commitment-pooling-fixtures";
@@ -26,6 +27,7 @@ import type {
 } from "@green-goods/shared/modules/commitment-pooling/pool-console";
 import type { Address } from "@green-goods/shared/types/domain";
 import { describe, expect, it, vi } from "vitest";
+import { PoolClaimsCard } from "@/views/Garden/Pool/PoolClaimsCard";
 import { PoolCommitmentsCard } from "@/views/Garden/Pool/PoolCommitmentsCard";
 import { VoucherReserveCard } from "@/views/Garden/Pool/VoucherReserveCard";
 import { fireEvent, renderWithProviders, screen, waitFor, within } from "../test-utils";
@@ -74,8 +76,8 @@ const visit: VoucherBooking = {
   voucherUnits: VOUCHER,
   service: {
     kind: "visit",
-    startsAt: NOW + 4 * 86_400,
-    endsAt: NOW + 4 * 86_400 + 4 * 3_600,
+    startsAt: NOW - 86_400,
+    endsAt: NOW - 86_400 + 4 * 3_600,
     report: { checkedIn: true, usableHours: 4, ofHours: 4, photos: 2 },
   },
   stage: { kind: "in-progress" },
@@ -132,20 +134,31 @@ function offers(
         ])
       ),
   });
+  // The list and the queue, as the tab lays them side by side: the acts are the queue's.
   const render = (console: PoolConsoleController, vouchers: VoucherConsoleView = view) => (
-    <PoolCommitmentsCard
-      console={console}
-      vouchers={vouchers}
-      target={{ gardenName: "Green Goods Community Garden", isProtocol: false }}
-      scope="open"
-      onScopeChange={() => undefined}
-      focus={null}
-      onFocusChange={() => undefined}
-      onOpenCommitment={() => undefined}
-      onOpenGroup={() => undefined}
-      onSeed={() => undefined}
-      canSeed
-    />
+    <>
+      <PoolCommitmentsCard
+        console={console}
+        vouchers={vouchers}
+        scope="open"
+        onScopeChange={() => undefined}
+        focus={null}
+        onFocusChange={() => undefined}
+        onOpenCommitment={() => undefined}
+        onOpenGroup={() => undefined}
+        onSeed={() => undefined}
+        canSeed
+      />
+      <PoolClaimsCard
+        console={console}
+        vouchers={vouchers}
+        target={{ gardenName: "Green Goods Community Garden", isProtocol: false }}
+        safe={SAFE}
+        onDecline={() => undefined}
+        onOpen={() => undefined}
+        onOpenPromise={() => undefined}
+      />
+    </>
   );
   const result = renderWithProviders(render(pool));
   return {
@@ -205,8 +218,7 @@ describe("the issuer's acts in the Promises console", () => {
     const reportVisit = vi.fn().mockResolvedValue(undefined);
     offers([visit], { reportVisit });
 
-    // The act and its narrow-row icon carry one name, as Expire Now… does.
-    fireEvent.click(screen.getAllByRole("button", { name: "Report Visit…" })[0]!);
+    fireEvent.click(screen.getByRole("button", { name: "Report Visit…" }));
     const dialog = await screen.findByRole("dialog");
     expect(within(dialog).getByText("Mara checked in")).toBeInTheDocument();
     fireEvent.click(within(dialog).getByRole("button", { name: "Report Visit" }));
@@ -227,7 +239,9 @@ describe("the issuer's acts in the Promises console", () => {
     };
     offers([stopped], { proposeReturn });
 
-    expect(screen.getByText("Ended early · 2 of 4 hours")).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("pool-commitment-43")).getByText("Ended early · 2 of 4 hours")
+    ).toBeInTheDocument();
     fireEvent.click(screen.getAllByRole("button", { name: "Propose Return…" })[0]!);
     const dialog = await screen.findByRole("dialog");
     expect(within(dialog).getByText("Booking 43 · stopped after 2 of 4 hours")).toBeInTheDocument();
@@ -286,7 +300,7 @@ describe("the issuer's acts in the Promises console", () => {
 
     expect(screen.getByRole("button", { name: "Needs recovery (1)" })).toBeInTheDocument();
     expect(
-      screen.getByText(
+      within(screen.getByTestId("pool-commitment-51")).getByText(
         kind === "return-failed"
           ? "Return didn’t go through"
           : kind === "transfer-pending"
@@ -320,7 +334,7 @@ describe("the issuer's acts in the Promises console", () => {
   });
 
   // Past due used to win the row's one slot, and Expire Now repays no one (Codex on #1320).
-  it("keeps Retry Transfer on a return that failed past its due date", () => {
+  it("keeps a return that failed past its due date on Retry Transfer, never Expire Now", () => {
     const failed: VoucherBooking = {
       ...endedEarly,
       stage: { kind: "return-failed", units: 6n * VOUCHER },
@@ -338,13 +352,28 @@ describe("the issuer's acts in the Promises console", () => {
     offers([failed], {}, { commitments: [overdue] });
 
     const row = screen.getByTestId("pool-commitment-51");
-    expect(within(row).getAllByRole("button", { name: "Retry Transfer" })).not.toHaveLength(0);
     expect(within(row).queryByRole("button", { name: "Expire Now…" })).not.toBeInTheDocument();
     expect(within(row).getByText("Needs recovery")).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("pool-booking-51")).getByRole("button", { name: "Retry Transfer" })
+    ).toBeEnabled();
   });
 
-  // Copies made together fold into one row, which carried no voucher act (Codex on #1320).
-  it("gives a grouped copy whose booking needs the steward its own row, act and all", () => {
+  // Decision 1 of the hub-day review: Review Promises is the one queue for every booking act.
+  it("leaves every booking act to Review Promises, and names who booked a single offer and what it takes", () => {
+    offers([visit, endedEarly]);
+    const list = screen.getByTestId("pool-commitments");
+    expect(within(list).queryByRole("button", { name: /Report Visit|Propose Return/ })).toBeNull();
+    const row = screen.getByTestId("pool-commitment-43");
+    expect(within(row).getByText("Mara")).toBeInTheDocument();
+    expect(within(row).getByText("booked")).toBeInTheDocument();
+    expect(within(row).getByText(/Takes 1 Green Goods voucher/)).toBeInTheDocument();
+    expect(screen.getByTestId("pool-booking-43")).toBeInTheDocument();
+    expect(screen.getByTestId("pool-booking-51")).toBeInTheDocument();
+  });
+
+  // Decision 2 of the hub-day review: the list shows each promise once; the act is the queue's.
+  it("folds a booked copy into its group, which counts booked and open, and keeps its act in the queue", () => {
     const metadata = buildCommitmentMetadata({
       title: "Hub day, up to 4 hours",
       displayGroup: { version: 1, id: "group-hubdays01" },
@@ -369,9 +398,25 @@ describe("the issuer's acts in the Promises console", () => {
       }
     );
 
-    expect(screen.getByTestId("pool-group-group-hubdays01")).toBeInTheDocument();
-    const own = screen.getByTestId("pool-commitment-43");
-    expect(within(own).getAllByRole("button", { name: "Report Visit…" })).not.toHaveLength(0);
+    const group = screen.getByTestId("pool-group-group-hubdays01");
+    expect(within(group).getByText("1 booked")).toBeInTheDocument();
+    expect(within(group).getByText("2 of 3 open")).toBeInTheDocument();
+    expect(within(group).getByText(/Takes 1 Green Goods voucher/)).toBeInTheDocument();
+    expect(screen.queryByTestId("pool-commitment-43")).not.toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("pool-booking-43")).getByRole("button", { name: "Report Visit…" })
+    ).toBeEnabled();
+  });
+
+  // Decision 3 of the hub-day review: three numbers first, the rest folded.
+  it("leads Your Reserve with what it holds, what is promised and what is booked, and folds the rest", () => {
+    card(2n * VOUCHER);
+    const tiles = screen.getAllByTestId("voucher-reserve-stat");
+    expect(tiles.map((tile) => tile.textContent)).toEqual(["In reserve8", "Promised3", "Booked3"]);
+    const details = screen.getByText("Reserve details").closest("details")!;
+    expect(details).not.toHaveAttribute("open");
+    expect(within(details).getByText("Allowance for Riverside Commons")).toBeInTheDocument();
+    expect(within(details).getByText("Issuer cap")).toBeInTheDocument();
   });
 
   it("shows a reward waiting on a used-up allowance, and raises the allowance to what the steward enters", async () => {

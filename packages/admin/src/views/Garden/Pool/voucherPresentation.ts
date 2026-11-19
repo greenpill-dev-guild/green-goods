@@ -255,11 +255,14 @@ interface VoucherBookingRowView {
 }
 
 /**
- * The act a booking under way offers on its row: the same transfer again after
- * a return failed, a proposed return once the service stopped early, whatever
- * it was, and a visit's report while it runs.
+ * The act a booking under way waits on the steward for, in Review Promises: the same transfer
+ * again after a return failed, a proposed return once the service stopped early, whatever it
+ * was, and a visit's report once the visit has begun. `now` is the chain's time, in seconds.
  */
-export function voucherBookingAct(booking: VoucherBooking): VoucherBookingRowView["act"] {
+export function voucherBookingAct(
+  booking: VoucherBooking,
+  now: number
+): VoucherBookingRowView["act"] {
   const { service, stage } = booking;
   if (
     stage.kind === "return-failed" ||
@@ -269,18 +272,19 @@ export function voucherBookingAct(booking: VoucherBooking): VoucherBookingRowVie
     return "retry";
   if (stage.kind === "ended-early") return "propose";
   if (service.kind === "units") return service.returnLimit === null ? null : "propose";
-  return service.kind === "visit" ? "report" : null;
+  return service.kind === "visit" && now >= service.startsAt ? "report" : null;
 }
 
-/** How a booking under way reads on its offer's row, and the act it offers there. */
+/** How a booking under way reads on its offer's row, and the act it waits on. */
 function voucherBookingRow(
   booking: VoucherBooking,
   intl: Intl,
+  now: number,
   nowMs: number
 ): VoucherBookingRowView {
   const { formatMessage } = intl;
   const { service, stage } = booking;
-  const act = voucherBookingAct(booking);
+  const act = voucherBookingAct(booking, now);
   if (
     stage.kind === "return-failed" ||
     stage.kind === "transfer-failed" ||
@@ -402,7 +406,7 @@ export function voucherOfferRow(
   nowMs: number
 ): (VoucherBookingRowView & { booking: VoucherBooking | null }) | null {
   const booking = vouchers.bookingFor(commitmentId);
-  if (booking) return { ...voucherBookingRow(booking, intl, nowMs), booking };
+  if (booking) return { ...voucherBookingRow(booking, intl, vouchers.now, nowMs), booking };
   const asks = vouchers.snapshot.asks.filter((ask) => ask.commitmentId === commitmentId);
   if (asks.length === 0) return null;
   const deposited = asks.some((ask) => selectVoucherAskStage(ask, vouchers.now) === "ready");

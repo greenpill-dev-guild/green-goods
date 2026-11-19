@@ -6,7 +6,6 @@ import type {
   PoolConsoleController,
   VoucherConsoleView,
 } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
-import type { IssuerSafeThreshold } from "@green-goods/shared/modules/commitment-pooling/pool-console";
 import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import { RiCalendarCloseLine, RiFilterOffLine, RiSeedlingLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
@@ -14,12 +13,11 @@ import { useIntl } from "react-intl";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
+import { PersonName } from "@/components/PersonName";
 import { CommitmentExpireDialog } from "./CommitmentExpireDialog";
 import { PoolGroupRow } from "./PoolGroupRow";
-import { GardenPoolTarget, type PoolWriteTarget } from "./PoolTarget";
+import { GardenPoolTarget } from "./PoolTarget";
 import { PoolQueuedRows, isPastDeadline } from "./PoolQueuedRows";
-import { type VoucherBookingAct, VoucherBookingDialogs } from "./VoucherBookingDialogs";
-import { VoucherRowAct } from "./VoucherRowAct";
 import {
   type PoolCommitmentFocus,
   type PoolCommitmentGroup,
@@ -29,18 +27,15 @@ import {
 } from "./poolCommitmentRows";
 import { commitmentStateChip } from "./poolPresentation";
 import { rowDueDetail } from "./poolTime";
-import { voucherBookingAct, voucherOfferRow } from "./voucherPresentation";
+import { voucherOfferRow } from "./voucherPresentation";
+import { isVoucherOffer, voucherOfferTakes } from "./voucherQueue";
 
 export type { PoolCommitmentFocus, PoolCommitmentScope } from "./poolCommitmentRows";
 
 export interface PoolCommitmentsCardProps {
   console: PoolConsoleController;
-  /** The voucher bookings under way on the pool's offers, and the issuer's acts on them. */
+  /** The voucher bookings on the pool's offers, read for how their rows say where each stands. */
   vouchers: VoucherConsoleView;
-  /** The pool a visit report is recorded in, named in its dialog. */
-  target: PoolWriteTarget;
-  /** The issuer Safe's signature rule, read from the Safe, for a proposed return's dialog. */
-  safe?: IssuerSafeThreshold;
   scope: PoolCommitmentScope;
   onScopeChange: (scope: PoolCommitmentScope) => void;
   focus: PoolCommitmentFocus;
@@ -65,12 +60,15 @@ export interface PoolCommitmentsCardProps {
  * the indexer has it. Copies made together are one group row (PRD-1022 D3),
  * and a group's copies still queued fold into it as "didn't send" with Finish
  * Creating, rather than as queued rows of their own.
+ *
+ * Each promise shows once (decision 2 of the 18 November 2026 hub-day review):
+ * a booking's acts wait in Review Promises, so a voucher offer's row only says
+ * where it stands, what one booking takes, and who booked it; a group of them
+ * counts booked and open copies in the row's right slot.
  */
 export function PoolCommitmentsCard({
   console: pool,
   vouchers,
-  target,
-  safe,
   scope,
   onScopeChange,
   focus,
@@ -92,13 +90,6 @@ export function PoolCommitmentsCard({
   });
   const [search, setSearch] = useState("");
   const [expireTarget, setExpireTarget] = useState<CommitmentReadModel | null>(null);
-  const [bookingAct, setBookingAct] = useState<VoucherBookingAct>(null);
-  // The open act follows its booking as the read has it now (another Safe owner can raise the
-  // return ceiling meanwhile), and closes once the booking leaves the read.
-  const openBooking = bookingAct && vouchers.bookingFor(bookingAct.booking.commitmentId);
-  if (bookingAct && !openBooking) setBookingAct(null);
-  const openAct: VoucherBookingAct =
-    bookingAct && openBooking ? { kind: bookingAct.kind, booking: openBooking } : null;
 
   const dueIds = useMemo(() => new Set(model.dueLive.map((row) => row.id)), [model.dueLive]);
 
@@ -109,11 +100,6 @@ export function PoolCommitmentsCard({
       { id: commitment.commitmentId.toString() }
     );
 
-  const titleFor = (commitmentId: bigint) => {
-    const commitment = pool.commitments.find((row) => row.commitmentId === commitmentId);
-    return commitment ? titleOf(commitment) : "";
-  };
-
   const rows = selectPoolCommitmentRows({
     model,
     commitments: pool.commitments,
@@ -122,11 +108,6 @@ export function PoolCommitmentsCard({
     focus,
     search,
     titleOf,
-    // A copy whose booking waits on the steward's act keeps its own row, act and all.
-    standsAlone: (row) => {
-      const booking = vouchers.bookingFor(row.commitmentId);
-      return booking !== undefined && voucherBookingAct(booking) !== null;
-    },
   });
   // A group's queued copies are counted on its row, so they leave the queued
   // list, while it can still finish them. Past its deadline they stay listed on
@@ -293,10 +274,16 @@ export function PoolCommitmentsCard({
           <ul className="@container flex flex-col gap-(--gg-list-gap)">
             {rows.map((entry) => {
               if (entry.kind === "group") {
+                const ids = entry.children.map((child) => child.commitmentId);
                 return (
                   <li key={entry.key} data-testid={`pool-group-${entry.displayGroupId}`}>
                     <PoolGroupRow
                       group={entry}
+                      voucher={
+                        isVoucherOffer(ids, vouchers)
+                          ? { takes: voucherOfferTakes(ids, vouchers, formatMessage) }
+                          : null
+                      }
                       title={titleOf(entry.children[0] as CommitmentReadModel)}
                       unsent={
                         shownGroups.has(entry.displayGroupId)
@@ -317,68 +304,87 @@ export function PoolCommitmentsCard({
               // A return that didn't go through owes the holder vouchers: its retry keeps the
               // row past the due date, where expiring would fix nothing.
               const isDue = dueIds.has(commitment.id) && voucher?.act !== "retry";
+              const takes = voucher
+                ? voucherOfferTakes([commitment.commitmentId], vouchers, formatMessage)
+                : null;
+              // A voucher offer says what one booking takes, after a booking's trouble or before
+              // its day; the person who booked it takes the right slot.
+              const row = (bookedBy: string | null) => (
+                <CommitmentRow
+                  direction={commitment.direction}
+                  title={titleOf(commitment)}
+                  // Past due replaces the state: it is what the steward can act on. A
+                  // booking that needs someone says so in the state's place too.
+                  status={
+                    isDue
+                      ? {
+                          label: formatMessage({
+                            id: "hub.garden.pool.row.pastDue",
+                            defaultMessage: "Past due",
+                          }),
+                          tone: "error",
+                        }
+                      : (voucher?.status ?? { label: chip.label, tone: chip.variant })
+                  }
+                  note={takes ? undefined : voucher?.note}
+                  service={
+                    takes && voucher ? { takes, booking: voucher.note, promisedBy: "" } : undefined
+                  }
+                  amount={
+                    holder
+                      ? {
+                          value: holder,
+                          caption: formatMessage({
+                            id: "hub.garden.pool.voucher.row.holder",
+                            defaultMessage: "booked",
+                          }),
+                        }
+                      : undefined
+                  }
+                  due={rowDueDetail(intl, commitment.dueDate, now)}
+                  party={{ commitment }}
+                  onOpen={() => onOpenCommitment(commitment)}
+                  action={
+                    isDue ? (
+                      // Outlined: the red is for the dialog's confirm, which names the blast radius first.
+                      // Below 480px of row it is its icon, so the title, pill and date keep their room.
+                      <>
+                        <IconButton
+                          emphasis="secondary"
+                          size="sm"
+                          className="@[480px]:hidden"
+                          aria-label={expireLabel}
+                          title={expireLabel}
+                          onClick={() => setExpireTarget(commitment)}
+                          disabled={actDisabled}
+                          icon={<RiCalendarCloseLine aria-hidden="true" />}
+                        />
+                        <Button
+                          type="button"
+                          emphasis="secondary"
+                          size="compact"
+                          className="hidden @[480px]:inline-flex"
+                          onClick={() => setExpireTarget(commitment)}
+                          disabled={actDisabled}
+                        >
+                          {expireLabel}
+                        </Button>
+                      </>
+                    ) : undefined
+                  }
+                />
+              );
+              const holder = voucher?.booking?.holder;
               return (
                 <li
                   key={commitment.id}
                   data-testid={`pool-commitment-${commitment.commitmentId.toString()}`}
                 >
-                  <CommitmentRow
-                    direction={commitment.direction}
-                    title={titleOf(commitment)}
-                    // Past due replaces the state: it is what the steward can act on. A
-                    // booking that needs someone says so in the state's place too.
-                    status={
-                      isDue
-                        ? {
-                            label: formatMessage({
-                              id: "hub.garden.pool.row.pastDue",
-                              defaultMessage: "Past due",
-                            }),
-                            tone: "error",
-                          }
-                        : (voucher?.status ?? { label: chip.label, tone: chip.variant })
-                    }
-                    note={voucher?.note}
-                    due={rowDueDetail(intl, commitment.dueDate, now)}
-                    party={{ commitment }}
-                    onOpen={() => onOpenCommitment(commitment)}
-                    action={
-                      isDue ? (
-                        // Outlined: the red is for the dialog's confirm, which names the blast radius first.
-                        // Below 480px of row it is its icon, so the title, pill and date keep their room.
-                        <>
-                          <IconButton
-                            emphasis="secondary"
-                            size="sm"
-                            className="@[480px]:hidden"
-                            aria-label={expireLabel}
-                            title={expireLabel}
-                            onClick={() => setExpireTarget(commitment)}
-                            disabled={actDisabled}
-                            icon={<RiCalendarCloseLine aria-hidden="true" />}
-                          />
-                          <Button
-                            type="button"
-                            emphasis="secondary"
-                            size="compact"
-                            className="hidden @[480px]:inline-flex"
-                            onClick={() => setExpireTarget(commitment)}
-                            disabled={actDisabled}
-                          >
-                            {expireLabel}
-                          </Button>
-                        </>
-                      ) : voucher?.booking && voucher.act ? (
-                        <VoucherRowAct
-                          booking={voucher.booking}
-                          act={voucher.act}
-                          disabled={actDisabled}
-                          onOpen={(kind) => setBookingAct({ kind, booking: voucher.booking! })}
-                          onRetry={vouchers.acts.retryTransfer}
-                        />
-                      ) : undefined
-                    }
-                  />
+                  {holder ? (
+                    <PersonName address={holder}>{(name) => row(name)}</PersonName>
+                  ) : (
+                    row(null)
+                  )}
                 </li>
               );
             })}
@@ -395,18 +401,6 @@ export function PoolCommitmentsCard({
           </p>
         ) : null}
       </AdminCard>
-
-      <VoucherBookingDialogs
-        open={openAct}
-        title={openAct ? titleFor(openAct.booking.commitmentId) : ""}
-        vouchers={vouchers}
-        safe={safe}
-        target={target}
-        nowMs={now}
-        disabled={actDisabled}
-        tone={tone}
-        onClose={() => setBookingAct(null)}
-      />
 
       <CommitmentExpireDialog
         isOpen={expireTarget !== null}

@@ -40,8 +40,10 @@ export interface GardenPoolTabProps {
  * W7, the steward's pool console (uiux-spec §6.2), which the Garden workspace
  * shows as its Promises tab (DL-077). Two columns: what needs the steward, the
  * season and its campaigns, and Offers and Asks on the left; Review
- * Promises, Pool Status and Pool Funding on the right, which is 37.5% of the
- * width (PRD-1025 D8–D10). Every act goes through the controller
+ * Promises, Your Reserve, Pool Status and Pool Funding on the right, which is
+ * 37.5% of the width (PRD-1025 D8–D10). Below two columns Review Promises
+ * comes first, then the left column, then the rest of the right (decision 4
+ * of the 18 November 2026 hub-day review). Every act goes through the controller
  * in shared; every reasoned act through the one reason dialog; every row opens
  * in the Garden workspace's left inspector, route-backed.
  *
@@ -211,7 +213,23 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
 
   return (
     <div className="garden-tab-layout" data-component="GardenPoolTab" data-region="garden-pool">
-      {/* The grid has two cells, main and rail; a notice belongs at the top of main. */}
+      {/* Everything that waits on the steward, first on a phone and atop the right column from
+          two columns: its own cell, so reading order and the eye agree at every width. */}
+      {!preOpen && !finished ? (
+        <div className="garden-tab-lead">
+          <PoolClaimsCard
+            console={pool}
+            vouchers={vouchers}
+            target={target}
+            safe={issuerSafe}
+            tone={tone}
+            onDecline={(row) => setReasonDialog({ kind: "decline-claim", row })}
+            onOpen={(row) => openCommitment(row.commitment, "waiting")}
+            onOpenPromise={(commitment) => openCommitment(commitment)}
+          />
+        </div>
+      ) : null}
+      {/* The rest of the grid is two cells, main and rail; a notice belongs at the top of main. */}
       <div className="garden-tab-main">
         {vouchers.snapshot.status === "unavailable" && pool.chainId === 42161 ? (
           <Alert variant="warning">
@@ -257,8 +275,6 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
           <PoolCommitmentsCard
             console={pool}
             vouchers={vouchers}
-            target={target}
-            safe={issuerSafe}
             scope={scope}
             onScopeChange={setScope}
             focus={focus}
@@ -272,20 +288,9 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
         ) : null}
       </div>
 
-      {/* Asks sit beside their count and never move the list on the left
-          (PRD-1025 D1, D8); on narrow screens this column comes last. */}
+      {/* The rail never moves the list on the left (PRD-1025 D1, D8); on narrow screens it
+          comes last. */}
       <aside className="garden-tab-rail flex flex-col gap-section">
-        {!preOpen && !finished ? (
-          <PoolClaimsCard
-            console={pool}
-            vouchers={vouchers}
-            target={target}
-            safe={issuerSafe}
-            tone={tone}
-            onDecline={(row) => setReasonDialog({ kind: "decline-claim", row })}
-            onOpen={(row) => openCommitment(row.commitment, "waiting")}
-          />
-        ) : null}
         {vouchers.snapshot.reserve && !preOpen && !finished ? (
           <VoucherReserveCard
             reserve={vouchers.snapshot.reserve}

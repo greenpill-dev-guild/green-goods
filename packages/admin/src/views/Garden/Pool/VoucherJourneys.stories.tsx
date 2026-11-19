@@ -1,10 +1,12 @@
 import { SERVICE_ISSUER_ROUTES, useVoucherAwards } from "@green-goods/shared/commitment-pooling";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
+import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import {
   usePoolConsoleController,
   useVoucherConsole,
 } from "@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController";
+import { claimRowKey } from "@green-goods/shared/hooks/admin-ui/pool/useWaitingForApproval";
 import type {
   IssuerSafeThreshold,
   VoucherAsk,
@@ -16,8 +18,9 @@ import type {
   PoolClaimRequestRow,
 } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import type { VoucherAwardRecord } from "@green-goods/shared/public-contracts/voucher-awards";
+import type { Address } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { expect, mocked, screen, userEvent, within } from "storybook/test";
 import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../../shared/.storybook/adminFixtures";
@@ -47,21 +50,22 @@ import {
   STORY_GREEN_GOODS_COMMITMENTS,
   STORY_GREEN_GOODS_SAFE,
   STORY_GREEN_GOODS_VOUCHERS,
+  STORY_HUB_DAY_TITLES,
   STORY_LINA_ASK,
   STORY_LINA_ENDED,
   STORY_MARA_ACCESS_ASK,
   STORY_MARA_VISIT,
+  STORY_MARA_VISITED,
   STORY_TECH_AND_SUN_CLAIMS,
   STORY_TECH_AND_SUN_COMMITMENTS,
   STORY_TECH_AND_SUN_SAFE,
   STORY_TECH_AND_SUN_SHORT,
   STORY_TECH_AND_SUN_VOUCHERS,
-  STORY_VOUCHER_TITLES,
+  storyHubDay,
   storyVoucherConsole,
   voucherConsoleSeeds,
 } from "./poolStoryVouchers";
 import { awardStoryRecord } from "./voucherAwardStoryFixtures";
-import { PROPOSED_HUB_STEPS } from "./VoucherHubDayProposal.stories";
 
 const VOUCHER = 1_000_000n;
 /** The steward's own acts on the console, each leading to the step that follows it. */
@@ -73,16 +77,17 @@ interface HubStep extends JourneyStepNote {
   claims: readonly PoolClaimRequestRow[];
   vouchers: VoucherConsoleSnapshot;
   acts?: Partial<Record<HubAct, number>>;
+  /** Whose rows move the walk on; the steward's acts on anyone else's land where they are. */
+  actor?: Address;
   /** Community's Voucher Issuers card in this state, in place of the Promises tab. */
   issuers?: VoucherIssuerStory;
 }
 
-const [, KWESI_OFFER, LINA_OFFER] = STORY_TECH_AND_SUN_COMMITMENTS;
+const LINA_OFFER = STORY_TECH_AND_SUN_COMMITMENTS[2];
 const [LINA_CLAIM, KWESI_CLAIM] = STORY_TECH_AND_SUN_CLAIMS as [
   PoolClaimRequestRow,
   PoolClaimRequestRow,
 ];
-const MARA_BOOKING = STORY_TECH_AND_SUN_COMMITMENTS[0]!;
 const TAS = STORY_TECH_AND_SUN_VOUCHERS;
 const TAS_RESERVE = TAS.reserve!;
 const KWESI_ASK = TAS.asks[1]!;
@@ -91,14 +96,6 @@ const withSetup = (ask: VoucherAsk, change: Partial<NonNullable<VoucherAsk["setu
   ...ask,
   setup: { ...ask.setup!, ...change },
 });
-/** An offer once its booking is accepted, as the indexer reads it. */
-const taken = (offer: CommitmentReadModel, holder: VoucherAsk["buyer"]): CommitmentReadModel => ({
-  ...offer,
-  onchainState: "ACCEPTED",
-  derivedState: "ACTIVE",
-  state: "ACCEPTED",
-  counterparty: holder,
-});
 const kept = (offer: CommitmentReadModel): CommitmentReadModel => ({
   ...offer,
   onchainState: "FULFILLED",
@@ -106,89 +103,121 @@ const kept = (offer: CommitmentReadModel): CommitmentReadModel => ({
   state: "FULFILLED",
 });
 
-// Flow 1, Tech and Sun: Lina's hub day from her ask to the voucher in the reserve.
+// Flow 1, Tech and Sun: Lina's hub day from her ask to the voucher back in the reserve.
 const LINA = STORY_LINA_ASK.buyer;
+const MARA = STORY_MARA_VISIT.holder;
 const LINA_APPROVED = withSetup(STORY_LINA_ASK, { approvedAt: daysAgo(0) });
 const LINA_READY = withSetup(LINA_APPROVED, { depositedUnits: VOUCHER, depositConfirmed: true });
-const LINA_VISIT: VoucherBooking = {
-  ...STORY_MARA_VISIT,
+const linaBooking = (visit: VoucherBooking): VoucherBooking => ({
+  ...visit,
   commitmentId: LINA_OFFER!.commitmentId,
   holder: LINA,
   setupId: `0x${"d7".repeat(32)}`,
-};
-const LINA_TAKEN = taken(LINA_OFFER!, LINA);
-const hubDayAsks = (lina: VoucherAsk): HubStep["vouchers"] => ({ ...TAS, asks: [lina, KWESI_ASK] });
-const hubDayBooked = (lina: VoucherBooking): HubStep["vouchers"] => ({
-  ...TAS,
-  asks: [KWESI_ASK],
-  bookings: [...TAS.bookings, lina],
-  reserve: { ...TAS_RESERVE, openBookings: TAS_RESERVE.openBookings + 1 },
 });
-const HUB_DAY_OPEN = {
-  commitments: STORY_TECH_AND_SUN_COMMITMENTS,
+/** Lina's hub day, four days out, then once it has happened. */
+const LINA_VISIT = linaBooking(STORY_MARA_VISIT);
+const LINA_VISITED = linaBooking(STORY_MARA_VISITED);
+/** Two neighbors booked earlier, beside Mara: the list counts them, and they wait on no one. */
+const OTHERS_BOOKED = ["0x0e10", "0x0e11"].map((id) => id.padEnd(42, "0") as Address);
+/**
+ * The twenty hub days Tech and Sun made together, one row in the list: Lina asked for the
+ * first, Kwesi the second, Mara and two neighbors booked three more.
+ */
+const hubDays = (lina: "open" | "taken" | "kept"): CommitmentReadModel[] =>
+  Array.from({ length: 20 }, (_, index) => {
+    const id = 41 + index;
+    const holder =
+      id === 41 && lina !== "open" ? LINA : id === 43 ? MARA : (OTHERS_BOOKED[id - 44] ?? null);
+    if (!holder) return storyHubDay(id);
+    const copy = storyHubDay(id, {
+      onchainState: "ACCEPTED",
+      derivedState: "ACTIVE",
+      state: "ACCEPTED",
+      counterparty: holder,
+    });
+    return id === 41 && lina === "kept" ? kept(copy) : copy;
+  });
+/** Tech and Sun's read: Kwesi's deposit to accept and Mara's visit to report, beside Lina's. */
+const hubDayRead = (
+  lina: { ask?: VoucherAsk; booking?: VoucherBooking },
+  reserve = TAS_RESERVE
+): HubStep["vouchers"] => ({
+  ...TAS,
+  asks: [...(lina.ask ? [lina.ask] : []), KWESI_ASK],
+  bookings: [STORY_MARA_VISITED, ...(lina.booking ? [lina.booking] : [])],
+  reserve,
+});
+const HUB_DAY_ASKED = {
+  commitments: hubDays("open"),
   claims: [LINA_CLAIM, KWESI_CLAIM],
+  actor: LINA,
 };
-const HUB_DAY_TAKEN = {
-  commitments: [MARA_BOOKING, KWESI_OFFER!, LINA_TAKEN],
-  claims: [KWESI_CLAIM],
-};
+const HUB_DAY_BOOKED = { commitments: hubDays("taken"), claims: [KWESI_CLAIM], actor: LINA };
 
 const HUB_DAY: HubStep[] = [
   {
     caption:
-      "Lina agreed to a hub day's exact terms two days ago. Her booking waits in Review Promises for your Safe's approval.",
-    ...HUB_DAY_OPEN,
-    vouchers: hubDayAsks(STORY_LINA_ASK),
+      "Everything that waits on you is in Review Promises: Lina's booking to approve, Kwesi's deposit to accept and Mara's visit to report. The 20 hub days are one row in the list.",
+    ...HUB_DAY_ASKED,
+    vouchers: hubDayRead({ ask: STORY_LINA_ASK }),
     acts: { approve: 1 },
   },
   {
     caption:
-      "Approved. Lina can deposit her voucher now, and nothing is yours to do until she has.",
-    ...HUB_DAY_OPEN,
-    vouchers: hubDayAsks(LINA_APPROVED),
+      "Approved. Lina's row keeps its place with its outcome for this visit. Nothing is yours to do until she deposits.",
+    ...HUB_DAY_ASKED,
+    vouchers: hubDayRead({ ask: LINA_APPROVED }),
     next: "Lina deposits her voucher",
   },
   {
-    caption: "Her deposit is confirmed on Green Goods. All four checks hold, so you can accept.",
-    ...HUB_DAY_OPEN,
-    vouchers: hubDayAsks(LINA_READY),
+    caption: "Lina deposited. Her booking is back in the queue, this time to accept.",
+    ...HUB_DAY_ASKED,
+    vouchers: hubDayRead({ ask: LINA_READY }),
     acts: { accept: 3 },
   },
   {
     caption:
-      "Accepted. Her booking is under way in Offers and Asks. After her visit, report what happened.",
-    ...HUB_DAY_TAKEN,
-    vouchers: hubDayBooked(LINA_VISIT),
-    acts: { report: 4 },
+      "Accepted. Her booking is under way, and the list counts it booked. Nothing more is yours until her visit.",
+    ...HUB_DAY_BOOKED,
+    vouchers: hubDayRead({ booking: LINA_VISIT }),
+    next: "Lina visits the hub",
   },
   {
-    caption: "Reported. Lina approved the split, and her voucher is on its way to your reserve.",
-    ...HUB_DAY_TAKEN,
-    vouchers: hubDayBooked({ ...LINA_VISIT, stage: { kind: "transfer-pending", units: VOUCHER } }),
-    next: "The transfer arrives",
+    caption:
+      "The visit day has passed. Report Visit waits in Review Promises with the other acts, not in the list.",
+    ...HUB_DAY_BOOKED,
+    vouchers: hubDayRead({ booking: LINA_VISITED }),
+    acts: { report: 5 },
   },
   {
-    caption: "Kept. The voucher is in your reserve, and the hub day sits under Past.",
-    commitments: [MARA_BOOKING, KWESI_OFFER!, kept(LINA_TAKEN)],
+    caption: "Reported. Nothing moves until Lina confirms her visit.",
+    ...HUB_DAY_BOOKED,
+    vouchers: hubDayRead({ booking: LINA_VISITED }),
+    next: "Lina confirms her visit",
+  },
+  {
+    caption: "Kept. Lina's voucher is back in your reserve, and her booking has left the queue.",
+    commitments: hubDays("kept"),
     claims: [KWESI_CLAIM],
-    vouchers: {
-      ...TAS,
-      asks: [KWESI_ASK],
-      reserve: { ...TAS_RESERVE, inReserve: TAS_RESERVE.inReserve + VOUCHER },
-    },
+    actor: LINA,
+    vouchers: hubDayRead({}, { ...TAS_RESERVE, inReserve: TAS_RESERVE.inReserve + VOUCHER }),
   },
   {
     caption:
       "Side state. Lina's seven days to be accepted ran out before her deposit was confirmed.",
-    ...HUB_DAY_OPEN,
-    vouchers: hubDayAsks(withSetup(LINA_APPROVED, { acceptBy: STORYBOOK_NOW_SECONDS - 3_600 })),
+    ...HUB_DAY_ASKED,
+    vouchers: hubDayRead({
+      ask: withSetup(LINA_APPROVED, { acceptBy: STORYBOOK_NOW_SECONDS - 3_600 }),
+    }),
   },
   {
     caption:
       "Side state. The transfer to your reserve didn't go through. Anyone can retry the same one.",
-    ...HUB_DAY_TAKEN,
-    vouchers: hubDayBooked({ ...LINA_VISIT, stage: { kind: "transfer-failed", units: VOUCHER } }),
-    acts: { retry: 5 },
+    ...HUB_DAY_BOOKED,
+    vouchers: hubDayRead({
+      booking: { ...LINA_VISITED, stage: { kind: "transfer-failed", units: VOUCHER } },
+    }),
+    acts: { retry: 6 },
   },
 ];
 
@@ -435,7 +464,7 @@ const FLOWS = {
     who: "Tech and Sun's steward, a signer on its Safe",
     garden: "Tech and Sun",
     steps: HUB_DAY,
-    mainSteps: 6,
+    mainSteps: 7,
   },
   earn: {
     title: "Earn vouchers",
@@ -463,30 +492,56 @@ type FlowId = keyof typeof FLOWS;
 
 /**
  * The Promises tab as the steward sees it, driven by the journey: the steward's own acts run
- * through the tab's real rows and dialogs and move it on, and the band's button plays everyone
- * else. Nothing signs, reads a chain or downloads a Safe file.
+ * through the tab's real rows and dialogs, and an act on the walk's own person moves it on within
+ * the same visit, so the row keeps its outcome. The band's button plays everyone else, and each
+ * of its steps is a later visit to the tab. Nothing signs, reads a chain or downloads a Safe file.
  */
 function HubJourneyPage({ journey, start }: { journey: FlowId; start: number }) {
   const flow: HubFlow = FLOWS[journey];
   const [index, setIndex] = useState(Math.min(start, flow.steps.length - 1));
-  useEffect(() => setIndex(Math.min(start, flow.steps.length - 1)), [start, flow.steps.length]);
-  const embedded = useJourneyEmbed(index, flow.steps.length, setIndex);
+  // Each visit to the tab, and the acceptances made on it.
+  const [visit, setVisit] = useState(0);
+  const [decisions, setDecisions] = useState<PoolConsoleController["claimDecisions"]>({});
+  const go = useCallback((next: number) => {
+    setIndex(next);
+    setVisit((current) => current + 1);
+    setDecisions({});
+  }, []);
+  useEffect(() => go(Math.min(start, flow.steps.length - 1)), [start, flow.steps.length, go]);
+  const embedded = useJourneyEmbed(index, flow.steps.length, go);
   const step = flow.steps[index]!;
-  const lead = (act: HubAct) => async (): Promise<undefined> => {
-    const target = step.acts?.[act];
-    if (target !== undefined) setIndex(target);
-  };
+  const lead =
+    (act: HubAct) =>
+    async (person?: Address): Promise<undefined> => {
+      const target = step.acts?.[act];
+      const theirs = !step.actor || !person || person.toLowerCase() === step.actor.toLowerCase();
+      if (target !== undefined && theirs) setIndex(target);
+    };
   const base = storyPoolConsole({
     commitments: [...step.commitments],
     claims: [...step.claims],
-    titles: STORY_VOUCHER_TITLES,
+    titles: STORY_HUB_DAY_TITLES,
+    claimDecisions: decisions,
   });
   mocked(usePoolConsoleController).mockReturnValue({
     ...base,
     acts: {
       ...base.acts,
-      acceptServiceClaim: async () => {
-        await lead("accept")();
+      acceptServiceClaim: async (ask) => {
+        const row = step.claims.find(
+          (entry) =>
+            entry.claim.commitmentId === ask.commitmentId &&
+            entry.claim.claimant.toLowerCase() === ask.buyer.toLowerCase()
+        );
+        if (row) {
+          const decision = {
+            kind: "approved" as const,
+            commitmentId: ask.commitmentId.toString(),
+            at: STORYBOOK_NOW_SECONDS * 1000,
+          };
+          setDecisions((current) => ({ ...current, [claimRowKey(row)]: decision }));
+        }
+        await lead("accept")(ask.buyer);
         return "0x0";
       },
     },
@@ -527,11 +582,11 @@ function HubJourneyPage({ journey, start }: { journey: FlowId; start: number }) 
   } as unknown as ReturnType<typeof useVoucherAwards>);
   mocked(useVoucherConsole).mockReturnValue(
     storyVoucherConsole(step.vouchers, {
-      approveBooking: lead("approve"),
-      reportVisit: lead("report"),
-      proposeReturn: lead("propose"),
-      retryTransfer: lead("retry"),
-      raiseAllowance: lead("raise"),
+      approveBooking: (ask) => lead("approve")(ask.buyer),
+      reportVisit: (booking) => lead("report")(booking.holder),
+      proposeReturn: (booking) => lead("propose")(booking.holder),
+      retryTransfer: (booking) => lead("retry")(booking.holder),
+      raiseAllowance: () => lead("raise")(),
     })
   );
   return (
@@ -542,7 +597,7 @@ function HubJourneyPage({ journey, start }: { journey: FlowId; start: number }) 
           index={index}
           count={flow.steps.length}
           step={step}
-          onGo={setIndex}
+          onGo={go}
         />
       )}
       {step.issuers ? (
@@ -557,6 +612,7 @@ function HubJourneyPage({ journey, start }: { journey: FlowId; start: number }) 
       ) : (
         <div className="p-4">
           <GardenPoolTab
+            key={visit}
             garden={{ id: STORY_GARDEN, name: flow.garden }}
             chainId={DEFAULT_CHAIN_ID}
             canManage
@@ -660,19 +716,7 @@ export const Walkthrough: StoryObj = {
   render: () => (
     <JourneyPlayer
       surface="Hub"
-      flows={[
-        {
-          id: "hubDayProposed",
-          title: "Redeem a hub day · proposed",
-          who: FLOWS.hubDay.who,
-          story: "admin-pool-voucher-hub-day-proposal--hub-day",
-          steps: PROPOSED_HUB_STEPS,
-        },
-        flowNote("setup"),
-        flowNote("earn"),
-        { ...flowNote("hubDay"), title: "Redeem a hub day · today" },
-        flowNote("access"),
-      ]}
+      flows={[flowNote("setup"), flowNote("earn"), flowNote("hubDay"), flowNote("access")]}
       widths={[
         { label: "1280", width: 1280 },
         { label: "1024", width: 1024 },
@@ -706,6 +750,6 @@ export const ApproveMovesTheWalkOn: Story = {
     const canvas = within(canvasElement);
     await userEvent.click(await canvas.findByRole("button", { name: "Approve…" }));
     await userEvent.click(await screen.findByRole("button", { name: "Approve Booking" }));
-    await expect(await canvas.findByText("Step 2 of 8", { exact: false })).toBeVisible();
+    await expect(await canvas.findByText("Step 2 of 9", { exact: false })).toBeVisible();
   },
 };

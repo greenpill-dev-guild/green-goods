@@ -963,25 +963,38 @@ describe("GardenPoolTab (W7)", () => {
     );
   });
 
-  it("keeps Review Promises, Pool Status and Pool Funding in the right column, in that order", () => {
+  // Decision 4 of the hub-day review: below two columns the queue comes first, then the
+  // promises, then the rest of the rail; from 1024px the queue tops the right column.
+  it("puts Review Promises first, ahead of the promises, and keeps Pool Status and Pool Funding in the right column", () => {
     mocks.controller = controller({
       claims: [pendingClaim()],
       titles: new Map([["bafy-2", { version: 1, title: "Ride to the market on Saturday" }]]),
     });
     renderTab();
+    const layout = screen.getByTestId("pool-claims").closest(".garden-tab-layout")!;
+    const cells = Array.from(layout.children, (cell) => cell.className.split(" ")[0]);
+    expect(cells.slice(0, 3)).toEqual(["garden-tab-lead", "garden-tab-main", "garden-tab-rail"]);
+    expect(layout.querySelector(".garden-tab-lead")).toContainElement(
+      screen.getByTestId("pool-claims")
+    );
     const aside = screen.getByRole("complementary");
     const cards = Array.from(aside.querySelectorAll("[data-component]"), (node) =>
       node.getAttribute("data-component")
-    ).filter((name) =>
-      ["PoolClaimsCard", "PoolStatusCard", "PoolFundingSection"].includes(name ?? "")
-    );
-    expect(cards).toEqual(["PoolClaimsCard", "PoolStatusCard", "PoolFundingSection"]);
+    ).filter((name) => ["PoolStatusCard", "PoolFundingSection"].includes(name ?? ""));
+    expect(cards).toEqual(["PoolStatusCard", "PoolFundingSection"]);
     // Each is headed by the name a steward reads (DL-077).
+    expect(
+      within(layout as HTMLElement)
+        .getAllByRole("heading")
+        .map((heading) => heading.textContent)
+    ).toEqual(
+      expect.arrayContaining(["Review Promises", "Offers and Asks", "Pool Status", "Pool Funding"])
+    );
     expect(
       within(aside)
         .getAllByRole("heading")
         .map((heading) => heading.textContent)
-    ).toEqual(["Review Promises", "Pool Status", "Pool Funding"]);
+    ).toEqual(["Pool Status", "Pool Funding"]);
     // The promises stay on the left, so nothing on the right moves them.
     expect(within(aside).queryByTestId("pool-commitments")).not.toBeInTheDocument();
     // A voucher notice heads the left column; as a grid cell of its own it pushed the promises right.
