@@ -43,7 +43,7 @@ import {
   requestConnection,
   welcome,
 } from "./account-steps";
-import type { ChatCommand } from "./commands";
+import { type ChatCommand, linkCommand } from "./commands";
 import {
   answerConsent,
   answerVoiceConsent,
@@ -356,7 +356,7 @@ function routeCommand(
   external: TurnExternal
 ): void {
   const { review } = writer.ctx;
-  const plan = { ...asked, command: linkCommand(writer, asked.command) };
+  const plan = { ...asked, command: linkCommand(asked.command, writer.ctx.account !== null) };
   const { command } = plan;
   if (command.kind === "stop" || command.kind === "delete")
     return withdrawProcessing(writer, command.kind);
@@ -374,12 +374,6 @@ function routeCommand(
   const owned = deps.commands?.[command.kind];
   if (owned) return owned(writer, plan);
   handleReportCommand(writer, command, external);
-}
-
-/** A new link is RETRY's fresh signing link once an account is linked, and CONNECT's link before. */
-function linkCommand(writer: TurnWriter, command: ChatCommand): ChatCommand {
-  if (command.kind !== "newLink") return command;
-  return writer.ctx.account ? { kind: "retry" } : { kind: "connect", account: null };
 }
 
 /** START welcomes, and offers to link an account, only while nothing else is under way. */

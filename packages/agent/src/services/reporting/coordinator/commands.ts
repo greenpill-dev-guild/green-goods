@@ -197,6 +197,12 @@ function linkRequest(text: string): ChatCommand | null {
   return plain ? { kind: "newLink" } : null;
 }
 
+/** A new link is RETRY's fresh signing link once an account is linked, and CONNECT's link before. */
+export function linkCommand(command: ChatCommand, linked: boolean): ChatCommand {
+  if (command.kind !== "newLink") return command;
+  return linked ? { kind: "retry" } : { kind: "connect", account: null };
+}
+
 /**
  * A short message that asks for nothing but an account action: "I would like to log in",
  * "sign me out", "connect another account". Every other word has to be filler, so a story that
