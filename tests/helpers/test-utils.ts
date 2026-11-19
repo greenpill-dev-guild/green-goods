@@ -99,6 +99,7 @@ export class ClientTestHelper {
         };
         localStorage.setItem("wagmi.store", JSON.stringify(wagmiState));
 
+        // Reown AppKit (formerly Web3Modal) keeps its connection under the @w3m prefix.
         localStorage.setItem("@w3m/connected_connector", '"mock"');
         localStorage.setItem("@w3m/active_caip_network_id", '"eip155:11155111"');
       },

@@ -1,4 +1,4 @@
-/** CI covers the dev-only mock-auth seam; real wagmi connectors run on an anvil fork. */
+/** CI covers the dev-only mock-auth seam; real wagmi connectors belong on an anvil fork. */
 
 import { expect, type Page, test } from "@playwright/test";
 import { mockSepoliaRpc } from "../helpers/mock-backend";
@@ -59,7 +59,7 @@ test.describe("Admin Authentication", () => {
       await helper.waitForPageLoad();
     }
 
-    // Real wagmi reconnection is covered by the anvil-fork project.
+    // Real wagmi reconnection belongs to the anvil-fork project; not covered yet.
     test("maintains mock auth state across page reloads", async ({ page }) => {
       const helper = new AdminTestHelper(page);
 
@@ -120,7 +120,7 @@ test.describe("Admin Authentication", () => {
         .toBe("disconnected");
     });
 
-    // Real wallet sharing across tabs is covered by the anvil-fork project.
+    // Real wallet sharing across tabs belongs to the anvil-fork project; not covered yet.
     test("maintains mock auth state across multiple tabs", async ({ context }) => {
       const page1 = await context.newPage();
       const helper1 = new AdminTestHelper(page1, context);
