@@ -111,9 +111,15 @@ function decidedHere(
   return chosen ? { status: "not-chosen", at: chosen.at } : null;
 }
 
-/** An approval with the wallet or the chain, or one that failed and left the ask waiting. */
+/**
+ * An approval with the wallet or the chain, or one that failed and left the ask waiting. One
+ * still confirming, or waiting on a Safe's signers, may still land, so the ask stays held on
+ * the chain's side and its line says which (PRD-1551). One the steward stopped waiting for
+ * leaves the ask waiting.
+ */
 function onTheLine(phase: TxActPhase): WaitingRowState | null {
   const { status } = phase;
+  if (status === "still-confirming" || status === "safe-signers") return { status: "confirming" };
   return status === "signing" || status === "confirming" || status === "failed" ? { status } : null;
 }
 

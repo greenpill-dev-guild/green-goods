@@ -111,6 +111,12 @@ export interface TransactionSendOptions {
    * wallet; the other senders ignore it.
    */
   signal?: AbortSignal;
+  /**
+   * Called when the wallet's answer waits on others rather than the network (`TxResult.awaiting`:
+   * a Safe's signers), just before the send returns it as pending. A caller that keeps only the
+   * hash learns here that the act has not landed.
+   */
+  onAwaiting?: (awaiting: NonNullable<TxResult["awaiting"]>) => void;
 }
 
 export interface AtomicBatchOptions extends BatchSendOptions {

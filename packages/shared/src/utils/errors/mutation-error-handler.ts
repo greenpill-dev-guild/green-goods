@@ -153,8 +153,10 @@ export function createMutationErrorHandler(config: MutationErrorHandlerConfig) {
         ? getFallbackTitle(authMode ?? null)
         : `${toastContext.charAt(0).toUpperCase() + toastContext.slice(1)} failed`;
 
-    // Show error toast, unless the wallet reconnect prompt already asked for this act
-    if (showToast && !wasAskedToReconnect(error)) {
+    // Show error toast, unless the wallet reconnect prompt already asked for this act, or the
+    // person stopped waiting for the wallet: the act's own line says so, and nothing failed.
+    const stoppedWaiting = error instanceof Error && error.name === "WalletAnswerAbandonedError";
+    if (showToast && !wasAskedToReconnect(error) && !stoppedWaiting) {
       if (useWalletProgressToast && authMode === "wallet") {
         walletProgressToasts.error(displayMessage, parsed.recoverable ?? false);
       } else {

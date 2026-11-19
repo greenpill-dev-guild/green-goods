@@ -53,6 +53,8 @@ const celoToken: SendableTokenBalance = {
 const mockFeeRead = vi.fn();
 let mockSendFailed = false;
 let mockSendPending = false;
+let mockSendNotice: string | null = null;
+const mockCancelWalletWait = vi.fn();
 const mockCeloRefetch = vi.fn();
 let mockAuthMode = "passkey";
 let mockChainId = 42161;
@@ -199,7 +201,13 @@ vi.mock("@green-goods/shared/hooks/blockchain/useSendableTokens", async (importO
 vi.mock("@green-goods/shared/hooks/blockchain/useSendToken", async (importOriginal) => {
   return {
     ...(await importOriginal()),
-    useSendToken: () => ({ mutate: mockSend, isPending: mockSendPending, isError: mockSendFailed }),
+    useSendToken: () => ({
+      mutate: mockSend,
+      isPending: mockSendPending,
+      isError: mockSendFailed,
+      notice: mockSendNotice,
+      cancelWalletWait: mockCancelWalletWait,
+    }),
   };
 });
 
@@ -230,6 +238,7 @@ describe("SendTab", () => {
     mockSendFailed = false;
     mockRealConfirm = false;
     mockSendPending = false;
+    mockSendNotice = null;
     mockFeeRead.mockResolvedValue([10n ** 18n, true]);
     mockIsOnline = true;
     mockAuthMode = "passkey";
@@ -370,6 +379,29 @@ describe("SendTab", () => {
     expect(screen.getByRole("button", { name: "Send" })).toBeEnabled();
   });
 
+  // PRD-1551: a wallet that has not answered for 20 seconds, and a send the person stopped.
+  it("says to open the wallet and offers Cancel, and never calls a stopped send failed", async () => {
+    mockSendPending = true;
+    mockSendNotice = "wallet-slow";
+    const user = userEvent.setup();
+    const view = render(<SendTab />);
+    await user.click(screen.getByRole("tab", { name: "Send" }));
+
+    expect(
+      screen.getByText("Still waiting for your wallet. Open it to approve or reject the request.")
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(mockCancelWalletWait).toHaveBeenCalledOnce();
+
+    mockSendPending = false;
+    mockSendFailed = true;
+    mockSendNotice = "stopped";
+    view.rerender(<SendTab />);
+    expect(screen.getByText(/^Stopped waiting\./)).toBeInTheDocument();
+    expect(screen.queryByText(/didn't complete/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Cancel" })).not.toBeInTheDocument();
+  });
+
   it("keeps the review step ready to retry when a send does not succeed", async () => {
     // The mutation reports its own toast; the flow only resets on success.
     mockSend.mockImplementation(() => undefined);
@@ -495,6 +527,7 @@ describe("Celo wallet", () => {
     mockSendFailed = false;
     mockRealConfirm = false;
     mockSendPending = false;
+    mockSendNotice = null;
     mockFeeRead.mockResolvedValue([10n ** 18n, true]);
     mockIsOnline = true;
     mockAuthMode = "passkey";

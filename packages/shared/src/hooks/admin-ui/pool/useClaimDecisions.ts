@@ -16,7 +16,8 @@ import type { ClaimDecisions } from "../../../modules/commitment-pooling/waiting
 import { claimActKey, type TxActPhase } from "../../../modules/transactions/act-phase";
 import { useClaimDecisionStore } from "../../../stores/useClaimDecisionStore";
 import type { Address } from "../../../types/domain";
-import type { ActSendCallbacks } from "../../blockchain/useTxActPhase";
+import { type ActSendCallbacks, followAct } from "../../blockchain/useTxActPhase";
+import { useTimeout } from "../../utils/useTimeout";
 
 export interface ClaimDecisionActs {
   /** The approval running or last settled, keyed to its ask. */
@@ -42,33 +43,32 @@ export function useClaimDecisions(): ClaimDecisionActs {
   const decisions = useClaimDecisionStore((state) => state.decisions);
   const step = useClaimDecisionStore((state) => state.step);
   const decide = useClaimDecisionStore((state) => state.decide);
+  const { set: setNudge, clear: clearNudge } = useTimeout();
 
+  // The line follows the approval as any single-signature act's does. A Safe's proposal is not
+  // an approval yet, so only an approval that landed is kept as a decision.
   const approve = useCallback(
-    async <T>(
+    <T>(
       commitmentId: bigint,
       claimant: Address,
       act: (send: ActSendCallbacks) => Promise<T>,
       requestedAt?: number
     ): Promise<T> => {
       const key = claimActKey(commitmentId, claimant);
-      step({ type: "start", key });
-      try {
-        const result = await act({
-          onBroadcast: async (hash) => step({ type: "broadcast", key, hash }),
-        });
-        decide(key, {
-          kind: "approved",
-          commitmentId: commitmentId.toString(),
-          at: Date.now(),
-          requestedAt,
-        });
-        return result;
-      } catch (error) {
-        step({ type: "failed", key });
-        throw error;
-      }
+      return followAct(key, act, {
+        step,
+        setNudge,
+        clearNudge,
+        landed: () =>
+          decide(key, {
+            kind: "approved",
+            commitmentId: commitmentId.toString(),
+            at: Date.now(),
+            requestedAt,
+          }),
+      });
     },
-    [step, decide]
+    [step, decide, setNudge, clearNudge]
   );
 
   const decline = useCallback(

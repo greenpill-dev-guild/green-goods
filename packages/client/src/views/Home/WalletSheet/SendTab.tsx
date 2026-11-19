@@ -15,6 +15,7 @@ import { useSendableTokens } from "@green-goods/shared/hooks/blockchain/useSenda
 import { useSendToken } from "@green-goods/shared/hooks/blockchain/useSendToken";
 import { useCeloWallet } from "@green-goods/shared/hooks/client-ui/wallet/useCeloWallet";
 import { useSendFlowController } from "@green-goods/shared/hooks/client-ui/wallet/useSendFlowController";
+import { SEND_STAGE_WORDS } from "@green-goods/shared/modules/transactions/send-stage";
 import type { WalletMode } from "@green-goods/shared/modules/wallet/send-flow";
 import type { Address } from "@green-goods/shared/types/domain";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
@@ -116,6 +117,27 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
   });
 
   React.useEffect(() => setRecipientAddress(recipient?.address), [recipient?.address]);
+
+  // A send that went out and may still land, or that the person stopped waiting for, is never
+  // called failed (PRD-1551).
+  const sendLine = () => {
+    switch (sendMutation.notice) {
+      case "wallet-slow":
+        return formatMessage(SEND_STAGE_WORDS.wallet.detail!);
+      case "stopped":
+        return formatMessage(SEND_STAGE_WORDS.wallet.stopped!);
+      case "still-confirming":
+        return formatMessage(SEND_STAGE_WORDS["still-confirming"].detail!);
+      default:
+        return formatMessage({
+          id: isSending
+            ? selectedToken?.chainId === 42220
+              ? "app.celoWallet.sendPending"
+              : "app.send.sending"
+            : "app.celoWallet.sendFailed",
+        });
+    }
+  };
   React.useEffect(() => {
     if (confirmWasOpen.current && !showConfirm)
       contentRef.current
@@ -291,15 +313,24 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
               </>
             ) : null}
             {isSending || sendMutation.isError ? (
-              <p role="status" aria-live="polite" className="px-4 pb-4 text-sm text-text-sub-600">
-                {formatMessage({
-                  id: isSending
-                    ? selectedToken?.chainId === 42220
-                      ? "app.celoWallet.sendPending"
-                      : "app.send.sending"
-                    : "app.celoWallet.sendFailed",
-                })}
-              </p>
+              <div
+                role="status"
+                aria-live="polite"
+                className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 pb-4"
+              >
+                <p className="text-sm text-text-sub-600">{sendLine()}</p>
+                {/* Past 20 seconds on the wallet, the person can stop waiting (PRD-1551). */}
+                {sendMutation.notice === "wallet-slow" ? (
+                  <Button
+                    type="button"
+                    emphasis="tertiary"
+                    size="sm"
+                    onClick={sendMutation.cancelWalletWait}
+                  >
+                    {formatMessage({ id: "app.common.cancel" })}
+                  </Button>
+                ) : null}
+              </div>
             ) : null}
 
             {step === "review" && recipient && selectedToken ? (

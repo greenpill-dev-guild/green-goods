@@ -368,6 +368,7 @@ export class WalletSender implements TransactionSender {
         source: "WalletSender",
         functionName: call.functionName,
       });
+      options.onAwaiting?.("safe-signers");
       return { hash, sponsored: false, confirmation: "pending", awaiting: "safe-signers" };
     }
 

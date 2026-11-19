@@ -7,10 +7,10 @@ import { SEND_STAGE_WORDS, type SendStage } from "../send-stage";
 // TEST-QUALITY: allow-small-test-file - the one set of stage words, pinned against each catalog the App, the Hub and the bot read
 
 const CATALOGS = { en, es, pt } as Record<string, Record<string, string>>;
-const STAGES: SendStage[] = ["wallet", "confirming", "still-confirming"];
+const STAGES: SendStage[] = ["wallet", "confirming", "still-confirming", "safe-signers"];
 const messages = STAGES.flatMap((stage) => {
-  const { label, detail } = SEND_STAGE_WORDS[stage];
-  return detail ? [label, detail] : [label];
+  const { label, detail, stopped } = SEND_STAGE_WORDS[stage];
+  return [label, detail, stopped].filter((message) => message !== undefined);
 });
 
 describe("send stage words", () => {
@@ -19,6 +19,7 @@ describe("send stage words", () => {
       "Confirm in your wallet",
       "Confirming…",
       "Still confirming…",
+      "Waiting for the Safe's signers",
     ]);
   });
 
@@ -36,5 +37,12 @@ describe("send stage words", () => {
     const detail = SEND_STAGE_WORDS["still-confirming"].detail!;
     expect(CATALOGS.en![detail.id]).toMatch(/^Sent\..*You can leave/);
     expect(CATALOGS.en![detail.id]).not.toMatch(/fail|didn.t|error/i);
+  });
+
+  // The wallet may still hold a request the person stopped waiting for (PRD-1551).
+  it("never says a send the person stopped waiting for was cancelled or failed", () => {
+    const { stopped } = SEND_STAGE_WORDS.wallet;
+    expect(CATALOGS.en![stopped!.id]).toMatch(/reject it there/);
+    expect(CATALOGS.en![stopped!.id]).not.toMatch(/cancel|fail|nothing changed/i);
   });
 });

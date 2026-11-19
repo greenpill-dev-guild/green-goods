@@ -511,8 +511,12 @@ const laws: ConformanceLaw<SenderCase>[] = [
     verify: async ({ make }) => {
       const proposal = make({ walletAnswer: "safe-proposal" });
       const onBroadcastReference = vi.fn(async () => undefined);
+      const onAwaiting = vi.fn();
       await expect(
-        proposal.sender.sendContractCall(createMockContractCall(), { onBroadcastReference })
+        proposal.sender.sendContractCall(createMockContractCall(), {
+          onBroadcastReference,
+          onAwaiting,
+        })
       ).resolves.toEqual({
         hash: SECOND_TX_HASH,
         sponsored: false,
@@ -520,6 +524,8 @@ const laws: ConformanceLaw<SenderCase>[] = [
         awaiting: "safe-signers",
       });
       expect(proposal.receiptHashes).toEqual([]);
+      // A caller that keeps only the hash still learns the act waits on the Safe.
+      expect(onAwaiting).toHaveBeenCalledWith("safe-signers");
       // Kept on record as any answer is, so a later read can find what the Safe ran.
       expect(onBroadcastReference).toHaveBeenCalledWith({
         kind: "transaction",
