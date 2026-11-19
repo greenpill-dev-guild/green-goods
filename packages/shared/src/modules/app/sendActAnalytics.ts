@@ -24,7 +24,7 @@ const SEND_ACT_STARTED = "send_act_started";
 const SEND_ACT_ENDED = "send_act_ended";
 
 /** The acts that sign or send, by the name a PostHog breakdown reads. */
-export type SendActName =
+type SendActName =
   // Joining and claiming
   | "garden_join"
   | "commitment"
