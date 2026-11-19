@@ -158,6 +158,23 @@ describe("demo pooling mode", () => {
     expect(first).toEqual(all.slice(0, 2));
     expect(byOffset).toEqual(all.slice(2, 4));
     expect(byCursor).toEqual(all.slice(2, 4));
+    // The two newest rows share a timestamp, so a cursor at the first must keep the second by id.
+    expect(all[0].timestamp).toBe(all[1].timestamp);
+    expect(
+      await getCommitmentActivity({
+        chainId: 42161,
+        poolId: DEMO_GARDEN_POOL_ID,
+        limit: 1,
+        before: all[0],
+      })
+    ).toEqual(all.slice(1, 2));
+    expect(
+      await getCommitmentActivity({
+        chainId: 42161,
+        poolId: DEMO_GARDEN_POOL_ID,
+        cycleId: 999_999n,
+      })
+    ).toEqual([]);
   });
 });
 
