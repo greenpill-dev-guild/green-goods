@@ -128,55 +128,57 @@ export function useServiceIssuerDesk(selection?: ServiceIssuerDeskSelection | nu
         ).record!
       ),
   });
+  // `signServiceIssuerApproval` signs on Gnosis.
   const approveAct: SendActContext = {
     act: "pool_service_issuer",
     operation: "approveTerms",
     authMode: user.authMode,
+    chainId: 100,
   };
+  const approveTerms = recordedSendAct(approveAct, async (record: ServiceIssuerDeskRecord) => {
+    if (record.draft.member.toLowerCase() !== user.primaryAddress?.toLowerCase())
+      throw new Error("Only the member can approve these terms");
+    const fresh = (await required().request({ action: "read", id: record.draft.id })).record!;
+    if (
+      fresh.revision !== record.revision ||
+      serviceIssuerTermsDigest(fresh.draft) !== serviceIssuerTermsDigest(record.draft) ||
+      fresh.draft.sentAt === null ||
+      fresh.declinedAt !== null
+    )
+      throw new Error("Draft changed; review again");
+    if (fresh.approval !== null) return fresh;
+    const approval = await signServiceIssuerApproval(
+      {
+        session: () => {
+          assertCurrent();
+          return {
+            address: current.current.user.primaryAddress,
+            authMode: current.current.user.authMode,
+            profile: current.current.user.passkeyAccountProfile ?? null,
+            generation: current.current.generation,
+            online: true,
+          };
+        },
+        sender: () => current.current.sender,
+        chain: serviceIssuerChain,
+        now: () => BigInt(Math.floor(Date.now() / 1000)),
+      },
+      fresh.draft
+    );
+    assertCurrent();
+    return (
+      await required().request({
+        action: "approve",
+        id: fresh.draft.id,
+        expectedRevision: fresh.revision,
+        approval,
+      })
+    ).record!;
+  });
   const approve = useMutation({
     ...options,
-    mutationFn: recordedSendAct(approveAct, async (record: ServiceIssuerDeskRecord) => {
-      if (record.draft.member.toLowerCase() !== user.primaryAddress?.toLowerCase())
-        throw new Error("Only the member can approve these terms");
-      const fresh = (await required().request({ action: "read", id: record.draft.id })).record!;
-      if (
-        fresh.revision !== record.revision ||
-        serviceIssuerTermsDigest(fresh.draft) !== serviceIssuerTermsDigest(record.draft) ||
-        fresh.draft.sentAt === null ||
-        fresh.declinedAt !== null
-      )
-        throw new Error("Draft changed; review again");
-      if (fresh.approval !== null) return remember(fresh);
-      const approval = await signServiceIssuerApproval(
-        {
-          session: () => {
-            assertCurrent();
-            return {
-              address: current.current.user.primaryAddress,
-              authMode: current.current.user.authMode,
-              profile: current.current.user.passkeyAccountProfile ?? null,
-              generation: current.current.generation,
-              online: true,
-            };
-          },
-          sender: () => current.current.sender,
-          chain: serviceIssuerChain,
-          now: () => BigInt(Math.floor(Date.now() / 1000)),
-        },
-        fresh.draft
-      );
-      assertCurrent();
-      return remember(
-        (
-          await required().request({
-            action: "approve",
-            id: fresh.draft.id,
-            expectedRevision: fresh.revision,
-            approval,
-          })
-        ).record!
-      );
-    }),
+    // The approval's ending is recorded before the cache update, which can fail on its own.
+    mutationFn: async (record: ServiceIssuerDeskRecord) => remember(await approveTerms(record)),
   });
   return {
     records: records.data ?? [],

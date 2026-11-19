@@ -148,7 +148,7 @@ sends, garden creation and settings, and the Hub's pool, season and conviction a
 approvals and member changes keep their own events above. An act the job queue holds, such as a
 commitment claim, proof or creation sent from the App, records the queue's `offline_job_*` events
 instead. Hypercert listings and marketplace approvals, Karma syncs, deployments, gardener profile
-updates and profile avatars do not record these events yet. Read App acts in the App project
+updates, profile avatars and pilot account enrollment do not record these events yet. Read App acts in the App project
 (163591) and Hub acts in the Hub project (262122).
 
 | Property | Meaning |
