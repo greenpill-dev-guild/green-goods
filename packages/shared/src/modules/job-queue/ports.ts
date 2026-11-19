@@ -6,13 +6,14 @@ import type {
   WorkJobPayload,
 } from "../../types/job-queue";
 import type { BatchBudget } from "../transactions/batch-types";
+import type { SendStageReport } from "../transactions/send-stage";
 import type { TransactionSender } from "../transactions/types";
 
 /**
- * Where one send stands while the person who asked for it watches: the wallet
- * is being asked, or the send is broadcast and the chain is confirming it.
+ * Where one send stands while the person who asked for it watches, in the shared stage model:
+ * the wallet is being asked, or the send is broadcast and the network is confirming it.
  */
-export type JobSendPhase = { stage: "wallet" } | { stage: "confirming"; txHash: string };
+export type JobSendPhase = Exclude<SendStageReport, { stage: "still-confirming" }>;
 
 export interface ProcessJobContext {
   transactionSender: TransactionSender | null;
