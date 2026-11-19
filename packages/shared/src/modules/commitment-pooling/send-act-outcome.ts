@@ -24,12 +24,15 @@ import type { SeedCopyMiss, SeedCopyStatus } from "./seed-sets";
 interface CopyEnding {
   status: SeedCopyStatus | CopyEditStatus;
   miss?: SeedCopyMiss;
+  /** A creation copy's job; `null` once a copy failed before the queue took it. */
+  jobId?: string | null;
 }
 
 /**
  * One copy's outcome. A copy still waiting, preparing or at the wallet was
  * never tried. A `failed` miss may have reached the chain (`SeedCopyMiss`), so
- * it is still confirming, never failed.
+ * it is still confirming, never failed, unless the copy never had a job: the
+ * queue refused to take it, so nothing reached a sender.
  */
 export function copyActOutcome(copy: CopyEnding): SendActCopyOutcome | null {
   switch (copy.status) {
@@ -43,7 +46,7 @@ export function copyActOutcome(copy: CopyEnding): SendActCopyOutcome | null {
     case "not-sent":
     case "not-changed":
       if (copy.miss === "declined") return "cancelled";
-      if (copy.miss === "failed") return "confirming";
+      if (copy.miss === "failed") return copy.jobId === null ? "failed" : "confirming";
       return "failed";
     default:
       return null;

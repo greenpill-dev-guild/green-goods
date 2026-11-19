@@ -69,6 +69,17 @@ vi.mock("../../utils/blockchain/address", () => ({
 vi.mock("../../utils/contract/simulation", () => ({
   simulateJoinGarden: vi.fn().mockResolvedValue({ success: true }),
 }));
+vi.mock("../../utils/blockchain/simulation", () => ({
+  simulateJoinGarden: vi.fn().mockResolvedValue({ success: true }),
+}));
+// A wallet join asks the wallet onto the chain first; these tests have no wallet.
+vi.mock("../../modules/transactions/chain-guard", () => ({
+  ensureAppKitWalletChain: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock("../../modules/transactions/local-fork-safety", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../modules/transactions/local-fork-safety")>()),
+  assertLocalArbitrumForkWallet: vi.fn().mockResolvedValue(undefined),
+}));
 
 vi.mock("../../utils/blockchain/contracts", () => ({
   GardenAccountABI: [
@@ -491,6 +502,23 @@ describe("hooks/garden/useJoinGarden", () => {
           ["send_act_ended", "garden_join", "confirming"],
         ]);
         expect(trackGardenJoinFailed).not.toHaveBeenCalled();
+
+        // A wallet join returns at broadcast, before its receipt, so it may still land.
+        mockUseUser.mockReturnValue({
+          smartAccountAddress: null,
+          smartAccountClient: null,
+          eoa: { address: MOCK_ADDRESSES.smartAccount },
+        });
+        const wallet = renderHookWithProviders(() => useJoinGarden(), { queryClient });
+        await act(async () => {
+          await wallet.result.current.joinGarden(MOCK_ADDRESSES.garden);
+        });
+        expect(
+          captured.slice(4).map(([event, { auth_mode, outcome }]) => [event, auth_mode, outcome])
+        ).toEqual([
+          ["send_act_started", "wallet", undefined],
+          ["send_act_ended", "wallet", "confirming"],
+        ]);
         const sent = JSON.stringify(captured);
         expect(sent).not.toContain(MOCK_ADDRESSES.smartAccount);
         expect(sent).not.toContain(MOCK_ADDRESSES.garden);

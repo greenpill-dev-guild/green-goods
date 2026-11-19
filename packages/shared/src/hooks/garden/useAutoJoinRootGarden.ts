@@ -229,9 +229,11 @@ export function useAutoJoinRootGarden() {
         const authMode = (sessionOverride?.client ?? smartAccountClient)?.account
           ? "passkey"
           : "wallet";
+        // A wallet join returns once it is broadcast, before its receipt: it may still land.
         await recordSendAct(
           { act: "garden_join", operation: "root_garden", authMode, chainId },
-          () => executeJoin(sessionOverride)
+          () => executeJoin(sessionOverride),
+          () => (authMode === "wallet" ? "confirming" : "confirmed")
         );
         markOnboarded(targetAddress);
 

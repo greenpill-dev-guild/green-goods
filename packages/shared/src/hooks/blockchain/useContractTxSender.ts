@@ -39,6 +39,6 @@ export function useContractTxSender() {
 
     return result.hash;
   };
-  // The sign-in kind its sends go through, for the act's send record (PRD-1553).
-  return Object.assign(send, { authMode: sender?.authMode });
+  // The sign-in kind and chain its sends go through, for the act's send record (PRD-1553).
+  return Object.assign(send, { authMode: sender?.authMode, chainId });
 }

@@ -107,8 +107,31 @@ export interface SendActContext {
 
 const OPTIONS = { includeSessionId: false };
 
-/** Viem's own timeouts already read as unconfirmed; a sender's own limit says the same. */
-const STILL_CONFIRMING_NAMES: ReadonlySet<string> = new Set(["ReceiptWaitLimitError"]);
+/**
+ * Viem's own timeouts already read as unconfirmed. A sender's own receipt limit
+ * says the same, and so does a wallet whose answer the person stopped waiting
+ * for (PRD-1551): the wallet may still send it.
+ */
+const STILL_CONFIRMING_NAMES: ReadonlySet<string> = new Set([
+  "ReceiptWaitLimitError",
+  "WalletAnswerAbandonedError",
+]);
+
+/**
+ * Sends a sender handed back with no receipt (`confirmation: "pending"`, such as
+ * a Safe proposal), by hash, so an act that keeps only the hash still ends as
+ * confirming. Held in memory, read once, and never sent anywhere.
+ */
+const unconfirmedHashes = new Set<string>();
+const UNCONFIRMED_HASHES_KEPT = 64;
+
+export function noteUnconfirmedSend(result: unknown): void {
+  const { hash, confirmation } = (result ?? {}) as { hash?: unknown; confirmation?: unknown };
+  if (confirmation !== "pending" || typeof hash !== "string") return;
+  unconfirmedHashes.add(hash.toLowerCase());
+  if (unconfirmedHashes.size > UNCONFIRMED_HASHES_KEPT)
+    unconfirmedHashes.delete(unconfirmedHashes.values().next().value as string);
+}
 
 /** How an act that threw ended, and the parsed error family it carries (never its message). */
 export function sendActEnding(error: unknown): {
@@ -136,13 +159,15 @@ export function batchSaveActOutcome(outcome: {
   return outcome.status === "unknown" ? "confirming" : "failed";
 }
 
-/** A send result on record without a receipt has not landed yet. */
+/** A send result on record without a receipt, or the hash of one, has not landed yet. */
 function outcomeOfResult(result: unknown): Extract<SendActOutcome, "confirmed" | "confirming"> {
-  const pending =
-    typeof result === "object" &&
-    result !== null &&
-    (result as { confirmation?: unknown }).confirmation === "pending";
-  return pending ? "confirming" : "confirmed";
+  const record =
+    typeof result === "object" && result !== null ? (result as Record<string, unknown>) : {};
+  if (record.confirmation === "pending") return "confirming";
+  const hash = typeof result === "string" ? result : record.hash;
+  return typeof hash === "string" && unconfirmedHashes.delete(hash.toLowerCase())
+    ? "confirming"
+    : "confirmed";
 }
 
 function contextProperties(context: SendActContext) {
@@ -215,22 +240,32 @@ export async function recordSendAct<T>(
   try {
     result = await run();
   } catch (error) {
-    recordEnding(context, startedAt, () => sendActEnding(error), "failed");
+    recordEnding(
+      context,
+      startedAt,
+      () => sendActEnding(error),
+      () => "failed"
+    );
     throw error;
   }
-  recordEnding(context, startedAt, () => outcomeOf(result), outcomeOfResult(result));
+  recordEnding(
+    context,
+    startedAt,
+    () => outcomeOf(result),
+    () => outcomeOfResult(result)
+  );
   return result;
 }
 
 /**
  * The record never changes how the act ended: an ending that cannot be read is
- * logged and recorded as `fallback`, and the act's own result or error stands.
+ * logged and recorded by its fallback reading, and the act's own result or error stands.
  */
 function recordEnding(
   context: SendActContext,
   startedAt: number,
   read: () => SendActOutcome | SendActEndingDetail,
-  fallback: SendActOutcome
+  fallback: () => SendActOutcome
 ): void {
   let ending: SendActEndingDetail;
   try {
@@ -241,7 +276,7 @@ function recordEnding(
       act: context.act,
       error: error instanceof Error ? error.name : typeof error,
     });
-    ending = { outcome: fallback };
+    ending = { outcome: fallback() };
   }
   trackSendActEnded(context, { ...ending, durationMs: Date.now() - startedAt });
 }

@@ -244,29 +244,34 @@ export function useJoinGarden() {
       const previousGardens = queryClient.getQueryData<Garden[]>(gardensKeys.byChain(chainId));
 
       try {
-        const txHash = await recordSendAct({ act: "garden_join", authMode, chainId }, () =>
-          submitJoinGarden(
-            {
-              gardenAddress: gardenAddress as Hex,
-              userAddress: targetAddress as Hex,
-              chainId,
-              smartAccountClient: client,
-            },
-            createDefaultJoinGardenPorts({
-              walletSend: ({ gardenAddress: targetGarden, chainId: targetChain }) => {
-                // A wallet that has not answered is asked to reconnect before it is asked to sign.
-                if (walletRestore) refuseWithoutWallet();
-                return writeContractAsync({
-                  address: targetGarden,
-                  abi: GardenAccountABI,
-                  functionName: "joinGarden",
-                  args: [],
-                  chainId: targetChain,
-                });
+        // A wallet join returns once it is broadcast, before its receipt: it may still land.
+        const joinEnding = () => (authMode === "wallet" ? "confirming" : "confirmed");
+        const txHash = await recordSendAct(
+          { act: "garden_join", authMode, chainId },
+          () =>
+            submitJoinGarden(
+              {
+                gardenAddress: gardenAddress as Hex,
+                userAddress: targetAddress as Hex,
+                chainId,
+                smartAccountClient: client,
               },
-              recordPending: addPendingJoin,
-            })
-          )
+              createDefaultJoinGardenPorts({
+                walletSend: ({ gardenAddress: targetGarden, chainId: targetChain }) => {
+                  // A wallet that has not answered is asked to reconnect before it is asked to sign.
+                  if (walletRestore) refuseWithoutWallet();
+                  return writeContractAsync({
+                    address: targetGarden,
+                    abi: GardenAccountABI,
+                    functionName: "joinGarden",
+                    args: [],
+                    chainId: targetChain,
+                  });
+                },
+                recordPending: addPendingJoin,
+              })
+            ),
+          joinEnding
         );
 
         // Optimistic update: add user to garden's gardeners list, marked as the join's own entry so

@@ -98,6 +98,7 @@ describe("recordSendAct", () => {
     ["viem's receipt timeout", named("WaitForTransactionReceiptTimeoutError"), "confirming"],
     ["a UserOperation timeout", named("WaitForUserOperationReceiptTimeoutError"), "confirming"],
     ["a send on record", new TransactionConfirmationPendingError(), "confirming"],
+    ["a wallet answer nobody waited for", named("WalletAnswerAbandonedError"), "confirming"],
     ["a declined prompt", userRejected, "cancelled"],
     ["a revert", new Error("execution reverted"), "failed"],
   ])("ends %s as %s and rethrows it unchanged", async (_case, error, outcome) => {
@@ -185,6 +186,8 @@ describe("acts of several copies", () => {
     [{ status: "confirming" }, "confirming"],
     [{ status: "not-sent", miss: "declined" }, "cancelled"],
     [{ status: "not-changed", miss: "failed" }, "confirming"],
+    [{ status: "not-sent", miss: "failed", jobId: "job-1" }, "confirming"],
+    [{ status: "not-sent", miss: "failed", jobId: null }, "failed"],
     [{ status: "not-sent", miss: "refused" }, "failed"],
     [{ status: "not-sent", miss: "over-ceilings" }, "failed"],
     [{ status: "waiting" }, null],

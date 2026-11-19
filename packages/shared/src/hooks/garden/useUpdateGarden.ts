@@ -68,7 +68,12 @@ function useGardenStringMutation(
   const queryClient = useQueryClient();
   const sendContractTx = useContractTxSender();
   const authMode = sendContractTx.authMode;
-  const act: SendActContext = { act: "garden_update", operation: functionName, authMode };
+  const act: SendActContext = {
+    act: "garden_update",
+    operation: functionName,
+    authMode,
+    chainId: sendContractTx.chainId,
+  };
   const handleError = createMutationErrorHandler({ source, toastContext });
 
   return useMutation({
@@ -182,7 +187,12 @@ export function useSetOpenJoining() {
   const queryClient = useQueryClient();
   const sendContractTx = useContractTxSender();
   const authMode = sendContractTx.authMode;
-  const act: SendActContext = { act: "garden_update", operation: "setOpenJoining", authMode };
+  const act: SendActContext = {
+    act: "garden_update",
+    operation: "setOpenJoining",
+    authMode,
+    chainId: sendContractTx.chainId,
+  };
   const handleError = createMutationErrorHandler({
     source: "useSetOpenJoining",
     toastContext: "set open joining",
@@ -235,7 +245,12 @@ export function useSetMaxGardeners() {
   const queryClient = useQueryClient();
   const sendContractTx = useContractTxSender();
   const authMode = sendContractTx.authMode;
-  const act: SendActContext = { act: "garden_update", operation: "setMaxGardeners", authMode };
+  const act: SendActContext = {
+    act: "garden_update",
+    operation: "setMaxGardeners",
+    authMode,
+    chainId: sendContractTx.chainId,
+  };
   const handleError = createMutationErrorHandler({
     source: "useSetMaxGardeners",
     toastContext: "set max gardeners",
