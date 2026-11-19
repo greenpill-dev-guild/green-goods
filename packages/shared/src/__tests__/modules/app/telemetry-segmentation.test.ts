@@ -3,9 +3,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { enrichEventProperties } from "../../../modules/app/posthog";
 import { setTelemetryAccount } from "../../../modules/app/telemetry-context";
+import type { Address } from "../../../types/domain";
 
-const TEST_ACCOUNT = "0x00000000000000000000000000000000000000Aa";
-const REAL_ACCOUNT = "0x00000000000000000000000000000000000000bb";
+const TEST_ACCOUNT: Address = "0x00000000000000000000000000000000000000Aa";
+const REAL_ACCOUNT: Address = "0x00000000000000000000000000000000000000bb";
 const TEST_GARDEN = "0x00000000000000000000000000000000000000cc";
 const REAL_GARDEN = "0x00000000000000000000000000000000000000dd";
 

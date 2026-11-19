@@ -24,6 +24,7 @@ import {
   type TelemetrySegmentation,
   type TestTrafficFlag,
 } from "../../public-contracts/telemetry-segmentation";
+import type { Address } from "../../types/domain";
 import { getTelemetrySink } from "./telemetry-sink";
 
 function readSurface(): AppSurface | typeof TELEMETRY_UNKNOWN {
@@ -49,9 +50,10 @@ export function getTelemetrySurface(): AppSurface | typeof TELEMETRY_UNKNOWN {
 let accountFlag: TestTrafficFlag = TELEMETRY_UNKNOWN;
 let accountGeneration = 0;
 
-async function digestAddress(address: string): Promise<string | null> {
+/** SHA-256, hex, of an address already in its normalized spelling. */
+async function digest(normalized: string): Promise<string | null> {
   if (typeof crypto === "undefined" || !crypto.subtle) return null;
-  const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(address));
+  const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(normalized));
   return Array.from(new Uint8Array(bytes), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
@@ -68,7 +70,7 @@ function publishAccountFlag(): void {
  * Place the signed-in account against the test-account records, or forget it at sign-out.
  * Resolves to the flag later events carry. A newer call supersedes one still checking.
  */
-export async function setTelemetryAccount(address: string | null): Promise<TestTrafficFlag> {
+export async function setTelemetryAccount(address: Address | null): Promise<TestTrafficFlag> {
   const generation = ++accountGeneration;
   accountFlag = TELEMETRY_UNKNOWN;
   publishAccountFlag();
@@ -77,14 +79,14 @@ export async function setTelemetryAccount(address: string | null): Promise<TestT
   const records = parseTestTrafficDigests(import.meta.env.VITE_TELEMETRY_TEST_ACCOUNT_DIGESTS);
   if (!normalized || !records) return TELEMETRY_UNKNOWN;
 
-  let digest: string | null = null;
+  let accountDigest: string | null = null;
   try {
-    digest = await digestAddress(normalized);
+    accountDigest = await digest(normalized);
   } catch {
-    digest = null;
+    accountDigest = null;
   }
   if (generation !== accountGeneration) return accountFlag;
-  accountFlag = classifyTestTraffic(records, digest);
+  accountFlag = classifyTestTraffic(records, accountDigest);
   publishAccountFlag();
   return accountFlag;
 }
