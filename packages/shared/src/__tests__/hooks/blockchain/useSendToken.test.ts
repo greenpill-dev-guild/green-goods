@@ -556,6 +556,50 @@ describe("Celo send safety", () => {
     }
   });
 
+  it("never lets a cancelled send's late answer relabel a later send", async () => {
+    Object.assign(mockSender, { authMode: "wallet" });
+    try {
+      // Each send waits on the wallet until it is cancelled, as a wallet sender does.
+      const waitUntilCancelled = async (_call: unknown, options: { signal: AbortSignal }) =>
+        new Promise((_resolve, reject) => {
+          options.signal.addEventListener("abort", () => reject(new WalletAnswerAbandonedError()), {
+            once: true,
+          });
+        });
+      mockSendContractCall
+        .mockImplementationOnce(waitUntilCancelled)
+        .mockImplementationOnce(waitUntilCancelled);
+      const { result } = renderSendToken();
+      for (const send of [0, 1]) {
+        let sent!: Promise<unknown>;
+        act(() => {
+          sent = result.current.mutateAsync(SEND_PARAMS).catch(() => undefined);
+        });
+        await waitFor(() => expect(mockSendContractCall).toHaveBeenCalledTimes(send + 1));
+        await act(async () => {
+          result.current.cancelWalletWait();
+          await sent;
+        });
+      }
+      await waitFor(() => expect(result.current.notice).toBe("stopped"));
+
+      // The first send's wallet answers now: that send went out, the second did not.
+      const { onBroadcast } = mockSendContractCall.mock.calls[0]![1] as {
+        onBroadcast: (hash: string) => Promise<void>;
+      };
+      await act(async () => {
+        await onBroadcast("0xlate");
+      });
+      expect(toastService.info).toHaveBeenCalledWith({
+        title: "app.sendStage.stillConfirming",
+        message: "app.sendStage.stillConfirming.detail",
+      });
+      expect(result.current.notice).toBe("stopped");
+    } finally {
+      delete (mockSender as { authMode?: string }).authMode;
+    }
+  });
+
   it("says to confirm in the wallet while it is asked, then confirming once the network has it", async () => {
     Object.assign(mockSender, { authMode: "wallet" });
     try {

@@ -11,6 +11,7 @@ import {
   selectExceededTransferLimit,
   selectTransferLimitsRead,
 } from "@green-goods/shared/modules/commitment-pooling/pool-funding";
+import { SEND_STAGE_WORDS } from "@green-goods/shared/modules/transactions/send-stage";
 import type { Address } from "@green-goods/shared/types/domain";
 import { type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
@@ -300,16 +301,18 @@ export function ProtocolFundingOperationsCard({
                   defaultMessage:
                     "The transaction failed or was rejected. Nothing changed on chain.",
                 })
-              : operations.lastAct.phase === "proposed"
-                ? formatMessage({
-                    id: "hub.community.protocolFunding.status.proposed",
-                    defaultMessage:
-                      "Sent to your Safe. Queuing and dispatching stay closed until the chain shows it ran. If your Safe rejected it, reload this page.",
-                  })
-                : formatMessage({
-                    id: "hub.community.protocolFunding.status.submitted",
-                    defaultMessage: "Submitted. Refresh to follow the indexed settlement state.",
-                  })}
+              : operations.lastAct.phase === "still-confirming"
+                ? formatMessage(SEND_STAGE_WORDS["still-confirming"].detail!)
+                : operations.lastAct.phase === "proposed"
+                  ? formatMessage({
+                      id: "hub.community.protocolFunding.status.proposed",
+                      defaultMessage:
+                        "Sent to your Safe. Queuing and dispatching stay closed until the chain shows it ran. If your Safe rejected it, reload this page.",
+                    })
+                  : formatMessage({
+                      id: "hub.community.protocolFunding.status.submitted",
+                      defaultMessage: "Submitted. Refresh to follow the indexed settlement state.",
+                    })}
         </p>
       ) : null}
 

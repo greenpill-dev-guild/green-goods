@@ -563,6 +563,26 @@ describe("commitment queue executor", () => {
     expect(queued.meta).toMatchObject({ submittedTxNonce: 7 });
   });
 
+  it("holds a creation whose UserOperation outlasted the limit as waiting, never failed", async () => {
+    // A passkey's operation names no transaction, yet it went out and may still land: failing
+    // it would spend an attempt and read as failed (PRD-1551).
+    const sender = createMockTransactionSender({
+      sendContractCall: vi.fn(async () => {
+        throw new ReceiptWaitLimitError(120_000);
+      }),
+    });
+
+    await expect(
+      executeCommitmentQueueJob(
+        "job-commitment",
+        job("commitment", commitmentPayload()),
+        42161,
+        sender,
+        { demoActive: () => false, reads: reads(chainClock()), store: store() }
+      )
+    ).resolves.toEqual({ status: "waiting", reason: "awaiting-confirmation" });
+  });
+
   it.each([
     ["reverted", { reverted: true, superseded: false }, true],
     ["lost its nonce to another", { reverted: false, superseded: true }, true],

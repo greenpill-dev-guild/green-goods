@@ -307,7 +307,14 @@ export interface CommitmentDialogController {
 }
 
 /** `proposed`: a Safe took it as a proposal, and it holds until the chain shows it ran. */
-export type SettlementActPhase = "signing" | "submitted" | "proposed" | "confirmed" | "failed";
+/** `still-confirming`: sent past its receipt limit, so it may still land and holds like a proposal. */
+export type SettlementActPhase =
+  | "signing"
+  | "submitted"
+  | "proposed"
+  | "still-confirming"
+  | "confirmed"
+  | "failed";
 
 export type SettlementActKind =
   | "queue-funding"

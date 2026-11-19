@@ -37,7 +37,7 @@ import type { Address } from "../../types/domain";
 import { ERC20_BALANCE_ABI, ERC20_TRANSFER_ABI } from "../../utils/blockchain/abis/erc20";
 import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
-import { isUnconfirmedTxError } from "../../utils/errors/tx-error-classifier";
+import { isUnconfirmedTxError, mayStillLand } from "../../utils/errors/tx-error-classifier";
 import { useUser } from "../auth/useUser";
 import { useSafeMutation } from "../utils/useSafeMutation";
 import { useDelayedInvalidation, useTimeout } from "../utils/useTimeout";
@@ -306,11 +306,7 @@ export function useSendToken() {
     onError: (error, params, context) => {
       if (context?.toastId) toastService.dismiss(context.toastId);
       // A send still confirming, or one the wallet may still send, may move the balance.
-      if (
-        primaryAddress &&
-        params?.token &&
-        (error instanceof WalletAnswerAbandonedError || isUnconfirmedTxError(error))
-      ) {
+      if (primaryAddress && params?.token && mayStillLand(error)) {
         sentRef.current = { account: primaryAddress.toLowerCase(), chainId: params.token.chainId };
         scheduleRefetch();
       }

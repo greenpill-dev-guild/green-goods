@@ -10,6 +10,7 @@ import type {
 import { useCommitmentSettlementController } from "@green-goods/shared/hooks/admin-ui/pool/useCommitmentSettlementController";
 import type { SettlementNextAction } from "@green-goods/shared/modules/commitment-pooling/settlement-workflow";
 import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment-pooling/types-core";
+import { SEND_STAGE_WORDS } from "@green-goods/shared/modules/transactions/send-stage";
 import { RiRefreshLine } from "@remixicon/react";
 import { type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
@@ -280,11 +281,13 @@ export function CommitmentSettlement({ settlement, tone, target }: CommitmentSet
                         defaultMessage:
                           "Sent to your Safe. This step reopens once the chain shows it ran.",
                       })
-                    : formatMessage({
-                        id: "hub.garden.pool.settlement.status.failed",
-                        defaultMessage:
-                          "The transaction failed or was rejected. Nothing changed on chain.",
-                      })}
+                    : settlement.lastAct.phase === "still-confirming"
+                      ? formatMessage(SEND_STAGE_WORDS["still-confirming"].detail!)
+                      : formatMessage({
+                          id: "hub.garden.pool.settlement.status.failed",
+                          defaultMessage:
+                            "The transaction failed or was rejected. Nothing changed on chain.",
+                        })}
             </p>
           ) : null}
 

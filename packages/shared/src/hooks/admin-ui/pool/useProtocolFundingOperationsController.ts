@@ -32,6 +32,7 @@ import type { HexString } from "../../../modules/commitment-pooling/types-core";
 import type { BroadcastConfirmation } from "../../../modules/transactions/types";
 import type { Address } from "../../../types/domain";
 import { ZERO_ADDRESS } from "../../../utils/blockchain/address";
+import { mayStillLand } from "../../../utils/errors/tx-error-classifier";
 import { useOnlineStatus } from "../../app/useOnlineStatus";
 import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
 import { useTransactionSender } from "../../blockchain/useTransactionSender";
@@ -305,7 +306,13 @@ export function useProtocolFundingOperationsController(input: {
         await refetch();
         return hash;
       } catch (error) {
-        setLastAct({ kind, phase: "failed", error });
+        // A send past its receipt limit went out and may still land: sends stay closed until it
+        // settles, as for a proposal, and it never reads as failed (PRD-1551).
+        const hash = mayStillLand(error) ? (error as { hash?: HexString }).hash : undefined;
+        if (hash) {
+          setProposed({ hash, effect: proposedEffect(action, before) });
+          setLastAct({ kind, phase: "still-confirming", hash });
+        } else setLastAct({ kind, phase: "failed", error });
         await refetch().catch(() => undefined);
         throw error;
       }
@@ -339,7 +346,7 @@ export function useProtocolFundingOperationsController(input: {
     rows,
     // Once a proposal settles, it either reverted on chain or ran, and the indexed rows say how.
     lastAct:
-      lastAct?.phase === "proposed" && !proposalPending
+      (lastAct?.phase === "proposed" || lastAct?.phase === "still-confirming") && !proposalPending
         ? outcome === "reverted"
           ? {
               kind: lastAct.kind,
