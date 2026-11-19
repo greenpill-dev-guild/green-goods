@@ -17,6 +17,7 @@ export function CommitmentActions({
   isActing,
   fallbackPath,
   onOpenDialog,
+  onCancelUntaken,
   onSeedAnother,
   onEditReward,
   onEditConfirmers,
@@ -31,6 +32,11 @@ export function CommitmentActions({
   isActing: boolean;
   fallbackPath: FallbackPath;
   onOpenDialog: (open: OpenDialog) => void;
+  /**
+   * Cancel a promise nobody has taken up, with a reason. Only a steward gets it; once taken up,
+   * the Accepted section carries the cancel instead.
+   */
+  onCancelUntaken?: () => void;
   /**
    * Opens the seeding wizard on this commitment's answers. Absent wherever the
    * reader may not seed this pool, so the button is simply not drawn.
@@ -202,6 +208,23 @@ export function CommitmentActions({
             {formatMessage({
               id: "hub.garden.pool.row.act.expire",
               defaultMessage: "Expire Now…",
+            })}
+          </Button>
+        </div>
+      ) : null}
+      {onCancelUntaken ? (
+        // Final too, so it takes the same row of its own as Expire Now.
+        <div className="flex justify-end border-t border-stroke-soft pt-3" data-slot="cancel">
+          <Button
+            type="button"
+            emphasis="secondary"
+            size="compact"
+            onClick={onCancelUntaken}
+            disabled={actDisabled}
+          >
+            {formatMessage({
+              id: "hub.garden.pool.commitment.act.cancel",
+              defaultMessage: "Cancel Promise…",
             })}
           </Button>
         </div>

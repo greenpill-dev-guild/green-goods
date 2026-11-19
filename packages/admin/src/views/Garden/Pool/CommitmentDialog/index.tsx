@@ -137,6 +137,7 @@ function CommitmentRecord({
   const target = <GardenPoolTarget chainId={chainId} garden={garden} record={title} />;
   const stage = stageIndex(commitment.onchainState, commitment.evidenceCount);
   const asks = detail?.claimRequests ?? [];
+  const untaken = commitment.onchainState === "OFFERED" || commitment.onchainState === "REQUESTED";
   // A promise in a group changes its reward from the group; one on its own, here,
   // while nobody has taken it (the chain locks a reward at take-up). Only a read
   // document can say it stands alone: one still loading, or unread, may be a copy.
@@ -251,6 +252,7 @@ function CommitmentRecord({
         fallbackPath={fallbackPath}
         onOpenDialog={setOpen}
         sendPhase={dialog.sendPhase}
+        onCancelUntaken={can.cancel && untaken ? () => setOpen("cancel") : undefined}
         onSeedAnother={
           onSeedAnother && dialog.isLocalSteward
             ? () => onSeedAnother(commitment.commitmentId.toString())
@@ -309,6 +311,7 @@ function CommitmentRecord({
         acts={acts}
         blockedReason={blockedReason}
         target={target}
+        untaken={untaken}
       />
       <CommitmentExpireDialog
         isOpen={open === "expire"}

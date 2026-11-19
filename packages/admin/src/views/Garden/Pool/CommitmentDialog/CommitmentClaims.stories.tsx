@@ -111,6 +111,23 @@ export const Approved: Story = {
   },
 };
 
+/** The promise was canceled while these asks waited: they closed with it, and nobody was chosen. */
+export const ClosedWithThePromise: Story = {
+  args: {
+    claims: PENDING_CLAIMS.map((claim) => ({
+      ...claim,
+      state: "SUPERSEDED" as const,
+      resolutionCode: "COMMITMENT_CANCELLED",
+      resolvedAt: Number(STORY_NOW),
+    })),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getAllByText("Closed").length).toBe(PENDING_CLAIMS.length);
+    await expect(canvas.queryByText("Not chosen")).not.toBeInTheDocument();
+  },
+};
+
 /** Refused in the wallet: nothing changed, and the pair is back as Try Again. */
 export const ApproveFailed: Story = {
   args: { phaseFor: firstRow({ status: "failed", key: "accept" }) },

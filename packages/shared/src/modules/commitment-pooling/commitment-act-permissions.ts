@@ -202,13 +202,16 @@ export function selectCommitmentActPermissions(input: {
     input.requirementCount === 0 && commitment.commitmentType !== "DOMAIN_IMPACT";
   const steward = input.isPoolSteward;
   const accepted = state === "ACCEPTED";
+  const untaken = state === "OFFERED" || state === "REQUESTED";
   // The three states raiseDispute accepts (TerminalLib.sol:91-96).
   const disputable =
     state === "ACCEPTED" || state === "READY_FOR_CONFIRMATION" || state === "EXPIRED";
   const live = state === "ACCEPTED" || state === "READY_FOR_CONFIRMATION";
   const poolOpen = !input.poolPaused && !input.poolUnread;
   return {
-    cancel: steward && accepted, // a pause never winds down (TerminalLib.sol:11-12)
+    // TerminalLib.cancelCommitment takes a steward's reasoned cancel while nobody has taken the
+    // promise up and once it is Accepted; a pause never winds down (TerminalLib.sol:11-12).
+    cancel: steward && (untaken || accepted),
     // Deliberately not gated on the commitment type: the override exists for a
     // Work-backed record whose requirements stalled, and that is the only
     // recovery the spec promises it.
@@ -246,8 +249,8 @@ export function selectCommitmentActPermissions(input: {
       (input.confirmation.path === "POOL_FALLBACK" ||
         input.confirmation.path === "PROTOCOL_FALLBACK") &&
       poolOpen,
-    acceptClaim: steward && (state === "OFFERED" || state === "REQUESTED") && poolOpen,
-    declineClaim: steward && (state === "OFFERED" || state === "REQUESTED") && poolOpen,
+    acceptClaim: steward && untaken && poolOpen,
+    declineClaim: steward && untaken && poolOpen,
     syncWorkDecisions:
       steward && accepted && !commitment.contributorsFrozen && input.canReconcileWork === true,
   };

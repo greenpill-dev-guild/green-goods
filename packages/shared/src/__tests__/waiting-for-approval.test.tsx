@@ -185,6 +185,22 @@ describe("an ask in its promise's inspector", () => {
     });
   });
 
+  it.each([
+    ["taken up", "COMMITMENT_ACCEPTED", { status: "not-chosen", at: 1_800_000 }],
+    ["canceled", "COMMITMENT_CANCELLED", { status: "closed", ending: "canceled", at: 1_800_000 }],
+    ["expired", "COMMITMENT_EXPIRED", { status: "closed", ending: "expired", at: 1_800_000 }],
+  ])("closes an ask whose promise was %s for the reason the index gives", (_ending, resolutionCode, expected) => {
+    const closed = claimFixture({
+      commitmentId: 3n,
+      claimant: KWAME,
+      state: "SUPERSEDED",
+      resolutionCode,
+      resolvedAt: 1_800,
+    });
+
+    expect(askState(closed, { decisions: {}, phase: IDLE_ACT_PHASE })).toEqual(expected);
+  });
+
   it("counts what an asker leads and still holds against the pool's limit, and what they kept", () => {
     const led = (onchainState: typeof ines.commitment.onchainState) =>
       commitmentFixture({ onchainState, leadProvider: INES });

@@ -90,6 +90,18 @@ export const SeedAnotherLikeThis: Story = {
   },
 };
 
+/**
+ * A steward reading a promise nobody has taken up: Cancel Promise stands apart in its own row,
+ * like Expire, and asks for a reason before it sends.
+ */
+export const CancelUntaken: Story = {
+  args: {
+    can: { ...dialog.can, raiseDispute: false, sendForConfirmation: false, cancel: true },
+    onSeedAnother: () => undefined,
+    onCancelUntaken: () => undefined,
+  },
+};
+
 export const Offline: Story = {
   args: { isOnline: false, actDisabled: true },
 };
