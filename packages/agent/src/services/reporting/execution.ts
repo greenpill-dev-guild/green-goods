@@ -20,7 +20,7 @@ import { participantWriter } from "./notify";
 import { operationSubject } from "./operation-subjects";
 import { operationById, setOperationState } from "./operations";
 import { audit, participantEpoch } from "./participants";
-import { SAFE_CHECK_PASSES } from "./reconciliation";
+import { SAFE_CHECK_PASSES, SAFE_CHECK_PAYLOAD } from "./reconciliation";
 import type { ReportingCore } from "./runtime";
 import type { BrowserSession } from "./sessions";
 import { sessionOwnsOperation } from "./views";
@@ -252,12 +252,13 @@ export function recordOwnerOutcome(
         { kind: "attempt", id: attempt.id },
         { safeTxHash: input.outcome.safeTxHash ?? null }
       );
-      // Its own check, long enough for the owners to sign: an earlier one for the reported hash
-      // stops quietly while this one runs.
+      // Its own check, long enough for the owners to sign. Any earlier one for the reported hash
+      // ends on its next pass (`reconcileOperation`), so none runs out and raises an alert.
       enqueueJob(core, {
         kind: "reconcile_operation",
         subjectId: operation.id,
         dedupeKey: `reconcile:${attempt.id}:safe`,
+        payload: SAFE_CHECK_PAYLOAD,
         maxAttempts: SAFE_CHECK_PASSES,
       });
       participantWriter(core, {

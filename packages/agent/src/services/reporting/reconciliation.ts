@@ -46,6 +46,8 @@ export interface ReconciliationDeps {
  */
 const SAFE_CHECK_INTERVAL_MS = 10 * 60_000;
 export const SAFE_CHECK_PASSES = (7 * 24 * 60 * 60_000) / SAFE_CHECK_INTERVAL_MS;
+/** What marks that check's job, so the check an earlier report started can end beside it. */
+export const SAFE_CHECK_PAYLOAD = { safeSigners: true } as const;
 
 interface Verified {
   uid: Hex;
@@ -173,24 +175,28 @@ async function resolve(
     }
   }
   // No usable hash, or the reported one does not carry this envelope: search the bounded range.
-  const sentFrom = BigInt(operation.fromBlock ?? attempt?.fromBlock ?? 0);
+  // A Safe's proposal can be run hours or days after it went out, long past the one window a sent
+  // transaction lands in, so its check reads every window from the send to the chain's head
+  // (PRD-1568). Nothing is kept between passes, so a pass after an outage misses nothing.
   const latest = await chain.blockNumber(envelope.chainId);
-  // A Safe's proposal can be run hours or days after it went out, long past the range a sent
-  // transaction lands in, so its check follows the chain's head instead (PRD-1568).
-  const fromBlock =
-    attempt?.reasonCode === SAFE_SIGNERS && latest - deps.scanWindowBlocks > sentFrom
-      ? latest - deps.scanWindowBlocks
-      : sentFrom;
-  const toBlock =
-    latest < fromBlock + deps.scanWindowBlocks ? latest : fromBlock + deps.scanWindowBlocks;
-  const events = await chain.attestedEvents(envelope.chainId, {
-    eas: envelope.easAddress as Addr,
-    schemaUID: envelope.schemaUID,
-    recipient: envelope.gardenAddress as Addr,
-    attester: envelope.accountAddress as Addr,
-    fromBlock,
-    toBlock,
-  });
+  const events: Awaited<ReturnType<ReportingChain["attestedEvents"]>> = [];
+  let fromBlock = BigInt(operation.fromBlock ?? attempt?.fromBlock ?? 0);
+  for (;;) {
+    const windowEnd = fromBlock + deps.scanWindowBlocks;
+    const toBlock = latest < windowEnd ? latest : windowEnd;
+    events.push(
+      ...(await chain.attestedEvents(envelope.chainId, {
+        eas: envelope.easAddress as Addr,
+        schemaUID: envelope.schemaUID,
+        recipient: envelope.gardenAddress as Addr,
+        attester: envelope.accountAddress as Addr,
+        fromBlock,
+        toBlock,
+      }))
+    );
+    if (attempt?.reasonCode !== SAFE_SIGNERS || toBlock >= latest) break;
+    fromBlock = toBlock + 1n;
+  }
   const matches: Verified[] = [];
   const unread = new Set<Hex>();
   for (const event of events) {
@@ -285,6 +291,12 @@ export async function reconcileOperation(
   const operation = operationById(core, job.subjectId);
   const envelope = operation?.envelope;
   if (!operation || !envelope || operation.state !== "reconciling") return { status: "done" };
+  // A Safe's proposal has a check of its own; one an earlier report started ends here, quietly.
+  if (
+    job.payload.safeSigners !== SAFE_CHECK_PAYLOAD.safeSigners &&
+    latestAttempt(core, operation.id)?.reasonCode === SAFE_SIGNERS
+  )
+    return { status: "done" };
   // If a retry spends the job's last attempt, the worker parks it and the check stops there.
   const stopped = (reason: string) => () => stopChecking(core, operation.id, reason);
   let resolution: Resolution;

@@ -761,9 +761,17 @@ describe("owner publication", () => {
     expect(count(CHECK_STOPPED)).toBe(0);
     expect(count(SAFE_SIGNERS)).toBe(1);
     expect(await harness.say(ADA, "STATUS")).toEqual([SAFE_SIGNERS]);
+    // The check for the reported hash ended once the Safe's took over: none ran out of passes.
+    expect(
+      row(
+        "SELECT count(*) AS n FROM processing_jobs WHERE kind = 'reconcile_operation' AND state = 'failed'"
+      )
+    ).toEqual({ n: 0 });
 
-    // The owners sign and someone runs it, under a hash of its own.
+    // The owners sign and someone runs it, under a hash of its own, and the Agent is down for
+    // longer than one search window before its next pass.
     const executed = send(envelope);
+    harness.chain.block += 30_000n;
     harness.clock.advance(10 * 60_000);
     await harness.drain();
     expect(sentTexts().at(-1)).toBe("Your report is published ✅");
@@ -772,6 +780,24 @@ describe("owner publication", () => {
       transaction_hash: executed,
     });
     expect(row("SELECT count(*) AS n FROM execution_attempts")).toEqual({ n: 1 });
+  });
+
+  // The wallet window closed with nothing heard, then the page's proposal came in late.
+  it("waits for the Safe's signers on a proposal reported after the wallet window closed", async () => {
+    await confirmLinkAndPublish(harness);
+    const { browser, view, envelope } = await openSigningPage(harness);
+    const { attemptId } = (await reserve(browser, view, envelope)).body;
+    harness.clock.advance(harness.core.settings.walletResponseWindowMs);
+    await harness.drain();
+
+    const proposed = await reportOutcome(browser, view, envelope, attemptId, {
+      kind: "safe_proposal",
+      safeTxHash: `0x${"5a".repeat(32)}`,
+    });
+    expect(proposed.status).toBe(200);
+    await harness.drain();
+    expect(count(SAFE_SIGNERS)).toBe(1);
+    expect(await harness.say(ADA, "STATUS")).toEqual([SAFE_SIGNERS]);
   });
 
   it("tells the reporter once that a report found on chain twice is published and being checked", async () => {
