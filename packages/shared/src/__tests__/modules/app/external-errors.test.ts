@@ -2,6 +2,7 @@ import type { CaptureResult } from "posthog-js";
 import type { ErrorEvent } from "@sentry/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { classifyExternalError } from "../../../modules/app/external-errors";
 import { tagExternalExceptions } from "../../../modules/app/posthog-browser";
 import { tagExternalError } from "../../../modules/app/sentry";
 
@@ -92,6 +93,19 @@ describe("errors from WalletConnect's relay and the beta toolbar", () => {
       external_source: source,
       $exception_level: level,
     });
+  });
+
+  it("reads the toolbar from where it ran and the relay from what it said", () => {
+    expect(
+      classifyExternalError({ messages: ["Load failed"], locations: [`${TOOLBAR_SCRIPT}:2:58024`] })
+    ).toEqual({ source: "vercel_toolbar", recoverable: false });
+    expect(classifyExternalError({ messages: [RELAY_REFUSED_ORIGIN], locations: [] })).toEqual({
+      source: "walletconnect",
+      recoverable: false,
+    });
+    expect(
+      classifyExternalError({ messages: ["Load failed"], locations: [OUR_SCRIPT] })
+    ).toBeNull();
   });
 
   it("leaves our own errors as they were", () => {
