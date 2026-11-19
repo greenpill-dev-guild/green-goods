@@ -1,4 +1,3 @@
-import { SheetActions } from "@green-goods/shared/components/Dialog/SheetActions";
 import { WorkUploadConsentContent } from "@green-goods/shared/components/Dialog/WorkUploadConsentDialog";
 import type { ComponentProps } from "react";
 import { AdminDialog } from "./AdminDialog";
@@ -20,7 +19,9 @@ export function AdminUploadConsentDialog({ prompt, kind }: ConsentProps) {
           description={description}
           preventClose={prompt.saving}
           onOpenChange={(open) => !open && prompt.cancel()}
-          actions={<SheetActions {...actions} />}
+          actions={{
+            ...actions,
+          }}
         >
           {content}
         </AdminDialog>

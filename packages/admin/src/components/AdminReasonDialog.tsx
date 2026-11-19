@@ -1,5 +1,4 @@
 import { Button } from "@green-goods/shared/components/Button";
-import { SheetActions } from "@green-goods/shared/components/Dialog/SheetActions";
 import { logger } from "@green-goods/shared/modules/app/logger";
 import { MAX_REASON } from "@green-goods/shared/modules/commitment-pooling/reasons";
 import { type ReactNode, useState } from "react";
@@ -134,32 +133,28 @@ export function AdminReasonDialog({
       preventClose={busy}
       hideCloseButton={busy}
       bodyClassName="space-y-3"
-      actions={
-        <SheetActions
-          primary={{
-            label: confirmLabel,
-            onClick: () => void handleConfirm(onConfirm),
-            loading: busy,
-            // A busy confirm stays focusable; only a missing reason disables it.
-            disabled: !busy && !canConfirm,
-            tone: isDanger ? "danger" : "default",
-          }}
-          secondary={{
-            label:
-              cancelLabel ?? formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" }),
-            onClick: onClose,
-            disabled: busy,
-          }}
-          tertiary={
-            alternative && {
-              label: alternative.label,
-              onClick: () => void handleConfirm(alternative.onConfirm),
-              // It needs the same reason, and waits for the same one.
-              disabled: !canConfirm,
-            }
-          }
-        />
-      }
+      actions={{
+        primary: {
+          label: confirmLabel,
+          onClick: () => void handleConfirm(onConfirm),
+          loading: busy,
+          // A busy confirm stays focusable; only a missing reason disables it.
+          disabled: !busy && !canConfirm,
+          tone: isDanger ? "danger" : "default",
+        },
+        secondary: {
+          label:
+            cancelLabel ?? formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" }),
+          onClick: onClose,
+          disabled: busy,
+        },
+        tertiary: alternative && {
+          label: alternative.label,
+          onClick: () => void handleConfirm(alternative.onConfirm),
+          // It needs the same reason, and waits for the same one.
+          disabled: !canConfirm,
+        },
+      }}
     >
       {children}
       <div className="space-y-1.5">

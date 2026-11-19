@@ -65,26 +65,30 @@ vi.mock("@green-goods/shared/hooks/profile/useProfileAvatar", () => ({
   useProfileAvatarEditor: () => mocks.editor,
   useResolvedProfileAvatar: () => mocks.resolved,
 }));
-vi.mock("@/components/AdminDialog", () => ({
-  AdminDialog: ({ open, title, children, actions }: any) =>
-    open ? (
-      <section role="dialog" aria-label={title}>
-        {children}
-        {actions}
-      </section>
-    ) : null,
-  AdminConfirmDialog: ({ isOpen, title, onClose, onConfirm, confirmLabel, cancelLabel }: any) =>
-    isOpen ? (
-      <section role="alertdialog" aria-label={title}>
-        <button type="button" onClick={onClose}>
-          {cancelLabel}
-        </button>
-        <button type="button" onClick={onConfirm}>
-          {confirmLabel}
-        </button>
-      </section>
-    ) : null,
-}));
+vi.mock("@/components/AdminDialog", async () => {
+  // The stand-in draws the footer from the action bar's props, as the dialog does.
+  const { SheetActions } = await import("@green-goods/shared/components/Dialog/SheetActions");
+  return {
+    AdminDialog: ({ open, title, children, actions }: any) =>
+      open ? (
+        <section role="dialog" aria-label={title}>
+          {children}
+          {actions ? <SheetActions {...actions} /> : null}
+        </section>
+      ) : null,
+    AdminConfirmDialog: ({ isOpen, title, onClose, onConfirm, confirmLabel, cancelLabel }: any) =>
+      isOpen ? (
+        <section role="alertdialog" aria-label={title}>
+          <button type="button" onClick={onClose}>
+            {cancelLabel}
+          </button>
+          <button type="button" onClick={onConfirm}>
+            {confirmLabel}
+          </button>
+        </section>
+      ) : null,
+  };
+});
 
 describe("AccountProfileAvatarEditor", () => {
   beforeEach(() => {

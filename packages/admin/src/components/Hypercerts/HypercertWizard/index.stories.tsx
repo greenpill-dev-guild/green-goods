@@ -1,4 +1,3 @@
-import { Button } from "@green-goods/shared/components/Button";
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
 import { FormFlow, toFormFlowSections } from "@/components/Layout/FormFlow";
@@ -66,16 +65,15 @@ function HypercertWizardHarness({
           </div>
         ) : undefined
       }
-      actions={
-        <>
-          <Button type="button" emphasis="secondary" onClick={fn()} disabled={isSubmitting}>
-            Cancel
-          </Button>
-          <Button type="button" onClick={fn()} disabled={nextDisabled} loading={isSubmitting}>
-            Mint hypercert
-          </Button>
-        </>
-      }
+      actions={{
+        primary: {
+          label: "Mint hypercert",
+          onClick: fn(),
+          disabled: nextDisabled,
+          loading: isSubmitting,
+        },
+        secondary: { label: "Cancel", onClick: fn(), disabled: isSubmitting },
+      }}
     />
   );
 }

@@ -96,11 +96,7 @@ export function SeedFlowNote({
                       "They wait in this device's queue until you send them from the Promises tab.",
                   })
                 : null));
-  return note ? (
-    <span role="status" data-testid={testId}>
-      {note}
-    </span>
-  ) : null;
+  return note ? <span data-testid={testId}>{note}</span> : null;
 }
 
 /**

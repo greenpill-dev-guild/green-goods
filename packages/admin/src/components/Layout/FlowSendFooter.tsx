@@ -145,7 +145,7 @@ export function FlowSendFooter({
   return (
     <SheetActions
       layout="steps"
-      note={note ? <span role="status">{note}</span> : undefined}
+      note={note ?? null}
       primary={{
         type: sendButtonProps?.type,
         form: sendButtonProps?.form,

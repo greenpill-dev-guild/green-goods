@@ -1,6 +1,9 @@
+import type {
+  SheetAction,
+  SheetActionsProps,
+} from "@green-goods/shared/components/Dialog/SheetActions";
 import { useGardenMemberContributions } from "@green-goods/shared/hooks/garden/useGardenMemberContributions";
 import { useGardenMemberHistory } from "@green-goods/shared/hooks/garden/useGardenMemberHistory";
-import { Button } from "@green-goods/shared/components/Button";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
@@ -9,7 +12,7 @@ import { logger } from "@green-goods/shared/modules/app/logger";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
 import { RiUserAddLine, RiUserLine } from "@remixicon/react";
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminDialog, type AdminDialogProps } from "../AdminDialog";
 import { DiscardChangesDialog } from "../DiscardChangesDialog";
@@ -307,61 +310,35 @@ export function ManageMembersDialog({
     else if (action.act === "checkAgain") void checkAgain(action.pairs ?? []);
     else void send(action.pairs ?? []);
   };
-  const actionButton = (slot: "primary" | "secondary", action: ReviewMomentAction | null) =>
-    action ? (
-      <Button
-        key={slot}
-        type="button"
-        emphasis={slot}
-        tone={action.danger ? "danger" : "default"}
-        size="sm"
-        onClick={() => act(action)}
-        disabled={action.disabled}
-        loading={action.loading}
-      >
-        {action.label}
-      </Button>
-    ) : null;
+  const actionOf = (action: ReviewMomentAction | null): SheetAction | undefined =>
+    action
+      ? {
+          label: action.label,
+          tone: action.danger ? "danger" : "default",
+          onClick: () => act(action),
+          disabled: action.disabled,
+          loading: action.loading,
+        }
+      : undefined;
 
-  // Two fixed slots, end-aligned: a secondary and one primary per moment (RUI pp. 60–62).
-  let secondary: ReactNode = null;
-  let primary: ReactNode;
-  if (moment) {
-    secondary = actionButton("secondary", moment.secondary);
-    primary = actionButton("primary", moment.primary);
-  } else if (canManage) {
-    secondary = (
-      <Button
-        key="secondary"
-        type="button"
-        emphasis="secondary"
-        size="sm"
-        leadingIcon={<RiUserAddLine className="h-[18px] w-[18px]" aria-hidden="true" />}
-        onClick={() => onAddMembers(scopedTo ?? undefined)}
-        disabled={busy}
-      >
-        {formatMessage({ id: "admin.addMember.openAction" })}
-      </Button>
-    );
-    primary = (
-      <Button
-        key="primary"
-        type="button"
-        emphasis="primary"
-        size="sm"
-        onClick={openReview}
-        disabled={busy || picks.length === 0}
-      >
-        {formatMessage({ id: "admin.manageRoles.review" })}
-      </Button>
-    );
-  } else {
-    primary = (
-      <Button key="primary" type="button" emphasis="tertiary" size="sm" onClick={onClose}>
-        {formatMessage({ id: "admin.common.close" })}
-      </Button>
-    );
-  }
+  // Two fixed slots: a secondary and one primary per moment (RUI pp. 60–62).
+  const footerActions: Pick<SheetActionsProps, "primary" | "secondary"> = moment
+    ? { primary: actionOf(moment.primary), secondary: actionOf(moment.secondary) }
+    : canManage
+      ? {
+          primary: {
+            label: formatMessage({ id: "admin.manageRoles.review" }),
+            onClick: openReview,
+            disabled: busy || picks.length === 0,
+          },
+          secondary: {
+            label: formatMessage({ id: "admin.addMember.openAction" }),
+            icon: <RiUserAddLine className="h-[18px] w-[18px]" aria-hidden="true" />,
+            onClick: () => onAddMembers(scopedTo ?? undefined),
+            disabled: busy,
+          },
+        }
+      : { secondary: { label: formatMessage({ id: "admin.common.close" }), onClick: onClose } };
 
   const summary =
     !review && canManage ? (
@@ -396,18 +373,7 @@ export function ManageMembersDialog({
             ? undefined
             : formatMessage({ id: "app.garden.roles.modal.description" }, { count: people.length })
         }
-        actions={
-          <div className="flex w-full flex-wrap items-center justify-end gap-2">
-            <div
-              className="mr-auto min-w-0 type-meta text-text-sub empty:hidden"
-              aria-live="polite"
-            >
-              {summary}
-            </div>
-            {secondary}
-            {primary}
-          </div>
-        }
+        actions={{ note: summary ?? null, ...footerActions }}
       >
         {review && moment ? (
           <div
