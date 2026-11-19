@@ -233,6 +233,8 @@ describe("a withdrawn promise in History", () => {
         viewer={VIEWER}
       />
     );
+    // The hook still runs on every render; it is handed no CID, so it reads nothing.
+    expect(mocks.reasonCIDs.length).toBeGreaterThan(0);
     expect(mocks.reasonCIDs.every((cid) => cid === null || cid === undefined)).toBe(true);
   });
 });

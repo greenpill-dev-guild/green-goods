@@ -119,11 +119,21 @@ describe("CommitmentClaimPanel", () => {
     expect(screen.getByText("Duplicate promise")).toBeInTheDocument();
   });
 
-  it("says it is reading the withdrawal's reason until it arrives", () => {
+  it.each([
+    { loading: true, shown: "Reading the reason…", hidden: "—" },
+    // Not loading and no words: the reason could not be read, or its CID is one the reader
+    // rejects, so the row must not claim to be reading it.
+    { loading: false, shown: "—", hidden: "Reading the reason…" },
+  ])("reads $shown for the withdrawal's reason while loading is $loading", ({
+    loading,
+    shown,
+    hidden,
+  }) => {
     mocks.reasons = {};
-    mocks.loading = true;
+    mocks.loading = loading;
     renderClosedRequest("COMMITMENT_CANCELLED");
-    expect(screen.getByText("Reading the reason…")).toBeInTheDocument();
+    expect(screen.getByText(shown)).toBeInTheDocument();
+    expect(screen.queryByText(hidden)).not.toBeInTheDocument();
   });
 
   it("gives no reason row when someone else took the promise up", () => {
