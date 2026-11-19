@@ -73,6 +73,17 @@ function isV1Metadata(
   return "plantCount" in metadata || "plantSelection" in metadata;
 }
 
+/**
+ * The work's own details map, time spent and tags, which v2 metadata publishes. A queued work
+ * carries the details saved with it in the same keys (`jobToWork`), as the legacy published
+ * shape does, without a schema version.
+ */
+function carriesWorkDetails(metadata: WorkMetadata | WorkMetadataV1): boolean {
+  if (typeof metadata !== "object") return false;
+  if ("schemaVersion" in metadata && metadata.schemaVersion === "work_metadata_v2") return true;
+  return !isV1Metadata(metadata) && ("details" in metadata || "timeSpentMinutes" in metadata);
+}
+
 /** Build details list from metadata, supporting both v1 and v2 shapes */
 function buildMetadataDetails(
   rawMetadata: WorkMetadata | null,
@@ -80,8 +91,8 @@ function buildMetadataDetails(
   intl: ReturnType<typeof useIntl>
 ) {
   const metadata = resolveMetadata(rawMetadata);
-  // v2 metadata: generic details map
-  if (metadata && "schemaVersion" in metadata && metadata.schemaVersion === "work_metadata_v2") {
+  // v2 metadata, or a queued work's saved details: a generic details map
+  if (metadata && carriesWorkDetails(metadata)) {
     const items: Array<{
       label: string;
       value: string;

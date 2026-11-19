@@ -158,6 +158,24 @@ describe("toastService auto-dismiss (service-owned timers)", () => {
     ).toBe(body);
   });
 
+  // PRD-1505: Home's join notice waits for an answer, and dropped over Home's chip and launchers.
+  it("starts a toast that keeps the top bar usable under the bar, and others where they were", () => {
+    render(<Toaster />);
+
+    act(() => {
+      toastService.info({ id: "below", message: "Waits under the bar.", belowTopBar: true });
+      toastService.info({ id: "over", message: "Drops from the top." });
+    });
+
+    const placed = (text: string) =>
+      screen.getByText(text).closest<HTMLElement>("[data-testid='toast-content']")?.parentElement
+        ?.parentElement;
+    expect(placed("Waits under the bar.")?.style.marginTop).toBe(
+      "calc(var(--app-top-bar-height) + 0.5rem - calc(1.5rem + env(safe-area-inset-top, 0px)))"
+    );
+    expect(placed("Drops from the top.")?.style.marginTop).toBe("");
+  });
+
   it("does not add an action control to notifications without actions", () => {
     render(<Toaster />);
 

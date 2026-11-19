@@ -24,6 +24,9 @@ export interface AddedGardensToastProps {
  * itself. The first-login page lists every garden of the member's; the toast waits until one is
  * chosen, then names the others. The news belongs to its account: when that account signs out or
  * another signs in, the toast goes, unanswered, so it never shows one account's garden to another.
+ * It shows only while Home is the page on screen, under Home's top bar so the chip and the
+ * launchers stay usable, and it goes, unanswered, when a page opens over Home or its garden is no
+ * longer news, such as one the member was removed from (PRD-1505); Home shows it again on return.
  * Renders nothing.
  */
 export function AddedGardensToast({ home, onSwitch, onChoose }: AddedGardensToastProps) {
@@ -35,7 +38,10 @@ export function AddedGardensToast({ home, onSwitch, onChoose }: AddedGardensToas
   useEffect(() => () => toastService.dismiss(GARDEN_ADDED_TOAST), [account]);
 
   useEffect(() => {
-    if (!home || status !== "ready" || addedGardens.length === 0) return;
+    if (!home || status !== "ready" || addedGardens.length === 0) {
+      toastService.dismiss(GARDEN_ADDED_TOAST);
+      return;
+    }
     const gardenIds = addedGardens.map(({ id }) => id);
     const told = () => acknowledgeAddedGardens(gardenIds);
     const single = addedGardens.length === 1 ? addedGardens[0] : undefined;
@@ -48,6 +54,7 @@ export function AddedGardensToast({ home, onSwitch, onChoose }: AddedGardensToas
         id: single ? "app.home.added.message" : "app.home.added.messageMany",
       }),
       persistent: true,
+      belowTopBar: true,
       action: {
         label: intl.formatMessage({
           id: single ? "app.home.added.action" : "app.home.chooser.action",

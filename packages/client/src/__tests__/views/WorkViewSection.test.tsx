@@ -233,6 +233,32 @@ describe("WorkViewSection — all WorkDisplayStatus values (#405)", () => {
     expect(screen.queryByText(/Review feedback/)).not.toBeInTheDocument();
   });
 
+  // PRD-1505: a queued work's page said "Details: Not available", though its details were saved
+  // with it. Its metadata is the queue's record (`jobToWork`), which names no schema version.
+  it("shows the details a queued work saved on the device", () => {
+    const queued = JSON.stringify({
+      clientWorkId: "client-1",
+      submissionState: "ready",
+      details: { plantCount: 12, species: ["Oak", "Ash"] },
+      timeSpentMinutes: 45,
+      tags: ["hedge"],
+    });
+    render(
+      createElement(WorkViewSection, {
+        ...baseProps,
+        work: { ...mockWork, id: "0xoffline_1", metadata: queued } as any,
+        workMetadata: JSON.parse(queued),
+        viewingMode: "gardener",
+        effectiveStatus: "offline" as WorkDisplayStatus,
+      })
+    );
+    expect(screen.getByText("Time spent: 45m")).toBeInTheDocument();
+    expect(screen.getByText("Plant Count: 12")).toBeInTheDocument();
+    expect(screen.getByText("Species: Oak, Ash")).toBeInTheDocument();
+    expect(screen.getByText("Tags: hedge")).toBeInTheDocument();
+    expect(screen.queryByText(/Not available/)).not.toBeInTheDocument();
+  });
+
   it("shows gardener-specific info for pending status", () => {
     render(
       createElement(WorkViewSection, {

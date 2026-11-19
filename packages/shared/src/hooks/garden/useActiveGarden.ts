@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import {
   type ActiveGardenStatus,
@@ -10,6 +10,8 @@ import {
 import { useActiveGardenStore } from "../../stores/useActiveGardenStore";
 import type { Garden } from "../../types/domain";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
+import { useGardens } from "../blockchain/useBaseLists";
+import { useTimeout } from "../utils/useTimeout";
 import { type MyGardens, useMyGardens } from "./useMyGardens";
 
 export interface ActiveGarden {
@@ -149,4 +151,51 @@ export function useActiveGarden(chainId: number = DEFAULT_CHAIN_ID): ActiveGarde
     addedGardens,
     acknowledgeAddedGardens,
   };
+}
+
+/**
+ * How long after each read that leaves the remembered garden out the list is read again: at once
+ * for a list read a while ago, such as one restored at launch, then as an indexer catches up.
+ */
+const SHORT_LIST_REREADS_MS = [5_000, 20_000, 60_000] as const;
+
+/**
+ * Reads the account's gardens again while a list leaves out the garden this device remembers, so
+ * Home returns to it once the full list is read, rather than when that list goes stale five
+ * minutes later (PRD-1505). Such a list may have been saved before the account's latest read, or
+ * come from an indexer catching up. A few reads, each timed from the last, then the list's usual
+ * freshness: a garden the account left keeps its stored choice (`resolveActiveGarden`) and is not
+ * read for again and again. Mount it once, in the app's shell.
+ */
+export function useFollowRememberedGarden(chainId: number = DEFAULT_CHAIN_ID): void {
+  const account = usePrimaryAddress();
+  const scope = activeGardenScope(chainId, account);
+  const rememberedId = useActiveGardenStore((state) =>
+    scope ? (state.gardenIdsByScope[scope] ?? null) : null
+  );
+  const { gardens, isLoaded } = useMyGardens(account, chainId);
+  const { dataUpdatedAt, isFetching, refetch } = useGardens(chainId);
+  const leftOut =
+    isLoaded &&
+    rememberedId !== null &&
+    !gardens.some(({ garden }) => garden.id.toLowerCase() === rememberedId.toLowerCase());
+
+  // The reads made for this choice since a list last held it.
+  const followed = `${scope ?? ""}:${rememberedId ?? ""}`;
+  const reads = useRef({ followed, count: 0 });
+  const { set, clear } = useTimeout();
+  useEffect(() => {
+    if (!leftOut || reads.current.followed !== followed) reads.current = { followed, count: 0 };
+    if (!leftOut || isFetching) return;
+    const wait = SHORT_LIST_REREADS_MS[reads.current.count];
+    if (wait === undefined) return;
+    set(
+      () => {
+        reads.current.count += 1;
+        void refetch({ cancelRefetch: false });
+      },
+      Math.max(0, dataUpdatedAt + wait - Date.now())
+    );
+    return clear;
+  }, [clear, dataUpdatedAt, followed, isFetching, leftOut, refetch, set]);
 }

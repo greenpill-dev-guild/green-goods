@@ -10,7 +10,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
-import { useActiveGarden } from "../../../hooks/garden/useActiveGarden";
+import { useActiveGarden, useFollowRememberedGarden } from "../../../hooks/garden/useActiveGarden";
 import { activeGardenScope } from "../../../modules/garden/active-garden";
 import {
   ACTIVE_GARDEN_STORAGE_KEY,
@@ -62,6 +62,19 @@ function renderActiveGarden() {
   return renderHook(() => useActiveGarden(), { wrapper });
 }
 
+/** Home's active garden under the app shell, which follows the remembered garden. */
+function renderInAppShell() {
+  const wrapper = ({ children }: { children: ReactNode }) =>
+    createElement(QueryClientProvider, { client }, children);
+  return renderHook(
+    () => {
+      useFollowRememberedGarden();
+      return useActiveGarden();
+    },
+    { wrapper }
+  );
+}
+
 /** Everything this device keeps in local storage, except the active garden's own record. */
 function otherStoredRecords(): Record<string, string | null> {
   return Object.fromEntries(
@@ -81,6 +94,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   client.clear();
   localStorage.clear();
 });
@@ -182,6 +196,38 @@ describe("useActiveGarden", () => {
       await client.refetchQueries();
     });
     await waitFor(() => expect(result.current.gardenId).toBe(alicesOwn.id));
+  });
+
+  // PRD-1505: after such a list Home stayed in the other garden until the list went stale, five
+  // minutes later, since nothing read the list again before then.
+  it("reads a list that leaves the remembered garden out again, and returns to that garden", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    useActiveGardenStore.getState().rememberGarden(ALICE_SCOPE, alicesOwn.id);
+    getGardens
+      .mockResolvedValueOnce([shared, alicesOwnWithoutHer])
+      .mockResolvedValue([shared, alicesOwn]);
+
+    const { result } = renderInAppShell();
+    await waitFor(() => expect(result.current.gardenId).toBe(shared.id));
+
+    await act(() => vi.advanceTimersByTimeAsync(5_000));
+    await waitFor(() => expect(result.current.gardenId).toBe(alicesOwn.id));
+    expect(getGardens).toHaveBeenCalledTimes(2);
+  });
+
+  it("stops reading again after a few lists that still leave it out, and keeps the choice", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    useActiveGardenStore.getState().rememberGarden(ALICE_SCOPE, alicesOwn.id);
+    // She left her own garden: every list leaves it out.
+    getGardens.mockResolvedValue([shared, alicesOwnWithoutHer]);
+
+    const { result } = renderInAppShell();
+    await waitFor(() => expect(result.current.gardenId).toBe(shared.id));
+
+    await act(() => vi.advanceTimersByTimeAsync(4 * 60_000));
+    expect(getGardens).toHaveBeenCalledTimes(4);
+    expect(result.current.gardenId).toBe(shared.id);
+    expect(useActiveGardenStore.getState().gardenIdsByScope[ALICE_SCOPE]).toBe(alicesOwn.id);
   });
 
   it("names the gardens the account was added to since this device last read them", async () => {

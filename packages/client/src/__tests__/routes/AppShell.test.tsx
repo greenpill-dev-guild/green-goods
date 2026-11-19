@@ -26,6 +26,7 @@ vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
 const activeGarden = vi.hoisted(() => ({ gardenId: "garden-1" as string | null }));
 vi.mock("@green-goods/shared/hooks/garden/useActiveGarden", () => ({
   useActiveGarden: () => ({ gardenId: activeGarden.gardenId }),
+  useFollowRememberedGarden: () => {},
 }));
 
 // The queue's failure toast opens Home's switcher through what the shell hands the provider.

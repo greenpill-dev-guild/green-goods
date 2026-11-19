@@ -832,6 +832,52 @@ describe("a garden the member was added to", () => {
     expect(shownToast()).toMatchObject({ title: "You're now part of Aiyeloja Family Garden" });
   });
 
+  // PRD-1505: the toast covered Home's chip and launchers until answered, and stayed over a garden
+  // page Home opened, where its Switch acted on the Home underneath.
+  it("waits under Home's top bar, and goes unanswered while a page Home opened shows", () => {
+    setActive(
+      "ready",
+      [
+        [TAS, ["steward"]],
+        [VIDA, ["steward"]],
+      ],
+      TAS.id,
+      [VIDA]
+    );
+    renderHome();
+    expect(shownToast()).toMatchObject({ belowTopBar: true });
+
+    fireEvent.click(screen.getByRole("button", { name: "Open Its Page" }));
+    expect(screen.getByText(`Visiting ${TAS.id}`)).toBeInTheDocument();
+    expect(toastService.dismiss).toHaveBeenCalledWith("garden-added");
+    expect(acknowledgeAddedGardens).not.toHaveBeenCalled();
+
+    // Still news: Home says it again once it shows.
+    vi.mocked(toastService.info).mockClear();
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    expect(shownToast()).toMatchObject({ title: "You're now part of Vida Verde" });
+  });
+
+  // PRD-1505: a garden the member was removed from before answering kept its toast and Switch.
+  it("goes unanswered when its garden is no longer the member's", () => {
+    setActive(
+      "ready",
+      [
+        [TAS, ["steward"]],
+        [VIDA, ["steward"]],
+      ],
+      TAS.id,
+      [VIDA]
+    );
+    const view = renderHome();
+    expect(toastService.info).toHaveBeenCalledOnce();
+
+    setActive("ready", [[TAS, ["steward"]]], TAS.id);
+    view.rerender();
+    expect(toastService.dismiss).toHaveBeenCalledWith("garden-added");
+    expect(acknowledgeAddedGardens).not.toHaveBeenCalled();
+  });
+
   // Codex on #1610: the toast outlived its account, so the next account to sign in on this
   // device could read the previous account's garden and press its action.
   it("takes the toast away, unanswered, when another account signs in or the account leaves", () => {

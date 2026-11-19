@@ -7,6 +7,7 @@ import { capitalize } from "../../utils/app/text";
 import { cn } from "../../utils/styles/cn";
 import { Button } from "../Button";
 import { ToastStatusIcon } from "./ToastStatusIcon";
+import { BELOW_TOP_BAR_MARGIN } from "./toast.placement";
 import { createToastDismissQueue } from "./toast.queue";
 
 type ToastFn = typeof toast.success;
@@ -58,6 +59,8 @@ export interface ToastDescriptor {
   closable?: boolean;
   /** Callback invoked when the toast is dismissed (via tap, X button, or programmatic dismiss). */
   onDismiss?: () => void;
+  /** Start under the installed app's top bar, so its controls stay usable (PRD-1505). */
+  belowTopBar?: boolean;
 }
 
 export interface ToastTranslator {
@@ -297,30 +300,20 @@ function getDiagnostics(error: unknown, devMessage?: string) {
   if (!error && !devMessage) {
     return undefined;
   }
-
-  if (error instanceof Error) {
-    const summary = `${error.name}: ${error.message}`;
-    return devMessage ? `${summary} | ${devMessage}` : summary;
-  }
-
-  if (typeof error === "string") {
-    return devMessage ? `${error} | ${devMessage}` : error;
-  }
-
+  const withDevMessage = (summary: string) => (devMessage ? `${summary} | ${devMessage}` : summary);
+  if (error instanceof Error) return withDevMessage(`${error.name}: ${error.message}`);
+  if (typeof error === "string") return withDevMessage(error);
   if (error && typeof error === "object") {
     const maybeMessage = (error as { message?: unknown }).message;
     if (typeof maybeMessage === "string" && maybeMessage.trim().length > 0) {
-      return devMessage ? `${maybeMessage} | ${devMessage}` : maybeMessage;
+      return withDevMessage(maybeMessage);
     }
-
     try {
-      const serialized = JSON.stringify(error);
-      return devMessage ? `${serialized} | ${devMessage}` : serialized;
+      return withDevMessage(JSON.stringify(error));
     } catch {
       return devMessage ?? "[toast] encountered an unknown error payload";
     }
   }
-
   return devMessage;
 }
 
@@ -696,6 +689,7 @@ function showToast(descriptor: ToastDescriptor) {
     // The message draws its status icon on the title's line (D23), so the
     // library's own icon column stays empty under any Toaster.
     icon: null,
+    ...(descriptor.belowTopBar ? { style: { marginTop: BELOW_TOP_BAR_MARGIN } } : {}),
   };
 
   // Prepare clipboard text for debug mode
