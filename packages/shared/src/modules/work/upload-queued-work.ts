@@ -27,11 +27,12 @@ import {
   type QueuedAttestation,
 } from "../../utils/eas/transaction-builder";
 import { logger } from "../app/logger";
-import type { ProcessJobContext, ProcessJobResult } from "../job-queue/ports";
+import type { JobSendPhase, ProcessJobContext, ProcessJobResult } from "../job-queue/ports";
 import { sendCheckpointOf, writeSendCheckpoint } from "../job-queue/queue-policy";
 import { takeUpOf } from "../job-queue/take-up-hold";
 import { holdingSends } from "../job-queue/send-guards";
 import type { saveUnderClaim, WorkClaim } from "../job-queue/work-claims";
+import { reportingSendStages } from "../transactions/send-stage";
 import type { ContractCall, TransactionSender } from "../transactions/types";
 import { sendWithCheckpoint } from "./send-with-checkpoint";
 import { SimulationRejected } from "./simulation-rejected";
@@ -79,6 +80,8 @@ export interface UploadQueuedWorkPorts {
   readTransactionNonce?(hash: Hex, chainId: number): Promise<number | null>;
   /** The chain's latest block and its time, in seconds. */
   readChainHead?(chainId: number): Promise<{ number: bigint; timestamp: number }>;
+  /** Tells every screen that shows this job where its send stands; null once the send stopped. */
+  reportStage?(job: Job, stage: JobSendPhase["stage"] | null): void;
 }
 
 interface ChunkItem {
@@ -281,8 +284,22 @@ export async function uploadQueuedWork(
       }
 
       const { readChainHead } = ports;
+      // One call carries every item, so each one's screen says the same stage (PRD-1552).
+      let stageReported = false;
+      const reportStage = (stage: JobSendPhase["stage"] | null) => {
+        for (const { job } of items) {
+          try {
+            ports.reportStage?.(job, stage);
+          } catch (error) {
+            logger.warn("[UploadQueuedWork] A send stage report threw", { error });
+          }
+        }
+      };
       const result = await sendWithCheckpoint({
-        sender,
+        sender: reportingSendStages(sender, ({ stage }) => {
+          stageReported = true;
+          reportStage(stage);
+        }),
         call: { ...callOf(items), chainId },
         jobIds: items.map(({ job }) => job.id),
         // Read just before the intent, after any prompt: every item the call
@@ -290,6 +307,8 @@ export async function uploadQueuedWork(
         readChainHead: readChainHead && (() => readChainHead(chainId)),
         record: (next) => recordAll(items, next),
         now: ports.now,
+      }).finally(() => {
+        if (stageReported) reportStage(null);
       });
       switch (result.status) {
         case "sent":

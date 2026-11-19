@@ -16,7 +16,6 @@ const meta: Meta<typeof ActPhaseLine> = {
     },
   },
   args: {
-    chainId: 42161,
     confirmed: "Accepted. The request leaves this list once the index shows it.",
     phase: { status: "signing", key: "row" },
   },
@@ -44,7 +43,12 @@ export const Confirmed: Story = {
 
 /** A job-queue send kept on this device: not landed, and not a failure. */
 export const Queued: Story = {
-  args: { phase: { status: "queued", key: "row" } },
+  args: { phase: { status: "queued", key: "row", hash: null } },
+};
+
+/** Kept after its broadcast: it went out, and the line says it is still confirming (PRD-1552). */
+export const StillConfirming: Story = {
+  args: { phase: { status: "queued", key: "row", hash: HASH } },
 };
 
 export const Failed: Story = {

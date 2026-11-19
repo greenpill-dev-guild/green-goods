@@ -174,6 +174,29 @@ describe("Upload all", () => {
     });
   });
 
+  // Upload all sends outside the processor, so it tells each item's screen itself (PRD-1552).
+  it("tells each item's screen where the one send stands, then lets go", async () => {
+    const jobs = [work(), work()];
+    const reportStage = vi.fn();
+    const { ports } = harness(jobs, { reportStage });
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
+      await options?.onBeforeBroadcast?.();
+      await options?.onBroadcast?.(TX);
+      return { hash: TX, sponsored: false };
+    });
+
+    await expect(upload(ports, sender)).resolves.toMatchObject({ status: "uploaded", sent: 2 });
+    expect(reportStage.mock.calls.map(([job, stage]) => [job.id, stage])).toEqual([
+      [jobs[0]!.id, "wallet"],
+      [jobs[1]!.id, "wallet"],
+      [jobs[0]!.id, "confirming"],
+      [jobs[1]!.id, "confirming"],
+      [jobs[0]!.id, null],
+      [jobs[1]!.id, null],
+    ]);
+  });
+
   it("refuses on an unconfirmed connection before claiming anything", async () => {
     const { ports } = harness([work()], { confirmOnline: vi.fn(async () => false) });
     const sender = createMockTransactionSender();

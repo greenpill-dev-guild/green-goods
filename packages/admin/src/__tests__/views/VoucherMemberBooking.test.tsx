@@ -83,7 +83,6 @@ function acceptDialog(booking: VoucherAsk) {
       ask={booking}
       title="Integration lesson, 60 minutes"
       target={{ gardenName: "Tech and Sun", isProtocol: false }}
-      chainId={42161}
       now={NOW}
       phase={{ status: "idle" }}
       disabled={false}

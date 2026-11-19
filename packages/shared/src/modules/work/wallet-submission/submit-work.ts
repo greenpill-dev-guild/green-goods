@@ -15,6 +15,7 @@ import { worksKeys } from "../../../config/query-keys/work";
 import { trackWalletSubmissionTiming } from "../../../modules/app/analytics-events";
 import { ensureWagmiWalletChain } from "../../../modules/transactions/chain-guard";
 import { assertLocalArbitrumForkWallet } from "../../../modules/transactions/local-fork-safety";
+import { SEND_STAGE_WORDS } from "../../../modules/transactions/send-stage";
 import type { WorkUploadCheckpoint } from "../../../types/work-media";
 import { createSendChainReads, intentHead } from "../../job-queue/send-chain-reads";
 import { logger } from "../../app/logger";
@@ -180,7 +181,7 @@ export async function submitWorkDirectly(
   }
 
   // ── Phase 2: Build and send the transaction ────────────────────────
-  onProgress?.("confirming", "Confirm in your wallet...");
+  onProgress?.("wallet", SEND_STAGE_WORDS.wallet.label.defaultMessage);
   let hash: `0x${string}`;
   try {
     const easConfig = getEASConfig(chainId);
@@ -231,6 +232,7 @@ export async function submitWorkDirectly(
       broadcastPending: false,
     };
     await options.onBroadcast?.(hash);
+    onProgress?.("confirming", SEND_STAGE_WORDS.confirming.label.defaultMessage);
     debugLog("[WalletSubmission] Transaction sent", { hash });
   } catch (err: unknown) {
     debugError("[WalletSubmission] Transaction phase failed", err);

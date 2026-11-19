@@ -88,6 +88,7 @@ vi.mock("../../components/toast", () => ({
     dismiss: vi.fn(),
   },
   showWalletProgress: vi.fn(),
+  createWalletProgressToasts: vi.fn(() => ({ wallet: vi.fn(), confirming: vi.fn() })),
 }));
 
 vi.mock("../../stores/useUIStore", () => ({
@@ -554,7 +555,7 @@ describe("hooks/work/useWorkMutation", () => {
     });
     expect(toastService.info).toHaveBeenCalledWith(
       expect.objectContaining({
-        title: "app.work.awaitingConfirmation",
+        title: "Still confirming…",
         message: "app.work.confirmationUnchecked",
       })
     );
@@ -759,10 +760,33 @@ describe("hooks/work/useWorkMutation", () => {
       expect(submitWorkToQueue).not.toHaveBeenCalled();
     });
 
+    // The network confirming the send is not the wallet being asked (PRD-1552).
+    it("does not count the network confirming as a wallet request", async () => {
+      mock(submitWorkDirectly).mockImplementation(
+        async (_draft, _garden, _actionUID, _actionTitle, _chainId, _images, options) => {
+          options?.onProgress?.("confirming", "Confirming…");
+          return MOCK_TX_HASH;
+        }
+      );
+
+      const { result } = renderHook(() => useWorkMutation(defaultOptions), {
+        wrapper: createWrapper(),
+      });
+
+      await act(async () => {
+        await result.current.mutateAsync({
+          draft: createMockWorkDraft(),
+          images: createMockFiles(2),
+        });
+      });
+
+      expect(trackWorkWalletRequestStarted).not.toHaveBeenCalled();
+    });
+
     it("tracks when the wallet request starts", async () => {
       mock(submitWorkDirectly).mockImplementation(
         async (_draft, _garden, _actionUID, _actionTitle, _chainId, _images, options) => {
-          options?.onProgress?.("confirming", "Confirm in your wallet...");
+          options?.onProgress?.("wallet", "Confirm in your wallet");
           return MOCK_TX_HASH;
         }
       );

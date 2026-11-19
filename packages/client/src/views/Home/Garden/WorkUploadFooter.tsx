@@ -19,8 +19,8 @@ export interface WorkUploadFooterProps {
   /** Upload now, or a check on a work that was already sent. */
   onRetry: () => void;
   isRetrying: boolean;
-  /** Where that send stands while it runs: the wallet is asked, then the chain confirms. */
-  sendStage?: ReturnType<typeof useWorkDetailController>["sendStage"];
+  /** Where a promise taken up in the same tap stands while Upload now sends it first. */
+  takeUpStage?: ReturnType<typeof useWorkDetailController>["takeUpStage"];
   onTryAgain: () => void;
   isTryingAgain: boolean;
   onDiscard: () => Promise<void>;
@@ -45,7 +45,7 @@ export const WorkUploadFooter: FC<WorkUploadFooterProps> = ({
   onPrepareNow,
   onRetry,
   isRetrying,
-  sendStage = null,
+  takeUpStage = null,
   onTryAgain,
   isTryingAgain,
   onDiscard,
@@ -64,10 +64,10 @@ export const WorkUploadFooter: FC<WorkUploadFooterProps> = ({
       preparationWaiting: preparation !== "working",
     });
 
-  // While a send runs, its button says where it stands: before the wallet is asked, the work's
-  // media are still uploading.
-  const stageLabel =
-    isRetrying && sendStage ? intl.formatMessage(SEND_STAGE_WORDS[sendStage].label) : null;
+  // While a send runs, its button says where it stands, however it was started: the queue puts
+  // the stage on the work's row (PRD-1552). Before the wallet is asked, the media are uploading.
+  const sendStage = state.sendStage ?? (isRetrying ? takeUpStage : null);
+  const stageLabel = sendStage ? intl.formatMessage(SEND_STAGE_WORDS[sendStage].label) : null;
 
   const primary = (() => {
     switch (group) {
@@ -128,7 +128,7 @@ export const WorkUploadFooter: FC<WorkUploadFooterProps> = ({
           <Button
             onClick={onRetry}
             size="lg"
-            loading={isRetrying}
+            loading={isRetrying || stageLabel !== null}
             disabled={!isOnline && !isRetrying}
             className="w-full"
             data-testid="work-send-now"
@@ -155,7 +155,7 @@ export const WorkUploadFooter: FC<WorkUploadFooterProps> = ({
           <Button
             onClick={onRetry}
             size="lg"
-            loading={isRetrying}
+            loading={isRetrying || stageLabel !== null}
             disabled={!isOnline && !isRetrying}
             className="w-full"
             data-testid="work-send-now"

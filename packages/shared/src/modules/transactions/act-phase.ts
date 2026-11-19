@@ -20,7 +20,8 @@ export type TxActPhase =
   | { status: "signing"; key: string }
   | { status: "confirming"; key: string; hash: Hex }
   | { status: "confirmed"; key: string; hash: Hex | null }
-  | { status: "queued"; key: string }
+  /** `hash`: the act was broadcast before it was kept, so it is still confirming. */
+  | { status: "queued"; key: string; hash: Hex | null }
   | { status: "failed"; key: string };
 
 export type TxActPhaseEvent =
@@ -60,7 +61,11 @@ export function actPhaseReducer(state: TxActPhase, event: TxActPhaseEvent): TxAc
         : state;
     case "queued":
       return state.status === "signing" || state.status === "confirming"
-        ? { status: "queued", key: state.key }
+        ? {
+            status: "queued",
+            key: state.key,
+            hash: state.status === "confirming" ? state.hash : null,
+          }
         : state;
     case "failed":
       return state.status === "signing" || state.status === "confirming"

@@ -14,10 +14,14 @@
  * The words are message descriptors whose text is in the Shared catalogs (`app.sendStage.*`),
  * so a screen formats them with its own `formatMessage` and the bot reads the same entries.
  *
+ * A send reports the first two as they happen (`withSendStageReports`). Still confirming is a
+ * send's record, not a moment: its broadcast is on record and its receipt has not been seen.
+ *
  * @module modules/transactions/send-stage
  */
 
 import type { Hex } from "viem";
+import type { TransactionSender, TransactionSendOptions } from "./types";
 
 export type SendStage = "wallet" | "confirming" | "still-confirming";
 
@@ -27,10 +31,55 @@ export type SendStageReport =
   | { stage: "confirming"; txHash: Hex }
   | { stage: "still-confirming" };
 
+/** The stages a send reports while it runs. */
+export type LiveSendStageReport = Exclude<SendStageReport, { stage: "still-confirming" }>;
+
+/**
+ * The send options with its stages reported as they happen. Only a wallet asks the person, just
+ * before the send can reach the network, so only a wallet sender reports the wallet stage: a
+ * passkey's `onBeforeBroadcast` comes after its prompt was approved, and an embedded wallet asks
+ * nobody. Every sender reports confirming once the network has the send. The send's own callbacks
+ * run first and keep their say, so a checkpoint that fails to save still stops the send; `report`
+ * runs after and must not throw.
+ */
+export function withSendStageReports(
+  options: TransactionSendOptions,
+  authMode: TransactionSender["authMode"],
+  report: (stage: LiveSendStageReport) => void
+): TransactionSendOptions {
+  return {
+    ...options,
+    onBeforeBroadcast: async (reference) => {
+      await options.onBeforeBroadcast?.(reference);
+      if (authMode === "wallet") report({ stage: "wallet" });
+    },
+    onBroadcast: async (hash) => {
+      await options.onBroadcast?.(hash);
+      report({ stage: "confirming", txHash: hash });
+    },
+  };
+}
+
+/** The sender, with every single send it makes reporting its stages (`withSendStageReports`). */
+export function reportingSendStages(
+  sender: TransactionSender,
+  report: (stage: LiveSendStageReport) => void
+): TransactionSender {
+  const reporting = Object.create(sender) as TransactionSender;
+  reporting.sendContractCall = (call, options = {}) =>
+    sender.sendContractCall(call, withSendStageReports(options, sender.authMode, report));
+  return reporting;
+}
+
 /** A catalog entry: its id, and the English text a screen falls back to. */
 export interface SendStageMessage {
   id: string;
   defaultMessage: string;
+}
+
+interface SendStageWords {
+  label: SendStageMessage;
+  detail?: SendStageMessage;
 }
 
 /**
@@ -38,10 +87,8 @@ export interface SendStageMessage {
  * that follows where there is room: still confirming says the send went out and the person can
  * leave.
  */
-export const SEND_STAGE_WORDS: Record<
-  SendStage,
-  { label: SendStageMessage; detail?: SendStageMessage }
-> = {
+export const SEND_STAGE_WORDS: Record<"wallet" | "confirming", SendStageWords> &
+  Record<"still-confirming", Required<SendStageWords>> = {
   wallet: {
     label: { id: "app.sendStage.wallet", defaultMessage: "Confirm in your wallet" },
   },

@@ -208,14 +208,12 @@ export function CommitmentClaims({
                   ))}
                 </p>
                 {/* A failure says nothing changed, and the pair comes back as Try Again. */}
-                {state.status === "failed" ? (
-                  <ActPhaseLine phase={phase} chainId={chainId} confirmed="" />
-                ) : null}
+                {state.status === "failed" ? <ActPhaseLine phase={phase} confirmed="" /> : null}
               </div>
               <span className="flex items-center gap-2">
                 <AskOutcome state={state} />
                 {state.status === "signing" || state.status === "confirming" ? (
-                  <ActPhaseLine phase={phase} chainId={chainId} confirmed="" />
+                  <ActPhaseLine phase={phase} confirmed="" />
                 ) : waiting && can.acceptClaim ? (
                   <>
                     <Button

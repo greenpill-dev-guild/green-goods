@@ -47,7 +47,7 @@ describe("queuedWorkStatusMessage", () => {
     ["photo-pending", "To upload"],
     ["blocked", "Blocked"],
     ["photo-needs-attention", "Blocked"],
-    ["awaiting-confirmation", "Awaiting confirmation"],
+    ["awaiting-confirmation", "Still confirming…"],
     ["checking-submission", "Checking whether this work was sent"],
   ])("names %s work on its chip", (state, text) => {
     expect(textOf(queuedWorkStatusMessage(state))).toBe(text);
@@ -155,12 +155,22 @@ describe("queuedWorkExplanation", () => {
       "reverted",
       "Your work didn't send. Your media is still saved, so try again when you're ready.",
     ],
-    ["awaiting-confirmation", messages["app.work.confirmationExplanation"]],
+    ["awaiting-confirmation", messages["app.sendStage.stillConfirming.detail"]],
     ["checking-submission", messages["app.work.checkingSubmissionInfo"]],
     ["sending", "Uploading to the garden record..."],
     [undefined, "Saved on your device. Upload it here when you're connected."],
   ])("has one sentence for %s work", (submissionState, text) => {
     expect(textOf(queuedWorkExplanation({ submissionState }, online))).toBe(text);
+  });
+
+  // The queue reports a send's stage on the row, Upload all's included (PRD-1552).
+  it.each([
+    ["wallet", "Confirm in your wallet"],
+    ["confirming", "Confirming…"],
+  ])("says a send at the %s stage in the shared words", (sendStage, text) => {
+    const state = readQueuedWorkState(JSON.stringify({ submissionState: "sending", sendStage }));
+    expect(textOf(queuedWorkExplanation(state, online))).toBe(text);
+    expect(textOf(queuedWorkDetailMessage(state))).toBe(text);
   });
 
   it("says why refused work cannot go, instead of telling the person to upload it", () => {

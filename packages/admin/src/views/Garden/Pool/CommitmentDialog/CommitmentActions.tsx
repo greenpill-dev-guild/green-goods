@@ -21,7 +21,6 @@ export function CommitmentActions({
   onEditReward,
   onEditConfirmers,
   sendPhase,
-  chainId,
 }: {
   isOnline: boolean;
   /** Why the acts are out of reach while the reader has no connection. */
@@ -43,7 +42,6 @@ export function CommitmentActions({
   onEditConfirmers?: () => void;
   /** Where Send for Confirmation stands, followed from the wallet to the chain. */
   sendPhase: CommitmentDialogController["sendPhase"];
-  chainId: number;
 }) {
   const { formatMessage } = useIntl();
   // Sent, or kept queued to send: the act stays closed until the record moves on.
@@ -182,7 +180,6 @@ export function CommitmentActions({
       {can.sendForConfirmation || sendPhase.status !== "idle" ? (
         <ActPhaseLine
           phase={sendPhase}
-          chainId={chainId}
           confirmed={formatMessage({
             id: "hub.garden.pool.commitment.act.sent",
             defaultMessage: "Sent for confirmation. Its confirmers see it once the index shows it.",

@@ -1,8 +1,14 @@
 import type { WorkUploadCheckpoint } from "../../../types/domain";
+import type { LiveSendStageReport } from "../../transactions/send-stage";
+
+/**
+ * Where an online Submit stands. Its send's two stages are the shared ones (`send-stage`): the
+ * wallet is asked, then the network confirms.
+ */
 export type WalletSubmissionStage =
   | "validating"
   | "uploading"
-  | "confirming"
+  | LiveSendStageReport["stage"]
   | "syncing"
   | "complete";
 

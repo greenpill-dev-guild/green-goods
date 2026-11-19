@@ -1,3 +1,4 @@
+import { SEND_STAGE_WORDS } from "../../../modules/transactions/send-stage";
 import { toastService } from "../toast.service";
 import { type FormatMessageFn, toastMessageIds } from "./types";
 
@@ -5,7 +6,14 @@ import { type FormatMessageFn, toastMessageIds } from "./types";
 const walletDefaults = {
   validating: { title: "Checking membership", message: "Verifying garden access..." },
   uploading: { title: "Uploading media", message: "Saving your photos…" },
-  confirming: { title: "Confirm in wallet", message: "Waiting for your signature..." },
+  wallet: {
+    title: SEND_STAGE_WORDS.wallet.label.defaultMessage,
+    message: "Approve it there to send your work.",
+  },
+  confirming: {
+    title: SEND_STAGE_WORDS.confirming.label.defaultMessage,
+    message: "Your work was sent.",
+  },
   syncing: { title: "Almost there", message: "Recording your work…" },
   success: { title: "Work submitted!", message: "It now waits for review." },
   error: { title: "Submission failed", recoverable: "You can try again with the same data." },
@@ -40,16 +48,26 @@ export const walletProgressToasts = {
       suppressLogging: true,
     }),
 
-  /** Show wallet confirmation state */
+  /** Show the wallet being asked */
+  wallet: () =>
+    toastService.loading({
+      id: "wallet-submission",
+      title: walletDefaults.wallet.title,
+      message: walletDefaults.wallet.message,
+      context: "wallet submission",
+      // Human-wait stage: signing can exceed any fixed timeout, so don't
+      // auto-dismiss. The flow replaces this on sign/reject/error.
+      persistent: true,
+      suppressLogging: true,
+    }),
+
+  /** Show the network confirming the send */
   confirming: () =>
     toastService.loading({
       id: "wallet-submission",
       title: walletDefaults.confirming.title,
       message: walletDefaults.confirming.message,
       context: "wallet submission",
-      // Human-wait stage: signing can exceed any fixed timeout, so don't
-      // auto-dismiss. The flow replaces this on sign/reject/error.
-      persistent: true,
       suppressLogging: true,
     }),
 
@@ -132,6 +150,24 @@ export function createWalletProgressToasts(formatMessage: FormatMessageFn) {
         suppressLogging: true,
       }),
 
+    wallet: () =>
+      toastService.loading({
+        id: "wallet-submission",
+        title: formatMessage({
+          id: toastMessageIds.wallet.wallet.title,
+          defaultMessage: walletDefaults.wallet.title,
+        }),
+        message: formatMessage({
+          id: toastMessageIds.wallet.wallet.message,
+          defaultMessage: walletDefaults.wallet.message,
+        }),
+        context: "wallet submission",
+        // Human-wait stage: signing can exceed any fixed timeout, so don't
+        // auto-dismiss. The flow replaces this on sign/reject/error.
+        persistent: true,
+        suppressLogging: true,
+      }),
+
     confirming: () =>
       toastService.loading({
         id: "wallet-submission",
@@ -144,9 +180,6 @@ export function createWalletProgressToasts(formatMessage: FormatMessageFn) {
           defaultMessage: walletDefaults.confirming.message,
         }),
         context: "wallet submission",
-        // Human-wait stage: signing can exceed any fixed timeout, so don't
-        // auto-dismiss. The flow replaces this on sign/reject/error.
-        persistent: true,
         suppressLogging: true,
       }),
 
@@ -220,7 +253,7 @@ export function createWalletProgressToasts(formatMessage: FormatMessageFn) {
  * @param stage - Current submission stage
  */
 export function showWalletProgress(
-  stage: "validating" | "uploading" | "confirming" | "syncing" | "success",
+  stage: "validating" | "uploading" | "wallet" | "confirming" | "syncing" | "success",
   message?: string
 ): void {
   if (stage === "uploading" && message) {

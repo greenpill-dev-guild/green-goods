@@ -33,7 +33,7 @@ describe("send stage words", () => {
 
   // A send past its receipt limit went out and may still land (PRD-1495).
   it("never calls a send still confirming failed, and lets the person leave", () => {
-    const detail = SEND_STAGE_WORDS["still-confirming"].detail!;
+    const { detail } = SEND_STAGE_WORDS["still-confirming"];
     expect(CATALOGS.en![detail.id]).toMatch(/^Sent\..*You can leave/);
     expect(CATALOGS.en![detail.id]).not.toMatch(/fail|didn.t|error/i);
   });

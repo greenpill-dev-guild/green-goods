@@ -26,7 +26,7 @@ describe("buildGardenSettingsSaveRows", () => {
   it.each([
     ["queued", "pending", null, false],
     ["uploading", "active", "Uploading the image…", true],
-    ["waiting", "active", "Waiting for your wallet", true],
+    ["waiting", "active", "Confirm in your wallet", true],
     ["saved", "complete", "Confirmed", false],
     ["proposed", "warning", "Sent to your Safe", false],
     ["failed", "failed", "Didn’t go through", false],
@@ -95,8 +95,8 @@ describe("a save under one signature", () => {
   it("numbers its rows as one prompt and says what they wait for", () => {
     const rows = buildGardenSettingsSaveRows(together("waiting", "running"), formatMessage);
     expect(rows.map((row) => [row.prompt, row.label])).toEqual([
-      [1, "Waiting for your signature"],
-      [1, "Waiting for your signature"],
+      [1, "Confirm in your wallet"],
+      [1, "Confirm in your wallet"],
     ]);
     expect(buildGardenSettingsSaveRows(together("saved", "complete"), formatMessage)[0].label).toBe(
       "Saved"

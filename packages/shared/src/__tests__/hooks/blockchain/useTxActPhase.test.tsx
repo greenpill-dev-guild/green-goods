@@ -27,9 +27,21 @@ describe("useTxActPhase.trackReported", () => {
     [
       "kept queued on this device",
       (report) => report({ type: "queued" }),
-      { status: "queued", key: "k" },
+      { status: "queued", key: "k", hash: null },
     ],
-    ["queued when it never said how it ended", () => undefined, { status: "queued", key: "k" }],
+    [
+      "kept after its broadcast, still confirming",
+      (report) => {
+        report({ type: "broadcast", hash: HASH });
+        report({ type: "queued" });
+      },
+      { status: "queued", key: "k", hash: HASH },
+    ],
+    [
+      "queued when it never said how it ended",
+      () => undefined,
+      { status: "queued", key: "k", hash: null },
+    ],
   ])("ends %s", async (_case, reports, expected) => {
     const { result } = renderHook(() => useTxActPhase());
 

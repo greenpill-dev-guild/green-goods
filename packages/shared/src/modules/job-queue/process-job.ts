@@ -1,9 +1,6 @@
 import { BundleIncompleteError } from "../transactions/batch-types";
-import {
-  ReceiptWaitLimitError,
-  type TransactionSender,
-  type TransactionSendOptions,
-} from "../transactions/types";
+import { withSendStageReports } from "../transactions/send-stage";
+import { ReceiptWaitLimitError, type TransactionSender } from "../transactions/types";
 import {
   acquireWorkJobs,
   retainedWorkBroadcast,
@@ -100,39 +97,29 @@ async function completeJob(
 }
 
 /**
- * The send options with the context's phase reports added, when it asked for
- * them. The executor's own callbacks run first and keep their say: a checkpoint
- * that fails to save still stops the send. The report runs after and can never
- * stop it. Without `onPhase` the options pass through untouched.
+ * Reports where a send of this job stands: on the queue's events, for any screen that shows the
+ * job (PRD-1552), and to the caller's `onPhase` when it asked. Report-only: a report that throws
+ * is logged, and the send goes on.
  */
-function withPhaseReports(
-  options: TransactionSendOptions,
+function stageReporter(
   jobId: string,
+  job: Job,
   context: ProcessJobContext,
-  logger: JobQueueLogger
-): TransactionSendOptions {
-  const onPhase = context.onPhase;
-  if (!onPhase) return options;
-  const report = (phase: JobSendPhase) => {
+  deps: ProcessJobDependencies
+): (stage: JobSendPhase | null) => void {
+  const safely = (report: () => void) => {
     try {
-      onPhase(phase);
+      report();
     } catch (error) {
-      logger.warn("[JobQueue] a send phase report threw", {
+      deps.logger.warn("[JobQueue] a send phase report threw", {
         jobId,
         error: error instanceof Error ? error.message : String(error),
       });
     }
   };
-  return {
-    ...options,
-    onBeforeBroadcast: async (reference) => {
-      await options.onBeforeBroadcast?.(reference);
-      report({ stage: "wallet" });
-    },
-    onBroadcast: async (hash) => {
-      await options.onBroadcast?.(hash);
-      report({ stage: "confirming", txHash: hash });
-    },
+  return (phase) => {
+    safely(() => deps.events.emit("job:stage", { jobId, job, stage: phase?.stage ?? null }));
+    if (phase && context.onPhase) safely(() => context.onPhase?.(phase));
   };
 }
 
@@ -176,6 +163,7 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
     // A try that started says how it ended, and a tap the queue cannot act on says why. A
     // background pass that never starts stays quiet: it comes round again (PRD-1495).
     let started = false;
+    let stageReported = false;
     const skipped = (error: string, txHash?: string): ProcessJobResult => {
       const explicit = Boolean(context.explicit);
       if (started || explicit) deps.analytics.jobSkipped(job.kind, error, { explicit, started });
@@ -241,6 +229,7 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
     started = true;
     const chainId = job.chainId || deps.config.defaultChainId;
     const startedAt = deps.clock.now();
+    const reportStage = stageReporter(jobId, job, context, deps);
 
     try {
       await context.assertOwnership?.();
@@ -260,7 +249,10 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
       guardedSender.sendContractCall = async (call, options = {}) => {
         try {
           return await sender.sendContractCall(call, {
-            ...withPhaseReports(options, jobId, context, deps.logger),
+            ...withSendStageReports(options, sender.authMode, (stage) => {
+              stageReported = true;
+              reportStage(stage);
+            }),
             ...(receiptWaitLimitMs ? { receiptWaitLimitMs } : {}),
             assertOwnership: async () => {
               await context.assertOwnership?.();
@@ -379,6 +371,9 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
         error
       );
       return { success: false, error: errorMessage };
+    } finally {
+      // The send stopped, however it ended: no screen keeps saying it is under way.
+      if (stageReported) reportStage(null);
     }
   }
   return async (jobId: string, context: ProcessJobContext): Promise<ProcessJobResult> => {

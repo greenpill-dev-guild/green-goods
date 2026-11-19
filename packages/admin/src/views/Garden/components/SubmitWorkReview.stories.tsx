@@ -200,7 +200,7 @@ export const InFlowReady: Story = { ...inFlow };
 
 export const InFlowSending: Story = {
   ...inFlow,
-  args: { phase: "sending", progressMessage: "Confirm in your wallet..." },
+  args: { phase: "sending", progressMessage: "Confirm in your wallet" },
 };
 
 export const InFlowSent: Story = { ...inFlow, args: { phase: "sent" } };

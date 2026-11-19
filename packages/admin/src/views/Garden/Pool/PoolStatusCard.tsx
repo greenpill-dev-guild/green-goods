@@ -287,7 +287,6 @@ export function PoolStatusCard({
       {model.status === "paused" ? (
         <ActPhaseLine
           phase={pool.resumePhase}
-          chainId={pool.chainId}
           confirmed={formatMessage({
             id: "hub.garden.pool.act.resumed",
             defaultMessage: "Resumed. The pool reads open once the index shows it.",

@@ -25,8 +25,9 @@ describe("wallet submission progress toasts", () => {
   it.each([
     { stage: "validating", method: "loading", persistent: undefined },
     { stage: "uploading", method: "loading", persistent: undefined },
-    // Signing waits on the user, so this stage must never time out on its own.
-    { stage: "confirming", method: "loading", persistent: true },
+    // The wallet waits on the person, so this stage must never time out on its own.
+    { stage: "wallet", method: "loading", persistent: true },
+    { stage: "confirming", method: "loading", persistent: undefined },
     { stage: "syncing", method: "loading", persistent: undefined },
     { stage: "success", method: "success", persistent: undefined },
     { stage: "timeout", method: "info", persistent: undefined },

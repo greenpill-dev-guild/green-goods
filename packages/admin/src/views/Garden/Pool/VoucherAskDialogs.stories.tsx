@@ -66,7 +66,6 @@ const accept = (overrides: Partial<Parameters<typeof VoucherAcceptDialog>[0]> = 
     ask={STORY_KWESI_ASK}
     title="Hub day, up to 4 hours"
     target={TARGET}
-    chainId={42161}
     now={STORYBOOK_NOW_SECONDS}
     phase={{ status: "idle" }}
     disabled={false}
@@ -171,7 +170,7 @@ export const Accepting: Story = {
   play: async () => {
     const dialog = within(await screen.findByRole("dialog"));
     await userEvent.click(dialog.getByRole("button", { name: "Accept Kwesi" }));
-    await expect(await dialog.findByText(/Confirming on/)).toBeVisible();
+    await expect(await dialog.findByText("Confirming…")).toBeVisible();
   },
 };
 

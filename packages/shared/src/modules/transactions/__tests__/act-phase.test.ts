@@ -61,13 +61,20 @@ describe("actPhaseReducer", () => {
       case: "a job-queue send kept on this device ends queued, not failed",
       from: signing,
       event: { type: "queued", key: "a" },
-      to: { status: "queued", key: "a" },
+      to: { status: "queued", key: "a", hash: null },
+    },
+    {
+      // Broadcast, then kept: it went out and is still confirming (PRD-1552).
+      case: "a send kept after its broadcast keeps its hash",
+      from: confirming,
+      event: { type: "queued", key: "a" },
+      to: { status: "queued", key: "a", hash: HASH },
     },
     {
       case: "a queued line stays queued",
-      from: { status: "queued", key: "a" },
+      from: { status: "queued", key: "a", hash: null },
       event: { type: "confirmed", key: "a" },
-      to: { status: "queued", key: "a" },
+      to: { status: "queued", key: "a", hash: null },
     },
     {
       case: "a newer act replaces a running one",

@@ -209,7 +209,7 @@ export const WaitingForOneSignature: SaveStory = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getAllByText("Waiting for your signature")).toHaveLength(3);
+    await expect(canvas.getAllByText("Confirm in your wallet")).toHaveLength(3);
   },
 };
 

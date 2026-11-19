@@ -218,7 +218,6 @@ export function PoolClaimsCard({
         ask={accepting}
         title={titleFor(accepting)}
         target={target}
-        chainId={chainId}
         now={vouchers.now}
         phase={
           accepting ? pool.claimPhase(accepting.commitmentId, accepting.buyer) : { status: "idle" }
