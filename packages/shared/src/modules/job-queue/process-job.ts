@@ -172,7 +172,6 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
     // A try that started says how it ended, and a tap the queue cannot act on says why. A
     // background pass that never starts stays quiet: it comes round again (PRD-1495).
     let started = false;
-    let stageReported = false;
     const skipped = (error: string, txHash?: string): ProcessJobResult => {
       const explicit = Boolean(context.explicit);
       if (started || explicit) deps.analytics.jobSkipped(job.kind, error, { explicit, started });
@@ -258,10 +257,7 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
       guardedSender.sendContractCall = async (call, options = {}) => {
         try {
           return await sender.sendContractCall(call, {
-            ...withSendStageReports(options, sender.authMode, (stage) => {
-              stageReported = true;
-              reportStage(stage);
-            }),
+            ...withSendStageReports(options, sender.authMode, reportStage),
             receiptWaitLimitMs,
             assertOwnership: async () => {
               await context.assertOwnership?.();
@@ -323,7 +319,9 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
         });
         return skipped("pending_materialization", execution.txHash);
       }
-      return completeJob(jobId, job, execution.txHash, startedAt, deps);
+      // Awaited, so the stage is let go only after the job completes: a row must never fall back
+      // to its sent state between its send and its completion.
+      return await completeJob(jobId, job, execution.txHash, startedAt, deps);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       const processingDuration = deps.clock.now() - startedAt;
@@ -381,8 +379,9 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
       );
       return { success: false, error: errorMessage };
     } finally {
-      // The send stopped, however it ended: no screen keeps saying it is under way.
-      if (stageReported) reportStage(null);
+      // The try stopped, however it ended, and whether or not it reported a stage: no screen
+      // keeps saying it is under way.
+      reportStage(null);
     }
   }
   return async (jobId: string, context: ProcessJobContext): Promise<ProcessJobResult> => {

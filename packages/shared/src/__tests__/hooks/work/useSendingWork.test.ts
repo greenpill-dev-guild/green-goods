@@ -44,3 +44,11 @@ it("follows each send's stage, Upload all's too, and lets go once the send stops
   act(() => jobQueueEventBus.emit("job:stage", { jobId: job.id, job, stage: null }));
   expect(result.current.has(job.id)).toBe(false);
 });
+it("keeps the stage of a work Upload all sent while the queue finishes it", () => {
+  const { result } = renderHook(() => useSendingWork(account, 11155111));
+  act(() => jobQueueEventBus.emit("job:stage", { jobId: job.id, job, stage: "confirming" }));
+  act(() => jobQueueEventBus.emit("job:processing", { jobId: job.id, job }));
+  expect(result.current.get(job.id)).toBe("confirming");
+  act(() => jobQueueEventBus.emit("job:completed", { jobId: job.id, job, txHash: "0x1" }));
+  expect(result.current.has(job.id)).toBe(false);
+});

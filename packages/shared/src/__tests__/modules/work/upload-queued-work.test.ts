@@ -178,10 +178,15 @@ describe("Upload all", () => {
   });
 
   // Upload all sends outside the processor, so it tells each item's screen itself (PRD-1552).
-  it("tells each item's screen where the one send stands, then lets go", async () => {
+  it("tells each item's screen where the one send stands, and lets go once each is finished", async () => {
     const jobs = [work(), work()];
-    const reportStage = vi.fn();
-    const { ports } = harness(jobs, { reportStage });
+    const seen: Array<[string, string | null]> = [];
+    const reportStage = vi.fn((job: Job, stage: string | null) => seen.push([job.id, stage]));
+    const processJob = vi.fn(async (id: string) => {
+      seen.push([id, "finished"]);
+      return { success: true, txHash: TX };
+    });
+    const { ports } = harness(jobs, { reportStage, processJob });
     const sender = createMockTransactionSender({ authMode: "wallet" });
     vi.mocked(sender.sendContractCall).mockImplementation(async (_call, options) => {
       await options?.onBeforeBroadcast?.();
@@ -190,12 +195,15 @@ describe("Upload all", () => {
     });
 
     await expect(upload(ports, sender)).resolves.toMatchObject({ status: "uploaded", sent: 2 });
-    expect(reportStage.mock.calls.map(([job, stage]) => [job.id, stage])).toEqual([
+    // Each item keeps saying confirming until the queue has finished it, never sent and stuck.
+    expect(seen).toEqual([
       [jobs[0]!.id, "wallet"],
       [jobs[1]!.id, "wallet"],
       [jobs[0]!.id, "confirming"],
       [jobs[1]!.id, "confirming"],
+      [jobs[0]!.id, "finished"],
       [jobs[0]!.id, null],
+      [jobs[1]!.id, "finished"],
       [jobs[1]!.id, null],
     ]);
   });

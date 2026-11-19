@@ -37,8 +37,10 @@ export function useSendingWork(account: string | null | undefined, chainId: numb
         return;
       setSending((previous) => {
         const next = new Map(previous);
-        if (event === "job:processing") next.set(data.job.id, null);
-        else if (event === "job:stage" && "stage" in data && data.stage)
+        // A try of a work Upload all just sent keeps saying confirming while the queue finishes it.
+        if (event === "job:processing") {
+          if (!next.has(data.job.id)) next.set(data.job.id, null);
+        } else if (event === "job:stage" && "stage" in data && data.stage)
           next.set(data.job.id, data.stage);
         else next.delete(data.job.id);
         return next;

@@ -131,6 +131,16 @@ export async function uploadQueuedWork(
   let flagged = 0;
   const { chainId, sender } = input;
   const explicitSend: ProcessJobContext = { transactionSender: sender, explicit: true };
+  /** Tells each item's screen where the send carrying it stands (PRD-1552); null lets it go. */
+  const tellStage = (jobs: readonly Job[], stage: JobSendPhase["stage"] | null) => {
+    for (const job of jobs) {
+      try {
+        ports.reportStage?.(job, stage);
+      } catch (error) {
+        logger.warn("[UploadQueuedWork] A send stage report threw", { error });
+      }
+    }
+  };
   const callOf = (chunk: ChunkItem[]) =>
     buildQueuedAttestationsCall(
       ports.easConfig(chainId).EAS.address as `0x${string}`,
@@ -243,6 +253,8 @@ export async function uploadQueuedWork(
             error: error instanceof Error ? error.message : String(error),
           });
         });
+        // Its screen said confirming until the queue finished it; now its record speaks.
+        tellStage([job], null);
       }
     }
 
@@ -317,20 +329,12 @@ export async function uploadQueuedWork(
 
       const { readChainHead } = ports;
       // One call carries every item, so each one's screen says the same stage (PRD-1552).
+      const jobs = items.map(({ job }) => job);
       let stageReported = false;
-      const reportStage = (stage: JobSendPhase["stage"] | null) => {
-        for (const { job } of items) {
-          try {
-            ports.reportStage?.(job, stage);
-          } catch (error) {
-            logger.warn("[UploadQueuedWork] A send stage report threw", { error });
-          }
-        }
-      };
       const result = await sendWithCheckpoint({
         sender: reportingSendStages(sender, ({ stage }) => {
           stageReported = true;
-          reportStage(stage);
+          tellStage(jobs, stage);
         }),
         call: { ...callOf(items), chainId },
         jobIds: items.map(({ job }) => job.id),
@@ -340,9 +344,12 @@ export async function uploadQueuedWork(
         record: (next) => recordAll(items, next),
         receiptWaitLimitMs: ports.receiptWaitLimitMs,
         now: ports.now,
-      }).finally(() => {
-        if (stageReported) reportStage(null);
+      }).catch((error: unknown) => {
+        if (stageReported) tellStage(jobs, null);
+        throw error;
       });
+      // A sent call's items keep saying confirming until the queue finishes each one, below.
+      if (stageReported && result.status !== "sent") tellStage(jobs, null);
       switch (result.status) {
         case "sent":
           sent += items.length;

@@ -151,6 +151,23 @@ describe("send phase reports", () => {
     expect(stagesSeen(deps)).toEqual(["wallet", "confirming", null]);
     expect(checkpoints.onBeforeBroadcast).toHaveBeenCalledOnce();
     expect(checkpoints.onBroadcast).toHaveBeenCalledWith("0xsent");
+    // Let go only once the job completed: between the two, a row would read as sent and stuck.
+    const order = vi.mocked(deps.events.emit).mock.calls.map(([type]) => type);
+    expect(order.lastIndexOf("job:stage")).toBeGreaterThan(order.indexOf("job:completed"));
+  });
+
+  it("lets go of a try that stopped before any stage, so no row stays under way", async () => {
+    const { deps, queue } = setup({
+      store: createInMemoryJobQueueStore([queuedJob()]),
+      executors: {
+        execute: vi.fn(async () => {
+          throw new Error("submission-ownership-changed");
+        }),
+      },
+    });
+
+    await queue.processJob("job-1", { transactionSender: walletSender().sender });
+    expect(stagesSeen(deps)).toEqual([null]);
   });
 
   it("says the wallet stage only for a wallet, since a passkey or an embedded wallet asks nobody then", async () => {
