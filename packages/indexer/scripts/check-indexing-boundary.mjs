@@ -178,7 +178,8 @@ const ALLOWED_CONTRACT_EVENTS = {
     "SettlementModuleUpdated",
     "PausedSet",
   ]),
-  // Command execution and acknowledgment state; the Celo deployment is pinned in the 42220 block below.
+  // Command execution and acknowledgment state; the Celo deployment is pinned in the 42220
+  // block below.
   CeloSettlementExecutor: new Set([
     "ExecutorDeploymentPinned",
     "SourcePeerUpdated",
@@ -198,8 +199,8 @@ const ALLOWED_CONTRACT_EVENTS = {
   ]),
 };
 
-// The source module is discovered on Arbitrum from the core's pin event; the Gnosis escrow
-// address comes from 100-pilot-downstream.json.
+// The source module is discovered on Arbitrum from the core's immutable pin event; the Gnosis
+// escrow address comes from 100-pilot-downstream.json.
 ALLOWED_CONTRACT_EVENTS.VoucherRedemptionModule = new Set([
   "VoucherSetupPrepared", "VoucherSetupDecisionSelected", "VoucherSetupDispatched", "VoucherSetupResultRecorded", "VoucherFinalResultRecorded", "VoucherHolderAbortRequested",
   "VoucherEndpointPinned", "VoucherPauseChanged", "RedemptionPrepared", "RedemptionDispatched", "RedemptionResultRecorded",

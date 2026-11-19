@@ -34,6 +34,7 @@ indexer.onEvent(
     const existingHypercert = await context.Hypercert.get(hypercertId);
 
     if (existingHypercert) {
+      // A replay of an already-indexed mint.
       if (existingHypercert.txHash === getTxHash(event.transaction)) {
         return;
       }
