@@ -17,7 +17,7 @@ import { createIntl } from "react-intl";
 import { describe, expect, it, vi } from "vitest";
 import { VoucherAcceptDialog } from "@/views/Garden/Pool/VoucherAskDialogs";
 import { voucherAskDetail } from "@/views/Garden/Pool/voucherPresentation";
-import { renderWithProviders, screen, within } from "../test-utils";
+import { fireEvent, renderWithProviders, screen, waitFor, within } from "../test-utils";
 
 const MAYA = "0x9e60000000000000000000000000000000007e5f" as Address;
 
@@ -77,7 +77,13 @@ function ask(
   };
 }
 
-function acceptDialog(booking: VoucherAsk) {
+function acceptDialog(
+  booking: VoucherAsk,
+  {
+    onAccept = vi.fn(),
+    onClose = vi.fn(),
+  }: { onAccept?: () => Promise<unknown>; onClose?: () => void } = {}
+) {
   renderWithProviders(
     <VoucherAcceptDialog
       ask={booking}
@@ -87,8 +93,8 @@ function acceptDialog(booking: VoucherAsk) {
       now={NOW}
       phase={{ status: "idle" }}
       disabled={false}
-      onClose={vi.fn()}
-      onAccept={vi.fn()}
+      onClose={onClose}
+      onAccept={onAccept}
     />
   );
   return within(screen.getByRole("dialog"));
@@ -136,5 +142,32 @@ describe("a member's booking in the Promises console", () => {
     const waiting = { depositedUnits: 0n, depositConfirmed: false };
     expect(detail(ask(TEO, waiting))).toMatch(/^Teo Alves approved \S.* · accept by \S/);
     expect(detail(ask(TECH_AND_SUN, waiting))).toMatch(/^Approved \S.* · accept by \S/);
+  });
+});
+
+describe("accepting a booking", () => {
+  const failing = (name: string) => Object.assign(new Error(name), { name });
+
+  it("keeps a failed accept open and offers it again", async () => {
+    const dialog = acceptDialog(ask(TEO), {
+      onAccept: vi.fn().mockRejectedValue(failing("ContractFunctionRevertedError")),
+    });
+    fireEvent.click(dialog.getByRole("button", { name: "Accept Maya" }));
+    expect(await dialog.findByRole("button", { name: "Try Again" })).toBeEnabled();
+  });
+
+  // Still confirming past its limit, or stopped while the wallet may still hold it (PRD-1551).
+  it.each([
+    "ReceiptWaitLimitError",
+    "WalletAnswerAbandonedError",
+  ])("closes after a %s rather than offering a second accept", async (name) => {
+    const onClose = vi.fn();
+    const dialog = acceptDialog(ask(TEO), {
+      onAccept: vi.fn().mockRejectedValue(failing(name)),
+      onClose,
+    });
+    fireEvent.click(dialog.getByRole("button", { name: "Accept Maya" }));
+    await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
+    expect(dialog.queryByRole("button", { name: "Try Again" })).not.toBeInTheDocument();
   });
 });

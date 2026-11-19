@@ -183,6 +183,24 @@ describe("explicit wallet batching", () => {
       id: "wallet:proposal/not-hex",
     });
   });
+  it("waits for a batch's status as long as a single send waits, and says when that ran out", async () => {
+    // The same 120 seconds as a receipt, so the queue records it the same way (PRD-1551).
+    const { sender, deps, calls } = wallet();
+    deps.waitForCallsStatus.mockRejectedValueOnce(
+      Object.assign(new Error("Timed out"), { name: "WaitForCallsStatusTimeoutError" })
+    );
+    const timedOut = await sender.submitAtomicBatch(calls, { batchBudget: walletBudget });
+    expect(deps.waitForCallsStatus).toHaveBeenCalledWith(
+      deps.config,
+      expect.objectContaining({ timeout: 120_000 })
+    );
+    expect(timedOut).toMatchObject({ status: "unresolved", waitLimitMs: 120_000 });
+    // Any other lost answer is unresolved too, and names no limit.
+    deps.waitForCallsStatus.mockRejectedValueOnce(new Error("rpc down"));
+    const lost = await sender.submitAtomicBatch(calls, { batchBudget: walletBudget });
+    expect(lost.status).toBe("unresolved");
+    expect(lost.waitLimitMs).toBeUndefined();
+  });
   it.each([
     false,
     undefined,

@@ -401,7 +401,7 @@ export function usePoolConsoleController(input: {
     funding: fundingView,
     acts,
     claimPhase: (commitmentId: bigint, claimant: Address) =>
-      actPhaseFor(claimDecisions.phase, claimActKey(commitmentId, claimant)),
+      claimDecisions.phaseOf(claimActKey(commitmentId, claimant)),
     claimDecisions: claimDecisions.decisions,
     claimInFlight:
       claimDecisions.phase.status === "signing" || claimDecisions.phase.status === "confirming",

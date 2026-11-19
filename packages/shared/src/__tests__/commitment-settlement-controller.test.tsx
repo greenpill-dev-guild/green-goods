@@ -7,6 +7,7 @@ import { useCommitmentSettlementController } from "../hooks/admin-ui/pool/useCom
 import type { CommitmentSettlementChainState } from "../modules/commitment-pooling/data-settlement-chain";
 import type { PoolFundingSnapshot } from "../modules/commitment-pooling/pool-funding";
 import { hashRecognitionSnapshot } from "../modules/commitment-pooling/settlement";
+import { ReceiptWaitLimitError } from "../modules/transactions/types";
 import type { Address } from "../types/domain";
 import {
   availableCapability,
@@ -384,6 +385,33 @@ describe("useCommitmentSettlementController", () => {
     expect(mocks.mutateAsync).not.toHaveBeenCalled();
     await waitFor(() => expect(result.current.plan?.payoutPlanId).toBe(7n));
     expect(result.current.workflow.nextAction).toEqual({ kind: "finalize-plan", payoutPlanId: 7n });
+  });
+
+  it("holds a step past its receipt limit as still confirming, never failed", async () => {
+    // It went out and may still land: read as failed, the step would be offered again (PRD-1551).
+    mocks.readChain.mockResolvedValue(chainState());
+    mocks.mutateAsync.mockRejectedValue(
+      new ReceiptWaitLimitError(120_000, { hash: `0x${"ab".repeat(32)}` })
+    );
+    const { result } = renderHookWithProviders(() =>
+      useCommitmentSettlementController({
+        chainId: 42161,
+        commitment: beneficiaryCommitment(),
+        detail: null,
+      })
+    );
+    await waitFor(() =>
+      expect(result.current.workflow.nextAction).toEqual({ kind: "create-plan" })
+    );
+
+    await act(async () => {
+      await expect(result.current.acts.createPlan()).rejects.toThrow(ReceiptWaitLimitError);
+    });
+    expect(result.current.lastAct).toMatchObject({
+      kind: "create-plan",
+      phase: "still-confirming",
+    });
+    expect(result.current.workflow.nextAction).toBeNull();
   });
 
   it("keeps the displayed state on the chain's answer when a transaction is rejected", async () => {

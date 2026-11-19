@@ -139,21 +139,52 @@ In admin, views color through the Warm Earth aliases (`text-text-strong`, `text-
 Use the project dialog primitives — they own mobile safety. `AdminDialog` (admin) and
 `DialogShell` (client/shared) already cap width to the viewport and present as a bottom sheet
 on narrow viewports; `AdminDialog`'s `standard` and `confirm` variants draw the shared
-`SheetHeader` at every width (flows and the palette keep their own header), and its confirm
-family the shared `SheetActions` (DL-117); consumers must NOT restate `max-w-*` overrides (the admin
+`SheetHeader` at every width (flows and the palette keep their own header), and every
+dialog's footer the shared `SheetActions` (DL-117, DL-190); consumers must NOT restate `max-w-*` overrides (the admin
 `AdminDialogStandard.guard` test fails ad-hoc `max-w-*` on AdminDialog). Only a hand-rolled
 modal (avoid building these) needs `max-w-[calc(100vw-2rem)] sm:max-w-lg` to survive 375px.
 
-A Hub dialog's or flow's footer is the shared `SheetActions` bar, passed as `AdminDialog`'s
-`actions` or `ActionFlowShell`'s `footer` (DL-189): 40px buttons 8px apart, the main action on top when they stack below 640px
-and rightmost from it, Cancel outlined, Back beside the way on in one row (`layout="steps"`), and a
-note or a send's progress in the bar's `note` slot. An inspector whose actions are ways on with no
-main one passes several `secondary` actions. Never stack your own buttons in a footer: the Hub's
-32px buttons keep a 6px finger-box reserve, so a hand-built stack sits 20px apart.
+A Hub dialog's or flow's footer is the shared `SheetActions` bar (DL-189): 40px buttons 8px apart,
+the main action on top when they stack below 640px and rightmost from it, Cancel outlined, Back
+beside the way on in one row (`layout="steps"`), and a note or a send's progress in the bar's
+`note` slot. An inspector whose actions are ways on with no main one passes several `secondary`
+actions.
+
+`AdminDialog`'s `actions` take the bar's props (`SheetActionsProps`), never buttons, and the dialog
+draws the bar, so that slot cannot hold a hand-built footer (DL-190). `FormFlow`'s `actions` take
+the same props for its page and sheet footers. Two paths stay open and are held by review: a flow's
+`ActionFlowShell` `footer` is any node (the create flows pass `FlowSendFooter`, which draws the bar,
+while a wallet-recovery footer still draws its own buttons), and a dialog's body can still pin a
+`SheetFooter` of its own. Move either onto the bar when you touch it.
 `AdminFieldActionAndFooter.guard` fails on a hand-stacked footer button (`w-full sm:w-auto`) in
-`packages/admin/src`. Some dialogs still pass their own buttons straight to `actions`, which
-`AdminDialog` stacks itself with the same 20px gap; the guard does not catch those, so move a
-dialog onto the bar when you touch its footer.
+`packages/admin/src` and anchors the `actions` type.
+
+```tsx
+// Good: the dialog draws the bar from its props
+<AdminDialog
+  open={open}
+  onOpenChange={setOpen}
+  title="Deposit"
+  tone="community"
+  actions={{
+    note: signatureLine || null,
+    primary: { label: "Deposit", onClick: deposit, disabled: !canDeposit, loading: isPending },
+    secondary: { label: "Cancel", onClick: onClose, disabled: isPending },
+  }}
+>
+  {/* the amount field */}
+</AdminDialog>
+```
+
+Three things the bar does for every footer, so no caller repeats them:
+
+- The `note` is the bar's one polite live region. Pass plain text or content with no `role="status"`
+  of its own. While a note that comes and goes has nothing to say, pass `null`, not `undefined`:
+  the region stays mounted and hidden, so the line can be announced when it appears.
+- A loading action stays focusable and ignores activation, and `loading` wins over `disabled`:
+  `disabled` makes an action natively disabled only while it is not loading.
+- An action slot whose `type` or `form` changes is a new button. A press that swaps Try Again for a
+  form's submit never lands on a button that has just become that submit.
 
 ## Rule 15: Form Fields
 
@@ -313,7 +344,7 @@ The six enforceable invariants of the Hub finish — treat violations as design 
 - **Admin radius set** — 4/8/12/16/9999px plus the shared card's 24px corner (`--gg-card-radius`, DL-102); no 20 or 28px radii (`rounded-xl`/`rounded-2xl` remap to 16px in admin, so a card takes its corner from `.gg-card`, never from a `rounded-*` utility). `AdminCard` is the shared card and `AdminListRow` takes the shared row's 16px corner (`--gg-row-radius`), while `AdminSelectableCard` keeps its 12px (DL-118).
 - **Six-use tone budget** — workspace tone appears only in the active tab (its 10% accent tint, label and 2px underline, DL-100), the active nav pill, at most one filled `--tone-action` header action (none on a review surface such as Review, DL-043), the nav-shell FAB fill, the shared `CountBadge` on a rail tab where something waits on the steward, filled with `--tone-on-surface-accent` (DL-099; a total goes in the panel's own header line and a flag shows no badge, DL-134), and a selected `AdminFilterChip`, filled with `--tone-action` (DL-101), plus the faint canvas wash. The focus role (DL-098), which rings focus and marks the record a list has open (DL-103), is not counted.
 - **Hover rule** — hovers are an elevation step-up or the neutral ink layer `rgb(var(--m3-on-surface) / 0.08)`, painted beneath the label on a filled control (`m3-state-layer-beneath`) so a hovered or pressed label keeps its rest contrast; a card or item row takes the ink layer only and never lifts (DL-102); a shared button takes the shared hover, its filled emphasis stepping to its tone's measured hover fill (`--tone-action-hover`, DL-009) and the others to the weak fill (DL-115); a selected filter chip answers a hover or a press with the ink layer beneath its label, at the Hub's state opacities (DL-122); never translate/scale lifts or hue shifts.
-- **Admin views render the shared Button and IconButton directly** — with DL-119's code change, a view renders the shared `Button` (`emphasis` primary, secondary or tertiary, `tone="danger"` for a destructive act) and `IconButton`, and `AdminButton` and `AdminIconButton` are gone (until it lands, those adapters render the same pieces, DL-115). Sizes are compact, sm and lg, which the Hub's tokens set at 28, 32 and 40px with a 44px finger box. A call site names its size, says `type` on a button that is not a link, sizes a leading glyph (16px at 28px, 18px otherwise) and gives an icon button's name as its tooltip too; a link drawn as either is `asChild`. Pill shape, one 14px label at every size, Title Case action labels (en; DL-012). The chosen option in a set is an `AdminFilterChip`, not a button; `EmptyState` takes a ready `Button` element as its action, and the confirm family's action bar is the shared `SheetActions` (DL-117). Control heights ride the DL-011 compact metric (buttons 28/32/40 with a 44px finger box on every tier, fields 44 on touch widths and 40 from 640px, pills and tabs 36; DL-030).
+- **Admin views render the shared Button and IconButton directly**: with DL-119's code change, a view renders the shared `Button` (`emphasis` primary, secondary or tertiary, `tone="danger"` for a destructive act) and `IconButton`, and `AdminButton` and `AdminIconButton` are gone (until it lands, those adapters render the same pieces, DL-115). Sizes are compact, sm and lg, which the Hub's tokens set at 28, 32 and 40px with a 44px finger box. A call site names its size, says `type` on a button that is not a link, sizes a leading glyph (16px at 28px, 18px otherwise) and gives an icon button's name as its tooltip too; a link drawn as either is `asChild`. Pill shape, one 14px label at every size, Title Case action labels (en; DL-012). The chosen option in a set is an `AdminFilterChip`, not a button; `EmptyState` takes a ready `Button` element as its action, and a dialog's action bar is the shared `SheetActions` (DL-117, DL-190). Control heights ride the DL-011 compact metric (buttons 28/32/40 with a 44px finger box on every tier, fields 44 on touch widths and 40 from 640px, pills and tabs 36; DL-030).
 - **Shared pieces ride the shared family** — the shared components the Hub renders (FileUploadField, DatePicker, ConfidenceSelector, AudioRecorder, ImagePreviewDialog, toast actions, AssetSelector, AddressDisplay, Alert, and the dialogs' `SheetHeader` and `SheetActions`, DL-117) keep their shared `Button` / `IconButton` / `Chip` / control anatomy, and `index.css` sets the family's `--gg-*` tokens so they land on the Hub metric: pills, one 14px label, lg and md on 40, sm on 32, compact on 28, a 44px finger box, and the responsive field tier through `surface="admin"` (DL-031). The same tokens keep the Hub's buttons still while pressed, its icon buttons round with an 18px glyph, and a disabled button on the neutral pair (a 12% ink fill under a 38% ink label) instead of a dim (DL-115). A shared piece marks the buttons it lays out itself (`data-piece-control`), so they keep the app's layout, with no reserved margin and no height cap (DL-119). Never restyle a shared piece from admin; move the token. Where a shared piece fits, the Hub's own wrapper draws it in place and keeps its name and props (`AdminCard` over `.gg-card`); a wrapper with no shared counterpart stays the Hub's (DL-118).
 
 ## Rule 19: Client Buttons and Controls Come From the Shared Family

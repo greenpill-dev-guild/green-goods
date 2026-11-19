@@ -21,7 +21,8 @@ const rpc = createReceiptRpc(arbitrum, {
 });
 const { config } = rpc;
 
-const wait = () => waitForReceipt(config, { hash: MOCK_TX_HASH, chainId: arbitrum.id });
+const wait = () =>
+  waitForReceipt(config, { hash: MOCK_TX_HASH, chainId: arbitrum.id, timeout: 10_000 });
 
 /** Each sender with a stubbed wallet and its own default receipt wait. */
 const senders = {

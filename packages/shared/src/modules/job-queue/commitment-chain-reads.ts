@@ -53,6 +53,11 @@ export type CommitmentChainReads = Pick<
       chainId: number;
     }) => Promise<void>;
     /**
+     * Whether this transaction was mined and reverted. False while it is pending or unknown, and
+     * when the read fails: only a revert proves it made nothing.
+     */
+    transactionReverted?: (transactionHash: Hex) => Promise<boolean>;
+    /**
      * Whether this transaction's receipt holds the module's WorkLinked event for
      * this link, made by this caller's operation key. The event carries the key,
      * so it names the one link, where a row's time or position may not.
@@ -288,6 +293,17 @@ export function createCommitmentChainReads({
         account: call.account,
         chainId: call.chainId,
       } as Parameters<typeof wagmiSimulateContract>[1]);
+    },
+    transactionReverted: async (transactionHash) => {
+      try {
+        const receipt = await getTransactionReceipt(wagmiConfig, {
+          hash: transactionHash,
+          chainId,
+        });
+        return receipt.status === "reverted";
+      } catch {
+        return false;
+      }
     },
     transactionMadeWorkLink: async (transactionHash, link) => {
       const receipt = await getTransactionReceipt(wagmiConfig, { hash: transactionHash, chainId });

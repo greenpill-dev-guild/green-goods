@@ -8,12 +8,13 @@
  * `onPhase` is report-only: it hears the wallet being asked and the broadcast,
  * after the executor's own checkpoints, and a report that throws is logged and
  * ignored. Without it the executor's send options reach the wallet untouched.
- * The queue's receipt limit reaches only a send whose broadcast it keeps on record.
+ * The queue's receipt limit reaches every send, and a wait that ran out of it is recorded.
  */
 
 import { describe, expect, it, vi } from "vitest";
 import type { JobQueueDependencies, JobSendPhase } from "../../modules/job-queue/ports";
 import { createJobQueue } from "../../modules/job-queue/queue";
+import { BatchConfirmationPendingError } from "../../modules/transactions/batch-types";
 import type { TransactionSender, TransactionSendOptions } from "../../modules/transactions/types";
 import type { Job } from "../../types/job-queue";
 import {
@@ -140,12 +141,9 @@ describe("send phase reports", () => {
     expect(options?.onBroadcast).toBe(checkpoints.onBroadcast);
   });
 
-  it("limits the receipt wait only of a send whose broadcast the queue keeps on record", async () => {
-    // A creation keeps no record: past a limit it would read as failed and could be sent twice.
-    for (const [kind, limit] of [
-      ["claim", 120_000],
-      ["commitment", undefined],
-    ] as const) {
+  it("limits the receipt wait of every send, a creation's too (PRD-1551)", async () => {
+    // A creation keeps the transaction the limit names instead of a send record.
+    for (const kind of ["claim", "commitment"] as const) {
       const { queue } = setup({
         store: createInMemoryJobQueueStore([{ ...queuedJob(), kind }]),
         executors: sendingExecutor({}),
@@ -153,7 +151,35 @@ describe("send phase reports", () => {
       const wallet = walletSender();
 
       await queue.processJob("job-1", { transactionSender: wallet.sender });
-      expect(wallet.sendContractCall.mock.calls[0]?.[1]?.receiptWaitLimitMs).toBe(limit);
+      expect(wallet.sendContractCall.mock.calls[0]?.[1]?.receiptWaitLimitMs).toBe(120_000);
     }
+  });
+
+  it("records a send whose wallet batch outlasted its status wait, as it records a receipt", async () => {
+    // A proof and its send go out as one wallet batch; its status wait ran out (PRD-1551).
+    const { deps, queue } = setup({
+      store: createInMemoryJobQueueStore([{ ...queuedJob(), kind: "confirmation" }]),
+      executors: sendingExecutor({}),
+    });
+    const sendContractCall = vi.fn(async () => {
+      throw new BatchConfirmationPendingError({
+        status: "unresolved",
+        receipts: [],
+        sponsored: false,
+        waitLimitMs: 120_000,
+      });
+    });
+    const sender = { sendContractCall, authMode: "wallet" } as unknown as TransactionSender;
+
+    await queue.processJob("job-1", { transactionSender: sender, explicit: true });
+    expect(deps.analytics.receiptWaitLimitReached).toHaveBeenCalledWith("confirmation", {
+      limitMs: 120_000,
+      explicit: true,
+      authMode: "wallet",
+    });
+    expect(deps.logger.warn).toHaveBeenCalledWith(
+      "[JobQueue] A send's receipt did not come within its limit",
+      { jobId: "job-1", kind: "confirmation", limitMs: 120_000 }
+    );
   });
 });

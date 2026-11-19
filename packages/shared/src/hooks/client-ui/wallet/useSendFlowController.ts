@@ -19,6 +19,7 @@ import {
 } from "../../../modules/wallet/send-flow";
 import type { Address } from "../../../types/domain";
 import { formatAddress } from "../../../utils/app/text";
+import { mayStillLand } from "../../../utils/errors/tx-error-classifier";
 import { useUser } from "../../auth/useUser";
 
 interface SendMutationPort {
@@ -31,7 +32,7 @@ interface SendMutationPort {
       note: string;
       reviewedFee?: GoodDollarFeeQuote;
     },
-    options: { onSuccess: () => void }
+    options: { onSuccess: () => void; onError?: (error: unknown) => void }
   ): void;
 }
 
@@ -207,7 +208,13 @@ export function useSendFlowController({
         note,
         ...(celo ? { reviewedFee: confirmFee.current } : {}),
       },
-      { onSuccess: () => dispatch({ type: "reset-after-send" }) }
+      {
+        onSuccess: () => dispatch({ type: "reset-after-send" }),
+        // Cleared as a sent one is, so Send cannot pay the same draft twice.
+        onError: (error) => {
+          if (mayStillLand(error)) dispatch({ type: "reset-after-send" });
+        },
+      }
     );
   };
 
