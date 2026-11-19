@@ -13,7 +13,12 @@
 
 import { useCallback, useEffect } from "react";
 import type { ClaimDecisions } from "../../../modules/commitment-pooling/waiting-for-approval";
-import { claimActKey, type TxActPhase } from "../../../modules/transactions/act-phase";
+import {
+  actPhaseFor,
+  claimActKey,
+  IDLE_ACT_PHASE,
+  type TxActPhase,
+} from "../../../modules/transactions/act-phase";
 import { useClaimDecisionStore } from "../../../stores/useClaimDecisionStore";
 import type { Address } from "../../../types/domain";
 import { type ActSendCallbacks, followAct } from "../../blockchain/useTxActPhase";
@@ -23,6 +28,11 @@ import { useTimeout } from "../../utils/useTimeout";
 export interface ClaimDecisionActs {
   /** The approval running or last settled, keyed to its ask. */
   phase: TxActPhase;
+  /**
+   * One ask's approval: the running or last one on the line, or else the ending it was held in
+   * (still confirming, waiting on a Safe's signers, stopped), which another approval never clears.
+   */
+  phaseOf: (key: string) => TxActPhase;
   decisions: ClaimDecisions;
   /** `requestedAt` names the ask decided, when the caller has it (`ClaimDecision`). */
   approve: <T>(
@@ -41,6 +51,7 @@ export interface ClaimDecisionActs {
 
 export function useClaimDecisions(): ClaimDecisionActs {
   const phase = useClaimDecisionStore((state) => state.phase);
+  const held = useClaimDecisionStore((state) => state.held);
   const decisions = useClaimDecisionStore((state) => state.decisions);
   const step = useClaimDecisionStore((state) => state.step);
   const decide = useClaimDecisionStore((state) => state.decide);
@@ -93,7 +104,15 @@ export function useClaimDecisions(): ClaimDecisionActs {
     [decide]
   );
 
-  return { phase, decisions, approve, decline };
+  const phaseOf = useCallback(
+    (key: string) => {
+      const onLine = actPhaseFor(phase, key);
+      return onLine.status !== "idle" ? onLine : (held[key] ?? IDLE_ACT_PHASE);
+    },
+    [phase, held]
+  );
+
+  return { phase, phaseOf, decisions, approve, decline };
 }
 
 /**

@@ -3,6 +3,7 @@
 import { act } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { toastService } from "../components/toast";
 import { queryKeys } from "../config/query-keys";
 import {
   type CommitmentPoolMutationInput,
@@ -201,8 +202,10 @@ describe("useCommitmentPoolMutation", () => {
     expect(mocks.sender.sendContractCall.mock.lastCall).toHaveLength(1);
   });
 
-  it("keeps an act a Safe has only proposed open, never done", async () => {
-    // A Safe proposal has not run until its owners sign it (PRD-1551).
+  it("says an act a Safe has only proposed waits for its signers, never that it is done", async () => {
+    // A Safe proposal has not run until its owners sign it (PRD-1551). It still settles, so a
+    // dialog closes rather than offering a second proposal of the same act.
+    const info = vi.spyOn(toastService, "info").mockReturnValue(undefined as never);
     mocks.sender.sendContractCall.mockResolvedValueOnce({
       hash: `0x${"5a".repeat(32)}`,
       sponsored: false,
@@ -217,14 +220,16 @@ describe("useCommitmentPoolMutation", () => {
     );
 
     await act(async () => {
-      await expect(
-        result.current.mutateAsync({ action: "resumePool", poolId: 7n })
-      ).rejects.toMatchObject({
-        name: "TransactionConfirmationPendingError",
-        submission: { awaiting: "safe-signers" },
-      });
+      await expect(result.current.mutateAsync({ action: "resumePool", poolId: 7n })).resolves.toBe(
+        `0x${"5a".repeat(32)}`
+      );
     });
-    expect(invalidate).not.toHaveBeenCalled();
+    expect(info).toHaveBeenCalledWith({
+      title: "Waiting for the Safe's signers",
+      message:
+        "Your Safe has the proposal. It goes through once enough of the Safe's owners sign it.",
+    });
+    expect(invalidate).toHaveBeenCalled();
   });
 
   it("invalidates the chain prefix plus the pool or cycle that changed", async () => {

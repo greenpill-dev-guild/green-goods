@@ -629,4 +629,39 @@ describe("Celo send safety", () => {
         message: "app.sendStage.safeSigners.detail",
       });
   });
+
+  it("turns slow while a wallet's network switch waits, before the send is asked", async () => {
+    Object.assign(mockSender, { authMode: "wallet" });
+    try {
+      // The wallet sender is still asking to switch network: no intent, no answer.
+      mockSendContractCall.mockImplementationOnce(() => new Promise(() => undefined));
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      const { result } = renderSendToken();
+      act(() => {
+        void result.current.mutateAsync(SEND_PARAMS).catch(() => undefined);
+      });
+      await waitFor(() => expect(mockSendContractCall).toHaveBeenCalledOnce());
+      act(() => {
+        vi.advanceTimersByTime(20_000);
+      });
+      await waitFor(() => expect(result.current.notice).toBe("wallet-slow"));
+    } finally {
+      delete (mockSender as { authMode?: string }).authMode;
+    }
+  });
+
+  it("refreshes the balance after a send still confirming, which may still pay", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    mockSendContractCall.mockRejectedValueOnce(new ReceiptWaitLimitError(120_000));
+    const client = createTestQueryClient();
+    const invalidate = vi.spyOn(client, "invalidateQueries");
+    const { result } = renderSendToken(client);
+    await act(async () => {
+      await result.current.mutateAsync(SEND_PARAMS).catch(() => undefined);
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(3_000);
+    });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: BALANCES_KEY });
+  });
 });

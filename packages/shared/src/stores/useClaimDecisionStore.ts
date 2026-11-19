@@ -26,6 +26,12 @@ interface ClaimDecisionState {
   /** The pool whose tab is open, as `chainId:garden`. */
   visit: string | null;
   phase: TxActPhase;
+  /**
+   * Approvals that ended without landing but may still land (still confirming, waiting on a
+   * Safe's signers) or may still be in the wallet (stopped after Cancel), by ask (PRD-1551).
+   * Kept apart from the one line, so another approval moving the line never releases them.
+   */
+  held: Record<string, TxActPhase>;
   decisions: ClaimDecisions;
   /** A visit to a pool's tab starts with nothing decided and no line. */
   beginVisit: (visit: string) => void;
@@ -34,15 +40,31 @@ interface ClaimDecisionState {
   decide: (key: string, decision: ClaimDecision) => void;
 }
 
+const HELD_ENDINGS: ReadonlySet<TxActPhase["status"]> = new Set([
+  "still-confirming",
+  "safe-signers",
+  "stopped",
+]);
+
 export const useClaimDecisionStore = create<ClaimDecisionState>()((set) => ({
   visit: null,
   phase: IDLE_ACT_PHASE,
+  held: {},
   decisions: {},
-  beginVisit: (visit) => set({ visit, phase: IDLE_ACT_PHASE, decisions: {} }),
-  step: (event) => set((state) => ({ phase: actPhaseReducer(state.phase, event) })),
+  beginVisit: (visit) => set({ visit, phase: IDLE_ACT_PHASE, held: {}, decisions: {} }),
+  step: (event) =>
+    set((state) => {
+      const phase = actPhaseReducer(state.phase, event);
+      if (phase.status === "idle" || !HELD_ENDINGS.has(phase.status)) return { phase };
+      return { phase, held: { ...state.held, [phase.key]: phase } };
+    }),
   decide: (key, decision) =>
-    set((state) => ({
-      phase: actPhaseReducer(state.phase, { type: "confirmed", key }),
-      decisions: { ...state.decisions, [key]: decision },
-    })),
+    set((state) => {
+      const { [key]: _landed, ...held } = state.held;
+      return {
+        phase: actPhaseReducer(state.phase, { type: "confirmed", key }),
+        held,
+        decisions: { ...state.decisions, [key]: decision },
+      };
+    }),
 }));

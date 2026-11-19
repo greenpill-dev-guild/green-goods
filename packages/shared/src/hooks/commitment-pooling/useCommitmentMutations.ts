@@ -9,10 +9,9 @@ import type { DeclaredConsiderationInput } from "../../modules/commitment-poolin
 import { pinCommitmentReason } from "../../modules/commitment-pooling/reasons";
 import { isDemoPoolingActive } from "../../modules/commitment-pooling/demo/demo-mode";
 import { selectCommitmentPoolingAvailability } from "../../modules/commitment-pooling/selectors";
-import {
-  TransactionConfirmationPendingError,
-  type TransactionSendOptions,
-} from "../../modules/transactions/types";
+import { toastService } from "../../components/toast";
+import { SEND_STAGE_WORDS } from "../../modules/transactions/send-stage";
+import type { TransactionSendOptions } from "../../modules/transactions/types";
 import type { Address } from "../../types/domain";
 import { isZeroAddress } from "../../utils/blockchain/address";
 import { CommitmentServiceOffersABI } from "../../utils/blockchain/contract-abis/commitment-service-offers";
@@ -270,9 +269,19 @@ export function useCommitmentMutation(options: { chainId?: number } = {}) {
       const result = send
         ? await sender.sendContractCall(contractCall, send)
         : await sender.sendContractCall(contractCall);
-      // A Safe proposal, or any answer with no receipt yet, has not run: the act stays open and
-      // its error says it is waiting, never that it is done (PRD-1551).
-      if (result.confirmation === "pending") throw new TransactionConfirmationPendingError(result);
+      // A Safe proposal, or any answer with no receipt yet, has not run: it says what it waits
+      // for, never that it is done (PRD-1551). It still settles, so a dialog closes rather than
+      // offering a second send of the same act.
+      if (result.confirmation === "pending") {
+        const words =
+          result.awaiting === "safe-signers"
+            ? SEND_STAGE_WORDS["safe-signers"]
+            : SEND_STAGE_WORDS["still-confirming"];
+        toastService.info({
+          title: words.label.defaultMessage,
+          message: words.detail!.defaultMessage,
+        });
+      }
       return result.hash;
     },
     onSuccess: async (_hash, input) => {

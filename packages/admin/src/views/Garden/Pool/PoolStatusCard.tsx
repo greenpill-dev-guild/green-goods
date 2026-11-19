@@ -72,10 +72,10 @@ export function PoolStatusCard({
   });
   const actDisabled = offline || isActing;
   // Resume stays closed from the wallet until the pool reads open again, and while a resume
-  // still confirming or waiting on a Safe's signers may land.
+  // still confirming, waiting on a Safe's signers, or stopped in a wallet that may still hold
+  // it may land.
   const { status: resumeStatus } = pool.resumePhase;
-  const resumeHeld =
-    resumeStatus !== "idle" && resumeStatus !== "stopped" && resumeStatus !== "failed";
+  const resumeHeld = resumeStatus !== "idle" && resumeStatus !== "failed";
 
   return (
     <AdminCard variant="elevated" data-component="PoolStatusCard" className="space-y-4">

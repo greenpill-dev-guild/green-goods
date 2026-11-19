@@ -103,7 +103,9 @@ export function useSendToken() {
   const walletWait = useRef<AbortController | null>(null);
   const [walletSlow, setWalletSlow] = useState(false);
   const [liveStage, setLiveStage] = useState<"wallet" | "confirming" | null>(null);
-  const [answeredLate, setAnsweredLate] = useState(false);
+  // The send whose wallet answered after Cancel, so only that send reads as still confirming.
+  const [answeredLateFor, setAnsweredLateFor] = useState<AbortController | null>(null);
+  const lastWait = useRef<AbortController | null>(null);
   const { set: setNudge, clear: clearNudge } = useTimeout();
   const cancelWalletWait = useCallback(() => walletWait.current?.abort(), []);
 
@@ -181,8 +183,10 @@ export function useSendToken() {
       // asks nobody, so only a wallet send waits on a wallet, turns slow, or can be stopped.
       const wait = new AbortController();
       walletWait.current = wait;
-      setAnsweredLate(false);
+      lastWait.current = wait;
       const asksWallet = sender.authMode === "wallet";
+      // The 20 seconds count from here: a wallet can ask to switch network before the send.
+      if (asksWallet) setNudge(() => setWalletSlow(true), WALLET_NUDGE_MS);
       const answered = () => {
         clearNudge();
         setWalletSlow(false);
@@ -190,7 +194,7 @@ export function useSendToken() {
       // The wallet sent it after the person stopped waiting: say it went out, refresh the
       // balance, and leave any newer send's wait alone.
       const answeredAfterCancel = () => {
-        setAnsweredLate(true);
+        setAnsweredLateFor(wait);
         // Said in a toast too, in case another send has started in the meantime.
         const { label, detail } = SEND_STAGE_WORDS["still-confirming"];
         toastService.info({ title: formatMessage(label), message: formatMessage(detail!) });
@@ -210,11 +214,9 @@ export function useSendToken() {
           },
           {
             signal: wait.signal,
-            // The wallet is asked just after this; the 20 seconds count from here.
+            // The wallet is asked to approve the send just after this.
             onBeforeBroadcast: async () => {
-              if (!asksWallet || wait.signal.aborted) return;
-              setLiveStage("wallet");
-              setNudge(() => setWalletSlow(true), WALLET_NUDGE_MS);
+              if (asksWallet && !wait.signal.aborted) setLiveStage("wallet");
             },
             // The network has it: a wallet answered, or a passkey's operation was accepted.
             onBroadcastReference: async () => {
@@ -303,6 +305,15 @@ export function useSendToken() {
     },
     onError: (error, params, context) => {
       if (context?.toastId) toastService.dismiss(context.toastId);
+      // A send still confirming, or one the wallet may still send, may move the balance.
+      if (
+        primaryAddress &&
+        params?.token &&
+        (error instanceof WalletAnswerAbandonedError || isUnconfirmedTxError(error))
+      ) {
+        sentRef.current = { account: primaryAddress.toLowerCase(), chainId: params.token.chainId };
+        scheduleRefetch();
+      }
       handleError(error, {
         metadata: { chainId: params?.token?.chainId, token: params?.token?.symbol },
         showToast: true,
@@ -315,6 +326,10 @@ export function useSendToken() {
     ? walletSlow
       ? "wallet-slow"
       : liveStage
-    : settledNotice(send.error, send.data, answeredLate);
+    : settledNotice(
+        send.error,
+        send.data,
+        answeredLateFor !== null && answeredLateFor === lastWait.current
+      );
   return { ...send, notice, cancelWalletWait };
 }

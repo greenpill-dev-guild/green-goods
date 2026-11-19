@@ -137,10 +137,13 @@ export function waitingRowState(
   entry: WaitingVisitEntry,
   input: { live: ReadonlySet<string>; decisions: ClaimDecisions; phase: TxActPhase }
 ): WaitingRowState {
+  const live = input.live.has(entry.key);
+  const line = onTheLine(input.phase);
   return (
     decidedHere(entry.key, entry.row.claim, input.decisions) ??
-    onTheLine(input.phase) ??
-    (input.live.has(entry.key) ? { status: "waiting", isNew: entry.isNew } : { status: "gone" })
+    // A held ask the index no longer lists has been decided, by this approval or another.
+    (line?.status === "held" && !live ? { status: "gone" } : line) ??
+    (live ? { status: "waiting", isNew: entry.isNew } : { status: "gone" })
   );
 }
 
