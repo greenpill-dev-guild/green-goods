@@ -3,12 +3,12 @@ import type { LiveSendStageReport } from "../../transactions/send-stage";
 
 /**
  * Where an online Submit stands. Its send's two stages are the shared ones (`send-stage`): the
- * wallet is asked, then the network confirms.
+ * wallet is asked, then the network confirms. It never reports a Safe's signers as a stage.
  */
 export type WalletSubmissionStage =
   | "validating"
   | "uploading"
-  | LiveSendStageReport["stage"]
+  | Exclude<LiveSendStageReport["stage"], "safe-signers">
   | "syncing"
   | "complete";
 

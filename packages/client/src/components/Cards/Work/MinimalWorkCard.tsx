@@ -70,7 +70,7 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
   const effectiveStatus = work.status;
   // Work still on this device names where it stands instead of reading "Offline".
   const queuedState = readQueuedWorkState(work.metadata);
-  const queuedStatus = queuedWorkStatusMessage(queuedState.submissionState);
+  const queuedStatus = queuedWorkStatusMessage(queuedState);
   if (queuedStatus) labels.status.offline = formatMessage(queuedStatus);
   // A send under way says its stage, which the queue reports however it started (PRD-1552).
   if (queuedState.sendStage)

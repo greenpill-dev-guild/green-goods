@@ -10,6 +10,7 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { type ActSendCallbacks, useTxActPhase } from "../../../hooks/blockchain/useTxActPhase";
+import { toActPhaseReport } from "../../../hooks/commitment-pooling/useCommitmentJobs";
 import type { ActPhaseReport, TxActPhase } from "../../../modules/transactions/act-phase";
 import {
   ReceiptWaitLimitError,
@@ -47,6 +48,17 @@ describe("useTxActPhase.trackReported", () => {
       { status: "still-confirming", key: "k" },
     ],
     ["queued when it never said how it ended", () => undefined, { status: "queued", key: "k" }],
+    [
+      // As the queue reports a Safe's proposal, then keeps the act on record (PRD-1564).
+      "waiting for the Safe's signers, when a Safe only proposed it",
+      (report) => {
+        const fromQueue = toActPhaseReport(report);
+        fromQueue({ stage: "confirming", txHash: HASH });
+        fromQueue({ stage: "safe-signers" });
+        fromQueue({ stage: "queued", reason: "awaiting-confirmation" });
+      },
+      { status: "safe-signers", key: "k" },
+    ],
   ])("ends %s", async (_case, reports, expected) => {
     const { result } = renderHook(() => useTxActPhase());
 

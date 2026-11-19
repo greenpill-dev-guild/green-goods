@@ -123,15 +123,18 @@ export function WorkStatusNotice({
             title: { id: "app.work.notice.sending.title" },
             body: { id: "app.work.notice.sending.body" },
           };
-        // Its broadcast is on record: it went out and is still confirming (PRD-1552). Only a
-        // send whose answer was lost may or may not have gone out.
-        if (state.submissionState === "awaiting-confirmation")
+        // Its broadcast is on record: it went out and is still confirming (PRD-1552), or a Safe
+        // only proposed it and it waits for the Safe's signers (PRD-1564). Only a send whose
+        // answer was lost may or may not have gone out.
+        if (state.submissionState === "awaiting-confirmation") {
+          const words = SEND_STAGE_WORDS[state.awaiting ?? "still-confirming"];
           return {
             variant: "info",
             icon: <RiRefreshLine className={ICON} aria-hidden="true" />,
-            title: SEND_STAGE_WORDS["still-confirming"].label,
-            body: SEND_STAGE_WORDS["still-confirming"].detail,
+            title: words.label,
+            body: words.detail,
           };
+        }
         return {
           variant: "info",
           icon: <RiRefreshLine className={ICON} aria-hidden="true" />,

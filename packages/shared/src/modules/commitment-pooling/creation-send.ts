@@ -304,13 +304,16 @@ export async function sendCreationCopies(input: CreationSendInput): Promise<Seed
       const context = {
         transactionSender: watched,
         explicit: true,
-        onPhase: (phase: JobSendPhase) =>
+        // A creation a Safe only proposed keeps saying confirming: how its send ended says the rest.
+        onPhase: (phase: JobSendPhase) => {
+          if (phase.stage === "safe-signers") return;
           tell(
             id,
             phase.stage === "wallet"
               ? { status: "wallet" }
               : { status: "confirming", txHash: phase.txHash }
-          ),
+          );
+        },
       };
       const first = await queue.processJob(jobId, context);
       const result = submitted(first) ? await queue.processJob(jobId, context) : first;

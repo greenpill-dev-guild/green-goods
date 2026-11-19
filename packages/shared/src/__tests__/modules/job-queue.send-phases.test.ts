@@ -14,7 +14,12 @@
 
 import { describe, expect, it, vi } from "vitest";
 import type { JobQueueDependencies, JobSendPhase } from "../../modules/job-queue/ports";
+import {
+  sendRecordedAct,
+  waitingForRecordedSend,
+} from "../../modules/job-queue/commitment-send-record";
 import { createJobQueue } from "../../modules/job-queue/queue";
+import { hasRecordedSend, sendCheckpointOf } from "../../modules/job-queue/queue-policy";
 import { BatchConfirmationPendingError } from "../../modules/transactions/batch-types";
 import type { TransactionSender, TransactionSendOptions } from "../../modules/transactions/types";
 import type { Job } from "../../types/job-queue";
@@ -89,7 +94,7 @@ describe("send phase reports", () => {
     });
     const { queue } = setup({ store: createInMemoryJobQueueStore([queuedJob()]), executors });
     const onPhase = (phase: JobSendPhase) =>
-      order.push(phase.stage === "wallet" ? "phase: wallet" : `phase: ${phase.txHash}`);
+      order.push(phase.stage === "confirming" ? `phase: ${phase.txHash}` : `phase: ${phase.stage}`);
 
     await expect(
       queue.processJob("job-1", { transactionSender: walletSender().sender, onPhase })
@@ -202,6 +207,59 @@ describe("send phase reports", () => {
       await queue.processJob("job-1", { transactionSender: wallet.sender });
       expect(wallet.sendContractCall.mock.calls[0]?.[1]?.receiptWaitLimitMs).toBe(120_000);
     }
+  });
+
+  // A Safe's wallet answers with the proposal's own hash, which no receipt follows (PRD-1564).
+  it("says a Safe's proposal waits for the Safe's signers, keeps that on record, and never sends it again", async () => {
+    const SAFE_TX = `0x${"5a".repeat(32)}` as const;
+    const store = createInMemoryJobQueueStore([{ ...queuedJob(), kind: "claim" }]);
+    // As the commitment executor does: send through the record, or settle what is on it.
+    const executors = {
+      execute: vi.fn(async (jobId: string, job: Job, _chainId: number, s: TransactionSender) => {
+        if (hasRecordedSend(job))
+          return { status: "waiting" as const, reason: "awaiting-confirmation" };
+        try {
+          const txHash = await sendRecordedAct(jobId, job, {} as never, s, store as never);
+          return { status: "complete" as const, txHash };
+        } catch (error) {
+          const waiting = waitingForRecordedSend(error);
+          if (waiting) return waiting;
+          throw error;
+        }
+      }),
+    };
+    // The order the wallet sender keeps for a Safe (`wallet-sender`).
+    const sendContractCall = vi.fn(async (_call: unknown, options: TransactionSendOptions = {}) => {
+      await options.onBeforeBroadcast?.();
+      await options.onBroadcast?.(SAFE_TX);
+      options.onAwaiting?.("safe-signers");
+      return {
+        hash: SAFE_TX,
+        sponsored: false,
+        confirmation: "pending" as const,
+        awaiting: "safe-signers" as const,
+      };
+    });
+    const sender = { authMode: "wallet", sendContractCall } as unknown as TransactionSender;
+    const { deps, queue } = setup({ store, executors });
+    const onPhase = vi.fn();
+
+    const settled = { success: false, skipped: true, error: "awaiting-confirmation" };
+    await expect(
+      queue.processJob("job-1", { transactionSender: sender, explicit: true, onPhase })
+    ).resolves.toEqual(settled);
+    expect(stagesSeen(deps)).toEqual(["wallet", "confirming", "safe-signers", null]);
+    expect(onPhase).toHaveBeenLastCalledWith({ stage: "safe-signers" });
+    expect(sendCheckpointOf(store.jobs.get("job-1")!)).toMatchObject({
+      transactionHash: SAFE_TX,
+      awaiting: "safe-signers",
+    });
+
+    // The queue settles it as before: from its record, without asking the wallet again.
+    await expect(
+      queue.processJob("job-1", { transactionSender: sender, explicit: true })
+    ).resolves.toEqual(settled);
+    expect(sendContractCall).toHaveBeenCalledOnce();
   });
 
   it("records a send whose wallet batch outlasted its status wait, as it records a receipt", async () => {

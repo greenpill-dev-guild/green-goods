@@ -945,6 +945,19 @@ describe("hooks/work/useWorks", () => {
         expect(stateOf(job).submissionState).toBe("awaiting-confirmation");
         expect(stateOf(job).blockedReason).toBeUndefined();
       });
+
+      // The row says the Safe's signers from the send's record, after the send ended (PRD-1564).
+      it("carries a Safe's proposal on record to the row as waiting for the Safe's signers", () => {
+        const hash = `0x${"5a".repeat(32)}` as const;
+        const proposed = { ...uploads, transactionHash: hash, awaiting: "safe-signers" as const };
+        expect(stateOf(queuedJob({}, proposed))).toMatchObject({
+          submissionState: "awaiting-confirmation",
+          awaiting: "safe-signers",
+        });
+        expect(stateOf(queuedJob({}, { ...uploads, transactionHash: hash }))).not.toHaveProperty(
+          "awaiting"
+        );
+      });
     });
 
     it("serializes details and tags into metadata JSON", () => {
