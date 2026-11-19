@@ -343,6 +343,13 @@ afterEach(() => {
   onlineManager.setOnline(true);
 });
 
+/** The callbacks a tracked act forwards to its send: the line's broadcast, a Safe's answer, and Cancel (PRD-1551). */
+const ACT_SEND = {
+  onBroadcast: expect.any(Function),
+  onAwaiting: expect.any(Function),
+  signal: expect.any(AbortSignal),
+};
+
 describe("usePoolConsoleController", () => {
   it("projects the seeded reads and filters pending creates to the active pool", async () => {
     const queryClient = testQueryClient();
@@ -626,7 +633,7 @@ describe("usePoolConsoleController", () => {
     expect(mocks.poolMutate.mock.calls.map(([input]) => input)).toEqual([
       { action: "pausePool", poolId: POOL_ID, reason: "Maintenance", gardenAddress: GARDEN },
       // Resume follows its own send, so the status card can say where it stands.
-      { action: "resumePool", poolId: POOL_ID, send: { onBroadcast: expect.any(Function) } },
+      { action: "resumePool", poolId: POOL_ID, send: ACT_SEND },
       { action: "closePool", poolId: POOL_ID },
       { action: "compostPool", poolId: POOL_ID },
       { action: "reopenPool", poolId: POOL_ID, toOpen: false },
@@ -646,7 +653,7 @@ describe("usePoolConsoleController", () => {
         action: "acceptClaim",
         commitmentId: 31n,
         claimant: CLAIMANT,
-        send: { onBroadcast: expect.any(Function) },
+        send: ACT_SEND,
       },
       {
         action: "declineClaim",
@@ -683,7 +690,7 @@ describe("usePoolConsoleController", () => {
         commitmentId: COMMITMENT.commitmentId,
         buyer: CLAIMANT,
         expectedClaimHash: ready.claimHash,
-        send: { onBroadcast: expect.any(Function) },
+        send: ACT_SEND,
       },
     ]);
     // It is the ask's decision, on the same line Approve uses, so its row keeps the outcome.
