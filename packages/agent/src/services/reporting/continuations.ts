@@ -77,15 +77,17 @@ export function channelLabel(providerRealm: string): string {
 }
 
 /**
- * Links to the pages where a report is signed. When one expires, a job checks whether the report
- * still waits for that signature and tells the chat (signing-links.ts).
+ * Links to the pages where a report or a steward's decision is signed. When one expires, a job
+ * checks whether it still waits for that signature and tells the chat (signing-links.ts).
  */
 const WATCHED_PURPOSES: ReadonlySet<ReportingPurpose> = new Set([
   "publish_work",
   "grant_reporting",
+  "review_decision",
+  "grant_review",
 ]);
 
-/** Checks on a report signing link at `at`: when it expires, or when a page opened from it closes. */
+/** Checks on a signing link at `at`: when it expires, or when a page opened from it closes. */
 export function watchLinkExpiry(core: ReportingCore, requestId: string, at: number): void {
   enqueueJob(core, {
     kind: "watch_signing_link",

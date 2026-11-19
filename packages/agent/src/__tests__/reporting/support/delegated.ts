@@ -15,6 +15,8 @@ export class FakeDelegatedSender implements DelegatedSender {
   submitted = 0;
   failSigning = false;
   loseSubmitResponse = false;
+  /** The bundler answers that it did not accept the operation, and nothing reaches the chain. */
+  refuseSubmit = false;
 
   constructor(private readonly chain: FakeChain) {}
 
@@ -50,6 +52,8 @@ export class FakeDelegatedSender implements DelegatedSender {
   async submit(signedOperation: string) {
     const op = JSON.parse(signedOperation) as { hash: Hex; account: string; to: string; data: Hex };
     this.submitted += 1;
+    if (this.refuseSubmit)
+      return { accepted: false, retryable: false, errorCode: "bundler_refused" };
     if (!this.chain.userOperations.has(op.hash)) {
       this.chain.submitUserOperation({
         account: op.account,

@@ -12,6 +12,7 @@ import {
 import {
   ATTESTATION_PENDING,
   announceConfirmed,
+  announcePublishedChecking,
   announceStillConfirming,
   foundAfterStop,
   recordMined,
@@ -319,9 +320,10 @@ export async function reconcileOperation(
           { kind: "operation", id: current.id },
           { reason: resolution.reason }
         );
-        if (resolution.reason === "multiple_matches")
+        if (resolution.reason === "multiple_matches") {
           foundAfterStop(core, current, "multiple_matches");
-        else announceStillConfirming(core, current, job);
+          announcePublishedChecking(core, current);
+        } else announceStillConfirming(core, current, job);
         return {
           status: "retry",
           errorCode: resolution.reason,

@@ -352,11 +352,12 @@ function applyTurn(
 function routeCommand(
   deps: CoordinatorDeps,
   writer: TurnWriter,
-  plan: Extract<TurnPlan, { kind: "command" }>,
+  asked: Extract<TurnPlan, { kind: "command" }>,
   external: TurnExternal
 ): void {
-  const { command } = plan;
   const { review } = writer.ctx;
+  const plan = { ...asked, command: linkCommand(writer, asked.command) };
+  const { command } = plan;
   if (command.kind === "stop" || command.kind === "delete")
     return withdrawProcessing(writer, command.kind);
   if (command.kind === "pair") return handlePairing(writer, command.code, external);
@@ -373,6 +374,12 @@ function routeCommand(
   const owned = deps.commands?.[command.kind];
   if (owned) return owned(writer, plan);
   handleReportCommand(writer, command, external);
+}
+
+/** A new link is RETRY's fresh signing link once an account is linked, and CONNECT's link before. */
+function linkCommand(writer: TurnWriter, command: ChatCommand): ChatCommand {
+  if (command.kind !== "newLink") return command;
+  return writer.ctx.account ? { kind: "retry" } : { kind: "connect", account: null };
 }
 
 /** START welcomes, and offers to link an account, only while nothing else is under way. */

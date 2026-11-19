@@ -1,6 +1,6 @@
 import type { PublicationEnvelope } from "@green-goods/shared/modules/agent-reporting";
 import type { Hex } from "viem";
-import { latestAttempt } from "./attempts";
+import { type AttemptRecord, latestAttempt } from "./attempts";
 import type { ReportingCopyKey } from "./copy";
 import type { ClaimedJob } from "./jobs";
 import { participantWriter } from "./notify";
@@ -178,11 +178,21 @@ export function stopChecking(core: ReportingCore, operationId: string, reason: s
 const STILL_CONFIRMING_AFTER_MS = 120_000;
 
 /**
- * Says once per attempt, two minutes into its check, that a send is still confirming. Only a send
- * the chat has said nothing about since it went out gets this: one the browser reported as sent,
- * or one the Agent sent under a permission. A check that began with "I can't tell yet whether it
- * was sent" has already said it is checking and that it will report back. It never says the send
- * failed: nothing here knows that while the check is running.
+ * Whether the chat has said nothing about this attempt since it went out: one the browser reported
+ * as sent, or one the Agent sent under a permission, whether or not the bundler accepted it. A
+ * bundler that refuses an operation does not prove it never reached the chain, so the check runs
+ * either way. A browser that reported an uncertain send, or never reported at all, has already
+ * heard that the chain is being checked and that it will hear back.
+ */
+function sentSilently(attempt: AttemptRecord | null): boolean {
+  if (attempt?.state === "broadcast") return true;
+  return attempt?.state === "uncertain" && attempt.mode === "delegated";
+}
+
+/**
+ * Says once per attempt, two minutes into its check, that a send is still confirming, if the chat
+ * has said nothing about it since it went out. It never says the send failed: nothing here knows
+ * that while the check is running.
  */
 export function announceStillConfirming(
   core: ReportingCore,
@@ -191,8 +201,7 @@ export function announceStillConfirming(
 ): void {
   // On the check's last pass the stop speaks instead; both at once would contradict each other.
   if (job.attempts >= job.maxAttempts) return;
-  const attempt = latestAttempt(core, operation.id);
-  if (attempt?.state !== "broadcast" || attempt.reasonCode === "callback_missing") return;
+  if (!sentSilently(latestAttempt(core, operation.id))) return;
   // Once the chat has said the transaction is confirmed, "still being confirmed" would undercut it.
   if (minedTransaction(core, operation)) return;
   const started = core.db
@@ -206,6 +215,21 @@ export function announceStillConfirming(
     conversationId: subject.conversationId,
     dedupePrefix: `confirming:${operation.id}:${operation.attemptVersion}`,
   })?.say(subject.kind === "review" ? "review.stillConfirming" : "publish.stillConfirming");
+}
+
+/**
+ * Two attestations match the frozen payload, so the report or decision is on chain, and an
+ * operator settles which one stands. The chat hears that once per operation, in place of the
+ * link it would otherwise get, so its author is not left waiting on a check that stays parked.
+ */
+export function announcePublishedChecking(core: ReportingCore, operation: OperationRecord): void {
+  const subject = operationSubject(core, operation);
+  if (!subject) return;
+  participantWriter(core, {
+    participantId: subject.participantId,
+    conversationId: subject.conversationId,
+    dedupePrefix: `matches:${operation.id}`,
+  })?.say(subject.kind === "review" ? "review.recordedChecking" : "publish.publishedChecking");
 }
 
 /**
@@ -229,8 +253,8 @@ export function foundAfterStop(
 
 /**
  * What to answer once the chain check for the current attempt at a report or a decision has
- * stopped, so replies say that rather than that it is being published or recorded; null while the
- * check runs or after it found its answer.
+ * stopped, or found it twice and waits on an operator, so replies say that rather than that it is
+ * being published or recorded; null while the check runs or after it found its answer.
  */
 export function chainCheckStopped(
   core: ReportingCore,
@@ -238,6 +262,9 @@ export function chainCheckStopped(
 ): ReportingCopyKey | null {
   const operation = operationForSubject(core, subject);
   if (operation?.state !== "reconciling") return null;
+  // Two matching attestations: it is on chain, and the check waits on an operator, not the chain.
+  if (operation.failureCode === "multiple_matches")
+    return "draftId" in subject ? "publish.publishedChecking" : "review.recordedChecking";
   const reason = attemptStopReason(core, operation);
   return reason === null ? null : stopReply("draftId" in subject ? "draft" : "review", reason);
 }

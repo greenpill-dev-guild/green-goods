@@ -11,8 +11,10 @@ import { chainCheckStopped } from "../check-notices";
 import { invalidateConfirmation, recordConfirmation } from "../confirmations";
 import type { ReportingCopyKey } from "../copy";
 import { enqueueJob } from "../jobs";
+import { operationForSubject } from "../operations";
 import { closeConversationPrompt, resolvePrompt } from "../prompts";
 import { commitReview, type ReviewRecord, reviewState } from "../reviews";
+import { reviewLinkLapsed, sendReviewSigningLink } from "../signing-links";
 import { accountLink } from "./account-link";
 import type { ChatCommand } from "./commands";
 import type { TurnPlan } from "./context";
@@ -171,16 +173,21 @@ export function handleReviewCommand(
       else nextReviewStep(writer, review, account.address);
       return true;
     }
+    // A confirmed decision whose signing link and pages have all closed gets a fresh link.
+    case "retry":
+      return resendReviewSigning(writer, review);
     // A decision the steward is still answering comes first, whether or not its question is
     // showing: STOP closes the question and leaves the decision open. NEW says so, and STATUS
     // shows the question it waits on. A question no longer showing is put again, so the next
     // story goes to the review and not to a report beside it.
     case "new":
     case "status": {
-      // STATUS for a decision whose chain check stopped says so, not that no report is open.
+      // STATUS for a decision whose chain check stopped, or whose signing link expired unused,
+      // says so, not that no report is open.
       const stopped =
         command.kind === "status"
-          ? chainCheckStopped(writer.core, { reviewIntentId: review.id })
+          ? (chainCheckStopped(writer.core, { reviewIntentId: review.id }) ??
+            (reviewLinkLapsed(writer.core, review) ? "review.linkExpired" : null))
           : null;
       if (stopped) {
         writer.say(stopped);
@@ -195,6 +202,18 @@ export function handleReviewCommand(
     default:
       return false;
   }
+}
+
+/** Sends a confirmed decision's signing link again. False when it is not waiting on one. */
+function resendReviewSigning(writer: TurnWriter, review: ReviewRecord): boolean {
+  const account = writer.ctx.account;
+  if (!account || account.id !== review.stewardAccountId) return false;
+  if (reviewState(review) !== "awaitingSignature") return false;
+  const operation = operationForSubject(writer.core, { reviewIntentId: review.id });
+  return (
+    operation?.state === "prepared" &&
+    sendReviewSigningLink(writer.core, writer, review, operation, account)
+  );
 }
 
 function confirmReview(

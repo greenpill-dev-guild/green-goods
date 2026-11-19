@@ -7,44 +7,59 @@ import type { ClaimedJob } from "./jobs";
 import { conversationRealm, participantWriter } from "./notify";
 import type { OperationRecord } from "./operations";
 import { openPrompt } from "./prompts";
-import { accountById, participantEpoch } from "./participants";
+import { type AccountBinding, accountById, participantEpoch } from "./participants";
+import { loadReview, type ReviewRecord, reviewState } from "./reviews";
 import type { ReportingCore } from "./runtime";
 import type { JobOutcome } from "./worker";
 
 /**
  * The pages where a report is signed: owner signing for this report alone, or the chat reporting
- * permission together with its first report. A link to one expires 10 minutes after it is sent,
- * and a page opened from it keeps working for up to 15 minutes more. Nothing is sent until the
- * page reserves an attempt, which moves the report out of waiting for a signature. So a report
- * still waiting once every link and page is closed was never sent: the chat says so once, and
- * RETRY sends a fresh link.
+ * permission together with its first report. A steward's decision has the same pair: owner signing
+ * for this decision alone, or the review permission together with it. A link to one expires 10
+ * minutes after it is sent, and a page opened from it keeps working for up to 15 minutes more.
+ * Nothing is sent until the page reserves an attempt, which moves the report or decision out of
+ * waiting for a signature. So one still waiting once every link and page is closed was never sent:
+ * the chat says so once, and RETRY sends a fresh link.
  */
-const SIGNING_PURPOSES = "('publish_work','grant_reporting')";
+const REPORT_SIGNING = "('publish_work','grant_reporting')";
+const REVIEW_SIGNING = "('review_decision','grant_review')";
+type SigningPurposes = typeof REPORT_SIGNING | typeof REVIEW_SIGNING;
+
+function signingPurposes(purpose: string): SigningPurposes {
+  return purpose === "review_decision" || purpose === "grant_review"
+    ? REVIEW_SIGNING
+    : REPORT_SIGNING;
+}
 
 /** The lifecycle states in which a report waits for its owner on a signing page. */
 const WAITING_FOR_SIGNATURE = new Set(["awaitingWallet", "grantChoice"]);
 
 /**
- * When the last way to sign this report from a link already sent closes: the latest open link,
- * or a page opened from any of them. An owner signing page outlives a link that has since been
- * replaced and can still sign. A permission page whose link a later answer in the chat revoked
- * cannot: its proposal is refused and its permission retired. Null when nothing is open.
+ * When the last way to sign this report or decision from a link already sent closes: the latest
+ * open link, or a page opened from any of them. An owner signing page outlives a link that has
+ * since been replaced and can still sign. A permission page whose link a later answer in the chat
+ * revoked cannot: its proposal is refused and its permission retired. Null when nothing is open.
  */
-function signingOpenUntil(core: ReportingCore, draftId: string): number | null {
+function signingOpenUntil(
+  core: ReportingCore,
+  resourceId: string,
+  purposes: SigningPurposes = REPORT_SIGNING
+): number | null {
   const row = core.db
     .query(
       `SELECT MAX(until) AS until FROM (
          SELECT expires_at AS until FROM continuation_requests
-         WHERE resource_id = $draft AND purpose IN ${SIGNING_PURPOSES} AND state = 'open'
+         WHERE resource_id = $resource AND purpose IN ${purposes} AND state = 'open'
            AND expires_at > $now
          UNION ALL
          SELECT s.expires_at FROM app_access_grants s
          JOIN continuation_requests r ON r.id = s.request_id
-         WHERE r.resource_id = $draft AND r.purpose IN ${SIGNING_PURPOSES} AND s.state = 'active'
-           AND s.expires_at > $now AND NOT (r.purpose = 'grant_reporting' AND r.state = 'revoked')
+         WHERE r.resource_id = $resource AND r.purpose IN ${purposes} AND s.state = 'active'
+           AND s.expires_at > $now
+           AND NOT (r.purpose IN ('grant_reporting','grant_review') AND r.state = 'revoked')
        )`
     )
-    .get({ draft: draftId, now: core.clock.now() }) as { until: number | null } | null;
+    .get({ resource: resourceId, now: core.clock.now() }) as { until: number | null } | null;
   return row?.until ?? null;
 }
 
@@ -53,18 +68,19 @@ export function signingLinkOpen(core: ReportingCore, draftId: string): boolean {
   return signingOpenUntil(core, draftId) !== null;
 }
 
-/** The report's most recent signing link, whatever its state. */
+/** The most recent signing link for a report or decision, whatever its state. */
 function latestSigningRequest(
   core: ReportingCore,
-  draftId: string
+  resourceId: string,
+  purposes: SigningPurposes = REPORT_SIGNING
 ): { id: string; revision: number | null } | null {
   const row = core.db
     .query(
       `SELECT id, resource_revision FROM continuation_requests
-       WHERE resource_id = $draft AND purpose IN ${SIGNING_PURPOSES}
+       WHERE resource_id = $resource AND purpose IN ${purposes}
        ORDER BY created_at DESC, rowid DESC LIMIT 1`
     )
-    .get({ draft: draftId }) as { id: string; resource_revision: number | null } | null;
+    .get({ resource: resourceId }) as { id: string; resource_revision: number | null } | null;
   return row ? { id: row.id, revision: row.resource_revision } : null;
 }
 
@@ -91,16 +107,42 @@ export function rewatchSigningLink(core: ReportingCore, draftId: string): void {
   if (latest) watchLinkExpiry(core, latest.id, core.clock.now());
 }
 
+/**
+ * Whether a steward's confirmed decision waits for a signature that no link or page can give any
+ * more. RETRY sends a fresh link, as it does for a report.
+ */
+export function reviewLinkLapsed(core: ReportingCore, review: ReviewRecord): boolean {
+  return (
+    reviewState(review) === "awaitingSignature" &&
+    signingOpenUntil(core, review.id, REVIEW_SIGNING) === null
+  );
+}
+
+type LapseReply = "publish.linkExpired" | "review.linkExpired";
+
 /** Whether the chat has already said, since this link expired, that it did (STATUS says it too). */
-function lapseAlreadyTold(core: ReportingCore, conversationId: string, expiredAt: number): boolean {
+function lapseAlreadyTold(
+  core: ReportingCore,
+  conversationId: string,
+  expiredAt: number,
+  reply: LapseReply
+): boolean {
   return (
     core.db
       .query(
         `SELECT 1 FROM delivery_outbox WHERE conversation_id = $conversation
-           AND reply_kind = 'publish.linkExpired' AND created_at >= $expiredAt LIMIT 1`
+           AND reply_kind = $reply AND created_at >= $expiredAt LIMIT 1`
       )
-      .get({ conversation: conversationId, expiredAt }) !== null
+      .get({ conversation: conversationId, expiredAt, reply }) !== null
   );
+}
+
+/** The decision a link was sent for, if it still waits for that revision to be signed. */
+function waitingReview(core: ReportingCore, reviewId: string, revision: number | null) {
+  const review = loadReview(core, reviewId);
+  return review && review.revision === revision && reviewState(review) === "awaitingSignature"
+    ? review
+    : null;
 }
 
 function waitingDraft(core: ReportingCore, draftId: string, revision: number | null) {
@@ -117,23 +159,41 @@ function waitingDraft(core: ReportingCore, draftId: string, revision: number | n
 }
 
 /**
- * Runs when a report's signing link expires. A newer link for the report is watched on its own, so
- * only the latest one speaks; a page still open from any of them moves the watch to when that page
- * closes. Once nothing is left and the report still waits for a signature, the chat hears it once.
+ * Runs when a report's or decision's signing link expires. A newer link for it is watched on its
+ * own, so only the latest one speaks; a page still open from any of them moves the watch to when
+ * that page closes. Once nothing is left and it still waits for a signature, the chat hears it once.
  */
 export function watchSigningLinkJob(core: ReportingCore, job: ClaimedJob): JobOutcome {
   return inTransaction(core.db, (): JobOutcome => {
     const request = requestById(core, job.subjectId);
-    const draftId = request?.resourceId;
-    if (!request || !draftId || latestSigningRequest(core, draftId)?.id !== request.id)
+    const resourceId = request?.resourceId;
+    if (!request || !resourceId) return { status: "done" };
+    const purposes = signingPurposes(request.purpose);
+    if (latestSigningRequest(core, resourceId, purposes)?.id !== request.id)
       return { status: "done" };
-    const until = signingOpenUntil(core, draftId);
+    const until = signingOpenUntil(core, resourceId, purposes);
     if (until !== null) {
       watchLinkExpiry(core, request.id, until);
       return { status: "done" };
     }
-    const draft = waitingDraft(core, draftId, request.resourceRevision);
-    if (!draft || lapseAlreadyTold(core, draft.conversationId, request.expiresAt))
+    if (purposes === REVIEW_SIGNING) {
+      const review = waitingReview(core, resourceId, request.resourceRevision);
+      if (
+        review &&
+        !lapseAlreadyTold(core, review.conversationId, request.expiresAt, "review.linkExpired")
+      )
+        participantWriter(core, {
+          participantId: review.participantId,
+          conversationId: review.conversationId,
+          dedupePrefix: `link-expired:${request.id}`,
+        })?.say("review.linkExpired");
+      return { status: "done" };
+    }
+    const draft = waitingDraft(core, resourceId, request.resourceRevision);
+    if (
+      !draft ||
+      lapseAlreadyTold(core, draft.conversationId, request.expiresAt, "publish.linkExpired")
+    )
       return { status: "done" };
     // A choice asked again by RETRY is what the report waits on now, as STATUS says; its answer
     // brings a new link, watched on its own.
@@ -179,6 +239,41 @@ export function sendSigningLink(
     "publish.signLink",
     { kind: out.text(account.kind === "eoa" ? "account.wallet" : "account.passkey") },
     { url, label: out.text("publish.signLabel") }
+  );
+  return true;
+}
+
+/**
+ * Sends the link to sign a confirmed decision with the steward's own account. A new link replaces
+ * the decision's previous one. False when there is nobody to send it to.
+ */
+export function sendReviewSigningLink(
+  core: ReportingCore,
+  out: ConversationWriter,
+  review: ReviewRecord,
+  operation: OperationRecord,
+  account: AccountBinding
+): boolean {
+  const binding = out.target.binding;
+  if (!binding || !operation.envelope) return false;
+  const { url } = issueContinuation(core, {
+    purpose: "review_decision",
+    participantId: review.participantId,
+    subjectId: out.target.subjectId,
+    bindingId: binding.bindingId,
+    conversationId: review.conversationId,
+    providerRealm: conversationRealm(core, review.conversationId),
+    resourceKind: "review",
+    resourceId: review.id,
+    resourceRevision: review.revision,
+    resourceDigest: operation.envelope.payloadDigest,
+    expectedAccount: account.address,
+    identityEpoch: participantEpoch(core, review.participantId),
+  });
+  out.say(
+    "review.signLink",
+    { kind: out.text(account.kind === "eoa" ? "account.wallet" : "account.passkey") },
+    { url, label: out.text("review.signLabel") }
   );
   return true;
 }

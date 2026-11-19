@@ -228,6 +228,53 @@ describe("steward review", () => {
     expect(harness.core.db.query("SELECT count(*) AS n FROM work_drafts").get()).toEqual({ n: 1 });
   });
 
+  it("says once when a decision's signing link expires unused, and RETRY sends a fresh one", async () => {
+    const LINK_EXPIRED =
+      "Your signing link expired before anything was sent, so your review wasn't recorded. Your decision is saved; reply RETRY for a new link.";
+    await publishedWork();
+    await linkedSteward();
+    const summary = await decide("Approve", "Looks right");
+    const token = /CONFIRM (\d{4})/.exec(summary[0] ?? "")?.[1];
+    await harness.say(BOLA, `CONFIRM ${token}`);
+    const expired = latestLink(harness);
+
+    harness.clock.advance(harness.core.settings.linkChallengeTtlMs);
+    await harness.drain();
+    expect(sentTexts().at(-1)).toBe(LINK_EXPIRED);
+    harness.clock.advance(60 * 60_000);
+    await harness.drain();
+    expect(sentTexts().filter((text) => text === LINK_EXPIRED)).toHaveLength(1);
+    expect(await harness.say(BOLA, "STATUS")).toEqual([LINK_EXPIRED]);
+
+    const fresh = await harness.say(BOLA, "RETRY");
+    expect(fresh[0]).toContain("Open this page to check and sign your decision with your wallet.");
+    expect(latestLink(harness)).not.toBe(expired);
+
+    // The fresh link signs the decision already confirmed, and records it.
+    const { browser, view } = await openDecisionPage();
+    const envelope = view.operation?.envelope;
+    if (!envelope) throw new Error("Expected an envelope");
+    const attempt = await reserve(browser, view, envelope);
+    expect(attempt.status).toBe(200);
+    await reportOutcome(browser, view, envelope, attempt.body.attemptId, {
+      kind: "broadcast",
+      transactionHash: harness.chain.submit({
+        attester: stewardAccount.address,
+        to: envelope.call.to,
+        data: envelope.call.data,
+      }),
+    });
+    await harness.drain();
+    expect(sentTexts().at(-1)).toBe("Your review is recorded ✅");
+    // The fresh link's own expiry comes after the send, so it says nothing.
+    const said = sentTexts().length;
+    harness.clock.advance(
+      harness.core.settings.linkChallengeTtlMs + harness.core.settings.browserSessionTtlMs
+    );
+    await harness.drain();
+    expect(sentTexts().slice(said)).not.toContain(LINK_EXPIRED);
+  });
+
   it("never offers or accepts a steward's own work", async () => {
     await publishedWork();
     harness.chain.grantRole(TAS.address, adaAccount.address, { gardener: true, operator: true });
