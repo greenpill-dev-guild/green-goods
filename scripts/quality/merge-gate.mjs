@@ -469,7 +469,7 @@ export async function evaluate(pull, headSha, { github, cwd = repoRoot, env = pr
     const extra = directive ? [`the title, body or a commit message carries ${directive}`] : [];
     // A squash copies every commit message; past the endpoint's limit some go unread, so the gate holds.
     if (!directive && commits.length >= GITHUB_COMMIT_LIMIT) {
-      decision = { state: "pending", description: `GitHub lists only ${GITHUB_COMMIT_LIMIT} commits, so later messages were not checked for a CI skip directive; squash the branch first.`, needed: decision.needed };
+      decision = { state: "pending", description: `GitHub lists only ${GITHUB_COMMIT_LIMIT} commits, so later messages were not checked for a CI skip directive; rewrite the branch to fewer commits.`, needed: decision.needed };
       extra.push(`${GITHUB_COMMIT_LIMIT} or more commits`);
     }
     return { decision, reasons: [...extra, ...reasons], markers, authors, writers };
