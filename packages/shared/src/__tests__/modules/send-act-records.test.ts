@@ -158,7 +158,7 @@ describe("recordedSendAct", () => {
   it("runs the act unrecorded when its context cannot be read", async () => {
     const send = recordedSendAct(
       (input: { token: { chainId: number } }) => ({ ...context, chainId: input.token.chainId }),
-      async () => "sent"
+      async (_input: { token: { chainId: number } }) => "sent"
     );
 
     await expect(send(undefined as never)).resolves.toBe("sent");
