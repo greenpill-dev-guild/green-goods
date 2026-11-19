@@ -193,7 +193,12 @@ describe("receipt waits in Shared", () => {
   it("each name a limit", () => {
     const files = sourceFiles(SOURCE_ROOT);
     expect(files.length).toBeGreaterThan(100);
-    const unlimited = files.flatMap((file) => unlimitedWaits(file, readFileSync(file, "utf8")));
+    // Only a file that names a wait can call one; parsing every file is too slow under load.
+    const naming = new RegExp(`\\b(${[...RECEIPT_WAITS].join("|")})\\b`);
+    const unlimited = files.flatMap((file) => {
+      const text = readFileSync(file, "utf8");
+      return naming.test(text) ? unlimitedWaits(file, text) : [];
+    });
     const withoutLine = (found: string) => found.replace(/:\d+ /, " ");
     expect(unlimited.filter((found) => !PORTS_NAMED_LIKE_A_WAIT.has(withoutLine(found)))).toEqual(
       []
