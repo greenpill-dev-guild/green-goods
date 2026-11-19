@@ -90,7 +90,7 @@ describe("toastService auto-dismiss (service-owned timers)", () => {
   });
 
   it("keeps the wallet 'confirm in wallet' (human-wait) stage persistent — no auto-dismiss mid-signature", () => {
-    walletProgressToasts.confirming();
+    walletProgressToasts.wallet();
     vi.advanceTimersByTime(120_000); // far longer than the old 20s loading window
     expect(dismissSpy).not.toHaveBeenCalledWith("wallet-submission");
   });

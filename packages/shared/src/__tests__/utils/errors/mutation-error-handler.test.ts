@@ -10,6 +10,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { WalletAnswerAbandonedError } from "../../../modules/transactions/types";
 
 // ============================================
 // Mocks — vi.hoisted ensures these are available before vi.mock hoisting
@@ -136,6 +137,14 @@ describe("createMutationErrorHandler", () => {
           context: "work upload",
         })
       );
+    });
+
+    it("shows no toast once the person stopped waiting for the wallet: the act's line says so", () => {
+      const handler = createMutationErrorHandler({ source: "pool", toastContext: "pool act" });
+
+      handler(new WalletAnswerAbandonedError());
+
+      expect(mockToastError).not.toHaveBeenCalled();
     });
 
     it("returns parsed error result", () => {

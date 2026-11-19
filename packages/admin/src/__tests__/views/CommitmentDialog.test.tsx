@@ -422,7 +422,7 @@ describe("CommitmentDialogPanel (W10)", () => {
   it("says a send kept on this device is queued, not failed", () => {
     mocks.controller = controller({
       can: can({ sendForConfirmation: true }),
-      sendPhase: { status: "queued", key: "send-for-confirmation:9", hash: null },
+      sendPhase: { status: "queued", key: "send-for-confirmation:9" },
     });
     renderPanel();
     expect(

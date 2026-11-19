@@ -11,8 +11,12 @@ import { waitForTransactionReceipt } from "viem/actions";
 export interface ReceiptWait {
   hash: Hex;
   chainId?: number;
-  /** Milliseconds to wait. Without it, the wait lasts until the receipt arrives. */
-  timeout?: number;
+  /**
+   * Milliseconds to wait; past it the wait rejects with viem's timeout error. Every wait names
+   * its limit, usually `TX_RECEIPT_TIMEOUT_MS`: viem waits with no limit at all when given 0, and
+   * a wait with none leaves the person watching a spinner that never ends (PRD-1551).
+   */
+  timeout: number;
   onReplaced?: (replacement: { reason: "cancelled" | "replaced" | "repriced" }) => void;
 }
 
@@ -27,7 +31,7 @@ export interface ReceiptWait {
  */
 export function waitForReceipt(
   config: Config,
-  { hash, chainId, timeout = 0, onReplaced }: ReceiptWait
+  { hash, chainId, timeout, onReplaced }: ReceiptWait
 ): Promise<TransactionReceipt> {
   return waitForTransactionReceipt(config.getClient({ chainId }), { hash, timeout, onReplaced });
 }

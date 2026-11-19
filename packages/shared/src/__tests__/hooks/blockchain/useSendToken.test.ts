@@ -60,6 +60,7 @@ vi.mock("../../../components/toast", () => ({
   toastService: {
     loading: vi.fn(() => "toast-id"),
     success: vi.fn(),
+    info: vi.fn(),
     dismiss: vi.fn(),
     error: vi.fn(),
   },
@@ -73,9 +74,12 @@ vi.mock("react-intl", () => ({
 
 const { useSendToken } = await import("../../../hooks/blockchain/useSendToken");
 const { toastService } = await import("../../../components/toast");
-const { TransactionReplacementError, TransactionRevertedError } = await import(
-  "../../../modules/transactions/types"
-);
+const {
+  ReceiptWaitLimitError,
+  TransactionReplacementError,
+  TransactionRevertedError,
+  WalletAnswerAbandonedError,
+} = await import("../../../modules/transactions/types");
 
 const TOKEN = {
   chainId: CHAIN,
@@ -352,7 +356,10 @@ describe("Celo send safety", () => {
     const invalidate = vi.spyOn(queryClient, "invalidateQueries");
     await result.current.mutateAsync(input);
     expect(mockClientForChain.mock.calls.every(([chain]) => chain === 42220)).toBe(true);
-    expect(mockSendContractCall).toHaveBeenCalledWith(expect.objectContaining({ chainId: 42220 }));
+    expect(mockSendContractCall).toHaveBeenCalledWith(
+      expect.objectContaining({ chainId: 42220 }),
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
+    );
     expect(mockWaitForReceipt).not.toHaveBeenCalled();
     expect(invalidate.mock.calls).toContainEqual([
       { queryKey: ["greengoods", "tokens", "celoBalance", ACCOUNT.toLowerCase(), 42220] },
@@ -474,7 +481,10 @@ describe("Celo send safety", () => {
       result.current.mutateAsync({ token, to: RECIPIENT, amount: 100n })
     ).resolves.toMatchObject({ account: ACCOUNT.toLowerCase() });
     expect(mockDelivery).not.toHaveBeenCalled();
-    expect(mockSendContractCall).toHaveBeenCalledWith(expect.objectContaining({ chainId: 42220 }));
+    expect(mockSendContractCall).toHaveBeenCalledWith(
+      expect.objectContaining({ chainId: 42220 }),
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
+    );
   });
 
   it("allows an explicit retry after rejection and does not retry automatically", async () => {
@@ -484,5 +494,79 @@ describe("Celo send safety", () => {
     expect(mockSendContractCall).toHaveBeenCalledTimes(1);
     await result.current.mutateAsync(input);
     expect(mockSendContractCall).toHaveBeenCalledTimes(2);
+  });
+
+  // PRD-1551: a wallet that has not answered, and endings that may still land.
+  it("after 20 seconds on the wallet says to open it, and Cancel ends the send stopped", async () => {
+    Object.assign(mockSender, { authMode: "wallet" });
+    try {
+      mockSendContractCall.mockImplementationOnce(
+        (_call: unknown, options: { signal: AbortSignal }) =>
+          new Promise((_resolve, reject) => {
+            options.signal.addEventListener(
+              "abort",
+              () => reject(new WalletAnswerAbandonedError()),
+              {
+                once: true,
+              }
+            );
+          })
+      );
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      const { result } = renderSendToken();
+      let sent!: Promise<unknown>;
+      act(() => {
+        sent = result.current.mutateAsync(SEND_PARAMS).catch(() => undefined);
+      });
+      await waitFor(() => expect(mockSendContractCall).toHaveBeenCalledOnce());
+      expect(result.current.notice).toBeNull();
+
+      act(() => {
+        vi.advanceTimersByTime(20_000);
+      });
+      await waitFor(() => expect(result.current.notice).toBe("wallet-slow"));
+
+      await act(async () => {
+        result.current.cancelWalletWait();
+        await sent;
+      });
+      await waitFor(() => expect(result.current.notice).toBe("stopped"));
+      expect(toastService.success).not.toHaveBeenCalled();
+    } finally {
+      delete (mockSender as { authMode?: string }).authMode;
+    }
+  });
+
+  it.each([
+    [
+      "still confirming when its receipt outlasts the limit",
+      () => mockSendContractCall.mockRejectedValueOnce(new ReceiptWaitLimitError(120_000)),
+      "still-confirming",
+    ],
+    [
+      "waiting for a Safe's signers, told so rather than sent",
+      () =>
+        mockSendContractCall.mockResolvedValueOnce({
+          hash: "0xhash",
+          sponsored: false,
+          confirmation: "pending",
+          awaiting: "safe-signers",
+        }),
+      "safe-signers",
+    ],
+  ])("ends a send %s, never as failed", async (_case, answer, notice) => {
+    answer();
+    const { result } = renderSendToken();
+    await act(async () => {
+      await result.current.mutateAsync(SEND_PARAMS).catch(() => undefined);
+    });
+
+    await waitFor(() => expect(result.current.notice).toBe(notice));
+    expect(toastService.success).not.toHaveBeenCalled();
+    if (notice === "safe-signers")
+      expect(toastService.info).toHaveBeenCalledWith({
+        title: "app.sendStage.safeSigners",
+        message: "app.sendStage.safeSigners.detail",
+      });
   });
 });

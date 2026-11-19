@@ -24,6 +24,7 @@ import {
 } from "@wagmi/core";
 import type { Hex } from "viem";
 import type { Address } from "../../types/domain";
+import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { type EstimateTransactionGas, walletGasLimit } from "./gas-headroom";
 import { waitForReceipt } from "./receipt-wait";
 import { logger } from "../app/logger";
@@ -59,7 +60,7 @@ export interface EmbeddedSenderDeps {
       hash: Hex;
       chainId?: number;
       /** Milliseconds; rejects with viem's timeout error when it passes. */
-      timeout?: number;
+      timeout: number;
       onReplaced?: (replacement: { reason: "cancelled" | "replaced" | "repriced" }) => void;
     }
   ) => Promise<{ status: string; transactionHash?: Hex }>;
@@ -193,20 +194,22 @@ export class EmbeddedSender implements TransactionSender {
     await options.onBroadcastReference?.({ kind: "transaction", hash: hash as `0x${string}` });
     await options.onBroadcast?.(hash as `0x${string}`);
 
-    const limitMs = options.receiptWaitLimitMs;
+    // Within the send's limit or else the sender's own: past it the transaction
+    // is out and may still land, so it is never a failure.
+    const limitMs = options.receiptWaitLimitMs || TX_RECEIPT_TIMEOUT_MS;
     let invalidReplacement: "cancelled" | "replaced" | undefined;
     let receipt: Awaited<ReturnType<NonNullable<EmbeddedSenderDeps["waitForTransactionReceipt"]>>>;
     try {
       receipt = await this.deps.waitForTransactionReceipt!(this.config, {
         hash,
         chainId,
-        ...(limitMs ? { timeout: limitMs } : {}),
+        timeout: limitMs,
         onReplaced: ({ reason }) => {
           if (reason !== "repriced") invalidReplacement = reason;
         },
       });
     } catch (error) {
-      throw asReceiptWaitLimit(error, limitMs);
+      throw asReceiptWaitLimit(error, limitMs, hash);
     }
     if (invalidReplacement) throw new TransactionReplacementError(invalidReplacement);
     if (receipt.status === "reverted") {

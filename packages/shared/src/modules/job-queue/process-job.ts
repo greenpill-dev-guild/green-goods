@@ -1,4 +1,4 @@
-import { BundleIncompleteError } from "../transactions/batch-types";
+import { BatchConfirmationPendingError, BundleIncompleteError } from "../transactions/batch-types";
 import { withSendStageReports } from "../transactions/send-stage";
 import { ReceiptWaitLimitError, type TransactionSender } from "../transactions/types";
 import {
@@ -29,7 +29,6 @@ import {
   createOfflineTxHash,
   hasRecordedSend,
   isWaitingReprobeThrottled,
-  recordsSends,
   sendsOnReopen,
 } from "./queue-policy";
 import { findTakeUpOf, TAKE_UP_PENDING } from "./take-up-hold";
@@ -148,6 +147,16 @@ function recordReceiptWaitLimit(
   });
 }
 
+/**
+ * The limit a send's wait ran out of, if that is how it ended: a single send's receipt, or the
+ * status of the wallet batch it rode in (PRD-1551). Either way it went out and may still land.
+ */
+function receiptWaitLimitOf(error: unknown): number | undefined {
+  if (error instanceof ReceiptWaitLimitError) return error.limitMs;
+  if (error instanceof BatchConfirmationPendingError) return error.execution.waitLimitMs;
+  return undefined;
+}
+
 export function createJobProcessor(deps: ProcessJobDependencies) {
   async function processJob(
     jobId: string,
@@ -243,9 +252,9 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
         await context.assertOwnership?.();
         await sender.assertOwnership?.(address, chainId);
       };
-      // A send on record that outlasts its limit is confirmed from that record later. A kind
-      // that keeps no record gets no limit from the queue: its answer is the only proof it went.
-      const receiptWaitLimitMs = recordsSends(job.kind) ? deps.config.receiptWaitLimitMs : 0;
+      // A send on record that outlasts its limit is confirmed from that record later. A
+      // creation keeps no record; its executor keeps the transaction the limit names instead.
+      const receiptWaitLimitMs = deps.config.receiptWaitLimitMs;
       guardedSender.sendContractCall = async (call, options = {}) => {
         try {
           return await sender.sendContractCall(call, {
@@ -253,7 +262,7 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
               stageReported = true;
               reportStage(stage);
             }),
-            ...(receiptWaitLimitMs ? { receiptWaitLimitMs } : {}),
+            receiptWaitLimitMs,
             assertOwnership: async () => {
               await context.assertOwnership?.();
               await sender.assertOwnership?.(job.userAddress, chainId);
@@ -261,8 +270,8 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
             },
           });
         } catch (error) {
-          if (error instanceof ReceiptWaitLimitError)
-            recordReceiptWaitLimit(jobId, job, error.limitMs, context, sender, deps);
+          const limitMs = receiptWaitLimitOf(error);
+          if (limitMs) recordReceiptWaitLimit(jobId, job, limitMs, context, sender, deps);
           throw error;
         }
       };

@@ -125,6 +125,15 @@ describe("the visit's rows", () => {
     expect(failed).toEqual({ status: "failed" });
     expect(isStillWaiting(failed)).toBe(true);
     expect(isStillWaiting({ status: "not-chosen", at: 1 })).toBe(false);
+
+    // An approval that may still land holds the ask; one the steward stopped waiting for does not.
+    for (const status of ["still-confirming", "safe-signers"] as const)
+      expect(waitingRowState(entry!, { ...none, live, phase: { status, key } })).toEqual({
+        status: "confirming",
+      });
+    expect(
+      waitingRowState(entry!, { ...none, live, phase: { status: "stopped", key } })
+    ).toMatchObject({ status: "waiting" });
   });
 });
 

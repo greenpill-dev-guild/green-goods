@@ -19,7 +19,7 @@ import {
   type DeferredWorkIdentityResolution,
   resolveDeferredWorkIdentity,
 } from "../commitment-pooling/work-identity";
-import type { TransactionSender } from "../transactions/types";
+import { ReceiptWaitLimitError, type TransactionSender } from "../transactions/types";
 import type { StrandedCommitmentLookup } from "../work/stranded-intent";
 import {
   AwaitingWorkConfirmation,
@@ -282,7 +282,17 @@ export async function executeCommitmentQueueJob(
           args: built.args,
           chainId: targetChain,
         };
-        if (!recordsSends(job.kind)) return (await sender.sendContractCall(call)).hash;
+        // A creation keeps the transaction it sent rather than a send record. One whose receipt
+        // outlasted the queue's limit went out all the same: kept as submitted, the next pass
+        // waits for the chain to show it instead of sending it again.
+        if (!recordsSends(job.kind)) {
+          try {
+            return (await sender.sendContractCall(call)).hash;
+          } catch (error) {
+            if (error instanceof ReceiptWaitLimitError && error.hash) return error.hash;
+            throw error;
+          }
+        }
         // A wallet estimates inside its own send, after the intent is recorded;
         // asking the chain first keeps a refusal a refusal. A send riding with its
         // proof could only revert alone (`EvidenceRequired`); its request is

@@ -61,20 +61,20 @@ describe("actPhaseReducer", () => {
       case: "a job-queue send kept on this device ends queued, not failed",
       from: signing,
       event: { type: "queued", key: "a" },
-      to: { status: "queued", key: "a", hash: null },
+      to: { status: "queued", key: "a" },
     },
     {
-      // Broadcast, then kept: it went out and is still confirming (PRD-1552).
-      case: "a send kept after its broadcast keeps its hash",
+      // Broadcast, then kept: it went out, so it is still confirming (PRD-1552).
+      case: "a send the queue kept after its broadcast is still confirming",
       from: confirming,
       event: { type: "queued", key: "a" },
-      to: { status: "queued", key: "a", hash: HASH },
+      to: { status: "still-confirming", key: "a" },
     },
     {
       case: "a queued line stays queued",
-      from: { status: "queued", key: "a", hash: null },
+      from: { status: "queued", key: "a" },
       event: { type: "confirmed", key: "a" },
-      to: { status: "queued", key: "a", hash: null },
+      to: { status: "queued", key: "a" },
     },
     {
       case: "a newer act replaces a running one",
@@ -105,6 +105,49 @@ describe("actPhaseReducer", () => {
       from: failed,
       event: { type: "confirmed", key: "a" },
       to: failed,
+    },
+    // PRD-1551: a slow wallet, Cancel, and the endings that may still land.
+    {
+      case: "a wallet that has not answered for a while turns the act slow",
+      from: signing,
+      event: { type: "wallet-slow", key: "a" },
+      to: { status: "signing", key: "a", slow: true },
+    },
+    {
+      case: "only an act still in the wallet turns slow",
+      from: confirming,
+      event: { type: "wallet-slow", key: "a" },
+      to: confirming,
+    },
+    {
+      case: "stopping the wait for the wallet ends it stopped",
+      from: { status: "signing", key: "a", slow: true },
+      event: { type: "stopped", key: "a" },
+      to: { status: "stopped", key: "a" },
+    },
+    {
+      case: "a send on the chain cannot be stopped",
+      from: confirming,
+      event: { type: "stopped", key: "a" },
+      to: confirming,
+    },
+    {
+      case: "a receipt past its limit leaves it still confirming, not failed",
+      from: confirming,
+      event: { type: "still-confirming", key: "a" },
+      to: { status: "still-confirming", key: "a" },
+    },
+    {
+      case: "a Safe proposal waits for its signers",
+      from: confirming,
+      event: { type: "safe-signers", key: "a" },
+      to: { status: "safe-signers", key: "a" },
+    },
+    {
+      case: "a Safe proposal never reads as landed",
+      from: { status: "safe-signers", key: "a" },
+      event: { type: "confirmed", key: "a" },
+      to: { status: "safe-signers", key: "a" },
     },
   ])("$case", ({ from, event, to }) => {
     expect(actPhaseReducer(from, event)).toEqual(to);

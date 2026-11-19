@@ -136,7 +136,10 @@ export type CommitmentMutationInput = CommitmentMutationCall | CommitmentReasone
  * sent without them runs exactly as before.
  */
 export type CommitmentMutationVariables = CommitmentMutationInput & {
-  send?: Pick<TransactionSendOptions, "onBeforeBroadcast" | "onBroadcast">;
+  send?: Pick<
+    TransactionSendOptions,
+    "onBeforeBroadcast" | "onBroadcast" | "onAwaiting" | "signal"
+  >;
 };
 
 /**

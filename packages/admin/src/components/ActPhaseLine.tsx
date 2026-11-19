@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import type { TxActPhase } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import { SEND_STAGE_WORDS } from "@green-goods/shared/modules/transactions/send-stage";
 import { cn } from "@green-goods/shared/utils/styles/cn";
@@ -32,18 +33,26 @@ export function actPhaseText(
     case "idle":
       return null;
     case "signing":
-      return formatMessage(SEND_STAGE_WORDS.wallet.label);
+      // Past 20 seconds it says to open the wallet (PRD-1551).
+      return formatMessage(
+        phase.slow ? SEND_STAGE_WORDS.wallet.detail : SEND_STAGE_WORDS.wallet.label
+      );
     case "confirming":
       return formatMessage(SEND_STAGE_WORDS.confirming.label);
     case "confirmed":
       return confirmed;
     case "queued":
-      // Kept on this device after its broadcast: it went out and its receipt has not come.
-      if (phase.hash) return formatMessage(SEND_STAGE_WORDS["still-confirming"].detail);
       return formatMessage({
         id: "app.admin.actPhase.queued",
         defaultMessage: "Queued on this device. Check its status before trying again.",
       });
+    // Three endings that may still land, so never read as failed (PRD-1551).
+    case "still-confirming":
+      return formatMessage(SEND_STAGE_WORDS["still-confirming"].detail);
+    case "safe-signers":
+      return formatMessage(SEND_STAGE_WORDS["safe-signers"].label);
+    case "stopped":
+      return formatMessage(SEND_STAGE_WORDS.wallet.stopped);
     default:
       return formatMessage({
         id: "app.admin.actPhase.failed",
@@ -56,13 +65,15 @@ export function actPhaseText(
  * The one line a single-signature act shows on the row it started from, so a
  * steward never watches a greyed-out button in silence: waiting on the wallet,
  * waiting on the chain, done, left queued on this device, or failed with
- * nothing changed.
+ * nothing changed. Waiting on the wallet past 20 seconds, it says to open the
+ * wallet and offers Cancel, which stops this wait for the wallet's answer.
  */
 export function ActPhaseLine({ phase, confirmed, reason, className }: ActPhaseLineProps) {
   const intl = useIntl();
   const saysReason = Boolean(reason) && phase.status !== "idle";
   const line = saysReason ? (reason as string) : actPhaseText(intl, { phase, confirmed });
   if (line === null) return null;
+  const cancel = !saysReason && phase.status === "signing" && phase.slow ? phase.cancel : undefined;
   return (
     <p
       role="status"
@@ -71,10 +82,16 @@ export function ActPhaseLine({ phase, confirmed, reason, className }: ActPhaseLi
       className={cn(
         "type-meta",
         phase.status === "failed" && !saysReason ? "text-error-dark" : "text-text-soft",
+        cancel && "flex flex-wrap items-center gap-x-2 gap-y-1",
         className
       )}
     >
-      {line}
+      {cancel ? <span>{line}</span> : line}
+      {cancel ? (
+        <Button type="button" emphasis="tertiary" size="compact" onClick={cancel}>
+          {intl.formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
+        </Button>
+      ) : null}
     </p>
   );
 }

@@ -71,11 +71,11 @@ export function PoolStatusCard({
     defaultMessage: "Needs a connection. Pool changes are sent right away, not queued.",
   });
   const actDisabled = offline || isActing;
-  // Resume stays closed from the wallet until the pool reads open again.
+  // Resume stays closed from the wallet until the pool reads open again, and while a resume
+  // still confirming or waiting on a Safe's signers may land.
+  const { status: resumeStatus } = pool.resumePhase;
   const resumeHeld =
-    pool.resumePhase.status === "signing" ||
-    pool.resumePhase.status === "confirming" ||
-    pool.resumePhase.status === "confirmed";
+    resumeStatus !== "idle" && resumeStatus !== "stopped" && resumeStatus !== "failed";
 
   return (
     <AdminCard variant="elevated" data-component="PoolStatusCard" className="space-y-4">

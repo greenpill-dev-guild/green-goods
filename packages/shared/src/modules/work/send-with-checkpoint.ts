@@ -60,6 +60,11 @@ export interface CheckpointedSend {
   assertOwnership?: () => void | Promise<void>;
   /** Revalidate action eligibility after a prompt, before the send intent can be recorded. */
   beforeBroadcast?: () => Promise<void>;
+  /**
+   * How long the sender waits for the receipt (`TransactionSendOptions.receiptWaitLimitMs`).
+   * Past it the send is `may-have-sent`, its error a `ReceiptWaitLimitError`.
+   */
+  receiptWaitLimitMs?: number;
   now?: () => number;
 }
 
@@ -81,6 +86,7 @@ export async function sendWithCheckpoint({
   headBeforeSend,
   assertOwnership,
   beforeBroadcast,
+  receiptWaitLimitMs,
   now = Date.now,
 }: CheckpointedSend): Promise<CheckpointedSendResult> {
   let intentAttempted = false;
@@ -129,6 +135,7 @@ export async function sendWithCheckpoint({
   try {
     const result = await sender.sendContractCall(call, {
       ...(assertOwnership ? { assertOwnership } : {}),
+      ...(receiptWaitLimitMs ? { receiptWaitLimitMs } : {}),
       onBeforeBroadcast: async (reference) => {
         await assertOwnership?.();
         await beforeBroadcast?.();

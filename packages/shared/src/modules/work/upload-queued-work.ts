@@ -33,7 +33,11 @@ import { takeUpOf } from "../job-queue/take-up-hold";
 import { holdingSends } from "../job-queue/send-guards";
 import type { saveUnderClaim, WorkClaim } from "../job-queue/work-claims";
 import { reportingSendStages } from "../transactions/send-stage";
-import type { ContractCall, TransactionSender } from "../transactions/types";
+import {
+  type ContractCall,
+  ReceiptWaitLimitError,
+  type TransactionSender,
+} from "../transactions/types";
 import { sendWithCheckpoint } from "./send-with-checkpoint";
 import { SimulationRejected } from "./simulation-rejected";
 import { isUploadJob, queuedUploadStatus, type UploadPreparation } from "./upload-state";
@@ -82,6 +86,13 @@ export interface UploadQueuedWorkPorts {
   readChainHead?(chainId: number): Promise<{ number: bigint; timestamp: number }>;
   /** Tells every screen that shows this job where its send stands; null once the send stopped. */
   reportStage?(job: Job, stage: JobSendPhase["stage"] | null): void;
+  /** How long a call waits for its receipt; past it the call is sent and still confirming. */
+  receiptWaitLimitMs: number;
+  /** The queue's record of a receipt that outlasted its limit, once per kind the call carried. */
+  receiptWaitLimitReached(
+    kind: string,
+    context: { limitMs: number; explicit: boolean; authMode: string }
+  ): void;
 }
 
 interface ChunkItem {
@@ -187,6 +198,27 @@ export async function uploadQueuedWork(
       logger.warn("[UploadAll] Could not keep the nonce the call's transaction used", {
         error: error instanceof Error ? error.message : String(error),
       });
+    }
+  };
+
+  /**
+   * The record of a call whose receipt outlasted its limit, as the queue keeps for one job
+   * (PRD-1551): one log line, and one event per kind the call carried, with no address or hash.
+   * The call is on record and ends as still confirming whatever happens here.
+   */
+  const recordReceiptWaitLimit = (items: ChunkItem[], limitMs: number) => {
+    const kinds = [...new Set(items.map(({ job }) => job.kind))];
+    logger.warn("[UploadAll] A send's receipt did not come within its limit", {
+      kinds,
+      items: items.length,
+      limitMs,
+    });
+    for (const kind of kinds) {
+      try {
+        ports.receiptWaitLimitReached(kind, { limitMs, explicit: true, authMode: sender.authMode });
+      } catch (error) {
+        logger.warn("[UploadAll] Could not record a receipt that outlasted its limit", { error });
+      }
     }
   };
 
@@ -306,6 +338,7 @@ export async function uploadQueuedWork(
         // carries is then timed on the chain's clock if the answer is lost.
         readChainHead: readChainHead && (() => readChainHead(chainId)),
         record: (next) => recordAll(items, next),
+        receiptWaitLimitMs: ports.receiptWaitLimitMs,
         now: ports.now,
       }).finally(() => {
         if (stageReported) reportStage(null);
@@ -316,6 +349,8 @@ export async function uploadQueuedWork(
           confirmedItems = items;
           return {};
         case "may-have-sent":
+          if (result.error instanceof ReceiptWaitLimitError)
+            recordReceiptWaitLimit(items, result.error.limitMs);
           // Its receipt did not come: keep the nonce the transaction used while
           // the network still holds it.
           await keepTransactionNonce(items);
