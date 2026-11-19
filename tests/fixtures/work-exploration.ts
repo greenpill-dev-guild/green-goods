@@ -103,7 +103,6 @@ export function explorationEnsRejection(url: string, method: string, body: strin
   }
   const reads = reverseNameReads(payload.params[0]) as number;
   if (payload.params[0].to.toLowerCase() === MULTICALL3) {
-    // Each batched read answers that the address has no reverse name.
     return {
       jsonrpc: "2.0",
       id: payload.id,

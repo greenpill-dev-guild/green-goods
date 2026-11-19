@@ -39,7 +39,6 @@ async function arrive(page: Page, link: string) {
   await act(page, "Continue").click({ timeout: FIRST_PAINT });
 }
 
-/** From the two choices: Create Account, a name, and the passkey prompt. */
 async function createAccount(page: Page, name: string) {
   await act(page, "Create Account").click();
   await expect(heading(page)).toHaveText("Create Your Account");
@@ -164,7 +163,6 @@ test("someone with an account gets back in, by its passkey and then by its name"
     expect(world.linkOpenings()).toBe(1);
   });
   await test.step("a browser that has forgotten the account opens on the two choices", async () => {
-    // The same device and passkey, in a browser that no longer knows the account.
     await page.evaluate(() => {
       localStorage.clear();
       sessionStorage.clear();

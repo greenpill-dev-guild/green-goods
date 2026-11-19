@@ -24,8 +24,6 @@ export const FORK_CONFIG = {
   },
 } as const;
 
-// TEST ACCOUNTS (Anvil Defaults)
-
 /**
  * Anvil's deterministic test accounts.
  * These are the same across every Anvil instance and are pre-funded with 10,000 ETH.

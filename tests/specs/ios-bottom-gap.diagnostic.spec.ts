@@ -1,33 +1,22 @@
 /**
- * iPhone 16 Pro Bottom Gap Diagnostic
+ * Measures the gap below the bottom nav on an iPhone 16 Pro. WebKit simulates iOS
+ * safe-area-inset-bottom; desktop Chrome does not.
  *
- * Reproduces and measures the visible gap below the bottom nav on
- * iPhone 16 Pro (issue #468 part C). Uses WebKit which properly simulates
- * iOS safe-area-inset-bottom, unlike Chrome desktop.
- *
- * Hypothesis to test: the gap is NOT extra padding — it's a height/layout
- * bug where the app's layout box doesn't extend to the full screen bottom,
- * leaving a visible dead zone.
- *
- * Run with:
- *   bun x playwright test tests/specs/ios-bottom-gap.diagnostic.spec.ts \
- *     --project=iphone-16-pro
+ * Run with: bun x playwright test --project=iphone-16-pro
  */
 import { devices, test } from "@playwright/test";
 
-// iPhone 16 Pro CSS viewport — 402 x 874, DPR 3
+// iPhone 16 Pro: the 15 Pro descriptor supplies WebKit; viewport and DPR are the 16 Pro's.
 test.use({
-  ...devices["iPhone 15 Pro"], // base WebKit device descriptor
+  ...devices["iPhone 15 Pro"],
   viewport: { width: 402, height: 874 },
   deviceScaleFactor: 3,
 });
 
 test.describe("#468 C — iPhone 16 Pro bottom gap", () => {
   test("measure layout box vs viewport on login page (public route)", async ({ page }) => {
-    // The gap is a LAYOUT problem — any fixed-bottom element on iOS PWA
-    // would show it. No auth needed; we can measure on /home/login too.
+    // The gap is a layout problem any fixed-bottom element shows, so the login page will do.
 
-    // Force display-mode: standalone BEFORE the app mounts
     await page.addInitScript(() => {
       const orig = window.matchMedia.bind(window);
       window.matchMedia = (q: string) => {
@@ -57,29 +46,25 @@ test.describe("#468 C — iPhone 16 Pro bottom gap", () => {
       const root = document.getElementById("root")!;
       const html = document.documentElement;
 
-      // Probe 1: env(safe-area-inset-bottom) via a fixed-height probe
       const probeSafe = document.createElement("div");
       probeSafe.style.cssText =
         "position:fixed;bottom:0;right:0;height:env(safe-area-inset-bottom);width:1px;background:red;";
       body.appendChild(probeSafe);
       const safeBottom = probeSafe.getBoundingClientRect().height;
 
-      // Probe 2: fixed bottom:0 element — does it reach the viewport bottom?
-      // This is the isomorphism of the AppBar's positioning (position:fixed; bottom:0)
+      // Positioned like the AppBar: position: fixed; bottom: 0.
       const probeFixedBottom = document.createElement("div");
       probeFixedBottom.style.cssText =
         "position:fixed;bottom:0;left:0;height:4px;width:100%;background:blue;";
       body.appendChild(probeFixedBottom);
       const probeFixedRect = probeFixedBottom.getBoundingClientRect();
 
-      // Probe 3: element with bottom:0 inside BODY (uses body as reference)
       const probeBodyBottom = document.createElement("div");
       probeBodyBottom.style.cssText =
         "position:absolute;bottom:0;left:0;height:4px;width:100%;background:green;";
       body.appendChild(probeBodyBottom);
       const probeBodyRect = probeBodyBottom.getBoundingClientRect();
 
-      // Probe 4: 100dvh vs 100vh vs 100svh vs 100lvh
       const unitsProbe = document.createElement("div");
       unitsProbe.style.cssText = "position:fixed;top:0;left:-100px;width:1px;visibility:hidden;";
       body.appendChild(unitsProbe);
@@ -147,7 +132,6 @@ test.describe("#468 C — iPhone 16 Pro bottom gap", () => {
     console.log(JSON.stringify(layout, null, 2));
     console.log("===========================================\n");
 
-    // Screenshot for visual confirmation
     await page.screenshot({
       path: "tests/test-results/ios-gap-login.png",
       fullPage: false,
