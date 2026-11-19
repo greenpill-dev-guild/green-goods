@@ -45,6 +45,11 @@ function keepSurfaceOnFailure(promise: Promise<unknown>): void {
   void promise.catch(() => undefined);
 }
 
+/** Closes a sheet once its act lands or may still land (PRD-1551); a failure keeps it open. */
+function closeOnceSent(promise: Promise<unknown>, close: () => void, failed?: () => void): void {
+  void promise.then(close, (error: unknown) => (mayStillLand(error) ? close() : failed?.()));
+}
+
 export function GardenCommitment() {
   const intl = useIntl();
   const { formatMessage } = intl;
@@ -176,12 +181,8 @@ export function GardenCommitment() {
     dashboardNavigation.forward(`/home/garden?${params.toString()}`);
   };
 
-  const claim = (context: ClaimContext) => {
-    void controller.acts
-      .claim(context)
-      .then(() => setContextOpen(false))
-      .catch(() => undefined);
-  };
+  const claim = (context: ClaimContext) =>
+    closeOnceSent(controller.acts.claim(context), () => setContextOpen(false));
   const runAct = () => {
     if (!act) return;
     switch (act.kind) {
@@ -437,11 +438,11 @@ export function GardenCommitment() {
         onConfirm={() => keepSurfaceOnFailure(controller.acts.confirm())}
         onNotYet={(reason) => {
           setNotYetFailed(false);
-          void controller.acts
-            .notYet(reason)
-            .then(() => setConfirmOpen(null))
-            // One that may still land is not offered again; its toast says where it stands.
-            .catch((error) => (mayStillLand(error) ? setConfirmOpen(null) : setNotYetFailed(true)));
+          closeOnceSent(
+            controller.acts.notYet(reason),
+            () => setConfirmOpen(null),
+            () => setNotYetFailed(true)
+          );
         }}
         onDone={() => setConfirmOpen(null)}
       />
@@ -457,12 +458,12 @@ export function GardenCommitment() {
         onSubmitRequirement={(requirement) =>
           openWorkSubmission(requirement.requirementIndex, requirement.actionUID)
         }
-        onConfirm={(workUID, requirementIndex, clientOperationId) => {
-          void controller.acts
-            .linkWork(workUID, requirementIndex, clientOperationId)
-            .then(() => setLinkOpen(null))
-            .catch(() => undefined);
-        }}
+        onConfirm={(workUID, requirementIndex, clientOperationId) =>
+          closeOnceSent(
+            controller.acts.linkWork(workUID, requirementIndex, clientOperationId),
+            () => setLinkOpen(null)
+          )
+        }
       />
       {service.sheets}
       <WithdrawSheet
@@ -471,12 +472,9 @@ export function GardenCommitment() {
         direction={commitment.direction === "REQUEST" ? "REQUEST" : "OFFER"}
         isPending={controller.isSending}
         pinFailed={controller.pinFailed}
-        onConfirm={(reason) => {
-          void controller.acts
-            .withdraw(reason)
-            .then(() => setWithdrawOpen(false))
-            .catch(() => undefined);
-        }}
+        onConfirm={(reason) =>
+          closeOnceSent(controller.acts.withdraw(reason), () => setWithdrawOpen(false))
+        }
       />
     </>
   );
