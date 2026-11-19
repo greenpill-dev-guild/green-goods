@@ -25,6 +25,8 @@ describe("SheetActions", () => {
     );
     expect(bar()?.firstElementChild).toHaveAttribute("data-slot", "note");
     expect(bar()?.firstElementChild).toHaveTextContent("Needs a connection.");
+    // The line changes as a send moves, so it is announced politely.
+    expect(bar()?.firstElementChild).toHaveAttribute("aria-live", "polite");
     expect(screen.getAllByRole("button").map((button) => button.textContent)).toEqual([
       "Edit Reward",
       "Edit Confirmers",

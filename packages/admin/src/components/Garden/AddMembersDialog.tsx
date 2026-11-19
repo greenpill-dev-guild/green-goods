@@ -1,4 +1,3 @@
-import { Button } from "@green-goods/shared/components/Button";
 import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
 import { useEnsAddress } from "@green-goods/shared/hooks/blockchain/useEnsAddress";
 import type { useAddMembersBatch } from "@green-goods/shared/hooks/garden/useGardenOperations";
@@ -400,36 +399,26 @@ export function AddMembersDialog({
         description={formatMessage({
           id: memberAddress ? "admin.members.roleDescription" : "admin.addMember.description",
         })}
-        actions={
-          // One row at every width, so this line appearing never moves the buttons under a finger.
-          <div className="flex w-full flex-wrap items-center justify-end gap-2">
-            <p className="mr-auto type-meta text-text-soft empty:hidden" aria-live="polite">
-              {batchCount > 0
-                ? formatMessage({ id: "admin.addMember.signatureCount" }, { count: signatureCount })
-                : null}
-            </p>
-            <Button
-              type="button"
-              emphasis="tertiary"
-              size="sm"
-              onClick={closeAndReset}
-              disabled={busy}
-            >
-              {formatMessage({ id: "admin.common.cancel", defaultMessage: "Cancel" })}
-            </Button>
-            <Button
-              size="sm"
-              type="submit"
-              form={formId}
-              loading={submitResolving || submitting}
-              disabled={
-                busy || isSettlingHold || batchCount === 0 || typedInputInvalid || resolvingEns
-              }
-            >
-              {submitLabel}
-            </Button>
-          </div>
-        }
+        actions={{
+          // How many signatures the save takes, beside the buttons that ask for them.
+          note:
+            batchCount > 0
+              ? formatMessage({ id: "admin.addMember.signatureCount" }, { count: signatureCount })
+              : undefined,
+          primary: {
+            label: submitLabel,
+            type: "submit",
+            form: formId,
+            loading: submitResolving || submitting,
+            disabled:
+              busy || isSettlingHold || batchCount === 0 || typedInputInvalid || resolvingEns,
+          },
+          secondary: {
+            label: formatMessage({ id: "admin.common.cancel", defaultMessage: "Cancel" }),
+            onClick: closeAndReset,
+            disabled: busy,
+          },
+        }}
       >
         <form id={formId} onSubmit={handleSubmit} className="space-y-4">
           {hold ? (

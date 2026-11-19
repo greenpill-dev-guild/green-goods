@@ -228,40 +228,30 @@ export function DepositModal({
       description={formatMessage({ id: "app.treasury.depositDescription" })}
       preventClose={depositMutation.isPending}
       actions={
-        primaryAddress ? (
-          <div className="flex w-full flex-wrap items-center justify-end gap-2">
-            <p className="mr-auto type-meta text-text-soft empty:hidden" aria-live="polite">
-              {plan.signatureLine}
-            </p>
-            <Button
-              type="button"
-              emphasis="tertiary"
-              size="sm"
-              onClick={onClose}
-              disabled={depositMutation.isPending}
-            >
-              {formatMessage({ id: "app.common.cancel" })}
-            </Button>
-            <Button
-              size="sm"
-              type="button"
-              onClick={onSubmit}
-              disabled={
-                !selectedVault ||
-                !primaryAddress ||
-                amountBigInt <= 0n ||
-                hasBlockingError ||
-                !decimalsReady ||
-                !vaultAcceptingDeposits ||
-                plan.isPaused ||
-                depositMutation.isPending
-              }
-              loading={depositMutation.isPending}
-            >
-              {formatMessage({ id: "app.treasury.deposit" })}
-            </Button>
-          </div>
-        ) : null
+        primaryAddress
+          ? {
+              note: plan.signatureLine || undefined,
+              primary: {
+                label: formatMessage({ id: "app.treasury.deposit" }),
+                onClick: onSubmit,
+                disabled:
+                  !selectedVault ||
+                  !primaryAddress ||
+                  amountBigInt <= 0n ||
+                  hasBlockingError ||
+                  !decimalsReady ||
+                  !vaultAcceptingDeposits ||
+                  plan.isPaused ||
+                  depositMutation.isPending,
+                loading: depositMutation.isPending,
+              },
+              secondary: {
+                label: formatMessage({ id: "app.common.cancel" }),
+                onClick: onClose,
+                disabled: depositMutation.isPending,
+              },
+            }
+          : undefined
       }
     >
       {!primaryAddress ? (

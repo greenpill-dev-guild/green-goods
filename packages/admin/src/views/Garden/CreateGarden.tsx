@@ -85,29 +85,19 @@ export default function CreateGarden() {
             }
           />
         }
-        actions={
-          <>
-            <Button
-              type="button"
-              emphasis="secondary"
-              size="sm"
-              onClick={createGarden.handleCancel}
-              disabled={createGarden.isSubmitting}
-            >
-              {intl.formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-            </Button>
-            <Button
-              type="button"
-              emphasis="primary"
-              size="sm"
-              onClick={createGarden.handleSubmit}
-              disabled={createGarden.isSubmitting}
-              loading={createGarden.isSubmitting}
-            >
-              {intl.formatMessage({ id: "admin.garden.form.deploy" })}
-            </Button>
-          </>
-        }
+        actions={{
+          primary: {
+            label: intl.formatMessage({ id: "admin.garden.form.deploy" }),
+            onClick: createGarden.handleSubmit,
+            disabled: createGarden.isSubmitting,
+            loading: createGarden.isSubmitting,
+          },
+          secondary: {
+            label: intl.formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" }),
+            onClick: createGarden.handleCancel,
+            disabled: createGarden.isSubmitting,
+          },
+        }}
       />
       <AdminConfirmDialog
         isOpen={createGarden.discardPromptOpen}

@@ -118,6 +118,14 @@ function renderAction(role: ActionRole, action: SheetAction | undefined, key: st
   );
 }
 
+/** Whether the bar has anything to draw; a host shows its footer only then. */
+export function hasSheetActions(props: SheetActionsProps | undefined): props is SheetActionsProps {
+  if (!props) return false;
+  const { primary, secondary, tertiary, note } = props;
+  const outlined = secondary !== undefined && ("label" in secondary || secondary.length > 0);
+  return Boolean(primary || outlined || tertiary || note);
+}
+
 export function SheetActions({
   primary,
   secondary,
@@ -126,9 +134,9 @@ export function SheetActions({
   layout = "stack",
   safeArea = false,
 }: SheetActionsProps) {
+  if (!hasSheetActions({ primary, secondary, tertiary, note })) return null;
   const secondaries: readonly SheetAction[] =
     secondary === undefined ? [] : "label" in secondary ? [secondary] : secondary;
-  if (!primary && secondaries.length === 0 && !tertiary && !note) return null;
 
   const outlined = secondaries.map((action, index) =>
     renderAction("secondary", action, `secondary-${index}`)
@@ -146,8 +154,10 @@ export function SheetActions({
       data-note={note ? "" : undefined}
     >
       {note ? (
-        // A div, since a note may be a progress bar as well as a line of text.
-        <div data-slot="note" className="type-meta text-text-soft">
+        // A div, since a note may be a progress bar as well as a line of text. It
+        // is a polite live region: the line changes as a send moves, or as a
+        // choice above it does.
+        <div data-slot="note" aria-live="polite" className="type-meta text-text-soft">
           {note}
         </div>
       ) : null}

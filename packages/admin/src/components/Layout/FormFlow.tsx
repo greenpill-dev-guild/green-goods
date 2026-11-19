@@ -1,3 +1,7 @@
+import {
+  SheetActions,
+  type SheetActionsProps,
+} from "@green-goods/shared/components/Dialog/SheetActions";
 import { SheetBody } from "@green-goods/shared/components/Canvas/SheetBody";
 import { SheetFooter } from "@green-goods/shared/components/Canvas/SheetFooter";
 import type { Step } from "@green-goods/shared/components/Form/StepIndicator";
@@ -19,7 +23,7 @@ export interface FormFlowProps {
    * Omitted for `bare`, where a host shell (e.g. ActionFlowShell) owns the
    * pinned footer.
    */
-  actions?: ReactNode;
+  actions?: SheetActionsProps;
   intro?: ReactNode;
   feedback?: ReactNode;
   /**
@@ -123,11 +127,11 @@ export function FormFlow({
             {sectionsBlock}
           </div>
         </SheetBody>
-        <SheetFooter>
-          <div className="flex flex-1 flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            {actions}
-          </div>
-        </SheetFooter>
+        {actions ? (
+          <SheetFooter>
+            <SheetActions {...actions} />
+          </SheetFooter>
+        ) : null}
       </>
     );
   }
@@ -150,7 +154,7 @@ export function FormFlow({
         data-region="form-flow-actions"
         className="mt-4"
       >
-        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">{actions}</div>
+        {actions ? <SheetActions {...actions} /> : null}
       </Surface>
     </div>
   );

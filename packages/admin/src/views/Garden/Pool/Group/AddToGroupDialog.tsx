@@ -1,4 +1,4 @@
-import { SheetActions } from "@green-goods/shared/components/Dialog/SheetActions";
+import type { SheetActionsProps } from "@green-goods/shared/components/Dialog/SheetActions";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import {
   type GroupToAddTo,
@@ -193,45 +193,43 @@ export function AddToGroupDialog({
       setError(formatMessage(REFUSAL[outcome], { room: offerRoom ?? 0 }));
   };
 
-  const footer = (
-    <SheetActions
-      layout="steps"
-      note={
-        <SeedFlowNote
-          testId="add-prompt-count"
-          phase={status.phase}
-          busy={status.busy}
-          mode={adding.mode}
-          count={sends}
-          reason={error}
-        />
-      }
-      primary={{
-        label: retrying
-          ? status.phase === "partial"
-            ? formatMessage(
-                { id: "hub.garden.pool.seed.tryAgainCount", defaultMessage: "Try Again ({count})" },
-                { count: sends }
-              )
-            : formatMessage({ id: "hub.garden.pool.setup.retry", defaultMessage: "Try Again" })
-          : formatMessage(
-              {
-                id: "hub.garden.pool.add.submit",
-                defaultMessage: "{count, plural, one {Add Promise} other {Add # Promises}}",
-              },
-              { count: validCount ? count : 1 }
-            ),
-        onClick: () => void add(),
-        disabled: status.busy || !validCount,
-        loading: status.busy,
-      }}
-      secondary={{
-        label: formatMessage({ id: "app.common.back", defaultMessage: "Back" }),
-        onClick: onBack,
-        disabled: status.busy || adding.locked,
-      }}
-    />
-  );
+  const footer: SheetActionsProps = {
+    layout: "steps",
+    note: (
+      <SeedFlowNote
+        testId="add-prompt-count"
+        phase={status.phase}
+        busy={status.busy}
+        mode={adding.mode}
+        count={sends}
+        reason={error}
+      />
+    ),
+    primary: {
+      label: retrying
+        ? status.phase === "partial"
+          ? formatMessage(
+              { id: "hub.garden.pool.seed.tryAgainCount", defaultMessage: "Try Again ({count})" },
+              { count: sends }
+            )
+          : formatMessage({ id: "hub.garden.pool.setup.retry", defaultMessage: "Try Again" })
+        : formatMessage(
+            {
+              id: "hub.garden.pool.add.submit",
+              defaultMessage: "{count, plural, one {Add Promise} other {Add # Promises}}",
+            },
+            { count: validCount ? count : 1 }
+          ),
+      onClick: () => void add(),
+      disabled: status.busy || !validCount,
+      loading: status.busy,
+    },
+    secondary: {
+      label: formatMessage({ id: "app.common.back", defaultMessage: "Back" }),
+      onClick: onBack,
+      disabled: status.busy || adding.locked,
+    },
+  };
 
   return (
     <AdminDialog

@@ -1,4 +1,4 @@
-import { SheetActions } from "@green-goods/shared/components/Dialog/SheetActions";
+import type { SheetActionsProps } from "@green-goods/shared/components/Dialog/SheetActions";
 import { useEditReward } from "@green-goods/shared/hooks/admin-ui/pool/useEditReward";
 import { useGoodDollarPrice } from "@green-goods/shared/hooks/blockchain/useGoodDollarPrice";
 import {
@@ -232,65 +232,61 @@ export function EditRewardDialog({
                   { requests: Math.ceil(count / PER_APPROVAL) }
                 )));
 
-  const footer =
-    status.phase === "changed" ? (
-      <SheetActions
-        primary={{
-          label: formatMessage({ id: "app.common.done", defaultMessage: "Done" }),
-          onClick: () => onChanged(available.length),
-        }}
-      />
-    ) : (
-      <SheetActions
-        note={
-          note ? (
+  const footer: SheetActionsProps =
+    status.phase === "changed"
+      ? {
+          primary: {
+            label: formatMessage({ id: "app.common.done", defaultMessage: "Done" }),
+            onClick: () => onChanged(available.length),
+          },
+        }
+      : {
+          note: note ? (
             <span role="status" data-testid="reward-prompt-count">
               {note}
             </span>
-          ) : undefined
-        }
-        primary={{
-          label: retrying
-            ? status.phase === "partial"
-              ? formatMessage(
+          ) : undefined,
+          primary: {
+            label: retrying
+              ? status.phase === "partial"
+                ? formatMessage(
+                    {
+                      id: "hub.garden.pool.seed.tryAgainCount",
+                      defaultMessage: "Try Again ({count})",
+                    },
+                    { count }
+                  )
+                : formatMessage({ id: "hub.garden.pool.setup.retry", defaultMessage: "Try Again" })
+              : formatMessage(
                   {
-                    id: "hub.garden.pool.seed.tryAgainCount",
-                    defaultMessage: "Try Again ({count})",
+                    id: "hub.garden.pool.reward.change",
+                    defaultMessage: "{count, plural, one {Change Reward} other {Change # Rewards}}",
                   },
                   { count }
-                )
-              : formatMessage({ id: "hub.garden.pool.setup.retry", defaultMessage: "Try Again" })
-            : formatMessage(
-                {
-                  id: "hub.garden.pool.reward.change",
-                  defaultMessage: "{count, plural, one {Change Reward} other {Change # Rewards}}",
-                },
-                { count }
-              ),
-          onClick: () => void change(),
-          disabled: status.busy || Boolean(blocked) || (!locked && !removing && newCents === null),
-          loading: status.busy,
-        }}
-        secondary={{
-          label: formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" }),
-          onClick: onClose,
-          disabled: status.busy,
-        }}
-        tertiary={
-          !locked && !removing
-            ? {
-                label: formatMessage({
-                  id: "hub.garden.pool.reward.remove",
-                  defaultMessage: "Remove Reward",
-                }),
-                tone: "danger",
-                onClick: () => void remove(),
-                disabled: status.busy,
-              }
-            : undefined
-        }
-      />
-    );
+                ),
+            onClick: () => void change(),
+            disabled:
+              status.busy || Boolean(blocked) || (!locked && !removing && newCents === null),
+            loading: status.busy,
+          },
+          secondary: {
+            label: formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" }),
+            onClick: onClose,
+            disabled: status.busy,
+          },
+          tertiary:
+            !locked && !removing
+              ? {
+                  label: formatMessage({
+                    id: "hub.garden.pool.reward.remove",
+                    defaultMessage: "Remove Reward",
+                  }),
+                  tone: "danger",
+                  onClick: () => void remove(),
+                  disabled: status.busy,
+                }
+              : undefined,
+        };
 
   return (
     <AdminDialog

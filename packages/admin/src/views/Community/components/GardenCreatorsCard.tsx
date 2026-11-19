@@ -177,28 +177,20 @@ function AddGardenCreatorDialog({
       preventClose={creators.isWriting}
       title={formatMessage({ id: "hub.community.gardenCreators.addDialog.title" })}
       description={formatMessage({ id: "hub.community.gardenCreators.addDialog.description" })}
-      actions={
-        <>
-          <Button
-            type="button"
-            emphasis="tertiary"
-            size="sm"
-            onClick={onClose}
-            disabled={creators.isWriting}
-          >
-            {formatMessage({ id: "app.common.cancel" })}
-          </Button>
-          <Button
-            type="submit"
-            form={formId}
-            size="sm"
-            loading={creators.isWriting}
-            disabled={busy || !address.trimmedInput}
-          >
-            {formatMessage({ id: "hub.community.gardenCreators.add" })}
-          </Button>
-        </>
-      }
+      actions={{
+        primary: {
+          label: formatMessage({ id: "hub.community.gardenCreators.add" }),
+          type: "submit",
+          form: formId,
+          loading: creators.isWriting,
+          disabled: busy || !address.trimmedInput,
+        },
+        secondary: {
+          label: formatMessage({ id: "app.common.cancel" }),
+          onClick: onClose,
+          disabled: creators.isWriting,
+        },
+      }}
     >
       <form
         id={formId}

@@ -1,5 +1,4 @@
 import { Alert, type AlertVariant } from "@green-goods/shared/components/Alert";
-import { Button } from "@green-goods/shared/components/Button";
 import {
   TxHoldFeedback,
   TxInlineFeedback,
@@ -230,60 +229,42 @@ export function CookieJarDepositModal({
       })}
       preventClose={isPending}
       actions={
-        notice ? (
-          <Button type="button" emphasis="tertiary" size="sm" onClick={onClose}>
-            {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-          </Button>
-        ) : (
-          <div className="flex w-full flex-wrap items-center justify-end gap-2">
-            <p className="mr-auto type-meta text-text-soft empty:hidden" aria-live="polite">
-              {plan.signatureLine}
-            </p>
-            {lowLimitJar ? (
-              <>
-                <Button
-                  type="button"
-                  emphasis="secondary"
-                  size="sm"
-                  loading={isPending}
-                  disabled={parsedDepositAmount <= 0n || plan.isPaused}
-                  onClick={handleDeposit}
-                >
-                  {formatMessage({ id: "app.cookieJar.depositAnyway" })}
-                </Button>
-                <Button
-                  size="sm"
-                  type="button"
-                  disabled={isPending}
-                  onClick={() => onFixLimit?.(lowLimitJar.jarAddress)}
-                >
-                  {formatMessage({ id: "app.cookieJar.fixLimitFirst" })}
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button
-                  type="button"
-                  emphasis="tertiary"
-                  size="sm"
-                  onClick={onClose}
-                  disabled={isPending}
-                >
-                  {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-                </Button>
-                <Button
-                  size="sm"
-                  type="button"
-                  loading={isPending}
-                  disabled={!selectedDepositJar || parsedDepositAmount <= 0n || plan.isPaused}
-                  onClick={handleDeposit}
-                >
-                  {formatMessage({ id: "app.cookieJar.deposit", defaultMessage: "Deposit" })}
-                </Button>
-              </>
-            )}
-          </div>
-        )
+        notice
+          ? {
+              secondary: {
+                label: formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" }),
+                onClick: onClose,
+              },
+            }
+          : lowLimitJar
+            ? {
+                note: plan.signatureLine || undefined,
+                primary: {
+                  label: formatMessage({ id: "app.cookieJar.fixLimitFirst" }),
+                  disabled: isPending,
+                  onClick: () => onFixLimit?.(lowLimitJar.jarAddress),
+                },
+                secondary: {
+                  label: formatMessage({ id: "app.cookieJar.depositAnyway" }),
+                  loading: isPending,
+                  disabled: parsedDepositAmount <= 0n || plan.isPaused,
+                  onClick: handleDeposit,
+                },
+              }
+            : {
+                note: plan.signatureLine || undefined,
+                primary: {
+                  label: formatMessage({ id: "app.cookieJar.deposit", defaultMessage: "Deposit" }),
+                  loading: isPending,
+                  disabled: !selectedDepositJar || parsedDepositAmount <= 0n || plan.isPaused,
+                  onClick: handleDeposit,
+                },
+                secondary: {
+                  label: formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" }),
+                  onClick: onClose,
+                  disabled: isPending,
+                },
+              }
       }
     >
       {notice ? (

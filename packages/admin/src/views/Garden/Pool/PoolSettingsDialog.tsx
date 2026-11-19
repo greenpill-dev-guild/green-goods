@@ -1,5 +1,5 @@
+import type { SheetActionsProps } from "@green-goods/shared/components/Dialog/SheetActions";
 import { Alert } from "@green-goods/shared/components/Alert";
-import { Button } from "@green-goods/shared/components/Button";
 import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
 import {
@@ -12,7 +12,7 @@ import {
   isRetriablePoolSetupFailure,
   type PoolSetupStep,
 } from "@green-goods/shared/modules/commitment-pooling/pool-setup";
-import { type ReactNode, useEffect, useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminDialog } from "@/components/AdminDialog";
 import { AdminTextArea, AdminTextField } from "@/components/AdminTextField";
@@ -156,64 +156,52 @@ export function PoolSettingsDialog({
 
   // Three footers: done, a stopped save (and the retry it started), and the
   // edit, whose Save stays busy through the first run.
-  const footer = (): ReactNode => {
+  const footer = (): SheetActionsProps => {
     if (status === "complete") {
-      return (
-        <Button type="button" emphasis="primary" size="sm" onClick={onClose}>
-          {formatMessage({ id: "app.common.done", defaultMessage: "Done" })}
-        </Button>
-      );
+      return {
+        primary: {
+          label: formatMessage({ id: "app.common.done", defaultMessage: "Done" }),
+          onClick: onClose,
+        },
+      };
     }
     if (stopped || (status === "running" && lastAct === "retry")) {
-      return (
-        <>
-          <Button type="button" emphasis="tertiary" size="sm" onClick={onClose} disabled={busy}>
-            {formatMessage({ id: "app.common.close", defaultMessage: "Close" })}
-          </Button>
-          {retryable || status === "running" ? (
-            <Button
-              type="button"
-              emphasis="primary"
-              size="sm"
-              onClick={() => void retry()}
-              disabled={busy || !pool.isOnline}
-              loading={status === "running"}
-            >
-              {formatMessage({
-                id: "hub.garden.pool.setup.retry",
-                defaultMessage: "Try Again",
-              })}
-            </Button>
-          ) : null}
-        </>
-      );
+      return {
+        primary:
+          retryable || status === "running"
+            ? {
+                label: formatMessage({
+                  id: "hub.garden.pool.setup.retry",
+                  defaultMessage: "Try Again",
+                }),
+                onClick: () => void retry(),
+                disabled: busy || !pool.isOnline,
+                loading: status === "running",
+              }
+            : undefined,
+        secondary: {
+          label: formatMessage({ id: "app.common.close", defaultMessage: "Close" }),
+          onClick: onClose,
+          disabled: busy,
+        },
+      };
     }
-    return (
-      <>
-        <Button
-          type="button"
-          emphasis="tertiary"
-          size="sm"
-          onClick={() => dirtyClose.onOpenChange(false)}
-          disabled={busy}
-        >
-          {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-        </Button>
-        <Button
-          type="button"
-          emphasis="primary"
-          size="sm"
-          onClick={() => void save()}
-          disabled={!canSave}
-          loading={busy}
-        >
-          {formatMessage({
-            id: "hub.garden.pool.settings.save",
-            defaultMessage: "Save Settings",
-          })}
-        </Button>
-      </>
-    );
+    return {
+      primary: {
+        label: formatMessage({
+          id: "hub.garden.pool.settings.save",
+          defaultMessage: "Save Settings",
+        }),
+        onClick: () => void save(),
+        disabled: !canSave,
+        loading: busy,
+      },
+      secondary: {
+        label: formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" }),
+        onClick: () => dirtyClose.onOpenChange(false),
+        disabled: busy,
+      },
+    };
   };
 
   return (

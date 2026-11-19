@@ -1,4 +1,3 @@
-import { Button } from "@green-goods/shared/components/Button";
 import type { CommitmentDialogController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
@@ -60,30 +59,25 @@ export function CommitmentAssessmentDialog({
           "Only current assessments recorded for the provider garden appear here. Attaching one vouches that it applies.",
       })}
       bodyClassName="space-y-3"
-      actions={
-        <>
-          <Button type="button" emphasis="tertiary" size="sm" onClick={() => onClose()}>
-            {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-          </Button>
-          <Button
-            type="button"
-            emphasis="primary"
-            size="sm"
-            disabled={!assessmentUID || actDisabled}
-            loading={isActing}
-            onClick={async () => {
-              if (!assessmentUID) return;
-              await acts.attachAssessment(assessmentUID as `0x${string}`);
-              onClose();
-            }}
-          >
-            {formatMessage({
-              id: "hub.garden.pool.commitment.attach.confirm",
-              defaultMessage: "Attach",
-            })}
-          </Button>
-        </>
-      }
+      actions={{
+        primary: {
+          label: formatMessage({
+            id: "hub.garden.pool.commitment.attach.confirm",
+            defaultMessage: "Attach",
+          }),
+          disabled: !assessmentUID || actDisabled,
+          loading: isActing,
+          onClick: async () => {
+            if (!assessmentUID) return;
+            await acts.attachAssessment(assessmentUID as `0x${string}`);
+            onClose();
+          },
+        },
+        secondary: {
+          label: formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" }),
+          onClick: () => onClose(),
+        },
+      }}
     >
       {assessmentsLoading ? (
         <div

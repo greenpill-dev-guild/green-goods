@@ -1,4 +1,5 @@
 // Command surface: a signed request with a clear target, review and explicit outcome.
+import type { SheetActionsProps } from "@green-goods/shared/components/Dialog/SheetActions";
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { Button } from "@green-goods/shared/components/Button";
@@ -36,66 +37,47 @@ export function StewardAccessRequest({
   const statusLabel = request
     ? formatMessage({ id: `hub.stewardAccess.status.${request.state}` })
     : "";
-  const actions = !c.available ? (
-    <Button type="button" emphasis="secondary" size="lg" onClick={() => c.setOpen(false)}>
-      {formatMessage({ id: "app.common.close", defaultMessage: "Close" })}
-    </Button>
-  ) : statusView ? (
-    <>
-      {request?.state === "pending" ? (
-        <Button
-          type="button"
-          emphasis="secondary"
-          size="lg"
-          disabled={c.busy}
-          loading={c.activity === "withdrawing"}
-          onClick={() => action(c.withdraw)}
-        >
-          {formatMessage({ id: "hub.stewardAccess.withdraw" })}
-        </Button>
-      ) : null}
-      <Button
-        type="button"
-        size="lg"
-        disabled={c.busy}
-        loading={c.activity === "checking"}
-        onClick={() => action(c.check)}
-      >
-        {formatMessage({ id: "hub.stewardAccess.checkStatus" })}
-      </Button>
-    </>
-  ) : c.step === "review" && c.selectedGarden ? (
-    <>
-      <Button
-        type="button"
-        emphasis="secondary"
-        size="lg"
-        disabled={c.busy}
-        onClick={() => c.setStep("choose")}
-      >
-        {formatMessage({ id: "hub.stewardAccess.changeGarden" })}
-      </Button>
-      <Button
-        type="button"
-        size="lg"
-        disabled={c.busy || c.outcomeUnknown || !c.accountAddress}
-        loading={c.activity === "sending"}
-        onClick={() => action(c.send)}
-      >
-        {formatMessage({ id: "hub.stewardAccess.send" })}
-      </Button>
-    </>
-  ) : (
-    <Button
-      type="button"
-      emphasis="secondary"
-      size="lg"
-      disabled={c.busy}
-      onClick={() => c.setOpen(false)}
-    >
-      {formatMessage({ id: "app.common.close", defaultMessage: "Close" })}
-    </Button>
-  );
+  const close = {
+    label: formatMessage({ id: "app.common.close", defaultMessage: "Close" }),
+    onClick: () => c.setOpen(false),
+  };
+  const actions: SheetActionsProps = !c.available
+    ? { secondary: close }
+    : statusView
+      ? {
+          primary: {
+            label: formatMessage({ id: "hub.stewardAccess.checkStatus" }),
+            disabled: c.busy,
+            loading: c.activity === "checking",
+            onClick: () => action(c.check),
+          },
+          secondary:
+            request?.state === "pending"
+              ? {
+                  label: formatMessage({ id: "hub.stewardAccess.withdraw" }),
+                  disabled: c.busy,
+                  loading: c.activity === "withdrawing",
+                  onClick: () => action(c.withdraw),
+                }
+              : undefined,
+        }
+      : c.step === "review" && c.selectedGarden
+        ? {
+            // Back to the gardens beside the way on, as a flow's steps are.
+            layout: "steps",
+            primary: {
+              label: formatMessage({ id: "hub.stewardAccess.send" }),
+              disabled: c.busy || c.outcomeUnknown || !c.accountAddress,
+              loading: c.activity === "sending",
+              onClick: () => action(c.send),
+            },
+            secondary: {
+              label: formatMessage({ id: "hub.stewardAccess.changeGarden" }),
+              disabled: c.busy,
+              onClick: () => c.setStep("choose"),
+            },
+          }
+        : { secondary: { ...close, disabled: c.busy } };
   return (
     <div className="space-y-3" data-component="StewardAccessRequest">
       {showStatus && request && c.selectedGarden ? (
@@ -145,7 +127,6 @@ export function StewardAccessRequest({
         tone="home"
         preventClose={c.busy}
         actions={actions}
-        actionsClassName="min-h-[calc(4rem+env(safe-area-inset-bottom))] flex-row items-center justify-end bg-transparent [&>button]:min-w-0 [&>button]:flex-1 [&>button]:max-h-none [&>button]:whitespace-normal [&>button]:px-3 [&>button]:py-0 [&>button]:leading-tight sm:[&>button]:flex-none sm:[&>button]:whitespace-nowrap sm:[&>button]:px-5"
         finalFocusRef={opener}
       >
         <div
