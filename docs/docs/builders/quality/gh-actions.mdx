@@ -24,13 +24,14 @@ generated_from:
   - .github/workflows/indexer.yml
   - .github/workflows/merge-gate.yml
   - .github/workflows/ontology.yml
+  - .github/workflows/pull-request-edited.yml
   - .github/workflows/release.yml
   - .github/workflows/shared.yml
   - .github/workflows/supply-chain-guardrails.yml
   - package.json
   - scripts/data/validation-policy.json
   - scripts/data/workflow-catalog.json
-source_digest: "sha256:5cd09be0d654bbb6a2b63cdb2b041af8e990e294fc32d2db1d07cc36c0bc4a9b"
+source_digest: "sha256:6f73dd4a4ad058e5237bbb245b4c295d09178fd0fa3be16d27243ea374ff57ee"
 source_of_truth:
   - .github/workflows/admin.yml
   - .github/workflows/agent.yml
@@ -49,6 +50,7 @@ source_of_truth:
   - .github/workflows/indexer.yml
   - .github/workflows/merge-gate.yml
   - .github/workflows/ontology.yml
+  - .github/workflows/pull-request-edited.yml
   - .github/workflows/release.yml
   - .github/workflows/shared.yml
   - .github/workflows/supply-chain-guardrails.yml
@@ -62,7 +64,7 @@ import {CopyCommand} from "@site/src/components/docs";
 
 # CI & GitHub Actions
 
-20 workflows run the repository's continuous integration. Only CI Gate is a required status: the per-package workflows are path-filtered, so each runs only when its files change and the gate waits for exactly the set a pull request should trigger. Scheduled and manual workflows cover the slow or operator-driven checks that do not belong on every pull request. Purpose and use case come from `scripts/data/workflow-catalog.json`; triggers and jobs are read from the workflow files, and this page says nothing about whether a run is currently passing.
+21 workflows run the repository's continuous integration. Only CI Gate is a required status: the per-package workflows are path-filtered, so each runs only when its files change and the gate waits for exactly the set a pull request should trigger. Scheduled and manual workflows cover the slow or operator-driven checks that do not belong on every pull request. Purpose and use case come from `scripts/data/workflow-catalog.json`; triggers and jobs are read from the workflow files, and this page says nothing about whether a run is currently passing.
 
 ## Workflows
 
@@ -83,8 +85,9 @@ import {CopyCommand} from "@site/src/components/docs";
 | [Design](#design) | Checks the design system and its voice: Storybook, story coverage, DesignMD token parity, banned vocabulary, em dashes, and brand voice parity, with optional Chromatic publishing. | pull requests that touch its paths (55 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
 | [Docs](#docs) | Tests the docs generators, audits documentation authority, checks that generated projections and ontology pages are current, and builds the docs site. | pull requests that touch its paths (102 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
 | [Indexer](#indexer) | Builds and tests the Envio indexer handlers against the contract ABIs and deployment artifacts. | pull requests that touch its paths (10 path filters); pushes to `main` and `develop` that touch its paths | No |
-| [Merge Gate](#merge-gate) | Posts the Merge Gate status, which holds a pull request into develop to its tier's proof from .agents/merge-policy.json: routine needs CI Gate alone, sensitive a marker that a fresh agent's adversarial review was addressed at the head, critical that marker and one for the selector's critical gate, each from an account with write access. The tier is the highest of the selector's risk, the policy's globs and the gate's own list, and anything the gate cannot classify is critical. | the start and completion of another workflow; comments on issues and pull requests; edits to a pull request's title, body or base; pushes to `develop` | No |
+| [Merge Gate](#merge-gate) | Posts the Merge Gate status, which holds a pull request into develop to its tier's proof from .agents/merge-policy.json: routine needs CI Gate alone, sensitive a marker that a fresh agent's adversarial review was addressed at the head, critical that marker and one for the selector's critical gate, each from an account with write access. The tier is the highest of the selector's risk, the policy's globs and the gate's own list, and anything the gate cannot classify is critical. | the start and completion of another workflow; comments on issues and pull requests; pushes to `develop` | No |
 | [Ontology](#ontology) | Validates the ontology sidecar against the code it anchors and keeps its generated reference pages current. | pull requests that touch its paths (113 path filters); pushes to `main` and `develop` that touch its paths | No |
+| [Pull Request Edited](#pull-request-edited) | Marks an edit to a pull request's title, body or base so the Merge Gate, running from develop on its completion, decides again. It holds no permissions and runs nothing from the pull request. | edits to a pull request's title, body or base | No |
 | [Release](#release) | Builds and publishes a tagged release. | pushed tags matching `v*.*.*` | No |
 | [Shared](#shared) | Typechecks and tests the shared package: hooks, providers, protocol modules, and UI foundations. | pull requests that touch its paths (12 path filters); pushes to `main` and `develop` that touch its paths; a schedule (`19 7 * * 1` UTC) | No |
 | [Supply Chain Guardrails](#supply-chain-guardrails) | Five lanes over the repository's own safety surfaces: formatting on every run; dead code on every run, holding knip's findings to their shrink-only baseline, since knip reads workflows, hooks and tool configs as well as code; the supply-chain audit of manifests, lockfiles, and the release-age rule; guidance integrity (agent guidance, skill contracts, immutable plan reports, the QA test ID ledger, test quality, and plan hub validation); and workflow performance parity, which pins the validation selector, the git hooks, and the package test configurations. | pull requests that touch its paths (44 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
@@ -244,7 +247,7 @@ Builds and tests the Envio indexer handlers against the contract ABIs and deploy
 Posts the Merge Gate status, which holds a pull request into develop to its tier's proof from .agents/merge-policy.json: routine needs CI Gate alone, sensitive a marker that a fresh agent's adversarial review was addressed at the head, critical that marker and one for the selector's critical gate, each from an account with write access. The tier is the highest of the selector's risk, the policy's globs and the gate's own list, and anything the gate cannot classify is critical.
 
 - **Use it when:** Every pull request into develop, when CI Gate starts and finishes and when a comment that holds or held a merge-gate marker is written, edited or deleted; any merge-gate: comment asks for a fresh decision. Every push to develop runs it; one that changes what the gate reads holds every open pull request, then decides each again. It blocks nothing until the develop ruleset requires the status, which is the owner's step.
-- **Runs on:** the start and completion of another workflow; comments on issues and pull requests; edits to a pull request's title, body or base; pushes to `develop`.
+- **Runs on:** the start and completion of another workflow; comments on issues and pull requests; pushes to `develop`.
 - **Jobs:** `detect`, `gate`.
 - **Required status:** no, and the CI Gate never waits for it: it has no pull request path rule.
 - **File:** [.github/workflows/merge-gate.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/merge-gate.yml)
@@ -258,6 +261,16 @@ Validates the ontology sidecar against the code it anchors and keeps its generat
 - **Jobs:** `ontology-drift`.
 - **Required status:** no, but the CI Gate waits for it on a pull request that touches its paths.
 - **File:** [.github/workflows/ontology.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/ontology.yml)
+
+### Pull Request Edited {#pull-request-edited}
+
+Marks an edit to a pull request's title, body or base so the Merge Gate, running from develop on its completion, decides again. It holds no permissions and runs nothing from the pull request.
+
+- **Use it when:** Every edit to a pull request's title, body or base.
+- **Runs on:** edits to a pull request's title, body or base.
+- **Jobs:** `mark`.
+- **Required status:** no, and the CI Gate never waits for it: it has no pull request path rule.
+- **File:** [.github/workflows/pull-request-edited.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/pull-request-edited.yml)
 
 ### Release {#release}
 

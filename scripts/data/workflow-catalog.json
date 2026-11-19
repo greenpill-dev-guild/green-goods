@@ -16,6 +16,11 @@
       "useCase": "Changes to AGENTS.md, CLAUDE.md, .agents, .claude, .codex, CODEOWNERS or the PR template.",
       "required": false
     },
+    ".github/workflows/pull-request-edited.yml": {
+      "purpose": "Marks an edit to a pull request's title, body or base so the Merge Gate, running from develop on its completion, decides again. It holds no permissions and runs nothing from the pull request.",
+      "useCase": "Every edit to a pull request's title, body or base.",
+      "required": false
+    },
     ".github/workflows/ci-gate.yml": {
       "purpose": "The one required status. It derives the workflows a pull request's changed files should trigger, waits for each to register and report, and fails as soon as one fails or never shows up, so path-filtered workflows cannot silently weaken branch protection.",
       "useCase": "Every pull request on any base branch. Branch protection points here instead of at the per-package workflows.",

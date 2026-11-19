@@ -264,7 +264,6 @@ export function holdForSkipDirective(decision, directive) {
 export async function pullNumbers(event, eventName, findByHead, listOpen = async () => []) {
   if (eventName === "push") return listOpen();
   if (eventName === "issue_comment") return event.issue?.pull_request ? [event.issue.number] : [];
-  if (eventName === "pull_request_target") return event.pull_request?.number ? [event.pull_request.number] : [];
   const run = event.workflow_run;
   if (eventName !== "workflow_run" || run?.event !== "pull_request") return [];
   const numbers = (run.pull_requests ?? []).map((pull) => pull.number);

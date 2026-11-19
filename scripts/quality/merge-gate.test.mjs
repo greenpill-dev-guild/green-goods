@@ -183,8 +183,6 @@ test("events name their open pull requests, a fork's by its head branch", async 
   assert.deepEqual(await pullNumbers({ workflow_run: { ...run, event: "push", pull_requests: [] } }, "workflow_run", noLookup), []);
   const lookup = async (head) => (head === "someone:fix" ? [{ number: 11, head: { sha: HEAD } }, { number: 12, head: { sha: OTHER } }] : []);
   assert.deepEqual(await pullNumbers({ workflow_run: { ...run, pull_requests: [] } }, "workflow_run", lookup), [11]);
-  // An edited title, body or base names its pull request.
-  assert.deepEqual(await pullNumbers({ action: "edited", pull_request: { number: 9 } }, "pull_request_target", noLookup), [9]);
   // A push to develop that changes the gate's inputs decides every open pull request again.
   assert.deepEqual(await pullNumbers({ ref: "refs/heads/develop" }, "push", noLookup, async () => [3, 5]), [3, 5]);
 });
@@ -469,10 +467,14 @@ test("evaluate reads every classification input: the merge base, Shared mutation
 
 test("the workflow posts when CI Gate starts, and runs on every push to develop to decide whether to sweep", () => {
   const workflow = readFileSync(path.join(path.dirname(new URL(import.meta.url).pathname), "../../.github/workflows/merge-gate.yml"), "utf8");
-  assert.match(workflow, /workflow_run:\n\s+workflows: \["CI Gate"\]\n\s+types: \[requested, completed\]/);
-  // An edited title, body or base re-decides, from develop: the job never checks the pull request out.
-  assert.match(workflow, /pull_request_target:\n\s+types: \[edited\]/);
-  assert.doesNotMatch(workflow, /github\.event\.pull_request\.head\.(sha|ref)/);
+  assert.match(workflow, /workflow_run:\n(?:\s+#.*\n)?\s+workflows: \["CI Gate", "Pull Request Edited"\]\n\s+types: \[requested, completed\]/);
+  // An edited title, body or base re-decides through Pull Request Edited's completion, from develop:
+  // the guild guardrail forbids pull_request_target, and the marker workflow holds no permissions.
+  assert.doesNotMatch(workflow, /pull_request_target/);
+  const edited = readFileSync(path.join(path.dirname(new URL(import.meta.url).pathname), "../../.github/workflows/pull-request-edited.yml"), "utf8");
+  assert.match(edited, /^name: Pull Request Edited$/m);
+  assert.match(edited, /pull_request:\n\s+types: \[edited\]/);
+  assert.match(edited, /^permissions: \{\}$/m);
   // No path filter: GitHub drops one for a file past the first 3,000 a push changes.
   assert.match(workflow, /push:\n\s+branches: \[develop\]\n(?!\s+paths:)/);
   // Detection sits outside the sweeps' queue, so an ordinary push cannot cancel a sweep; the sweep
