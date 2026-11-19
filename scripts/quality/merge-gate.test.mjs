@@ -283,7 +283,7 @@ test("a pull request is decided from the API and its commits: a removed link, a 
     const commits = [];
     const github = async (route) => {
       if (route.startsWith("pulls/7/files")) return [{ filename: "docs/link.md", status: "removed" }, { filename: "docs/a.md", status: "modified" }];
-      if (route.startsWith("pulls/7/commits")) return commits;
+      if (route.startsWith("pulls/7/commits")) { const page = Number(route.match(/[?&]page=(\d+)/)?.[1] ?? 1); return commits.slice((page - 1) * 100, page * 100); }
       if (route.startsWith("compare/")) return { merge_base_commit: { sha: base } };
       if (route.startsWith("issues/7/comments")) return comments;
       const login = route.match(/^collaborators\/([^/]+)\/permission$/)?.[1];
@@ -307,6 +307,12 @@ test("a pull request is decided from the API and its commits: a removed link, a 
     // A commit message alone holds it as well.
     commits.push({ commit: { message: "fix: y\n\n[no ci]" } });
     assert.equal((await evaluate(pull("o"), head, options)).decision.state, "pending");
+    commits.length = 0;
+    // GitHub lists at most 250 commits; past that, later messages go unread, so it holds.
+    commits.push(...Array.from({ length: 250 }, () => ({ commit: { message: "feat: z" } })));
+    const long = await evaluate(pull("o"), head, options);
+    assert.equal(long.decision.state, "pending");
+    assert.equal(long.reasons[0], "250 or more commits");
     commits.length = 0;
   } finally {
     rmSync(root, { recursive: true, force: true });
@@ -358,6 +364,8 @@ test("a run posts once for an open pull request into develop, unless its head or
   assert.deepEqual(await run({ pulls: [open], statuses: lost }), [[`statuses/${HEAD}`, "pending", "Merge Gate"]]);
   assert.deepEqual(await run({ pulls: [open, lost] }), [[`statuses/${HEAD}`, "pending", "Merge Gate"]]);
   assert.deepEqual(await run({ pulls: [open], markerComments: lost, state: "success", exit: 2 }), []);
+  // A body edited to carry a skip directive while the run read the pull request turns a success into a hold.
+  assert.deepEqual(await run({ pulls: [open, { ...open, body: "now [no ci]" }], state: "success" }), [[`statuses/${HEAD}`, "pending", "Merge Gate"]]);
 });
 
 test("a success holds again when a marker it counted is withdrawn as it posts, so a sweep cannot outlast the other queue", async () => {

@@ -24,6 +24,8 @@ const repoRoot = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 export const STATUS_CONTEXT = "Merge Gate";
 // GitHub lists at most 3,000 files for a pull request; past that the change cannot be classified.
 const GITHUB_FILE_LIMIT = 3000;
+// The pull request commits endpoint lists at most this many; later messages cannot be read.
+const GITHUB_COMMIT_LIMIT = 250;
 const TIERS = ["routine", "sensitive", "critical"];
 // The gate, the code it loads, the policies and selector it reads, CI Gate (the routine tier's
 // whole proof), and the release workflow: a change to any of them changes what every later merge
@@ -464,8 +466,14 @@ export async function evaluate(pull, headSha, { github, cwd = repoRoot, env = pr
     const markers = markersFor(comments, headSha, (login) => writers.has(login));
     const commits = await paginate(github, `pulls/${pull.number}/commits`);
     const directive = skipDirective(pull, commits.map((commit) => commit.commit?.message ?? ""));
-    const decision = holdForSkipDirective(decide({ ...change, reasons, markers, headSha }), directive);
-    return { decision, reasons: directive ? [`the title, body or a commit message carries ${directive}`, ...reasons] : reasons, markers, authors, writers };
+    let decision = holdForSkipDirective(decide({ ...change, reasons, markers, headSha }), directive);
+    const extra = directive ? [`the title, body or a commit message carries ${directive}`] : [];
+    // A squash copies every commit message; past the endpoint's limit some go unread, so the gate holds.
+    if (!directive && commits.length >= GITHUB_COMMIT_LIMIT) {
+      decision = { state: "pending", description: `GitHub lists only ${GITHUB_COMMIT_LIMIT} commits, so later messages were not checked for a CI skip directive; squash the branch first.`, needed: decision.needed };
+      extra.push(`${GITHUB_COMMIT_LIMIT} or more commits`);
+    }
+    return { decision, reasons: [...extra, ...reasons], markers, authors, writers };
   } finally {
     rmSync(sharedRoot, { recursive: true, force: true });
   }
@@ -584,7 +592,7 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
         const description = fit(printable(`Could not decide, so nothing passes: ${error.message}`), DESCRIPTION_LIMIT);
         outcome = { decision: { state: "error", description, needed: [] }, reasons: [], markers: null };
       }
-      const { decision } = outcome;
+      let { decision } = outcome;
       // A push, or a writer's marker written while the run read the pull request, leaves a mixed
       // snapshot; the run for the newer state decides instead. Only a change to what the writers'
       // markers prove counts, so nobody else's comments can stop a post. A re-read that fails confirms
@@ -596,6 +604,9 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
           log(`#${number}: the head moved to ${current.head.sha.slice(0, SHORT_SHA)} while ${head} was read; nothing posted.`);
           continue;
         }
+        // An edit while this run read the pull request may have added a directive: hold for it.
+        const added = skipDirective(current);
+        if (added && decision.state === "success") decision = holdForSkipDirective(decision, added);
         if (outcome.markers) {
           const now = await currentMarkers(github, number, headSha, outcome);
           if (now.reviewed !== outcome.markers.reviewed || now.fullGate !== outcome.markers.fullGate) {
