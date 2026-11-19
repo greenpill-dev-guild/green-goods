@@ -119,7 +119,8 @@ const ALLOWED_CONTRACT_EVENTS = {
     "UnitsReleased",
     "UnitsFulfilled",
   ]),
-  // Settlement command and acknowledgment lifecycle, not token-movement observation.
+  // Settlement command and acknowledgment lifecycle, inside this gate's boundary: no EAS
+  // re-indexing and no raw Celo or G$ transfer indexing.
   SettlementModule: new Set([
     "SettlementDeploymentPinned",
     "FundingConfigurationLocked",
