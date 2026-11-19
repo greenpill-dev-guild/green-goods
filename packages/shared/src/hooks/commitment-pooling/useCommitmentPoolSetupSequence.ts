@@ -167,8 +167,8 @@ export function useCommitmentPoolSetupSequence(
     [sender, chainId, pastCeilings]
   );
 
-  const run = useCallback(
-    recordedSetupRun(sender, chainId, async (steps: PoolSetupStep[]) => {
+  const runSteps = useCallback(
+    async (steps: PoolSetupStep[]): Promise<PoolSetupOutcome> => {
       stepsRef.current = steps;
       if (cycleIdRef.current === null) cycleIdRef.current = knownCycleId(steps);
       const stepStates: PoolSetupStepState[] = steps.map((step) => ({
@@ -476,8 +476,12 @@ export function useCommitmentPoolSetupSequence(
       };
       publish({ status: "complete", failedStep: null, failure: null, error: null });
       return outcome;
-    }),
+    },
     [chainId, handleError, pastCeilings, queryClient, reader, sender]
+  );
+  const run = useMemo(
+    () => recordedSetupRun(sender, chainId, runSteps),
+    [sender, chainId, runSteps]
   );
 
   /** Walk the same steps again; what the chain already shows is skipped. */
