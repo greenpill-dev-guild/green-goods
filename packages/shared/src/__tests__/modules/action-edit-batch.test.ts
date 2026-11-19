@@ -391,7 +391,7 @@ describe("plain-wallet action edit recovery", () => {
     const onSaved = vi.fn();
     await expect(
       sendActionEditBatch({ ...state.input, rail: "wallet", atomic: false, changes, onSaved })
-    ).resolves.toEqual({ status: "not-saved" });
+    ).resolves.toEqual({ status: "not-saved", declined: true });
     expect(onSaved).not.toHaveBeenCalled();
     expect(state.sender.sendContractCall).toHaveBeenCalledTimes(1);
     await expect(readActionEditHold(state.input)).resolves.toEqual({ hold: null, saved: [] });
@@ -464,7 +464,7 @@ describe("plain-wallet action edit recovery", () => {
         changes,
         onSaved: (fields) => saved.push(...fields),
       })
-    ).resolves.toEqual({ status: "not-saved" });
+    ).resolves.toEqual({ status: "not-saved", declined: true });
     expect(saved).toEqual([changes[0]]);
     state.sender.sendContractCall = sendOne;
     const remaining = changes.filter(

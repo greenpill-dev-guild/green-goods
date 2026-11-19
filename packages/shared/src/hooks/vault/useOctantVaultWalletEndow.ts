@@ -1,3 +1,4 @@
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
 import { ENDOWMENT_DEPOSITS_ENABLED } from "../../config/app";
 import { useMutation } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
@@ -7,7 +8,7 @@ import type { Hex } from "viem";
 import { toastService } from "../../components/toast";
 import { getWagmiConfig } from "../../config/appkit";
 import { SEND_STAGE_WORDS } from "../../modules/transactions/send-stage";
-import type { OctantVaultWalletEndowPreparedTransaction } from "../../modules/vault-crowdfunding";
+import type { OctantVaultWalletEndowPreparedTransaction as PreparedEndow } from "../../modules/vault-crowdfunding";
 import type { Address } from "../../types/domain";
 import { ERC20_ALLOWANCE_ABI, ERC20_BALANCE_ABI } from "../../utils/blockchain/abis/erc20";
 import { OCTANT_VAULT_ABI } from "../../utils/blockchain/abis/octant";
@@ -37,6 +38,11 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
   const { formatMessage } = useIntl();
   const { authMode, primaryAddress } = useUser();
   const sender = useTransactionSender();
+  const act = (transaction: PreparedEndow): SendActContext => ({
+    act: "vault_endow",
+    authMode: sender?.authMode,
+    chainId: transaction.chainId,
+  });
   const showLifecycleToast = shouldShowLifecycleToast(options.toastMode);
   const showErrorToast = shouldShowErrorToast(options.errorMode);
   const handleError = createMutationErrorHandler({
@@ -46,9 +52,13 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
   const activeToastId = useRef<string | undefined>(undefined);
   // A deposit that went out with no receipt yet: what it waits for, in place of success.
   const unconfirmed = useRef<"still-confirming" | "safe-signers" | null>(null);
+  // A deposit that settles as submitted (a Safe proposal, or past its receipt limit) has not
+  // landed: its act ends still confirming, never confirmed.
+  const recordedEndow = (run: (transaction: PreparedEndow) => Promise<Hex | null>) =>
+    recordedSendAct(act, run, () => (unconfirmed.current ? "confirming" : "confirmed"));
 
   const mutation = useMutation({
-    mutationFn: async (transaction: OctantVaultWalletEndowPreparedTransaction) => {
+    mutationFn: recordedEndow(async (transaction: PreparedEndow) => {
       unconfirmed.current = null;
       if (!ENDOWMENT_DEPOSITS_ENABLED) {
         throw new Error(formatMessage({ id: "public.fund.endowmentPause.title" }));
@@ -240,9 +250,12 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
             );
           }
         } catch (error) {
+          // The cause stays, so a send that may still land reads as one.
           throw new VaultDepositStageError(
             "approval",
-            error instanceof Error ? error.message : "Approval failed"
+            error instanceof Error ? error.message : "Approval failed",
+            undefined,
+            { cause: error }
           );
         }
       }
@@ -304,10 +317,12 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
         }
         throw new VaultDepositStageError(
           "deposit",
-          error instanceof Error ? error.message : "Deposit failed"
+          error instanceof Error ? error.message : "Deposit failed",
+          undefined,
+          { cause: error }
         );
       }
-    },
+    }),
     onMutate: () => {
       if (!ENDOWMENT_DEPOSITS_ENABLED) return;
       if (!showLifecycleToast) {

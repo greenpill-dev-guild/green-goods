@@ -8,6 +8,7 @@ import { act } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createTestQueryClient } from "../../test-utils/query-client";
 import { renderHookWithProviders } from "../../test-utils/render-helpers";
+import { registerTelemetrySink } from "../../../modules/app/telemetry-sink";
 
 // Mock matchMedia before any module imports that touch theme system
 Object.defineProperty(window, "matchMedia", {
@@ -101,8 +102,11 @@ function trackedQueryClient() {
 
 const operationsModule = await import("../../../hooks/vault/useVaultOperations");
 const { isUnconfirmedTxError } = await import("../../../utils/errors/tx-error-classifier");
+const { parseContractError } = await import("../../../utils/errors/contract-errors");
 const { useTxErrorMessages } = await import("../../../hooks/utils/useTxErrorMessages");
-const { TransactionConfirmationPendingError } = await import("../../../modules/transactions/types");
+const { ReceiptWaitLimitError, TransactionConfirmationPendingError } = await import(
+  "../../../modules/transactions/types"
+);
 const {
   useVaultDeposit,
   useOctantVaultWalletEndow,
@@ -236,6 +240,48 @@ describe("hooks/vault/useVaultOperations", () => {
       // It may have landed, so what the forms read straight from the chain is worth reading again.
       expect(invalidate).toHaveBeenCalledWith({ queryKey: ["balance"] });
       expect(invalidate).toHaveBeenCalledWith({ queryKey: ["readContract"] });
+    });
+
+    it("records a deposit that may still land as confirming, a withdraw as confirmed (PRD-1553)", async () => {
+      const captured: Array<[string, Record<string, unknown>]> = [];
+      const unregister = registerTelemetrySink({
+        capture: (event, properties) => {
+          if (event.startsWith("send_act_")) captured.push([event, properties]);
+        },
+      });
+      try {
+        allowanceCovers();
+        mockSendContractCall.mockRejectedValueOnce(
+          Object.assign(new Error("Timed out"), { name: "WaitForTransactionReceiptTimeoutError" })
+        );
+        const deposits = renderHookWithProviders(() => useVaultDeposit(), {
+          queryClient: trackedQueryClient(),
+        });
+        await act(async () => {
+          await expect(deposits.result.current.mutateAsync(deposit)).rejects.toSatisfy(
+            isUnconfirmedTxError
+          );
+        });
+        mockReadContract.mockResolvedValueOnce(100n); // maxWithdraw
+        const withdrawals = renderHookWithProviders(() => useVaultWithdraw(), {
+          queryClient: trackedQueryClient(),
+        });
+        await act(async () => {
+          await withdrawals.result.current.mutateAsync({ ...deposit, amount: 5n });
+        });
+
+        expect(captured.map(([event, { act, outcome }]) => [event, act, outcome])).toEqual([
+          ["send_act_started", "vault_deposit", undefined],
+          ["send_act_ended", "vault_deposit", "confirming"],
+          ["send_act_started", "vault_withdraw", undefined],
+          ["send_act_ended", "vault_withdraw", "confirmed"],
+        ]);
+        const sent = JSON.stringify(captured).toLowerCase();
+        for (const address of [TEST_PRIMARY_ADDRESS, TEST_GARDEN, TEST_ASSET, TEST_VAULT])
+          expect(sent).not.toContain(address);
+      } finally {
+        unregister();
+      }
     });
 
     it("stops before the deposit when an approval has no receipt", async () => {
@@ -615,6 +661,121 @@ describe("hooks/vault/useVaultOperations", () => {
     });
 
     expect(lifecycleSteps).toEqual(["error"]);
+  });
+
+  const sentHash = `0x${"de".repeat(32)}` as const;
+  it.each([
+    ["past its receipt limit, naming no transaction", new ReceiptWaitLimitError(120_000)],
+    ["past its receipt limit", new ReceiptWaitLimitError(120_000, { hash: sentHash })],
+    [
+      "proposed to a Safe",
+      { hash: sentHash, sponsored: false, confirmation: "pending", awaiting: "safe-signers" },
+    ],
+  ])("records an Endow deposit %s as confirming, not failed (PRD-1553)", async (_case, answer) => {
+    const endings: unknown[] = [];
+    const unregister = registerTelemetrySink({
+      capture: (event, properties) => {
+        if (event === "send_act_ended") endings.push(properties.outcome);
+      },
+    });
+    try {
+      mockReadContract
+        .mockResolvedValueOnce(100n) // maxDeposit
+        .mockResolvedValueOnce(10n) // balanceOf
+        .mockResolvedValueOnce(10n) // preApprovalPreview
+        .mockResolvedValueOnce(10n) // allowance (enough, so no approval)
+        .mockResolvedValueOnce(10n); // post-approval previewDeposit
+      if (answer instanceof Error) mockSendContractCall.mockRejectedValueOnce(answer);
+      else mockSendContractCall.mockResolvedValueOnce(answer);
+      const { result } = renderHookWithProviders(
+        () => useOctantVaultWalletEndow({ errorMode: "inline" }),
+        { queryClient: trackedQueryClient() }
+      );
+
+      await act(async () => {
+        // A deposit naming no transaction still rejects; the others settle as submitted.
+        await result.current
+          .mutateAsync({
+            intentKind: "wallet_endow",
+            paymentMethod: "wallet",
+            chainId: TEST_OCTANT_CHAIN_ID,
+            vaultAddress: TEST_VAULT as `0x${string}`,
+            assetAddress: TEST_ASSET as `0x${string}`,
+            assetSymbol: "WETH",
+            assetDecimals: 18,
+            amount: 10n,
+            receiver: {
+              intentKind: "wallet_endow",
+              paymentMethod: "wallet",
+              receiverKind: "connected_wallet",
+              receiverCustody: "connected_wallet",
+              receiverAddress: TEST_PRIMARY_ADDRESS as `0x${string}`,
+            },
+          })
+          .catch(() => undefined);
+      });
+
+      expect(endings).toEqual(["confirming"]);
+    } finally {
+      unregister();
+    }
+  });
+
+  it("reads an Endow approval past its receipt limit as still confirming, in its error too (PRD-1553)", async () => {
+    // The stage error keeps the send error as its cause, so the error toast says the approval
+    // may still land rather than that it failed, and the act ends confirming.
+    const endings: unknown[] = [];
+    const unregister = registerTelemetrySink({
+      capture: (event, properties) => {
+        if (event === "send_act_ended") endings.push(properties.outcome);
+      },
+    });
+    try {
+      mockReadContract
+        .mockResolvedValueOnce(100n) // maxDeposit
+        .mockResolvedValueOnce(10n) // balanceOf
+        .mockResolvedValueOnce(10n) // preApprovalPreview
+        .mockResolvedValueOnce(0n); // allowance (none, so it approves)
+      const limit = new ReceiptWaitLimitError(120_000, { hash: sentHash });
+      mockSendContractCall.mockRejectedValueOnce(limit);
+      const { result } = renderHookWithProviders(
+        () => useOctantVaultWalletEndow({ errorMode: "inline" }),
+        { queryClient: trackedQueryClient() }
+      );
+
+      let thrown: unknown;
+      await act(async () => {
+        thrown = await result.current
+          .mutateAsync({
+            intentKind: "wallet_endow",
+            paymentMethod: "wallet",
+            chainId: TEST_OCTANT_CHAIN_ID,
+            vaultAddress: TEST_VAULT as `0x${string}`,
+            assetAddress: TEST_ASSET as `0x${string}`,
+            assetSymbol: "WETH",
+            assetDecimals: 18,
+            amount: 10n,
+            receiver: {
+              intentKind: "wallet_endow",
+              paymentMethod: "wallet",
+              receiverKind: "connected_wallet",
+              receiverCustody: "connected_wallet",
+              receiverAddress: TEST_PRIMARY_ADDRESS as `0x${string}`,
+            },
+          })
+          .catch((error: unknown) => error);
+      });
+
+      expect(thrown).toMatchObject({
+        name: "VaultDepositStageError",
+        stage: "approval",
+        cause: limit,
+      });
+      expect(parseContractError(thrown).name).toBe("SendStillConfirming");
+      expect(endings).toEqual(["confirming"]);
+    } finally {
+      unregister();
+    }
   });
 
   it("wraps ETH into canonical mainnet WETH before the existing vault deposit path", async () => {

@@ -12,6 +12,8 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 
+import { recordedSendAct, type SendActContext } from "../../../modules/app/sendActAnalytics";
+import { copiesActEnding } from "../../../modules/commitment-pooling/send-act-outcome";
 import { commitmentPoolingKeys } from "../../../config/query-keys/commitment-pooling";
 import { logger } from "../../../modules/app/logger";
 import {
@@ -85,7 +87,16 @@ export function useEditConfirmers(input: { chainId: number }): EditConfirmersCon
     setCopies([...latest.values()]);
     setIsSending(true);
     try {
-      const ended = await sendConfirmerEdit({
+      const act: SendActContext = {
+        act: "pool_confirmer_edit",
+        authMode: sender.authMode,
+        chainId,
+      };
+      const ended = await recordedSendAct(
+        act,
+        sendConfirmerEdit,
+        copiesActEnding
+      )({
         sender,
         chainId,
         moduleAddress,

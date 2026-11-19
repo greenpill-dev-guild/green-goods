@@ -5,6 +5,7 @@ import { useCallback, useRef } from "react";
 import { useIntl } from "react-intl";
 import { toastService } from "../../components/toast";
 import { getWagmiConfig } from "../../config/appkit";
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
 import { depositDomain } from "../../modules/garden/deposit-batch";
 import { requireConfirmed } from "../../modules/transactions/confirmation";
 import type { Address } from "../../types/domain";
@@ -42,6 +43,7 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
   const { primaryAddress } = useUser();
   const showErrorToast = shouldShowErrorToast(options.errorMode);
   const sender = useTransactionSender();
+  const depositAct: SendActContext = { act: "vault_deposit", authMode: sender?.authMode, chainId };
   const routes = useDepositRoute("vault-deposit");
   const handleError = createMutationErrorHandler({
     source: "useVaultDeposit",
@@ -90,7 +92,7 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
 
   const mutation = useMutation({
     mutationKey: batchKeys.depositSend(primaryAddress ?? "", chainId),
-    mutationFn: async (params: DepositParams) => {
+    mutationFn: recordedSendAct(depositAct, async (params: DepositParams) => {
       if (!ENDOWMENT_DEPOSITS_ENABLED) {
         throw new Error(formatMessage({ id: "public.fund.endowmentPause.title" }));
       }
@@ -326,7 +328,7 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
           error instanceof Error ? error.message : "Deposit failed"
         );
       }
-    },
+    }),
     onMutate: async (params) => {
       if (!ENDOWMENT_DEPOSITS_ENABLED) return;
       await queryClient.cancelQueries({ queryKey: holdKeyFor(params) });

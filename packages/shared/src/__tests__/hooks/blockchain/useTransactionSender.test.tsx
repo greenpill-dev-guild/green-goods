@@ -37,6 +37,8 @@ vi.mock("../../../modules/transactions/factory", () => ({
 import { useTransactionSender } from "../../../hooks/blockchain/useTransactionSender";
 import { onWalletReconnectAsk } from "../../../modules/auth/wallet-reconnect";
 import { WalletReconnectRequiredError } from "../../../utils/errors/unsent-failures";
+import { recordSendAct } from "../../../modules/app/sendActAnalytics";
+import { registerTelemetrySink } from "../../../modules/app/telemetry-sink";
 
 describe("useTransactionSender ownership", () => {
   beforeEach(() => {
@@ -53,6 +55,33 @@ describe("useTransactionSender ownership", () => {
     };
     mocks.wallet.mockResolvedValue({ account: { address: account } });
     mocks.account.mockReturnValue({ chainId: 42220 });
+  });
+
+  it("notes a send handed back with no receipt, so an act keeping only its hash ends confirming (PRD-1553)", async () => {
+    const endings: unknown[] = [];
+    const unregister = registerTelemetrySink({
+      capture: (event, properties) => {
+        if (event === "send_act_ended") endings.push(properties.outcome);
+      },
+    });
+    try {
+      const call = { address: other, abi: [], functionName: "join", args: [], chainId: 42161 };
+      const proposal = { hash: `0x${"ab".repeat(32)}`, sponsored: false, confirmation: "pending" };
+      const landed = { hash: `0x${"cd".repeat(32)}`, sponsored: false };
+      mocks.send.mockResolvedValueOnce(proposal).mockResolvedValueOnce(landed);
+      const sender = renderHook(() => useTransactionSender()).result.current!;
+      const act = { act: "vault_withdraw", authMode: "wallet" } as const;
+
+      for (const expected of [proposal, landed]) {
+        const result = await sender.sendContractCall(call);
+        expect(result).toBe(expected);
+        await recordSendAct(act, async () => result.hash);
+      }
+
+      expect(endings).toEqual(["confirming", "confirmed"]);
+    } finally {
+      unregister();
+    }
   });
 
   it("hands the sender the profile the session signed in with, and rebuilds it if that changes", () => {

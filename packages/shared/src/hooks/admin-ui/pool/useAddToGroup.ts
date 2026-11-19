@@ -14,6 +14,8 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef, useState } from "react";
+import { recordedSendAct, type SendActContext } from "../../../modules/app/sendActAnalytics";
+import { copiesActEnding } from "../../../modules/commitment-pooling/send-act-outcome";
 import { SETTLEMENT_ENABLED } from "../../../config/app";
 import { CONSIDERATION_RAIL_ORDINAL } from "../../../modules/commitment-pooling/job-types";
 
@@ -252,7 +254,12 @@ export function useAddToGroup(input: {
       setPassIds([...sentThisPass]);
       setIsSending(true);
       try {
-        const ended = await sendCreationCopies({
+        const act: SendActContext = { act: "pool_group_add", authMode: sender.authMode, chainId };
+        const ended = await recordedSendAct(
+          act,
+          sendCreationCopies,
+          copiesActEnding
+        )({
           copies: toSend,
           queue: jobQueue,
           sender,

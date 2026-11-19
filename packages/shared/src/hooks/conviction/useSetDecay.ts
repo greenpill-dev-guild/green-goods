@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef } from "react";
 import { useIntl } from "react-intl";
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
 import { toastService } from "../../components/toast";
 import type { SetDecayParams } from "../../types/conviction";
 import { HYPERCERT_SIGNAL_POOL_ABI } from "../../utils/blockchain/abis/conviction";
@@ -17,6 +18,8 @@ export function useSetDecay() {
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
   const sendContractTx = useContractTxSender();
+  const authMode = sendContractTx.authMode;
+  const act: SendActContext = { act: "conviction", operation: "setDecay", authMode, chainId };
   const handleError = createMutationErrorHandler({
     source: "useSetDecay",
     toastContext: "set decay",
@@ -35,14 +38,14 @@ export function useSetDecay() {
   );
 
   return useMutation({
-    mutationFn: async (params: SetDecayParams) => {
+    mutationFn: recordedSendAct(act, async (params: SetDecayParams) => {
       return sendContractTx({
         address: params.poolAddress,
         abi: HYPERCERT_SIGNAL_POOL_ABI,
         functionName: "setDecay",
         args: [params.newDecay],
       });
-    },
+    }),
     onMutate: () => {
       const toastId = toastService.loading({
         title: formatMessage({ id: "app.conviction.settingDecay" }),

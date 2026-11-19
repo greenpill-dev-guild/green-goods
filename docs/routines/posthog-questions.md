@@ -140,6 +140,37 @@ question that counts submitted work therefore reads both `work_submission_succes
 Submit twice. A work saved to the queue and sent later also records `offline_job_processed`
 (`job_kind: work`) when it lands.
 
+## Send act events
+
+Every other act that signs or sends records `send_act_started` when it starts and one
+`send_act_ended` when it ends (PRD-1553). That covers joins, claims, vault, cookie jar and token
+sends, garden creation and settings, and the Hub's pool, season and conviction acts. Work submissions,
+approvals and member changes keep their own events above. An act the job queue holds, such as a
+commitment claim, proof or creation sent from the App, records the queue's `offline_job_*` events
+instead. Hypercert listings and marketplace approvals, Karma syncs, deployments, gardener profile
+updates, profile avatars, pilot account enrollment, and action registration and single-field action
+edits (`useActionOperations`; registration keeps `admin_action_create_*`) do not record these events
+yet. Read App acts in the App project
+(163591) and Hub acts in the Hub project (262122).
+
+| Property | Meaning |
+|---|---|
+| `act` | Which act, such as `garden_join`, `vault_deposit`, `garden_create`, `pool_lifecycle` or `pool_setup`. The full list is `SendActName` in `packages/shared/src/modules/app/sendActAnalytics.ts`. |
+| `operation` | Which of the act's operations ran, a fixed name from code: a contract function such as `pausePool`, or the writes of a setup run such as `seedCycle,openCycle`. |
+| `auth_mode`, `chain_id` | The sign-in kind and the chain. |
+| `outcome` (ended only) | `confirmed` landed. `confirming` went out and may still land: a receipt wait past its limit, a send on record without a receipt, a Safe proposal, a wallet answer the person stopped waiting for, or a wallet join, which returns once it is broadcast. `queued` was kept on this device. `cancelled` was declined in the wallet. `failed` is anything else. `partial` is an act of several copies whose copies ended differently. |
+| `copies_<outcome>` (ended only) | For an act of several copies, how many copies ended each way. |
+| `parsed_error_family`, `duration_ms` (ended only) | The parsed error family of an act that did not land, never its message, and how long the act took. |
+
+The events carry no address, hash, amount, or text a person typed. A question that counts failed
+sends reads `outcome = 'failed'` only: a `confirming` send may still land. A join refused because
+the person is already a member ends `failed` with `parsed_error_family: AlreadyGardener`. Two
+`failed` endings sent nothing and are not failed sends, so leave them out of a failure count: an
+act refused because an earlier send of the same thing still holds it (`HeldByAnotherSend`; the
+earlier send keeps its own record), and a batched save the wallet cannot batch (`NotBatchable`;
+its changes then go out one write at a time, each recorded as its own act). Only builds that
+carry PRD-1553 record these events.
+
 ---
 
 ## Product/quality lens

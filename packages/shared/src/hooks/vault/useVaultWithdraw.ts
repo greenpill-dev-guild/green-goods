@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
 import { useCallback, useRef } from "react";
 import { useIntl } from "react-intl";
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
 import { toastService } from "../../components/toast";
 import { getWagmiConfig } from "../../config/appkit";
 import type { Address } from "../../types/domain";
@@ -25,6 +26,11 @@ export function useVaultWithdraw(options: VaultMutationOptions = {}) {
   const { primaryAddress } = useUser();
   const showErrorToast = shouldShowErrorToast(options.errorMode);
   const sender = useTransactionSender();
+  const withdrawAct: SendActContext = {
+    act: "vault_withdraw",
+    authMode: sender?.authMode,
+    chainId,
+  };
   const handleError = createMutationErrorHandler({
     source: "useVaultWithdraw",
     toastContext: "vault withdraw",
@@ -49,7 +55,7 @@ export function useVaultWithdraw(options: VaultMutationOptions = {}) {
   );
 
   const mutation = useMutation({
-    mutationFn: async (params: WithdrawParams) => {
+    mutationFn: recordedSendAct(withdrawAct, async (params: WithdrawParams) => {
       if (!sender) throw new Error("TransactionSender not available — auth not initialized");
       if (!primaryAddress) {
         throw new Error("Connected account required");
@@ -83,7 +89,7 @@ export function useVaultWithdraw(options: VaultMutationOptions = {}) {
         args: [params.amount, receiver, owner, maxLossBps, []],
       });
       return result.hash;
-    },
+    }),
     onMutate: () => {
       const toastId = toastService.loading({
         title: formatMessage({ id: "app.treasury.withdraw" }),

@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSignMessage } from "wagmi";
 import { useUser } from "../auth/useUser";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
+import { voucherAwardActOutcome } from "../../modules/commitment-pooling/send-act-outcome";
 import { SERVICE_LIVE_ROUTES } from "../../modules/commitment-pooling/service-access-live-config";
 import { createAccountMessageSigner } from "../../modules/auth/account-message-signer";
 import { createVoucherAwardClient } from "../../modules/commitment-pooling/voucher-award-client";
@@ -130,10 +132,22 @@ export function useVoucherAwards(reserve?: Address | null) {
       throw new Error("Select the award reserve and connect its signer");
     return { record, actor: user.primaryAddress, sender, client: required(), assertCurrent };
   };
+  // `sendVoucherAward` signs and sends every award on Gnosis.
+  const awardAct: SendActContext = {
+    act: "pool_voucher_award",
+    authMode: user.authMode,
+    chainId: 100,
+  };
+  const sendAward = recordedSendAct(
+    awardAct,
+    (record: VoucherAwardRecord) => sendVoucherAward(execution(record)),
+    voucherAwardActOutcome
+  );
   const send = useMutation({
     ...mutationOptions,
+    // The send's ending is recorded before the cache update, which can fail on its own.
     mutationFn: async (record: VoucherAwardRecord) => {
-      const result = await sendVoucherAward(execution(record));
+      const result = await sendAward(record);
       remember(result.record);
       return result;
     },

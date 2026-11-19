@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef } from "react";
 import { useIntl } from "react-intl";
 import { type Address, encodeFunctionData, type Hex } from "viem";
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
 import { toastService } from "../../components/toast";
 import type {
   CookieJarUpdateIntervalParams,
@@ -40,6 +41,12 @@ function useGardenJarWrite<TParams extends { jarAddress: Address }>(
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
   const sender = useTransactionSender();
+  const act: SendActContext = {
+    act: "cookie_jar_admin",
+    operation: config.source,
+    authMode: sender?.authMode,
+    chainId,
+  };
   const handleError = createMutationErrorHandler({
     source: config.source,
     toastContext: config.toastContext,
@@ -58,7 +65,7 @@ function useGardenJarWrite<TParams extends { jarAddress: Address }>(
   );
 
   return useMutation({
-    mutationFn: async (params: TParams) => {
+    mutationFn: recordedSendAct(act, async (params: TParams) => {
       if (!sender) throw new Error("Transaction sender is unavailable");
       const result = await sender.sendContractCall({
         address: gardenAddress,
@@ -68,7 +75,7 @@ function useGardenJarWrite<TParams extends { jarAddress: Address }>(
         chainId,
       });
       return result.hash;
-    },
+    }),
     onMutate: () => ({
       toastId: toastService.loading({ title: formatMessage({ id: config.titleId }) }),
     }),

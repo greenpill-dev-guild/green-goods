@@ -6,6 +6,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef } from "react";
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
 import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import { unavailableServiceAccess } from "../../modules/commitment-pooling/data-service-access";
 import { isDemoPoolingActive } from "../../modules/commitment-pooling/demo/demo-mode";
@@ -190,6 +191,13 @@ export function useServiceAccessReads(keys: readonly ServiceAccessKey[]) {
 export function useServiceAccessMutation(key: ServiceAccessKey | null) {
   const client = useQueryClient();
   const live = useLiveServiceAdapter();
+  const { authMode } = useUser();
+  const act = ({ action }: ServiceAccessAction): SendActContext => ({
+    act: "pool_service_access",
+    operation: action,
+    authMode,
+    chainId: key?.sourceChainId,
+  });
   const handleError = createMutationErrorHandler({
     source: "useServiceAccessMutation",
     toastContext: "service access",
@@ -205,7 +213,7 @@ export function useServiceAccessMutation(key: ServiceAccessKey | null) {
   return useMutation({
     retry: false,
     networkMode: "always",
-    mutationFn: async (action: ServiceAccessAction) => {
+    mutationFn: recordedSendAct(act, async (action: ServiceAccessAction) => {
       if (!key)
         throw new Error(
           "Service access unavailable: reviewed deployment, chain and signer configuration required"
@@ -220,7 +228,7 @@ export function useServiceAccessMutation(key: ServiceAccessKey | null) {
       if (current.current !== identity || !rehearsalEnabled(key) || !connectivity.current)
         throw new Error("Service account or rehearsal context changed; review again");
       return serviceRehearsalAdapter.execute(key, action);
-    },
+    }),
     onSuccess: async (result) => {
       if (current.current === identity && key) {
         // A poll started before this action must not replace its confirmed result when it lands.

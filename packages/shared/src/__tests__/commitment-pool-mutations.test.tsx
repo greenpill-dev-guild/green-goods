@@ -11,6 +11,7 @@ import {
 } from "../hooks/commitment-pooling/useCommitmentPoolMutations";
 import { createTestQueryClient } from "./test-utils/query-client";
 import { renderHookWithProviders } from "./test-utils/render-helpers";
+import { registerTelemetrySink } from "../modules/app/telemetry-sink";
 
 const MODULE = "0x6bb5b0fd70b6771b0e955fef37f8bd2ce911470a";
 
@@ -382,6 +383,42 @@ describe("useCommitmentPoolMutation", () => {
         args,
         chainId: 42161,
       });
+    });
+
+    it("records the act by its operation, never the steward's words (PRD-1553)", async () => {
+      const captured: Array<[string, Record<string, unknown>]> = [];
+      const unregister = registerTelemetrySink({
+        capture: (event, properties) => {
+          if (event.startsWith("send_act_")) captured.push([event, properties]);
+        },
+      });
+      try {
+        mocks.pinCommitmentReason.mockResolvedValue("bafy-reason");
+        const { result } = renderHookWithProviders(() =>
+          useCommitmentPoolMutation({ chainId: 42161 })
+        );
+        await act(async () => {
+          await result.current.mutateAsync({
+            action: "pausePool",
+            poolId: 7n,
+            reason: "Flooding on the lower terraces",
+          });
+        });
+
+        expect(
+          captured.map(([event, properties]) => [event, properties.act, properties.operation])
+        ).toEqual([
+          ["send_act_started", "pool_lifecycle", "pausePool"],
+          ["send_act_ended", "pool_lifecycle", "pausePool"],
+        ]);
+        expect(captured[1]![1]).toMatchObject({ outcome: "confirmed", chain_id: 42161 });
+        const sent = JSON.stringify(captured);
+        expect(sent).not.toContain("Flooding");
+        expect(sent).not.toContain("bafy-reason");
+        expect(sent.toLowerCase()).not.toContain(MODULE);
+      } finally {
+        unregister();
+      }
     });
 
     it("sends nothing when the reason could not be pinned", async () => {

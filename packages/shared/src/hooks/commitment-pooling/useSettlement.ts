@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Hex } from "viem";
 import { useReadContract } from "wagmi";
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
 import { SETTLEMENT_ENABLED } from "../../config/app";
 import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
@@ -111,6 +112,12 @@ export function useSettlementMutation(options: { chainId?: number } = {}) {
   const currentChainId = useCurrentChain();
   const chainId = options.chainId ?? currentChainId;
   const sender = useTransactionSender();
+  const act = ({ action }: SettlementMutationInput): SendActContext => ({
+    act: "pool_settlement",
+    operation: action,
+    authMode: sender?.authMode,
+    chainId,
+  });
   const queryClient = useQueryClient();
   const handleError = createMutationErrorHandler({
     source: "useSettlementMutation",
@@ -120,7 +127,7 @@ export function useSettlementMutation(options: { chainId?: number } = {}) {
     void queryClient.invalidateQueries({ queryKey: commitmentPoolingKeys.all(chainId) });
   }, INDEXER_LAG_SCHEDULE_MS);
   return useMutation({
-    mutationFn: async (input: SettlementMutationInput) => {
+    mutationFn: recordedSendAct(act, async (input: SettlementMutationInput) => {
       if (!SETTLEMENT_ENABLED)
         throw new Error("Settlement actions are unavailable in this release");
       if (!sender) throw new Error("Transaction sender is unavailable");
@@ -143,7 +150,7 @@ export function useSettlementMutation(options: { chainId?: number } = {}) {
       // A Safe-style wallet can answer with a proposal (`confirmation: "pending"`):
       // nothing has run yet, and the caller must not read it as a confirmed step.
       return result;
-    },
+    }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: commitmentPoolingKeys.all(chainId) });
       scheduleReadback();

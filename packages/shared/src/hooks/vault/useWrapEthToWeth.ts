@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { getAddress } from "viem";
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
 import type { Address } from "../../types/domain";
 import { WETH_DEPOSIT_ABI } from "../../utils/blockchain/abis/erc20";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
@@ -22,6 +23,11 @@ export interface WrapEthToWethParams {
 export function useWrapEthToWeth(options: VaultMutationOptions = {}) {
   const { authMode, primaryAddress } = useUser();
   const sender = useTransactionSender();
+  const wrapAct = (params: { chainId: number }): SendActContext => ({
+    act: "eth_wrap",
+    authMode: sender?.authMode,
+    chainId: params.chainId,
+  });
   const showErrorToast = shouldShowErrorToast(options.errorMode);
   const handleError = createMutationErrorHandler({
     source: "useWrapEthToWeth",
@@ -29,7 +35,7 @@ export function useWrapEthToWeth(options: VaultMutationOptions = {}) {
   });
 
   const mutation = useMutation({
-    mutationFn: async (params: WrapEthToWethParams) => {
+    mutationFn: recordedSendAct(wrapAct, async (params: WrapEthToWethParams) => {
       if (params.chainId !== OCTANT_V2_ETHEREUM_CHAIN_ID) {
         throw new Error("ETH to WETH conversion requires Ethereum mainnet chain ID 1");
       }
@@ -57,7 +63,7 @@ export function useWrapEthToWeth(options: VaultMutationOptions = {}) {
       });
 
       return result.hash;
-    },
+    }),
     onError: (error, params) => {
       handleError(error, {
         metadata: {

@@ -136,6 +136,16 @@ const RETRIABLE_FAILURES = new Set<PoolSetupFailure>([
   "read-failed",
 ]);
 
+/** How one setup run ended: what landed, and where and why it stopped. */
+export interface PoolSetupOutcome {
+  status: "complete" | "failed";
+  landed: PoolSetupAction[];
+  failedStep: PoolSetupAction | null;
+  failure: PoolSetupFailure | null;
+  error: unknown;
+  cycleId: bigint | null;
+}
+
 /** Whether repeating the run is safe. The console offers a retry only for these. */
 export function isRetriablePoolSetupFailure(failure: PoolSetupFailure | null): boolean {
   return failure !== null && RETRIABLE_FAILURES.has(failure);

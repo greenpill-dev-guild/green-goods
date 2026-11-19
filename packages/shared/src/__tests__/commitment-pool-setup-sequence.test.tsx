@@ -24,6 +24,7 @@ import {
 } from "../modules/commitment-pooling/pool-setup";
 import { createTestQueryClient } from "./test-utils/query-client";
 import { renderHookWithProviders } from "./test-utils/render-helpers";
+import { registerTelemetrySink } from "../modules/app/telemetry-sink";
 
 const POOL_ID = 7n;
 
@@ -402,6 +403,55 @@ describe("useCommitmentPoolSetupSequence", () => {
     expect(sentFunctions()).toEqual(["openCycle"]);
     // The pool was open before the run; the step is reported landed, not sent.
     expect(alreadyOpen.result.current.state.landed).toEqual(["openPool", "openCycle"]);
+  });
+
+  it("records each run as one act, a seed whose outcome it never learned as confirming (PRD-1553)", async () => {
+    const captured: Array<[string, Record<string, unknown>]> = [];
+    const unregister = registerTelemetrySink({
+      capture: (event, properties) => {
+        if (event.startsWith("send_act_")) captured.push([event, properties]);
+      },
+    });
+    try {
+      const seeded = fakeChain({
+        poolState: POOL.READY,
+        cycles: { "12": { state: CYCLE.SEEDED } },
+      });
+      mocks.sender.sendContractCall.mockImplementation(async (call) => seeded.apply(call));
+      const season = renderSequence(seeded.reader);
+      await act(async () => {
+        await season.result.current.run(
+          openSeasonSteps({
+            poolId: POOL_ID,
+            cycleId: 12n,
+            allocation: MODEL_ONE,
+            recognitionPolicy: RECOGNITION,
+          })
+        );
+      });
+      const campaign = fakeChain({ poolState: POOL.OPEN, cycles: { "12": { state: CYCLE.OPEN } } });
+      mocks.sender.sendContractCall.mockImplementation(async (call) => {
+        if (call.functionName !== "seedCycle") return campaign.apply(call);
+        campaign.apply(call);
+        throw new Error("Timed out waiting for the receipt");
+      });
+      const seeding = renderSequence(campaign.reader);
+      await act(async () => {
+        await seeding.result.current.run(CAMPAIGN_PLAN);
+      });
+
+      expect(
+        captured.map(([event, { act, operation, outcome }]) => [event, act, operation, outcome])
+      ).toEqual([
+        ["send_act_started", "pool_setup", "openPool,openCycle", undefined],
+        ["send_act_ended", "pool_setup", "openPool,openCycle", "confirmed"],
+        ["send_act_started", "pool_setup", "seedCycle,openCycle", undefined],
+        ["send_act_ended", "pool_setup", "seedCycle,openCycle", "confirming"],
+      ]);
+      expect(JSON.stringify(captured)).not.toContain("bafy-campaign");
+    } finally {
+      unregister();
+    }
   });
 
   it("refuses an open cycle whose stored terms are not the ones this run planned", async () => {

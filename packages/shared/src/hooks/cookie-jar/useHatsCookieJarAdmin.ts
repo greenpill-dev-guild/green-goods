@@ -3,6 +3,7 @@ import { useRef } from "react";
 import { useIntl } from "react-intl";
 import { type Address, type Hex, keccak256, parseAbi, toHex, zeroAddress, zeroHash } from "viem";
 import { usePublicClient, useReadContracts } from "wagmi";
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
 import { toastService } from "../../components/toast";
 import { queryInvalidation } from "../../config/query-keys/invalidation";
 import {
@@ -103,6 +104,12 @@ export function useHatsCookieJarAdmin(jar: CookieJar) {
   const address = jar.jarAddress;
   const account = usePrimaryAddress();
   const sender = useTransactionSender();
+  const act = ({ functionName }: HatsCookieJarAction): SendActContext => ({
+    act: "cookie_jar_admin",
+    operation: functionName,
+    authMode: sender?.authMode,
+    chainId,
+  });
   const client = usePublicClient({ chainId });
   const queryClient = useQueryClient();
   // An accepted send is kept per tab session, so a reload or remount cannot reopen the writes.
@@ -246,7 +253,7 @@ export function useHatsCookieJarAdmin(jar: CookieJar) {
     return result;
   };
   const mutation = useMutation({
-    mutationFn: async (action: HatsCookieJarAction) => {
+    mutationFn: recordedSendAct(act, async (action: HatsCookieJarAction) => {
       if (signing.current || (scope && useHatsJarSubmissionStore.getState().pending[scope]))
         throw new Error("A jar transaction is already pending");
       signing.current = true;
@@ -255,7 +262,7 @@ export function useHatsCookieJarAdmin(jar: CookieJar) {
       } finally {
         signing.current = false;
       }
-    },
+    }),
     onSuccess: async (result) => {
       if (result.confirmation === "pending") return;
       await refresh();
