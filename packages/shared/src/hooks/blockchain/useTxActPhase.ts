@@ -77,10 +77,12 @@ export async function followAct<T>(
     });
   });
   let awaitingSigners = false;
+  // Once the wallet has answered there is nothing left to stop waiting for.
+  let answered = false;
   line.step({
     type: "start",
     key,
-    ...(line.waitsOnWallet ? { cancel: () => cancel.abort() } : {}),
+    ...(line.waitsOnWallet ? { cancel: () => answered || cancel.abort() } : {}),
   });
   if (line.waitsOnWallet)
     line.setNudge(() => line.step({ type: "wallet-slow", key }), WALLET_NUDGE_MS);
@@ -90,11 +92,13 @@ export async function followAct<T>(
         signal: cancel.signal,
         onBroadcast: async (hash) => {
           if (cancel.signal.aborted) return;
+          answered = true;
           line.clearNudge();
           line.step({ type: "broadcast", key, hash });
         },
         onAwaiting: () => {
           if (cancel.signal.aborted) return;
+          answered = true;
           awaitingSigners = true;
           line.step({ type: "safe-signers", key });
         },

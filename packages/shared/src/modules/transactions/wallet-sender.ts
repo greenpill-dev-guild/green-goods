@@ -292,6 +292,8 @@ export class WalletSender implements TransactionSender {
     // TODO: Try EIP-5792 sendCalls with paymasterService first when available.
     // Fall back to direct writeContractAsync if the wallet doesn't support it.
 
+    // Stopped before it reached the sender: neither a network switch nor a send is asked for.
+    if (options.signal?.aborted) throw new WalletAnswerAbandonedError();
     const call = this.forSigner(named);
     // Cast to string to allow non-canonical hash detection (Safe wallets
     // can return identifiers that don't match `0x${string}` at runtime).

@@ -182,6 +182,9 @@ export function useSendToken() {
       // balance, and leave any newer send's wait alone.
       const answeredAfterCancel = () => {
         setAnsweredLate(true);
+        // Said in a toast too, in case another send has started in the meantime.
+        const { label, detail } = SEND_STAGE_WORDS["still-confirming"];
+        toastService.info({ title: formatMessage(label), message: formatMessage(detail!) });
         sentRef.current = { account: primaryAddress.toLowerCase(), chainId: token.chainId };
         scheduleRefetch();
       };

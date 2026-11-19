@@ -541,6 +541,10 @@ describe("Celo send safety", () => {
         await onBroadcast("0xlate");
       });
       await waitFor(() => expect(result.current.notice).toBe("still-confirming"));
+      expect(toastService.info).toHaveBeenCalledWith({
+        title: "app.sendStage.stillConfirming",
+        message: "app.sendStage.stillConfirming.detail",
+      });
     } finally {
       delete (mockSender as { authMode?: string }).authMode;
     }

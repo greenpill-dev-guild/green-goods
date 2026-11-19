@@ -117,6 +117,37 @@ describe("useTxActPhase.track", () => {
     void retry;
   });
 
+  it("ignores a Cancel that comes after the wallet answered", async () => {
+    vi.useFakeTimers();
+    const { result } = renderHook(() => useTxActPhase());
+    let send: ActSendCallbacks | undefined;
+    let landed: (value: string) => void = () => undefined;
+    let sent!: Promise<unknown>;
+    act(() => {
+      sent = result.current.track(
+        "k",
+        (callbacks) =>
+          new Promise<string>((resolve) => {
+            send = callbacks;
+            landed = resolve;
+          })
+      );
+    });
+    act(() => {
+      vi.advanceTimersByTime(20_000);
+    });
+    // Cancel read off the slow line, pressed just after the wallet's answer moved it on.
+    const { cancel } = result.current.phase as { cancel: () => void };
+    await act(async () => {
+      await send?.onBroadcast?.(HASH);
+      cancel();
+      landed(HASH);
+      await sent;
+    });
+    expect(send?.signal?.aborted).toBe(false);
+    expect(result.current.phase).toEqual({ status: "confirmed", key: "k", hash: HASH });
+  });
+
   it("never turns a passkey act slow: it approves in the app, not a wallet", () => {
     mockAuthMode = "passkey";
     vi.useFakeTimers();
