@@ -27,11 +27,12 @@ import {
   type QueuedAttestation,
 } from "../../utils/eas/transaction-builder";
 import { logger } from "../app/logger";
-import type { ProcessJobContext, ProcessJobResult } from "../job-queue/ports";
+import type { JobSendPhase, ProcessJobContext, ProcessJobResult } from "../job-queue/ports";
 import { sendCheckpointOf, writeSendCheckpoint } from "../job-queue/queue-policy";
 import { takeUpOf } from "../job-queue/take-up-hold";
 import { holdingSends } from "../job-queue/send-guards";
 import type { saveUnderClaim, WorkClaim } from "../job-queue/work-claims";
+import { reportingSendStages } from "../transactions/send-stage";
 import {
   type ContractCall,
   ReceiptWaitLimitError,
@@ -83,6 +84,8 @@ export interface UploadQueuedWorkPorts {
   readTransactionNonce?(hash: Hex, chainId: number): Promise<number | null>;
   /** The chain's latest block and its time, in seconds. */
   readChainHead?(chainId: number): Promise<{ number: bigint; timestamp: number }>;
+  /** Tells every screen that shows this job where its send stands; null once the send stopped. */
+  reportStage?(job: Job, stage: JobSendPhase["stage"] | null): void;
   /** How long a call waits for its receipt; past it the call is sent and still confirming. */
   receiptWaitLimitMs: number;
   /** The queue's record of a receipt that outlasted its limit, once per kind the call carried. */
@@ -128,6 +131,16 @@ export async function uploadQueuedWork(
   let flagged = 0;
   const { chainId, sender } = input;
   const explicitSend: ProcessJobContext = { transactionSender: sender, explicit: true };
+  /** Tells each item's screen where the send carrying it stands (PRD-1552); null lets it go. */
+  const tellStage = (jobs: readonly Job[], stage: JobSendPhase["stage"] | null) => {
+    for (const job of jobs) {
+      try {
+        ports.reportStage?.(job, stage);
+      } catch (error) {
+        logger.warn("[UploadQueuedWork] A send stage report threw", { error });
+      }
+    }
+  };
   const callOf = (chunk: ChunkItem[]) =>
     buildQueuedAttestationsCall(
       ports.easConfig(chainId).EAS.address as `0x${string}`,
@@ -234,12 +247,16 @@ export async function uploadQueuedWork(
       // The queue confirms each sent item and finishes it the way every send finishes.
       // One it cannot finish now keeps its recorded send for the next confirmation pass.
       for (const { job } of confirmedItems) {
-        await ports.processJob(job.id, explicitSend).catch((error: unknown) => {
+        const finished = await ports.processJob(job.id, explicitSend).catch((error: unknown) => {
           logger.warn("[UploadAll] Sent item will be confirmed later", {
             jobId: job.id,
             error: error instanceof Error ? error.message : String(error),
           });
+          return undefined;
         });
+        // Its screen said confirming until the queue finished it; now its record speaks. One
+        // another holder is finishing, such as the confirmation pass, is let go by that holder.
+        if (finished?.error !== "already-processing") tellStage([job], null);
       }
     }
 
@@ -313,8 +330,14 @@ export async function uploadQueuedWork(
       }
 
       const { readChainHead } = ports;
+      // One call carries every item, so each one's screen says the same stage (PRD-1552).
+      const jobs = items.map(({ job }) => job);
+      let stageReported = false;
       const result = await sendWithCheckpoint({
-        sender,
+        sender: reportingSendStages(sender, ({ stage }) => {
+          stageReported = true;
+          tellStage(jobs, stage);
+        }),
         call: { ...callOf(items), chainId },
         jobIds: items.map(({ job }) => job.id),
         // Read just before the intent, after any prompt: every item the call
@@ -323,7 +346,12 @@ export async function uploadQueuedWork(
         record: (next) => recordAll(items, next),
         receiptWaitLimitMs: ports.receiptWaitLimitMs,
         now: ports.now,
+      }).catch((error: unknown) => {
+        if (stageReported) tellStage(jobs, null);
+        throw error;
       });
+      // A sent call's items keep saying confirming until the queue finishes each one, below.
+      if (stageReported && result.status !== "sent") tellStage(jobs, null);
       switch (result.status) {
         case "sent":
           sent += items.length;

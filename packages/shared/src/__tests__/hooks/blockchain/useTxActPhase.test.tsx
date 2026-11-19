@@ -38,6 +38,14 @@ describe("useTxActPhase.trackReported", () => {
       (report) => report({ type: "queued" }),
       { status: "queued", key: "k" },
     ],
+    [
+      "kept after its broadcast, still confirming",
+      (report) => {
+        report({ type: "broadcast", hash: HASH });
+        report({ type: "queued" });
+      },
+      { status: "still-confirming", key: "k" },
+    ],
     ["queued when it never said how it ended", () => undefined, { status: "queued", key: "k" }],
   ])("ends %s", async (_case, reports, expected) => {
     const { result } = renderHook(() => useTxActPhase());

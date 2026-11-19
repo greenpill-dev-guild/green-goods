@@ -573,7 +573,7 @@ describe("SubmitWork dialog", () => {
       await Promise.resolve();
     });
     expect(screen.queryByRole("button", { name: "Done" })).not.toBeInTheDocument();
-    expect(await screen.findByText("Awaiting confirmation")).toBeInTheDocument();
+    expect(await screen.findByText("Still confirming…")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Check confirmation" })).toBeInTheDocument();
     expect(errorToast).not.toHaveBeenCalled();
   });
@@ -589,10 +589,10 @@ describe("SubmitWork dialog", () => {
     await act(async () => {
       workSend.awaitConfirmation("0xoffline_confirmation-job");
     });
-    expect(await screen.findByText("Awaiting confirmation")).toBeInTheDocument();
+    expect(await screen.findByText("Still confirming…")).toBeInTheDocument();
     for (const edit of screen.getAllByRole("button", { name: /^Edit / })) {
       await user.click(edit);
-      expect(screen.getByText("Awaiting confirmation")).toBeInTheDocument();
+      expect(screen.getByText("Still confirming…")).toBeInTheDocument();
     }
     expect(screen.queryByRole("textbox", { name: "Impact note" })).not.toBeInTheDocument();
     if (closeVia === "escape") {

@@ -77,7 +77,7 @@ export function PoolQueuedRows({ console: pool, rows, now }: PoolQueuedRowsProps
         // much it promises, since a promise not created yet has no dialog to tell it.
         const said =
           refusal ??
-          actPhaseText(intl, { phase, chainId: pool.chainId, confirmed: sentLine }) ??
+          actPhaseText(intl, { phase, confirmed: sentLine }) ??
           (expired
             ? formatMessage({
                 id: "hub.garden.pool.add.expired",
@@ -163,13 +163,7 @@ export function PoolQueuedRows({ console: pool, rows, now }: PoolQueuedRowsProps
                 readers, so each change is still announced. Once a refusal speaks, the
                 same line announces why in place of a stale send's words, which offered
                 a try the row no longer has. */}
-            <ActPhaseLine
-              className="sr-only"
-              phase={phase}
-              chainId={pool.chainId}
-              confirmed={sentLine}
-              reason={refusal}
-            />
+            <ActPhaseLine className="sr-only" phase={phase} confirmed={sentLine} reason={refusal} />
           </li>
         );
       })}

@@ -64,6 +64,13 @@ describe("actPhaseReducer", () => {
       to: { status: "queued", key: "a" },
     },
     {
+      // Broadcast, then kept: it went out, so it is still confirming (PRD-1552).
+      case: "a send the queue kept after its broadcast is still confirming",
+      from: confirming,
+      event: { type: "queued", key: "a" },
+      to: { status: "still-confirming", key: "a" },
+    },
+    {
       case: "a queued line stays queued",
       from: { status: "queued", key: "a" },
       event: { type: "confirmed", key: "a" },

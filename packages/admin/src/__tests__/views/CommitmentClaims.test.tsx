@@ -91,11 +91,11 @@ describe("CommitmentClaims", () => {
     ]);
 
     const approving = screen.getByTestId(`commitment-claim-${PERSON}`);
-    expect(within(approving).getByText(/^Confirming on .+…$/)).toBeInTheDocument();
+    expect(within(approving).getByText("Confirming…")).toBeInTheDocument();
     expect(within(approving).queryByRole("button")).not.toBeInTheDocument();
 
     const other = screen.getByTestId(`commitment-claim-${GARDEN}`);
-    expect(within(other).queryByText(/^Confirming on/)).not.toBeInTheDocument();
+    expect(within(other).queryByText("Confirming…")).not.toBeInTheDocument();
     expect(within(other).getByRole("button", { name: "Approve" })).toBeEnabled();
   });
 

@@ -17,10 +17,14 @@
  * The words are message descriptors whose text is in the Shared catalogs (`app.sendStage.*`),
  * so a screen formats them with its own `formatMessage` and the bot reads the same entries.
  *
+ * A send reports the first two as they happen (`withSendStageReports`). Still confirming is a
+ * send's record, not a moment: its broadcast is on record and its receipt has not been seen.
+ *
  * @module modules/transactions/send-stage
  */
 
 import type { Hex } from "viem";
+import type { TransactionSender, TransactionSendOptions } from "./types";
 
 export type SendStage = "wallet" | "confirming" | "still-confirming" | "safe-signers";
 
@@ -33,11 +37,74 @@ export type SendStageReport =
   | { stage: "confirming"; txHash: Hex }
   | { stage: "still-confirming" };
 
+/** The stages a send reports while it runs. */
+export type LiveSendStageReport = Exclude<SendStageReport, { stage: "still-confirming" }>;
+
+/**
+ * The send options with its stages reported as they happen. Only a wallet asks the person, just
+ * before the send can reach the network, so only a wallet sender reports the wallet stage: a
+ * passkey's `onBeforeBroadcast` comes after its prompt was approved, and an embedded wallet asks
+ * nobody. Every sender reports confirming once, as soon as the network has the send: at its
+ * broadcast reference, which a passkey's UserOperation and a passkey batch have long before their
+ * receipt and their `onBroadcast`, or else at its broadcast. A wallet's bundled request has only
+ * a batch id when accepted, so it says confirming from its broadcast. The send's own callbacks run first
+ * and keep their say, so a checkpoint that fails to save still stops the send; `report` runs
+ * after and must not throw.
+ */
+export function withSendStageReports(
+  options: TransactionSendOptions,
+  authMode: TransactionSender["authMode"],
+  report: (stage: LiveSendStageReport) => void
+): TransactionSendOptions {
+  let confirming = false;
+  const reportConfirming = (txHash: Hex) => {
+    if (confirming) return;
+    confirming = true;
+    report({ stage: "confirming", txHash });
+  };
+  return {
+    ...options,
+    onBeforeBroadcast: async (reference) => {
+      await options.onBeforeBroadcast?.(reference);
+      if (authMode === "wallet") report({ stage: "wallet" });
+    },
+    onBroadcastReference: async (reference) => {
+      await options.onBroadcastReference?.(reference);
+      reportConfirming(reference.hash);
+    },
+    onBroadcast: async (hash) => {
+      await options.onBroadcast?.(hash);
+      reportConfirming(hash);
+    },
+  };
+}
+
+/** The sender, with every single send it makes reporting its stages (`withSendStageReports`). */
+export function reportingSendStages(
+  sender: TransactionSender,
+  report: (stage: LiveSendStageReport) => void
+): TransactionSender {
+  const reporting = Object.create(sender) as TransactionSender;
+  reporting.sendContractCall = (call, options = {}) =>
+    sender.sendContractCall(call, withSendStageReports(options, sender.authMode, report));
+  return reporting;
+}
+
 /** A catalog entry: its id, and the English text a screen falls back to. */
 export interface SendStageMessage {
   id: string;
   defaultMessage: string;
 }
+
+interface SendStageWords {
+  label: SendStageMessage;
+  detail?: SendStageMessage;
+  stopped?: SendStageMessage;
+}
+
+/** A stage's words, with the entries it always has made required. */
+type StageWords<Has extends "detail" | "stopped" = never> = SendStageWords &
+  Required<Pick<SendStageWords, Has>>;
 
 /**
  * Each stage's words. `label` fits a pill, a button or a toast title. `detail` is the sentence
@@ -45,10 +112,12 @@ export interface SendStageMessage {
  * leave, and the wallet's says to open it once the wait passes `WALLET_NUDGE_MS`. `stopped` is
  * what the wallet stage says after the person stops waiting for it.
  */
-export const SEND_STAGE_WORDS: Record<
-  SendStage,
-  { label: SendStageMessage; detail?: SendStageMessage; stopped?: SendStageMessage }
-> = {
+export const SEND_STAGE_WORDS: {
+  wallet: StageWords<"detail" | "stopped">;
+  confirming: StageWords;
+  "still-confirming": StageWords<"detail">;
+  "safe-signers": StageWords<"detail">;
+} = {
   wallet: {
     label: { id: "app.sendStage.wallet", defaultMessage: "Confirm in your wallet" },
     detail: {

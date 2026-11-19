@@ -8,7 +8,8 @@
  * `confirmed` means the receipt landed; the read models may still lag, so a
  * view keeps the act closed on that row until the record it reads moves on.
  * `queued` is an act the job queue kept on this device to send later: it did
- * not fail, and nothing says it landed.
+ * not fail, and nothing says it landed. One the queue kept after its broadcast
+ * went out, so it reads as still confirming instead (PRD-1552).
  *
  * Waiting on the wallet past `WALLET_NUDGE_MS`, the act is `slow`, and an act
  * that can be cancelled carries its `cancel` (PRD-1551). Three endings never
@@ -78,6 +79,10 @@ export function actPhaseReducer(state: TxActPhase, event: TxActPhaseEvent): TxAc
     case "stopped":
       return state.status === "signing" ? { status: "stopped", key: state.key } : state;
     case "queued":
+      // Kept by the queue after its broadcast: it went out, so it is still confirming
+      // (PRD-1552). Kept before any broadcast, it is queued on this device.
+      if (state.status === "confirming") return { status: "still-confirming", key: state.key };
+      return running ? { status: "queued", key: state.key } : state;
     case "still-confirming":
     case "safe-signers":
     case "failed":

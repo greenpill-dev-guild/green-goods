@@ -27,7 +27,6 @@ const meta: Meta<typeof CommitmentActions> = {
     fallbackPath: null,
     onOpenDialog: () => undefined,
     sendPhase: { status: "idle" },
-    chainId: 42161,
   },
   decorators: [
     (Story) => (

@@ -5,10 +5,11 @@
 /**
  * What a person watching one send is told, and what they can never change.
  *
- * `onPhase` is report-only: it hears the wallet being asked and the broadcast,
- * after the executor's own checkpoints, and a report that throws is logged and
- * ignored. Without it the executor's send options reach the wallet untouched.
- * The queue's receipt limit reaches every send, and a wait that ran out of it is recorded.
+ * Every send reports its stage on the queue's `job:stage` event, for any screen
+ * that shows the job (PRD-1552), and to `onPhase` when the caller asked. Reports
+ * come after the executor's own checkpoints, and one that throws is logged and
+ * ignored. Only a wallet reports the wallet stage. The queue's receipt limit
+ * reaches every send, and a wait that ran out of it is recorded.
  */
 
 import { describe, expect, it, vi } from "vitest";
@@ -55,14 +56,25 @@ describe("send phase reports", () => {
     };
   }
 
-  /** A wallet that asks, then broadcasts, calling the options in the order a real send does. */
-  function walletSender() {
+  /** A sender that asks, then broadcasts, calling the options in the order a real send does. */
+  function walletSender(authMode: TransactionSender["authMode"] = "wallet") {
     const sendContractCall = vi.fn(async (_call: unknown, options: TransactionSendOptions = {}) => {
       await options.onBeforeBroadcast?.();
       await options.onBroadcast?.("0xsent");
       return { hash: "0xsent" as const, sponsored: false };
     });
-    return { sender: { sendContractCall } as unknown as TransactionSender, sendContractCall };
+    return {
+      sender: { authMode, sendContractCall } as unknown as TransactionSender,
+      sendContractCall,
+    };
+  }
+
+  /** The stages the queue told every screen, in order. */
+  function stagesSeen(deps: JobQueueDependencies) {
+    return vi
+      .mocked(deps.events.emit)
+      .mock.calls.filter(([type]) => type === "job:stage")
+      .map(([, data]) => (data as { stage: string | null }).stage);
   }
 
   it("reports the wallet, then the chain, each after the executor's own checkpoint", async () => {
@@ -124,21 +136,58 @@ describe("send phase reports", () => {
     expect(onPhase).not.toHaveBeenCalled();
   });
 
-  it("hands the executor's checkpoints over untouched when nobody asked for reports", async () => {
+  // Upload all, the background flush and a tap that wired nothing all show where a send stands.
+  it("tells every screen each send's stage, though nobody passed onPhase, and lets go at the end", async () => {
     const checkpoints = {
       onBeforeBroadcast: vi.fn(async () => undefined),
       onBroadcast: vi.fn(async () => undefined),
     };
-    const { queue } = setup({
+    const { deps, queue } = setup({
       store: createInMemoryJobQueueStore([queuedJob()]),
       executors: sendingExecutor(checkpoints),
     });
-    const wallet = walletSender();
 
-    await queue.processJob("job-1", { transactionSender: wallet.sender });
-    const options = wallet.sendContractCall.mock.calls[0]?.[1];
-    expect(options?.onBeforeBroadcast).toBe(checkpoints.onBeforeBroadcast);
-    expect(options?.onBroadcast).toBe(checkpoints.onBroadcast);
+    await expect(
+      queue.processJob("job-1", { transactionSender: walletSender().sender })
+    ).resolves.toEqual({ success: true, txHash: "0xsent" });
+    expect(stagesSeen(deps)).toEqual(["wallet", "confirming", null]);
+    expect(checkpoints.onBeforeBroadcast).toHaveBeenCalledOnce();
+    expect(checkpoints.onBroadcast).toHaveBeenCalledWith("0xsent");
+    // Let go only once the job completed: between the two, a row would read as sent and stuck.
+    const order = vi.mocked(deps.events.emit).mock.calls.map(([type]) => type);
+    expect(order.indexOf("job:completed")).toBeGreaterThanOrEqual(0);
+    expect(order.lastIndexOf("job:stage")).toBeGreaterThan(order.indexOf("job:completed"));
+  });
+
+  it("lets go of a try that stopped before any stage, so no row stays under way", async () => {
+    const { deps, queue } = setup({
+      store: createInMemoryJobQueueStore([queuedJob()]),
+      executors: {
+        execute: vi.fn(async () => {
+          throw new Error("submission-ownership-changed");
+        }),
+      },
+    });
+
+    await queue.processJob("job-1", { transactionSender: walletSender().sender });
+    expect(stagesSeen(deps)).toEqual([null]);
+  });
+
+  it("says the wallet stage only for a wallet, since a passkey or an embedded wallet asks nobody then", async () => {
+    for (const authMode of ["passkey", "embedded"] as const) {
+      const { deps, queue } = setup({
+        store: createInMemoryJobQueueStore([queuedJob()]),
+        executors: sendingExecutor({}),
+      });
+      const onPhase = vi.fn();
+
+      await queue.processJob("job-1", {
+        transactionSender: walletSender(authMode).sender,
+        onPhase,
+      });
+      expect(stagesSeen(deps)).toEqual(["confirming", null]);
+      expect(onPhase.mock.calls).toEqual([[{ stage: "confirming", txHash: "0xsent" }]]);
+    }
   });
 
   it("limits the receipt wait of every send, a creation's too (PRD-1551)", async () => {

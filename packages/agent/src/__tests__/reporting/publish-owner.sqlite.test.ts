@@ -50,7 +50,7 @@ const CHECK_STOPPED =
 const ATTESTATION_UNREAD =
   "The transaction is confirmed, but I still can't read its attestation details, so I've stopped checking. You don't need to sign or send anything again. If your report doesn't show in the garden, write to contact@greengoods.app.";
 const STILL_CONFIRMING =
-  "Your report was sent and is still being confirmed, which can take a few minutes. You can leave this chat; I'll message you when it's published. You don't need to send it again.";
+  "Sent. Confirming is taking longer than usual. You can leave, and you don't need to send it again. I'll message you when your report is published.";
 const LINK_EXPIRED =
   "Your publishing link expired before anything was sent, so nothing was published. Your report is saved; reply RETRY for a new link.";
 const AWAITING_SIGNATURE = "Your report for TAS is waiting for your signature.";

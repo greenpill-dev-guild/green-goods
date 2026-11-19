@@ -6,14 +6,14 @@ import type {
   WorkJobPayload,
 } from "../../types/job-queue";
 import type { BatchBudget } from "../transactions/batch-types";
-import type { SendStageReport } from "../transactions/send-stage";
+import type { LiveSendStageReport } from "../transactions/send-stage";
 import type { TransactionSender } from "../transactions/types";
 
 /**
  * Where one send stands while the person who asked for it watches, in the shared stage model:
  * the wallet is being asked, or the send is broadcast and the network is confirming it.
  */
-export type JobSendPhase = Exclude<SendStageReport, { stage: "still-confirming" }>;
+export type JobSendPhase = LiveSendStageReport;
 
 export interface ProcessJobContext {
   transactionSender: TransactionSender | null;
@@ -25,9 +25,9 @@ export interface ProcessJobContext {
    */
   explicit?: boolean;
   /**
-   * Told when the wallet is asked and when the send is broadcast, so a view can
-   * say where one row stands. Report-only: it is never stored, never awaited,
-   * and a throw inside it never reaches the send.
+   * Told when the wallet is asked and when the send is broadcast, as the queue's
+   * `job:stage` event tells every screen. Report-only: it is never stored, never
+   * awaited, and a throw inside it never reaches the send.
    */
   onPhase?: (phase: JobSendPhase) => void;
 }
@@ -70,6 +70,11 @@ export interface JobQueueEventMap {
   "job:processing": { jobId: string; job: Job };
   "job:completed": { jobId: string; job: Job; txHash: string };
   "job:failed": { jobId: string; job: Job; error: string };
+  /**
+   * Where a send of this job stands while it runs, for any screen that shows the job, however
+   * the send was started (PRD-1552). Null once that send stopped; the other events say how.
+   */
+  "job:stage": { jobId: string; job: Job; stage: JobSendPhase["stage"] | null };
   "queue:sync-completed": { result: FlushResult };
   "offline:status-changed": { isOnline: boolean };
   "background:sync-requested": { source: "service-worker"; timestamp: number };
