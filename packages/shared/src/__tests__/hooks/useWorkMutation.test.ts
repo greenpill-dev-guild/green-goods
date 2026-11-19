@@ -88,7 +88,6 @@ vi.mock("../../components/toast", () => ({
     dismiss: vi.fn(),
   },
   showWalletProgress: vi.fn(),
-  createWalletProgressToasts: vi.fn(() => ({ wallet: vi.fn(), confirming: vi.fn() })),
 }));
 
 vi.mock("../../stores/useUIStore", () => ({

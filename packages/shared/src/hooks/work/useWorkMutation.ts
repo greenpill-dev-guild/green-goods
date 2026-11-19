@@ -4,6 +4,7 @@ import {
   recordWorkSubmissionFailure,
   recordWorkSubmissionOutcome,
   recordWorkSubmissionStart,
+  showWorkStillConfirming,
   showWorkSubmissionFailure,
 } from "./workSubmissionFeedback";
 import { createDraftUploadPersistence } from "../../modules/work/draft-upload";
@@ -14,7 +15,6 @@ import { draftDB } from "../../modules/job-queue/draft-db";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef, useState } from "react";
 import {
-  createWalletProgressToasts,
   showWalletProgress,
   toastService,
   walletProgressToasts,
@@ -22,7 +22,6 @@ import {
 } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { trackWorkWalletRequestStarted } from "../../modules/app/analytics-events";
-import { SEND_STAGE_WORDS } from "../../modules/transactions/send-stage";
 import { addBreadcrumb } from "../../modules/app/error-tracking";
 import {
   hasRecordedSend,
@@ -55,9 +54,6 @@ import {
 export type { UseWorkMutationOptions } from "./useWorkMutation.types";
 
 /** Checks upload consent and owns a Work submission through queue admission, sending and recovery. */
-/** Sent, with its receipt not seen yet: the shared still confirming words (PRD-1552). */
-const STILL_CONFIRMING = SEND_STAGE_WORDS["still-confirming"];
-
 export function useWorkMutation(options: UseWorkMutationOptions) {
   const {
     authMode,
@@ -238,11 +234,8 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
 
             if (stage === "complete") {
               walletProgressToasts.success();
-            } else if (stage === "wallet" || stage === "confirming") {
-              // The send's stages, in the shared stage words and the person's language.
-              createWalletProgressToasts(intl.formatMessage)[stage]();
             } else {
-              showWalletProgress(stage, message);
+              showWalletProgress(stage, message, intl.formatMessage);
             }
             onProgress?.(stage, message);
           },
@@ -386,16 +379,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       const unchecked =
         origin.outcome?.kind === "awaiting-confirmation" &&
         origin.outcome.reason === "connection-unconfirmed";
-      if (awaiting) {
-        walletProgressToasts.dismiss();
-        toastService.info({
-          title: intl.formatMessage(STILL_CONFIRMING.label),
-          message: intl.formatMessage(
-            unchecked ? { id: "app.work.confirmationUnchecked" } : STILL_CONFIRMING.detail
-          ),
-          context: "work",
-        });
-      }
+      if (awaiting) showWorkStillConfirming(intl, unchecked);
       if (!awaiting) hapticSuccess();
       // Offline already said "Saved offline"; an unstable connection says why nothing was sent.
       if (origin.outcome?.kind === "queued" && origin.outcome.reason === "connection-unconfirmed")

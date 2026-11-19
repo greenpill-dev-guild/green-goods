@@ -71,4 +71,17 @@ describe("wallet submission progress toasts", () => {
       "Saving your photos…",
     ]);
   });
+
+  // The send's stages read in the person's language, in the shared stage words (PRD-1552).
+  it("says the send's stages in the shared words when given the person's language", () => {
+    const loading = vi.spyOn(toastService, "loading").mockReturnValue("wallet-submission");
+
+    showWalletProgress("wallet", undefined, formatMessage);
+    showWalletProgress("confirming", undefined, formatMessage);
+
+    expect(loading.mock.calls.map(([options]) => [options.title, options.persistent])).toEqual([
+      ["Confirm in your wallet", true],
+      ["Confirming…", undefined],
+    ]);
+  });
 });

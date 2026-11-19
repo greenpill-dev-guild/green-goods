@@ -249,13 +249,20 @@ export function createWalletProgressToasts(formatMessage: FormatMessageFn) {
 }
 
 /**
- * Helper to show progressive wallet submission feedback
+ * Helper to show progressive wallet submission feedback. Given `formatMessage`, the send's two
+ * stages (the wallet asked, the network confirming) are said in the person's language, in the
+ * shared stage words (PRD-1552).
  * @param stage - Current submission stage
  */
 export function showWalletProgress(
   stage: "validating" | "uploading" | "wallet" | "confirming" | "syncing" | "success",
-  message?: string
+  message?: string,
+  formatMessage?: FormatMessageFn
 ): void {
+  if (formatMessage && (stage === "wallet" || stage === "confirming")) {
+    createWalletProgressToasts(formatMessage)[stage]();
+    return;
+  }
   if (stage === "uploading" && message) {
     toastService.loading({
       id: "wallet-submission",
