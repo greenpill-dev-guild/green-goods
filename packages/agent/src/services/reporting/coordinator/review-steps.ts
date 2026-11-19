@@ -14,7 +14,7 @@ import { enqueueJob } from "../jobs";
 import { operationForSubject } from "../operations";
 import { closeConversationPrompt, resolvePrompt } from "../prompts";
 import { commitReview, type ReviewRecord, reviewState } from "../reviews";
-import { reviewLinkLapsed, sendReviewSigningLink } from "../signing-links";
+import { decisionLinkIsLatest, reviewLinkLapsed, sendReviewSigningLink } from "../signing-links";
 import { accountLink } from "./account-link";
 import type { ChatCommand } from "./commands";
 import type { TurnPlan } from "./context";
@@ -149,16 +149,21 @@ function applyReviewContent(
 }
 
 /**
- * Commands such as CONFIRM or CANCEL belong to an open decision while its question is showing, and
- * RETRY to a decision whose signing link lapsed, as the chat told the steward, report or not.
+ * Commands such as CONFIRM or CANCEL belong to an open decision while its question is showing.
+ * RETRY belongs to a decision whose signing link lapsed, as the chat told the steward, and NEW
+ * LINK to one whose link was the last the chat sent, report or not.
  */
 export function reviewOwnsCommand(
   writer: TurnWriter,
   review: ReviewRecord,
   command: ChatCommand
 ): boolean {
-  if (command.kind === "retry" && reviewLinkLapsed(writer.core, review)) return true;
-  return isReviewPrompt(writer.ctx.prompt?.kind) || !writer.ctx.draft;
+  const { core, ctx } = writer;
+  if (command.kind === "newLink" && decisionLinkIsLatest(core, review, ctx.draft?.id ?? null))
+    return true;
+  if ((command.kind === "retry" || command.kind === "newLink") && reviewLinkLapsed(core, review))
+    return true;
+  return isReviewPrompt(ctx.prompt?.kind) || !ctx.draft;
 }
 
 /** Review commands take precedence while a review question or summary is open. */

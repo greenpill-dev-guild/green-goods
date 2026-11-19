@@ -73,15 +73,34 @@ function latestSigningRequest(
   core: ReportingCore,
   resourceId: string,
   purposes: SigningPurposes = REPORT_SIGNING
-): { id: string; revision: number | null } | null {
+): { id: string; revision: number | null; createdAt: number } | null {
   const row = core.db
     .query(
-      `SELECT id, resource_revision FROM continuation_requests
+      `SELECT id, resource_revision, created_at FROM continuation_requests
        WHERE resource_id = $resource AND purpose IN ${purposes}
        ORDER BY created_at DESC, rowid DESC LIMIT 1`
     )
-    .get({ resource: resourceId }) as { id: string; resource_revision: number | null } | null;
-  return row ? { id: row.id, revision: row.resource_revision } : null;
+    .get({ resource: resourceId }) as {
+    id: string;
+    resource_revision: number | null;
+    created_at: number;
+  } | null;
+  return row ? { id: row.id, revision: row.resource_revision, createdAt: row.created_at } : null;
+}
+
+/**
+ * Whether a decision waiting for its signature had its link sent after any the report beside it
+ * was sent, so a request for a new link means the decision's.
+ */
+export function decisionLinkIsLatest(
+  core: ReportingCore,
+  review: ReviewRecord,
+  draftId: string | null
+): boolean {
+  if (reviewState(review) !== "awaitingSignature") return false;
+  const decision = latestSigningRequest(core, review.id, REVIEW_SIGNING);
+  const report = draftId ? latestSigningRequest(core, draftId) : null;
+  return decision !== null && (report === null || decision.createdAt >= report.createdAt);
 }
 
 /**

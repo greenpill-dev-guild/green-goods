@@ -285,12 +285,17 @@ describe("steward review", () => {
     // The steward starts a report of their own while the decision waits for its signature.
     await harness.say(BOLA, "Today I planted twelve baobab seedlings by the fence");
     expect(harness.core.db.query("SELECT count(*) AS n FROM work_drafts").get()).toEqual({ n: 2 });
+    // The decision's link is the last one the chat sent, so NEW LINK refreshes it, lapsed or not.
+    const live = await harness.say(BOLA, "new link");
+    expect(live[0]).toContain("Open this page to check and sign your decision with your wallet.");
+    expect(latestLink(harness)).not.toBe(expired);
     harness.clock.advance(harness.core.settings.linkChallengeTtlMs);
     await harness.drain();
 
-    const fresh = await harness.say(BOLA, "new link");
+    const lapsed = latestLink(harness);
+    const fresh = await harness.say(BOLA, "RETRY");
     expect(fresh[0]).toContain("Open this page to check and sign your decision with your wallet.");
-    expect(latestLink(harness)).not.toBe(expired);
+    expect(latestLink(harness)).not.toBe(lapsed);
   });
 
   it("never offers or accepts a steward's own work", async () => {
