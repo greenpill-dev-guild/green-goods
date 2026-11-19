@@ -9,6 +9,7 @@ import type {
 } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import { useReviewConfirmQueueController } from "@green-goods/shared/hooks/admin-ui/pool/useReviewConfirmQueueController";
 import type { CommitmentsToConfirm } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentsToConfirm";
+import { SEND_STAGE_WORDS } from "@green-goods/shared/modules/transactions/send-stage";
 import type { Address } from "@green-goods/shared/types/domain";
 import { RiCheckLine, RiErrorWarningLine, RiShakeHandsLine } from "@remixicon/react";
 import { type ReactNode, useState } from "react";
@@ -425,7 +426,7 @@ export function ReviewConfirmQueue({
 /**
  * A row's outcome this visit, in place of its buttons, the way Waiting for
  * approval keeps its decisions: confirmed here with its time, queued on this
- * device, or settled elsewhere.
+ * device, waiting for a Safe's signers, or settled elsewhere.
  */
 function ConfirmOutcome({
   state,
@@ -451,6 +452,14 @@ function ConfirmOutcome({
           })}
         </StatusBadge>
       </span>
+    );
+  }
+  // A Safe's proposal is sent and kept, so it is neither confirmed nor queued here (PRD-957).
+  if (state.status === "safe-signers") {
+    return (
+      <StatusBadge variant="info" size="sm" showIcon={false}>
+        {formatMessage(SEND_STAGE_WORDS["safe-signers"].label)}
+      </StatusBadge>
     );
   }
   return (

@@ -150,7 +150,7 @@ export function useReviewConfirmQueueController(input: {
   const acts = useMemo(
     () => ({
       confirm: async (row: ConfirmQueueRow) => {
-        let landed = false;
+        let kind: ConfirmDecision["kind"] = "queued";
         const jobId = await jobs.enqueue({
           act: "confirm",
           commitmentId: row.commitment.commitmentId,
@@ -159,11 +159,14 @@ export function useReviewConfirmQueueController(input: {
           // hat in this garden, so a role lost before the queue sends it must not
           // hold it (CreditLib.isOrdinaryConfirmer).
           ...(row.eligibility === "OWN" ? { membershipNotRequired: true } : {}),
+          // A Safe's proposal stays queued after this, waiting for its signers: the queue's
+          // later "queued" report does not make it one waiting here to be sent.
           report: (event) => {
-            if (event.stage === "landed") landed = true;
+            if (event.stage === "landed") kind = "confirmed";
+            else if (event.stage === "safe-signers") kind = "safe-signers";
           },
         });
-        const decision: ConfirmDecision = { kind: landed ? "confirmed" : "queued", at: Date.now() };
+        const decision: ConfirmDecision = { kind, at: Date.now() };
         setDecisions((current) => ({ ...current, [confirmRowKey(row)]: decision }));
         return jobId;
       },

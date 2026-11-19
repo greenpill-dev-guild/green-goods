@@ -245,6 +245,29 @@ describe("useReviewConfirmQueueController", () => {
     ]);
   });
 
+  // PRD-957: a Safe only proposed it. It is neither confirmed nor queued on this device to send.
+  it("holds a confirmation a Safe only proposed as waiting for the Safe's signers", async () => {
+    mocks.enqueue.mockImplementation(async (input) => {
+      const report = (input as { report?: (event: { stage: string }) => void }).report;
+      report?.({ stage: "safe-signers" });
+      report?.({ stage: "queued" });
+      return "job-123";
+    });
+    const { result } = renderHook(() =>
+      useReviewConfirmQueueController({
+        chainId: DEMO_CHAIN_ID,
+        toConfirm: confirmationInput(),
+        search: "",
+      })
+    );
+
+    await act(async () => {
+      await result.current.acts.confirm(result.current.rows[0]!);
+    });
+
+    expect(result.current.rows[0]?.state.status).toBe("safe-signers");
+  });
+
   it("names each copy from a group by its group's size, one row per copy", async () => {
     const copies = [1001n, 1011n, 1012n].map((commitmentId) =>
       commitmentFixture({ commitmentId, metadataCID: "bafy-set" })

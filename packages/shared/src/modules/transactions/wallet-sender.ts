@@ -350,7 +350,9 @@ export class WalletSender implements TransactionSender {
 
     // Some Safe-style wallets return a non-canonical hash-like identifier.
     // waitForTransactionReceipt only accepts canonical tx hashes, so skip
-    // waiting and preserve a pending result for the off-chain Safe flow.
+    // waiting and preserve a pending result for the off-chain Safe flow. One
+    // from a Safe waits for its signers, as its 32-byte proposal hash does below
+    // (PRD-957), so the act says that rather than that it is still checking.
     if (!isCanonicalTransactionHash(hash)) {
       // No address or hash material in the log context: aggregated logs must
       // stay free of identifying transaction data (short Safe identifiers
@@ -360,6 +362,15 @@ export class WalletSender implements TransactionSender {
         functionName: call.functionName,
         hashLength: hash.length,
       });
+      if ((await this.walletAnswer(call.account!, hash as Hex, chainId)) === "safe-proposal") {
+        options.onAwaiting?.("safe-signers");
+        return {
+          hash: hash as Hex,
+          sponsored: false,
+          confirmation: "pending",
+          awaiting: "safe-signers",
+        };
+      }
       return { hash: hash as Hex, sponsored: false, confirmation: "pending" };
     }
 

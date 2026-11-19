@@ -186,9 +186,13 @@ export function reconcileConfirmVisit<
   return next;
 }
 
-/** A confirmation made here this visit: landed, or queued on this device to send. */
+/**
+ * A confirmation made here this visit: landed, queued on this device to send, or proposed to a
+ * Safe and waiting for its signers (PRD-957). The queue keeps a Safe's proposal and settles it from
+ * the chain, so it is neither confirmed nor waiting here to be sent.
+ */
 export interface ConfirmDecision {
-  kind: "confirmed" | "queued";
+  kind: "confirmed" | "queued" | "safe-signers";
   /** When it settled, in milliseconds. */
   at: number;
 }
@@ -197,6 +201,7 @@ export type ConfirmRowState =
   | { status: "waiting" }
   | { status: "confirmed"; at: number }
   | { status: "queued"; at: number }
+  | { status: "safe-signers"; at: number }
   | { status: "gone" };
 
 /** Where one row stands this visit: this visit's decision, then whether the queue still lists it. */
