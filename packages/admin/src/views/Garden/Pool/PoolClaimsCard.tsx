@@ -267,8 +267,9 @@ export function PoolClaimsCard({
     const done = queue.done.get(key);
     const doneHere = done && done.act !== "approve" ? done : undefined;
     if (booking && (due || doneHere || !item)) {
-      // A visit's report writes to the pool, so a paused pool holds it; the escrow's acts go.
-      const held = due === "report" && model.isPaused;
+      // A visit's report writes to the pool, so a paused or closed pool holds it; the escrow's
+      // acts go.
+      const held = due === "report" && (model.isPaused || bookingsOnly);
       const state =
         due && due !== doneHere?.act
           ? ({
@@ -336,33 +337,38 @@ export function PoolClaimsCard({
     ];
   });
 
-  const description = model.isPaused
+  const description = bookingsOnly
     ? formatMessage({
-        id: "hub.garden.pool.claims.paused",
-        defaultMessage: "Requests wait while the pool is paused.",
+        id: "hub.garden.pool.approvals.finishedDescription",
+        defaultMessage: "Bookings that still owe a transfer or a return.",
       })
-    : decidedCount === 0
-      ? // DL-195: a pool with voucher bookings names every kind of row the queue holds.
-        vouchers.snapshot.status === "observed" &&
-        (vouchers.snapshot.asks.length > 0 || vouchers.snapshot.bookings.length > 0)
-        ? formatMessage({
-            id: "hub.garden.pool.approvals.bookingsDescription",
-            defaultMessage:
-              "Everything waiting on you: people asking to take a promise up, bookings to approve, deposits to accept and visits to report.",
-          })
-        : formatMessage({
-            id: "hub.garden.pool.approvals.description",
-            defaultMessage:
-              "Neighbors asking to take a promise up. Approving one closes the others on that promise.",
-          })
-      : formatMessage(
-          {
-            id: "hub.garden.pool.approvals.decidedThisVisit",
-            defaultMessage:
-              "{waiting, plural, =0 {Nothing waiting now.} other {# waiting.}} {decided, plural, one {# decided this visit; it clears when you leave the Promises tab.} other {# decided this visit; they clear when you leave the Promises tab.}}",
-          },
-          { waiting, decided: decidedCount }
-        );
+    : model.isPaused
+      ? formatMessage({
+          id: "hub.garden.pool.claims.paused",
+          defaultMessage: "Requests wait while the pool is paused.",
+        })
+      : decidedCount === 0
+        ? // DL-195: a pool with voucher bookings names every kind of row the queue holds.
+          vouchers.snapshot.status === "observed" &&
+          (vouchers.snapshot.asks.length > 0 || vouchers.snapshot.bookings.length > 0)
+          ? formatMessage({
+              id: "hub.garden.pool.approvals.bookingsDescription",
+              defaultMessage:
+                "Everything waiting on you: people asking to take a promise up, bookings to approve, deposits to accept and visits to report.",
+            })
+          : formatMessage({
+              id: "hub.garden.pool.approvals.description",
+              defaultMessage:
+                "Neighbors asking to take a promise up. Approving one closes the others on that promise.",
+            })
+        : formatMessage(
+            {
+              id: "hub.garden.pool.approvals.decidedThisVisit",
+              defaultMessage:
+                "{waiting, plural, =0 {Nothing waiting now.} other {# waiting.}} {decided, plural, one {# decided this visit; it clears when you leave the Promises tab.} other {# decided this visit; they clear when you leave the Promises tab.}}",
+            },
+            { waiting, decided: decidedCount }
+          );
 
   return (
     <AdminCard

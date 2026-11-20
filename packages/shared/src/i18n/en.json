@@ -7363,6 +7363,7 @@
   "hub.garden.pool.group.claimAndConfirmers": "Claim mode · confirmers",
   "hub.garden.pool.approvals.description": "Neighbors asking to take a promise up. Approving one closes the others on that promise.",
   "hub.garden.pool.approvals.bookingsDescription": "Everything waiting on you: people asking to take a promise up, bookings to approve, deposits to accept and visits to report.",
+  "hub.garden.pool.approvals.finishedDescription": "Bookings that still owe a transfer or a return.",
   "hub.garden.pool.approvals.decidedThisVisit": "{waiting, plural, =0 {Nothing waiting now.} other {# waiting.}} {decided, plural, one {# decided this visit; it clears when you leave the Promises tab.} other {# decided this visit; they clear when you leave the Promises tab.}}",
   "hub.garden.pool.approvals.title": "Review Promises",
   "hub.garden.pool.approvals.empty": "Nothing to review.",

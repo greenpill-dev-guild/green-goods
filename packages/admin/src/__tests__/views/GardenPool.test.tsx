@@ -847,6 +847,45 @@ describe("GardenPoolTab (W7)", () => {
     const queue = screen.getByTestId("pool-claims");
     expect(within(queue).getByRole("button", { name: "Retry Transfer" })).toBeEnabled();
     expect(within(queue).queryByRole("button", { name: /^approve$/i })).not.toBeInTheDocument();
+    expect(
+      within(queue).getByText("Bookings that still owe a transfer or a return.")
+    ).toBeVisible();
+  });
+
+  // A visit's report writes to the pool, which a closed pool refuses (PR #1740 re-review).
+  it("holds a visit's report in a closed pool, and shows the queue only for what can still go", async () => {
+    const { voucherConsoleViewFixture } = await import(
+      "@green-goods/shared/__tests__/test-utils/controller-fixtures"
+    );
+    const holder = "0x7c40000000000000000000000000000000005c3d" as const;
+    const booking = {
+      commitmentId: 1n,
+      holder,
+      setupId: `0x${"a4".repeat(32)}` as const,
+      issuer: {
+        kind: "individual" as const,
+        name: "Teo",
+        chainId: 100,
+        account: holder,
+        decimals: 6,
+      },
+      voucherUnits: 1_000_000n,
+      service: {
+        kind: "visit" as const,
+        startsAt: Number(NOW) - 86_400,
+        endsAt: Number(NOW) - 72_000,
+        report: { checkedIn: true, usableHours: 4, ofHours: 4, photos: 2 },
+      },
+      stage: { kind: "in-progress" as const },
+    };
+    mocks.controller = controller({ pool: pool({ state: "CLOSED" }), commitments: [commitment()] });
+    mocks.vouchers = voucherConsoleViewFixture({
+      now: Number(NOW),
+      snapshot: { status: "observed", observedAt: Number(NOW), bookings: [booking] },
+    });
+    renderTab();
+    expect(screen.queryByTestId("pool-claims")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Report Visit…" })).not.toBeInTheDocument();
   });
 
   // The live read gives every booking under way a return ceiling before the final split; an

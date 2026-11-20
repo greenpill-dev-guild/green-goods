@@ -7363,6 +7363,7 @@
   "hub.garden.pool.group.claimAndConfirmers": "Modo de solicitud · confirmadores",
   "hub.garden.pool.approvals.description": "Vecinos que piden aceptar una promesa. Aprobar una solicitud cierra las demás de esa promesa.",
   "hub.garden.pool.approvals.bookingsDescription": "Todo lo que te espera: personas que piden aceptar una promesa, reservas por aprobar, depósitos por aceptar y visitas por informar.",
+  "hub.garden.pool.approvals.finishedDescription": "Reservas que aún deben una transferencia o una devolución.",
   "hub.garden.pool.approvals.decidedThisVisit": "{waiting, plural, =0 {Nada en espera ahora.} other {# en espera.}} {decided, plural, one {# decidida en esta visita; desaparece cuando salgas de la pestaña Promesas.} other {# decididas en esta visita; desaparecen cuando salgas de la pestaña Promesas.}}",
   "hub.garden.pool.approvals.title": "Revisar promesas",
   "hub.garden.pool.approvals.empty": "Nada que revisar.",

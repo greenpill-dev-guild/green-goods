@@ -119,14 +119,16 @@ export function reconcileQueueVisit(
  */
 export function queueBookingsDue(
   vouchers: Pick<VoucherConsoleView, "snapshot" | "now">,
-  pendingAsks: readonly PoolClaimRequestRow[] = []
+  pendingAsks: readonly PoolClaimRequestRow[] = [],
+  /** Only these acts, as for a closed pool, which refuses a visit's report. */
+  acts?: readonly QueueBookingAct[]
 ): number {
   if (vouchers.snapshot.status !== "observed") return 0;
   const asked = new Set(pendingAsks.map(claimRowKey));
-  return vouchers.snapshot.bookings.filter(
-    (booking) =>
-      voucherBookingAct(booking, vouchers.now) !== null && !asked.has(bookingRowKey(booking))
-  ).length;
+  return vouchers.snapshot.bookings.filter((booking) => {
+    const act = voucherBookingAct(booking, vouchers.now);
+    return act !== null && (!acts || acts.includes(act)) && !asked.has(bookingRowKey(booking));
+  }).length;
 }
 
 /** The visit with the steward's own act on one row, which the row keeps as its outcome. */
