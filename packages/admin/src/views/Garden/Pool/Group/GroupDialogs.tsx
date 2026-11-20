@@ -164,10 +164,12 @@ export function GroupDialogs({
     viewer,
     now: Date.now(),
   });
-  // An edit whose copies were all taken meanwhile has nothing left to change: back to the inspector.
+  // An edit whose copies were all taken meanwhile has nothing left to change, and a return whose
+  // booking left the read has nothing left to propose: back to the inspector.
   const shown =
     (step === "edit-reward" && !canEditReward) ||
-    (step === "edit-confirmers" && !confirmerEdit.open)
+    (step === "edit-confirmers" && !confirmerEdit.open) ||
+    (step === "propose-return" && !proposingNow)
       ? "inspect"
       : step;
   const done = (message: string) => {
@@ -203,7 +205,7 @@ export function GroupDialogs({
       />
       {vouchers ? (
         <VoucherProposeReturnDialog
-          booking={step === "propose-return" ? (proposingNow ?? null) : null}
+          booking={shown === "propose-return" ? (proposingNow ?? null) : null}
           title={title}
           safe={safe}
           disabled={actDisabled}

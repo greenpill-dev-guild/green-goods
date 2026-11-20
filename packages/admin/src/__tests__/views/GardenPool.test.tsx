@@ -1046,6 +1046,68 @@ describe("GardenPoolTab (W7)", () => {
     expect(await screen.findByRole("dialog", { name: /Propose a Return/ })).toBeInTheDocument();
   });
 
+  // The return step closes back to the inspector, so the group row keeps opening it.
+  it("closes the inspector's return step back to the inspector, on cancel and when the booking leaves the read", async () => {
+    const { voucherConsoleViewFixture } = await import(
+      "@green-goods/shared/__tests__/test-utils/controller-fixtures"
+    );
+    const ana = STORY_GROUP_COPIES.find((copy) => copy.commitmentId === 27n)!;
+    const read = (bookings: VoucherConsoleView["snapshot"]["bookings"]) =>
+      voucherConsoleViewFixture({
+        now: Number(NOW),
+        snapshot: { status: "observed", observedAt: Number(NOW), bookings },
+      });
+    mocks.controller = controller({
+      commitments: [commitment(), ...STORY_GROUP_COPIES],
+      titles: new Map([
+        ["bafy-1", { version: 1, title: "Prune the north beds" }],
+        ...STORY_GROUP_TITLES,
+      ]),
+    });
+    mocks.vouchers = read([
+      {
+        commitmentId: 27n,
+        holder: ana.counterparty!,
+        setupId: `0x${"a4".repeat(32)}`,
+        issuer: {
+          kind: "individual",
+          name: "Teo",
+          chainId: 100,
+          account: ana.counterparty!,
+          decimals: 6,
+        },
+        voucherUnits: 1_000_000n,
+        service: {
+          kind: "units",
+          units: 1n,
+          label: "survey",
+          returnLimit: 1_000_000n,
+          returnCeiling: 0n,
+        },
+        stage: { kind: "in-progress" },
+      },
+    ]);
+    renderTab();
+    const openReturn = async () => {
+      const inspector = await screen.findByRole("dialog", { name: "Household water survey" });
+      fireEvent.click(within(inspector).getAllByRole("button", { name: "Propose Return…" })[0]!);
+      return screen.findByRole("dialog", { name: /Propose a Return/ });
+    };
+    fireEvent.click(
+      within(screen.getByTestId("pool-group-group-00000001")).getByRole("button", {
+        name: /household water survey/i,
+      })
+    );
+    fireEvent.click(within(await openReturn()).getByRole("button", { name: "Cancel" }));
+    expect(await screen.findByRole("dialog", { name: "Household water survey" })).toBeVisible();
+
+    await openReturn();
+    // The final split closed and the next read no longer lists the booking.
+    mocks.vouchers = read([]);
+    fireEvent.click(screen.getByRole("button", { name: "Confirmed", hidden: true }));
+    expect(await screen.findByRole("dialog", { name: "Household water survey" })).toBeVisible();
+  });
+
   it("counts a group's queued copy on its row as didn't send, with Finish Creating, not as a queued row", async () => {
     const queued = {
       chainId: 42161,
