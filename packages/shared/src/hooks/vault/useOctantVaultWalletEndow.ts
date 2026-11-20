@@ -7,6 +7,7 @@ import { useIntl } from "react-intl";
 import type { Hex } from "viem";
 import { toastService } from "../../components/toast";
 import { getWagmiConfig } from "../../config/appkit";
+import { requireConfirmed } from "../../modules/transactions/confirmation";
 import { SEND_STAGE_WORDS } from "../../modules/transactions/send-stage";
 import type { OctantVaultWalletEndowPreparedTransaction as PreparedEndow } from "../../modules/vault-crowdfunding";
 import type { Address } from "../../types/domain";
@@ -215,25 +216,31 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
 
       if (allowance < transaction.amount) {
         try {
+          // A Safe's proposal has not run yet: its approval may still land, but the
+          // allowance cannot show it, so the deposit waits (PRD-1570).
           if (allowance > 0n) {
             options.onLifecycleStep?.("approvalReset");
+            requireConfirmed(
+              await sender.sendContractCall({
+                address: transaction.assetAddress,
+                abi: ERC20_ALLOWANCE_ABI,
+                functionName: "approve",
+                args: [transaction.vaultAddress, 0n],
+                chainId,
+              })
+            );
+          }
+
+          options.onLifecycleStep?.("approval");
+          requireConfirmed(
             await sender.sendContractCall({
               address: transaction.assetAddress,
               abi: ERC20_ALLOWANCE_ABI,
               functionName: "approve",
-              args: [transaction.vaultAddress, 0n],
+              args: [transaction.vaultAddress, transaction.amount],
               chainId,
-            });
-          }
-
-          options.onLifecycleStep?.("approval");
-          await sender.sendContractCall({
-            address: transaction.assetAddress,
-            abi: ERC20_ALLOWANCE_ABI,
-            functionName: "approve",
-            args: [transaction.vaultAddress, transaction.amount],
-            chainId,
-          });
+            })
+          );
 
           const refreshedAllowanceResult = await readContract(getWagmiConfig(), {
             address: transaction.assetAddress,
@@ -371,7 +378,10 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
           });
           return;
         }
-        if (showErrorToast) {
+        // An approval that may still land is not a failure: in either error mode the handler
+        // reads its cause and says so, where the stage alone would say it failed (PRD-1570).
+        const stillLanding = mayStillLand(error);
+        if (showErrorToast && !stillLanding) {
           toastService.error({
             title: formatMessage({ id: "app.treasury.deposit" }),
             message: formatMessage({
@@ -390,7 +400,7 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
         }
         handleError(error, {
           metadata: { ...metadata, ...error.diagnostics },
-          showToast: !showErrorToast,
+          showToast: !showErrorToast || stillLanding,
         });
         return;
       }

@@ -97,8 +97,67 @@ describe("agent analytics", () => {
         requested_via: "garden_detail",
         is_counterfactual: true,
         retry: false,
+        environment: "unknown",
+        app_surface: "agent",
+        release: "unknown",
+        is_test_account: "unknown",
+        is_test_garden: "unknown",
       },
     });
+  });
+
+  it("places each event against the test records and keeps the addresses out", async () => {
+    const testAccount = "0x00000000000000000000000000000000000000aa";
+    const realAccount = "0x00000000000000000000000000000000000000bb";
+    const testGarden = "0x00000000000000000000000000000000000000cc";
+    const realGarden = "0x00000000000000000000000000000000000000dd";
+    initAgentAnalytics({
+      apiKey: "phc_agent_test",
+      enabled: true,
+      environment: "production",
+      release: "fly-v42",
+      testAccounts: ` ${testAccount.toUpperCase().replace("0X", "0x")} `,
+      testGardens: testGarden,
+    });
+
+    // Raw traffic: a tester in a real garden, a gardener in a test garden, a real join, and a
+    // runtime event that names nobody.
+    const fixtures = [
+      { account: testAccount, garden: realGarden },
+      { account: realAccount, garden: testGarden },
+      { account: realAccount, garden: realGarden },
+      undefined,
+    ];
+    for (const subject of fixtures) {
+      await trackGardenJoinRequestEvent(
+        "join_request_created",
+        { kind: "garden_membership" },
+        subject
+      );
+    }
+
+    const sent = mockPostHog.capture.mock.calls.map(
+      ([input]) => (input as { properties: Record<string, unknown> }).properties
+    );
+    expect(sent).toHaveLength(4);
+    expect(sent[0]).toMatchObject({
+      environment: "production",
+      app_surface: "agent",
+      release: "fly-v42",
+    });
+    expect(sent.map((p) => [p.is_test_account, p.is_test_garden])).toEqual([
+      [true, false],
+      [false, true],
+      [false, false],
+      ["unknown", "unknown"],
+    ]);
+    // A dashboard of real people drops anything marked a test and keeps unknown visible.
+    const real = sent.filter((p) => p.is_test_account !== true && p.is_test_garden !== true);
+    expect(real).toHaveLength(2);
+    const serialized = JSON.stringify(sent);
+    for (const address of [testAccount, realAccount, testGarden, realGarden]) {
+      expect(serialized).not.toContain(address.slice(2));
+    }
   });
 
   it("swallows capture failures", async () => {

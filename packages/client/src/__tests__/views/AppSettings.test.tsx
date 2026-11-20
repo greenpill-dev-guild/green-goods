@@ -420,6 +420,16 @@ describe("vibration row", () => {
     expect(toggle).toHaveAttribute("aria-checked", "true");
     expect(vibrate).toHaveBeenCalledWith(5);
   });
+
+  it("puts the switch in the selects' column, so its hint wraps where theirs do (PRD-1531)", () => {
+    Object.defineProperty(navigator, "vibrate", { value: vi.fn(), configurable: true });
+    render(wrap(createElement(AppSettings)));
+
+    const slot = screen.getByRole("switch", { name: "Vibration" }).parentElement as HTMLElement;
+    const [themeTrigger] = screen.getAllByTestId("select-trigger");
+    expect(widthClasses(themeTrigger)).not.toHaveLength(0);
+    expect(slot).toHaveClass(...widthClasses(themeTrigger), "justify-end");
+  });
 });
 
 describe("offline content row", () => {

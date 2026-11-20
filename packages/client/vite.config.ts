@@ -16,8 +16,10 @@ import {
 import {
   assertEnvParity,
   assertSentryDsnResolvable,
+  clearAlphaAnalyticsKeys,
   dropVercelFrameworkVariables,
 } from "../../scripts/lib/env-parity.mjs";
+import { telemetryBuildDefines } from "../../scripts/lib/telemetry-build";
 import { resolveTunnelHmrConfig } from "../../scripts/lib/vite-tunnel-hmr.js";
 import {
   createPwaManifestBranding,
@@ -248,6 +250,9 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     });
     assertSentryDsnResolvable({ app: "client", sentryDsn, env: process.env });
   }
+  // After the parity check, which would warn about the keys it empties: alpha sends no
+  // product analytics.
+  clearAlphaAnalyticsKeys(process.env);
   const sentryRelease = `green-goods-client@${shortAppVersion}`;
   const indexerProxyTarget =
     process.env.VITE_ENVIO_INDEXER_URL?.trim() || "http://localhost:3006/v1/graphql";
@@ -526,9 +531,11 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
               // part of it, as the reporting pages reach the categories, must not split it into
               // one more file the page preloads. Keep its recovery state and worker protocol
               // together too: the preload-error handler reaches both before any route loads.
+              // The external-error rules and the telemetry context (PRD-1560) are reached from
+              // here and from the lazy Sentry and PostHog loaders, so they stay in this file.
               {
                 name: "error-reporting",
-                test: /\/packages\/shared\/src\/modules\/app\/(?:error-(?:breadcrumbs|categories|events)|cache-recovery|service-worker-protocol)\.ts$/,
+                test: /\/packages\/shared\/src\/(?:modules\/app\/(?:error-(?:breadcrumbs|categories|events)|cache-recovery|service-worker-protocol|external-errors|telemetry-context)|public-contracts\/telemetry-segmentation)\.ts$/,
                 priority: 45,
                 includeDependenciesRecursively: false,
               },
@@ -564,6 +571,7 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
       "import.meta.env.VITE_APP_VERSION": JSON.stringify(shortAppVersion),
       "import.meta.env.VITE_SENTRY_CLIENT_DSN": JSON.stringify(sentryDsn ?? ""),
       "import.meta.env.VITE_SENTRY_ENVIRONMENT": JSON.stringify(sentryEnvironment),
+      ...telemetryBuildDefines({ surface: "app", release: sentryRelease }),
       "process.env.NODE_ENV": JSON.stringify(nodeEnv),
     },
     oxc: {

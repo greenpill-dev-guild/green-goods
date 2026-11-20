@@ -21,12 +21,15 @@ import { toastService } from "../../components/toast";
 import {
   type ActionOperationCommand,
   type ActionOperationResult,
+  actionOperationAct,
+  actionOperationEnding,
   createDefaultActionOperationPorts,
   executeActionOperation,
   fingerprintActionArguments,
 } from "../../modules/action/action-operation-command";
 import { Capital, Domain } from "../../types/domain";
 import { reconcileTransaction } from "../../modules/transactions/confirmation";
+import { recordSendAct } from "../../modules/app/sendActAnalytics";
 import {
   trackAdminActionCreateFailed,
   trackAdminActionCreateSuccess,
@@ -259,33 +262,34 @@ export function useActionOperations(chainId: number, actionUID?: string) {
         // A past receipt is not proof that a new save is already applied.
         if (edit?.confirmed) useActionRegistrationStore.getState().clearEdit(editKey);
       }
-      const result = await executeActionOperation(
-        call,
-        createDefaultActionOperationPorts({
-          executeWithToast,
-          transactionSender: sender,
-          checkpoint: (_call, pending) => {
-            if (call.functionName === "registerAction")
-              useActionRegistrationStore
-                .getState()
-                .record(address, chainId, pending, registrationDetails);
-            else if (editKey)
-              useActionRegistrationStore.getState().recordEdit(editKey, fingerprint, pending);
-          },
-          clearCheckpoint: (_call, result) => {
-            if (call.functionName === "registerAction" && result.confirmation !== "pending") return;
-            const hash = result.broadcastReference?.hash ?? result.hash;
-            const store = useActionRegistrationStore.getState();
-            if (
-              call.functionName === "registerAction" &&
-              registrationScope &&
-              store.pending[registrationScope]?.hash === hash
-            )
-              store.clear(address, chainId);
-            else if (editKey && store.edits[editKey]?.result.hash === hash)
-              store.clearEdit(editKey);
-          },
-        })
+      const ports = createDefaultActionOperationPorts({
+        executeWithToast,
+        transactionSender: sender,
+        checkpoint: (_call, pending) => {
+          if (call.functionName === "registerAction")
+            useActionRegistrationStore
+              .getState()
+              .record(address, chainId, pending, registrationDetails);
+          else if (editKey)
+            useActionRegistrationStore.getState().recordEdit(editKey, fingerprint, pending);
+        },
+        clearCheckpoint: (_call, result) => {
+          if (call.functionName === "registerAction" && result.confirmation !== "pending") return;
+          const hash = result.broadcastReference?.hash ?? result.hash;
+          const store = useActionRegistrationStore.getState();
+          if (
+            call.functionName === "registerAction" &&
+            registrationScope &&
+            store.pending[registrationScope]?.hash === hash
+          )
+            store.clear(address, chainId);
+          else if (editKey && store.edits[editKey]?.result.hash === hash) store.clearEdit(editKey);
+        },
+      });
+      const result = await recordSendAct(
+        actionOperationAct(call, sender.authMode),
+        () => executeActionOperation(call, ports),
+        actionOperationEnding
       );
       if (result.success && call.functionName === "registerAction" && result.hash) {
         useActionRegistrationStore

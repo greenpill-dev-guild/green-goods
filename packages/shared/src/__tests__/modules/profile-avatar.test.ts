@@ -292,6 +292,30 @@ describe("explicit profile avatar publish workflow", () => {
     expect(dependencies.clearDraft).toHaveBeenCalledOnce();
   });
 
+  it("hands only the signature and the save to recordSend; a photo already in place skips it (PRD-1571)", async () => {
+    const recordSend = vi.fn((run: () => ReturnType<typeof publishProfileAvatar>) => run());
+    const sent = workflow();
+    await publishProfileAvatar(
+      42161,
+      address,
+      { file: file(), action: "set" },
+      { ...sent.dependencies, recordSend }
+    );
+    expect(recordSend).toHaveBeenCalledOnce();
+    expect(recordSend.mock.invocationCallOrder[0]).toBeLessThan(
+      (sent.dependencies.sign as ReturnType<typeof vi.fn>).mock.invocationCallOrder[0]!
+    );
+
+    const inPlace = workflow({ get: vi.fn().mockResolvedValue(record(2, avatarUri)) });
+    await publishProfileAvatar(
+      42161,
+      address,
+      { action: "set", cid },
+      { ...inPlace.dependencies, recordSend }
+    );
+    expect(recordSend).toHaveBeenCalledOnce();
+  });
+
   it("keeps an uploaded CID when a later signing or POST step fails", async () => {
     const { dependencies, normalized } = workflow({
       sign: vi.fn().mockRejectedValue(new Error("cancelled")),
