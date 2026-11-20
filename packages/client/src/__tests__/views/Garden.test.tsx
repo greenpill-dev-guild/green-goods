@@ -6,7 +6,7 @@
  */
 
 import { QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -61,6 +61,10 @@ const mockWorkForSheetProps = vi.fn();
 let mockActiveTab = "Intro";
 let mockStartSkipped = false;
 let mockShowSkeleton = false;
+// Start Fresh sets the draft aside and returns the flow to Start, as the controller does.
+const mockStartFresh = vi.fn(async () => {
+  mockActiveTab = "Intro";
+});
 interface MockWorkLinkIntent {
   commitmentId: bigint;
   requirementIndex: number;
@@ -150,7 +154,7 @@ vi.mock("@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowControlle
     draft: {
       showDraftSheet: false,
       handleContinueDraft: vi.fn(),
-      startFresh: vi.fn(),
+      startFresh: mockStartFresh,
       saveState: mockDraftSaveState,
       missingAttachments: [],
       retry: mockDraftRetry,
@@ -243,8 +247,12 @@ vi.mock("@/components/Communication", () => ({
   FormProgress: () => createElement("div", { "data-testid": "form-progress" }),
 }));
 
+const mockDraftSheetProps = vi.fn();
 vi.mock("@/components/Sheets", () => ({
-  DraftSheet: () => null,
+  DraftSheet: (props: Record<string, unknown>) => {
+    mockDraftSheetProps(props);
+    return null;
+  },
 }));
 
 vi.mock("@/components/Features/Work", async (importOriginal) => ({
@@ -450,6 +458,29 @@ describe("Garden (Work) View", () => {
     mockActiveTab = "Details";
     view.rerender(view.tree());
     expect(screen.getByTestId("submission-garden")).toBeInTheDocument();
+  });
+
+  // Review of #1731: a fresh start after a resumed draft kept naming the draft's step.
+  it("names the garden on Start after Start Fresh, not on the set-aside draft's step", async () => {
+    mockNamedGarden = {
+      id: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      name: "Hilltop Garden",
+      bannerImage: "",
+    };
+    mockActiveTab = "Details";
+    const view = renderWithProviders();
+    expect(screen.getByTestId("submission-garden")).toBeInTheDocument();
+
+    const { onStartFresh } = mockDraftSheetProps.mock.lastCall?.[0] as {
+      onStartFresh: () => Promise<void>;
+    };
+    await act(() => onStartFresh());
+    view.rerender(view.tree());
+    expect(screen.getByTestId("submission-garden")).toBeInTheDocument();
+
+    mockActiveTab = "Details";
+    view.rerender(view.tree());
+    expect(screen.queryByTestId("submission-garden")).toBeNull();
   });
 
   it("names no garden until the flow has one, and settles the Start step's garden", () => {

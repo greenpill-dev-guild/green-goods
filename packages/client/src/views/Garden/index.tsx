@@ -107,7 +107,14 @@ const Work: FC = () => {
   // (decision 17), and on the step this visit opened on once its draft was read: a resumed draft
   // picks up past Start. Other steps do not repeat it; Review names it in its summary (PRD-1522).
   const [openedOn, setOpenedOn] = useState<SubmissionStage | null>(null);
-  if (openedOn === null && !showSkeleton) setOpenedOn(flow.stage);
+  // Reading a draft again (another account's) opens the flow anew.
+  if (showSkeleton && openedOn !== null) setOpenedOn(null);
+  if (!showSkeleton && openedOn === null) setOpenedOn(flow.stage);
+  // A fresh start opens the new work on Start, wherever the set-aside draft had opened.
+  const startFresh = async () => {
+    await draft.startFresh();
+    setOpenedOn(null);
+  };
   const namesGarden = flow.stage === (start.skipped ? "media" : "start") || flow.stage === openedOn;
 
   // The work kind's piece at each stage. Once a promise is chosen at Start, every later step
@@ -230,7 +237,7 @@ const Work: FC = () => {
         onContinue={draft.handleContinueDraft}
         onClose={draft.close}
         legacyRecovery={draft.legacyRecovery}
-        onStartFresh={draft.startFresh}
+        onStartFresh={startFresh}
         onManage={draft.manage}
         imageCount={images.length}
       />

@@ -102,9 +102,11 @@ export function ProofComposer() {
           controller.commitment.unitLabel
         )
       : formatMessage({ id: "app.commitments.row.untitled" }));
-  // The garden the proof is added in, as the garden page above this one reads it.
+  // The garden the proof is sent to: the promise's provider garden, as the controller sends it,
+  // or this page's own garden. A provider can open a promise from the payer's garden page.
   const { data: gardens = [] } = useGardens(DEFAULT_CHAIN_ID);
-  const garden = gardens.find((candidate) => compareAddresses(candidate.id, gardenAddress));
+  const proofGarden = controller.commitment?.providerGarden ?? gardenAddress;
+  const garden = gardens.find((candidate) => compareAddresses(candidate.id, proofGarden));
   const flow = useSubmissionFlowController({
     kind: "evidence",
     controller,
