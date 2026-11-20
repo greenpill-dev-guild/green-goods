@@ -187,6 +187,13 @@ describe("AuthProvider wallet login bridge", () => {
     mocks.mockUseConfig.mockImplementation(() => ({
       id: "wagmi-config",
       connectors: pageConnectors,
+      // wagmi derives the account's flags from this status, read live as the real config is.
+      get state() {
+        const { isConnecting, isReconnecting, isConnected } = accountState;
+        if (isConnecting) return { status: "connecting" };
+        if (isReconnecting) return { status: "reconnecting" };
+        return { status: isConnected ? "connected" : "disconnected" };
+      },
     }));
     mocks.mockGetAppKit.mockReturnValue({
       open: mocks.mockOpenAppKit,
@@ -1205,9 +1212,16 @@ describe("AuthProvider wallet login bridge", () => {
       await goOnline(true);
       expect(mocks.mockReconnect).toHaveBeenCalledTimes(reconnects);
 
-      // The person closes the modal before approving. wagmi can stay connecting for a minute
-      // after that; the kept session asks again on the next return all the same.
+      // The person closes the modal before approving. The wallet can still approve the request
+      // while wagmi is connecting, so a return then leaves it alone too.
       modalOpen = false;
+      view.rerender();
+      setVisibility("hidden");
+      setVisibility("visible");
+      expect(mocks.mockReconnect).toHaveBeenCalledTimes(reconnects);
+
+      // The request ends unapproved: the kept session asks again on the next return.
+      setAccount(disconnectedAccount);
       view.rerender();
       setVisibility("hidden");
       setVisibility("visible");

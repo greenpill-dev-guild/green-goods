@@ -54,16 +54,18 @@ function canAdvanceRestoreClock(): boolean {
 
 /**
  * The App asks the wallet on its own only when it could answer, and never while
- * the wallet modal is open: the person is connecting a wallet themselves then. A
- * phone comes back from approving a Reconnect while the new pairing is still
- * landing, and asking then reported the wallet gone mid-connect and could end
- * the pairing just approved (PRD-1540). The modal is read when the page comes
- * back, not from the last render: the wallet app can open before the App draws
- * again. wagmi's own connecting flag is no guide here: it can stay on for a
- * minute after the modal closes.
+ * the person is connecting a wallet themselves. A phone comes back from approving
+ * a Reconnect while the new pairing is still landing, and asking then reported the
+ * wallet gone mid-connect and could end the pairing just approved (PRD-1540). Both
+ * signs are read when the page comes back, not from the last render: the wallet
+ * app can open before the App draws again. The modal shows the connection
+ * starting; wagmi stays `connecting` after the modal closes for as long as the
+ * wallet can still approve that request, so the App waits for both.
  */
-function canRetryConnector(): boolean {
-  return canAdvanceRestoreClock() && !isWalletModalOpen();
+function canRetryConnector(wagmiConfig: WagmiConfig): boolean {
+  return (
+    canAdvanceRestoreClock() && !isWalletModalOpen() && wagmiConfig.state.status !== "connecting"
+  );
 }
 
 /**
@@ -171,7 +173,12 @@ export function useWalletRestoreLifecycle(
     let retryArmed = true;
     const retryRestore = () => {
       syncClock();
-      if (!retryArmed || !canRetryConnector() || !actor.getSnapshot().matches("restoring")) return;
+      if (
+        !retryArmed ||
+        !canRetryConnector(wagmiConfig) ||
+        !actor.getSnapshot().matches("restoring")
+      )
+        return;
       retryArmed = false;
       void reconnect(wagmiConfig).catch((error) => {
         logger.debug("[AuthProvider] Wallet reconnect retry did not complete", { error });
@@ -190,7 +197,7 @@ export function useWalletRestoreLifecycle(
     // is the authoritative retry point once the connector can answer.
     const handleConnectivity = () => {
       syncClock();
-      if (canRetryConnector()) retryRestore();
+      if (canRetryConnector(wagmiConfig)) retryRestore();
       else retryArmed = true;
     };
     const unsubscribeConnectivity = connectivityStore.subscribeStatus(handleConnectivity);
@@ -219,7 +226,7 @@ export function useWalletRestoreLifecycle(
     let attempt = 0;
     let inFlight: number | null = null;
     const retry = () => {
-      if (inFlight === attempt || !canRetryConnector()) return;
+      if (inFlight === attempt || !canRetryConnector(wagmiConfig)) return;
       const current = attempt;
       inFlight = current;
       void reconnect(wagmiConfig)
