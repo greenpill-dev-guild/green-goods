@@ -30,7 +30,12 @@ sb.mock(import("../src/hooks/app/useArrivalState.ts"), { spy: true });
 sb.mock(import("../src/hooks/assessment/useGardenAssessmentRecords.ts"), { spy: true });
 sb.mock(import("../src/hooks/app/useOffline.ts"), { spy: true });
 sb.mock(import("../src/hooks/app/useOnlineStatus.ts"), { spy: true });
-sb.mock(import("../src/hooks/admin-ui/pool/usePoolConsoleController.ts"), { spy: true });
+// The voucher journeys drive the real pool console from seeded reads; these leaves carry its
+// acts. (usePoolConsoleController.ts itself re-exports a type inline, which the module mock turns
+// into a runtime export that does not exist, so it is never mocked.)
+sb.mock(import("../src/hooks/admin-ui/pool/useVoucherConsole.ts"), { spy: true });
+sb.mock(import("../src/hooks/commitment-pooling/useCommitmentMutations.ts"), { spy: true });
+sb.mock(import("../src/hooks/commitment-pooling/useExpiryClock.ts"), { spy: true });
 sb.mock(import("../src/hooks/admin-ui/pool/useProtocolFundingOperationsController.ts"), { spy: true });
 sb.mock(import("../src/hooks/admin-ui/pool/useSettlementOperationsController.ts"), { spy: true });
 sb.mock(import("../src/hooks/auth/usePrimaryAddress.ts"), { spy: true });

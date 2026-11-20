@@ -104,7 +104,7 @@ export const PROPOSED_HUB_STEPS: readonly ProposedStep[] = [
   },
   {
     caption:
-      "Accepted, and the start went with it, so Lina has no Start step. Your garden paid the message fee.",
+      "Accepted, and the start went with it, so Lina has no Start step. Your wallet paid the message fee.",
     next: "Lina visits the hub",
     lina: lina({ label: "Booked", tone: "success" }, "Visit Jan 22", {
       outcome: "Accepted",
@@ -261,7 +261,7 @@ const DIALOG: Record<
       { label: "Deposit", value: "1 voucher, confirmed", note: "Held for this booking" },
       { label: "Accept by", value: date },
     ],
-    line: `Accepting also starts the booking, so ${name} has nothing more to do until the visit. Your garden pays the message fee.`,
+    line: `Accepting also starts the booking, so ${name} has nothing more to do until the visit. Your wallet pays the message fee.`,
   }),
   report: (name, date) => ({
     title: `Report ${name}’s Visit`,
