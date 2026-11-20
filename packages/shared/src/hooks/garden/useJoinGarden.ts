@@ -165,15 +165,9 @@ interface JoinGardenState {
  */
 export function useJoinGarden() {
   const { formatMessage } = useIntl();
-  const {
-    smartAccountAddress,
-    smartAccountClient,
-    eoa,
-    walletRestore,
-    authMode: signIn,
-  } = useUser();
-  const walletAddress = eoa?.address;
-  const primaryAddress = smartAccountAddress || walletAddress;
+  // The primary address covers every sign-in: an embedded wallet has no `eoa` and no smart
+  // account, and joins through the wallet path under the address useUser() derives for it.
+  const { smartAccountClient, walletRestore, authMode: signIn, primaryAddress } = useUser();
 
   const networkConfig = getDefaultChain();
   const chainId = Number(networkConfig.chainId ?? DEFAULT_CHAIN_ID);
