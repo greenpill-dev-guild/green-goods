@@ -185,7 +185,7 @@ address, amount or email.
 |---|---|
 | `funding_intent_started` | A funding intent was created: a card checkout, or a Card Endow proof the visitor's own wallet already settled. `attempt_id` is the intent's id, so an automatic retry with the same client request id shares it, and a new press gets a new one. |
 | `funding_intent_ended` | The intent's status first settled. `outcome` is `confirmed` (`funded` or `funded_late`), `failed` (`failed` or `refunded`) or `cancelled` (`expired`: an abandoned checkout, never a technical failure). `funding_status` and `failure_code` give the detail. A provider that funds an intent after it expired records a second ending with `funding_status: funded_late`; count the latest ending per `attempt_id`. |
-| `upload_sign_ended` | One upload signing request's outcome: `confirmed` with a signed URL, or `failed` with `reason` `invalid_request`, `rate_limited` or `provider_unavailable`. A request from an origin we don't serve records nothing. `category` and `mime_type` say what was to be uploaded. It carries no attempt id yet: joining it to the App's upload attempt waits for uploads to carry one. |
+| `upload_sign_ended` | One upload signing request's outcome: `confirmed` with a signed URL, or `failed` with `reason` `invalid_request` or `provider_unavailable`. A request from an origin we don't serve, or one past its rate limit, records nothing, so a flood cannot inflate the records. `category` and `mime_type` say what was to be uploaded. It carries no attempt id yet: joining it to the App's upload attempt waits for uploads to carry one. |
 
 Both funding events carry `payment_method`, `funding_intent` (`donate` or `endow`),
 `destination_type`, `source_route` and `chain_id`. Their `is_test_garden` is `unknown` today: the

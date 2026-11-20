@@ -244,7 +244,7 @@ export function trackFundingIntentEvent(
 type UploadSignAnalyticsProperties = {
   outcome: "confirmed" | "failed";
   /** Why a request got no signed URL; absent when it got one. */
-  reason?: "invalid_request" | "rate_limited" | "provider_unavailable";
+  reason?: "invalid_request" | "provider_unavailable";
   category?: string;
   mime_type?: string;
 };

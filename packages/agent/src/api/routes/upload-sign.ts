@@ -1,5 +1,6 @@
 import {
   PUBLIC_AGENT_ROUTES,
+  type PublicApiError,
   validatePublicUploadSignRequest,
 } from "@green-goods/shared/public-contracts";
 import type { Hono } from "hono";
@@ -42,24 +43,44 @@ export function registerUploadSignRoutes(app: Hono, ctx: ApiRouteContext): void 
     if (originError) return publicBrowserCorsResponse(c, deps, originError, 403);
 
     const config = getUploadSigningConfig(ctx);
-    const bodyResult = await readLimitedJsonBody<unknown>(c.req.raw, UPLOAD_SIGN_BODY_LIMIT_BYTES);
-    if (!bodyResult.ok) {
+    const rateLimitPolicy = getUploadSignRateLimitPolicy(ctx);
+    // Every recorded outcome spends quota first, so a caller that forges an allowed origin cannot
+    // flood the records (PRD-1561). Malformed requests share one coarse quota.
+    const refuseInvalid = async (error: PublicApiError, status: number) => {
+      const rateError = checkRateLimitWithPolicy(
+        c,
+        deps,
+        "upload_sign",
+        "invalid_request",
+        rateLimitPolicy
+      );
+      if (rateError) return publicBrowserCorsResponse(c, deps, rateError, 429);
       await trackUploadSignEnded({ outcome: "failed", reason: "invalid_request" });
-      return publicBrowserCorsResponse(c, deps, bodyResult.error, bodyResult.status);
-    }
+      return publicBrowserCorsResponse(c, deps, error, status);
+    };
+    const bodyResult = await readLimitedJsonBody<unknown>(c.req.raw, UPLOAD_SIGN_BODY_LIMIT_BYTES);
+    if (!bodyResult.ok) return refuseInvalid(bodyResult.error, bodyResult.status);
 
     const validation = validatePublicUploadSignRequest(bodyResult.value, {
       allowedMimeTypes: config.allowedMimeTypes,
       maxFileSize: config.maxFileSize,
       isAddress,
     });
-    if (!validation.ok) {
-      await trackUploadSignEnded({ outcome: "failed", reason: "invalid_request" });
-      return publicBrowserCorsResponse(c, deps, validation.error, 400);
-    }
+    if (!validation.ok) return refuseInvalid(validation.error, 400);
     const { request } = validation;
-    // One outcome per signing request (PRD-1561); the garden places it against the test records.
-    const recordOutcome = (reason?: "rate_limited" | "provider_unavailable") =>
+
+    // A request past its quota records nothing, like one from an origin we don't serve.
+    const rateError = checkRateLimitWithPolicy(
+      c,
+      deps,
+      "upload_sign",
+      [request.category ?? "file_upload", request.mimeType].join(":"),
+      rateLimitPolicy
+    );
+    if (rateError) return publicBrowserCorsResponse(c, deps, rateError, 429);
+
+    // One outcome per signing request; the garden places it against the test records.
+    const recordOutcome = (reason?: "provider_unavailable") =>
       trackUploadSignEnded(
         {
           outcome: reason ? "failed" : "confirmed",
@@ -79,18 +100,6 @@ export function registerUploadSignRoutes(app: Hono, ctx: ApiRouteContext): void 
         safeError("provider_unavailable", "Upload signing is unavailable right now."),
         503
       );
-    }
-
-    const rateError = checkRateLimitWithPolicy(
-      c,
-      deps,
-      "upload_sign",
-      [request.category ?? "file_upload", request.mimeType].join(":"),
-      getUploadSignRateLimitPolicy(ctx)
-    );
-    if (rateError) {
-      await recordOutcome("rate_limited");
-      return publicBrowserCorsResponse(c, deps, rateError, 429);
     }
 
     try {

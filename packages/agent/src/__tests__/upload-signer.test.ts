@@ -389,7 +389,7 @@ describe("upload signing API", () => {
     expect((await second.json()).errorCode).toBe("rate_limited");
   });
 
-  it("records one outcome per signing request, and none for a refused origin (PRD-1561)", async () => {
+  it("records one outcome per signing request, and none for a refused origin or a request past its quota (PRD-1561)", async () => {
     resetAgentAnalyticsForTests();
     mockPostHog.capture.mockReset();
     initAgentAnalytics({
@@ -407,7 +407,7 @@ describe("upload signing API", () => {
         isAIReady: () => true,
         allowedOrigins: new Set([ORIGIN]),
         publicRateLimiter: new InMemoryPublicRateLimiter(),
-        uploadSigning: { pinataJwt: "pinata-secret", rateLimit: 1, fetch: fetchMock },
+        uploadSigning: { pinataJwt: "pinata-secret", rateLimit: 2, fetch: fetchMock },
       },
       { logger: false }
     );
@@ -423,6 +423,9 @@ describe("upload signing API", () => {
     ).toBe(403);
     expect((await sign(validRequest({ mimeType: "text/html" }))).status).toBe(400);
     expect((await sign(validRequest())).status).toBe(200);
+    // Malformed and valid requests spend the caller's quota before they are recorded, so a flood
+    // past it records nothing.
+    expect((await sign(validRequest({ size: -1 }))).status).toBe(429);
     expect((await sign(validRequest())).status).toBe(429);
     const unconfigured = createServer(
       {
@@ -453,7 +456,6 @@ describe("upload signing API", () => {
           schema_version: 1,
           is_test_garden: true,
         },
-        { event: "upload_sign_ended", outcome: "failed", reason: "rate_limited" },
         // An outage is recorded with what was to be uploaded, and its garden.
         {
           event: "upload_sign_ended",
