@@ -41,7 +41,9 @@
 }
 
 /* What waits on the steward, ahead of the main column below two columns (the Promises tab's
- * Review Promises, decision 4 of the 18 November 2026 hub-day review). */
+ * Review Promises, decision 4 of the 18 November 2026 hub-day review), and a notice about what
+ * it shows, ahead of it. */
+.garden-tab-notice,
 .garden-tab-lead {
   min-width: 0;
 }
@@ -126,6 +128,36 @@ button.garden-stat-row:hover {
   }
 
   .garden-tab-layout:has(> .garden-tab-lead) > .garden-tab-rail {
+    grid-area: rail;
+  }
+
+  /* A notice tops the main column. The lead spans the notice's row and the next: the notice's
+   * row keeps the notice's height, so main starts right under it, and the rail starts right
+   * under the lead in the flexible last row, which main shares. */
+  .garden-tab-layout:has(> .garden-tab-lead):has(> .garden-tab-notice) {
+    grid-template-areas:
+      "notice lead"
+      "main   lead"
+      "main   rail";
+    grid-template-rows: auto auto 1fr;
+  }
+
+  .garden-tab-layout:has(> .garden-tab-notice):not(:has(> .garden-tab-lead)) {
+    grid-template-areas:
+      "notice rail"
+      "main   rail";
+    grid-template-rows: auto 1fr;
+  }
+
+  .garden-tab-layout:has(> .garden-tab-notice) > .garden-tab-notice {
+    grid-area: notice;
+  }
+
+  .garden-tab-layout:has(> .garden-tab-notice) > .garden-tab-main {
+    grid-area: main;
+  }
+
+  .garden-tab-layout:has(> .garden-tab-notice) > .garden-tab-rail {
     grid-area: rail;
   }
 

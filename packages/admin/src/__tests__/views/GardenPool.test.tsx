@@ -1004,7 +1004,7 @@ describe("GardenPoolTab (W7)", () => {
 
   // Decision 4 of the hub-day review: below two columns the queue comes first, then the
   // promises, then the rest of the rail; from 1024px the queue tops the right column.
-  it("puts Review Promises first, ahead of the promises, and keeps Pool Status and Pool Funding in the right column", () => {
+  it("puts the voucher notice and Review Promises first, ahead of the promises, and keeps Pool Status and Pool Funding in the right column", () => {
     mocks.controller = controller({
       claims: [pendingClaim()],
       titles: new Map([["bafy-2", { version: 1, title: "Ride to the market on Saturday" }]]),
@@ -1012,7 +1012,17 @@ describe("GardenPoolTab (W7)", () => {
     renderTab();
     const layout = screen.getByTestId("pool-claims").closest(".garden-tab-layout")!;
     const cells = Array.from(layout.children, (cell) => cell.className.split(" ")[0]);
-    expect(cells.slice(0, 3)).toEqual(["garden-tab-lead", "garden-tab-main", "garden-tab-rail"]);
+    // The voucher read failed (this pool reads none), so its notice comes first of all: it
+    // warns about what the queue shows. From 1024px a grid area puts it atop the left column.
+    expect(cells.slice(0, 4)).toEqual([
+      "garden-tab-notice",
+      "garden-tab-lead",
+      "garden-tab-main",
+      "garden-tab-rail",
+    ]);
+    expect(layout.querySelector(".garden-tab-notice")).toContainElement(
+      screen.getByText(/Voucher bookings could not be loaded/)
+    );
     expect(layout.querySelector(".garden-tab-lead")).toContainElement(
       screen.getByTestId("pool-claims")
     );
@@ -1036,10 +1046,6 @@ describe("GardenPoolTab (W7)", () => {
     ).toEqual(["Pool Status", "Pool Funding"]);
     // The promises stay on the left, so nothing on the right moves them.
     expect(within(aside).queryByTestId("pool-commitments")).not.toBeInTheDocument();
-    // A voucher notice heads the left column; as a grid cell of its own it pushed the promises right.
-    expect(
-      screen.getByText(/Voucher bookings could not be loaded/).closest(".garden-tab-main")
-    ).toContainElement(screen.getByTestId("pool-commitments"));
     expect(
       within(screen.getByTestId("pool-commitments")).getByRole("heading", {
         name: "Offers and Asks",

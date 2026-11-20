@@ -213,8 +213,31 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
       />
     ) : null;
 
+  // The voucher read failed or came back short: either way it warns about what the queue shows.
+  const voucherNotice =
+    pool.chainId !== 42161 ? null : vouchers.snapshot.status === "unavailable" ? (
+      <Alert variant="warning">
+        {formatMessage({
+          id: "hub.garden.pool.voucher.live.indexerUnavailable",
+          defaultMessage:
+            "Voucher bookings could not be loaded. The indexer may still be catching up. Refresh before approving or accepting a booking.",
+        })}
+      </Alert>
+    ) : vouchers.snapshot.incomplete ? (
+      <Alert variant="warning">
+        {formatMessage({
+          id: "hub.garden.pool.voucher.live.partial",
+          defaultMessage:
+            "Voucher discovery is incomplete. Some bookings may be missing while cross-chain messages or the indexer catch up.",
+        })}
+      </Alert>
+    ) : null;
+
   return (
     <div className="garden-tab-layout" data-component="GardenPoolTab" data-region="garden-pool">
+      {/* A voucher read that failed or came back short warns about what the queue shows, so it
+          comes first of all on a phone; from two columns a grid area puts it atop the main column. */}
+      {voucherNotice ? <div className="garden-tab-notice">{voucherNotice}</div> : null}
       {/* Everything that waits on the steward, first on a phone and atop the right column from
           two columns: its own cell, so reading order and the eye agree at every width. */}
       {!preOpen && !finished ? (
@@ -231,28 +254,7 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
           />
         </div>
       ) : null}
-      {/* The rest of the grid is two cells, main and rail; a notice belongs at the top of main. */}
       <div className="garden-tab-main">
-        {vouchers.snapshot.status === "unavailable" && pool.chainId === 42161 ? (
-          <Alert variant="warning">
-            {formatMessage({
-              id: "hub.garden.pool.voucher.live.indexerUnavailable",
-              defaultMessage:
-                "Voucher bookings could not be loaded. The indexer may still be catching up. Refresh before approving or accepting a booking.",
-            })}
-          </Alert>
-        ) : null}
-        {vouchers.snapshot.status === "observed" &&
-        vouchers.snapshot.incomplete &&
-        pool.chainId === 42161 ? (
-          <Alert variant="warning">
-            {formatMessage({
-              id: "hub.garden.pool.voucher.live.partial",
-              defaultMessage:
-                "Voucher discovery is incomplete. Some bookings may be missing while cross-chain messages or the indexer catch up.",
-            })}
-          </Alert>
-        ) : null}
         {summary}
 
         {preOpen ? (
