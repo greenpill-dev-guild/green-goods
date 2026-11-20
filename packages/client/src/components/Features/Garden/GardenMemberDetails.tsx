@@ -22,6 +22,8 @@ interface GardenMemberDetailsProps {
   /** The surface's own picture for someone with no photo. */
   fallbackAvatar: string;
   chainId: number;
+  /** Their Green Goods or ENS name, when they have one; the copy list offers it first. */
+  name?: string;
   /**
    * Contact details the member shared. No source fills them today; the sheet shows them when
    * one does (an email sign-in, for one).
@@ -40,13 +42,14 @@ interface GardenMemberDetailsProps {
 /**
  * One member's details in their sheet, under their name as its title. It reads top down: who they
  * are (their photo and their roles in words), then everything a reader can copy in one list (their
- * address, then any contacts they shared), then their history in a second list.
+ * name when they have one, their address, then any contacts they shared), then their history in a second list.
  */
 export function GardenMemberDetails({
   account,
   roles,
   fallbackAvatar,
   chainId,
+  name,
   email,
   phone,
   history,
@@ -60,6 +63,16 @@ export function GardenMemberDetails({
   const avatar = useResolvedProfileAvatar(account, fallbackAvatar, chainId);
   const isPhoto = Boolean(avatar.avatarUri) && avatar.avatarUri !== fallbackAvatar;
   const copyable = [
+    name
+      ? {
+          key: "name",
+          label: intl.formatMessage({ id: "app.garden.gardeners.name" }),
+          shown: name,
+          value: name,
+          copyLabel: intl.formatMessage({ id: "app.garden.gardeners.copyName" }),
+          mono: false,
+        }
+      : null,
     {
       key: "address",
       label: intl.formatMessage({ id: "app.garden.gardeners.address" }),

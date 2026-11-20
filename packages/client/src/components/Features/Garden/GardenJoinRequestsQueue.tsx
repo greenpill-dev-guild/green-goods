@@ -326,6 +326,16 @@ function JoinRequestPerson({ request }: { request: GardenJoinRequestQueueItem })
           src={avatar.avatarUri ?? DEFAULT_AVATAR}
           alt=""
           fallbackIcon={RiUserLine}
+          // The default avatar holds the circle while a photo loads, as the roster's rows do (DL-161).
+          backgroundFallback={
+            avatar.avatarUri && avatar.avatarUri !== DEFAULT_AVATAR ? (
+              <img
+                src={DEFAULT_AVATAR}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+            ) : undefined
+          }
           className="absolute inset-0 h-full w-full object-cover"
           fallbackClassName="absolute inset-0 h-full w-full"
         />

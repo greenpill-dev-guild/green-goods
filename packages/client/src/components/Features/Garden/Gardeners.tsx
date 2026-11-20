@@ -11,6 +11,8 @@ import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
 import { NativeSelect } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
 import { useGardenMemberHistory } from "@green-goods/shared/hooks/garden/useGardenMemberHistory";
 import type {
   Address,
@@ -219,6 +221,9 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
     // Include the row's height and the list gap; the row grows with the reader's text size.
     const rowHeight = useDynamicRowHeight({ defaultRowHeight: 100 });
     const [selected, setSelected] = useState<GardenMember | null>(null);
+    // The selected member's name to copy: their Green Goods name, then their ENS name.
+    const { data: selectedGreenGoodsName } = useGreenGoodsEnsName(selected?.account);
+    const { data: selectedEnsName } = useEnsName(selected?.account);
 
     const copy = async (val?: string) => {
       if (!val) return;
@@ -379,6 +384,7 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
               roles={heldRoles(selected, selectedHistory)}
               fallbackAvatar={DEFAULT_AVATAR}
               chainId={chainId}
+              name={selectedGreenGoodsName || selectedEnsName || undefined}
               email={selected.email}
               phone={selected.phone}
               history={selectedHistory}

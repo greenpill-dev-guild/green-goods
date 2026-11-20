@@ -2676,6 +2676,8 @@
   "app.garden.gardeners.sort.oldest": "Antigos",
   "app.garden.gardeners.email": "E-mail",
   "app.garden.gardeners.phone": "Telefone",
+  "app.garden.gardeners.name": "Nome",
+  "app.garden.gardeners.copyName": "Copiar nome",
   "app.garden.gardeners.address": "Endereço",
   "app.garden.gardeners.copyEmail": "Copiar e-mail",
   "app.garden.gardeners.copyPhone": "Copiar telefone",

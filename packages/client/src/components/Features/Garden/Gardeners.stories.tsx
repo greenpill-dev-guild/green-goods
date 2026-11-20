@@ -238,6 +238,8 @@ export const DetailsFull: Story = {
     await expect(within(dialog).getByText("Last recorded contribution")).toBeVisible();
     await expect(within(dialog).getByText("Steward and Gardener")).toBeVisible();
     await expect(within(dialog).getByRole("button", { name: "Copy Address" })).toBeVisible();
+    await expect(within(dialog).getByText("tomas.greengoods.eth")).toBeVisible();
+    await expect(within(dialog).getByRole("button", { name: "Copy Name" })).toBeVisible();
   },
 };
 
