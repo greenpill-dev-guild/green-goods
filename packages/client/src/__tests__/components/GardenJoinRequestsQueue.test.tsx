@@ -38,6 +38,9 @@ vi.mock("@green-goods/shared/hooks/garden/useGardenJoinRequests", () => ({
 vi.mock("@green-goods/shared/hooks/garden/useGardenOperations", () => ({
   useGardenOperations: () => ({ addGardener }),
 }));
+vi.mock("@green-goods/shared/hooks/profile/useProfileAvatar", () => ({
+  useResolvedProfileAvatar: () => ({ avatarUri: "/images/avatar.png", isLoading: false }),
+}));
 
 function renderQueue() {
   return render(

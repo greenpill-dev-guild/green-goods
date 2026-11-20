@@ -116,7 +116,10 @@ describe("PWA manifest branding", () => {
     expect(alpha.manifestId).not.toBe(PWA_MANIFEST_ID);
     expect(alpha.name).toBe("Green Goods Alpha");
     expect(alpha.shortName).not.toBe(beta.shortName);
-    expect(alpha.themeColor).toBe(beta.themeColor);
+    // Colour tells alpha from beta: violet where beta is dark green.
+    expect(alpha.themeColor).toBe("#5B2CC9");
+    expect(alpha.backgroundColor).toBe("#5B2CC9");
+    expect(alpha.themeColor).not.toBe(beta.themeColor);
     // Every icon is alpha's own, and each one is shipped.
     const icons = [
       alpha.browserIcon,

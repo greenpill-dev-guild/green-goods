@@ -330,6 +330,34 @@ describe("hooks/work/useWorkMutation", () => {
     expect(jobQueueDB.addJob).not.toHaveBeenCalled();
     expect(submitWorkDirectly).not.toHaveBeenCalled();
   });
+  it("tells a Terms accepted after the person left the flow apart from a declined one", async () => {
+    let accept!: () => void;
+    policyRequest.mockImplementation(
+      (owner) =>
+        new Promise((resolve) => {
+          accept = () => resolve(uploadConsent(owner));
+        })
+    );
+    workMutationStoreMocks.activeDraftId = "original-draft";
+    const { result } = renderHook(() => useWorkMutation(defaultOptions), {
+      wrapper: createWrapper(),
+    });
+    let outcome!: Promise<unknown>;
+    act(() => {
+      outcome = result.current
+        .mutateAsync({ draft: createMockWorkDraft(), images: [] })
+        .catch((error) => error);
+    });
+    await waitFor(() => expect(policyRequest).toHaveBeenCalledOnce());
+    workMutationStoreMocks.activeDraftId = "different-draft";
+    let rejected: unknown;
+    await act(async () => {
+      accept();
+      rejected = await outcome;
+    });
+    expect(rejected).toMatchObject({ name: "UploadPolicyCancelledError", stage: "flow-left" });
+    expect(submitWorkDirectly).not.toHaveBeenCalled();
+  });
   it("retries a terminal unsent admin failure with corrected work and a fresh identity", async () => {
     const failure = new WorkSubmissionError("Cannot encode work", "transaction");
     vi.mocked(submitWorkDirectly)

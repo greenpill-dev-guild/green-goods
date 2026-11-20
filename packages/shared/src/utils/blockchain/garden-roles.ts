@@ -229,3 +229,22 @@ export function getRoleLabel(
     plural: formatMessage({ id: GARDEN_ROLE_I18N_KEYS[role].plural }),
   };
 }
+
+/**
+ * The roles someone holds as one localized phrase, highest first: "Steward and Gardener". Every
+ * place that names a member's roles in text reads them this way.
+ */
+export function formatRoleList(
+  roles: readonly GardenRole[],
+  intl: {
+    formatMessage: (descriptor: { id: string }) => string;
+    formatList: (list: string[], options: { type: "conjunction" }) => string;
+  }
+) {
+  return intl.formatList(
+    GARDEN_ROLE_ORDER.filter((role) => roles.includes(role)).map(
+      (role) => getRoleLabel(role, intl.formatMessage).singular
+    ),
+    { type: "conjunction" }
+  );
+}

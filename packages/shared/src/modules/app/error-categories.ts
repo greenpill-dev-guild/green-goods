@@ -314,8 +314,10 @@ export function trackError(error: unknown, context: ErrorContext = {}): void {
 
   const fingerprint = String(properties.error_fingerprint);
 
+  // Sentry files unhandled errors itself; a handled one gets the id of the report filed here.
+  let sentryEventId: string | undefined;
   if (source !== "window.onerror" && source !== "unhandledrejection") {
-    captureExternalError(capturedError, {
+    sentryEventId = captureExternalError(capturedError, {
       severity,
       category,
       source,
@@ -344,7 +346,10 @@ export function trackError(error: unknown, context: ErrorContext = {}): void {
     return;
   }
   // The transport is registered lazily after startup; before then this safely no-ops.
-  track("error_tracked", properties);
+  track(
+    "error_tracked",
+    sentryEventId ? { ...properties, sentry_event_id: sentryEventId } : properties
+  );
 }
 
 // ============================================================================

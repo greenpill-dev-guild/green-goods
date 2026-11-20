@@ -31,6 +31,12 @@ attachQueryPersistence(queryClient, persistence);
 // WalletConnect verifies the requesting origin, so the Hub names the host it is served from
 // (admin.greengoods.app or hub.greengoods.app); a retired build-time URL breaks that match.
 const adminAppUrl = typeof window !== "undefined" ? window.location.origin : HUB_URL;
+// A wallet shows this beside the request, cropped to a square, so it is the Hub's own square
+// app icon, served by the Hub itself, not the App's wide logo, which wallets clip (PRD-1533).
+const adminIconUrl =
+  typeof window !== "undefined"
+    ? new URL(`${import.meta.env.BASE_URL}hub-icon-512.png`, window.location.href).href
+    : `${HUB_URL}/hub-icon-512.png`;
 
 /**
  * The admin application tree: query persistence, the app error boundary,
@@ -54,7 +60,7 @@ export default function AdminRoot({
             name: "Green Goods Hub",
             description: "Garden management for Green Goods stewards",
             url: adminAppUrl,
-            icons: ["https://greengoods.app/icon.png"],
+            icons: [adminIconUrl],
           }}
           defaultChainId={DEFAULT_CHAIN_ID}
           fontFamily={'"Plus Jakarta Sans", system-ui, sans-serif'}
