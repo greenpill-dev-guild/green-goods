@@ -133,24 +133,26 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
         <div // eslint-disable-line jsx-a11y/interactive-supports-focus -- menu items are focusable <button role="menuitem"> children; focus moves to the first on open
           className="speed-dial-list"
           style={{
+            // The list scrolls on a short screen, which clips at its edges, so it pads
+            // 8px on every side (focus ring and shadow fit inside) and sits 8px past
+            // the FAB's right edge, keeping the items where they were (admin's fork).
             position: "absolute",
-            right: 0,
+            right: "-0.5rem",
             bottom: "100%",
-            marginBottom: "0.5rem",
             display: "flex",
             flexDirection: "column-reverse",
             alignItems: "flex-end",
             gap: "0.5rem",
             maxHeight:
-              "calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 9.5rem)",
+              "calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 8.5rem)",
             // Sized to its labels, not to the narrow FAB it anchors to, so no
             // label wraps a word per line (admin's fork uses `w-max`).
             width: "max-content",
-            maxWidth: "calc(100vw - 2rem)",
+            maxWidth: "calc(100vw - 1rem)",
             overflowX: "hidden",
             overflowY: "auto",
             overscrollBehavior: "contain",
-            paddingBlock: "0.125rem",
+            padding: "0.5rem",
           }}
           data-slot="speed-dial"
           data-state="open"
