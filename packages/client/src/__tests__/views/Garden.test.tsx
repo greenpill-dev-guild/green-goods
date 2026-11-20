@@ -59,6 +59,7 @@ const mockStartBack = vi.fn(() => false);
 const mockReviewProps = vi.fn();
 const mockWorkForSheetProps = vi.fn();
 let mockActiveTab = "Intro";
+let mockStartSkipped = false;
 interface MockWorkLinkIntent {
   commitmentId: bigint;
   requirementIndex: number;
@@ -186,7 +187,7 @@ vi.mock("@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowControlle
     reviewData: { garden: mockGardens[0], action: mockActions[0] },
     setAudioNotes: mockWorkFlowState.setAudioNotes,
     showSkeleton: false,
-    start: { skipped: false, waiting: false, back: mockStartBack },
+    start: { skipped: mockStartSkipped, waiting: false, back: mockStartBack },
     submissionCompleted: false,
     submit: vi.fn(),
     toggleAudioRecording: mockToggleAudioRecording,
@@ -305,7 +306,8 @@ const messages = {
 const renderWithProviders = (initialRoute = "/home/garden") => {
   // The app renders under a query client; the pinned promise's row reads its name hook there.
   const queryClient = createTestQueryClient();
-  return render(
+  // The same tree again, for `rerender` once a step changes.
+  const tree = () =>
     createElement(
       QueryClientProvider,
       { client: queryClient },
@@ -323,8 +325,8 @@ const renderWithProviders = (initialRoute = "/home/garden") => {
           )
         )
       )
-    )
-  );
+    );
+  return { ...render(tree()), tree };
 };
 
 describe("Garden (Work) View", () => {
@@ -333,6 +335,7 @@ describe("Garden (Work) View", () => {
     mockSelection.actionUID = null;
     mockSelection.gardenAddress = null;
     mockActiveTab = "Intro";
+    mockStartSkipped = false;
     mockLinkIntent = null;
     mockLinkIntentStatus = "none";
     mockHasPendingLinkRecovery = false;
@@ -368,7 +371,6 @@ describe("Garden (Work) View", () => {
   });
 
   it("says under the steps where the work goes", () => {
-    mockActiveTab = "Media";
     mockNamedGarden = {
       id: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       name: "Hilltop Garden",
@@ -381,6 +383,43 @@ describe("Garden (Work) View", () => {
     // A long name wraps rather than losing its end, clipped at two lines, with the whole
     // sentence in the title.
     expect(within(line).getByTitle("Logging work in Hilltop Garden")).toHaveClass("line-clamp-2");
+  });
+
+  // PRD-1522: the line repeated on every step after the first.
+  it("names the garden on the first step only, and again on going back to it", () => {
+    mockNamedGarden = {
+      id: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      name: "Hilltop Garden",
+      bannerImage: "",
+    };
+    const view = renderWithProviders();
+    expect(screen.getByTestId("submission-garden")).toHaveTextContent("Hilltop Garden");
+
+    for (const later of ["Media", "Details", "Review"]) {
+      mockActiveTab = later;
+      view.rerender(view.tree());
+      expect(screen.queryByTestId("submission-garden")).toBeNull();
+    }
+
+    mockActiveTab = "Intro";
+    view.rerender(view.tree());
+    expect(screen.getByTestId("submission-garden")).toHaveTextContent("Hilltop Garden");
+  });
+
+  it("names the garden on Media when Start is skipped, and not after it", () => {
+    mockStartSkipped = true;
+    mockActiveTab = "Media";
+    mockNamedGarden = {
+      id: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      name: "Hilltop Garden",
+      bannerImage: "",
+    };
+    const view = renderWithProviders();
+    expect(screen.getByTestId("submission-garden")).toHaveTextContent("Hilltop Garden");
+
+    mockActiveTab = "Details";
+    view.rerender(view.tree());
+    expect(screen.queryByTestId("submission-garden")).toBeNull();
   });
 
   it("names no garden until the flow has one, and settles the Start step's garden", () => {
