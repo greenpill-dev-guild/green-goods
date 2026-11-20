@@ -124,7 +124,8 @@ lands.
 | `work_submission_success` | The Submit's work reached the chain. |
 | `work_submission_offline` | The Submit only saved the work to the queue to send later. `reason`: `offline`, `connection-unconfirmed`, or `not-sent` (online, but the queue keeps it). |
 | `work_submission_queued` | The Submit's send is on record but not confirmed yet (`status: awaiting-confirmation`). |
-| `work_submission_failed` | The Submit failed. `parsed_error_family: UserRejected` marks a cancel, a declined Terms prompt included. |
+| `work_submission_failed` | The Submit failed. Before PRD-1561, `parsed_error_family: UserRejected` marked a cancel, a declined Terms prompt included. |
+| `work_submission_cancelled` | The person stopped the Submit: `reason` is `terms_declined`, `signature_declined`, or `flow_left` (they accepted the Terms, then moved to another draft or flow before admission; a change of account records nothing) (PRD-1561). Never a technical failure. |
 | `offline_job_started` | The queue starts a try: a send, or the check of a send already on record (`confirming`). `explicit` when a person's tap asked for it. |
 | `offline_job_skipped` | A started try ended with nothing sent and no answer, or a tap the queue could not act on. `reason` is a code such as `awaiting-confirmation`, `offline` or `wallet-reconnect-required`. |
 | `offline_job_receipt_wait_limit` | A queued send went out but its receipt did not come within the queue's limit (`limit_ms`), so the job waits as still confirming. `job_kind`, `explicit` and `auth_mode` say what was sent and how. |
@@ -147,10 +148,12 @@ Every other act that signs or sends records `send_act_started` when it starts an
 sends, garden creation and settings, and the Hub's pool, season and conviction acts. Work submissions,
 approvals and member changes keep their own events above. An act the job queue holds, such as a
 commitment claim, proof or creation sent from the App, records the queue's `offline_job_*` events
-instead. Hypercert listings and marketplace approvals, Karma syncs, deployments, gardener profile
-updates, profile avatars, pilot account enrollment, and action registration and single-field action
-edits (`useActionOperations`; registration keeps `admin_action_create_*`) do not record these events
-yet. Read App acts in the App project
+instead. Since PRD-1571 the rest record them too: hypercert listings (`hypercert_listing`),
+marketplace approvals (`marketplace_approval`), Karma syncs (`karma_sync`), garden-creator allowlist
+changes (`garden_creator_allowlist`), gardener profile updates (`gardener_profile`), profile photos
+(`profile_avatar`), pilot account enrollment (`pilot_enrollment`), action registration
+(`action_register`, beside `admin_action_create_*`) and single-field action edits (`action_edit`).
+Events from before that change have none of these. Read App acts in the App project
 (163591) and Hub acts in the Hub project (262122).
 
 | Property | Meaning |
@@ -158,6 +161,7 @@ yet. Read App acts in the App project
 | `act` | Which act, such as `garden_join`, `vault_deposit`, `garden_create`, `pool_lifecycle` or `pool_setup`. The full list is `SendActName` in `packages/shared/src/modules/app/sendActAnalytics.ts`. |
 | `operation` | Which of the act's operations ran, a fixed name from code: a contract function such as `pausePool`, or the writes of a setup run such as `seedCycle,openCycle`. |
 | `auth_mode`, `chain_id` | The sign-in kind and the chain. |
+| `attempt_id`, `schema_version` | One id per press, shared by the act's start and its ending, so a question joins them without matching on time. An explicit retry is a new press with a new id. `schema_version` is `1` (PRD-1561). |
 | `outcome` (ended only) | `confirmed` landed. `confirming` went out and may still land: a receipt wait past its limit, a send on record without a receipt, a Safe proposal, a wallet answer the person stopped waiting for, or a wallet join, which returns once it is broadcast. `queued` was kept on this device. `cancelled` was declined in the wallet. `failed` is anything else. `partial` is an act of several copies whose copies ended differently. |
 | `copies_<outcome>` (ended only) | For an act of several copies, how many copies ended each way. |
 | `parsed_error_family`, `duration_ms` (ended only) | The parsed error family of an act that did not land, never its message, and how long the act took. |
@@ -170,6 +174,23 @@ act refused because an earlier send of the same thing still holds it (`HeldByAno
 earlier send keeps its own record), and a batched save the wallet cannot batch (`NotBatchable`;
 its changes then go out one write at a time, each recorded as its own act). Only builds that
 carry PRD-1553 record these events.
+
+## Agent attempt events
+
+The Agent records card funding and upload signing as attempts (PRD-1561). Read them in the Agent
+project (262124). Each carries `schema_version: 1` and the Agent's segmentation fields, and no
+address, amount or email.
+
+| Event | Meaning |
+|---|---|
+| `funding_intent_started` | A funding intent was created: a card checkout, or a Card Endow proof the visitor's own wallet already settled. `attempt_id` is the intent's id, so an automatic retry with the same client request id shares it, and a new press gets a new one. |
+| `funding_intent_ended` | The intent's status first settled. `outcome` is `confirmed` (`funded` or `funded_late`), `failed` (`failed` or `refunded`) or `cancelled` (`expired`: an abandoned checkout, never a technical failure). `funding_status` and `failure_code` give the detail. A provider that funds an intent after it expired records a second ending with `funding_status: funded_late`; count the latest ending per `attempt_id`. |
+| `upload_sign_ended` | One upload signing request's outcome: `confirmed` with a signed URL, or `failed` with `reason` `invalid_request` or `provider_unavailable`. A request from an origin we don't serve, or one past its rate limit, records nothing, so a flood cannot inflate the records. `category` and `mime_type` say what was to be uploaded. It carries no attempt id yet: joining it to the App's upload attempt waits for uploads to carry one. |
+
+Both funding events carry `payment_method`, `funding_intent` (`donate` or `endow`),
+`destination_type`, `source_route` and `chain_id`. Their `is_test_garden` is `unknown` today: the
+funding record keys a garden by its campaign slug, not its address, so it cannot be placed against
+the test garden records.
 
 ---
 
@@ -666,6 +687,7 @@ Public-safe-default. Aggregates only — never names a single user.
 - **What it answers**: per-step failure rate for the conversion-killing events (`*_failed` paired with `*_success`), **excluding user cancellations**. Surfaces product breakages that vanish from a success-only funnel.
 - **v1.3.0 (2026-08-10) — cancellations are not failures.** A user declining a wallet or passkey prompt was previously counted as a conversion kill. This inflated every step and produced at least one false anomaly (PRD-717: a reported 66.7% `garden_join` failure was 5 aborts out of 8 "failures", from 2 people retrying). The query now classifies each attempt as `success` / `cancelled` / `failed`, reports `cancelled_count` alongside rather than dropping it, and emits `failing_persons` so consumers can require a real cohort before filing. **Treat the pre-v1.3.0 baselines as inflated** — the old entry quoted `garden_join` ~75%, `work_submission` ~70%, `auth_passkey_register` ~27% from 2026-05-09.
 - **v1.4.0 (2026-11-15): work saved for later is still a success.** A Submit that only saves the work to the queue now records `work_submission_offline` instead of `work_submission_success` with `was_offline: true`. It counts as the Submit step's success here, as it did before. `work_submission_failed` now also records two endings it did not before: a declined Terms prompt (`UserRejected`, so cancelled) and a Submit stopped before admission, such as a promise take-up that did not go (`StoppedBeforeAdmission`, so failed). See Work events above.
+- **v1.5.0 (2026-11-19): a declined Submit has its own event.** A Submit the person declined, the Terms or the wallet's signature, records `work_submission_cancelled` instead of `work_submission_failed` with `parsed_error_family: UserRejected` (PRD-1561). The query reads both, so its cancelled count holds across the change.
 - **HogQL**:
   ```sql
   SELECT
@@ -714,6 +736,7 @@ Public-safe-default. Aggregates only — never names a single user.
       AND event IN (
         'garden_join_success', 'garden_join_failed', 'garden_join_cancelled',
         'work_submission_success', 'work_submission_offline', 'work_submission_failed',
+        'work_submission_cancelled',
         'work_approval_success', 'work_approval_failed',
         'auth_passkey_register_success', 'auth_passkey_register_failed'
       )
@@ -729,7 +752,7 @@ Public-safe-default. Aggregates only — never names a single user.
   | Step | Signal | Reliable? |
   |---|---|---|
   | `garden_join` | dedicated `garden_join_cancelled` event | ✅ from 2026-08-10 |
-  | `work_submission` | `parsed_error_family` / parsed message | ⚠️ `parsed_error_family` only on recent events; older ones fall back to message text |
+  | `work_submission` | dedicated `work_submission_cancelled` event; before it, `parsed_error_family` / parsed message | ✅ from the PRD-1561 release; older events fall back to `parsed_error_family` or message text |
   | `auth_passkey_register` | `reason = 'cancelled'` | ⚠️ `reason` is frequently absent; the common WebAuthn string ("operation either timed out or was not allowed") is genuinely ambiguous between a timeout and a dismissal, so it is deliberately **left as a failure** rather than guessed |
   | `work_approval` | none | ❌ emits only a generic `"Transaction failed. Please try again."` via `createMutationErrorHandler`; cancellations are indistinguishable today |
 

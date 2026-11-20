@@ -1,6 +1,6 @@
 import { readContract } from "@wagmi/core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 
 import { getWagmiConfig } from "../../config/appkit";
@@ -35,6 +35,13 @@ import { wasAskedToReconnect } from "../../utils/errors/unsent-failures";
 import { useUser } from "../auth/useUser";
 import { useAtomicBatchRoute } from "../blockchain/useAtomicBatchRoute";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
+import {
+  copiesEnding,
+  recordedSendAct,
+  type SendActCopyOutcome,
+  type SendActEndingDetail,
+  sendActEnding,
+} from "../../modules/app/sendActAnalytics";
 import { useProgressiveInvalidation } from "../utils/useTimeout";
 import { useHeldBatches } from "./useHeldBatches";
 import {
@@ -70,7 +77,67 @@ interface KarmaSyncProgress {
 }
 
 /** A press either went one call at a time, as it always has, or under one signature per group. */
-type KarmaReconcileRun = { batched: false } | { batched: true; outcome: KarmaReconcileOutcome };
+type KarmaReconcileRun =
+  | { batched: false; confirming: boolean }
+  | { batched: true; outcome: KarmaReconcileOutcome };
+
+/** Why a run stopped, when that reason is not an error of its own to read. */
+const STOPPED_ENDINGS: Record<
+  Exclude<NonNullable<KarmaReconcileOutcome["stoppedBy"]>, "error">,
+  { outcome: SendActCopyOutcome; parsedErrorFamily: string }
+> = {
+  declined: { outcome: "cancelled", parsedErrorFamily: "UserRejected" },
+  reverted: { outcome: "failed", parsedErrorFamily: "TransactionReverted" },
+  "over-ceilings": { outcome: "failed", parsedErrorFamily: "NotBatchable" },
+  "no-project": { outcome: "failed", parsedErrorFamily: "NoKarmaProject" },
+};
+
+/**
+ * How a sync ended, call by call: a call the chain recorded is confirmed, even when its sync
+ * failed inside the transaction; one that may have landed is still confirming; the rest went
+ * out with nothing and end the way the run stopped (PRD-1571).
+ */
+function karmaSyncEnding(run: KarmaReconcileRun): SendActEndingDetail {
+  if (!run.batched) return { outcome: run.confirming ? "confirming" : "confirmed" };
+  const { recorded, unknown, notSent, stoppedBy, failure } = run.outcome;
+  const stopped = stoppedBy
+    ? stoppedBy === "error"
+      ? sendActEnding(failure)
+      : STOPPED_ENDINGS[stoppedBy]
+    : null;
+  // Nothing went out for these, so none of them can still land.
+  const notSentOutcome: SendActCopyOutcome =
+    stopped?.outcome === "cancelled" ? "cancelled" : "failed";
+  const ending = copiesEnding([
+    ...recorded.map((): SendActCopyOutcome => "confirmed"),
+    ...Array.from({ length: unknown }, (): SendActCopyOutcome => "confirming"),
+    ...Array.from({ length: notSent }, () => notSentOutcome),
+  ]);
+  return stopped ? { ...ending, parsedErrorFamily: stopped.parsedErrorFamily } : ending;
+}
+
+/**
+ * A sequential run that stopped on an error: the calls before it landed, the one that threw
+ * ended as its error says, and the rest never went out.
+ */
+function sequentialStopEnding(
+  error: unknown,
+  progress: { confirmed: number; confirming: number; total: number }
+): SendActEndingDetail {
+  const stop = sendActEnding(error);
+  const sent = progress.confirmed + progress.confirming;
+  if (sent === 0) return stop;
+  const notSent: SendActCopyOutcome = stop.outcome === "cancelled" ? "cancelled" : "failed";
+  return {
+    ...copiesEnding([
+      ...Array.from({ length: progress.confirmed }, (): SendActCopyOutcome => "confirmed"),
+      ...Array.from({ length: progress.confirming }, (): SendActCopyOutcome => "confirming"),
+      stop.outcome,
+      ...Array.from({ length: progress.total - sent - 1 }, () => notSent),
+    ]),
+    parsedErrorFamily: stop.parsedErrorFamily,
+  };
+}
 
 export function useKarmaIntegration(garden?: Garden | null) {
   const { formatMessage } = useIntl();
@@ -230,37 +297,55 @@ export function useKarmaIntegration(garden?: Garden | null) {
     }
   };
 
+  // How far a sequential run got, so a call that stops it does not hide the ones that landed.
+  const sequentialProgress = useRef({ confirmed: 0, confirming: 0, total: 0 });
   const reconcileMutation = useMutation({
-    mutationFn: async (): Promise<KarmaReconcileRun> => {
-      if (!garden || !gardenAddress) throw new Error("Garden is required");
-      if (!canReconcile) throw new Error("Garden Owner or Steward role is required");
-      if (!supported) throw new Error("Karma reconciliation is not supported on this chain");
-      if (!transactionSender) throw new Error("Transaction sender is not available");
-      const onSignature = (signature: number, total: number) =>
-        setProgress({ signature, signatures: total });
-      try {
-        if (inBatches && route.rail) {
-          const outcome = await reconcileKarmaBatch({
-            batches: batches!,
-            scope: { account: primaryAddress!, chainId },
-            garden: gardenAddress,
-            chain: createKarmaReconcileChain(chainId),
-            rail: route.rail,
-            calls,
-            onSignature,
-          });
-          return { batched: true, outcome };
+    mutationFn: recordedSendAct(
+      () => ({
+        act: "karma_sync",
+        operation: inBatches && route.rail ? "batched" : "sequential",
+        authMode: transactionSender?.authMode,
+        chainId,
+      }),
+      async (): Promise<KarmaReconcileRun> => {
+        if (!garden || !gardenAddress) throw new Error("Garden is required");
+        if (!canReconcile) throw new Error("Garden Owner or Steward role is required");
+        if (!supported) throw new Error("Karma reconciliation is not supported on this chain");
+        if (!transactionSender) throw new Error("Transaction sender is not available");
+        const onSignature = (signature: number, total: number) =>
+          setProgress({ signature, signatures: total });
+        try {
+          if (inBatches && route.rail) {
+            const outcome = await reconcileKarmaBatch({
+              batches: batches!,
+              scope: { account: primaryAddress!, chainId },
+              garden: gardenAddress,
+              chain: createKarmaReconcileChain(chainId),
+              rail: route.rail,
+              calls,
+              onSignature,
+            });
+            return { batched: true, outcome };
+          }
+          // Today's path: one signature per call, each waiting for the one before it.
+          let confirming = false;
+          sequentialProgress.current = { confirmed: 0, confirming: 0, total: calls.length };
+          for (const [index, { call }] of calls.entries()) {
+            onSignature(index + 1, calls.length);
+            const result = await transactionSender.sendContractCall(call);
+            if (result.confirmation === "pending") {
+              confirming = true;
+              sequentialProgress.current.confirming += 1;
+            } else sequentialProgress.current.confirmed += 1;
+          }
+          return { batched: false, confirming };
+        } finally {
+          setProgress(null);
         }
-        // Today's path: one signature per call, each waiting for the one before it.
-        for (const [index, { call }] of calls.entries()) {
-          onSignature(index + 1, calls.length);
-          await transactionSender.sendContractCall(call);
-        }
-        return { batched: false };
-      } finally {
-        setProgress(null);
-      }
-    },
+      },
+      karmaSyncEnding,
+      (error) => sequentialStopEnding(error, sequentialProgress.current)
+    ),
     onMutate: async () => {
       // A hold read still in flight would find this send's own record and call it held.
       await queryClient.cancelQueries({ queryKey: holdKey });

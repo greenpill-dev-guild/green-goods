@@ -97,6 +97,12 @@ export interface ItemRowProps
    * "Confirming…", "Not sent") goes here too, never in a second pill.
    */
   status?: { label: string; tone: ItemRowTone };
+  /**
+   * A line of plain text in the pill's place, for a row whose second line says what the item is
+   * rather than its state: a member's roles in words. A row has a pill or this line, never both;
+   * the pill wins when a caller passes both.
+   */
+  subtitle?: string;
   /** At most two details, most important first. */
   details?: readonly [ItemRowDetail] | readonly [ItemRowDetail, ItemRowDetail];
   /** The 2px status edge, for work rows. */
@@ -106,9 +112,11 @@ export interface ItemRowProps
   /**
    * The amount the item carries, in the right slot when the row has no action: the value
    * with its asset as the item's own screens write it ("9.98 DAI"), and under it what the
-   * amount is ("Jar balance"). It is part of what opens the row, so it is read with it.
+   * amount is ("Jar balance"). It is part of what opens the row, so it is read with it. An
+   * amount is never cut; a name in its place (who booked a service) sets `truncate`, so a long
+   * one gives way with an ellipsis and its full text as a title.
    */
-  amount?: { value: string; caption?: string };
+  amount?: { value: string; caption?: string; truncate?: boolean };
   /** Opens the item. */
   onOpen?: () => void;
   /** The open target's name, when the row's own text does not say what opens. */
@@ -241,7 +249,11 @@ function RowContent({
   status,
   details,
   amount,
-}: Pick<ItemRowProps, "lead" | "title" | "titleLines" | "status" | "details" | "amount">) {
+  subtitle,
+}: Pick<
+  ItemRowProps,
+  "lead" | "title" | "titleLines" | "status" | "subtitle" | "details" | "amount"
+>) {
   return (
     <>
       <Lead lead={lead} />
@@ -263,12 +275,21 @@ function RowContent({
           >
             <span className="min-w-0 truncate">{status.label}</span>
           </StatusBadge>
+        ) : subtitle ? (
+          <span className="gg-item-row-subtitle type-meta" title={subtitle}>
+            {subtitle}
+          </span>
         ) : null}
         {details?.length ? <DetailLine details={details} /> : null}
       </span>
       {amount ? (
-        <span className="gg-item-row-amount">
-          <span className="gg-item-row-amount-value type-card-title">{amount.value}</span>
+        <span className="gg-item-row-amount" data-truncate={amount.truncate ? "" : undefined}>
+          <span
+            className="gg-item-row-amount-value type-card-title"
+            title={amount.truncate ? amount.value : undefined}
+          >
+            {amount.value}
+          </span>
           {amount.caption ? (
             <span className="gg-item-row-amount-caption type-meta-sm">{amount.caption}</span>
           ) : null}
@@ -284,6 +305,7 @@ export const ItemRow = React.forwardRef<HTMLElement, ItemRowProps>(function Item
     title,
     titleLines,
     status,
+    subtitle,
     details,
     edge,
     action,
@@ -310,6 +332,7 @@ export const ItemRow = React.forwardRef<HTMLElement, ItemRowProps>(function Item
       title={title}
       titleLines={titleLines}
       status={status}
+      subtitle={subtitle}
       details={details}
       amount={action ? undefined : amount}
     />

@@ -49,7 +49,17 @@ type SendActName =
   // Garden creation and settings
   | "garden_create"
   | "garden_update"
+  | "garden_creator_allowlist"
+  | "karma_sync"
+  | "action_register"
   | "action_edit"
+  // Hypercerts and the marketplace
+  | "hypercert_listing"
+  | "marketplace_approval"
+  // A person's own account and profile
+  | "pilot_enrollment"
+  | "gardener_profile"
+  | "profile_avatar"
   // The Hub's pool and season acts
   | "pool_lifecycle"
   | "pool_setup"
@@ -107,9 +117,24 @@ export interface SendActContext {
   operation?: string;
   authMode: AuthMode | undefined;
   chainId?: number;
+  /** Set by `recordSendAct`: one id per attempt, on its start and its ending (PRD-1561). */
+  attemptId?: string;
 }
 
 const OPTIONS = { includeSessionId: false };
+
+/**
+ * The version of the send-act records' shape (PRD-1561). Raise it when a property changes
+ * meaning, so a question can tell the old records from the new.
+ */
+const SEND_ACT_SCHEMA_VERSION = 1;
+
+/** A fresh id for one attempt: one press of the act, never shared with an explicit retry. */
+function newAttemptId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function")
+    return crypto.randomUUID();
+  return `attempt_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+}
 
 /**
  * Viem's own timeouts already read as unconfirmed. A sender's own receipt limit
@@ -155,6 +180,17 @@ export function sendActEnding(error: unknown): {
 }
 
 /**
+ * How a run that keeps its own pending record ended: refused because an earlier send of the same
+ * thing still holds it, or sent and either landed or still confirming.
+ */
+export type HeldOrSent = "held" | "confirming" | "confirmed";
+
+/** Refused before sending: the earlier send that holds the same thing keeps its own record. */
+export function heldOrSentEnding(ending: HeldOrSent): SendActOutcome | SendActEndingDetail {
+  return ending === "held" ? { outcome: "failed", parsedErrorFamily: "HeldByAnotherSend" } : ending;
+}
+
+/**
  * A batched save's ending. `unknown` may have landed and is held until someone
  * reads it, so it is still confirming; a `not-saved` the wallet declined is
  * cancelled; any other `not-saved` sent nothing that can still land. A
@@ -194,6 +230,8 @@ function contextProperties(context: SendActContext) {
     operation: context.operation,
     auth_mode: context.authMode ?? null,
     chain_id: context.chainId,
+    attempt_id: context.attemptId,
+    schema_version: SEND_ACT_SCHEMA_VERSION,
   };
 }
 
@@ -245,14 +283,18 @@ function trackSendActEnded(
  * result or rethrows its error unchanged. A result with `confirmation:
  * "pending"` ends as `confirming`; `outcomeOf` names the ending of an act whose
  * result says more, such as one the job queue kept to send later, or one of
- * several copies (`copiesEnding`).
+ * several copies (`copiesEnding`). `endingOfError` reads an act's own error
+ * that knows more than its type says, such as one that names a send still
+ * awaiting confirmation; it defaults to `sendActEnding`.
  */
 export async function recordSendAct<T>(
   context: SendActContext,
   run: () => Promise<T>,
-  outcomeOf: (result: T) => SendActOutcome | SendActEndingDetail = outcomeOfResult
+  outcomeOf: (result: T) => SendActOutcome | SendActEndingDetail = outcomeOfResult,
+  endingOfError: (error: unknown) => SendActEndingDetail = sendActEnding
 ): Promise<T> {
   const startedAt = Date.now();
+  context = { ...context, attemptId: newAttemptId() };
   trackSendActStarted(context);
   let result: T;
   try {
@@ -261,7 +303,7 @@ export async function recordSendAct<T>(
     recordEnding(
       context,
       startedAt,
-      () => sendActEnding(error),
+      () => endingOfError(error),
       () => "failed"
     );
     throw error;
@@ -310,7 +352,8 @@ type SendActRun = (variables: never, ...rest: never[]) => Promise<unknown>;
 export function recordedSendAct<F extends SendActRun>(
   context: SendActContext | ((variables: Parameters<F>[0]) => SendActContext),
   run: F,
-  outcomeOf?: (result: Awaited<ReturnType<F>>) => SendActOutcome | SendActEndingDetail
+  outcomeOf?: (result: Awaited<ReturnType<F>>) => SendActOutcome | SendActEndingDetail,
+  endingOfError?: (error: unknown) => SendActEndingDetail
 ): F {
   const call = run as unknown as (...args: Parameters<F>) => Promise<Awaited<ReturnType<F>>>;
   const recorded = (...args: Parameters<F>) => {
@@ -324,7 +367,7 @@ export function recordedSendAct<F extends SendActRun>(
       });
       return call(...args);
     }
-    return recordSendAct(resolved, () => call(...args), outcomeOf);
+    return recordSendAct(resolved, () => call(...args), outcomeOf, endingOfError);
   };
   return recorded as unknown as F;
 }

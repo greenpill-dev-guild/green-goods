@@ -105,7 +105,7 @@ export function dropVercelFrameworkVariables(env = process.env) {
   }
 }
 
-/** The Vercel branch that serves alpha.greengoods.app and alpha.admin.greengoods.app. */
+/** The Vercel branch that serves alpha.greengoods.app and alpha.hub.greengoods.app. */
 const ALPHA_BRANCH = "alpha";
 // The Hub falls back to the App's key when its own is empty, so both go.
 const ANALYTICS_KEYS = ["VITE_POSTHOG_KEY", "VITE_POSTHOG_ADMIN_KEY"];

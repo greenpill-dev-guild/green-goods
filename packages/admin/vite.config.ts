@@ -16,8 +16,14 @@ import {
   clearAlphaAnalyticsKeys,
   dropVercelFrameworkVariables,
 } from "../../scripts/lib/env-parity.mjs";
+import { telemetryBuildDefines } from "../../scripts/lib/telemetry-build";
 import { defineConfig, loadEnv, type Plugin, type ProxyOptions, type UserConfig } from "vite";
 import mkcert from "vite-plugin-mkcert";
+import {
+  createHubInstallBranding,
+  type HubInstallBranding,
+  resolveHubFlavor,
+} from "./vite/hub-manifest";
 
 const ADMIN_VERCEL_PROJECT_ID = "prj_t2gwwFBMLKM22eYKxtA0yGRBfigg";
 
@@ -113,6 +119,39 @@ const ADMIN_WEB3_MODULES =
   /[\\/]node_modules[\\/](?:wagmi|viem|permissionless|ox|abitype|@wagmi|@walletconnect|@reown|@web3modal|@coinbase)[\\/]/;
 const ADMIN_OBSERVABILITY_MODULES = /[\\/]node_modules[\\/](?:@sentry|posthog-js)[\\/]/;
 
+// The installed Hub's manifest and home-screen tags for the environment this build serves (PRD-1517).
+function hubInstallPlugin(branding: HubInstallBranding): Plugin {
+  const manifest = JSON.stringify(branding.manifest, null, 2);
+  const replacements = {
+    "%HUB_BROWSER_ICON%": branding.browserIcon,
+    "%HUB_APPLE_TOUCH_ICON%": branding.appleTouchIcon,
+    "%HUB_SHORT_NAME%": branding.manifest.short_name,
+  };
+  return {
+    name: "green-goods-hub-install",
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        if (!req.url?.split("?")[0]?.endsWith("/manifest.webmanifest")) return next();
+        res.setHeader("Content-Type", "application/manifest+json");
+        res.end(manifest);
+      });
+    },
+    generateBundle() {
+      this.emitFile({ type: "asset", fileName: "manifest.webmanifest", source: manifest });
+    },
+    transformIndexHtml: {
+      order: "pre",
+      handler(html) {
+        let transformed = html;
+        for (const [token, value] of Object.entries(replacements)) {
+          transformed = transformed.split(token).join(value);
+        }
+        return transformed;
+      },
+    },
+  };
+}
+
 export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
   const rootDir = resolve(__dirname, "../../");
   // Resolve .env from monorepo root even when this package script runs with a package cwd.
@@ -203,6 +242,7 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
 
   const plugins = [
     devTunnelPlugin(),
+    hubInstallPlugin(createHubInstallBranding(resolveHubFlavor(process.env))),
     // Below the browser minimum every Hub page shows an update screen.
     browserMinimumGatePlugin({
       surface: "hub",
@@ -299,6 +339,7 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
       "import.meta.env.VITE_APP_VERSION": JSON.stringify(shortAppVersion),
       "import.meta.env.VITE_SENTRY_ADMIN_DSN": JSON.stringify(sentryDsn ?? ""),
       "import.meta.env.VITE_SENTRY_ENVIRONMENT": JSON.stringify(sentryEnvironment),
+      ...telemetryBuildDefines({ surface: "admin", release: sentryRelease }),
     },
     oxc: {
       jsx: { development: command !== "build" },

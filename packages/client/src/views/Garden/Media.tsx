@@ -85,7 +85,7 @@ interface WorkMediaProps {
   /** A HEIC photo's conversion while it waits for the decoder; `undefined` otherwise. */
   heicStateOf?: (file: File) => PendingPhotoState | undefined;
   onRetryHeicConversion?: (file: File) => void;
-  /** The promise this work is for, after the heading (O9). */
+  /** After the heading: the first step's garden line, then the work's promise (O9, PRD-1522). */
   pinned?: React.ReactNode;
 }
 

@@ -1,4 +1,5 @@
 import { Button } from "@green-goods/shared/components/Button";
+import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageWithFallback";
 import { Textarea } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import {
@@ -7,6 +8,7 @@ import {
   useJoinRequestCountUpdates,
 } from "@green-goods/shared/hooks/garden/useGardenJoinRequests";
 import { useGardenOperations } from "@green-goods/shared/hooks/garden/useGardenOperations";
+import { useResolvedProfileAvatar } from "@green-goods/shared/hooks/profile/useProfileAvatar";
 import {
   gardenJoinRequestErrorMessage,
   welcomeGardenJoinRequest,
@@ -18,7 +20,7 @@ import {
 import type { Address } from "@green-goods/shared/types/domain";
 import { formatAddress, formatEnsNameForDisplay } from "@green-goods/shared/utils/app/text";
 import { isCancelledTxError } from "@green-goods/shared/utils/errors/tx-error-classifier";
-import { RiCheckLine, RiCloseLine, RiGroupLine } from "@remixicon/react";
+import { RiCheckLine, RiCloseLine, RiGroupLine, RiUserLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 
@@ -28,7 +30,7 @@ import { useIntl } from "react-intl";
  * can say how many wait without asking for one (PRD-1381); each answer asks for that count again.
  */
 export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Address }) {
-  const { formatDate, formatMessage } = useIntl();
+  const { formatMessage } = useIntl();
   const isAvailable = useGardenJoinRequestAvailability();
   const join = useGardenJoinRequests(gardenAddress);
   const { keepCountGrant, readCountAgain } = useJoinRequestCountUpdates(gardenAddress);
@@ -129,46 +131,45 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
       aria-labelledby="garden-join-requests-title"
       className="mb-6 space-y-3 rounded-[var(--radius-xl)] border border-stroke-soft-200 bg-bg-weak-50 p-4"
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2
-            id="garden-join-requests-title"
-            className="text-[1.5rem] font-semibold text-text-strong-950"
-          >
+      <div>
+        {/* The queue's one control sits on its title's line at the compact size (DESIGN.pwa.md). */}
+        <div className="flex min-h-8 items-center justify-between gap-3">
+          <h2 id="garden-join-requests-title" className="type-title-md text-text-strong-950">
             {formatMessage({
               id: "app.garden.joinQueue.title",
               defaultMessage: "Join Requests",
             })}
           </h2>
-          <p className="mt-1 text-sm text-text-sub-600">
+          <Button
+            type="button"
+            emphasis="secondary"
+            size="compact"
+            className="shrink-0"
+            loading={join.queueState.isLoading}
+            onClick={() => void load()}
+          >
             {formatMessage({
-              id: "app.garden.joinQueue.description",
-              defaultMessage: "Review people who asked to join this garden.",
+              id: loaded ? "app.common.refresh" : "app.garden.joinQueue.load",
+              defaultMessage: loaded ? "Refresh" : "Check Requests",
             })}
-          </p>
+          </Button>
         </div>
-        <Button
-          type="button"
-          emphasis="secondary"
-          size="sm"
-          loading={join.queueState.isLoading}
-          onClick={() => void load()}
-        >
+        <p className="mt-1 type-body text-text-sub-600">
           {formatMessage({
-            id: loaded ? "app.common.refresh" : "app.garden.joinQueue.load",
-            defaultMessage: loaded ? "Refresh" : "Check Requests",
+            id: "app.garden.joinQueue.description",
+            defaultMessage: "Review people who asked to join this garden.",
           })}
-        </Button>
+        </p>
       </div>
 
       <div aria-live="polite">
         {notice ? (
-          <p className="rounded-[var(--radius-md)] bg-bg-white-0 p-3 text-sm">{notice}</p>
+          <p className="rounded-[var(--radius-md)] bg-bg-white-0 p-3 type-body">{notice}</p>
         ) : null}
         {join.rateLimitedRecently ? (
           <p
             role="status"
-            className="rounded-[var(--radius-md)] bg-warning-lighter p-3 text-sm text-warning-dark"
+            className="rounded-[var(--radius-md)] bg-warning-lighter p-3 type-body text-warning-dark"
           >
             {formatMessage({
               id: "app.garden.joinQueue.rateLimitedNotice",
@@ -179,7 +180,7 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
         {error || localError ? (
           <p
             role="alert"
-            className="rounded-[var(--radius-md)] bg-error-lighter p-3 text-sm text-error-dark"
+            className="rounded-[var(--radius-md)] bg-error-lighter p-3 type-body text-error-dark"
           >
             {error ? formatMessage(gardenJoinRequestErrorMessage(error)) : localError}
           </p>
@@ -203,36 +204,14 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
             key={request.id}
             className="space-y-3 rounded-[var(--radius-lg)] bg-bg-white-0 p-4 shadow-sm"
           >
-            <div>
-              {/* A request sent under a Green Goods name reads as the username alone. */}
-              <h3 className="text-[1.25rem] font-semibold">
-                {formatEnsNameForDisplay(request.displayName) ?? request.displayName}
-              </h3>
-              <p className="font-mono text-xs text-text-sub-600">
-                {formatAddress(request.accountAddress)}
-              </p>
-              <time dateTime={request.requestedAt} className="mt-1 block text-xs text-text-sub-600">
-                {formatMessage(
-                  {
-                    id: "app.garden.joinQueue.requestedAt",
-                    defaultMessage: "Requested {date}",
-                  },
-                  {
-                    date: formatDate(new Date(request.requestedAt), {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    }),
-                  }
-                )}
-              </time>
-              {request.note ? (
-                <p className="mt-2 whitespace-pre-wrap text-sm text-text-sub-600">{request.note}</p>
-              ) : null}
-            </div>
+            <JoinRequestPerson request={request} />
+            {request.note ? (
+              <p className="whitespace-pre-wrap type-meta text-text-sub-600">{request.note}</p>
+            ) : null}
             {declining?.id === request.id ? (
               <form className="space-y-3" onSubmit={declineRequest}>
                 <label className="block space-y-1.5">
-                  <span className="text-sm font-semibold">
+                  <span className="type-label">
                     {formatMessage({
                       id: "app.garden.joinQueue.declineReason",
                       defaultMessage: "Reason for declining",
@@ -249,7 +228,7 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
                 <div className="flex flex-wrap gap-2">
                   <Button
                     tone="danger"
-                    size="sm"
+                    size="compact"
                     type="submit"
                     disabled={!reason.trim()}
                     loading={activeId === request.id}
@@ -261,7 +240,7 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
                   </Button>
                   <Button
                     emphasis="secondary"
-                    size="sm"
+                    size="compact"
                     type="button"
                     onClick={() => {
                       setDeclining(undefined);
@@ -276,7 +255,7 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
               <div className="flex flex-wrap gap-2">
                 <Button
                   type="button"
-                  size="sm"
+                  size="compact"
                   leadingIcon={<RiCheckLine className="h-4 w-4" />}
                   loading={activeId === request.id || operations.isLoading}
                   onClick={() => void welcome(request)}
@@ -289,7 +268,7 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
                 <Button
                   type="button"
                   emphasis="secondary"
-                  size="sm"
+                  size="compact"
                   leadingIcon={<RiCloseLine className="h-4 w-4" />}
                   onClick={() => setDeclining(request)}
                 >
@@ -308,7 +287,7 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
         <Button
           type="button"
           emphasis="secondary"
-          size="sm"
+          size="compact"
           loading={join.queueState.isLoading}
           onClick={() => void load(join.nextCursor)}
         >
@@ -316,5 +295,72 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
         </Button>
       ) : null}
     </section>
+  );
+}
+
+/** The app's own picture for someone who has no photo, as the Gardeners list shows it. */
+const DEFAULT_AVATAR = "/images/avatar.png";
+
+/**
+ * Who asked, read as a person reads in the Gardeners list: their photo, their name, then their
+ * short address and the day they asked, each on its own line so neither drops at 375px; the
+ * time of day shows on hover. The name takes the roster row's card title (15px in the app), under
+ * the queue's 18px section heading.
+ */
+function JoinRequestPerson({ request }: { request: GardenJoinRequestQueueItem }) {
+  const { formatDate, formatMessage } = useIntl();
+  // The queue's rows read their photos together, on the batch route, as the roster's rows do.
+  const avatar = useResolvedProfileAvatar(request.accountAddress, DEFAULT_AVATAR, undefined, {
+    list: true,
+  });
+  // A request sent under a Green Goods name reads as the username alone.
+  const name = formatEnsNameForDisplay(request.displayName) ?? request.displayName;
+  const requestedAt = new Date(request.requestedAt);
+  return (
+    <div className="flex min-w-0 items-center gap-3">
+      <span
+        className="relative block size-14 shrink-0 overflow-hidden rounded-full bg-bg-soft-200"
+        aria-hidden="true"
+      >
+        <ImageWithFallback
+          src={avatar.avatarUri ?? DEFAULT_AVATAR}
+          alt=""
+          fallbackIcon={RiUserLine}
+          // The default avatar holds the circle while a photo loads, as the roster's rows do (DL-161).
+          backgroundFallback={
+            avatar.avatarUri && avatar.avatarUri !== DEFAULT_AVATAR ? (
+              <img
+                src={DEFAULT_AVATAR}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+            ) : undefined
+          }
+          className="absolute inset-0 h-full w-full object-cover"
+          fallbackClassName="absolute inset-0 h-full w-full"
+        />
+      </span>
+      <div className="flex min-w-0 flex-col">
+        <h3 className="truncate type-card-title text-text-strong-950" title={name}>
+          {name}
+        </h3>
+        <p
+          className="truncate font-mono type-meta text-text-sub-600"
+          title={request.accountAddress}
+        >
+          {formatAddress(request.accountAddress)}
+        </p>
+        <time
+          dateTime={request.requestedAt}
+          title={formatDate(requestedAt, { dateStyle: "medium", timeStyle: "short" })}
+          className="truncate type-meta text-text-sub-600"
+        >
+          {formatMessage(
+            { id: "app.garden.joinQueue.requestedAt", defaultMessage: "Requested {date}" },
+            { date: formatDate(requestedAt, { dateStyle: "medium" }) }
+          )}
+        </time>
+      </div>
+    </div>
   );
 }

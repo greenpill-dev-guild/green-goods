@@ -83,6 +83,23 @@ describe("recordSendAct", () => {
     expect(ended()).not.toHaveProperty("session_id");
   });
 
+  it("joins each act's start and ending under one attempt id, new for every press (PRD-1561)", async () => {
+    await recordSendAct(context, async () => ({ hash: "0xabc" }));
+    await recordSendAct(context, async () => ({ hash: "0xdef" }));
+
+    const ids = captured.map(({ properties }) => properties.attempt_id);
+    expect(ids).toHaveLength(4);
+    expect(ids[0]).toEqual(expect.any(String));
+    expect(ids[1]).toBe(ids[0]);
+    expect(ids[3]).toBe(ids[2]);
+    expect(ids[2]).not.toBe(ids[0]);
+    expect(new Set(captured.map(({ properties }) => properties.schema_version))).toEqual(
+      new Set([1])
+    );
+    // The caller's context is never changed: the next press starts a fresh attempt.
+    expect(context).not.toHaveProperty("attemptId");
+  });
+
   it("ends a send on record with no receipt yet as still confirming", async () => {
     await recordSendAct(context, async () => ({ hash: "0xabc", confirmation: "pending" }));
 
@@ -296,13 +313,6 @@ const RECORDED_ELSEWHERE: Record<string, string> = {
   "garden/createGardenOperation.ts": "member changes record admin_member_*",
   "garden/useGardenJoinRequests.ts": "signs an API session, not a send; garden_join_request_*",
   "yield/useHarvestDistribution.ts": "records admin_harvest_distribution_*",
-  // Not yet recorded: hypercert listings, Karma, deployments and profile signatures.
-  "blockchain/useDeploymentRegistry.ts": "follow-up",
-  "garden/useKarmaIntegration.ts": "follow-up",
-  "gardener/useGardenerProfile.ts": "follow-up",
-  "hypercerts/useBatchListForYield.ts": "follow-up",
-  "hypercerts/useMarketplaceApprovals.ts": "follow-up",
-  "profile/useProfileAvatar.ts": "follow-up",
 };
 
 const SEND_PRIMITIVE =

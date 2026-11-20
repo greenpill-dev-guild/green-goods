@@ -14,6 +14,7 @@ import { logger } from "./logger";
 import { getAppContext, track } from "./posthog";
 import { getBreadcrumbs } from "./error-breadcrumbs";
 import { captureExternalError } from "./external-error-reporters";
+import { classifyExternalError, externalErrorTags } from "./external-errors";
 import { redactSentryString, sanitizeSentryContext } from "./sentry-redaction";
 
 const IS_DEV = import.meta.env.DEV;
@@ -195,7 +196,7 @@ function redactErrorForTracking(error: Error): Error {
  */
 export function trackError(error: unknown, context: ErrorContext = {}): void {
   const {
-    severity = "error",
+    severity: requestedSeverity = "error",
     category = "unknown",
     source,
     userAction,
@@ -230,11 +231,23 @@ export function trackError(error: unknown, context: ErrorContext = {}): void {
   const originalErrorMessage =
     normalizedCause instanceof Error ? normalizedCause.message : undefined;
 
+  // WalletConnect's relay and the beta toolbar are someone else's code (PRD-1560). A relay
+  // reconnect that nothing of ours handled usually recovers, so it is a warning; a sign-in or
+  // signature our code reports as failed keeps its severity.
+  const external = classifyExternalError({
+    messages: [normalizedError.message, originalErrorMessage],
+    locations: [normalizedError.stack, metadata?.filename],
+  });
+  const unhandled = source === "window.onerror" || source === "unhandledrejection";
+  const severity: ErrorSeverity =
+    external?.recoverable && unhandled ? "warning" : requestedSeverity;
+
   // Build the error properties
   const rawProperties: Record<string, unknown> = {
     // App context (version and environment)
     app_version: appContext.app_version,
     environment: appContext.environment,
+    network: appContext.network,
     chain_id: appContext.chain_id,
 
     // Error details
@@ -277,6 +290,7 @@ export function trackError(error: unknown, context: ErrorContext = {}): void {
 
     // Additional metadata
     ...metadata,
+    ...(external ? externalErrorTags(external) : {}),
   };
 
   const authTelemetry = category === "auth";
@@ -300,8 +314,10 @@ export function trackError(error: unknown, context: ErrorContext = {}): void {
 
   const fingerprint = String(properties.error_fingerprint);
 
+  // Sentry files unhandled errors itself; a handled one gets the id of the report filed here.
+  let sentryEventId: string | undefined;
   if (source !== "window.onerror" && source !== "unhandledrejection") {
-    captureExternalError(capturedError, {
+    sentryEventId = captureExternalError(capturedError, {
       severity,
       category,
       source,
@@ -330,7 +346,10 @@ export function trackError(error: unknown, context: ErrorContext = {}): void {
     return;
   }
   // The transport is registered lazily after startup; before then this safely no-ops.
-  track("error_tracked", properties);
+  track(
+    "error_tracked",
+    sentryEventId ? { ...properties, sentry_event_id: sentryEventId } : properties
+  );
 }
 
 // ============================================================================

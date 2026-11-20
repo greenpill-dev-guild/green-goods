@@ -3,7 +3,9 @@
 /**
  * Review Promises holds steady for the visit: one quiet line when nothing
  * waits, a decided row stays as its outcome after the index moves on, a failed
- * approval brings the pair back as Try Again, and a new ask joins the end.
+ * approval brings the pair back as Try Again, and a new ask joins the end. It is
+ * the one queue for every booking act too: a visit to report, a return to
+ * propose and a transfer to retry wait there beside the asks, one row a person.
  */
 
 import {
@@ -22,6 +24,7 @@ import { claimRowKey } from "@green-goods/shared/hooks/admin-ui/pool/useWaitingF
 import type {
   IssuerSafeThreshold,
   VoucherAsk,
+  VoucherBooking,
 } from "@green-goods/shared/modules/commitment-pooling/pool-console";
 import type { PoolClaimRequestRow } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import type { Address } from "@green-goods/shared/types/domain";
@@ -41,6 +44,7 @@ vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
         {
           "0x4444444444444444444444444444444444444444": "Lina",
           "0x5555555555555555555555555555555555555555": "Kwesi",
+          "0x6666666666666666666666666666666666666666": "Mara",
         } as Record<string, string>
       )[address?.toLowerCase() ?? ""] ?? null,
   }),
@@ -76,7 +80,7 @@ function card(
   safe?: IssuerSafeThreshold
 ) {
   const pool = poolConsoleControllerFixture({ claims: [ines, kwame, lena], titles, ...overrides });
-  const handlers = { onDecline: vi.fn(), onOpen: vi.fn() };
+  const handlers = { onDecline: vi.fn(), onOpen: vi.fn(), onOpenPromise: vi.fn() };
   const view = renderWithProviders(
     <PoolClaimsCard console={pool} vouchers={vouchers} target={TARGET} safe={safe} {...handlers} />
   );
@@ -389,6 +393,263 @@ describe("PoolClaimsCard (Review Promises)", () => {
       const row = screen.getByRole("listitem");
       expect(within(row).getByText("Accepted")).toBeInTheDocument();
       expect(within(row).queryByText("Approved")).not.toBeInTheDocument();
+    });
+
+    describe("booking acts", () => {
+      const MARA = "0x6666666666666666666666666666666666666666" as Address;
+      const VOUCHER = 1_000_000n;
+      const started = (commitmentId: bigint, holder: Address, startsAt = NOW - 86_400) =>
+        ({
+          commitmentId,
+          holder,
+          setupId: `0x${"a4".repeat(32)}`,
+          issuer: ISSUER,
+          voucherUnits: VOUCHER,
+          service: {
+            kind: "visit",
+            startsAt,
+            endsAt: startsAt + 4 * 3_600,
+            report: { checkedIn: true, usableHours: 4, ofHours: 4, photos: 2 },
+          },
+          stage: { kind: "in-progress" },
+        }) satisfies VoucherBooking;
+      const visited = started(43n, MARA);
+      const upcoming = started(44n, MARA, NOW + 86_400);
+      const endedEarly: VoucherBooking = {
+        ...started(51n, LINA),
+        voucherUnits: 10n * VOUCHER,
+        service: { kind: "access", daysUsed: 12, daysOf: 30 },
+        stage: { kind: "ended-early", returnLimit: 6n * VOUCHER, returnCeiling: 0n },
+      };
+      const failed: VoucherBooking = {
+        ...endedEarly,
+        commitmentId: 52n,
+        holder: KWESI,
+        stage: { kind: "return-failed", units: 6n * VOUCHER },
+      };
+      const promises = [41n, 43n, 44n, 51n, 52n].map((commitmentId) =>
+        commitmentFixture({
+          commitmentId,
+          direction: "OFFER",
+          onchainState: "ACCEPTED",
+          metadataCID: `bafy-${commitmentId}`,
+        })
+      );
+      const promiseTitles = new Map(
+        [41n, 43n, 44n, 51n, 52n].map((id) => [
+          `bafy-${id}`,
+          { version: 1, title: id === 41n || id > 50n ? "Claude access" : "Hub day" },
+        ])
+      );
+      const bookingsFor = (
+        bookings: VoucherBooking[],
+        acts: Partial<VoucherConsoleView["acts"]> = {},
+        asks: VoucherAsk[] = []
+      ) => {
+        const view = voucherConsoleViewFixture({
+          now: NOW,
+          snapshot: { status: "observed", observedAt: NOW, asks, bookings, issuer: ISSUER },
+        });
+        return { ...view, acts: { ...view.acts, ...acts } };
+      };
+      const queue = (
+        vouchers: VoucherConsoleView,
+        overrides: Partial<PoolConsoleController> = {}
+      ) =>
+        card(
+          { claims: [], commitments: promises, titles: promiseTitles, ...overrides },
+          vouchers,
+          safeOwnedBy(VIEWER)
+        );
+
+      it("lists each booking act that waits on the steward: a visit to report once it has begun, a return to propose, a transfer to retry", () => {
+        queue(bookingsFor([visited, upcoming, endedEarly, failed]));
+        const report = screen.getByTestId("pool-booking-43");
+        expect(within(report).getByText("Visit to report")).toBeInTheDocument();
+        expect(within(report).getByRole("button", { name: "Report Visit…" })).toBeEnabled();
+        expect(screen.queryByTestId("pool-booking-44")).not.toBeInTheDocument();
+        expect(
+          within(screen.getByTestId("pool-booking-51")).getByRole("button", {
+            name: "Propose Return…",
+          })
+        ).toBeEnabled();
+        expect(
+          within(screen.getByTestId("pool-booking-52")).getByRole("button", {
+            name: "Retry Transfer",
+          })
+        ).toBeEnabled();
+        // A booking is the member's already: there is nothing to decline.
+        expect(screen.queryByRole("button", { name: "Decline…" })).not.toBeInTheDocument();
+      });
+
+      // DL-195: in a pool with voucher bookings the subline names every kind of row it can hold.
+      it("reads DL-195's subline in a pool with voucher bookings, beside ordinary asks too", () => {
+        queue(bookingsFor([visited]), { claims: [ines] });
+        expect(
+          screen.getByText(
+            "Everything waiting on you: people asking to take a promise up, bookings to approve, deposits to accept and visits to report."
+          )
+        ).toBeInTheDocument();
+      });
+
+      it("reports a visit through its dialog, and keeps the row as Reported once the read moves on", async () => {
+        const reportVisit = vi.fn().mockResolvedValue(undefined);
+        const view = queue(bookingsFor([visited], { reportVisit }));
+        fireEvent.click(screen.getByRole("button", { name: "Report Visit…" }));
+        const dialog = await screen.findByRole("dialog");
+        expect(within(dialog).getByText("Mara checked in")).toBeInTheDocument();
+        fireEvent.click(within(dialog).getByRole("button", { name: "Report Visit" }));
+        await waitFor(() => expect(reportVisit).toHaveBeenCalledWith(visited));
+
+        const row = await screen.findByTestId("pool-booking-43");
+        await waitFor(() => expect(within(row).getByText("Reported")).toBeInTheDocument());
+        // The pill names a person, so it can truncate and carries its words as a title (Rule 4).
+        expect(within(row).getByTitle("Waiting for Mara to confirm")).toBeInTheDocument();
+        view.rerender({}, bookingsFor([]));
+        expect(within(screen.getByTestId("pool-booking-43")).getByText("Reported")).toBeVisible();
+        expect(screen.queryByRole("button", { name: "Report Visit…" })).not.toBeInTheDocument();
+      });
+
+      it("lists the asks before the bookings it first reads with them", () => {
+        queue(bookingsFor([visited], {}, [linaAsk]), { claims: [linaRow] });
+        const rows = screen.getAllByRole("listitem");
+        expect(rows.map((row) => row.getAttribute("data-testid"))).toEqual([
+          "pool-claim-41",
+          "pool-booking-43",
+        ]);
+      });
+
+      it("draws a booking's row as text until its promise is read, so nothing focuses that can't open", () => {
+        queue(bookingsFor([{ ...failed, commitmentId: 99n }]));
+        const row = screen.getByTestId("pool-booking-99");
+        expect(
+          within(row)
+            .getAllByRole("button")
+            .map((button) => button.textContent)
+        ).toEqual(["Retry Transfer"]);
+        expect(within(row).getByText("Booking · Promise 99")).toBeInTheDocument();
+      });
+
+      it("keeps a booking whose act was settled elsewhere in its place, no longer waiting", () => {
+        const view = queue(bookingsFor([failed]));
+        view.rerender({}, bookingsFor([{ ...failed, stage: { kind: "in-progress" } }]));
+        const row = screen.getByTestId("pool-booking-52");
+        expect(within(row).getByText("No longer waiting")).toBeInTheDocument();
+        expect(
+          within(row).queryByRole("button", { name: "Retry Transfer" })
+        ).not.toBeInTheDocument();
+      });
+
+      it("appends a booking act that comes due during the visit at the end, marked New", () => {
+        const view = queue(bookingsFor([]), { claims: [ines] });
+        view.rerender({}, bookingsFor([failed]));
+        const rows = screen.getAllByRole("listitem");
+        expect(rows).toHaveLength(2);
+        expect(rows[1]).toHaveAttribute("data-testid", "pool-booking-52");
+        expect(within(rows[1]!).getByText("New")).toBeInTheDocument();
+      });
+
+      it("carries a person's booking act on the row their ask held: one row a person", () => {
+        const linaVisit = { ...started(41n, LINA), setupId: `0x${"d7".repeat(32)}` as const };
+        const view = queue(bookingsFor([], {}, [kwesiAsk]), { claims: [linaRow] });
+        view.rerender(
+          {
+            claims: [],
+            claimDecisions: {
+              [claimRowKey(linaRow)]: { kind: "approved", commitmentId: "41", at: NOW * 1000 },
+            },
+          },
+          bookingsFor([linaVisit])
+        );
+        const rows = screen.getAllByRole("listitem");
+        expect(rows).toHaveLength(1);
+        expect(within(rows[0]!).getByRole("button", { name: "Report Visit…" })).toBeEnabled();
+        expect(within(rows[0]!).queryByText("Accepted")).not.toBeInTheDocument();
+      });
+
+      it("shows the Safe's approval made this visit as Approved, until the deposit lets the steward accept", async () => {
+        const approveBooking = vi.fn().mockResolvedValue(undefined);
+        const view = queue(bookingsFor([], { approveBooking }, [linaAsk]), {
+          claims: [linaRow],
+          titles: bookingTitles,
+        });
+        fireEvent.click(screen.getByRole("button", { name: "Approve…" }));
+        const dialog = await screen.findByRole("dialog");
+        fireEvent.click(within(dialog).getByRole("button", { name: "Approve Booking" }));
+        await waitFor(() => expect(approveBooking).toHaveBeenCalledWith(linaAsk));
+
+        const row = screen.getByRole("listitem");
+        await waitFor(() => expect(within(row).getByText("Approved")).toBeInTheDocument());
+        expect(within(row).queryByRole("button", { name: "Approve…" })).not.toBeInTheDocument();
+        // Until the read catches up, no pill says it still needs the approval just given.
+        expect(within(row).queryByText("Needs your approval")).not.toBeInTheDocument();
+        // The read catches up: the Safe approved, and the deposit is not in yet.
+        const approved = { ...linaAsk, setup: { ...linaAsk.setup!, approvedAt: NOW } };
+        view.rerender({}, bookingsFor([], {}, [approved]));
+        expect(within(row).getByText("Approved")).toBeInTheDocument();
+        expect(within(row).getByText("Waiting for the deposit")).toBeInTheDocument();
+        // Her deposit lands: accepting is a new act.
+        view.rerender({}, bookingsFor([], {}, [{ ...kwesiAsk, commitmentId: 41n, buyer: LINA }]));
+        expect(within(row).getByRole("button", { name: "Accept…" })).toBeEnabled();
+      });
+
+      // While the pool is paused, only the acts that write to the pool wait (PR #1740 review).
+      it("keeps the escrow's acts while the pool is paused, and holds the ones that write to the pool", () => {
+        const paused = { ...poolConsoleControllerFixture().model, isPaused: true };
+        queue(bookingsFor([visited, endedEarly, failed], {}, [linaAsk, kwesiAsk]), {
+          claims: [linaRow, kwesiRow],
+          titles: bookingTitles,
+          model: paused,
+        });
+        expect(screen.getByRole("button", { name: "Approve…" })).toBeEnabled();
+        expect(screen.getByRole("button", { name: "Propose Return…" })).toBeEnabled();
+        expect(screen.getByRole("button", { name: "Retry Transfer" })).toBeEnabled();
+        expect(screen.queryByRole("button", { name: "Accept…" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Report Visit…" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Decline…" })).not.toBeInTheDocument();
+      });
+
+      // A fresh ask by the same person reuses the row's key (PR #1740, Codex).
+      it("offers Approve… again when the same person asks afresh after an approval this visit", async () => {
+        const approveBooking = vi.fn().mockResolvedValue(undefined);
+        const view = queue(bookingsFor([], { approveBooking }, [linaAsk]), {
+          claims: [linaRow],
+          titles: bookingTitles,
+        });
+        fireEvent.click(screen.getByRole("button", { name: "Approve…" }));
+        const dialog = await screen.findByRole("dialog");
+        fireEvent.click(within(dialog).getByRole("button", { name: "Approve Booking" }));
+        await waitFor(() => expect(screen.getByText("Approved")).toBeInTheDocument());
+
+        // Lina asks again: a new consent, so a new ask waiting on the Safe.
+        const again = { ...linaAsk, claimHash: `0x${"c2".repeat(32)}` as const };
+        view.rerender({}, bookingsFor([], { approveBooking }, [again]));
+        expect(screen.getByRole("button", { name: "Approve…" })).toBeEnabled();
+        expect(screen.queryByText("Approved")).not.toBeInTheDocument();
+      });
+
+      it("keeps Approve… on a booking whose Safe needs more signatures than the steward's", async () => {
+        const approveBooking = vi.fn().mockResolvedValue(undefined);
+        const pool = poolConsoleControllerFixture({ claims: [linaRow], titles: bookingTitles });
+        renderWithProviders(
+          <PoolClaimsCard
+            console={pool}
+            vouchers={bookingsFor([], { approveBooking }, [linaAsk])}
+            target={TARGET}
+            safe={{ ...safeOwnedBy(VIEWER, KWESI), threshold: 2 }}
+            onDecline={vi.fn()}
+            onOpen={vi.fn()}
+            onOpenPromise={vi.fn()}
+          />
+        );
+        fireEvent.click(screen.getByRole("button", { name: "Approve…" }));
+        const dialog = await screen.findByRole("dialog");
+        fireEvent.click(within(dialog).getByRole("button", { name: "Approve Booking" }));
+        await waitFor(() => expect(approveBooking).toHaveBeenCalledWith(linaAsk));
+        await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+        expect(screen.queryByText("Approved")).not.toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Approve…" })).toBeEnabled();
+      });
     });
 
     // An open dialog kept its confirm after the row went quiet (Codex on #1320).

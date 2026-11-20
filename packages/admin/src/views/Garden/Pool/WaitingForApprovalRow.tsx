@@ -22,8 +22,22 @@ export interface VoucherAskRowView {
   tag: { label: string; tone: ItemRowTone };
   /** When the member agreed, what the escrow holds, and the deadline. */
   detail: string;
-  /** Approve… or Accept…, each opening its confirm dialog; none while the booking waits on someone else. */
-  act: { label: string; onAct: () => void } | null;
+  /**
+   * Approve… or Accept…, each opening its confirm dialog; none while the booking waits on
+   * someone else. `escrow` marks an act on the issuer's escrow (the Safe's approval), which a
+   * paused pool doesn't stop, so it stays offered while the pool's own acts wait.
+   */
+  act: { label: string; onAct: () => void; escrow?: boolean } | null;
+  /**
+   * The Safe's approval sent from this row this visit, kept as its outcome in the acts' place
+   * with the pill line under it, until the booking waits on the steward again (DL-067).
+   */
+  outcome?: { label: string; at: number };
+  /**
+   * The pill and line once the row holds an outcome, saying what came of it ("Waiting for the
+   * deposit", "Booked · Visit Jan 22"); none while the read has not caught up.
+   */
+  settled?: { tag: { label: string; tone: ItemRowTone }; detail: string } | null;
 }
 
 export interface WaitingForApprovalRowProps {
@@ -74,23 +88,13 @@ export function WaitingForApprovalRow({
   );
   const asked = row.claim.requestedAt * 1000;
 
-  const moment = (ms: number, text: string) => (
-    <time
-      dateTime={isoTime(ms)}
-      title={exactTime(intl, ms)}
-      className="min-w-0 shrink-[10] truncate type-meta text-text-soft"
-    >
-      {text}
-    </time>
-  );
+  const moment = (ms: number, text: string) => <QueueMoment ms={ms} text={text} />;
   let marker: ReactNode = null;
   let when: ReactNode = moment(asked, age(asked));
-  if (state.status === "waiting" && state.isNew) {
-    marker = (
-      <span className="shrink-0 type-label-sm text-information-dark">
-        {formatMessage({ id: "hub.garden.pool.approvals.new", defaultMessage: "New" })}
-      </span>
-    );
+  if (voucher?.outcome) {
+    when = moment(voucher.outcome.at, clockTime(intl, voucher.outcome.at));
+  } else if (state.status === "waiting" && state.isNew) {
+    marker = <NewMarker />;
   } else if (state.status === "failed") {
     marker = (
       <span role="status" className="shrink-0 type-label-sm text-error-dark">
@@ -133,7 +137,9 @@ export function WaitingForApprovalRow({
       : name;
 
   let action: ReactNode;
-  if (state.status === "signing" || state.status === "confirming") {
+  if (voucher?.outcome && !decided) {
+    action = <OutcomeBadge label={voucher.outcome.label} />;
+  } else if (state.status === "signing" || state.status === "confirming") {
     action = (
       <span className="flex items-center gap-1.5">
         <RiLoader4Line
@@ -148,40 +154,55 @@ export function WaitingForApprovalRow({
     action = <ActPhaseLine phase={item.phase} confirmed="" />;
   } else if (state.status === "approved") {
     action = (
-      <StatusBadge variant="success" size="sm" icon={<RiCheckLine className="h-3 w-3" />}>
-        {/* The issuer approves a booking; the pool's steward accepts it. */}
-        {voucher
-          ? formatMessage({
-              id: "hub.garden.pool.voucher.accepted",
-              defaultMessage: "Accepted",
-            })
-          : formatMessage({
-              id: "hub.garden.pool.approvals.approved",
-              defaultMessage: "Approved",
-            })}
-      </StatusBadge>
+      <OutcomeBadge
+        // The issuer approves a booking; the pool's steward accepts it.
+        label={
+          voucher
+            ? formatMessage({
+                id: "hub.garden.pool.voucher.accepted",
+                defaultMessage: "Accepted",
+              })
+            : formatMessage({
+                id: "hub.garden.pool.approvals.approved",
+                defaultMessage: "Approved",
+              })
+        }
+      />
     );
   } else if (decided) {
     action = (
-      <StatusBadge variant="neutral" size="sm" showIcon={false}>
-        {state.status === "declined"
-          ? formatMessage({
-              id: "hub.garden.pool.approvals.declined",
-              defaultMessage: "Declined",
-            })
-          : state.status === "not-chosen"
+      <ClosedBadge
+        label={
+          state.status === "declined"
             ? formatMessage({
-                id: "hub.garden.pool.approvals.notChosen",
-                defaultMessage: "Not chosen",
+                id: "hub.garden.pool.approvals.declined",
+                defaultMessage: "Declined",
               })
-            : formatMessage({
-                id: "hub.garden.pool.approvals.gone",
-                defaultMessage: "No longer waiting",
-              })}
-      </StatusBadge>
+            : state.status === "not-chosen"
+              ? formatMessage({
+                  id: "hub.garden.pool.approvals.notChosen",
+                  defaultMessage: "Not chosen",
+                })
+              : formatMessage({
+                  id: "hub.garden.pool.approvals.gone",
+                  defaultMessage: "No longer waiting",
+                })
+        }
+      />
     );
   } else if (paused) {
-    action = null;
+    // A paused pool refuses what writes to it; an act on the issuer's escrow still goes.
+    action = voucher?.act?.escrow ? (
+      <Button
+        type="button"
+        emphasis="primary"
+        size="compact"
+        onClick={voucher.act.onAct}
+        disabled={disabled}
+      >
+        {voucher.act.label}
+      </Button>
+    ) : null;
   } else {
     const retryLabel = formatMessage({
       id: "hub.garden.pool.approvals.retry",
@@ -240,45 +261,152 @@ export function WaitingForApprovalRow({
       )
     : `${directionLabel(row.commitment.direction, formatMessage)} · ${title}`;
   return (
+    <QueueRowFrame
+      direction={row.commitment.direction}
+      isNew={state.status === "waiting" && state.isNew && !voucher?.outcome}
+      testId={`pool-claim-${row.claim.commitmentId.toString()}`}
+      state={state.status}
+      onOpen={onOpen}
+      who={who}
+      marker={marker}
+      when={when}
+      line={line}
+      action={action}
+      // A booking's pill and its line take the row's whole width, under the acts.
+      tag={!voucher ? null : decided || voucher.outcome ? (voucher.settled ?? null) : voucher}
+    />
+  );
+}
+
+/** A moment in a queue row: the text a row reads, the full moment on hover. */
+export function QueueMoment({ ms, text }: { ms: number; text: string }) {
+  const intl = useIntl();
+  return (
+    <time
+      dateTime={isoTime(ms)}
+      title={exactTime(intl, ms)}
+      className="min-w-0 shrink-[10] truncate type-meta text-text-soft"
+    >
+      {text}
+    </time>
+  );
+}
+
+/** Marks a row that joined the queue after the visit's first read (rule 4). */
+export function NewMarker() {
+  const { formatMessage } = useIntl();
+  return (
+    <span className="shrink-0 type-label-sm text-information-dark">
+      {formatMessage({ id: "hub.garden.pool.approvals.new", defaultMessage: "New" })}
+    </span>
+  );
+}
+
+/** What the steward's own act produced, kept in the acts' place for the visit. */
+export function OutcomeBadge({ label }: { label: string }) {
+  return (
+    <StatusBadge variant="success" size="sm" icon={<RiCheckLine className="h-3 w-3" />}>
+      {label}
+    </StatusBadge>
+  );
+}
+
+/** A row closed by someone else, or by another act: neutral, with no act left. */
+export function ClosedBadge({ label }: { label: string }) {
+  return (
+    <StatusBadge variant="neutral" size="sm" showIcon={false}>
+      {label}
+    </StatusBadge>
+  );
+}
+
+/**
+ * One row of Review Promises, whatever waits in it: who and when, then what for, the acts or
+ * their outcome on the right, and, for a booking, its pill and line across the row's width.
+ * The row keeps one height through every state; the row itself opens its promise.
+ */
+export function QueueRowFrame({
+  direction,
+  isNew,
+  testId,
+  state,
+  onOpen,
+  who,
+  marker,
+  when,
+  line,
+  action,
+  tag,
+}: {
+  direction: Parameters<typeof directionEdgeClass>[0];
+  isNew: boolean;
+  testId: string;
+  state: string;
+  onOpen?: () => void;
+  who: ReactNode;
+  marker?: ReactNode;
+  when?: ReactNode;
+  line: string;
+  action: ReactNode;
+  tag: { tag: { label: string; tone: ItemRowTone }; detail: string } | null;
+}) {
+  const heading = (
+    <>
+      <span className="flex min-w-0 items-baseline gap-2 whitespace-nowrap">
+        {/* The name keeps its length and the age gives way first (D6); only a
+          name wider than the whole line is cut. */}
+        <span className="max-w-full shrink-0 truncate type-body text-text-sub">{who}</span>
+        {marker}
+        {when}
+      </span>
+      <span className="mt-0.5 block truncate type-meta text-text-sub" title={line}>
+        {line}
+      </span>
+    </>
+  );
+  return (
     <li
       className={cn(
         "grid min-h-[60px] grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 py-2 ps-3",
-        directionEdgeClass(row.commitment.direction),
-        state.status === "waiting" && state.isNew && "bg-information-lighter"
+        directionEdgeClass(direction),
+        isNew && "bg-information-lighter"
       )}
-      data-testid={`pool-claim-${row.claim.commitmentId.toString()}`}
-      data-state={state.status}
+      data-testid={testId}
+      data-state={state}
     >
-      <AdminListRow
-        onClick={onOpen}
-        className="min-w-0 rounded-[var(--m3-shape-sm)] border-0 bg-transparent px-1 py-0.5"
-      >
-        <span className="flex min-w-0 items-baseline gap-2 whitespace-nowrap">
-          {/* The name keeps its length and the age gives way first (D6); only a
-              name wider than the whole line is cut. */}
-          <span className="max-w-full shrink-0 truncate type-body text-text-sub">{who}</span>
-          {marker}
-          {when}
-        </span>
-        <span className="mt-0.5 block truncate type-meta text-text-sub" title={line}>
-          {line}
-        </span>
-      </AdminListRow>
+      {onOpen ? (
+        <AdminListRow
+          onClick={onOpen}
+          className="min-w-0 rounded-[var(--m3-shape-sm)] border-0 bg-transparent px-1 py-0.5"
+        >
+          {heading}
+        </AdminListRow>
+      ) : (
+        // A row whose promise isn't read yet opens nothing, so it is text, not a button.
+        <div className="min-w-0 px-1 py-0.5">{heading}</div>
+      )}
       <div className="flex min-h-7 items-center justify-end gap-1">{action}</div>
-      {/* A booking's pill and its line take the row's whole width, under the acts. */}
-      {voucher && !decided ? (
+      {tag ? (
         <p className="col-span-2 mt-1 flex min-w-0 items-center gap-2 px-1">
+          {/* The line takes only the room the pill leaves; the pill, which can name a person,
+              gives way only when it alone is wider than the row. */}
           <StatusBadge
-            variant={voucher.tag.tone}
+            variant={tag.tag.tone}
             size="sm"
             showIcon={false}
-            className="shrink-0 whitespace-nowrap"
+            className="min-w-0 max-w-full whitespace-nowrap"
+            title={tag.tag.label}
           >
-            {voucher.tag.label}
+            <span className="min-w-0 truncate">{tag.tag.label}</span>
           </StatusBadge>
-          <span className="min-w-0 truncate type-meta text-text-soft" title={voucher.detail}>
-            {voucher.detail}
-          </span>
+          {tag.detail ? (
+            <span
+              className="min-w-0 flex-1 basis-0 truncate type-meta text-text-soft"
+              title={tag.detail}
+            >
+              {tag.detail}
+            </span>
+          ) : null}
         </p>
       ) : null}
     </li>
