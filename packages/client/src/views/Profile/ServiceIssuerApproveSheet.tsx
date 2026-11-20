@@ -70,11 +70,9 @@ export function ServiceIssuerApproveSheet({ draft, facts, approving, onClose, on
       }}
     >
       <div className="space-y-4" data-component="ServiceIssuerApproveSheet">
-        {/* Approving is the member's own step; Green Goods sets up, registers and admits after. */}
-        <FormProgress
-          currentStep={1}
-          steps={[t("j.approve"), t("j.setup"), t("j.register"), t("j.admit"), t("j.enable")]}
-        />
+        {/* Approving is the member's step; setting up (registering and admitting the voucher)
+            is Green Goods', and enabling is the member's again. */}
+        <FormProgress currentStep={1} steps={[t("j.approve"), t("j.setup"), t("j.enable")]} />
         <FactList>
           {facts
             .filter((fact) => IN_SHEET.has(fact.id))
