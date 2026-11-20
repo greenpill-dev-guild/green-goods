@@ -21,7 +21,7 @@ test.describe("Admin Authentication", () => {
     await expect(page.getByRole("heading", { name: "Connect to continue" })).toBeVisible({
       timeout: 15000,
     });
-    await expect(page.getByRole("button", { name: /connect wallet/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /sign in with a wallet/i })).toBeVisible();
   });
 
   test("introduces the upload terms once and lets a new Admin member skip", async ({ page }) => {
@@ -114,7 +114,7 @@ test.describe("Admin Authentication", () => {
       await helper.waitForPageLoad();
 
       await expect(page.getByText("Connect to continue")).toBeVisible({ timeout: 15000 });
-      await expect(page.getByRole("button", { name: /connect wallet/i })).toBeVisible();
+      await expect(page.getByRole("button", { name: /sign in with a wallet/i })).toBeVisible();
       await expect
         .poll(() => page.evaluate(() => window.sessionStorage.getItem("greengoods_dev_mock_auth")))
         .toBe("disconnected");
