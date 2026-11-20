@@ -328,10 +328,17 @@ export function PoolCommitmentsCard({
                   }
                   note={takes ? undefined : voucher?.note}
                   service={
-                    takes && voucher ? { takes, booking: voucher.note, promisedBy: "" } : undefined
+                    takes && voucher
+                      ? {
+                          takes,
+                          // Expire Now… keeps the right slot, so who booked moves to the line (DL-195).
+                          booking: isDue && bookedBy ? bookedBy : voucher.note,
+                          promisedBy: "",
+                        }
+                      : undefined
                   }
                   amount={
-                    bookedBy
+                    bookedBy && !isDue
                       ? {
                           value: bookedBy,
                           caption: formatMessage({

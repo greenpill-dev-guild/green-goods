@@ -403,7 +403,7 @@ export const VoucherEveryAct: Story = {
     await expect(card.getByText("Visit to report")).toBeVisible();
     await expect(
       card.getByText(
-        "Everything waiting on you: bookings to approve, deposits to accept and visits to report."
+        "Everything waiting on you: people asking to take a promise up, bookings to approve, deposits to accept and visits to report."
       )
     ).toBeVisible();
   },

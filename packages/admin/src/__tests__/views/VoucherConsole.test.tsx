@@ -372,6 +372,25 @@ describe("the issuer's acts in the Promises console", () => {
     expect(screen.getByTestId("pool-booking-51")).toBeInTheDocument();
   });
 
+  // DL-195: an act in the right slot keeps it, and the person moves to the detail line.
+  it("names who booked in the detail line when Expire Now holds the right slot", () => {
+    const overdue = commitmentFixture({
+      id: "42161-43",
+      commitmentId: 43n,
+      onchainState: "ACCEPTED",
+      derivedState: "ACTIVE",
+      state: "ACCEPTED",
+      counterparty: MARA,
+      metadataCID: "bafy-43",
+      dueDate: 1n,
+    });
+    offers([visit], {}, { commitments: [overdue] });
+    const row = screen.getByTestId("pool-commitment-43");
+    expect(within(row).getAllByRole("button", { name: "Expire Now…" })).not.toHaveLength(0);
+    expect(within(row).getByText("Mara")).toBeInTheDocument();
+    expect(within(row).queryByText("booked")).not.toBeInTheDocument();
+  });
+
   // Decision 2 of the hub-day review: the list shows each promise once; the act is the queue's.
   it("folds a booked copy into its group, which counts booked and open, and keeps its act in the queue", () => {
     const metadata = buildCommitmentMetadata({

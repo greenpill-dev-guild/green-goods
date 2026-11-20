@@ -480,9 +480,14 @@ describe("PoolClaimsCard (Review Promises)", () => {
         ).toBeEnabled();
         // A booking is the member's already: there is nothing to decline.
         expect(screen.queryByRole("button", { name: "Decline…" })).not.toBeInTheDocument();
+      });
+
+      // DL-195: in a pool with voucher bookings the subline names every kind of row it can hold.
+      it("reads DL-195's subline in a pool with voucher bookings, beside ordinary asks too", () => {
+        queue(bookingsFor([visited]), { claims: [ines] });
         expect(
           screen.getByText(
-            "Everything waiting on you: bookings to approve, deposits to accept and visits to report."
+            "Everything waiting on you: people asking to take a promise up, bookings to approve, deposits to accept and visits to report."
           )
         ).toBeInTheDocument();
       });

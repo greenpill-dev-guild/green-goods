@@ -246,7 +246,6 @@ export function PoolClaimsCard({
   const order = [...queue.order, ...[...asks.keys()].filter((key) => !queue.order.includes(key))];
   let waiting = 0;
   let decidedCount = 0;
-  let everyRowIsABooking = true;
   const rows: ReactNode[] = order.flatMap((key) => {
     const item = asks.get(key);
     const tracked = queue.bookings.get(key);
@@ -300,7 +299,6 @@ export function PoolClaimsCard({
     }
     if (!item) return [];
     const voucher = voucherView(item);
-    if (!voucher) everyRowIsABooking = false;
     if (isStillWaiting(item.state) && !voucher?.outcome) waiting += 1;
     else decidedCount += 1;
     return [
@@ -329,11 +327,13 @@ export function PoolClaimsCard({
         defaultMessage: "Requests wait while the pool is paused.",
       })
     : decidedCount === 0
-      ? everyRowIsABooking
+      ? // DL-195: a pool with voucher bookings names every kind of row the queue holds.
+        vouchers.snapshot.status === "observed" &&
+        (vouchers.snapshot.asks.length > 0 || vouchers.snapshot.bookings.length > 0)
         ? formatMessage({
             id: "hub.garden.pool.approvals.bookingsDescription",
             defaultMessage:
-              "Everything waiting on you: bookings to approve, deposits to accept and visits to report.",
+              "Everything waiting on you: people asking to take a promise up, bookings to approve, deposits to accept and visits to report.",
           })
         : formatMessage({
             id: "hub.garden.pool.approvals.description",
