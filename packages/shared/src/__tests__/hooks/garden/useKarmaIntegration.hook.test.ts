@@ -300,4 +300,27 @@ describe("useKarmaIntegration query and mutation seams", () => {
       ["send_act_ended", "karma_sync", "confirming"],
     ]);
   });
+
+  it("keeps a sequential call still awaiting its receipt as confirming when a later one fails (PRD-1571)", async () => {
+    const failure = new Error("access transaction failed");
+    mocks.sendContractCall
+      .mockResolvedValueOnce({
+        hash: `0x${"66".repeat(32)}`,
+        sponsored: false,
+        confirmation: "pending",
+      })
+      .mockRejectedValueOnce(failure);
+    const { result } = renderHookWithProviders(() => useKarmaIntegration(garden));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    const { acts, sent } = await captureSendActs(() =>
+      act(async () => {
+        await expect(result.current.reconcile()).rejects.toBe(failure);
+      })
+    );
+
+    expect(acts.at(-1)).toEqual(["send_act_ended", "karma_sync", "partial"]);
+    expect(sent).toContain('"copies_confirming":1');
+    expect(sent).not.toContain('"copies_confirmed"');
+  });
 });

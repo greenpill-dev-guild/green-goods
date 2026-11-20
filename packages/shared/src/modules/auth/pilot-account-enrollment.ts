@@ -243,9 +243,16 @@ export function createPilotAccountEnrollment(input: {
     candidate = undefined;
   };
 
-  // Selecting a proof that already exists sends nothing, so only a new proof is an act.
+  // Only a new proof is an act. Selecting one that already exists, or a press refused because a
+  // proof is already being sent or awaits its receipt, sends nothing.
+  const sendsNothing = () =>
+    Boolean(
+      candidate?.proof ||
+        sending ||
+        (candidate && storage.getItem(pendingKey(candidate.address)) !== null)
+    );
   const confirm = (reviewedHash?: Hex): Promise<void> =>
-    candidate?.proof
+    sendsNothing()
       ? confirmProof(reviewedHash)
       : recordSendAct(
           { act: "pilot_enrollment", authMode: "passkey", chainId: PROOF_CHAIN_ID },

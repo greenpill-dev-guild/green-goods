@@ -476,6 +476,8 @@ describe("pilot account enrollment", () => {
     const { acts, sent } = await captureSendActs(async () => {
       await landed.enrollment.confirm(first.operationHash);
       await expect(uncertain.enrollment.confirm(second.operationHash)).rejects.toThrow("timeout");
+      // A second press while that proof awaits its receipt sends nothing and records nothing.
+      await expect(uncertain.enrollment.confirm(second.operationHash)).rejects.toThrow("Reconcile");
       await expect(reverted.enrollment.confirm(third.operationHash)).rejects.toThrow();
       await existing.enrollment.confirm();
     });

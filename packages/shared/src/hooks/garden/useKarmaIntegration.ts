@@ -122,16 +122,18 @@ function karmaSyncEnding(run: KarmaReconcileRun): SendActEndingDetail {
  */
 function sequentialStopEnding(
   error: unknown,
-  progress: { confirmed: number; total: number }
+  progress: { confirmed: number; confirming: number; total: number }
 ): SendActEndingDetail {
   const stop = sendActEnding(error);
-  if (progress.confirmed === 0) return stop;
+  const sent = progress.confirmed + progress.confirming;
+  if (sent === 0) return stop;
   const notSent: SendActCopyOutcome = stop.outcome === "cancelled" ? "cancelled" : "failed";
   return {
     ...copiesEnding([
       ...Array.from({ length: progress.confirmed }, (): SendActCopyOutcome => "confirmed"),
+      ...Array.from({ length: progress.confirming }, (): SendActCopyOutcome => "confirming"),
       stop.outcome,
-      ...Array.from({ length: progress.total - progress.confirmed - 1 }, () => notSent),
+      ...Array.from({ length: progress.total - sent - 1 }, () => notSent),
     ]),
     parsedErrorFamily: stop.parsedErrorFamily,
   };
@@ -296,7 +298,7 @@ export function useKarmaIntegration(garden?: Garden | null) {
   };
 
   // How far a sequential run got, so a call that stops it does not hide the ones that landed.
-  const sequentialProgress = useRef({ confirmed: 0, total: 0 });
+  const sequentialProgress = useRef({ confirmed: 0, confirming: 0, total: 0 });
   const reconcileMutation = useMutation({
     mutationFn: recordedSendAct(
       () => ({
@@ -327,12 +329,14 @@ export function useKarmaIntegration(garden?: Garden | null) {
           }
           // Today's path: one signature per call, each waiting for the one before it.
           let confirming = false;
-          sequentialProgress.current = { confirmed: 0, total: calls.length };
+          sequentialProgress.current = { confirmed: 0, confirming: 0, total: calls.length };
           for (const [index, { call }] of calls.entries()) {
             onSignature(index + 1, calls.length);
             const result = await transactionSender.sendContractCall(call);
-            if (result.confirmation === "pending") confirming = true;
-            sequentialProgress.current.confirmed += 1;
+            if (result.confirmation === "pending") {
+              confirming = true;
+              sequentialProgress.current.confirming += 1;
+            } else sequentialProgress.current.confirmed += 1;
           }
           return { batched: false, confirming };
         } finally {

@@ -147,10 +147,12 @@ Every other act that signs or sends records `send_act_started` when it starts an
 sends, garden creation and settings, and the Hub's pool, season and conviction acts. Work submissions,
 approvals and member changes keep their own events above. An act the job queue holds, such as a
 commitment claim, proof or creation sent from the App, records the queue's `offline_job_*` events
-instead. Hypercert listings and marketplace approvals, Karma syncs, deployments, gardener profile
-updates, profile avatars, pilot account enrollment, and action registration and single-field action
-edits (`useActionOperations`; registration keeps `admin_action_create_*`) do not record these events
-yet. Read App acts in the App project
+instead. Since PRD-1571 the rest record them too: hypercert listings (`hypercert_listing`),
+marketplace approvals (`marketplace_approval`), Karma syncs (`karma_sync`), garden-creator allowlist
+changes (`garden_creator_allowlist`), gardener profile updates (`gardener_profile`), profile photos
+(`profile_avatar`), pilot account enrollment (`pilot_enrollment`), action registration
+(`action_register`, beside `admin_action_create_*`) and single-field action edits (`action_edit`).
+Events from before that change have none of these. Read App acts in the App project
 (163591) and Hub acts in the Hub project (262122).
 
 | Property | Meaning |
