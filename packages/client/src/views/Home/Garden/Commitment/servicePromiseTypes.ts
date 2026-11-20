@@ -32,7 +32,7 @@ export interface ServicePromiseParts {
    * slim, with its tracker in the top bar and only the facts that matter now.
    */
   booking: boolean;
-  /** Where the booking stands on Request, Deposit, Service and Done; null for no booking. */
+  /** Where the booking stands on Book, Deposit, Service and Done; null for no booking. */
   tracker: BookingTracker | null;
   sheets: ReactNode;
 }

@@ -213,7 +213,7 @@ describe("voucher booking on the promise page", () => {
     [
       "hubDay",
       "waitingApproval",
-      "Tech and Sun approves your request next",
+      "Tech and Sun approves your booking next",
       null,
       "Cancel Booking",
     ],
@@ -394,7 +394,7 @@ describe("voucher booking on the promise page", () => {
       VOUCHER_STORY_APPROVALS.unavailable,
     ]) {
       expect(view("hubDay", "waitingApproval", { approval }).band.sentence).toBe(
-        "Tech and Sun approves your request next. Nothing has left your account, and you can cancel any time before Tech and Sun accepts."
+        "Tech and Sun approves your booking next. Nothing has left your account, and you can cancel any time before Tech and Sun accepts."
       );
     }
   });
@@ -560,6 +560,26 @@ describe("voucher booking on the promise page", () => {
     expect(en).toHaveProperty(labelId);
   });
 
+  // DL-196: request names a kind of promise, so the booking's own words never use it.
+  it("never calls a booking a request in the words it adds", () => {
+    const unsent = bookingStorySnapshot("hubDay", "waitingApproval");
+    unsent.voucherSetups[0]!.destination!.result.phase = "none";
+    unsent.voucherSetups[0]!.source.authorizationDispatched = false;
+    const booking = serviceBookingView(
+      {
+        snapshot: unsent,
+        coreState: "OFFERED",
+        issuer: ISSUER.hubDay,
+        approval: APPROVAL.hubDay,
+        held: vouchers(9),
+      },
+      intl
+    )!;
+    expect(booking.stage).toBe("requestNotSent");
+    expect(en[booking.band.pill!.labelId as keyof typeof en]).toBe("Booking not sent");
+    expect(view("hubDay", "waitingApproval").band.sentence).not.toMatch(/request/i);
+  });
+
   it("leaves the promise's own pill where it already says enough", () => {
     expect(view("hubDay", "closed", { coreState: "FULFILLED" }).band.pill).toBeNull();
     expect(view("hubDay", "problemReported").band.pill).toBeNull();
@@ -584,7 +604,7 @@ describe("voucher booking on the promise page", () => {
     });
   });
 
-  // The PWA's own tracker: Request, Deposit, Service, Done, with a clock when someone else acts.
+  // The PWA's own tracker: Book, Deposit, Service, Done, with a clock when someone else acts.
   it.each([
     ["hubDay", "open", 1, null],
     ["hubDay", "waitingApproval", 2, "waiting on Tech and Sun"],
@@ -606,7 +626,7 @@ describe("voucher booking on the promise page", () => {
     ["access", "closed", 5, null],
   ] as const)("puts %s %s on the booking's markers", (service, stage, at, waiting) => {
     expect(view(service, stage).tracker).toEqual({
-      markers: ["Request", "Deposit", "Service", "Done"],
+      markers: ["Book", "Deposit", "Service", "Done"],
       at,
       waiting,
     });

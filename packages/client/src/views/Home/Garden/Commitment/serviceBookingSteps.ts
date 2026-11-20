@@ -232,9 +232,9 @@ export function bookingDelivery(ctx: BookingContext): ServiceBookingView["delive
   };
 }
 
-/** Request, Deposit, Service and Done: the same four markers on every service. */
+/** Book, Deposit, Service and Done: the same four markers on every service (DL-191). */
 function trackerMarkers(ctx: BookingContext): string[] {
-  return [ctx.t("tr.request"), ctx.t("tr.deposit"), ctx.t("tr.service"), ctx.t("tr.done")];
+  return [ctx.t("tr.book"), ctx.t("tr.deposit"), ctx.t("tr.service"), ctx.t("tr.done")];
 }
 
 /**

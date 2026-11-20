@@ -1850,7 +1850,7 @@ describe("a voucher booking on the promise page", () => {
 
   it("introduces an open offer in the card, with what booking it takes and who offers it", () => {
     show(bookingStorySnapshot("hubDay", "open"), bookingStoryController("hubDay", "OFFERED"));
-    expect(currentStep()).toHaveTextContent("Request");
+    expect(currentStep()).toHaveTextContent("Book");
     expect(currentStep()).not.toHaveTextContent("waiting");
     const section = screen.getByRole("region", { name: "Service Access" });
     expect(section).toHaveTextContent(/A reserved visit to the Tech and Sun hub/);

@@ -102,7 +102,7 @@ export interface ServiceTransfer {
  * service, the current one, and who it waits on when the step isn't the reader's.
  */
 export interface BookingTracker {
-  /** Request, Deposit, Service, Done, in the reader's language. */
+  /** Book, Deposit, Service, Done, in the reader's language. */
   markers: string[];
   /** The current marker, 1 to 4; 5 once every marker is done. */
   at: 1 | 2 | 3 | 4 | 5;
@@ -133,7 +133,7 @@ export interface ServiceBookingView {
      */
     pill: ServicePill | null;
   };
-  /** Where the booking sits on Request, Deposit, Service and Done; null once it was canceled. */
+  /** Where the booking sits on Book, Deposit, Service and Done; null once it was canceled. */
   tracker: BookingTracker | null;
   /** The facts that matter now: what you get, your voucher, Accept by, what was reported. */
   facts: ServiceFact[];

@@ -1263,7 +1263,7 @@ export const HubDayAgreeAndDeposit: Story = {
     await expect(await page.findByText("Tech and Sun approves the booking next.")).toBeVisible();
     await userEvent.click(page.getByRole("button", { name: "Done" }));
     await expect(canvas.getByRole("region", { name: "Where this stands" })).toHaveTextContent(
-      "Tech and Sun approves your request next."
+      "Tech and Sun approves your booking next."
     );
     await userEvent.click(canvas.getByRole("button", { name: "Tech and Sun approves" }));
     await userEvent.click(await canvas.findByRole("button", { name: "Deposit 1 Voucher" }));

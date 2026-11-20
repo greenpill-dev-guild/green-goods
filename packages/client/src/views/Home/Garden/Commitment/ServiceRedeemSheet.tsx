@@ -55,7 +55,7 @@ export function detailed(value: ReactNode, detail: ReactNode | null) {
 
 /**
  * Review and Redeem, the booking sheet over the promise page. It carries the page's own tracker
- * (Request, Deposit, Service, Done), its terms are a fact list, and every write says the passkey
+ * (Book, Deposit, Service, Done), its terms are a fact list, and every write says the passkey
  * asks first. Agreeing records consent and moves nothing; a deposit may ask twice, to allow and
  * then to deposit.
  */
