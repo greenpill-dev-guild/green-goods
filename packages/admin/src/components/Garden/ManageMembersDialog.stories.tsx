@@ -347,7 +347,8 @@ export const MembershipDates: Story = {
   ],
   play: async () => {
     await waitFor(() =>
-      expect(within(document.body).getByText("Joined this garden")).toBeVisible()
+      // Roles begun on the join day fold into the joined row.
+      expect(within(document.body).getByText(/^Joined as /)).toBeVisible()
     );
   },
 };
