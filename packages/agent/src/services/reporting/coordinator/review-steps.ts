@@ -7,7 +7,7 @@ import {
   withFeedback,
 } from "@green-goods/shared/modules/agent-reporting";
 import type { Confidence } from "@green-goods/shared/types/domain";
-import { chainCheckStopped } from "../check-notices";
+import { awaitingSafeSigners, chainCheckStopped } from "../check-notices";
 import { invalidateConfirmation, recordConfirmation } from "../confirmations";
 import type { ReportingCopyKey } from "../copy";
 import { enqueueJob } from "../jobs";
@@ -198,11 +198,12 @@ export function handleReviewCommand(
     // story goes to the review and not to a report beside it.
     case "new":
     case "status": {
-      // STATUS for a decision whose chain check stopped, or whose signing link expired unused,
-      // says so, not that no report is open.
+      // STATUS for a decision whose chain check stopped, that waits for a Safe's signers, or whose
+      // signing link expired unused, says so, not that no report is open.
       const stopped =
         command.kind === "status"
           ? (chainCheckStopped(writer.core, { reviewIntentId: review.id }) ??
+            awaitingSafeSigners(writer.core, { reviewIntentId: review.id }) ??
             (reviewLinkLapsed(writer.core, review) ? "review.linkExpired" : null))
           : null;
       if (stopped) {

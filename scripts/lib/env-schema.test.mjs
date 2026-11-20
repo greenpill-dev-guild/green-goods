@@ -19,6 +19,7 @@ import { fileURLToPath } from "node:url";
 import {
   assertEnvParity,
   assertSentryDsnResolvable,
+  clearAlphaAnalyticsKeys,
   dropVercelFrameworkVariables,
 } from "./env-parity.mjs";
 import {
@@ -362,4 +363,19 @@ test("drops Vercel's VITE_-prefixed copies and keeps what the build and the app 
     VERCEL_TARGET_ENV: "staging",
     VITE_CHAIN_ID: "11155111",
   });
+});
+
+test("an alpha build empties both PostHog keys and every other build keeps them", () => {
+  const keys = { VITE_POSTHOG_KEY: "phc_app", VITE_POSTHOG_ADMIN_KEY: "phc_hub" };
+
+  const alpha = { ...keys, VERCEL_GIT_COMMIT_REF: "alpha" };
+  assert.equal(clearAlphaAnalyticsKeys(alpha), true);
+  // Empty rather than deleted, so an env file Vite reads afterwards cannot refill them.
+  assert.deepEqual(alpha, { VITE_POSTHOG_KEY: "", VITE_POSTHOG_ADMIN_KEY: "", VERCEL_GIT_COMMIT_REF: "alpha" });
+
+  for (const ref of ["develop", "main", "feature/alpha", undefined]) {
+    const env = { ...keys, VERCEL_GIT_COMMIT_REF: ref };
+    assert.equal(clearAlphaAnalyticsKeys(env), false);
+    assert.deepEqual(env, { ...keys, VERCEL_GIT_COMMIT_REF: ref });
+  }
 });

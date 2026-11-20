@@ -102,6 +102,17 @@ export async function sendPreparedEnvelope(
         onBroadcastReference: report,
       }
     );
+    // A Safe's proposal waits for its signers. The hash reported above, if any, names no
+    // transaction, so the Agent hears what it was in an outcome of its own (PRD-1568).
+    if (result.awaiting === "safe-signers") {
+      return {
+        outcome: {
+          kind: "safe_proposal",
+          ...(isHash(result.hash) ? { safeTxHash: result.hash } : {}),
+        },
+        reported: false,
+      };
+    }
     const hashes = referenceOutcome(reference ?? { kind: "transaction", hash: result.hash });
     if (Object.keys(hashes).length === 0) {
       return { outcome: { kind: "uncertain", reason: "wallet_pending" }, reported };

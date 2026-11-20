@@ -8,6 +8,7 @@ vi.mock("vite", async (importOriginal) => ({
 vi.mock("../../../../../scripts/lib/env-parity.mjs", () => ({
   assertEnvParity: vi.fn(),
   assertSentryDsnResolvable: vi.fn(),
+  clearAlphaAnalyticsKeys: vi.fn(),
   dropVercelFrameworkVariables: vi.fn(),
 }));
 import adminConfig from "../../../vite.config";
