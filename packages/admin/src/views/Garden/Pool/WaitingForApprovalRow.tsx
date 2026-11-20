@@ -350,6 +350,20 @@ export function QueueRowFrame({
   action: ReactNode;
   tag: { tag: { label: string; tone: ItemRowTone }; detail: string } | null;
 }) {
+  const heading = (
+    <>
+      <span className="flex min-w-0 items-baseline gap-2 whitespace-nowrap">
+        {/* The name keeps its length and the age gives way first (D6); only a
+          name wider than the whole line is cut. */}
+        <span className="max-w-full shrink-0 truncate type-body text-text-sub">{who}</span>
+        {marker}
+        {when}
+      </span>
+      <span className="mt-0.5 block truncate type-meta text-text-sub" title={line}>
+        {line}
+      </span>
+    </>
+  );
   return (
     <li
       className={cn(
@@ -360,21 +374,17 @@ export function QueueRowFrame({
       data-testid={testId}
       data-state={state}
     >
-      <AdminListRow
-        onClick={onOpen}
-        className="min-w-0 rounded-[var(--m3-shape-sm)] border-0 bg-transparent px-1 py-0.5"
-      >
-        <span className="flex min-w-0 items-baseline gap-2 whitespace-nowrap">
-          {/* The name keeps its length and the age gives way first (D6); only a
-              name wider than the whole line is cut. */}
-          <span className="max-w-full shrink-0 truncate type-body text-text-sub">{who}</span>
-          {marker}
-          {when}
-        </span>
-        <span className="mt-0.5 block truncate type-meta text-text-sub" title={line}>
-          {line}
-        </span>
-      </AdminListRow>
+      {onOpen ? (
+        <AdminListRow
+          onClick={onOpen}
+          className="min-w-0 rounded-[var(--m3-shape-sm)] border-0 bg-transparent px-1 py-0.5"
+        >
+          {heading}
+        </AdminListRow>
+      ) : (
+        // A row whose promise isn't read yet opens nothing, so it is text, not a button.
+        <div className="min-w-0 px-1 py-0.5">{heading}</div>
+      )}
       <div className="flex min-h-7 items-center justify-end gap-1">{action}</div>
       {tag ? (
         <p className="col-span-2 mt-1 flex min-w-0 items-center gap-2 px-1">

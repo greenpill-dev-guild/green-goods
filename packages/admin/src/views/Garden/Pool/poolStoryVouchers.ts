@@ -48,6 +48,8 @@ const STORY_KWESI = "0x6b30000000000000000000000000000000004b2c" as Address;
 const STORY_MARA = "0x7c40000000000000000000000000000000005c3d" as Address;
 const STORY_RAFA = "0x8d50000000000000000000000000000000006d4e" as Address;
 const STORY_MAYA = "0x9e60000000000000000000000000000000007e5f" as Address;
+/** A member whose long name the Hub's rows must let give way. */
+export const STORY_LONG_NAME_MEMBER = "0xaf70000000000000000000000000000000008f6a" as Address;
 
 /** Who each fictional member is, as their Green Goods names would say. */
 const STORY_VOUCHER_NAMES: Record<string, string> = {
@@ -56,6 +58,7 @@ const STORY_VOUCHER_NAMES: Record<string, string> = {
   [STORY_MARA.toLowerCase()]: "Mara",
   [STORY_RAFA.toLowerCase()]: "Rafa",
   [STORY_MAYA.toLowerCase()]: "Maya",
+  [STORY_LONG_NAME_MEMBER.toLowerCase()]: "Maria Aparecida dos Santos Oliveira",
 };
 
 // The vouchers and their issuers' Safes live on Gnosis, the pilot's voucher network.

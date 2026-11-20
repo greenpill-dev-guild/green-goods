@@ -1,8 +1,10 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { claimRowKey } from "@green-goods/shared/hooks/admin-ui/pool/useWaitingForApproval";
+import ptMessages from "@green-goods/shared/i18n/pt.json";
 import type { PoolClaimRequestRow } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import type { Meta, StoryObj } from "@storybook/react";
-import { useEffect, useState } from "react";
+import { type ComponentType, useEffect, useState } from "react";
+import { IntlProvider } from "react-intl";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../../shared/.storybook/adminFixtures";
 import { daysAgo } from "../../../../../shared/.storybook/fixtures";
@@ -26,6 +28,7 @@ import {
   STORY_GREEN_GOODS_VOUCHERS,
   STORY_KWESI_ASK,
   STORY_LINA_ASK,
+  STORY_LONG_NAME_MEMBER,
   STORY_MARA_VISITED,
   STORY_TECH_AND_SUN_COMMITMENTS,
   STORY_TECH_AND_SUN_CLAIMS,
@@ -457,5 +460,40 @@ export const VoucherRetryTransfer: Story = {
     const card = within(canvasElement);
     await expect(await card.findByText("Needs recovery")).toBeVisible();
     await expect(card.getByRole("button", { name: "Retry Transfer" })).toBeEnabled();
+  },
+};
+
+/**
+ * A long name in Portuguese, reported this visit: the pill that names her gives way after the
+ * line beside it and keeps its words as a title, and her name keeps its length first.
+ */
+export const VoucherReportedLongNamePt: Story = {
+  tags: ["storybook-ci"],
+  args: {
+    ...VoucherEveryAct.args,
+    vouchers: storyVoucherConsole({
+      ...STORY_TECH_AND_SUN_VOUCHERS,
+      bookings: [{ ...STORY_MARA_VISITED, holder: STORY_LONG_NAME_MEMBER }],
+    }),
+  },
+  decorators: [
+    (Story: ComponentType) => (
+      <IntlProvider locale="pt" messages={ptMessages}>
+        <Story />
+      </IntlProvider>
+    ),
+  ],
+  beforeEach: nameVoucherMembers,
+  play: async ({ canvasElement }) => {
+    const card = within(canvasElement);
+    await userEvent.click(await card.findByRole("button", { name: "Informar visita…" }));
+    const dialog = within(await screen.findByRole("dialog"));
+    await userEvent.click(dialog.getByRole("button", { name: "Informar visita" }));
+    const row = card.getByTestId("pool-booking-43");
+    await waitFor(() =>
+      expect(
+        within(row).getByTitle("Aguardando Maria Aparecida dos Santos Oliveira confirmar")
+      ).toBeVisible()
+    );
   },
 };

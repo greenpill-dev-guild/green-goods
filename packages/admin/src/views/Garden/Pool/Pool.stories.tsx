@@ -250,6 +250,7 @@ export const TechAndSunVouchersPt: Story = {
  * queue may be missing bookings before acting on it.
  */
 export const VoucherReadFailed: Story = {
+  tags: ["storybook-ci"],
   args: TechAndSunVouchers.args,
   decorators: decorators(
     voucherSeeds(

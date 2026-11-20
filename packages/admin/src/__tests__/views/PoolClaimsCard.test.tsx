@@ -519,6 +519,17 @@ describe("PoolClaimsCard (Review Promises)", () => {
         ]);
       });
 
+      it("draws a booking's row as text until its promise is read, so nothing focuses that can't open", () => {
+        queue(bookingsFor([{ ...failed, commitmentId: 99n }]));
+        const row = screen.getByTestId("pool-booking-99");
+        expect(
+          within(row)
+            .getAllByRole("button")
+            .map((button) => button.textContent)
+        ).toEqual(["Retry Transfer"]);
+        expect(within(row).getByText("Booking · Promise 99")).toBeInTheDocument();
+      });
+
       it("keeps a booking whose act was settled elsewhere in its place, no longer waiting", () => {
         const view = queue(bookingsFor([failed]));
         view.rerender({}, bookingsFor([{ ...failed, stage: { kind: "in-progress" } }]));

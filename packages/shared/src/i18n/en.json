@@ -7282,6 +7282,7 @@
   "hub.garden.pool.group.bookedKept": "{booked} booked · {kept} kept",
   "hub.garden.pool.group.openOf": "{open} of {total} open",
   "hub.garden.pool.group.fullyBooked": "Fully booked",
+  "hub.garden.pool.group.open": "Open",
   "hub.garden.pool.group.scope": "Which promises to show",
   "hub.garden.pool.group.independent": "Each promise is confirmed on its own. There is no group approval, and one finishing never waits for the others.",
   "hub.garden.pool.group.tookIt": "Took it {when}",

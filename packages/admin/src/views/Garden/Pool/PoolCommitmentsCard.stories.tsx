@@ -25,6 +25,7 @@ import {
   STORY_GREEN_GOODS_RETURN_FAILED,
   STORY_GREEN_GOODS_VOUCHERS,
   STORY_HUB_DAY_TITLES,
+  STORY_LONG_NAME_MEMBER,
   STORY_MARA_VISIT,
   STORY_TECH_AND_SUN_COMMITMENTS,
   STORY_TECH_AND_SUN_VOUCHERS,
@@ -523,5 +524,37 @@ export const VoucherGroupedBooking: Story = {
     await expect(within(group).getByText("2 of 3 open")).toBeVisible();
     await expect(within(group).getByText(/Takes 1 Tech and Sun voucher/)).toBeVisible();
     await expect(canvas.queryByTestId("pool-commitment-61")).toBeNull();
+  },
+};
+
+/** A long name in Portuguese in a booked offer's right slot: it gives way with its title. */
+export const VoucherLongNamePt: Story = {
+  tags: ["storybook-ci"],
+  args: {
+    console: storyPoolConsole({
+      commitments: STORY_TECH_AND_SUN_COMMITMENTS.map((row) =>
+        row.commitmentId === 43n ? { ...row, counterparty: STORY_LONG_NAME_MEMBER } : row
+      ),
+      claims: [],
+      titles: STORY_VOUCHER_TITLES,
+    }),
+    vouchers: storyVoucherConsole({
+      ...STORY_TECH_AND_SUN_VOUCHERS,
+      bookings: [{ ...STORY_MARA_VISIT, holder: STORY_LONG_NAME_MEMBER }],
+    }),
+  },
+  decorators: [
+    (Story) => (
+      <IntlProvider locale="pt" messages={ptMessages}>
+        <Story />
+      </IntlProvider>
+    ),
+  ],
+  beforeEach: nameVoucherMembers,
+  play: async ({ canvasElement }) => {
+    const row = await within(canvasElement).findByTestId("pool-commitment-43");
+    await expect(
+      await within(row).findByTitle("Maria Aparecida dos Santos Oliveira")
+    ).toBeVisible();
   },
 };

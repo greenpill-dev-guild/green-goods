@@ -133,13 +133,21 @@ button.garden-stat-row:hover {
 
   /* A notice tops the main column. The lead spans the notice's row and the next: the notice's
    * row keeps the notice's height, so main starts right under it, and the rail starts right
-   * under the lead in the flexible last row, which main shares. */
+   * under the lead in the flexible last row, which main shares. The notice and the lead carry
+   * the gap under them as a margin instead of a row gap, so a lead no taller than the notice
+   * leaves no second gap above the rail. */
   .garden-tab-layout:has(> .garden-tab-lead):has(> .garden-tab-notice) {
     grid-template-areas:
       "notice lead"
       "main   lead"
       "main   rail";
     grid-template-rows: auto auto 1fr;
+    row-gap: 0;
+  }
+
+  .garden-tab-layout:has(> .garden-tab-lead):has(> .garden-tab-notice) > .garden-tab-notice,
+  .garden-tab-layout:has(> .garden-tab-lead):has(> .garden-tab-notice) > .garden-tab-lead {
+    margin-block-end: 1.5rem;
   }
 
   .garden-tab-layout:has(> .garden-tab-notice):not(:has(> .garden-tab-lead)) {

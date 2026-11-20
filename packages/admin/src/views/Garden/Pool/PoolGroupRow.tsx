@@ -85,7 +85,7 @@ export function PoolGroupRow({
         status: {
           label:
             counts.available > 0
-              ? formatMessage({ id: "hub.garden.pool.commitments.open", defaultMessage: "Open" })
+              ? formatMessage({ id: "hub.garden.pool.group.open", defaultMessage: "Open" })
               : formatMessage({
                   id: "hub.garden.pool.group.fullyBooked",
                   defaultMessage: "Fully booked",
