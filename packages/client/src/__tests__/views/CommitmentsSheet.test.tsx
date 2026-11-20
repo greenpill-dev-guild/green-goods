@@ -43,6 +43,10 @@ const mockUseCommitmentsInbox = vi.fn();
 const mockUseCommitmentsToConfirm = vi.fn();
 /** What each listed service offer's booking takes; the reads are proven in Shared. */
 const mockUseServiceOfferLines = vi.fn();
+/** Each listed booking's own read, keyed as the promise page reads it: nothing answered yet. */
+const mockUseServiceAccessReads = vi.fn((keys: readonly unknown[]) =>
+  keys.map(() => ({ data: undefined }) as { data?: unknown })
+);
 const mockUseCommitmentCycles = vi.fn();
 const mockUseOffline = vi.fn();
 /** The garden the chip on Home has chosen; null before a member has one. */
@@ -189,6 +193,7 @@ vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   useCommitmentsInbox: (...args: unknown[]) => mockUseCommitmentsInbox(...args),
   useCommitmentsToConfirm: (...args: unknown[]) => mockUseCommitmentsToConfirm(...args),
   useServiceOfferLines: (...args: unknown[]) => mockUseServiceOfferLines(...args),
+  useServiceAccessReads: (keys: readonly unknown[]) => mockUseServiceAccessReads(keys),
 }));
 
 // The launcher reads the same two hooks from their own leaves.
@@ -220,6 +225,9 @@ describe("CommitmentsSheet", () => {
     mockUseCommitmentsToConfirm.mockReturnValue(toConfirm());
     mockUseCommitmentCycles.mockReturnValue({ cycles: [] });
     mockUseServiceOfferLines.mockReturnValue(new Map());
+    mockUseServiceAccessReads.mockImplementation((keys: readonly unknown[]) =>
+      keys.map(() => ({ data: undefined }))
+    );
     mockUsePoolClaimRequests.mockReturnValue({
       rows: [],
       isLoading: false,
@@ -703,6 +711,55 @@ describe("CommitmentsSheet", () => {
       chainId: expect.any(Number),
       offers: [offer],
     });
+  });
+
+  it("says Needs you on a booking whose deposit waits on the reader, in its own row", async () => {
+    const { bookingStorySnapshot } = await import(
+      "../../../../shared/.storybook/voucherBookingFixtures"
+    );
+    const offer = commitmentFixture({
+      id: "42161-70",
+      commitmentId: 70n,
+      poolId: 7n,
+      creator: OTHER,
+      direction: "OFFER",
+      claimMode: "APPROVAL_GATED",
+      claimType: "INDIVIDUAL",
+      onchainState: "OFFERED",
+      derivedState: "OFFERED",
+      metadataCID: HUB_DAY_CID,
+    });
+    mockUsePoolClaimRequests.mockReturnValue({
+      rows: [
+        {
+          claim: { requestedBy: VIEWER, claimant: VIEWER, gardenContext: GARDEN },
+          commitment: offer,
+        },
+      ],
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof mockUsePoolClaimRequests>);
+    // Each read answers for the promise it was asked about, as the live read does.
+    mockUseServiceAccessReads.mockImplementation((keys: readonly unknown[]) =>
+      keys.map((key) => ({
+        data: {
+          ...bookingStorySnapshot("hubDay", "readyToDeposit"),
+          key: key as ReturnType<typeof bookingStorySnapshot>["key"],
+        },
+      }))
+    );
+    render(<CommitmentsSheet isOpen onClose={vi.fn()} />);
+
+    const row = screen.getByRole("button", { name: new RegExp(HUB_DAY) });
+    expect(row).toHaveTextContent("Needs you");
+    expect(row).not.toHaveTextContent("Waiting for review");
+    // The Live tab counts what its rows say needs the reader (DL-129), the booking included.
+    expect(screen.getByTestId("tab-live")).toHaveTextContent("1");
+    // The booking is read as the promise page reads it: this offer, for this reader.
+    expect(mockUseServiceAccessReads).toHaveBeenLastCalledWith([
+      expect.objectContaining({ commitmentId: 70n, buyer: VIEWER, sourceChainId: 42161 }),
+    ]);
   });
 
   it("opens a row's commitment in its garden without dismissing the dashboard", async () => {

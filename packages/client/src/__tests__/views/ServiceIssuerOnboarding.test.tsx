@@ -48,6 +48,14 @@ describe("a member's draft service", () => {
     ).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Review and Approve" }));
     const sheet = within(screen.getByRole("dialog"));
+    // The app's own tracker: approving is the member's step; Green Goods sets up; they enable.
+    const steps = sheet.getByRole("list", { name: "Steps" });
+    expect(
+      within(steps)
+        .getAllByRole("listitem")
+        .map((step) => step.textContent)
+    ).toEqual(["1You approve", "2Set up", "3You enable"]);
+    expect(steps.querySelector('[aria-current="step"]')).toHaveTextContent("You approve");
     const approve = sheet.getByRole("button", { name: "Approve My Service" });
     expect(approve).toBeDisabled();
     expect(sheet.getByText("Your signed approval of these terms")).toBeInTheDocument();

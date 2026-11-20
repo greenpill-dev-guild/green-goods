@@ -1,4 +1,4 @@
-import { useServiceAccess, writeWorkLinkIntent } from "@green-goods/shared/commitment-pooling";
+import { useServiceAccess } from "@green-goods/shared/commitment-pooling";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useGardenCommitmentController } from "@green-goods/shared/hooks/client-ui/commitment/useGardenCommitmentController";
 import { useDashboardNavigation } from "@green-goods/shared/hooks/client-ui/useDashboardNavigation";
@@ -26,7 +26,7 @@ import { CommitmentTeam } from "./CommitmentTeam";
 import { CommitmentWork } from "./CommitmentWork";
 import { ConfirmSheet } from "./ConfirmSheet";
 import { addProofReach, commitmentActForKind, takeUpMode } from "./commitmentActions";
-import { parseCommitmentId, savedCommitmentForRoute } from "./commitmentRoute";
+import { parseCommitmentId, savedCommitmentForRoute, workSubmissionPath } from "./commitmentRoute";
 import { FailedActAlert } from "./FailedActAlert";
 import { JoinToAct, MembershipCheckFailed } from "./JoinToAct";
 import { LinkWorkSheet } from "./LinkWorkSheet";
@@ -35,7 +35,7 @@ import { proofOnPhoneLine } from "./proofOnPhone";
 import { SavedCommitment } from "./SavedCommitment";
 import { ServicePromise } from "./ServicePromise";
 import type { ServicePromiseParts } from "./servicePromiseTypes";
-import { serviceReadOutcome } from "./serviceBooking";
+import { mayBeBooking, serviceReadOutcome } from "./serviceBooking";
 import { selectStatusBand } from "./statusBand";
 import { WithdrawSheet } from "./WithdrawSheet";
 import { TakeUpReviewSheet } from "./TakeUpReviewSheet";
@@ -121,6 +121,7 @@ export function GardenCommitment() {
 
   const detail = controller.detail;
   const { commitment, contributors, requirements } = detail;
+  const bookingUnread = serviceRead === "unresolved" && mayBeBooking(commitment, controller.viewer);
   const requiredWorkApproved =
     requirements.length > 0 && requirements.every((row) => row.approvedCount >= row.requiredCount);
   const genericAct = commitmentActForKind(controller.actKind);
@@ -164,21 +165,17 @@ export function GardenCommitment() {
     controller.metadata?.title ?? units ?? formatMessage({ id: "app.commitments.row.untitled" });
   const stewards = stewardsForPromiseGarden(controller.pool?.garden, controller.roles.garden);
   const openWorkSubmission = (requirementIndex: number, actionUID: number | bigint) => {
-    const parsedActionUID = Number(actionUID);
-    if (!controller.routeGarden || !controller.workGarden || !Number.isSafeInteger(parsedActionUID))
-      return;
-    const returnTo = `/home/${controller.routeGarden}/commitments/${commitment.commitmentId.toString()}`;
-    const params = writeWorkLinkIntent(new URLSearchParams(), {
+    const path = workSubmissionPath({
+      routeGarden: controller.routeGarden,
+      workGarden: controller.workGarden,
       commitmentId: commitment.commitmentId,
+      title: heading,
       requirementIndex,
-      actionUID: parsedActionUID,
-      garden: controller.workGarden,
-      commitmentTitle: heading,
-      requirementLabel: String(requirementIndex + 1),
-      returnTo,
+      actionUID,
     });
+    if (!path) return;
     setLinkOpen(null);
-    dashboardNavigation.forward(`/home/garden?${params.toString()}`);
+    dashboardNavigation.forward(path);
   };
 
   const claim = (context: ClaimContext) =>
@@ -229,6 +226,7 @@ export function GardenCommitment() {
       <CommitmentDetailShell
         onBack={back}
         title={heading}
+        tracker={service.tracker}
         subtitle={
           <CommitmentPlace
             chainId={controller.chainId}
@@ -294,9 +292,7 @@ export function GardenCommitment() {
           joinable={controller.joinable}
           viewer={controller.viewer}
           stewards={stewards}
-          serviceBand={service.band}
-          serviceTakes={service.takes}
-          rewardsBelow={service.rewards}
+          {...service.identity}
         />
         {service.body}
         <PromiseGroupNote
@@ -314,20 +310,23 @@ export function GardenCommitment() {
         {serviceRead === "failed" ? (
           <MembershipCheckFailed check="service" onRetry={() => void serviceAccess.refetch()} />
         ) : null}
-        <CommitmentTeam
-          commitment={commitment}
-          contributors={contributors}
-          requirements={requirements}
-          actions={controller.actions}
-          chainId={controller.chainId}
-          seat={controller.seat}
-          viewer={controller.viewer}
-          canJoin={controller.joinable}
-          isOnline={controller.isOnline}
-          isJoining={controller.isSending}
-          onJoin={() => keepSurfaceOnFailure(controller.acts.join())}
-        />
-        {ordinary || serviceAccess.data?.acceptancePolicy.kind === "earned" ? (
+        {service.booking || bookingUnread ? null : (
+          <CommitmentTeam
+            commitment={commitment}
+            contributors={contributors}
+            requirements={requirements}
+            actions={controller.actions}
+            chainId={controller.chainId}
+            seat={controller.seat}
+            viewer={controller.viewer}
+            canJoin={controller.joinable}
+            isOnline={controller.isOnline}
+            isJoining={controller.isSending}
+            onJoin={() => keepSurfaceOnFailure(controller.acts.join())}
+          />
+        )}
+        {!service.booking &&
+        (ordinary || serviceAccess.data?.acceptancePolicy.kind === "earned") ? (
           <CommitmentClaims
             commitment={commitment}
             acceptancePolicy={serviceAccess.data?.acceptancePolicy}
@@ -403,13 +402,14 @@ export function GardenCommitment() {
           }
           onLink={(workUID, requirementIndex) => setLinkOpen({ workUID, requirementIndex })}
         />
-        <CommitmentHistory
-          chainId={controller.chainId}
-          commitment={commitment}
-          viewer={controller.viewer}
-          localLine={proofOnPhone}
-          bookingLines={service.bookingLines}
-        />
+        {service.booking || bookingUnread ? null : (
+          <CommitmentHistory
+            chainId={controller.chainId}
+            commitment={commitment}
+            viewer={controller.viewer}
+            localLine={proofOnPhone}
+          />
+        )}
       </CommitmentDetailShell>
       <TakeUpReviewSheet
         open={ordinary && takeUpReviewOpen}
@@ -483,10 +483,10 @@ export function GardenCommitment() {
     <ServicePromise
       serviceKey={serviceKey}
       access={serviceAccess}
-      coreState={commitment.derivedState}
-      creator={commitment.creator}
+      commitment={commitment}
       gardenName={controller.roles.garden?.name ?? ""}
       heading={heading}
+      note={controller.metadata?.note ?? null}
       hasCoreAct={Boolean(act)}
       isOnline={controller.isOnline}
       onReport={controller.confirmation.canNotYet ? () => setConfirmOpen("report") : null}

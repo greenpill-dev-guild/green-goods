@@ -66,6 +66,8 @@ export interface ServicePromiseViewsInput {
   coreState: CommitmentDerivedState;
   /** Who made the promise: the chain refuses their own take-up, so they read no buyer's path. */
   creator: CommitmentReadModel["creator"];
+  /** The promise holds proof, so a dispute raised on it came after the issuer's report. */
+  proofRecorded: boolean;
   viewer: Address | undefined;
   issuer: ServiceBookingInput["issuer"];
   /** The wallet's own entry for the issuer, which alone knows what the reader holds of it. */
@@ -115,7 +117,17 @@ export function servicePromiseViews(
     : null;
   const booking = ownOffer
     ? null
-    : serviceBookingView({ snapshot, coreState, issuer, approval: input.approval, held }, intl);
+    : serviceBookingView(
+        {
+          snapshot,
+          coreState,
+          issuer,
+          approval: input.approval,
+          held,
+          proofRecorded: input.proofRecorded,
+        },
+        intl
+      );
   // A reward's issuer: the wallet's match, else the catalog's name, else the booking's issuer on
   // a page with neither a booking nor an own offer.
   const terms = snapshot.acceptancePolicy.earned.terms;

@@ -10,15 +10,19 @@ import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 const VOUCHER_DECIMALS = 6;
 
 /**
- * What the Vouchers tab draws, in the lab's order (`SWallet`): a voucher a booking holds, as its
- * own row (decision 11); a return on its way, pending until it arrives; then what the account
- * holds of each issuer. A booking that is settling or returning shows through its return
- * instead, so no voucher is counted twice. An issuer the account holds none of has no row, so
- * an account with nothing yet reads "No vouchers yet".
+ * What the Vouchers tab draws, in the lab's order (`SWallet`): a booking, as its own row
+ * (decision 11), once approved and waiting for its deposit and while it holds a voucher; a return
+ * on its way, pending until it arrives; then what the account holds of each issuer. A booking that
+ * is settling or returning shows through its return instead, so no voucher is counted twice. An
+ * issuer the account holds none of has no row, so an account with nothing yet reads "No vouchers
+ * yet".
  */
 export function selectVoucherWalletRows(wallet: VoucherWalletSnapshot) {
   return {
-    bookings: wallet.bookings.filter((escrow) => escrow.stage === "held" && escrow.held > 0n),
+    bookings: wallet.bookings.filter(
+      (escrow) =>
+        escrow.stage === "awaiting-deposit" || (escrow.stage === "held" && escrow.held > 0n)
+    ),
     returns: wallet.returns,
     holdings: wallet.holdings.filter((holding) => holding.available > 0n),
   };

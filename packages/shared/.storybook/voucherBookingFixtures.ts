@@ -57,7 +57,7 @@ export type BookingStoryStage =
 const hash = (value: string): Hex => keccak256(stringToHex(`STORYBOOK_VOUCHER_PILOT:${value}`));
 const DAY = 86_400n;
 /** 26 October 2026 at noon UTC: the day the reader agrees, so the deadline reads 2 November. */
-export const VOUCHER_STORY_AGREED_AT = BigInt(Date.UTC(2026, 9, 26, 12) / 1000);
+const VOUCHER_STORY_AGREED_AT = BigInt(Date.UTC(2026, 9, 26, 12) / 1000);
 export const VOUCHER_STORY_HOME_GARDEN = "0x000000000000000000000000000000000000f103" as Address;
 const ESCROW = "0x000000000000000000000000000000000000f104" as Address;
 const SOURCE_MODULE = "0x000000000000000000000000000000000000f105" as Address;
@@ -545,7 +545,9 @@ export function bookingStoryWallet(
 /** The promise page's controller for a booking: the offer, its garden, and the reader's seat. */
 export function bookingStoryController(
   service: BookingStoryService,
-  coreState: CommitmentDerivedState
+  coreState: CommitmentDerivedState,
+  /** The issuer's proof is on the promise, as it stays when a problem is raised after delivery. */
+  options: { proofRecorded?: boolean } = {}
 ): GardenCommitmentController {
   const k = SERVICES[service];
   const taken = !["OFFERED"].includes(coreState);
@@ -553,6 +555,8 @@ export function bookingStoryController(
     id: `42161-${k.commitmentId}`,
     commitmentId: k.commitmentId,
     direction: "OFFER",
+    // A voucher service is an approval-gated offer one person takes up.
+    claimMode: "APPROVAL_GATED",
     creator: k.issuer.account,
     leadProvider: k.issuer.account,
     counterparty: taken ? buyer : null,
@@ -562,7 +566,10 @@ export function bookingStoryController(
     derivedState: coreState,
     onchainState: coreState === "READY_FOR_CONFIRMATION" ? "READY_FOR_CONFIRMATION" : coreState === "OFFERED" ? "OFFERED" : coreState === "FULFILLED" ? "FULFILLED" : coreState === "CANCELLED" ? "CANCELLED" : coreState === "DISPUTED" ? "DISPUTED" : "ACCEPTED",
     state: coreState === "OFFERED" ? "OFFERED" : "ACCEPTED",
-    evidenceCount: coreState === "READY_FOR_CONFIRMATION" || coreState === "FULFILLED" ? 1 : 0,
+    evidenceCount:
+      options.proofRecorded || coreState === "READY_FOR_CONFIRMATION" || coreState === "FULFILLED"
+        ? 1
+        : 0,
     fulfilledBy: coreState === "FULFILLED" ? buyer : null,
     confirmationPath: coreState === "FULFILLED" ? "ORDINARY" : null,
     confirmers: [],

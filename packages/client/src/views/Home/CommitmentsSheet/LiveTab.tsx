@@ -132,14 +132,13 @@ export function LiveTab({
   const [wasCovered, setWasCovered] = useState(covered);
   useLayoutEffect(() => setWasCovered(covered), [covered]);
 
-  const { visible, groups, titleOf } = useMemo(() => {
+  const { visible, groups, titleOf, shownWaiting } = useMemo(() => {
     const titleOf = ({ commitment }: InboxCommitment) =>
       commitment.metadataCID ? (byCID.get(commitment.metadataCID)?.title ?? null) : null;
-    const filtered: InboxCommitment[] = inbox.live.filter(
-      (row) =>
-        (direction === "all" || row.commitment.direction === direction) &&
-        (cycleId === null || row.commitment.cycleId === cycleId)
-    );
+    const shown = (row: InboxCommitment) =>
+      (direction === "all" || row.commitment.direction === direction) &&
+      (cycleId === null || row.commitment.cycleId === cycleId);
+    const filtered: InboxCommitment[] = inbox.live.filter(shown);
     // One garden named in the header holds every row; otherwise each garden heads its own.
     const byGarden = gardenHeadings
       ? groupByGarden(
@@ -156,9 +155,12 @@ export function LiveTab({
         ...group,
         entries: foldIdenticalCopies(rows, byCID, inbox.failedCommitmentIds),
       })),
+      // A take-up request waits under the same chips and season as the list it heads.
+      shownWaiting: waiting.filter(shown),
     };
   }, [
     inbox.live,
+    waiting,
     inbox.failedCommitmentIds,
     byCID,
     direction,
@@ -168,13 +170,6 @@ export function LiveTab({
     gardens,
     formatMessage,
   ]);
-
-  // A take-up request waits under the same chips and season as the list it heads.
-  const shownWaiting = waiting.filter(
-    (row) =>
-      (direction === "all" || row.commitment.direction === direction) &&
-      (cycleId === null || row.commitment.cycleId === cycleId)
-  );
 
   const promiseRow = (
     row: InboxCommitment,
