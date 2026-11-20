@@ -121,8 +121,8 @@ export const ThreeRoles: Story = {
 };
 
 /**
- * A list of these cards keeps one height whatever the member holds: one role or three, a long
- * garden name, on Home or not.
+ * A list of these cards keeps one height whatever the member holds: one role, three or none (a
+ * past departure), a long garden name, on Home or not.
  */
 export const ListKeepsOneHeight: Story = {
   render: (args) => (
@@ -135,6 +135,19 @@ export const ListKeepsOneHeight: Story = {
         onHome={false}
       />
       <GardenMembershipCard {...args} history={undefined} historyError onHome={false} />
+      <GardenMembershipCard
+        {...args}
+        {...{ role: undefined }}
+        roles={[]}
+        history={{
+          garden: JOURNEY_GARDEN,
+          account: JOURNEY_VIEWER,
+          joinedAt: Date.UTC(2026, 5, 12, 12),
+          memberSince: null,
+          roleSince: {},
+        }}
+        onHome={false}
+      />
     </div>
   ),
   play: async ({ canvasElement }) => {

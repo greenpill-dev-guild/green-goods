@@ -107,14 +107,14 @@ export function GardenMembershipCard({
           <span className="min-w-0 max-w-full truncate type-card-title" title={garden.name}>
             {garden.name}
           </span>
-          {held.length ? (
-            <span
-              id={rolesId}
-              className="min-w-0 max-w-full truncate type-meta text-text-strong-950"
-            >
-              {formatRoleList(held, intl)}
-            </span>
-          ) : null}
+          {/* Reserved with no roles too (a past departure), so the card keeps its three lines. */}
+          <span
+            id={held.length ? rolesId : undefined}
+            aria-hidden={held.length ? undefined : true}
+            className="min-w-0 max-w-full truncate type-meta text-text-strong-950"
+          >
+            {held.length ? formatRoleList(held, intl) : "\u00a0"}
+          </span>
           <span
             id={membershipId}
             className="flex min-w-0 max-w-full items-center gap-1 type-meta text-text-sub-600"
