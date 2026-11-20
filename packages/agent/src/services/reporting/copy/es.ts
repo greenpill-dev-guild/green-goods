@@ -264,6 +264,8 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "publish.linkExpired":
     "Tu enlace para publicar caducó antes de que se enviara nada, así que no se publicó nada. Tu reporte está guardado; responde RETRY para recibir un enlace nuevo.",
   "publish.stillConfirming": "{stillConfirming} Te escribiré cuando tu reporte esté publicado.",
+  "publish.safeSigners":
+    "{safeSigners}. {safeSignersDetail} Te escribiré cuando tu reporte esté publicado.",
   "publish.publishedChecking":
     "Tu reporte está publicado. El equipo de Green Goods está revisando su registro, así que todavía no puedo enviarte el enlace. No necesitas firmar ni enviar nada otra vez.",
   "publish.attestationUnread":
@@ -330,6 +332,8 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "review.unconfirmed":
     "Revisé la cadena y todavía no encuentro tu revisión, así que dejé de buscarla. No la enviaré otra vez. Si no aparece en el trabajo, escribe a {support}.",
   "review.stillConfirming": "{stillConfirming} Te escribiré cuando tu revisión quede registrada.",
+  "review.safeSigners":
+    "{safeSigners}. {safeSignersDetail} Te escribiré cuando tu revisión quede registrada.",
   "review.recordedChecking":
     "Tu revisión quedó registrada. El equipo de Green Goods está revisando su registro, así que todavía no puedo enviarte el enlace. No necesitas firmar ni enviar nada otra vez.",
   "review.linkExpired":
