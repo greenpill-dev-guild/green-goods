@@ -18,12 +18,8 @@
 
 import { useEffect, useRef } from "react";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
-import {
-  identifyTelemetryAccount,
-  identifyWithProperties,
-  reset,
-  track,
-} from "../../modules/app/posthog";
+import { identifyWithProperties, reset, track } from "../../modules/app/posthog";
+import { identifyTelemetryAccount } from "../../modules/app/telemetry-account";
 import { useAuth } from "../auth/useAuth";
 import { useUser } from "../auth/useUser";
 

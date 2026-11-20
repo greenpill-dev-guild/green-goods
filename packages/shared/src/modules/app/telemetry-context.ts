@@ -7,8 +7,8 @@
  * release here, so a PostHog event and the Sentry report beside it filter the same way.
  *
  * The account flag follows whoever is signed in: `useAnalyticsIdentity` hands the address over at
- * sign-in and takes it back at sign-out, through `posthog`, which also registers the flag for
- * autocaptured events. Until the digest is checked, and for a visitor who is not signed in, the
+ * sign-in and takes it back at sign-out, through `telemetry-account`, which also registers the
+ * flag for autocaptured events. Until the digest is checked, and for a visitor who is not signed in, the
  * flag stays `"unknown"`.
  *
  * It imports no transport: the client keeps it in its startup error-reporting chunk, and a sink

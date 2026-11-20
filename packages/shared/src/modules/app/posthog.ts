@@ -12,12 +12,7 @@
 import type { CaptureResult } from "posthog-js";
 
 import { logger } from "./logger";
-import type { Address } from "../../types/domain";
-import {
-  getTelemetryEnvironment,
-  getTelemetrySegmentation,
-  setTelemetryAccount,
-} from "./telemetry-context";
+import { getTelemetryEnvironment, getTelemetrySegmentation } from "./telemetry-context";
 import { createAnonymousTelemetryIdentity } from "./telemetryIdentity";
 import { getTelemetrySink, isTelemetryReady } from "./telemetry-sink";
 
@@ -340,26 +335,6 @@ export function identifyWithProperties(
     // Spread any additional properties
     ...properties,
   });
-}
-
-function registerAccountFlag(): void {
-  // Autocaptured events ($pageview, $exception) take it as a registered property.
-  try {
-    getTelemetrySink().register?.({ is_test_account: getTelemetrySegmentation().is_test_account });
-  } catch {
-    // Telemetry is best effort.
-  }
-}
-
-/**
- * Place the signed-in account against the deployment's test-account records (PRD-1560), or
- * forget it at sign-out. Events say "unknown" until the check finishes.
- */
-export async function identifyTelemetryAccount(address: Address | null): Promise<void> {
-  const placed = setTelemetryAccount(address);
-  registerAccountFlag();
-  await placed;
-  registerAccountFlag();
 }
 
 /**

@@ -17,12 +17,15 @@ const mockIdentifyWithProperties = vi.fn();
 const mockReset = vi.fn();
 const mockTrack = vi.fn();
 
-const mockIdentifyTelemetryAccount = vi.fn(async (_address: string | null) => undefined);
 vi.mock("../../modules/app/posthog", () => ({
   identifyWithProperties: (...args: unknown[]) => mockIdentifyWithProperties(...args),
-  identifyTelemetryAccount: (address: string | null) => mockIdentifyTelemetryAccount(address),
   reset: () => mockReset(),
   track: (...args: unknown[]) => mockTrack(...args),
+}));
+
+const mockIdentifyTelemetryAccount = vi.fn(async (_address: string | null) => undefined);
+vi.mock("../../modules/app/telemetry-account", () => ({
+  identifyTelemetryAccount: (address: string | null) => mockIdentifyTelemetryAccount(address),
 }));
 
 // Mock useAuth hook
