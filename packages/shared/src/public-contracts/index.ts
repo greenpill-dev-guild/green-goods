@@ -75,6 +75,14 @@ export {
 } from "./passkey-directory";
 
 export { type PasskeyAssertionBytes, verifyPasskeyAssertionBytes } from "./passkey-assertion";
+export {
+  classifyTestTraffic,
+  normalizeTelemetryAddress,
+  parseTestTrafficAddresses,
+  TELEMETRY_UNKNOWN,
+  type TelemetrySegmentation,
+  type TestTrafficFlag,
+} from "./telemetry-segmentation";
 
 export * from "./core";
 export * from "./saved-offers";
