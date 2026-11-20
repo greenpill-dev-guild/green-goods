@@ -3,6 +3,7 @@ import { flushCrashReports } from "./crash-reports";
 import { classifyExternalError, externalErrorTags } from "./external-errors";
 import { getAppContext, restoreExceptionTopLevelProps, track } from "./posthog";
 import { isReportingCeremonyPath, redactPrivatePaths } from "./private-paths";
+import { getTelemetrySegmentation } from "./telemetry-context";
 import { registerTelemetrySink } from "./telemetry-sink";
 
 const POSTHOG_API_HOST = "https://us.i.posthog.com";
@@ -104,6 +105,17 @@ export function tagExternalExceptions(event: CaptureResult | null): CaptureResul
   };
 }
 
+/**
+ * Stamp every event with this build's segmentation (PRD-1560), autocaptured ones included.
+ * PostHog captures the first `$pageview` inside `init`, before the app registers its super
+ * properties, and a returning browser still holds the last visit's release and account flag.
+ */
+export function segmentEvent(event: CaptureResult | null): CaptureResult | null {
+  if (!event) return event;
+  const properties = event.properties ?? {};
+  return { ...event, properties: { ...properties, ...getTelemetrySegmentation(properties) } };
+}
+
 /** Development hosts whose exceptions must never reach the shared production project. */
 function isDevelopmentHost(hostname: string): boolean {
   const normalized = hostname.toLowerCase();
@@ -183,6 +195,7 @@ export function initializePostHog(apiKey: string): void {
       dropExtensionExceptions,
       dropSkippedTransitionExceptions,
       tagExternalExceptions,
+      segmentEvent,
     ],
     debug: import.meta.env.VITE_POSTHOG_DEBUG === "true",
   });
