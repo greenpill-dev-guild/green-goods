@@ -8,7 +8,7 @@
 3. Regression safety: every recovery state (declined prompt, pending transfer, stuck
    confirmation, paused escrow, failed return) keeps its act.
 4. Evidence quality: research evidence and open assumptions are recorded in `spec.md`.
-5. Human judgment: the three open assumptions on PRD-1574 are ruled before the hub closes.
+5. Human judgment: the three open assumptions on PRD-1574 were ruled on 19 November 2026 (kept as built).
 
 ## Acceptance Checks
 

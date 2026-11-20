@@ -2,9 +2,9 @@
 
 ## Lane
 
-- Owner: Codex
-- Branch: set when work begins using `<type>/<work-description>`
-- Status: pending implementation
+- Owner: none
+- Branch: none
+- Status: n/a. This hub changes no contracts; the protocol changes are studied in RESR-119 (`.plans/backlog/cosmo-local-credit-interop/research/voucher-booking-protocol-changes-2026-11-19.md`).
 
 ## Scope
 

@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-11-19T23:04:34.193Z",
-    "updated_at": "2026-11-19T23:04:34.193Z"
+    "updated_at": "2026-11-20T00:22:30.352Z"
   },
   "links": {
     "brief": "brief.md",
@@ -19,12 +19,13 @@
     "eval": "eval.md"
   },
   "linear": {
-    "parentIssue": null,
-    "project": null,
+    "parentIssue": "PRD-1574",
+    "project": "Cosmo-Local Integration",
     "initiative": null,
     "syncDirection": "plans_to_linear_visibility",
     "lastSyncedAt": null,
-    "lanes": {}
+    "lanes": {},
+    "laneSyncMode": "parent_only"
   },
   "taxonomy": {
     "initiative": "engineering-quality",
@@ -135,10 +136,20 @@
       "note": "Scaffolded feature hub in active"
     },
     {
-      "at": "2026-11-19T23:05:31.838Z",
+      "timestamp": "2026-11-19T23:05:31.838Z",
       "actor": "claude",
-      "event": "scaffolded",
+      "lane": "system",
+      "status": "planned",
+      "branch": "claude/voucher-flow-prototype-7302a8",
       "note": "Hub opened for the approved voucher booking build (PRD-1574)."
+    },
+    {
+      "timestamp": "2026-11-20T00:22:30.352Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
     }
   ]
 }

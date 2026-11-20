@@ -16,7 +16,7 @@ DL-191 to DL-196.
 ## Functional Requirements
 
 1. Tracker (DL-191): `FormProgress` in the booking page's top bar and in every booking sheet;
-   markers Request, Deposit, Service, Done; a clock marker when the step waits on someone else;
+   markers Book, Deposit, Service, Done; a clock marker when the step waits on someone else;
    `ServiceStepStrip` retired.
 2. Booking page (DL-192): one status, the facts that matter now, a Booking details disclosure,
    one action bar; no Team, History, or Progress and proof before delivery. Bookings only.
@@ -25,7 +25,7 @@ DL-191 to DL-196.
 4. Needs you (DL-194) on the booking's row in the wallet's Vouchers tab and in Your Promises.
 5. Hub (DL-195): Review Promises holds every booking act; the list folds copies with counts;
    Your Reserve leads with three numbers; the queue comes first below the two-column width.
-6. Words (DL-196): Offer and Request; Ask to Take Up; Ask to Join; Book. English only.
+6. Words (DL-196): Offer and Request; Ask to Take Up; Ask to Join; Book. English, plus every Portuguese join and take-up string that still says pedido (to solicitação); Spanish already separates them.
 
 ## Research Evidence
 
@@ -51,7 +51,7 @@ DL-191 to DL-196.
 - Package boundaries: hooks stay in Shared; admin ledger rows never ride with admin code.
 - Security: no new signing path; the steward's sends reuse `serviceLiveCall` and its checks.
 - Offline / sync: every pending, failed and declined send keeps its recovery act.
-- Localization: new strings in en, es and pt; the wording sweep is English only.
+- Localization: new strings in en, es and pt; the wording sweep covers English and the Portuguese join and take-up strings.
 
 ## Package / Lane Mapping
 
