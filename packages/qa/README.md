@@ -113,7 +113,8 @@ render through `Intl.RelativeTimeFormat`, so they follow the tester's language w
 unit in each locale file.
 
 - N/A means out of scope for this run; a skipped case has no entry. A note starting with
-  `[beta]`, `[prod]`, or `[local]` marks a verdict taken outside the run's environment.
+  `[beta]`, `[prod]`, `[local]`, or `[alpha]` marks a verdict taken outside the run's environment.
+  Alpha, the experiments site at `alpha.greengoods.app`, is never a run's own environment.
 
 The run lifecycle itself — what a run is, the index shape, rollover, the legacy baseline — lives
 in `runs.ts`, one pure module both the deployed functions and the local server import.
