@@ -4,11 +4,11 @@ import type { Garden } from "@green-goods/shared/types/domain";
 import { useIntl } from "react-intl";
 
 /**
- * Where the work goes, said once under the steps from the first step on,
+ * Where the work goes, said once under the steps on the flow's first step,
  * whether the work is for the active garden or another that a resumed draft, a
  * promise link or navigation state chose (decision 28, PRD-1492): Submit Work
- * hides Home's chip, so nothing else names it before Review. The garden's
- * banner leads, as the chip's does.
+ * hides Home's chip, so nothing else names it before Review. Later steps do not
+ * repeat it (PRD-1522). The garden's banner leads, as the chip's does.
  * The line is written to fit one line; a long name wraps rather than losing
  * the end that tells two gardens apart, and clips at two lines, as the info
  * panel does.
