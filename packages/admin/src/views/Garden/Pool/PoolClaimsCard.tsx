@@ -80,8 +80,11 @@ const sendsDirectly = (issuer: VoucherBooking["issuer"]) => issuer.execution !==
  * turns a row into its outcome, which stays until the steward leaves the tab,
  * and a new row joins the end marked New. Approve is one signature (hub
  * decision 31) and Decline… asks for a reason first; approving one closes the
- * others on the same promise. While the pool is paused the acts are absent,
- * not disabled: the contract refuses them, so the rows only wait.
+ * others on the same promise. While the pool is paused, the acts that write to
+ * the pool (Approve and Decline… on an ask, Accept…, Report Visit…) are absent,
+ * not disabled: the contract refuses them, so those rows only wait. The acts on
+ * the issuer's escrow on the voucher network (Approve…, Propose Return…, Retry
+ * Transfer) stay offered, so a booking can still be approved or recovered.
  *
  * A voucher booking (PRD-1297 surface 6) is an ask the contract refuses to
  * approve in one tap: its issuer's Safe approves it first (Approve…, offered
@@ -239,6 +242,7 @@ export function PoolClaimsCard({
                   defaultMessage: "Approve…",
                 }),
                 onAct: () => setApproving(ask),
+                escrow: true,
               }
             : {
                 label: formatMessage({
@@ -263,11 +267,13 @@ export function PoolClaimsCard({
     const done = queue.done.get(key);
     const doneHere = done && done.act !== "approve" ? done : undefined;
     if (booking && (due || doneHere || !item)) {
+      // A visit's report writes to the pool, so a paused pool holds it; the escrow's acts go.
+      const held = due === "report" && model.isPaused;
       const state =
         due && due !== doneHere?.act
           ? ({
               status: "waiting",
-              act: (
+              act: held ? null : (
                 <VoucherRowAct
                   booking={booking}
                   act={due}

@@ -582,6 +582,22 @@ describe("PoolClaimsCard (Review Promises)", () => {
         expect(within(row).getByRole("button", { name: "Accept…" })).toBeEnabled();
       });
 
+      // While the pool is paused, only the acts that write to the pool wait (PR #1740 review).
+      it("keeps the escrow's acts while the pool is paused, and holds the ones that write to the pool", () => {
+        const paused = { ...poolConsoleControllerFixture().model, isPaused: true };
+        queue(bookingsFor([visited, endedEarly, failed], {}, [linaAsk, kwesiAsk]), {
+          claims: [linaRow, kwesiRow],
+          titles: bookingTitles,
+          model: paused,
+        });
+        expect(screen.getByRole("button", { name: "Approve…" })).toBeEnabled();
+        expect(screen.getByRole("button", { name: "Propose Return…" })).toBeEnabled();
+        expect(screen.getByRole("button", { name: "Retry Transfer" })).toBeEnabled();
+        expect(screen.queryByRole("button", { name: "Accept…" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Report Visit…" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Decline…" })).not.toBeInTheDocument();
+      });
+
       // A fresh ask by the same person reuses the row's key (PR #1740, Codex).
       it("offers Approve… again when the same person asks afresh after an approval this visit", async () => {
         const approveBooking = vi.fn().mockResolvedValue(undefined);

@@ -22,8 +22,12 @@ export interface VoucherAskRowView {
   tag: { label: string; tone: ItemRowTone };
   /** When the member agreed, what the escrow holds, and the deadline. */
   detail: string;
-  /** Approve… or Accept…, each opening its confirm dialog; none while the booking waits on someone else. */
-  act: { label: string; onAct: () => void } | null;
+  /**
+   * Approve… or Accept…, each opening its confirm dialog; none while the booking waits on
+   * someone else. `escrow` marks an act on the issuer's escrow (the Safe's approval), which a
+   * paused pool doesn't stop, so it stays offered while the pool's own acts wait.
+   */
+  act: { label: string; onAct: () => void; escrow?: boolean } | null;
   /**
    * The Safe's approval sent from this row this visit, kept as its outcome in the acts' place
    * with the pill line under it, until the booking waits on the steward again (DL-067).
@@ -187,7 +191,18 @@ export function WaitingForApprovalRow({
       />
     );
   } else if (paused) {
-    action = null;
+    // A paused pool refuses what writes to it; an act on the issuer's escrow still goes.
+    action = voucher?.act?.escrow ? (
+      <Button
+        type="button"
+        emphasis="primary"
+        size="compact"
+        onClick={voucher.act.onAct}
+        disabled={disabled}
+      >
+        {voucher.act.label}
+      </Button>
+    ) : null;
   } else {
     const retryLabel = formatMessage({
       id: "hub.garden.pool.approvals.retry",
