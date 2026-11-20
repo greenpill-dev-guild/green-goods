@@ -5,7 +5,7 @@ import {
   reportSummaryDigest,
 } from "@green-goods/shared/modules/agent-reporting";
 import { WORK_UPLOAD_POLICY_VERSION } from "@green-goods/shared/modules/work/upload-policy";
-import { chainCheckStopped } from "../check-notices";
+import { awaitingSafeSigners, chainCheckStopped } from "../check-notices";
 import { grantPublicationConsent, hasPublicationConsent } from "../consent";
 import { currentConfirmation, invalidateConfirmation, recordConfirmation } from "../confirmations";
 import type { ReportingCopyKey } from "../copy";
@@ -258,7 +258,9 @@ export function handleReportCommand(
       return writer.say(draft ? "report.resumeFirst" : "report.newStarted");
     case "status": {
       if (!draft) return writer.say("report.noStatus");
-      const stopped = chainCheckStopped(core, { draftId: draft.id });
+      const stopped =
+        chainCheckStopped(core, { draftId: draft.id }) ??
+        awaitingSafeSigners(core, { draftId: draft.id });
       if (stopped) return writer.say(stopped);
       // An open question about how to publish is what the report waits on, link or no link, while
       // the report is still at that choice. A permission page can move it on without an answer.

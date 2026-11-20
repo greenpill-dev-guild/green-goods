@@ -207,6 +207,27 @@ export function updateAttempt(
     });
 }
 
+/** The reason a sent owner attempt gives while it waits for a Safe's signers (PRD-1568). */
+export const SAFE_SIGNERS = "safe_signers";
+
+/**
+ * The wallet answered with a Safe proposal. The attempt counts as sent, so no second one can be
+ * reserved while the proposal is out, but the proposal's own hash names no transaction: a hash the
+ * page reported for it first is cleared, so no check looks for a receipt it can never have. Call
+ * inside a transaction.
+ */
+export function awaitSafeSigners(core: ReportingCore, attemptId: string): void {
+  const now = core.clock.now();
+  core.db
+    .query(
+      `UPDATE execution_attempts
+       SET state = 'broadcast', transaction_hash = NULL, reason_code = $reason,
+           submitted_at = COALESCE(submitted_at, $now), updated_at = $now
+       WHERE id = $id`
+    )
+    .run({ id: attemptId, reason: SAFE_SIGNERS, now });
+}
+
 /** Replays an outcome already recorded under this idempotency key, or reports a conflict. */
 export function recordedOutcome(
   core: ReportingCore,
