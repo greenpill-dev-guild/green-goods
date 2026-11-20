@@ -25,7 +25,10 @@ import { createMutationErrorHandler } from "../../../utils/errors/mutation-error
 import { useExpiryClock } from "../../commitment-pooling/useExpiryClock";
 import type { VoucherConsoleActs, VoucherConsoleView } from "./controller.types";
 
-/** The voucher console's clock ticks only past its asks' deadlines, never a promise's due date. */
+/**
+ * The voucher console's clock ticks past its asks' deadlines and as its booked visits start, when
+ * a visit's report comes due; never at a promise's due date.
+ */
 const NO_PROMISES: readonly CommitmentReadModel[] = [];
 const NO_CYCLE_ENDS: ReadonlyMap<string, bigint | null> = new Map();
 
@@ -59,10 +62,16 @@ export function useVoucherConsole(input: { chainId: number; garden: Address }): 
     retry: false,
   });
   const snapshot = query.data ?? UNAVAILABLE_VOUCHER_CONSOLE;
-  // Acceptance deadlines are in source time, the pool's chain, whose clock ticks past each one.
+  // Acceptance deadlines and visit starts are in source time, the pool's chain, whose clock ticks
+  // past each one.
   const deadlines = useMemo(
-    () => snapshot.asks.flatMap((ask) => (ask.setup ? [BigInt(ask.setup.acceptBy)] : [])),
-    [snapshot.asks]
+    () => [
+      ...snapshot.asks.flatMap((ask) => (ask.setup ? [BigInt(ask.setup.acceptBy)] : [])),
+      ...snapshot.bookings.flatMap((booking) =>
+        booking.service.kind === "visit" ? [BigInt(booking.service.startsAt)] : []
+      ),
+    ],
+    [snapshot.asks, snapshot.bookings]
   );
   const clock = useExpiryClock({
     chainId,
