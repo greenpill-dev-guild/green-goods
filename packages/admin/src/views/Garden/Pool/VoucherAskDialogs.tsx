@@ -1,17 +1,19 @@
 import { Alert } from "@green-goods/shared/components/Alert";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import type { TxActPhase } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import type { VoucherStartProgress } from "@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController";
 import {
   type IssuerSafeThreshold,
   selectVoucherAcceptanceChecks,
+  VOUCHER_START_FALLBACK_SECONDS,
   type VoucherAsk,
 } from "@green-goods/shared/modules/commitment-pooling/pool-console";
 import { useIntl } from "react-intl";
-import { ActPhaseLine } from "@/components/ActPhaseLine";
 import type { AdminDialogProps } from "@/components/AdminDialog";
 import { PoolTarget, type PoolWriteTarget } from "./PoolTarget";
 import { VoucherAcceptanceChecks } from "./VoucherAcceptanceChecks";
 import { FactValue, VoucherActDialog, WithPerson } from "./VoucherActDialog";
+import { VoucherStartList } from "./VoucherStartList";
 import { dueDateText, exactTime } from "./poolTime";
 import { shortAddress } from "./poolPresentation";
 import { voucherCount, voucherSafeNote } from "./voucherPresentation";
@@ -201,6 +203,10 @@ export interface VoucherAcceptDialogProps {
   now: number;
   /** Where this ask's acceptance stands, from here or its row. */
   phase: TxActPhase;
+  /** Where the start's two sends stand once the acceptance lands. */
+  start: VoucherStartProgress;
+  /** The pool's chain, where all three sends land. */
+  chainId: number;
   /** Offline, or another act is with the wallet or the chain. */
   disabled: boolean;
   tone?: AdminDialogProps["tone"];
@@ -209,13 +215,16 @@ export interface VoucherAcceptDialogProps {
 }
 
 /**
- * Accept a booking (`SIssuer` · Accept): the pool's steward accepts through
- * `acceptServiceClaim`, which needs the member's current consent, the issuer's
- * approval, the confirmed deposit and an unexpired deadline. The dialog lists
- * those four checks, and Accept stays off while any fails (V5). It names the
- * pool it writes to and follows the act from the wallet to the chain. A member
- * issuer's booking (`SIssuer` · Accept member booking) names the member's own
- * terms and approval, and says the steward couldn't have given that approval.
+ * Accept and Start a booking (`SIssuer` · Accept, DL-193): the pool's steward
+ * accepts through `acceptServiceClaim`, which needs the member's current
+ * consent, the issuer's approval, the confirmed deposit and an unexpired
+ * deadline, then sends the booking's start from their own wallet. The dialog
+ * lists those four checks, and Accept and Start stays off while any fails (V5).
+ * It names the pool it writes to, says up front that the wallet asks three
+ * times and what the start's network fee is, and fills in each send as it
+ * lands. A member issuer's booking (`SIssuer` · Accept member booking) names
+ * the member's own terms and approval, and says the steward couldn't have
+ * given that approval.
  */
 export function VoucherAcceptDialog({
   ask,
@@ -223,6 +232,8 @@ export function VoucherAcceptDialog({
   target,
   now,
   phase,
+  start,
+  chainId,
   disabled,
   tone,
   onClose,
@@ -243,36 +254,37 @@ export function VoucherAcceptDialog({
           )}
           description={title}
           target={<PoolTarget target={target} />}
-          confirmLabel={formatMessage(
-            { id: "hub.garden.pool.voucher.accept.confirm", defaultMessage: "Accept {name}" },
-            { name }
-          )}
+          confirmLabel={formatMessage({
+            id: "hub.garden.pool.voucher.acceptStart.confirm",
+            defaultMessage: "Accept and Start",
+          })}
           confirmDisabled={disabled || !checks?.ready}
           act={async () => {
             if (ask) await onAccept(ask, now);
           }}
           note={formatMessage({
-            id: "hub.garden.pool.voucher.wallet",
-            defaultMessage: "Your wallet will ask you to approve.",
+            id: "hub.garden.pool.voucher.acceptStart.wallet",
+            defaultMessage: "Your wallet will ask you to approve three times.",
           })}
-          progress={
-            <ActPhaseLine
-              phase={phase}
-              confirmed={formatMessage({
-                id: "hub.garden.pool.voucher.accepted",
-                defaultMessage: "Accepted",
-              })}
-            />
-          }
+          progress={null}
         >
           {ask && checks ? (
             <VoucherAcceptanceChecks ask={ask} name={name} checks={checks} nowMs={now * 1000} />
           ) : null}
+          {ask ? (
+            <VoucherStartList
+              accept={phase}
+              start={start}
+              estimatedFee={ask.setup?.startFee ?? null}
+              name={name}
+              chainId={chainId}
+            />
+          ) : null}
           <Alert
             variant="info"
             title={formatMessage({
-              id: "hub.garden.pool.voucher.accept.noteTitle",
-              defaultMessage: "Accepting starts the booking",
+              id: "hub.garden.pool.voucher.acceptStart.noteTitle",
+              defaultMessage: "Starting doesn’t mean the service was delivered",
             })}
           >
             {ask?.issuer.kind === "individual"
@@ -284,11 +296,14 @@ export function VoucherAcceptDialog({
                   },
                   { issuer: ask.issuer.name }
                 )
-              : formatMessage({
-                  id: "hub.garden.pool.voucher.accept.noteBody",
-                  defaultMessage:
-                    "Starting follows on the voucher network. It doesn’t mean the service was delivered.",
-                })}
+              : formatMessage(
+                  {
+                    id: "hub.garden.pool.voucher.acceptStart.noteBody",
+                    defaultMessage:
+                      "If the start doesn’t go, the booking stays accepted, and {name} can start it from the app {minutes} minutes after you accept.",
+                  },
+                  { name, minutes: VOUCHER_START_FALLBACK_SECONDS / 60 }
+                )}
           </Alert>
         </VoucherActDialog>
       )}

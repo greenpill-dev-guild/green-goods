@@ -178,11 +178,7 @@ export const cancelStep: ServiceActStep = (s) => {
 };
 
 /** Approve the final split, then run each transfer it fixed: the return first. */
-export function splitStep(split: {
-  delivered: bigint;
-  release: bigint;
-  refund: bigint;
-}): ServiceActStep {
+function splitStep(split: { delivered: bigint; release: bigint; refund: bigint }): ServiceActStep {
   return (s) => {
     const row = currentVoucherSetup(s);
     const d = row?.destination;
@@ -277,6 +273,24 @@ export async function runServiceAct(
     if (!DECLINED.test(message)) return "noResult";
     return landed ? "stopped" : "nothingSent";
   }
+}
+
+/**
+ * Confirm Your Visit (DL-192): approve the split, send its transfer, then confirm the promise was
+ * kept, in that order, each its own approval. Kept runs only once the split's act is done: a prompt
+ * declined after the split was fixed stops there, and the page says where the close stopped. Kept's
+ * own failure is its act's to report.
+ */
+export async function runConfirmVisit(
+  snapshot: ServiceAccessSnapshot,
+  split: { delivered: bigint; release: bigint; refund: bigint },
+  send: (action: ServiceAccessAction) => Promise<{ snapshot: ServiceAccessSnapshot }>,
+  confirmKept: (() => Promise<unknown>) | null
+): Promise<ServiceActEnd> {
+  const end = await runServiceAct(snapshot, splitStep(split), send);
+  // Kept's own mutation says when it fails; the promise's Confirm It Was Kept then stays offered.
+  if (end === "done" && confirmKept) await confirmKept().catch(() => undefined);
+  return end;
 }
 
 /**

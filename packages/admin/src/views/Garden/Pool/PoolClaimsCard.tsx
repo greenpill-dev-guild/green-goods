@@ -1,5 +1,7 @@
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import type {
   PoolConsoleController,
+  VoucherAcceptAndStartOutcome,
   VoucherConsoleView,
 } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import {
@@ -11,6 +13,7 @@ import {
   type IssuerSafeThreshold,
   selectCanApproveBooking,
   selectVoucherAskStage,
+  VOUCHER_START_FALLBACK_SECONDS,
   type VoucherAsk,
   type VoucherBooking,
 } from "@green-goods/shared/modules/commitment-pooling/pool-console";
@@ -19,7 +22,7 @@ import type {
   PoolClaimRequestRow,
 } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import { type ReactNode, useState } from "react";
-import { useIntl } from "react-intl";
+import { type IntlShape, useIntl } from "react-intl";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import type { AdminDialogProps } from "@/components/AdminDialog";
 import type { PoolWriteTarget } from "./PoolTarget";
@@ -71,6 +74,61 @@ export interface PoolClaimsCardProps {
 const sendsDirectly = (issuer: VoucherBooking["issuer"]) => issuer.execution !== "safe-file";
 
 /**
+ * What an Accept and Start says when its start didn't fully go (DL-193). The booking stays
+ * accepted either way, and the member's own Start the Booking covers a start that didn't go.
+ */
+function acceptAndStartNotice(
+  outcome: Exclude<VoucherAcceptAndStartOutcome, "started">,
+  intl: IntlShape
+): { title: string; message: string } {
+  const minutes = VOUCHER_START_FALLBACK_SECONDS / 60;
+  switch (outcome) {
+    case "acceptanceWaiting":
+      return {
+        title: intl.formatMessage({
+          id: "hub.garden.pool.voucher.acceptStart.safeTitle",
+          defaultMessage: "The acceptance waits on your Safe’s signers",
+        }),
+        message: intl.formatMessage(
+          {
+            id: "hub.garden.pool.voucher.acceptStart.safeBody",
+            defaultMessage:
+              "Nothing was started. Once they approve it, the member can start the booking from the app after {minutes} minutes.",
+          },
+          { minutes }
+        ),
+      };
+    case "unconfirmed":
+      return {
+        title: intl.formatMessage({
+          id: "hub.garden.pool.voucher.acceptStart.confirmingTitle",
+          defaultMessage: "Accepted. The start is still being confirmed",
+        }),
+        message: intl.formatMessage({
+          id: "hub.garden.pool.voucher.acceptStart.confirmingBody",
+          defaultMessage:
+            "It can still land. If it doesn’t, the member can start the booking from the app.",
+        }),
+      };
+    case "notSent":
+      return {
+        title: intl.formatMessage({
+          id: "hub.garden.pool.voucher.acceptStart.notSentTitle",
+          defaultMessage: "Accepted. The start wasn’t sent",
+        }),
+        message: intl.formatMessage(
+          {
+            id: "hub.garden.pool.voucher.acceptStart.notSentBody",
+            defaultMessage:
+              "The booking stays accepted. The member can start it from the app {minutes} minutes after you accepted.",
+          },
+          { minutes }
+        ),
+      };
+  }
+}
+
+/**
  * Review Promises (PRD-1025, named by DL-077), at the top of the Promises tab's
  * right column and first on a phone: everything that waits on the steward, in
  * one queue. It is always there, one quiet line when nothing waits, so it
@@ -81,7 +139,7 @@ const sendsDirectly = (issuer: VoucherBooking["issuer"]) => issuer.execution !==
  * and a new row joins the end marked New. Approve is one signature (hub
  * decision 31) and Decline… asks for a reason first; approving one closes the
  * others on the same promise. While the pool is paused, the acts that write to
- * the pool (Approve and Decline… on an ask, Accept…, Report Visit…) are absent,
+ * the pool (Approve and Decline… on an ask, Accept and Start…, Report Visit…) are absent,
  * not disabled: the contract refuses them, so those rows only wait. The acts on
  * the issuer's escrow on the voucher network (Approve…, Propose Return…, Retry
  * Transfer) stay offered, so a booking can still be approved or recovered.
@@ -89,8 +147,8 @@ const sendsDirectly = (issuer: VoucherBooking["issuer"]) => issuer.execution !==
  * A voucher booking (PRD-1297 surface 6) is an ask the contract refuses to
  * approve in one tap: its issuer's Safe approves it first (Approve…, offered
  * only to an owner of that Safe), the member deposits, and only then the
- * pool's steward accepts it through `acceptServiceClaim` (Accept…), each in a
- * dialog with its facts or checks. Once under way, a booking waits here for
+ * pool's steward accepts it through `acceptServiceClaim` and sends its start
+ * (Accept and Start…, DL-193), each in a dialog with its facts or checks. Once under way, a booking waits here for
  * the steward's next act (decision 1 of the 18 November 2026 hub-day review):
  * a visit to report once it has begun, a return to propose once the service
  * stopped early, a transfer to retry. One person's booking keeps one row from
@@ -115,6 +173,12 @@ export function PoolClaimsCard({
   const [approving, setApproving] = useState<VoucherAsk | null>(null);
   const [accepting, setAccepting] = useState<VoucherAsk | null>(null);
   const [bookingAct, setBookingAct] = useState<VoucherBookingAct>(null);
+  // Accept and Start (DL-193). A failed acceptance throws and the dialog says so. Once the
+  // acceptance lands, a start that didn't fully go is said here: the booking stays accepted.
+  const acceptAndStart = async (ask: VoucherAsk, now: number) => {
+    const outcome = await acts.acceptAndStartBooking(ask, now);
+    if (outcome !== "started") toastService.info(acceptAndStartNotice(outcome, intl));
+  };
   // Each booking's ask as last read this visit, by its row: an accepted ask leaves the voucher
   // read, and its row still reads Accepted, "Booking · …", while the visit keeps it.
   const visit = `${chainId}:${pool.garden.toLowerCase()}`;
@@ -246,8 +310,8 @@ export function PoolClaimsCard({
               }
             : {
                 label: formatMessage({
-                  id: "hub.garden.pool.voucher.act.accept",
-                  defaultMessage: "Accept…",
+                  id: "hub.garden.pool.voucher.act.acceptStart",
+                  defaultMessage: "Accept and Start…",
                 }),
                 onAct: () => setAccepting(ask),
               },
@@ -413,10 +477,12 @@ export function PoolClaimsCard({
         phase={
           accepting ? pool.claimPhase(accepting.commitmentId, accepting.buyer) : { status: "idle" }
         }
+        start={pool.voucherStart}
+        chainId={chainId}
         disabled={disabled}
         tone={tone}
         onClose={() => setAccepting(null)}
-        onAccept={acts.acceptServiceClaim}
+        onAccept={acceptAndStart}
       />
       <VoucherBookingDialogs
         open={openAct}

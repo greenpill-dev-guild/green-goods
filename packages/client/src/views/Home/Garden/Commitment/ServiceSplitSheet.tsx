@@ -1,6 +1,7 @@
 import { Alert } from "@green-goods/shared/components/Alert";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
+import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
 import { useEffect, useId, useState } from "react";
 import { useIntl } from "react-intl";
 import { FormProgress } from "@/components/Communication";
@@ -14,23 +15,28 @@ export interface ServiceSplitSheetProps {
   view: ServiceBookingView;
   /** The promise's title, under the sheet's own. */
   title: string;
+  /** The confirm also says the promise was kept, after the split and its transfer (DL-192). */
+  confirms: boolean;
   isPending: boolean;
   onApprove: () => void;
   onReport: (() => void) | null;
 }
 
 /**
- * Approve the Final Split: the proportion as a bar with the exact figures under it, and one
- * checkbox saying what the reader received (V3). A full return delivered nothing, so it asks for
- * no such confirmation and never says the service happened. Approving freezes the split and moves
- * nothing by itself; each transfer runs after it with its own status. A hub day then asks Promise
- * kept?.
+ * Confirm Your Visit (DL-192): one sheet that approves the split, sends its transfer and confirms
+ * the promise was kept, in that order. A visit delivered in full asks one question and says where
+ * the voucher goes. A visit cut short, or a return the issuer proposed, shows the split first: the
+ * proportion as a bar with the exact figures under it, and one checkbox saying what the reader
+ * received (V3). A full return delivered nothing, so it asks for no such confirmation and never says
+ * the service happened. Where the reader can't confirm the promise, the sheet only approves the
+ * split, as Approve the Final Split, and the promise's own Confirm It Was Kept follows.
  */
 export function ServiceSplitSheet({
   open,
   onOpenChange,
   view,
   title,
+  confirms,
   isPending,
   onApprove,
   onReport,
@@ -76,20 +82,30 @@ export function ServiceSplitSheet({
           ? t("rd.sh.chkL", minutes)
           : `${t("rd.sh.delivered")}: ${deliveredValue}`;
   const total = Number(split.release + split.refund) || 1;
+  // Delivered in full, nothing comes back: the question is the visit itself, not a split.
+  const plain = confirms && delivered && split.refund === 0n;
+  const hubDay = view.profile === "hubDay";
+  const question = !confirms
+    ? null
+    : plain
+      ? t(hubDay ? "rd.sh.visitAskS" : "rd.sh.visitAsk")
+      : t(hubDay ? "rd.sh.visitShortS" : "rd.sh.visitShort");
   return (
     <DialogShell
       open={open}
       onOpenChange={onOpenChange}
       preventClose={isPending}
-      title={t("rd.sh.splitTitle")}
+      title={t(confirms ? "rd.sh.visitTitle" : "rd.sh.splitTitle")}
       description={title}
       size="md"
-      sheetSize="full"
+      sheetSize={plain ? "tall" : "full"}
       actions={{
         primary: {
-          label: t("rd.sh.approve"),
+          label: t(
+            !confirms ? "rd.sh.approve" : plain ? "rd.sh.visitConfirm" : "rd.sh.visitConfirmSplit"
+          ),
           loading: isPending,
-          disabled: delivered && !received,
+          disabled: !plain && delivered && !received,
           onClick: onApprove,
         },
         secondary: onReport
@@ -105,29 +121,32 @@ export function ServiceSplitSheet({
             waiting={view.tracker.waiting ?? undefined}
           />
         ) : null}
-        <div
-          className="flex h-8 overflow-hidden rounded-[var(--radius-md)] border border-stroke-soft-200 text-xs font-bold"
-          role="img"
-          aria-label={t("rd.sh.bar", { rel, back })}
-          data-component="ServiceSplitBar"
-        >
-          {split.release > 0n ? (
-            <span
-              className="grid min-w-0 place-items-center truncate bg-bg-weak-50 px-1 text-text-strong-950"
-              style={{ flex: Number(split.release) / total }}
-            >
-              {t("rd.sh.relShort", { rel })}
-            </span>
-          ) : null}
-          {split.refund > 0n ? (
-            <span
-              className="grid min-w-0 place-items-center truncate bg-primary-alpha-10 px-1 text-primary-on-surface"
-              style={{ flex: Number(split.refund) / total }}
-            >
-              {t("rd.sh.backShort", { back })}
-            </span>
-          ) : null}
-        </div>
+        {question ? <SheetHeading>{question}</SheetHeading> : null}
+        {plain ? null : (
+          <div
+            className="flex h-8 overflow-hidden rounded-[var(--radius-md)] border border-stroke-soft-200 text-xs font-bold"
+            role="img"
+            aria-label={t("rd.sh.bar", { rel, back })}
+            data-component="ServiceSplitBar"
+          >
+            {split.release > 0n ? (
+              <span
+                className="grid min-w-0 place-items-center truncate bg-bg-weak-50 px-1 text-text-strong-950"
+                style={{ flex: Number(split.release) / total }}
+              >
+                {t("rd.sh.relShort", { rel })}
+              </span>
+            ) : null}
+            {split.refund > 0n ? (
+              <span
+                className="grid min-w-0 place-items-center truncate bg-primary-alpha-10 px-1 text-primary-on-surface"
+                style={{ flex: Number(split.refund) / total }}
+              >
+                {t("rd.sh.backShort", { back })}
+              </span>
+            ) : null}
+          </div>
+        )}
         <FactList frame="inset">
           {delivered ? (
             <FactRow
@@ -150,19 +169,21 @@ export function ServiceSplitSheet({
                       : null
             )}
           />
-          <FactRow
-            label={t("rd.sh.toYou")}
-            value={detailed(
-              t("rd.sh.toYouV", { back, unit: w.unit(split.refund) }),
-              split.refund > 0n
-                ? t("rd.sh.toYouSub")
-                : view.profile === "hubDay"
-                  ? t("rd.sh.toYouNone")
-                  : null
-            )}
-          />
+          {plain ? null : (
+            <FactRow
+              label={t("rd.sh.toYou")}
+              value={detailed(
+                t("rd.sh.toYouV", { back, unit: w.unit(split.refund) }),
+                split.refund > 0n
+                  ? t("rd.sh.toYouSub")
+                  : view.profile === "hubDay"
+                    ? t("rd.sh.toYouNone")
+                    : null
+              )}
+            />
+          )}
         </FactList>
-        {delivered ? (
+        {!plain && delivered ? (
           <label
             htmlFor={checkboxId}
             className="flex min-h-11 cursor-pointer items-start gap-3 rounded-[var(--radius-lg)] bg-bg-weak-50 p-3 text-sm text-text-strong-950"
@@ -178,10 +199,14 @@ export function ServiceSplitSheet({
             <span>{check}</span>
           </label>
         ) : null}
-        <Alert variant="info" title={t("rd.sh.finalT")} className="p-3">
-          {t("rd.sh.finalB")}
-        </Alert>
-        <p className="text-xs text-text-sub-600">{t("rd.sh.footSplit")}</p>
+        {plain ? null : (
+          <Alert variant="info" title={t("rd.sh.finalT")} className="p-3">
+            {t("rd.sh.finalB")}
+          </Alert>
+        )}
+        <p className="text-xs text-text-sub-600">
+          {t(confirms ? "rd.sh.visitNote" : "rd.sh.footSplit")}
+        </p>
       </div>
     </DialogShell>
   );

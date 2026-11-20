@@ -24,7 +24,7 @@ export interface VoucherRowActProps {
 }
 
 /**
- * A booking's one act (`SIssuer`): in its Review Promises row, where Approve… and Accept… sit on
+ * A booking's one act (`SIssuer`): in its Review Promises row, where Approve… and Accept and Start… sit on
  * the asks' rows, or, for an optional return, in its offer's row. Report Visit… and Propose
  * Return… open their dialogs; Retry Transfer sends the same transfer again in one tap, since
  * anyone may and it can't be sent twice. A failed retry says so in the shared toast and leaves

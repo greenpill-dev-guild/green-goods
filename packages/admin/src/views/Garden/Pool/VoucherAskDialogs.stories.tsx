@@ -5,6 +5,7 @@ import type { ComponentType } from "react";
 import { IntlProvider } from "react-intl";
 import { expect, screen, userEvent, waitFor, within } from "storybook/test";
 import { STORYBOOK_NOW_SECONDS } from "../../../../../shared/.storybook/fixtures";
+import { VOUCHER_START_IDLE } from "@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController";
 import { VoucherAcceptDialog, VoucherApproveDialog } from "./VoucherAskDialogs";
 import {
   STORY_GREEN_GOODS_SAFE,
@@ -37,7 +38,7 @@ const meta: Meta = {
     docs: {
       description: {
         component:
-          "The two dialogs a voucher booking's ask opens from Review Promises (PRD-1297 surface 6, `SIssuer`), on the Hub's confirm dialog. Approve Booking is the issuer Safe's approval of the exact booking: an escrow write, so a plain description rather than the pool's target line, its facts, a note that approving isn't accepting, and the Safe's signature count read from the Safe. Accept is the pool steward's `acceptServiceClaim`: it names the pool, lists the four checks the contract enforces (current consent, the Safe's approval, the confirmed deposit, the deadline), keeps Accept off while any fails, and follows the act from the wallet to the chain. A member issuer's booking (slice 2) names the member's own terms and their approval from their own account, and says the steward couldn't have given it. The people, addresses and moments are fictional.",
+          "The two dialogs a voucher booking's ask opens from Review Promises (PRD-1297 surface 6, `SIssuer`), on the Hub's confirm dialog. Approve Booking is the issuer Safe's approval of the exact booking: an escrow write, so a plain description rather than the pool's target line, its facts, a note that approving isn't accepting, and the Safe's signature count read from the Safe. Accept and Start is the pool steward's `acceptServiceClaim` followed by the booking's start from their own wallet (DL-193): it names the pool, lists the four checks the contract enforces (current consent, the Safe's approval, the confirmed deposit, the deadline), keeps Accept and Start off while any fails, says the wallet asks three times and what the start's network fee is, and fills in each send as it lands. A member issuer's booking (slice 2) names the member's own terms and their approval from their own account, and says the steward couldn't have given it. The people, addresses and moments are fictional.",
       },
     },
   },
@@ -68,6 +69,8 @@ const accept = (overrides: Partial<Parameters<typeof VoucherAcceptDialog>[0]> = 
     target={TARGET}
     now={STORYBOOK_NOW_SECONDS}
     phase={{ status: "idle" }}
+    start={VOUCHER_START_IDLE}
+    chainId={42161}
     disabled={false}
     tone="garden"
     onClose={() => undefined}
@@ -128,7 +131,12 @@ export const AcceptBooking: Story = {
     await expect(dialog.getByText("Accept Kwesi?")).toBeVisible();
     const checks = dialog.getByTestId("voucher-acceptance-checks");
     await expect(checks.querySelectorAll('[data-holds="true"]')).toHaveLength(4);
-    await expect(dialog.getByRole("button", { name: "Accept Kwesi" })).toBeEnabled();
+    // Three approvals and the start's network fee, before the confirm (DL-193).
+    await expect(
+      dialog.getByText("Your wallet will ask you to approve three times.")
+    ).toBeVisible();
+    await expect(dialog.getByText(/Network fee: about 0\.000041 ETH/)).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "Accept and Start" })).toBeEnabled();
   },
 };
 
@@ -144,7 +152,7 @@ export const AcceptBlocked: Story = {
   play: async () => {
     const dialog = within(await screen.findByRole("dialog"));
     await expect(dialog.getByText("Not confirmed on Green Goods yet")).toBeVisible();
-    await expect(dialog.getByRole("button", { name: "Accept Kwesi" })).toBeDisabled();
+    await expect(dialog.getByRole("button", { name: "Accept and Start" })).toBeDisabled();
   },
 };
 
@@ -156,7 +164,7 @@ export const AcceptAgreementMissing: Story = {
     await expect(
       dialog.getByText("There’s no agreement from Kwesi to accept, so they book again")
     ).toBeVisible();
-    await expect(dialog.getByRole("button", { name: "Accept Kwesi" })).toBeDisabled();
+    await expect(dialog.getByRole("button", { name: "Accept and Start" })).toBeDisabled();
   },
 };
 
@@ -169,8 +177,35 @@ export const Accepting: Story = {
     }),
   play: async () => {
     const dialog = within(await screen.findByRole("dialog"));
-    await userEvent.click(dialog.getByRole("button", { name: "Accept Kwesi" }));
+    await userEvent.click(dialog.getByRole("button", { name: "Accept and Start" }));
     await expect(await dialog.findByText("Confirming…")).toBeVisible();
+  },
+};
+
+/**
+ * Accept and Start, once the acceptance landed (DL-193): the start's record is done and its send
+ * to the voucher network is with the wallet, at its own fresh quote.
+ */
+export const Starting: Story = {
+  render: () =>
+    accept({
+      phase: { status: "confirmed", key: "accept", hash: `0x${"a".repeat(64)}` },
+      start: {
+        record: "done",
+        send: "signing",
+        fee: 38_000_000_000_000n,
+        hashes: { record: `0x${"b".repeat(64)}`, send: null },
+      },
+    }),
+  play: async () => {
+    const dialog = within(await screen.findByRole("dialog"));
+    const sends = within(dialog.getByTestId("voucher-accept-start"));
+    await expect(sends.getAllByRole("listitem").map((row) => row.dataset.status)).toEqual([
+      "done",
+      "done",
+      "signing",
+    ]);
+    await expect(sends.getByText(/Network fee: about 0\.000038 ETH/)).toBeVisible();
   },
 };
 
@@ -193,7 +228,7 @@ export const AcceptGreenGoodsAccess: Story = {
     await expect(dialog.getByText("10 vouchers deposited in escrow")).toBeVisible();
     const checks = dialog.getByTestId("voucher-acceptance-checks");
     await expect(checks.querySelectorAll('[data-holds="true"]')).toHaveLength(4);
-    await expect(dialog.getByRole("button", { name: "Accept Mara" })).toBeEnabled();
+    await expect(dialog.getByRole("button", { name: "Accept and Start" })).toBeEnabled();
   },
 };
 
@@ -213,7 +248,7 @@ export const AcceptMemberBooking: Story = {
     ).toBeVisible();
     await expect(dialog.queryByText("Your Safe approved the booking")).toBeNull();
     await expect(dialog.getByText("you couldn’t give it for them", { exact: false })).toBeVisible();
-    await expect(dialog.getByRole("button", { name: "Accept Maya" })).toBeEnabled();
+    await expect(dialog.getByRole("button", { name: "Accept and Start" })).toBeEnabled();
   },
 };
 

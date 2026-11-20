@@ -198,7 +198,11 @@ function VoucherBookingRow({
     commitmentId: escrow.booking.commitmentId,
     buyer: reader,
   });
-  const needsYou = bookingNeedsYouOf(booking.data, commitment?.derivedState);
+  const needsYou = bookingNeedsYouOf(
+    booking.data,
+    commitment?.derivedState,
+    commitment?.acceptanceAt
+  );
   const depositDue = escrow.stage === "awaiting-deposit";
   const label = (id: string) => intl.formatMessage({ id });
   return (

@@ -7,6 +7,7 @@ import type {
   PoolConsoleController,
   VoucherConsoleView,
 } from "../../hooks/admin-ui/pool";
+import { VOUCHER_START_IDLE } from "../../hooks/admin-ui/pool/useVoucherStart";
 import type {
   GardenCommitmentActs,
   GardenCommitmentController,
@@ -253,6 +254,7 @@ const poolActs: PoolConsoleActs = {
   expire: successfulTransaction,
   acceptClaim: successfulTransaction,
   acceptServiceClaim: successfulTransaction,
+  acceptAndStartBooking: async () => "started",
   declineClaim: successfulTransaction,
   retryQueued: async () => undefined,
   discardQueued: async () => undefined,
@@ -316,6 +318,7 @@ export function poolConsoleControllerFixture(
     claimPhase: () => ({ status: "idle" }),
     claimDecisions: {},
     claimInFlight: false,
+    voucherStart: VOUCHER_START_IDLE,
     resumePhase: { status: "idle" },
     queuedPhase: () => ({ status: "idle" }),
     isActing: false,

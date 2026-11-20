@@ -54,6 +54,7 @@ function sheet(view: NonNullable<ReturnType<typeof serviceBookingView>>) {
       onOpenChange={() => undefined}
       view={view}
       title="Thirty sessions"
+      confirms={false}
       isPending={false}
       onApprove={() => undefined}
       onReport={null}
@@ -61,7 +62,7 @@ function sheet(view: NonNullable<ReturnType<typeof serviceBookingView>>) {
   );
 }
 
-function openSheet(stage: "readyToClose" | "returnProposed") {
+function openSheet(stage: "readyToClose" | "returnProposed", confirms = false) {
   const view = serviceBookingView(
     {
       snapshot: bookingStorySnapshot("hubDay", stage),
@@ -79,6 +80,7 @@ function openSheet(stage: "readyToClose" | "returnProposed") {
       onOpenChange={() => undefined}
       view={view}
       title="Hub day, up to 4 hours"
+      confirms={confirms}
       isPending={false}
       onApprove={() => undefined}
       onReport={null}
@@ -153,5 +155,32 @@ describe("Approve the Final Split", () => {
     rerender(sheet(genericView(vouchers(7))));
     expect(screen.getByRole("checkbox")).not.toBeChecked();
     expect(screen.getByRole("button", { name: "Approve Split" })).toBeDisabled();
+  });
+});
+
+// One sheet closes the booking: the split, its transfer, then kept (DL-192).
+describe("Confirm Your Visit", () => {
+  it("asks one question for a visit delivered in full, with no split to read", () => {
+    openSheet("readyToClose", true);
+    expect(screen.getByRole("dialog", { name: "Confirm Your Visit" })).toBeTruthy();
+    expect(screen.getByText("Did your hub day happen?")).toBeTruthy();
+    expect(screen.queryByRole("img", { name: /back to you/i })).toBeNull();
+    expect(screen.queryByRole("checkbox")).toBeNull();
+    expect(screen.getByText("The full hub day")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "This closes your booking: the split, its transfer, then the promise kept. You may be asked to approve more than once, on each network."
+      )
+    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Yes, Confirm My Visit" })).toBeEnabled();
+  });
+
+  it("shows the split first when the issuer proposed a return", () => {
+    openSheet("returnProposed", true);
+    expect(screen.getByText("Your visit was cut short")).toBeTruthy();
+    expect(screen.getByRole("img")).toBeTruthy();
+    // The whole voucher comes back: nothing was delivered, so there's nothing to tick.
+    expect(screen.queryByRole("checkbox")).toBeNull();
+    expect(screen.getByRole("button", { name: "Approve Split and Confirm" })).toBeEnabled();
   });
 });

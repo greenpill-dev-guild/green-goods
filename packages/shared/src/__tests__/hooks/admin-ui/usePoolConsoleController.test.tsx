@@ -79,7 +79,8 @@ const mocks = vi.hoisted(() => ({
   poolPending: false,
   commitmentPending: false,
   fundingRefetch: vi.fn(),
-  sender: { authMode: "wallet" },
+  sender: { authMode: "wallet", sendContractCall: vi.fn() },
+  prepareStart: vi.fn(),
   retryQueuedCommitmentJob: vi.fn(),
   discardJob: vi.fn(),
   getBlock: vi.fn(),
@@ -127,6 +128,14 @@ vi.mock("../../../hooks/blockchain/useTransactionSender", () => ({
 vi.mock("../../../hooks/commitment-pooling/useCommitmentJobs", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../../hooks/commitment-pooling/useCommitmentJobs")>()),
   retryQueuedCommitmentJob: mocks.retryQueuedCommitmentJob,
+}));
+
+// Each start send reads the booking from the chain; here the read hands the next send directly.
+vi.mock("../../../modules/commitment-pooling/voucher-console-live", async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import("../../../modules/commitment-pooling/voucher-console-live")
+  >()),
+  prepareVoucherStartSend: mocks.prepareStart,
 }));
 
 vi.mock("../../../modules/job-queue/default-instance", () => ({
@@ -731,6 +740,114 @@ describe("usePoolConsoleController", () => {
       "The chain's time can't be read right now, so nothing was accepted"
     );
     expect(mocks.commitmentMutate).not.toHaveBeenCalled();
+  });
+
+  describe("Accept and Start (DL-193)", () => {
+    const SETUP_ID = `0x${"5e".repeat(32)}` as const;
+    const at = 1_761_600_000;
+    const call = (functionName: string) => ({ functionName, account: TUNDE });
+    const sends = [
+      {
+        state: { kind: "send", act: { action: "finalizeVoucherActivation" } },
+        call: call("finalizeActivation"),
+      },
+      {
+        state: {
+          kind: "send",
+          act: { action: "dispatchVoucherSetupCommand", kind: "decision", reviewedNativeFee: 9n },
+        },
+        call: call("dispatchSetupCommand"),
+      },
+    ];
+    const ready = () => voucherAsk(at, { setupId: SETUP_ID });
+    const render = () => {
+      vi.spyOn(Date, "now").mockReturnValue(at * 1000);
+      mocks.getBlock.mockResolvedValue({ timestamp: BigInt(at) });
+      const queryClient = testQueryClient();
+      seedControllerQueries(queryClient);
+      return renderControllerOnChain(queryClient);
+    };
+
+    it("accepts, then sends the start from the steward's own wallet, one send after the other", async () => {
+      mocks.commitmentMutate.mockResolvedValue("0xacce");
+      mocks.prepareStart.mockResolvedValueOnce(sends[0]).mockResolvedValueOnce(sends[1]);
+      mocks.sender.sendContractCall
+        .mockResolvedValueOnce({ hash: "0x01", sponsored: false })
+        .mockResolvedValueOnce({ hash: "0x02", sponsored: false });
+      const { result } = render();
+
+      let outcome: unknown;
+      await act(async () => {
+        outcome = await result.current.acts.acceptAndStartBooking(ready(), at);
+      });
+
+      expect(outcome).toBe("started");
+      expect(mocks.commitmentMutate.mock.calls[0]![0]).toMatchObject({
+        action: "acceptServiceClaim",
+      });
+      // Each send reads the accepted booking again, as the steward who sends it.
+      expect(mocks.prepareStart).toHaveBeenCalledWith(
+        { chainId: CHAIN_ID, garden: GARDEN },
+        { commitmentId: COMMITMENT.commitmentId, buyer: CLAIMANT, setupId: SETUP_ID },
+        TUNDE
+      );
+      expect(mocks.sender.sendContractCall.mock.calls.map(([sent]) => sent.functionName)).toEqual([
+        "finalizeActivation",
+        "dispatchSetupCommand",
+      ]);
+      expect(result.current.voucherStart).toMatchObject({
+        record: "done",
+        send: "done",
+        fee: 9n,
+        hashes: { record: "0x01", send: "0x02" },
+      });
+    });
+
+    it("starts nothing behind an acceptance its Safe's signers still have to approve", async () => {
+      mocks.commitmentMutate.mockImplementation(async (input) => {
+        if ("send" in input)
+          (input.send as { onAwaiting?: (a: string) => void }).onAwaiting?.("safe-signers");
+        return "0x5afe";
+      });
+      const { result } = render();
+
+      let outcome: unknown;
+      await act(async () => {
+        outcome = await result.current.acts.acceptAndStartBooking(ready(), at);
+      });
+
+      expect(outcome).toBe("acceptanceWaiting");
+      expect(mocks.prepareStart).not.toHaveBeenCalled();
+      expect(mocks.sender.sendContractCall).not.toHaveBeenCalled();
+    });
+
+    it("keeps the acceptance when its start fails, and says the start wasn't sent", async () => {
+      mocks.commitmentMutate.mockResolvedValue("0xacce");
+      mocks.prepareStart.mockResolvedValueOnce(sends[0]);
+      mocks.sender.sendContractCall.mockRejectedValueOnce(new Error("insufficient funds"));
+      const { result } = render();
+
+      let outcome: unknown;
+      await act(async () => {
+        outcome = await result.current.acts.acceptAndStartBooking(ready(), at);
+      });
+
+      expect(outcome).toBe("notSent");
+      expect(result.current.voucherStart.record).toBe("failed");
+      expect(
+        result.current.claimDecisions[claimActKey(COMMITMENT.commitmentId, CLAIMANT)]
+      ).toMatchObject({ kind: "approved" });
+    });
+
+    it("throws when the acceptance itself fails, before any start", async () => {
+      mocks.commitmentMutate.mockRejectedValue(new Error("reverted"));
+      const { result } = render();
+
+      await expect(result.current.acts.acceptAndStartBooking(ready(), at)).rejects.toThrow(
+        "reverted"
+      );
+      expect(mocks.prepareStart).not.toHaveBeenCalled();
+    });
   });
 
   it("sends or drops a queued creation and re-reads the row either way", async () => {

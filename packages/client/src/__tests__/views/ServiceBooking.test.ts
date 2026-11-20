@@ -9,7 +9,7 @@ import en from "@green-goods/shared/i18n/en";
 import es from "@green-goods/shared/i18n/es";
 import pt from "@green-goods/shared/i18n/pt";
 import { createIntl } from "react-intl";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   type BookingStoryService,
   type BookingStoryStage,
@@ -27,6 +27,7 @@ import {
 import {
   activateStep,
   agreeStep,
+  runConfirmVisit,
   runServiceAct,
   serviceActOffered,
   type ServiceActStep,
@@ -249,15 +250,15 @@ describe("voucher booking on the promise page", () => {
     [
       "hubDay",
       "readyToClose",
-      "Tech and Sun reported your visit. Approve the split, then confirm your visit",
-      "Approve the Split",
+      "Tech and Sun reported your visit. Confirm it to close your booking.",
+      "Confirm Your Visit",
       "Report a Problem",
     ],
     [
       "hubDay",
       "returnProposed",
       "says the hub day didn't happen",
-      "Review the Split",
+      "Confirm Your Visit",
       "Report a Problem",
     ],
     ["hubDay", "transfersPending", "Your voucher goes to Tech and Sun's reserve", null, null],
@@ -310,7 +311,7 @@ describe("voucher booking on the promise page", () => {
       "access",
       "returnProposed",
       "stopped working after 12 of 30 days. Green Goods proposes 6 back to you and 4 to its reserve",
-      "Review the Split",
+      "Confirm Your Visit",
       "Report a Problem",
     ],
     [
@@ -779,7 +780,7 @@ describe("voucher booking on the promise page", () => {
     ["waitingApproval", false],
     ["readyToDeposit", true],
     ["waitingAcceptance", false],
-    // Until the steward's Accept also starts it (PR E), starting is the member's to do.
+    // With no acceptance time read, the fallback start shows, and it is the member's to do.
     ["starting", true],
     ["inProgress", false],
     ["readyToClose", true],
@@ -992,6 +993,101 @@ describe("a member's act on a voucher booking", () => {
       return { snapshot: legs([["0xnow", "pending", "pending"]]) };
     };
     expect(await runServiceAct(first, step, send, offered)).toBe(end);
+  });
+
+  // Confirm Your Visit is one sheet: the split, its transfer, then kept (DL-192).
+  describe("Confirm Your Visit", () => {
+    const ready = () => bookingStorySnapshot("hubDay", "readyToClose");
+    const split = view("hubDay", "readyToClose").split!;
+
+    it("approves the split and runs its transfer before it confirms the promise kept", async () => {
+      const order: string[] = [];
+      const send = async (action: ServiceAccessAction) => {
+        order.push(action.action);
+        return { snapshot: bookingStorySnapshot("hubDay", "closed") };
+      };
+      const kept = async () => {
+        order.push("kept");
+      };
+      expect(await runConfirmVisit(ready(), split, send, kept)).toBe("done");
+      expect(order).toEqual(["finalizeVoucherAllocation", "kept"]);
+    });
+
+    it.each([
+      ["declined before the split", 0, "nothingSent"],
+      ["declined after the split was fixed", 1, "stopped"],
+    ] as const)("never confirms kept when a prompt is %s", async (_case, landed, end) => {
+      // The first write fixes the split; the next is the transfer it fixed.
+      let calls = 0;
+      const send = async () => {
+        calls += 1;
+        if (calls > landed) throw new Error("User rejected the request.");
+        return { snapshot: bookingStorySnapshot("hubDay", "transfersPending") };
+      };
+      const kept = vi.fn();
+      expect(await runConfirmVisit(ready(), split, send, kept)).toBe(end);
+      expect(kept).not.toHaveBeenCalled();
+    });
+
+    it("only approves the split for a reader who can't confirm the promise", async () => {
+      const send = async () => ({ snapshot: bookingStorySnapshot("hubDay", "closed") });
+      expect(await runConfirmVisit(ready(), split, send, null)).toBe("done");
+    });
+  });
+
+  // The steward's Accept and Start sends the start (DL-193); the member's Start the Booking is a
+  // fallback, offered fifteen minutes after acceptance in the source chain's time.
+  describe("while the steward's start is on its way", () => {
+    const accepted = () =>
+      bookingStorySnapshot("hubDay", "starting", { activationRecorded: false });
+    const at = (acceptedAgo: number) => {
+      const snapshot = accepted();
+      const now = Number(snapshot.sourceTimestamp);
+      return {
+        snapshot,
+        acceptedAt: now - acceptedAgo,
+        booking: serviceBookingView(
+          {
+            snapshot,
+            coreState: bookingStoryCoreState("hubDay", "starting"),
+            issuer: ISSUER.hubDay,
+            approval: APPROVAL.hubDay,
+            held: vouchers(10),
+            acceptedAt: now - acceptedAgo,
+          },
+          intl
+        )!,
+      };
+    };
+
+    it("waits on the steward, with nothing for the member to do, for fifteen minutes", () => {
+      const { snapshot, acceptedAt, booking } = at(60);
+      expect(booking.stage).toBe("stewardStarting");
+      expect(booking.primary).toBeNull();
+      expect(booking.band.needsYou).toBe(false);
+      expect(booking.band.sentence).toBe(
+        "Tech and Sun accepted you and is starting your booking. There's nothing for you to do."
+      );
+      expect(booking.tracker).toMatchObject({ at: 3, waiting: "waiting on Tech and Sun" });
+      expect(
+        bookingNeedsYouOf(snapshot, bookingStoryCoreState("hubDay", "starting"), acceptedAt)
+      ).toBe(false);
+      expect(at(14 * 60 + 59).booking.stage).toBe("stewardStarting");
+    });
+
+    it("then offers Start the Booking, which needs the member", () => {
+      const { snapshot, acceptedAt, booking } = at(15 * 60);
+      expect(booking.stage).toBe("starting");
+      expect(booking.primary?.label).toBe("Start the Booking");
+      expect(booking.band.needsYou).toBe(true);
+      expect(
+        bookingNeedsYouOf(snapshot, bookingStoryCoreState("hubDay", "starting"), acceptedAt)
+      ).toBe(true);
+    });
+
+    it("offers it at once when the acceptance's time hasn't been read", () => {
+      expect(view("hubDay", "starting").stage).toBe("starting");
+    });
   });
 
   it("starts an accepted booking: records its activation, then sends it to the escrow", async () => {

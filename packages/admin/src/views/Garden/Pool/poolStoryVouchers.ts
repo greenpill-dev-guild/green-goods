@@ -160,6 +160,8 @@ function ask(
             depositedUnits: VOUCHER,
             depositConfirmed: true,
             acceptBy: agreedAt + 7 * 86_400,
+            // About what the start's message to the voucher network costs on Arbitrum.
+            startFee: 41_000_000_000_000n,
             ...setup,
           },
   };

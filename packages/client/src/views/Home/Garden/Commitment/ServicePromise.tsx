@@ -34,11 +34,11 @@ import {
   earnedAgreeStep,
   legStep,
   retryConfirmStep,
+  runConfirmVisit,
   runServiceAct,
   type ServiceActEnd,
   type ServiceActStep,
   serviceActOffered,
-  splitStep,
   unsentLegStep,
 } from "./serviceActs";
 import { formatVoucherMessage, isServiceAccessPromise } from "./serviceBooking";
@@ -72,6 +72,7 @@ export function ServicePromise({
   hasCoreAct,
   isOnline,
   onReport,
+  confirmKept,
   takeUp,
   children,
 }: ServicePromiseProps) {
@@ -134,6 +135,7 @@ export function ServicePromise({
           coreState,
           creator: commitment.creator,
           proofRecorded: commitment.evidenceCount > 0,
+          acceptedAt: commitment.acceptanceAt,
           viewer: serviceKey?.buyer,
           issuer,
           matched: matchedIssuer,
@@ -169,6 +171,14 @@ export function ServicePromise({
   // page already shows where the act stands.
   const notice = (end: ServiceActEnd): ServiceRedeemOutcome =>
     end === "nothingSent" || end === "noResult" ? end : null;
+  /** Confirm Your Visit: the split, its transfer, then kept, in one sheet (`runConfirmVisit`). */
+  const confirmVisit = (split: NonNullable<NonNullable<typeof booking>["split"]>) => {
+    if (!snapshot) return;
+    setRunning(true);
+    void runConfirmVisit(snapshot, split, mutation.mutateAsync, confirmKept)
+      .then((end) => (end === "done" || end === "stopped") && setSheet(null))
+      .finally(() => setRunning(false));
+  };
   const runOnce = (action: ServiceAccessAction) =>
     act((current) => (current === snapshot ? action : null));
   const openExchange = () => {
@@ -446,13 +456,8 @@ export function ServicePromise({
                 void access.refetch();
               },
             }}
-            onApproveSplit={() => {
-              if (!booking.split) return;
-              // The split is fixed once approved, even if a transfer prompt is declined after it.
-              void act(splitStep(booking.split)).then((end) => {
-                if (end === "done" || end === "stopped") setSheet(null);
-              });
-            }}
+            confirms={confirmKept !== null}
+            onApproveSplit={() => booking.split && confirmVisit(booking.split)}
             onReport={report}
             exchange={{
               available: canExchange,

@@ -43,6 +43,8 @@ export function bookingSentence(ctx: BookingContext): string {
     case "waitingAcceptance":
       if (member) return t("rd.n.acceptanceM.b", counted);
       return t(one ? "rd.n.acceptance1.b" : "rd.n.acceptance.b", values);
+    case "stewardStarting":
+      return t(member ? "rd.n.stewardStartingM.b" : "rd.n.stewardStarting.b");
     case "starting":
       return t(member ? "rd.n.startingM.b" : "rd.n.starting.b");
     case "inProgress":

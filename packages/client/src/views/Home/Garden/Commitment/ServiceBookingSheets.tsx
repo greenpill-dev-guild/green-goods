@@ -23,6 +23,8 @@ export interface ServiceBookingSheetsProps {
     onDeposit: () => void;
     onCheck: () => void;
   };
+  /** Confirm Your Visit also confirms the promise was kept, after the split and its transfer. */
+  confirms: boolean;
   onApproveSplit: () => void;
   onReport: (() => void) | null;
   exchange: {
@@ -49,6 +51,7 @@ export function ServiceBookingSheets({
   sheet,
   onClose,
   redeem,
+  confirms,
   onApproveSplit,
   onReport,
   exchange,
@@ -88,6 +91,7 @@ export function ServiceBookingSheets({
         onOpenChange={close}
         view={booking}
         title={heading}
+        confirms={confirms}
         isPending={isPending}
         onApprove={onApproveSplit}
         onReport={onReport}

@@ -296,6 +296,7 @@ function controller(overrides: ControllerOverrides = {}): PoolConsoleController 
     expire: vi.fn().mockResolvedValue("0x1"),
     acceptClaim: vi.fn().mockResolvedValue("0x1"),
     acceptServiceClaim: vi.fn().mockResolvedValue("0x1"),
+    acceptAndStartBooking: vi.fn().mockResolvedValue("started"),
     declineClaim: vi.fn().mockResolvedValue("0x1"),
     retryQueued: vi.fn().mockResolvedValue(undefined),
     discardQueued: vi.fn().mockResolvedValue(undefined),

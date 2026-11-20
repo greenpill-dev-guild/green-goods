@@ -50,7 +50,10 @@ export interface ServicePromiseProps {
    * The promise as the booking reads it: its state; who made it, since the chain refuses their own
    * take-up so they read no buyer's path; and whether it holds proof, which a dispute keeps.
    */
-  commitment: Pick<CommitmentReadModel, "derivedState" | "creator" | "evidenceCount">;
+  commitment: Pick<
+    CommitmentReadModel,
+    "derivedState" | "creator" | "evidenceCount" | "acceptanceAt"
+  >;
   /** The request's garden, whose pool pays any G$. */
   gardenName: string;
   heading: string;
@@ -61,6 +64,12 @@ export interface ServicePromiseProps {
   isOnline: boolean;
   /** Report a Problem raises a dispute, which the chain takes only from some readers. */
   onReport: (() => void) | null;
+  /**
+   * The promise's own Confirm It Was Kept, when the chain offers it to the reader. Confirm Your
+   * Visit runs it last, after the split and its transfer (DL-192), so the member closes a booking
+   * in one sheet. It reports its own failure.
+   */
+  confirmKept: (() => Promise<unknown>) | null;
   /**
    * The reader's take-up of a request, when the page offers one: at once (open) or by asking its
    * stewards. A request's voucher reward is agreed to first, from the reward's own bar.
