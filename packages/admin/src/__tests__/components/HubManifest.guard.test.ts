@@ -29,8 +29,9 @@ describe("Hub web app manifest", () => {
       '<link rel="apple-touch-icon" href="%BASE_URL%%HUB_APPLE_TOUCH_ICON%" />'
     );
     expect(html).toContain('<meta name="apple-mobile-web-app-title" content="%HUB_SHORT_NAME%" />');
+    // The sign-in draws the same icon, found by its marker (ConnectPrompt).
     expect(html).toContain(
-      '<link rel="icon" type="image/png" href="%BASE_URL%%HUB_BROWSER_ICON%" />'
+      '<link rel="icon" type="image/png" href="%BASE_URL%%HUB_BROWSER_ICON%" data-hub-icon />'
     );
   });
 

@@ -11,12 +11,13 @@ const controller: AdminLoginController = {
   setUsername: fn(),
   error: null,
   isSigningIn: false,
+  isPasskeySigningIn: false,
   canSignInByName: true,
   hasStoredCredential: false,
   storedUsername: null,
-  createAccountByName: fn(async () => {}),
-  signInByName: fn(async () => {}),
+  continueByName: fn(async () => {}),
   signInWithStoredPasskey: fn(async () => {}),
+  beginWalletSignIn: fn(),
 };
 const meta: Meta<typeof AdminSignIn> = {
   title: "Admin/Identity/AdminSignIn",
@@ -35,7 +36,7 @@ const meta: Meta<typeof AdminSignIn> = {
     docs: {
       description: {
         component:
-          "Account creation and existing-account sign-in. The real admin controls render against deterministic controller state; no passkey or wallet ceremony is started.",
+          "The Hub's sign-in, shaped like the App's: Continue with Passkey, then Sign in with a Wallet; the name step signs in to an existing account or creates one, and a remembered passkey signs in at once with Use Different Username below. The real admin controls render against deterministic controller state; no passkey or wallet ceremony is started.",
       },
     },
   },
@@ -43,8 +44,8 @@ const meta: Meta<typeof AdminSignIn> = {
 export default meta;
 type Story = StoryObj<typeof AdminSignIn>;
 export const Default: Story = {};
-export const CreateAccount: Story = { args: { controller: { ...controller, mode: "create" } } };
-export const ExistingAccount: Story = { args: { controller: { ...controller, mode: "signin" } } };
+/** "Continue with Passkey" opens one name step that signs in or creates the account. */
+export const NameStep: Story = { args: { controller: { ...controller, mode: "username" } } };
 export const Remembered: Story = {
   args: {
     controller: {
@@ -55,11 +56,30 @@ export const Remembered: Story = {
     },
   },
 };
-export const Registering: Story = {
-  args: { controller: { ...controller, mode: "create", isSigningIn: true } },
+export const Continuing: Story = {
+  args: {
+    controller: { ...controller, mode: "username", isSigningIn: true, isPasskeySigningIn: true },
+  },
 };
 export const SigningIn: Story = {
-  args: { controller: { ...controller, mode: "signin", isSigningIn: true } },
+  args: {
+    controller: {
+      ...controller,
+      hasStoredCredential: true,
+      storedUsername: "storybook-steward",
+      isSigningIn: true,
+      isPasskeySigningIn: true,
+    },
+  },
+};
+/** A phone wallet chosen in the modal never opened: the screen says so and offers a passkey. */
+export const WalletDidNotOpen: Story = {
+  args: {
+    controller: {
+      ...controller,
+      error: "Your wallet app didn't open. Try again, or sign in with a passkey.",
+    },
+  },
 };
 export const Unavailable: Story = {
   args: { controller: { ...controller, error: "Passkey recovery is temporarily unavailable." } },
@@ -82,9 +102,9 @@ const feedbackStates = [
         "Passkey recovery is temporarily unavailable. Please keep your account name and try again when the service is available. If the problem continues, open Green Goods in your recommended browser and try signing in again with the same passkey account.",
     },
   },
-  { name: "pending", controller: { ...controller, isSigningIn: true } },
+  { name: "pending", controller: { ...controller, isSigningIn: true, isPasskeySigningIn: true } },
 ];
-const screens = ["entry", "create", "signin"] as const;
+const screens = ["entry", "username"] as const;
 
 export const FeedbackLayout: Story = {
   tags: ["storybook-ci"],
