@@ -215,6 +215,13 @@ const outcomeSchema = z.discriminatedUnion("kind", [
     transactionHash: digest.optional(),
     userOperationHash: digest.optional(),
   }),
+  /**
+   * The wallet answered with a Safe proposal (PRD-1568). No transaction has its hash: it lands
+   * once the Safe's owners sign it and someone runs it, under a hash of its own. The page may have
+   * reported the proposal's hash as a broadcast before it knew; this names it. A short proposal id
+   * is no digest, so it goes unnamed.
+   */
+  z.object({ kind: z.literal("safe_proposal"), safeTxHash: digest.optional() }),
 ]);
 
 export const outcomeRequestSchema = z.object({

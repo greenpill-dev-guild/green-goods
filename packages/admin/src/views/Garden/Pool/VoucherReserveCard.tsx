@@ -3,6 +3,7 @@ import { VoucherAwardDesk } from "./VoucherAwardDesk";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { Button } from "@green-goods/shared/components/Button";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
+import { StatTile } from "@green-goods/shared/components/Cards/StatTile";
 import type {
   IssuerSafeThreshold,
   VoucherIssuerReserve,
@@ -26,13 +27,15 @@ export interface VoucherReserveCardProps {
 }
 
 /**
- * Your Reserve (`SIssuer`), in the rail of an issuing garden's Promises tab:
- * the vouchers its promised rewards draw on, kept apart from bookings, the
- * funding garden's allowance, the service terms, and the issuer's published
- * cap. When the allowance can't cover a promised reward, the reward waits (it
- * isn't lost), the card says whether the allowance is used up or only short of
- * it, and Raise Allowance… repairs it; the Safe's signature count comes from
- * the Safe.
+ * Your Reserve (`SIssuer`), in the rail of an issuing garden's Promises tab. It
+ * leads with three numbers (decision 3 of the 18 November 2026 hub-day review):
+ * the vouchers in reserve, kept apart from bookings, the rewards promised from
+ * them and not yet sent, and the bookings open. The funding garden's allowance,
+ * the service terms, how bookings are approved and the issuer's published cap
+ * fold under Reserve details. When the allowance can't cover a promised reward,
+ * the reward waits (it isn't lost), the card says whether the allowance is used
+ * up or only short of it, and Raise Allowance… repairs it; the Safe's signature
+ * count comes from the Safe.
  */
 export function VoucherReserveCard({
   reserve,
@@ -55,14 +58,6 @@ export function VoucherReserveCard({
   const raiseButtonRef = useRef<HTMLButtonElement>(null);
   const { issuer, allowance, terms, cap, waitingReward } = reserve;
   const count = (units: bigint) => voucherCount(units, issuer.decimals);
-  const vouchers = (units: bigint) =>
-    formatMessage(
-      {
-        id: "hub.garden.pool.voucher.vouchers",
-        defaultMessage: "{count, plural, one {# {issuer} voucher} other {# {issuer} vouchers}}",
-      },
-      { count: count(units), issuer: issuer.name }
-    );
   const short = waitingReward !== null && allowance.left < waitingReward.units;
 
   return (
@@ -108,153 +103,153 @@ export function VoucherReserveCard({
           </Button>
         ) : null}
       </div>
-      <FactList frame="inset">
-        <FactRow
-          label={formatMessage({
-            id: "hub.garden.pool.voucher.reserve.inReserve",
-            defaultMessage: "In reserve",
+      {/* Bottom-aligned, so the values stay level if a label wraps in a narrow tile. */}
+      <div className="grid grid-cols-3 items-end gap-3">
+        {(
+          [
+            [
+              formatMessage({
+                id: "hub.garden.pool.voucher.reserve.inReserve",
+                defaultMessage: "In reserve",
+              }),
+              count(reserve.inReserve),
+            ],
+            [
+              formatMessage({
+                id: "hub.garden.pool.voucher.reserve.promisedShort",
+                defaultMessage: "Promised",
+              }),
+              count(reserve.promised),
+            ],
+            [
+              formatMessage({
+                id: "hub.garden.pool.voucher.reserve.booked",
+                defaultMessage: "Booked",
+              }),
+              reserve.openBookings,
+            ],
+          ] as const
+        ).map(([label, value]) => (
+          <StatTile key={label} label={label} value={value} data-testid="voucher-reserve-stat" />
+        ))}
+      </div>
+      <details className="rounded-(--gg-row-radius) border border-stroke-soft">
+        <summary className="flex min-h-11 cursor-pointer items-center px-3 type-label text-text-sub">
+          {formatMessage({
+            id: "hub.garden.pool.voucher.reserve.details",
+            defaultMessage: "Reserve details",
           })}
-          value={vouchers(reserve.inReserve)}
-        />
-        <FactRow
-          label={formatMessage({
-            id: "hub.garden.pool.voucher.reserve.promised",
-            defaultMessage: "Promised as rewards, not yet sent",
-          })}
-          value={
-            <FactValue
-              value={count(reserve.promised)}
-              note={formatMessage(
+        </summary>
+        <div className="px-3 pb-3">
+          <FactList frame="inset">
+            <FactRow
+              label={formatMessage(
                 {
-                  id: "hub.garden.pool.voucher.reserve.promisedTo",
-                  defaultMessage: "{garden} members",
+                  id: "hub.garden.pool.voucher.reserve.allowance",
+                  defaultMessage: "Allowance for {garden}",
                 },
                 { garden: allowance.garden }
               )}
-            />
-          }
-        />
-        <FactRow
-          label={formatMessage(
-            {
-              id: "hub.garden.pool.voucher.reserve.allowance",
-              defaultMessage: "Allowance for {garden}",
-            },
-            { garden: allowance.garden }
-          )}
-          value={
-            <FactValue
-              value={formatMessage(
-                {
-                  id: "hub.garden.pool.voucher.reserve.allowanceLeft",
-                  defaultMessage: "{left} left of {of}",
-                },
-                { left: count(allowance.left), of: count(allowance.limit) }
-              )}
-              note={formatMessage({
-                id: "hub.garden.pool.voucher.reserve.allowanceNote",
-                defaultMessage: "What their promised rewards can draw",
-              })}
-            />
-          }
-        />
-        <FactRow
-          label={formatMessage({
-            id: "hub.garden.pool.voucher.reserve.openBookings",
-            defaultMessage: "Open bookings",
-          })}
-          value={
-            <FactValue
-              value={reserve.openBookings}
-              note={formatMessage({
-                id: "hub.garden.pool.voucher.reserve.openNote",
-                defaultMessage: "Service you owe",
-              })}
-            />
-          }
-        />
-        <FactRow
-          label={formatMessage({
-            id: "hub.garden.pool.voucher.reserve.terms",
-            defaultMessage: "Service terms",
-          })}
-          value={
-            <FactValue
-              value={formatMessage(
-                { id: "hub.garden.pool.voucher.version", defaultMessage: "Version {version}" },
-                { version: terms.version.toString() }
-              )}
-              note={
-                terms.returns.kind === "usable-hours"
-                  ? formatMessage(
-                      {
-                        id: "hub.garden.pool.voucher.reserve.returnsByHours",
-                        defaultMessage: "Returns by usable time, out of {hours} hours",
-                      },
-                      { hours: terms.returns.of }
-                    )
-                  : formatMessage(
-                      {
-                        id: "hub.garden.pool.voucher.reserve.returnsByDays",
-                        defaultMessage: "Returns by days of access, out of {days}",
-                      },
-                      { days: terms.returns.of }
-                    )
+              value={
+                <FactValue
+                  value={formatMessage(
+                    {
+                      id: "hub.garden.pool.voucher.reserve.allowanceLeft",
+                      defaultMessage: "{left} left of {of}",
+                    },
+                    { left: count(allowance.left), of: count(allowance.limit) }
+                  )}
+                  note={formatMessage({
+                    id: "hub.garden.pool.voucher.reserve.allowanceNote",
+                    defaultMessage: "What their promised rewards can draw",
+                  })}
+                />
               }
             />
-          }
-        />
-        <FactRow
-          label={formatMessage({
-            id: "hub.garden.pool.voucher.reserve.approvals",
-            defaultMessage: "Approvals",
-          })}
-          value={
-            <FactValue
-              value={formatMessage({
-                id: "hub.garden.pool.voucher.reserve.eachBooking",
-                defaultMessage: "Each booking",
+            <FactRow
+              label={formatMessage({
+                id: "hub.garden.pool.voucher.reserve.terms",
+                defaultMessage: "Service terms",
               })}
-              note={
-                safe?.status === "observed" && safe.threshold !== null && safe.owners !== null
-                  ? formatMessage(
-                      {
-                        id: "hub.garden.pool.voucher.reserve.safeSigns",
-                        defaultMessage:
-                          "{threshold, plural, one {Your Safe signs each one, # signature} other {Your Safe signs each one, # of {owners} signatures}}",
-                      },
-                      { threshold: safe.threshold, owners: safe.owners }
-                    )
-                  : formatMessage({
-                      id: "hub.garden.pool.voucher.reserve.safeSignsUnread",
-                      defaultMessage: "Your Safe signs each one",
-                    })
+              value={
+                <FactValue
+                  value={formatMessage(
+                    { id: "hub.garden.pool.voucher.version", defaultMessage: "Version {version}" },
+                    { version: terms.version.toString() }
+                  )}
+                  note={
+                    terms.returns.kind === "usable-hours"
+                      ? formatMessage(
+                          {
+                            id: "hub.garden.pool.voucher.reserve.returnsByHours",
+                            defaultMessage: "Returns by usable time, out of {hours} hours",
+                          },
+                          { hours: terms.returns.of }
+                        )
+                      : formatMessage(
+                          {
+                            id: "hub.garden.pool.voucher.reserve.returnsByDays",
+                            defaultMessage: "Returns by days of access, out of {days}",
+                          },
+                          { days: terms.returns.of }
+                        )
+                  }
+                />
               }
             />
-          }
-        />
-        <FactRow
-          label={formatMessage({
-            id: "hub.garden.pool.voucher.reserve.cap",
-            defaultMessage: "Issuer cap",
-          })}
-          value={
-            <FactValue
-              value={formatMessage(
-                {
-                  id: "hub.garden.pool.voucher.reserve.capValue",
-                  defaultMessage: "{issued} of {ceiling}",
-                },
-                { issued: count(cap.issued), ceiling: count(cap.ceiling) }
-              )}
-              note={formatMessage({
-                id: "hub.garden.pool.voucher.reserve.capNote",
-                defaultMessage: "Published policy, monitored. Not enforced yet.",
+            <FactRow
+              label={formatMessage({
+                id: "hub.garden.pool.voucher.reserve.approvals",
+                defaultMessage: "Approvals",
               })}
+              value={
+                <FactValue
+                  value={formatMessage({
+                    id: "hub.garden.pool.voucher.reserve.eachBooking",
+                    defaultMessage: "Each booking",
+                  })}
+                  note={
+                    safe?.status === "observed" && safe.threshold !== null && safe.owners !== null
+                      ? formatMessage(
+                          {
+                            id: "hub.garden.pool.voucher.reserve.safeSigns",
+                            defaultMessage:
+                              "{threshold, plural, one {Your Safe signs each one, # signature} other {Your Safe signs each one, # of {owners} signatures}}",
+                          },
+                          { threshold: safe.threshold, owners: safe.owners }
+                        )
+                      : formatMessage({
+                          id: "hub.garden.pool.voucher.reserve.safeSignsUnread",
+                          defaultMessage: "Your Safe signs each one",
+                        })
+                  }
+                />
+              }
             />
-          }
-        />
-      </FactList>
+            <FactRow
+              label={formatMessage({
+                id: "hub.garden.pool.voucher.reserve.cap",
+                defaultMessage: "Issuer cap",
+              })}
+              value={
+                <FactValue
+                  value={formatMessage(
+                    {
+                      id: "hub.garden.pool.voucher.reserve.capValue",
+                      defaultMessage: "{issued} of {ceiling}",
+                    },
+                    { issued: count(cap.issued), ceiling: count(cap.ceiling) }
+                  )}
+                  note={formatMessage({
+                    id: "hub.garden.pool.voucher.reserve.capNote",
+                    defaultMessage: "Published policy, monitored. Not enforced yet.",
+                  })}
+                />
+              }
+            />
+          </FactList>
+        </div>
+      </details>
       {short && waitingReward ? (
         <WithPerson address={waitingReward.recipient}>
           {(name) => (
