@@ -15,7 +15,7 @@ interface HubManifestIcon {
   purpose: "any" | "maskable";
 }
 
-export interface HubWebManifest {
+interface HubWebManifest {
   id: string;
   name: string;
   short_name: string;
