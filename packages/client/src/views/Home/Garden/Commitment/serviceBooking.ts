@@ -239,7 +239,11 @@ export function serviceBookingView(
       ? 1n
       : proportional;
   const reported =
-    final !== null || stage === "returnProposed" || stage === "readyToClose" || stage === "closed";
+    final !== null ||
+    stage === "returnProposed" ||
+    stage === "readyToClose" ||
+    stage === "closed" ||
+    (stage === "problemReported" && input.proofRecorded === true);
   const accessDays = profile === "access" ? Number(serviceUnits) : 0;
   const daysDone = reported ? Number(delivered) : (input.schedule?.accessDay ?? null);
   const kept = stage === "closed" && (coreState === "FULFILLED" || coreState === "RECONCILED");

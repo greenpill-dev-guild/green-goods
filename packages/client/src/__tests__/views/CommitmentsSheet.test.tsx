@@ -193,7 +193,7 @@ vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   useCommitmentsInbox: (...args: unknown[]) => mockUseCommitmentsInbox(...args),
   useCommitmentsToConfirm: (...args: unknown[]) => mockUseCommitmentsToConfirm(...args),
   useServiceOfferLines: (...args: unknown[]) => mockUseServiceOfferLines(...args),
-  useServiceAccessReads: (...args: unknown[]) => mockUseServiceAccessReads(...args),
+  useServiceAccessReads: (keys: readonly unknown[]) => mockUseServiceAccessReads(keys),
 }));
 
 // The launcher reads the same two hooks from their own leaves.
@@ -740,8 +740,14 @@ describe("CommitmentsSheet", () => {
       isError: false,
       refetch: vi.fn(),
     } as unknown as ReturnType<typeof mockUsePoolClaimRequests>);
+    // Each read answers for the promise it was asked about, as the live read does.
     mockUseServiceAccessReads.mockImplementation((keys: readonly unknown[]) =>
-      keys.map(() => ({ data: bookingStorySnapshot("hubDay", "readyToDeposit") }))
+      keys.map((key) => ({
+        data: {
+          ...bookingStorySnapshot("hubDay", "readyToDeposit"),
+          key: key as ReturnType<typeof bookingStorySnapshot>["key"],
+        },
+      }))
     );
     render(<CommitmentsSheet isOpen onClose={vi.fn()} />);
 

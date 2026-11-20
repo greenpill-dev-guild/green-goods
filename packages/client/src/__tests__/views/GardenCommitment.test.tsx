@@ -1871,6 +1871,30 @@ describe("a voucher booking on the promise page", () => {
     expect(screen.queryByRole("heading", { name: "History" })).toBeNull();
   });
 
+  it("keeps Progress and proof for a problem reported after the visit was", () => {
+    const page = bookingStoryController("hubDay", "DISPUTED");
+    page.detail!.commitment.evidenceCount = 1;
+    show(bookingStorySnapshot("hubDay", "problemReported"), page);
+    expect(screen.getByRole("heading", { name: "Progress and proof" })).toBeInTheDocument();
+    expect(currentStep()).toHaveTextContent("Done, waiting on the garden's stewards");
+    expect(screen.getByRole("region", { name: "Service Access" })).toHaveTextContent(
+      "ReportedThe full hub day"
+    );
+  });
+
+  it("holds the team and History back until the service read says whether it's a booking", () => {
+    mockUseController.mockReturnValue(bookingStoryController("hubDay", "OFFERED"));
+    mockUseServiceAccess.mockReturnValue({
+      data: undefined,
+      status: "pending",
+      fetchStatus: "fetching",
+      refetch: vi.fn(),
+    });
+    render();
+    expect(screen.queryByRole("heading", { name: "Team" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "History" })).toBeNull();
+  });
+
   it("says Needs you when the promise waits on the reader under a booking that doesn't", () => {
     show(
       bookingStorySnapshot("hubDay", "transfersPending"),

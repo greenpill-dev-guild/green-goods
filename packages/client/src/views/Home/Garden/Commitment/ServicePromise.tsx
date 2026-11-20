@@ -65,8 +65,7 @@ import { VoucherPilotJourney } from "./VoucherPilotJourney";
 export function ServicePromise({
   serviceKey,
   access,
-  coreState,
-  creator,
+  commitment,
   gardenName,
   heading,
   note = null,
@@ -78,6 +77,7 @@ export function ServicePromise({
 }: ServicePromiseProps) {
   const intl = useIntl();
   const navigate = useNavigate();
+  const coreState = commitment.derivedState;
   const mutation = useServiceAccessMutation(serviceKey);
   const snapshot = access.data ?? null;
   const walletChain = snapshot?.key.sourceChainId;
@@ -132,7 +132,8 @@ export function ServicePromise({
         {
           snapshot,
           coreState,
-          creator,
+          creator: commitment.creator,
+          proofRecorded: commitment.evidenceCount > 0,
           viewer: serviceKey?.buyer,
           issuer,
           matched: matchedIssuer,

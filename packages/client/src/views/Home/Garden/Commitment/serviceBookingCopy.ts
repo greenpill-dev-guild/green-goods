@@ -1,3 +1,4 @@
+import { bookingDeposited, recoveryAct } from "./serviceBookingStage";
 import type { BookingContext, ServiceFact } from "./serviceBookingTypes";
 
 /**
@@ -10,6 +11,9 @@ export function bookingSentence(ctx: BookingContext): string {
   const { coreState, schedule, problem } = ctx.input;
   const final = ctx.setup?.destination?.finalAllocation ?? null;
   const counted = { ...values, count: one ? 1 : 2 };
+  // A deposit's confirmation that never arrived waits on the reader's Retry Confirmation.
+  if (stage === "confirmingDeposit" && recoveryAct(stage, ctx.setup) === "retryConfirm")
+    return t("rd.n.confirmStuck.b");
   switch (stage) {
     case "open":
     case "notEnough":
@@ -88,7 +92,7 @@ export function bookingSentence(ctx: BookingContext): string {
           : t("rd.n.settled.b", { ...values, unit: unit(release) });
       return t(member ? "rd.n.closedEarlyM.b" : "rd.n.closedEarly.b", values);
     case "canceling":
-      return t("rd.n.canceling.b");
+      return t(bookingDeposited(ctx.setup) ? "rd.n.canceling.b" : "rd.n.cancelingNone.b");
     case "canceled":
       return one ? t("rd.n.canceledM.b") : t("rd.n.canceled.b", values);
     case "acceptedFirst":
@@ -243,7 +247,11 @@ function vouchersNow(ctx: BookingContext): [bigint, string] {
     case "requestInTransit":
     case "waitingApproval":
     case "readyToDeposit":
-    case "termsChanged": {
+    case "termsChanged":
+    case "canceling": {
+      // A cancellation's vouchers are where its deposit left them: in escrow once deposited.
+      if (ctx.stage === "canceling" && bookingDeposited(ctx.setup))
+        return [units, phrase("rd.b.held", units)];
       // The booking rests on the reader's own vouchers until the deposit: say so when they fall short.
       const held = ctx.input.held;
       if (held !== null && held < units)

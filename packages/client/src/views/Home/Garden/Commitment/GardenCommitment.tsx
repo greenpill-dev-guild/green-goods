@@ -309,7 +309,8 @@ export function GardenCommitment() {
         {serviceRead === "failed" ? (
           <MembershipCheckFailed check="service" onRetry={() => void serviceAccess.refetch()} />
         ) : null}
-        {service.booking ? null : (
+        {/* A booking has no team or History; until the read says it isn't one, hold them back. */}
+        {service.booking || serviceRead === "unresolved" ? null : (
           <CommitmentTeam
             commitment={commitment}
             contributors={contributors}
@@ -401,7 +402,7 @@ export function GardenCommitment() {
           }
           onLink={(workUID, requirementIndex) => setLinkOpen({ workUID, requirementIndex })}
         />
-        {service.booking ? null : (
+        {service.booking || serviceRead === "unresolved" ? null : (
           <CommitmentHistory
             chainId={controller.chainId}
             commitment={commitment}
@@ -482,8 +483,7 @@ export function GardenCommitment() {
     <ServicePromise
       serviceKey={serviceKey}
       access={serviceAccess}
-      coreState={commitment.derivedState}
-      creator={commitment.creator}
+      commitment={commitment}
       gardenName={controller.roles.garden?.name ?? ""}
       heading={heading}
       note={controller.metadata?.note ?? null}

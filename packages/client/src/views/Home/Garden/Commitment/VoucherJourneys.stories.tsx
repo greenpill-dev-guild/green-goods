@@ -94,6 +94,8 @@ interface JourneyStep {
     tweak?: (snapshot: ServiceAccessSnapshot) => ServiceAccessSnapshot;
     /** The service read failed, so the page has no snapshot. */
     readFailed?: boolean;
+    /** The issuer's proof is on the promise: a problem raised after the delivery was reported. */
+    proofRecorded?: boolean;
   };
   reward?: { state: RewardStoryState; withGd: boolean };
   /** The pool garden's steward decides the member's already-submitted reward claim. */
@@ -453,6 +455,12 @@ const RECOVERY: JourneyStep[] = [
     holds: { techAndSun: 0, greenGoods: 0 },
   },
   {
+    caption:
+      "Lina reported a problem after Tech and Sun reported the visit: the proof stays, and the tracker waits on the garden's stewards.",
+    booking: { service: "hubDay", stage: "problemReported", proofRecorded: true },
+    holds: { techAndSun: 8, greenGoods: 0 },
+  },
+  {
     caption: "A hub day cut short: half the voucher back, and the hub day counted as delivered.",
     booking: {
       service: "hubDay",
@@ -699,7 +707,9 @@ function controllerFor(step: JourneyStep, onConfirm: () => void) {
       : stage === "closed" && service === "access"
         ? "ACCEPTED"
         : bookingStoryCoreState(service, stage, confirmed));
-  const controller = bookingStoryController(service, core);
+  const controller = bookingStoryController(service, core, {
+    proofRecorded: step.booking!.proofRecorded,
+  });
   return {
     ...controller,
     confirmation: {

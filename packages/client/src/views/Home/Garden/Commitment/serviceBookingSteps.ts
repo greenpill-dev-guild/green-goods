@@ -1,5 +1,5 @@
 import { voucherBookingEscrow } from "@green-goods/shared/commitment-pooling";
-import { recoveryAct } from "./serviceBookingStage";
+import { bookingDeposited, recoveryAct } from "./serviceBookingStage";
 import type {
   BookingContext,
   BookingTracker,
@@ -259,7 +259,7 @@ export function bookingTracker(ctx: BookingContext): BookingTracker | null {
   const stewards = t("tr.waitingStewards");
   const accepter = member ? stewards : approver;
   const confirming = t("tr.confirming");
-  const deposited = (setup?.destination?.result.depositedUnits ?? 0n) > 0n;
+  const deposited = bookingDeposited(setup);
   // The promise's own Confirm It Was Kept waits on the reader once the split is final.
   const confirmDue = ctx.input.coreState === "READY_FOR_CONFIRMATION";
   switch (stage) {

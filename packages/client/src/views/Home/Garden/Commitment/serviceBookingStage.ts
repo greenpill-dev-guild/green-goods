@@ -75,6 +75,8 @@ export function serviceBookingStage(
 const NEEDS_YOU = new Set<ServiceBookingStage>([
   "requestNotSent",
   "readyToDeposit",
+  // The member starts an accepted booking until the steward's Accept starts it too (DL-193).
+  "starting",
   "readyToClose",
   "returnProposed",
   "termsChanged",
@@ -136,6 +138,11 @@ export function recoveryAct(
   if (stage === "confirmingDeposit" && setup?.acknowledgments.setup.pending) return "retryConfirm";
   if (stage === "canceling" && setup && !setup.source.decisionDispatched) return "cancel";
   return null;
+}
+
+/** Whether any of the booking's vouchers reached its escrow: what a cancellation sends back. */
+export function bookingDeposited(setup: ServiceVoucherSetup | null): boolean {
+  return (setup?.destination?.result.depositedUnits ?? 0n) > 0n;
 }
 
 /**

@@ -123,34 +123,13 @@ export function LiveTab({
   const serviceLines = useServiceOfferLines({ chainId: DEFAULT_CHAIN_ID, offers: listed });
   // A booking's own step (its deposit, its split) needs the reader before the promise's acts say
   // so: each is read as its page reads it, sharing that page's cached read.
-  const bookingKeys = useMemo(
-    () =>
-      bookingReadKeys([...inbox.live, ...waiting], {
-        viewer,
-        sourceChainId: DEFAULT_CHAIN_ID,
-        coreModule: getNetworkContracts(DEFAULT_CHAIN_ID).commitmentPoolingModule as Address,
-      }),
-    [inbox.live, waiting, viewer]
+  const bookingReads = useServiceAccessReads(
+    bookingReadKeys([...inbox.live, ...waiting], {
+      viewer,
+      sourceChainId: DEFAULT_CHAIN_ID,
+      coreModule: getNetworkContracts(DEFAULT_CHAIN_ID).commitmentPoolingModule as Address,
+    })
   );
-  const bookingReads = useServiceAccessReads(bookingKeys);
-  const { live, waitingRows } = useMemo(() => {
-    const stateOf = new Map(
-      [...inbox.live, ...waiting].map(({ commitment }) => [
-        commitment.commitmentId.toString(),
-        commitment.derivedState,
-      ])
-    );
-    const needs = new Set(
-      bookingKeys.flatMap((key, index) => {
-        const id = key.commitmentId.toString();
-        return bookingNeedsYouOf(bookingReads[index]?.data, stateOf.get(id)) ? [id] : [];
-      })
-    );
-    return {
-      live: withBookingNeedsYou(inbox.live, needs),
-      waitingRows: withBookingNeedsYou(waiting, needs),
-    };
-  }, [bookingKeys, bookingReads, inbox.live, waiting]);
   const serviceOf = (row: InboxCommitment) =>
     serviceOfferDetail(intl, serviceLines.get(row.commitment.commitmentId.toString()));
   /**
@@ -175,14 +154,26 @@ export function LiveTab({
   const [wasCovered, setWasCovered] = useState(covered);
   useLayoutEffect(() => setWasCovered(covered), [covered]);
 
-  const { visible, groups, titleOf } = useMemo(() => {
+  const { visible, groups, titleOf, shownWaiting } = useMemo(() => {
     const titleOf = ({ commitment }: InboxCommitment) =>
       commitment.metadataCID ? (byCID.get(commitment.metadataCID)?.title ?? null) : null;
-    const filtered: InboxCommitment[] = live.filter(
-      (row) =>
-        (direction === "all" || row.commitment.direction === direction) &&
-        (cycleId === null || row.commitment.cycleId === cycleId)
+    // Each answered booking read names its own promise, and the row knows the promise's state.
+    const stateOf = new Map(
+      [...inbox.live, ...waiting].map(({ commitment }) => [
+        commitment.commitmentId.toString(),
+        commitment.derivedState,
+      ])
     );
+    const needs = new Set(
+      bookingReads.flatMap(({ data }) => {
+        const id = data?.key.commitmentId.toString();
+        return id && bookingNeedsYouOf(data, stateOf.get(id)) ? [id] : [];
+      })
+    );
+    const shown = (row: InboxCommitment) =>
+      (direction === "all" || row.commitment.direction === direction) &&
+      (cycleId === null || row.commitment.cycleId === cycleId);
+    const filtered: InboxCommitment[] = withBookingNeedsYou(inbox.live, needs).filter(shown);
     // One garden named in the header holds every row; otherwise each garden heads its own.
     const byGarden = gardenHeadings
       ? groupByGarden(
@@ -199,9 +190,13 @@ export function LiveTab({
         ...group,
         entries: foldIdenticalCopies(rows, byCID, inbox.failedCommitmentIds),
       })),
+      // A take-up request waits under the same chips and season as the list it heads.
+      shownWaiting: withBookingNeedsYou(waiting, needs).filter(shown),
     };
   }, [
-    live,
+    bookingReads,
+    inbox.live,
+    waiting,
     inbox.failedCommitmentIds,
     byCID,
     direction,
@@ -211,13 +206,6 @@ export function LiveTab({
     gardens,
     formatMessage,
   ]);
-
-  // A take-up request waits under the same chips and season as the list it heads.
-  const shownWaiting = waitingRows.filter(
-    (row) =>
-      (direction === "all" || row.commitment.direction === direction) &&
-      (cycleId === null || row.commitment.cycleId === cycleId)
-  );
 
   const promiseRow = (
     row: InboxCommitment,

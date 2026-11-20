@@ -1,5 +1,4 @@
 import type {
-  CommitmentDerivedState,
   CommitmentReadModel,
   ServiceAccessKey,
   ServiceAccessSnapshot,
@@ -47,9 +46,11 @@ export interface ServicePromiseProps {
     isError?: boolean;
     dataUpdatedAt?: number;
   };
-  coreState: CommitmentDerivedState;
-  /** Who made the promise: the chain refuses their own take-up, so they read no buyer's path. */
-  creator: CommitmentReadModel["creator"];
+  /**
+   * The promise as the booking reads it: its state; who made it, since the chain refuses their own
+   * take-up so they read no buyer's path; and whether it holds proof, which a dispute keeps.
+   */
+  commitment: Pick<CommitmentReadModel, "derivedState" | "creator" | "evidenceCount">;
   /** The request's garden, whose pool pays any G$. */
   gardenName: string;
   heading: string;

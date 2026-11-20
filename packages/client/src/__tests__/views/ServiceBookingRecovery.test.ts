@@ -103,6 +103,10 @@ describe("a voucher booking's unfinished acts", () => {
     expect(booking.primary).toEqual({ kind: "retryConfirm", label: "Retry Confirmation" });
     expect(booking.band.needsYou).toBe(true);
     expect(booking.tracker).toMatchObject({ at: 3, waiting: null });
+    // The sentence says what stopped and what the act does, not the acceptance wait.
+    expect(booking.band.sentence).toBe(
+      "Your voucher is held for this booking, but the confirmation that it arrived didn't reach Green Goods. Retry Confirmation sends it again."
+    );
     expect(booking.secondary?.label).toBe("Cancel Booking");
     expect(serviceActOffered("retryConfirm", stuck, null)).toBe(true);
     const confirming = bookingStorySnapshot("hubDay", "confirmingDeposit");

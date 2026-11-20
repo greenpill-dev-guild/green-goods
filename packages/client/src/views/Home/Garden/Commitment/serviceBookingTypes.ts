@@ -218,6 +218,11 @@ export interface ServiceBookingInput {
   } | null;
   /** The member's own words when they reported a problem, and when. */
   problem?: { at: number; text: string } | null;
+  /**
+   * The promise holds the issuer's proof. A dispute keeps the promise's state from saying whether
+   * the delivery was reported; its proof does, so a problem raised after delivery keeps it.
+   */
+  proofRecorded?: boolean;
 }
 
 /** What the page's copy and steps read from one booking, worked out once. */

@@ -334,7 +334,6 @@ describe("voucher booking on the promise page", () => {
     (
       [
         "open",
-        "requestNotSent",
         "waitingApproval",
         "readyToDeposit",
         "confirmingDeposit",
@@ -650,7 +649,7 @@ describe("voucher booking on the promise page", () => {
         intl
       )!.tracker;
     expect(at(sent, "OFFERED")).toMatchObject({ at: 2, waiting: "waiting on Tech and Sun" });
-    // Agreed but not sent: sending it is the reader's own step, still on Request.
+    // Agreed but not sent: sending it is the reader's own step, still on Book.
     const unsent = bookingStorySnapshot("hubDay", "waitingApproval");
     unsent.voucherSetups[0]!.destination!.result.phase = "none";
     unsent.voucherSetups[0]!.source.authorizationDispatched = false;
@@ -704,12 +703,63 @@ describe("voucher booking on the promise page", () => {
     expect(view("hubDay", "waitingApproval").howItWorks.map((fact) => fact.id)).toEqual(["back"]);
   });
 
+  // DL-192 hides proof only before delivery: a dispute raised after the issuer's report keeps it.
+  it("keeps what was reported when a problem is raised after delivery", () => {
+    const disputed = (proofRecorded: boolean) =>
+      serviceBookingView(
+        {
+          snapshot: bookingStorySnapshot("hubDay", "problemReported"),
+          coreState: "DISPUTED",
+          issuer: ISSUER.hubDay,
+          approval: APPROVAL.hubDay,
+          held: vouchers(8),
+          proofRecorded,
+        },
+        intl
+      )!;
+    const after = disputed(true);
+    expect(after.stage).toBe("problemReported");
+    expect(after.delivery).toEqual({ label: "Hub day delivered", done: 1, of: 1 });
+    expect(after.facts.find((fact) => fact.id === "reported")?.value).toBe("The full hub day");
+    expect(after.tracker).toMatchObject({ at: 4, waiting: "waiting on the garden's stewards" });
+    const before = disputed(false);
+    expect(before.delivery).toBe("pending");
+    expect(before.facts.find((fact) => fact.id === "reported")).toBeUndefined();
+    expect(before.tracker).toMatchObject({ at: 3 });
+  });
+
+  // A cancellation sent before any deposit has nothing to send back.
+  it("says nothing comes back when a booking is canceled before its deposit", () => {
+    const snapshot = bookingStorySnapshot("hubDay", "waitingApproval");
+    snapshot.voucherSetups[0]!.source.decision = "abort";
+    snapshot.voucherSetups[0]!.source.decisionDispatched = true;
+    const canceling = serviceBookingView(
+      {
+        snapshot,
+        coreState: "OFFERED",
+        issuer: ISSUER.hubDay,
+        approval: APPROVAL.hubDay,
+        held: vouchers(9),
+      },
+      intl
+    )!;
+    expect(canceling.stage).toBe("canceling");
+    expect(canceling.band.sentence).not.toMatch(/deposited/);
+    expect(canceling.band.sentence).toContain("Nothing left your account");
+    expect(canceling.facts.find((fact) => fact.id === "vouchers")?.value).toBe(
+      "1 Tech and Sun voucher, still in your account"
+    );
+    expect(canceling.tracker).toMatchObject({ at: 2, waiting: "being confirmed" });
+  });
+
   // A list row says Needs you from the booking's own stage, as the page's band does.
   it.each([
     ["open", false],
     ["waitingApproval", false],
     ["readyToDeposit", true],
     ["waitingAcceptance", false],
+    // Until the steward's Accept also starts it (PR E), starting is the member's to do.
+    ["starting", true],
     ["inProgress", false],
     ["readyToClose", true],
     ["returnProposed", true],

@@ -42,8 +42,7 @@ function promise(snapshot: ServiceAccessSnapshot, refetch: () => void, options: 
       <ServicePromise
         serviceKey={snapshot.key}
         access={{ data: snapshot, refetch, isError: options.failed, isFetching: options.checking }}
-        coreState="OFFERED"
-        creator={null}
+        commitment={{ derivedState: "OFFERED", creator: null, evidenceCount: 0 }}
         gardenName="Test garden"
         heading="Hub day"
         hasCoreAct={false}
