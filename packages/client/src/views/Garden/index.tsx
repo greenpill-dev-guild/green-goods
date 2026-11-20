@@ -117,7 +117,7 @@ const Work: FC = () => {
     switch (stage) {
       case "start":
         return showSkeleton ? (
-          <StartSkeleton />
+          <StartSkeleton gardenLine={gardenLine} />
         ) : (
           <WorkStart
             start={start}
@@ -172,8 +172,17 @@ const Work: FC = () => {
             actionUID={actionUID}
             heicStateOf={heicStateOf}
             onRetryHeicConversion={retryHeicConversion}
-            gardenLine={start.skipped ? gardenLine : null}
-            pinned={pinned}
+            // Media is the first step when Start was skipped: its garden line leads the slot.
+            pinned={
+              start.skipped ? (
+                <>
+                  {gardenLine}
+                  {pinned}
+                </>
+              ) : (
+                pinned
+              )
+            }
           />
         );
       case "details":

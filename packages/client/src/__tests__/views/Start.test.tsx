@@ -186,6 +186,18 @@ describe("WorkStart", () => {
     expect(card.nextElementSibling).toBe(screen.getByTestId("garden-line"));
   });
 
+  // Review of 4af54dceb: the loading placeholder must keep the line's row, so the tiles land
+  // where their placeholders were (DL-185).
+  it("keeps the garden line under the info card's placeholder while Start loads", () => {
+    const { container } = renderStart({
+      start: startStep({ waiting: true }),
+      gardenLine: <p data-testid="garden-line">Logging work in Hilltop Garden</p>,
+    });
+    const skeleton = container.querySelector('[data-component="WorkStartSkeleton"]');
+
+    expect(skeleton?.children[1]).toBe(screen.getByTestId("garden-line"));
+  });
+
   it("filters the tiles with the domain chips, which choose nothing and move nothing", () => {
     const onDomain = vi.fn();
     const start = startStep();

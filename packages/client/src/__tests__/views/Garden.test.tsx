@@ -201,7 +201,7 @@ vi.mock("@green-goods/shared/modules/app/posthog", () => ({
 
 // Mock child components to simplify
 vi.mock("../../views/Garden/Start", () => ({
-  WorkStart: (props: { gardenLine?: unknown }) => {
+  WorkStart: (props: { gardenLine?: React.ReactNode }) => {
     mockStartProps(props);
     return createElement("div", { "data-testid": "work-start" }, "Start Step", props.gardenLine);
   },
@@ -209,8 +209,8 @@ vi.mock("../../views/Garden/Start", () => ({
 }));
 
 vi.mock("../../views/Garden/Media", () => ({
-  WorkMedia: (props: { gardenLine?: unknown }) =>
-    createElement("div", { "data-testid": "work-media" }, "Media Step", props.gardenLine),
+  WorkMedia: (props: { pinned?: React.ReactNode }) =>
+    createElement("div", { "data-testid": "work-media" }, "Media Step", props.pinned),
 }));
 
 vi.mock("../../views/Garden/Details", () => ({

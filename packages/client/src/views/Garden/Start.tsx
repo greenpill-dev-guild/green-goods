@@ -64,7 +64,7 @@ export function WorkStart({
   );
 
   if (gardenQuestion) return <StartGardenQuestion {...gardenQuestion} />;
-  if (start.waiting) return <StartSkeleton />;
+  if (start.waiting) return <StartSkeleton gardenLine={gardenLine} />;
 
   const titleOf = (actionUID: number) =>
     actions.find((action) => parseActionUID(action.id) === actionUID)?.title ?? null;
@@ -206,10 +206,12 @@ export function WorkStart({
 }
 
 /** The step before its answer: the guidance card's place and the tiles', as they will land. */
-export function StartSkeleton() {
+/** Start while it loads, with the garden line in its place under the info card (DL-185). */
+export function StartSkeleton({ gardenLine = null }: { gardenLine?: ReactNode }) {
   return (
     <div className="flex flex-col gap-4" aria-busy="true" data-component="WorkStartSkeleton">
       <div aria-hidden="true" className="h-20 rounded-lg bg-bg-weak-50" />
+      {gardenLine}
       <ActionPicker
         actions={[]}
         value={null}

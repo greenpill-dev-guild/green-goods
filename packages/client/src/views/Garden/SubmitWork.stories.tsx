@@ -159,7 +159,7 @@ export const StartSkippedForOneAction: Story = {
 
 /**
  * Frame `submit-media`: from a promise's page the link skips Start, so Media opens with the
- * heading, the promise pinned, and the photo rule met.
+ * heading, the garden line under it, the promise pinned, and the photo rule met.
  */
 export const MediaForAPromise: Story = {
   tags: ["storybook-ci"],
@@ -172,6 +172,11 @@ export const MediaForAPromise: Story = {
     await expect(
       heading.compareDocumentPosition(pinned) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
+    // Media is the first step here, so the garden line sits right under its info card and
+    // leads the pinned promise (PRD-1522).
+    const line = canvas.getByTestId("submission-garden");
+    await expect(line.previousElementSibling).toHaveAttribute("data-component", "FormInfo");
+    await expect(line.nextElementSibling).toBe(pinned);
     await expect(canvas.getByText("1 media item added")).toBeVisible();
   },
 };

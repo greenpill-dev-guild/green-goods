@@ -85,9 +85,7 @@ interface WorkMediaProps {
   /** A HEIC photo's conversion while it waits for the decoder; `undefined` otherwise. */
   heicStateOf?: (file: File) => PendingPhotoState | undefined;
   onRetryHeicConversion?: (file: File) => void;
-  /** Where the work goes, under the heading, when Media is the flow's first step (PRD-1522). */
-  gardenLine?: React.ReactNode;
-  /** The promise this work is for, after the heading (O9). */
+  /** After the heading: the first step's garden line, then the work's promise (O9, PRD-1522). */
   pinned?: React.ReactNode;
 }
 
@@ -164,7 +162,6 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
   actionUID,
   heicStateOf,
   onRetryHeicConversion,
-  gardenLine,
   pinned,
 }) => {
   const intl = useIntl();
@@ -535,7 +532,6 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
   return (
     <div className="flex flex-col gap-4">
       <FormInfo title={title} info={description} Icon={RiImageFill} />
-      {gardenLine}
       {pinned}
       {minRequired > 0 || mediaCount > 0 ? (
         <MediaRulePill met={mediaCount >= minRequired}>
