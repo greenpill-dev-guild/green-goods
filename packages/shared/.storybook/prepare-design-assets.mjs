@@ -81,8 +81,8 @@ const assetFiles = [
     role: "Storybook chrome logo",
   },
   {
-    from: "packages/admin/public/favicon.png",
-    to: "favicon.png",
+    from: "packages/admin/public/hub-icon-192.png",
+    to: "hub-icon-192.png",
     role: "Hub app icon, drawn on the Hub's sign-in",
   },
   {
