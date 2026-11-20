@@ -107,17 +107,16 @@ function visibleMembers(
   members: GardenMember[],
   filter: RoleFilter,
   sort: MemberSort,
-  historyByAccount: ReadonlyMap<string, GardenMemberHistory>
+  historyByAccount: ReadonlyMap<string, GardenMemberHistory>,
+  garden?: Garden
 ) {
+  const history = (member: GardenMember) => historyByAccount.get(member.account.toLowerCase());
+  // A filter matches the roles the row shows, so a row that reads "Steward" is under Stewards.
   const matching = members.filter(
-    (member) =>
-      filter === "all" ||
-      (filter === "steward" && member.isSteward) ||
-      (filter === "gardener" && member.isGardener)
+    (member) => filter === "all" || heldRoles(member, garden, history(member)).includes(filter)
   );
   if (sort === "role") return matching;
-  const joinedAt = (member: GardenMember) =>
-    historyByAccount.get(member.account.toLowerCase())?.joinedAt ?? null;
+  const joinedAt = (member: GardenMember) => history(member)?.joinedAt ?? null;
   return [...matching].sort((a, b) => {
     const first = joinedAt(a);
     const second = joinedAt(b);
@@ -239,8 +238,8 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
     const datesUnavailable = history.isError;
     const appliedSort: MemberSort = datesUnavailable ? "role" : sort;
     const shown = useMemo(
-      () => visibleMembers(members, roleFilter, appliedSort, historyByAccount),
-      [members, roleFilter, appliedSort, historyByAccount]
+      () => visibleMembers(members, roleFilter, appliedSort, historyByAccount, garden),
+      [members, roleFilter, appliedSort, historyByAccount, garden]
     );
     const shouldVirtualize = shown.length > 40;
     // Include the row's height and the list gap; the row grows with the reader's text size.

@@ -447,6 +447,24 @@ describe("GardenGardeners", () => {
     await user.selectOptions(screen.getByRole("combobox", { name: "Role" }), "steward");
     expect(screen.getByText("1 member")).toBeInTheDocument();
     expect(names()).toEqual(["Member 0"]);
+    // The filter reads the roles the row shows: the garden's own lists count too.
+    view.rerender(
+      <TestIntl>
+        <GardenGardeners
+          garden={{ ...garden, stewards: [members[1].account] }}
+          members={[{ ...members[0], isSteward: true }, members[1], members[2]]}
+        />
+      </TestIntl>
+    );
+    expect(names()).toEqual(["Member 0", "Member 1"]);
+    view.rerender(
+      <TestIntl>
+        <GardenGardeners
+          garden={garden}
+          members={[{ ...members[0], isSteward: true }, members[1], members[2]]}
+        />
+      </TestIntl>
+    );
     // The steward also gardens, so the Gardeners filter keeps them.
     await user.selectOptions(screen.getByRole("combobox", { name: "Role" }), "gardener");
     expect(names()).toEqual(["Member 0", "Member 1", "Member 2"]);
