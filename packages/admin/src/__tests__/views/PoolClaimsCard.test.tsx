@@ -503,6 +503,15 @@ describe("PoolClaimsCard (Review Promises)", () => {
         expect(screen.queryByRole("button", { name: "Report Visit…" })).not.toBeInTheDocument();
       });
 
+      it("lists the asks before the bookings it first reads with them", () => {
+        queue(bookingsFor([visited], {}, [linaAsk]), { claims: [linaRow] });
+        const rows = screen.getAllByRole("listitem");
+        expect(rows.map((row) => row.getAttribute("data-testid"))).toEqual([
+          "pool-claim-41",
+          "pool-booking-43",
+        ]);
+      });
+
       it("keeps a booking whose act was settled elsewhere in its place, no longer waiting", () => {
         const view = queue(bookingsFor([failed]));
         view.rerender({}, bookingsFor([{ ...failed, stage: { kind: "in-progress" } }]));

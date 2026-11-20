@@ -121,11 +121,16 @@ export function PoolClaimsCard({
   // The queue's own visit: its order across asks and bookings, the bookings that came due,
   // and the acts sent from it. Taken while rendering, as the asks' visit is.
   const [queue, setQueue] = useState(() => emptyQueueVisit(visit));
-  const nextQueue = reconcileQueueVisit(queue, {
-    pool: visit,
-    askKeys: approvals.rows.map((item) => item.key),
-    vouchers,
-  });
+  // The asks' visit takes its first read one render after the pool's; until then the queue
+  // waits, so asks and bookings read together keep the asks first.
+  const asksRead = !pool.isLoading && (approvals.rows.length > 0 || pool.claims.length === 0);
+  const nextQueue = asksRead
+    ? reconcileQueueVisit(queue, {
+        pool: visit,
+        askKeys: approvals.rows.map((item) => item.key),
+        vouchers,
+      })
+    : queue;
   if (nextQueue !== queue) setQueue(nextQueue);
   const record = (key: string, act: QueueDone["act"]) =>
     setQueue((current) => recordQueueDone(current, key, { act, at: Date.now() }));
