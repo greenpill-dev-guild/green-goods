@@ -33,7 +33,7 @@ const KERNEL_033_REGISTRATION_HOSTS = [
   "beta.admin.greengoods.app",
   "beta.hub.greengoods.app",
   "alpha.greengoods.app",
-  "alpha.admin.greengoods.app",
+  "alpha.hub.greengoods.app",
 ];
 
 /** Defaults apply only at creation; an account's recorded recipe never follows its current site. */
