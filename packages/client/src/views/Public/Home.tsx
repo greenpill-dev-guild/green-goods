@@ -101,7 +101,7 @@ export default function Home() {
         lede={formatMessage({
           id: "public.home.hero.lede",
           defaultMessage:
-            "Green Goods helps communities name their needs, make promises, document regenerative work, review it together, and turn the record into support. Explore the work, meet the people, and help fund what comes next.",
+            "Green Goods helps communities name their needs, make promises, document and review regenerative work, and turn the record into support. Explore the work, meet the people, and help fund what comes next.",
         })}
         actions={heroActions}
       />

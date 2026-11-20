@@ -2,7 +2,7 @@ export const APP_NAME = "Green Goods";
 export const APP_DEFAULT_TITLE = "Green Goods";
 export const APP_TITLE_TEMPLATE = "%s - Green Goods";
 export const APP_DESCRIPTION =
-  "Green Goods helps communities name their needs, make promises, document regenerative work, review it together, and turn the record into support.";
+  "Green Goods helps communities name their needs, make promises, document and review regenerative work, and turn the record into support.";
 export const APP_URL = "https://greengoods.app";
 export const APP_ICON = "https://greengoods.app/icon.png";
 
