@@ -274,7 +274,7 @@ describe("config/passkeyServer", () => {
         "https://hub.greengoods.app",
         "https://beta.hub.greengoods.app",
         "https://alpha.greengoods.app",
-        "https://alpha.admin.greengoods.app",
+        "https://alpha.hub.greengoods.app",
       ]) {
         expect(
           classifyPasskeyCeremonyContext({
@@ -376,11 +376,16 @@ describe("getDefaultPasskeyRegistrationProfile", () => {
       "beta.admin.greengoods.app",
       "beta.hub.greengoods.app",
       "alpha.greengoods.app",
-      "ALPHA.admin.greengoods.app",
+      "ALPHA.hub.greengoods.app",
     ]) {
       expect(getDefaultPasskeyRegistrationProfile(host), host).toBe("kernel-0.3.3");
     }
-    for (const host of ["www.greengoods.app", "admin.greengoods.app", "alpha.example.com"]) {
+    for (const host of [
+      "www.greengoods.app",
+      "admin.greengoods.app",
+      "alpha.admin.greengoods.app",
+      "alpha.example.com",
+    ]) {
       expect(getDefaultPasskeyRegistrationProfile(host), host).toBe("kernel-0.3.1-legacy");
     }
   });

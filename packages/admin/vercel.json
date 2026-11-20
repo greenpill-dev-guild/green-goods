@@ -21,7 +21,7 @@
   "headers": [
     {
       "source": "/(.*)",
-      "has": [{ "type": "host", "value": "alpha.admin.greengoods.app" }],
+      "has": [{ "type": "host", "value": "alpha.hub.greengoods.app" }],
       "headers": [
         {
           "key": "X-Robots-Tag",
