@@ -64,26 +64,32 @@ export function initBrowserSentry(options: InitBrowserSentryOptions): () => void
   Sentry.setTag("app", "green-goods");
   Sentry.setTag("surface", options.surface);
 
-  unregisterReporter = registerExternalErrorReporter((error, context) => {
+  // The report's id comes back as PostHog's `sentry_event_id` on error_tracked (PRD-1561).
+  unregisterReporter = registerExternalErrorReporter((error, context) =>
     captureBrowserException(error, {
       ...context,
       metadata: {
         ...context.metadata,
         surface: options.surface,
       },
-    });
-  });
+    })
+  );
   initialized = true;
 
   return cleanupBrowserSentryReporter;
 }
 
-function captureBrowserException(error: unknown, context: ExternalErrorReporterContext = {}): void {
-  if (!initialized) return;
+/** Files the error with Sentry and returns the id of that report, never an earlier one. */
+function captureBrowserException(
+  error: unknown,
+  context: ExternalErrorReporterContext = {}
+): string | undefined {
+  if (!initialized) return undefined;
 
   const normalizedError =
     error instanceof Error ? error : new Error(typeof error === "string" ? error : String(error));
 
+  let eventId: string | undefined;
   Sentry.withScope((scope) => {
     if (context.severity) scope.setLevel(context.severity);
     if (context.category) scope.setTag("green_goods.category", context.category);
@@ -94,8 +100,9 @@ function captureBrowserException(error: unknown, context: ExternalErrorReporterC
     if (context.fingerprint) scope.setFingerprint([context.fingerprint]);
 
     scope.setContext("green_goods_error", sanitizeSentryContext(context));
-    Sentry.captureException(normalizedError);
+    eventId = Sentry.captureException(normalizedError);
   });
+  return eventId;
 }
 
 function cleanupBrowserSentryReporter(): void {

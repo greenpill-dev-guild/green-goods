@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   registerExternalErrorReporter,
   type ExternalErrorReporterContext,
@@ -96,5 +96,36 @@ describe("contract error tracking", () => {
     // The structured garden address is a public contract address and is tracked
     // deliberately — redaction must not swallow it.
     expect(calls[0]?.context.gardenAddress).toBe(gardenAddress);
+  });
+});
+
+describe("a PostHog failure and the Sentry report behind it", () => {
+  // error_tracked goes out only from a production build, decided when the module loads.
+  it("carries the id of the report Sentry filed for the same handled error (PRD-1561)", async () => {
+    vi.resetModules();
+    vi.stubEnv("DEV", false);
+    try {
+      const { registerTelemetrySink } = await import("../../../modules/app/telemetry-sink");
+      const reporters = await import("../../../modules/app/external-error-reporters");
+      const tracked: Record<string, unknown>[] = [];
+      const unregisterSink = registerTelemetrySink({
+        capture: (event, properties) => {
+          if (event === "error_tracked") tracked.push(properties);
+        },
+        isReady: () => true,
+      });
+      const unregisterReporter = reporters.registerExternalErrorReporter(() => "sentry-event-1");
+      const { trackError } = await import("../../../modules/app/error-categories");
+
+      trackError(new Error("Indexer timed out"), { source: "useGardens", category: "graphql" });
+      unregisterReporter();
+      trackError(new Error("Indexer timed out"), { source: "useGardens", category: "graphql" });
+      unregisterSink();
+
+      expect(tracked[0]).toMatchObject({ sentry_event_id: "sentry-event-1" });
+      expect(tracked[1]).not.toHaveProperty("sentry_event_id");
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });

@@ -14,6 +14,7 @@ import { ConnectionNeededError } from "../../../utils/errors/unsent-failures";
 import { toastService, walletProgressToasts } from "../../../components/toast";
 import { trackContractError } from "../../../modules/app/error-tracking";
 import {
+  trackWorkSubmissionCancelled,
   trackWorkSubmissionFailed,
   trackWorkSubmissionOffline,
   trackWorkSubmissionQueued,
@@ -30,6 +31,7 @@ vi.mock("../../../modules/app/error-tracking", () => ({
   trackUploadError: vi.fn(),
 }));
 vi.mock("../../../modules/app/analytics-events", () => ({
+  trackWorkSubmissionCancelled: vi.fn(),
   trackWorkSubmissionFailed: vi.fn(),
   trackWorkSubmissionOffline: vi.fn(),
   trackWorkSubmissionQueued: vi.fn(),
@@ -83,9 +85,11 @@ describe("showWorkSubmissionFailure", () => {
         message: expect.stringContaining("To Uploads"),
       })
     );
-    expect(trackWorkSubmissionFailed).toHaveBeenCalledWith(
-      expect.objectContaining({ parsedErrorFamily: "UserRejected" })
+    // A decline is a cancellation, never a technical failure (PRD-1561).
+    expect(trackWorkSubmissionCancelled).toHaveBeenCalledWith(
+      expect.objectContaining({ reason: "signature_declined", submissionPhase: "transaction" })
     );
+    expect(trackWorkSubmissionFailed).not.toHaveBeenCalled();
     expect(trackContractError).not.toHaveBeenCalled();
     expect(toastService.error).not.toHaveBeenCalled();
     expect(walletProgressToasts.error).not.toHaveBeenCalled();
@@ -193,26 +197,23 @@ describe("recording a Submit's ending", () => {
       throw new Error("record failed");
     };
     // Each throw is set just before its call, so a failure here cannot leak into the next test.
-    vi.mocked(trackWorkSubmissionFailed).mockImplementationOnce(broken);
+    vi.mocked(trackWorkSubmissionCancelled).mockImplementationOnce(broken);
     const terms = new UploadPolicyCancelledError();
     expect(() =>
       recordWorkSubmissionFailure(terms, options, journey, { images: [] })
     ).not.toThrow();
     vi.mocked(trackWorkSubmissionSuccess).mockImplementationOnce(broken);
     expect(() => recordWorkSubmissionOutcome(journey, "0xsent", options)).not.toThrow();
-    expect(trackWorkSubmissionFailed).toHaveBeenCalledOnce();
+    expect(trackWorkSubmissionCancelled).toHaveBeenCalledOnce();
     expect(trackWorkSubmissionSuccess).toHaveBeenCalledOnce();
   });
 
   it("records a declined Terms prompt as a Submit the person cancelled, not a failure", () => {
     recordWorkSubmissionFailure(new UploadPolicyCancelledError(), options, journey, { images: [] });
-    expect(trackWorkSubmissionFailed).toHaveBeenCalledExactlyOnceWith(
-      expect.objectContaining({
-        error: "UploadPolicyDeclined",
-        parsedErrorFamily: "UserRejected",
-        submissionPhase: "review",
-      })
+    expect(trackWorkSubmissionCancelled).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ reason: "terms_declined", submissionPhase: "review" })
     );
+    expect(trackWorkSubmissionFailed).not.toHaveBeenCalled();
     expect(trackContractError).not.toHaveBeenCalled();
   });
 

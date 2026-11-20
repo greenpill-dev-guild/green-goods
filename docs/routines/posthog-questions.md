@@ -124,7 +124,8 @@ lands.
 | `work_submission_success` | The Submit's work reached the chain. |
 | `work_submission_offline` | The Submit only saved the work to the queue to send later. `reason`: `offline`, `connection-unconfirmed`, or `not-sent` (online, but the queue keeps it). |
 | `work_submission_queued` | The Submit's send is on record but not confirmed yet (`status: awaiting-confirmation`). |
-| `work_submission_failed` | The Submit failed. `parsed_error_family: UserRejected` marks a cancel, a declined Terms prompt included. |
+| `work_submission_failed` | The Submit failed. Before PRD-1561, `parsed_error_family: UserRejected` marked a cancel, a declined Terms prompt included. |
+| `work_submission_cancelled` | The person declined the Submit: `reason` is `terms_declined` or `signature_declined` (PRD-1561). Never a technical failure. |
 | `offline_job_started` | The queue starts a try: a send, or the check of a send already on record (`confirming`). `explicit` when a person's tap asked for it. |
 | `offline_job_skipped` | A started try ended with nothing sent and no answer, or a tap the queue could not act on. `reason` is a code such as `awaiting-confirmation`, `offline` or `wallet-reconnect-required`. |
 | `offline_job_receipt_wait_limit` | A queued send went out but its receipt did not come within the queue's limit (`limit_ms`), so the job waits as still confirming. `job_kind`, `explicit` and `auth_mode` say what was sent and how. |
@@ -666,6 +667,7 @@ Public-safe-default. Aggregates only — never names a single user.
 - **What it answers**: per-step failure rate for the conversion-killing events (`*_failed` paired with `*_success`), **excluding user cancellations**. Surfaces product breakages that vanish from a success-only funnel.
 - **v1.3.0 (2026-08-10) — cancellations are not failures.** A user declining a wallet or passkey prompt was previously counted as a conversion kill. This inflated every step and produced at least one false anomaly (PRD-717: a reported 66.7% `garden_join` failure was 5 aborts out of 8 "failures", from 2 people retrying). The query now classifies each attempt as `success` / `cancelled` / `failed`, reports `cancelled_count` alongside rather than dropping it, and emits `failing_persons` so consumers can require a real cohort before filing. **Treat the pre-v1.3.0 baselines as inflated** — the old entry quoted `garden_join` ~75%, `work_submission` ~70%, `auth_passkey_register` ~27% from 2026-05-09.
 - **v1.4.0 (2026-11-15): work saved for later is still a success.** A Submit that only saves the work to the queue now records `work_submission_offline` instead of `work_submission_success` with `was_offline: true`. It counts as the Submit step's success here, as it did before. `work_submission_failed` now also records two endings it did not before: a declined Terms prompt (`UserRejected`, so cancelled) and a Submit stopped before admission, such as a promise take-up that did not go (`StoppedBeforeAdmission`, so failed). See Work events above.
+- **v1.5.0 (2026-11-19): a declined Submit has its own event.** A Submit the person declined, the Terms or the wallet's signature, records `work_submission_cancelled` instead of `work_submission_failed` with `parsed_error_family: UserRejected` (PRD-1561). The query reads both, so its cancelled count holds across the change.
 - **HogQL**:
   ```sql
   SELECT
@@ -714,6 +716,7 @@ Public-safe-default. Aggregates only — never names a single user.
       AND event IN (
         'garden_join_success', 'garden_join_failed', 'garden_join_cancelled',
         'work_submission_success', 'work_submission_offline', 'work_submission_failed',
+        'work_submission_cancelled',
         'work_approval_success', 'work_approval_failed',
         'auth_passkey_register_success', 'auth_passkey_register_failed'
       )
@@ -729,7 +732,7 @@ Public-safe-default. Aggregates only — never names a single user.
   | Step | Signal | Reliable? |
   |---|---|---|
   | `garden_join` | dedicated `garden_join_cancelled` event | ✅ from 2026-08-10 |
-  | `work_submission` | `parsed_error_family` / parsed message | ⚠️ `parsed_error_family` only on recent events; older ones fall back to message text |
+  | `work_submission` | dedicated `work_submission_cancelled` event; before it, `parsed_error_family` / parsed message | ✅ from the PRD-1561 release; older events fall back to `parsed_error_family` or message text |
   | `auth_passkey_register` | `reason = 'cancelled'` | ⚠️ `reason` is frequently absent; the common WebAuthn string ("operation either timed out or was not allowed") is genuinely ambiguous between a timeout and a dismissal, so it is deliberately **left as a failure** rather than guessed |
   | `work_approval` | none | ❌ emits only a generic `"Transaction failed. Please try again."` via `createMutationErrorHandler`; cancellations are indistinguishable today |
 

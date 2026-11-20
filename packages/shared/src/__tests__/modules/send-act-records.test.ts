@@ -83,6 +83,23 @@ describe("recordSendAct", () => {
     expect(ended()).not.toHaveProperty("session_id");
   });
 
+  it("joins each act's start and ending under one attempt id, new for every press (PRD-1561)", async () => {
+    await recordSendAct(context, async () => ({ hash: "0xabc" }));
+    await recordSendAct(context, async () => ({ hash: "0xdef" }));
+
+    const ids = captured.map(({ properties }) => properties.attempt_id);
+    expect(ids).toHaveLength(4);
+    expect(ids[0]).toEqual(expect.any(String));
+    expect(ids[1]).toBe(ids[0]);
+    expect(ids[3]).toBe(ids[2]);
+    expect(ids[2]).not.toBe(ids[0]);
+    expect(new Set(captured.map(({ properties }) => properties.schema_version))).toEqual(
+      new Set([1])
+    );
+    // The caller's context is never changed: the next press starts a fresh attempt.
+    expect(context).not.toHaveProperty("attemptId");
+  });
+
   it("ends a send on record with no receipt yet as still confirming", async () => {
     await recordSendAct(context, async () => ({ hash: "0xabc", confirmation: "pending" }));
 
