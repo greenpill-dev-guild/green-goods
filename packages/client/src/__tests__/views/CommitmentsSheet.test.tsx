@@ -754,6 +754,8 @@ describe("CommitmentsSheet", () => {
     const row = screen.getByRole("button", { name: new RegExp(HUB_DAY) });
     expect(row).toHaveTextContent("Needs you");
     expect(row).not.toHaveTextContent("Waiting for review");
+    // The Live tab counts what its rows say needs the reader (DL-129), the booking included.
+    expect(screen.getByTestId("tab-live")).toHaveTextContent("1");
     // The booking is read as the promise page reads it: this offer, for this reader.
     expect(mockUseServiceAccessReads).toHaveBeenLastCalledWith([
       expect.objectContaining({ commitmentId: 70n, buyer: VIEWER, sourceChainId: 42161 }),

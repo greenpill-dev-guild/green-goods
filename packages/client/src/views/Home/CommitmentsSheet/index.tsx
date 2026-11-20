@@ -13,6 +13,7 @@ import {
   useCommitmentsInbox,
   useCommitmentsToConfirm,
   usePoolClaimRequests,
+  useServiceAccessReads,
 } from "@green-goods/shared/commitment-pooling";
 import { usePastDuePromises } from "@green-goods/shared/hooks/client-ui/pool/usePromiseGroups";
 import { RiArchiveLine, RiPulseLine, RiShieldCheckLine } from "@remixicon/react";
@@ -24,11 +25,13 @@ import {
   type CommitmentsDashboardReturnState,
   type CommitmentsDirectionFilter,
 } from "@green-goods/shared/stores/useUIStore";
+import type { Address } from "@green-goods/shared/types/domain";
 import { compareAddresses } from "@green-goods/shared/utils/blockchain/address";
+import { getNetworkContracts } from "@green-goods/shared/utils/blockchain/contracts";
 
 import { CycleDetailsSheet, CycleRail } from "@/components/Features/Commitments";
 import { AppSheet, type AppSheetTab } from "@/components/Sheets/AppSheet";
-import { listedToConfirmCount } from "./grouping";
+import { bookingReadKeys, listedToConfirmCount, withBookingReads } from "./grouping";
 import { LiveTab } from "./LiveTab";
 import { OverTimeTab } from "./OverTimeTab";
 import { ToConfirmTab } from "./ToConfirmTab";
@@ -126,6 +129,19 @@ export const CommitmentsSheet: React.FC<CommitmentsSheetProps> = ({ isOpen, onCl
     }
     return rows;
   }, [pendingClaims.rows, protocolClaims.rows, gardenId, inbox.live, viewer]);
+  // A booking's own step (its deposit, its split) needs the reader before the promise's acts say
+  // so: while the sheet is open each is read as its page reads it, sharing that page's read, and
+  // the Live tab counts what its rows say. Home's badge still counts the inbox alone.
+  const bookingReads = useServiceAccessReads(
+    isOpen
+      ? bookingReadKeys([...inbox.live, ...waiting], {
+          viewer: viewer as Address | null,
+          sourceChainId: chainId,
+          coreModule: getNetworkContracts(chainId).commitmentPoolingModule as Address,
+        })
+      : []
+  );
+  const booked = withBookingReads({ live: inbox.live, waiting }, bookingReads);
   // An untaken promise past its due date says so on its row (DL-110 as amended).
   const listedCommitments = useMemo(
     () => [...inbox.live, ...waiting].map((row) => row.commitment),
@@ -166,7 +182,7 @@ export const CommitmentsSheet: React.FC<CommitmentsSheetProps> = ({ isOpen, onCl
       id: "live",
       label: formatMessage({ id: "app.commitments.tab.live" }),
       icon: <RiPulseLine />,
-      count: inbox.liveActCount,
+      count: booked.actCount,
     },
     {
       id: "over-time",
@@ -271,7 +287,7 @@ export const CommitmentsSheet: React.FC<CommitmentsSheetProps> = ({ isOpen, onCl
           {selectedTab === "live" && (
             <LiveTab
               {...listProps}
-              inbox={inbox}
+              inbox={{ ...inbox, live: booked.live }}
               pools={pools}
               gardens={gardens}
               sendsFromTap={sendsFromTap}
@@ -279,10 +295,9 @@ export const CommitmentsSheet: React.FC<CommitmentsSheetProps> = ({ isOpen, onCl
               onDirectionChange={setDirection}
               onOpenCommitment={openCommitment}
               covered={dashboardNavigation.isDashboardCovered}
-              waiting={waiting}
+              waiting={booked.waiting}
               waitingRead={waitingRead}
               pastDueIds={pastDueIds}
-              viewer={viewer}
             />
           )}
           {selectedTab === "over-time" && (

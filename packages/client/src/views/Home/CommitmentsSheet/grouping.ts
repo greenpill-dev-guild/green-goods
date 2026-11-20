@@ -5,8 +5,10 @@ import type {
   CommitmentsToConfirm,
   InboxCommitment,
   ServiceAccessKey,
+  ServiceAccessSnapshot,
 } from "@green-goods/shared/commitment-pooling";
 import { identicalOpenCopyKey } from "@green-goods/shared/modules/commitment-pooling/display-groups";
+import { bookingNeedsYouOf } from "../Garden/Commitment/serviceBooking";
 
 /**
  * What the To confirm tab lists, and so what its badge and the launcher count:
@@ -52,7 +54,7 @@ export function bookingReadKeys(
  * what the promise's acts say, and what needs the reader first, so it leads the list and never
  * folds into identical copies.
  */
-export function withBookingNeedsYou(
+function withBookingNeedsYou(
   rows: readonly InboxCommitment[],
   needs: ReadonlySet<string>
 ): InboxCommitment[] {
@@ -62,6 +64,32 @@ export function withBookingNeedsYou(
       : row
   );
   return [...marked.filter((row) => row.needsYou), ...marked.filter((row) => !row.needsYou)];
+}
+
+/**
+ * The Live list's rows with each answered booking read's own Needs you added, and how many rows
+ * need the reader: the Live tab's count, so the tab says what its rows say (DL-129). Each read
+ * names its own promise; the row knows the promise's state.
+ */
+export function withBookingReads(
+  rows: { live: readonly InboxCommitment[]; waiting: readonly InboxCommitment[] },
+  reads: readonly { data?: ServiceAccessSnapshot | null }[]
+): { live: InboxCommitment[]; waiting: InboxCommitment[]; actCount: number } {
+  const stateOf = new Map(
+    [...rows.live, ...rows.waiting].map(({ commitment }) => [
+      commitment.commitmentId.toString(),
+      commitment.derivedState,
+    ])
+  );
+  const needs = new Set(
+    reads.flatMap(({ data }) => {
+      const id = data?.key.commitmentId.toString();
+      return id && bookingNeedsYouOf(data, stateOf.get(id)) ? [id] : [];
+    })
+  );
+  const live = withBookingNeedsYou(rows.live, needs);
+  const waiting = withBookingNeedsYou(rows.waiting, needs);
+  return { live, waiting, actCount: [...live, ...waiting].filter((row) => row.needsYou).length };
 }
 
 /** One line of the Live list: a promise, or its identical open copies as one (DL-150). */
