@@ -6,7 +6,7 @@ import {
   EDIT_GARDEN_ROUTE_ITEM,
 } from "../../../utils/navigation/admin-routes";
 import { pushRouteItem } from "../../navigation/useCanvasSearchParams";
-import { RiExternalLinkLine, RiSettings3Line } from "@remixicon/react";
+import { RiExternalLinkLine, RiSeedlingLine, RiSettings3Line } from "@remixicon/react";
 
 /**
  * Inputs for the Garden header stats slot. Pulled directly off the values the
@@ -88,10 +88,13 @@ export function resolveGardenView(pathname: string): GardenWorkspaceView {
 }
 
 /**
- * Garden view-level actions — stable pair: the same set renders on every
- * view, in the same order, so positions never shift between tabs. Edit garden
- * is the fixed primary and opens over the active view (DL-140); View public
- * stays ghost because it leaves the admin context.
+ * Garden view-level actions. View public and Edit garden render on every view, in
+ * the same order, so their positions never shift between tabs; View public stays
+ * ghost because it leaves the admin context, and Edit garden opens over the active
+ * view (DL-140). The Promises tab adds Seed Promises as its filled action, last on
+ * the desktop row and first in the phone's dial, so the "+" there leads to adding a
+ * promise; Edit garden steps back to secondary on that tab only (PRD-1491). The
+ * seeding dialog explains a pool that is not open, so the action is not gated here.
  *
  * Membership actions live on the Community workspace (Manage Members →
  * Add members at /community/members) — the Garden header no longer carries
@@ -111,6 +114,7 @@ export function buildGardenViewActions(
   routeContext?: AdminGardenRouteContext
 ): ViewAction[] {
   const gardenAddress = routeContext?.gardenAddress;
+  const onPromises = view === "pool";
   return [
     {
       id: "view-public",
@@ -137,9 +141,28 @@ export function buildGardenViewActions(
           navigate,
           adminRoutes.gardenMode(view, { ...routeContext, item: EDIT_GARDEN_ROUTE_ITEM })
         ),
-      variant: "primary",
+      variant: onPromises ? "secondary" : "primary",
       visible: hasSelectedGarden && canManage,
-      primary: true,
+      primary: !onPromises,
     },
+    ...(onPromises
+      ? [
+          {
+            id: "seed-promises",
+            label: "Seed Promises",
+            labelId: "hub.garden.pool.act.seedPromises",
+            icon: RiSeedlingLine,
+            // The canonical id first: a caller that passes only gardenId must not open the
+            // seeding flow on the default garden.
+            onClick: () =>
+              navigate(
+                adminRoutes.gardenPoolSeed({ gardenId: routeContext?.gardenId ?? gardenAddress })
+              ),
+            variant: "primary" as const,
+            visible: hasSelectedGarden && canManage,
+            primary: true,
+          },
+        ]
+      : []),
   ];
 }
