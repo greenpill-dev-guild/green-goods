@@ -32,7 +32,7 @@ import {
 const GARDEN = "0xabcabcabcabcabcabcabcabcabcabcabcabcabca";
 
 const REVIEW_STAGES: ReviewPipelineStage[] = ["confirm", "work", "assess", "certify"];
-const GARDEN_VIEWS: GardenWorkspaceView[] = ["health", "impact", "activity"];
+const GARDEN_VIEWS: GardenWorkspaceView[] = ["health", "pool", "activity", "impact"];
 
 function visibleIds(actions: Array<{ id: string; visible?: boolean }>): string[] {
   return actions.filter((action) => action.visible !== false).map((action) => action.id);
@@ -121,16 +121,30 @@ describe("buildGardenViewActions — fixed primary", () => {
   const buildFor = (view: GardenWorkspaceView) =>
     buildGardenViewActions(view, true, true, vi.fn(), { gardenAddress: GARDEN });
 
-  it("keeps the same action ids and order on every view", () => {
-    const expected = ["view-public", "edit-garden"];
+  it("keeps View Public and Edit Garden first, in order, on every view", () => {
     for (const view of GARDEN_VIEWS) {
-      expect(visibleIds(buildFor(view))).toEqual(expected);
+      expect(visibleIds(buildFor(view)).slice(0, 2)).toEqual(["view-public", "edit-garden"]);
     }
   });
 
-  it("declares edit-garden as the fixed primary on every view", () => {
+  it("makes Seed Promises the Promises tab's primary, so its + leads to adding (PRD-1491)", () => {
     for (const view of GARDEN_VIEWS) {
-      expect(primaryIds(buildFor(view))).toEqual(["edit-garden"]);
+      const actions = buildFor(view);
+      if (view === "pool") {
+        expect(visibleIds(actions)).toEqual(["view-public", "edit-garden", "seed-promises"]);
+        expect(primaryIds(actions)).toEqual(["seed-promises"]);
+      } else {
+        expect(visibleIds(actions)).toEqual(["view-public", "edit-garden"]);
+        expect(primaryIds(actions)).toEqual(["edit-garden"]);
+      }
+    }
+    // The canonical gardenId and the older gardenAddress both reach the seeding flow.
+    for (const context of [{ gardenId: GARDEN }, { gardenAddress: GARDEN }]) {
+      const navigate = vi.fn();
+      buildGardenViewActions("pool", true, true, navigate, context)
+        .find((action) => action.id === "seed-promises")
+        ?.onClick();
+      expect(navigate).toHaveBeenCalledWith(`/garden/pool/seed?gardenId=${GARDEN}`);
     }
   });
 
@@ -164,10 +178,12 @@ describe("buildGardenViewActions — fixed primary", () => {
   });
 
   it("leaves only the public link for viewers who cannot manage", () => {
-    const actions = buildGardenViewActions("health", false, true, vi.fn(), {
-      gardenAddress: GARDEN,
-    });
-    expect(visibleIds(actions)).toEqual(["view-public"]);
+    for (const view of ["health", "pool"] as const) {
+      const actions = buildGardenViewActions(view, false, true, vi.fn(), {
+        gardenAddress: GARDEN,
+      });
+      expect(visibleIds(actions)).toEqual(["view-public"]);
+    }
   });
 });
 
