@@ -1856,6 +1856,8 @@ describe("a voucher booking on the promise page", () => {
     expect(section).toHaveTextContent(/A reserved visit to the Tech and Sun hub/);
     expect(within(section).getByText("Offered by")).toBeInTheDocument();
     expect(within(section).getByText("How booking works").closest("details")).not.toBeNull();
+    // Nothing is delivered before a booking, so Progress and proof waits too.
+    expect(screen.queryByRole("heading", { name: "Progress and proof" })).toBeNull();
   });
 
   it("brings Progress and proof back once the delivery is reported", () => {

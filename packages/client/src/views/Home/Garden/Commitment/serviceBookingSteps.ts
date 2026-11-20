@@ -219,9 +219,8 @@ export function bookingDetails(ctx: BookingContext): string[] {
   ];
 }
 
-/** Progress and proof: the delivered count once someone reported it, else pending. */
+/** Progress and proof: the delivered count once someone reported it, else pending, booked or not. */
 export function bookingDelivery(ctx: BookingContext): ServiceBookingView["delivery"] {
-  if (!ctx.setup) return null;
   const counted = ctx.reported || (ctx.profile === "access" && ctx.daysDone !== null);
   if (ctx.pos < 5 || !counted) return "pending";
   if (ctx.profile === "access")
