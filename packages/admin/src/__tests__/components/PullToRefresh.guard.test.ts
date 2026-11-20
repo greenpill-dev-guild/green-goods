@@ -9,19 +9,24 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const source = (path: string) => readFileSync(resolve(__dirname, "../..", path), "utf8");
+const css = source("index.css");
+const rootRule = css.match(/html,\s*body\s*\{([^}]*)\}/)?.[1] ?? "";
 
 describe("Hub pull-to-refresh", () => {
-  it("lets vertical overscroll chain from the main scroller to the root", () => {
-    const css = source("index.css");
-    const rootRule = css.match(/html,\s*body\s*\{([^}]*)\}/)?.[1] ?? "";
+  it("keeps the root locked to the shell but leaves vertical overscroll to the browser", () => {
     expect(rootRule).toContain("overflow: hidden");
     expect(rootRule).not.toMatch(/overscroll-behavior(-y)?:/);
+  });
+
+  it("still contains sideways overscroll, so a drag never shows a gap beside the shell", () => {
+    expect(rootRule).toContain("overscroll-behavior-x: none");
+  });
+
+  it("lets a pull past the top of the main scroller chain to the root", () => {
     expect(source("components/Layout/CanvasLayout.tsx")).toContain('overscrollBehaviorY: "auto"');
   });
 
   it("turns the gesture off while a dialog holds the scroll lock", () => {
-    expect(source("index.css")).toMatch(
-      /body\[data-scroll-locked\]\s*\{\s*overscroll-behavior-y: none;/
-    );
+    expect(css).toMatch(/body\[data-scroll-locked\]\s*\{\s*overscroll-behavior-y: none;/);
   });
 });
