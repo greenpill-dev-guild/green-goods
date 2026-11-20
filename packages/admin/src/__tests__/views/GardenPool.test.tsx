@@ -849,6 +849,51 @@ describe("GardenPoolTab (W7)", () => {
     expect(within(queue).queryByRole("button", { name: /^approve$/i })).not.toBeInTheDocument();
   });
 
+  // The live read gives every booking under way a return ceiling before the final split; an
+  // optional return waits on no one, so it stays on the list row (PR #1740 review).
+  it("leaves a live booking under way out of Review Promises, with its optional return on its row", async () => {
+    const { voucherConsoleViewFixture } = await import(
+      "@green-goods/shared/__tests__/test-utils/controller-fixtures"
+    );
+    const holder = "0x7c40000000000000000000000000000000005c3d" as const;
+    mocks.controller = controller({ commitments: [commitment()] });
+    mocks.vouchers = voucherConsoleViewFixture({
+      now: Number(NOW),
+      snapshot: {
+        status: "observed",
+        observedAt: Number(NOW),
+        bookings: [
+          {
+            commitmentId: 1n,
+            holder,
+            setupId: `0x${"a4".repeat(32)}`,
+            issuer: { kind: "individual", name: "Teo", chainId: 100, account: holder, decimals: 6 },
+            voucherUnits: 1_000_000n,
+            service: {
+              kind: "units",
+              units: 1n,
+              label: "session",
+              returnLimit: 1_000_000n,
+              returnCeiling: 0n,
+            },
+            stage: { kind: "in-progress" },
+          },
+        ],
+      },
+    });
+    renderTab();
+    const stats = screen.getByRole("list", { name: /what needs you/i });
+    expect(within(stats).queryByRole("button", { name: /^to review/i })).not.toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("pool-claims")).queryByRole("listitem")
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("pool-commitment-1")).getAllByRole("button", {
+        name: "Propose Return…",
+      })
+    ).not.toHaveLength(0);
+  });
+
   // The voucher read can show a booking before the pool read drops the ask it came from.
   it("counts a booking and the ask it came from once under To review", async () => {
     const { voucherConsoleViewFixture } = await import(

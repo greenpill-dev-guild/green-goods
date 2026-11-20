@@ -6,6 +6,10 @@ import type {
   PoolConsoleController,
   VoucherConsoleView,
 } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import type {
+  IssuerSafeThreshold,
+  VoucherBooking,
+} from "@green-goods/shared/modules/commitment-pooling/pool-console";
 import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import { RiCalendarCloseLine, RiFilterOffLine, RiSeedlingLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
@@ -18,6 +22,8 @@ import { CommitmentExpireDialog } from "./CommitmentExpireDialog";
 import { PoolGroupRow } from "./PoolGroupRow";
 import { GardenPoolTarget } from "./PoolTarget";
 import { PoolQueuedRows, isPastDeadline } from "./PoolQueuedRows";
+import { VoucherProposeReturnDialog } from "./VoucherProposeReturnDialog";
+import { VoucherRowAct } from "./VoucherRowAct";
 import {
   type PoolCommitmentFocus,
   type PoolCommitmentGroup,
@@ -27,7 +33,7 @@ import {
 } from "./poolCommitmentRows";
 import { commitmentStateChip } from "./poolPresentation";
 import { rowDueDetail } from "./poolTime";
-import { voucherOfferRow } from "./voucherPresentation";
+import { voucherBookingOptionalAct, voucherOfferRow } from "./voucherPresentation";
 import { isVoucherOffer, voucherOfferTakes } from "./voucherQueue";
 
 export type { PoolCommitmentFocus, PoolCommitmentScope } from "./poolCommitmentRows";
@@ -36,6 +42,8 @@ export interface PoolCommitmentsCardProps {
   console: PoolConsoleController;
   /** The voucher bookings on the pool's offers, read for how their rows say where each stands. */
   vouchers: VoucherConsoleView;
+  /** The issuer Safe's signature rule, read from the Safe, for an optional return's dialog. */
+  safe?: IssuerSafeThreshold;
   scope: PoolCommitmentScope;
   onScopeChange: (scope: PoolCommitmentScope) => void;
   focus: PoolCommitmentFocus;
@@ -64,11 +72,14 @@ export interface PoolCommitmentsCardProps {
  * Each promise shows once (decision 2 of the 18 November 2026 hub-day review):
  * a booking's acts wait in Review Promises, so a voucher offer's row only says
  * where it stands, what one booking takes, and who booked it; a group of them
- * counts booked and open copies in the row's right slot.
+ * counts booked and open copies in the row's right slot. A return the issuer
+ * may propose while a booking still runs waits on no one, so it stays an
+ * outlined act on its row, which then gives the person's place to the line.
  */
 export function PoolCommitmentsCard({
   console: pool,
   vouchers,
+  safe,
   scope,
   onScopeChange,
   focus,
@@ -90,6 +101,11 @@ export function PoolCommitmentsCard({
   });
   const [search, setSearch] = useState("");
   const [expireTarget, setExpireTarget] = useState<CommitmentReadModel | null>(null);
+  // An optional return's dialog follows its booking as the read has it now, and closes once the
+  // booking leaves the read.
+  const [proposing, setProposing] = useState<VoucherBooking | null>(null);
+  const proposingNow = proposing ? vouchers.bookingFor(proposing.commitmentId) : undefined;
+  if (proposing && !proposingNow) setProposing(null);
 
   const dueIds = useMemo(() => new Set(model.dueLive.map((row) => row.id)), [model.dueLive]);
 
@@ -99,6 +115,10 @@ export function PoolCommitmentsCard({
       { id: "hub.garden.pool.row.untitled", defaultMessage: "Promise {id}" },
       { id: commitment.commitmentId.toString() }
     );
+  const titleById = (commitmentId: bigint) => {
+    const commitment = pool.commitments.find((row) => row.commitmentId === commitmentId);
+    return commitment ? titleOf(commitment) : "";
+  };
 
   const rows = selectPoolCommitmentRows({
     model,
@@ -304,6 +324,10 @@ export function PoolCommitmentsCard({
               // A return that didn't go through owes the holder vouchers: its retry keeps the
               // row past the due date, where expiring would fix nothing.
               const isDue = dueIds.has(commitment.id) && voucher?.act !== "retry";
+              const optional =
+                !isDue && voucher?.booking ? voucherBookingOptionalAct(voucher.booking) : null;
+              // An act in the right slot keeps it, and the person moves to the line (DL-195).
+              const slotTaken = isDue || optional !== null;
               const takes = voucher
                 ? voucherOfferTakes([commitment.commitmentId], vouchers, formatMessage)
                 : null;
@@ -331,14 +355,13 @@ export function PoolCommitmentsCard({
                     takes && voucher
                       ? {
                           takes,
-                          // Expire Now… keeps the right slot, so who booked moves to the line (DL-195).
-                          booking: isDue && bookedBy ? bookedBy : voucher.note,
+                          booking: slotTaken && bookedBy ? bookedBy : voucher.note,
                           promisedBy: "",
                         }
                       : undefined
                   }
                   amount={
-                    bookedBy && !isDue
+                    bookedBy && !slotTaken
                       ? {
                           value: bookedBy,
                           caption: formatMessage({
@@ -377,6 +400,15 @@ export function PoolCommitmentsCard({
                           {expireLabel}
                         </Button>
                       </>
+                    ) : optional && voucher?.booking ? (
+                      <VoucherRowAct
+                        variant="row"
+                        booking={voucher.booking}
+                        act={optional}
+                        disabled={actDisabled}
+                        onOpen={() => setProposing(voucher.booking)}
+                        onRetry={vouchers.acts.retryTransfer}
+                      />
                     ) : undefined
                   }
                 />
@@ -408,6 +440,16 @@ export function PoolCommitmentsCard({
           </p>
         ) : null}
       </AdminCard>
+
+      <VoucherProposeReturnDialog
+        booking={proposingNow ?? null}
+        title={proposingNow ? titleById(proposingNow.commitmentId) : ""}
+        safe={safe}
+        disabled={actDisabled}
+        tone={tone}
+        onClose={() => setProposing(null)}
+        onPropose={vouchers.acts.proposeReturn}
+      />
 
       <CommitmentExpireDialog
         isOpen={expireTarget !== null}

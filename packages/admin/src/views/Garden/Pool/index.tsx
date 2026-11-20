@@ -281,6 +281,7 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
           <PoolCommitmentsCard
             console={pool}
             vouchers={vouchers}
+            safe={issuerSafe}
             scope={scope}
             onScopeChange={setScope}
             focus={focus}

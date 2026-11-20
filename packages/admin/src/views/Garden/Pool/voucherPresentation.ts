@@ -256,8 +256,8 @@ interface VoucherBookingRowView {
 
 /**
  * The act a booking under way waits on the steward for, in Review Promises: the same transfer
- * again after a return failed, a proposed return once the service stopped early, whatever it
- * was, and a visit's report once the visit has begun. `now` is the chain's time, in seconds.
+ * again after a return failed, a proposed return once the service stopped early, and a visit's
+ * report once the visit has begun. `now` is the chain's time, in seconds.
  */
 export function voucherBookingAct(
   booking: VoucherBooking,
@@ -271,8 +271,18 @@ export function voucherBookingAct(
   )
     return "retry";
   if (stage.kind === "ended-early") return "propose";
-  if (service.kind === "units") return service.returnLimit === null ? null : "propose";
   return service.kind === "visit" && now >= service.startsAt ? "report" : null;
+}
+
+/**
+ * A return the issuer may propose while a units booking still runs (the live read gives each one
+ * a ceiling before the final split): optional, so it waits on no one and stays on the offer's row.
+ */
+export function voucherBookingOptionalAct(booking: VoucherBooking): "propose" | null {
+  const { service, stage } = booking;
+  return stage.kind === "in-progress" && service.kind === "units" && service.returnLimit !== null
+    ? "propose"
+    : null;
 }
 
 /** How a booking under way reads on its offer's row, and the act it waits on. */
