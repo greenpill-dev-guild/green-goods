@@ -381,6 +381,7 @@ export const VoucherAcceptedAfterRefresh: Story = {
  * on acceptance, and Mara's visit, which was yesterday, on its report.
  */
 export const VoucherEveryAct: Story = {
+  tags: ["storybook-ci"],
   args: {
     console: storyPoolConsole({
       commitments: STORY_TECH_AND_SUN_COMMITMENTS,

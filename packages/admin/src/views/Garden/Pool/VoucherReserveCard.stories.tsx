@@ -57,6 +57,7 @@ type Story = StoryObj<typeof VoucherReserveCard>;
 
 /** Tech and Sun's reserve: 8 in reserve, 3 promised, 3 booked; the rest folded until opened. */
 export const TechAndSun: Story = {
+  tags: ["storybook-ci"],
   play: async ({ canvasElement }) => {
     const card = within(canvasElement);
     await expect(

@@ -502,6 +502,7 @@ export const VoucherTransferFailedPastDue: Story = {
 
 /** Copies made together are one row, Mara's booked copy too: booked and open in the right slot. */
 export const VoucherGroupedBooking: Story = {
+  tags: ["storybook-ci"],
   args: {
     console: storyPoolConsole({
       commitments: HUB_DAY_COPIES,
