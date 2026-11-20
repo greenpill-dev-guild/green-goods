@@ -59,7 +59,8 @@ export function useJourneyEmbed(index: number, count: number, go: (index: number
       window.parent.postMessage({ type: STEP_MESSAGE, index, count }, window.location.origin);
   }, [embedded, index, count]);
   useWindowEvent("message", (event) => {
-    if (!embedded || event.origin !== window.location.origin) return;
+    if (!embedded || event.origin !== window.location.origin || event.source !== window.parent)
+      return;
     const data = event.data as { type?: string; index?: number } | null;
     if (data?.type !== GO_MESSAGE || !Number.isInteger(data.index)) return;
     go(Math.max(0, Math.min(count - 1, data.index as number)));
@@ -76,45 +77,45 @@ function openStory(story: string) {
 }
 
 const CSS = `
-.jp { display: grid; grid-template-columns: 340px minmax(0, 1fr); height: 100dvh; background: #e9e6df;
-  color: #f4f1ea; font: 14px/20px system-ui, sans-serif; }
+.jp { display: grid; grid-template-columns: 340px minmax(0, 1fr); height: 100dvh; background: rgb(var(--neutral-200));
+  color: rgb(var(--neutral-100)); font: 14px/20px system-ui, sans-serif; }
 .jp * { box-sizing: border-box; }
-.jp-rail { display: flex; flex-direction: column; gap: 16px; padding: 20px; background: #1f1d1a;
+.jp-rail { display: flex; flex-direction: column; gap: 16px; padding: 20px; background: rgb(var(--neutral-900));
   overflow-y: auto; }
-.jp-head h1 { margin: 0; color: #fff; font-size: 18px; line-height: 24px; font-weight: 600; }
-.jp-head p { margin: 2px 0 0; color: #b8b2a6; font-size: 12px; line-height: 16px; }
-.jp-label { margin: 0 0 6px; color: #8f897d; font-size: 11px; line-height: 16px; font-weight: 600;
+.jp-head h1 { margin: 0; color: rgb(var(--neutral-0)); font-size: 18px; line-height: 24px; font-weight: 600; }
+.jp-head p { margin: 2px 0 0; color: rgb(var(--neutral-400)); font-size: 12px; line-height: 16px; }
+.jp-label { margin: 0 0 6px; color: rgb(var(--neutral-400)); font-size: 11px; line-height: 16px; font-weight: 600;
   letter-spacing: 0.06em; text-transform: uppercase; }
 .jp-flows { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
 .jp-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px;
-  padding: 6px 14px; border: 1px solid #4a463f; border-radius: 9999px; background: transparent;
+  padding: 6px 14px; border: 1px solid rgb(var(--neutral-700)); border-radius: 9999px; background: transparent;
   color: inherit; font: inherit; font-weight: 500; cursor: pointer; }
-.jp-btn:hover:not(:disabled) { background: #2d2a26; }
+.jp-btn:hover:not(:disabled) { background: rgb(var(--neutral-800)); }
 .jp-btn:disabled { opacity: 0.4; cursor: default; }
-.jp-btn:focus-visible, .jp-flow:focus-visible { outline: 2px solid #f4f1ea; outline-offset: 2px; }
-.jp-btn[data-primary] { border-color: #d9f27b; background: #d9f27b; color: #1f1d1a; }
-.jp-btn[data-primary]:hover:not(:disabled) { background: #c8e360; }
-.jp .jp-btn[aria-pressed="true"] { border-color: #f4f1ea; background-color: #f4f1ea !important;
-  color: #1f1d1a !important; }
+.jp-btn:focus-visible, .jp-flow:focus-visible { outline: 2px solid rgb(var(--neutral-100)); outline-offset: 2px; }
+.jp-btn[data-primary] { border-color: rgb(var(--green-300)); background: rgb(var(--green-300)); color: rgb(var(--neutral-900)); }
+.jp-btn[data-primary]:hover:not(:disabled) { background: rgb(var(--green-400)); }
+.jp .jp-btn[aria-pressed="true"] { border-color: rgb(var(--neutral-100)); background-color: rgb(var(--neutral-100)) !important;
+  color: rgb(var(--neutral-900)) !important; }
 .jp-flow { display: flex; gap: 10px; width: 100%; padding: 8px 10px; border: 0; border-radius: 10px;
-  background: transparent; color: #d6d1c6; font: inherit; text-align: left; cursor: pointer; }
-.jp-flow:hover { background: #2d2a26; }
-.jp-flow[aria-current="true"] { background: #36322d; color: #fff; font-weight: 600; }
-.jp-flow span:first-child { color: #8f897d; font-variant-numeric: tabular-nums; }
+  background: transparent; color: rgb(var(--neutral-300)); font: inherit; text-align: left; cursor: pointer; }
+.jp-flow:hover { background: rgb(var(--neutral-800)); }
+.jp-flow[aria-current="true"] { background: rgb(var(--neutral-775)); color: rgb(var(--neutral-0)); font-weight: 600; }
+.jp-flow span:first-child { color: rgb(var(--neutral-400)); font-variant-numeric: tabular-nums; }
 .jp-now { display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 14px;
-  background: #2a2723; }
-.jp-who { margin: 0; color: #d9f27b; font-size: 12px; line-height: 16px; font-weight: 600; }
-.jp-step { margin: 0; color: #b8b2a6; font-size: 12px; line-height: 16px; font-variant-numeric: tabular-nums; }
-.jp-caption { margin: 0; min-height: 100px; color: #f4f1ea; font-size: 15px; line-height: 20px; }
-.jp-move { margin: 0; min-height: 32px; color: #b8b2a6; font-size: 12px; line-height: 16px; }
+  background: rgb(var(--neutral-850)); }
+.jp-who { margin: 0; color: rgb(var(--green-300)); font-size: 12px; line-height: 16px; font-weight: 600; }
+.jp-step { margin: 0; color: rgb(var(--neutral-400)); font-size: 12px; line-height: 16px; font-variant-numeric: tabular-nums; }
+.jp-caption { margin: 0; min-height: 100px; color: rgb(var(--neutral-100)); font-size: 15px; line-height: 20px; }
+.jp-move { margin: 0; min-height: 32px; color: rgb(var(--neutral-400)); font-size: 12px; line-height: 16px; }
 .jp-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .jp-side { display: flex; flex-direction: column; gap: 4px; }
-.jp-side summary { cursor: pointer; color: #b8b2a6; font-size: 12px; line-height: 20px; }
+.jp-side summary { cursor: pointer; color: rgb(var(--neutral-400)); font-size: 12px; line-height: 20px; }
 .jp-states .jp-flow { font-size: 12px; line-height: 16px; }
 .jp-foot { margin-top: auto; display: flex; flex-direction: column; gap: 12px; }
 .jp-stage { position: relative; min-width: 0; overflow: hidden; }
 .jp-screen { position: absolute; top: 50%; left: 50%; transform-origin: center; border: 0;
-  background: #fff; box-shadow: 0 0 0 1px #c9c4b8, 0 18px 40px rgb(0 0 0 / 0.18); }
+  background: rgb(var(--neutral-0)); box-shadow: 0 0 0 1px rgb(var(--neutral-300)), 0 18px 40px rgb(var(--neutral-950) / 0.18); }
 .jp-screen[data-device] { border-radius: 28px; }
 @media (max-width: 899px) {
   .jp { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); }
@@ -122,10 +123,10 @@ const CSS = `
   .jp-caption, .jp-move { min-height: 0; }
 }
 .jb { position: sticky; top: 0; z-index: 50; display: flex; flex-wrap: wrap; align-items: center;
-  gap: 8px 16px; padding: 10px 16px; background: #1f1d1a; color: #f4f1ea;
+  gap: 8px 16px; padding: 10px 16px; background: rgb(var(--neutral-900)); color: rgb(var(--neutral-100));
   font: 13px/18px system-ui, sans-serif; }
 .jb p { margin: 0; flex: 1 1 280px; }
-.jb small { display: block; color: #b8b2a6; font-size: 11px; line-height: 16px; }
+.jb small { display: block; color: rgb(var(--neutral-400)); font-size: 11px; line-height: 16px; }
 `;
 
 function PlayerStyles() {

@@ -1,12 +1,11 @@
-import { SERVICE_ISSUER_ROUTES, useVoucherAwards } from "@green-goods/shared/commitment-pooling";
+import {
+  SERVICE_ISSUER_ROUTES,
+  useCommitmentMutation,
+  useVoucherAwards,
+} from "@green-goods/shared/commitment-pooling";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
-import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
-import {
-  usePoolConsoleController,
-  useVoucherConsole,
-} from "@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController";
-import { claimRowKey } from "@green-goods/shared/hooks/admin-ui/pool/useWaitingForApproval";
+import { useVoucherConsole } from "@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController";
 import type {
   IssuerSafeThreshold,
   VoucherAsk,
@@ -20,10 +19,15 @@ import type {
 import type { VoucherAwardRecord } from "@green-goods/shared/public-contracts/voucher-awards";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { type QueryKey, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { expect, mocked, screen, userEvent, within } from "storybook/test";
 import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../../shared/.storybook/adminFixtures";
+import {
+  pinChainClock,
+  useChainClockReader,
+} from "../../../../../shared/.storybook/chainClockMock";
 import {
   withAdminIdentity,
   withSeededQueryClient,
@@ -43,17 +47,18 @@ import {
   voucherIssuerStory,
 } from "../../Community/components/voucherIssuerStoryFixtures";
 import { GardenPoolTab } from "./index";
-import { STORY_GARDEN, storyPoolConsole } from "./poolStoryFixtures";
+import { STORY_GARDEN, STORY_PRICE_SEED } from "./poolStoryFixtures";
+import { STORY_CYCLES, storyPool } from "./poolStoryPools";
 import {
   nameVoucherMembers,
   STORY_GREEN_GOODS_CLAIMS,
   STORY_GREEN_GOODS_COMMITMENTS,
   STORY_GREEN_GOODS_SAFE,
   STORY_GREEN_GOODS_VOUCHERS,
-  STORY_HUB_DAY_TITLES,
   STORY_LINA_ASK,
   STORY_LINA_ENDED,
   STORY_MARA_ACCESS_ASK,
+  STORY_HUB_DAY_TITLES,
   STORY_MARA_VISIT,
   STORY_MARA_VISITED,
   STORY_MAYA_ASK,
@@ -500,13 +505,11 @@ type FlowId = keyof typeof FLOWS;
 function HubJourneyPage({ journey, start }: { journey: FlowId; start: number }) {
   const flow: HubFlow = FLOWS[journey];
   const [index, setIndex] = useState(Math.min(start, flow.steps.length - 1));
-  // Each visit to the tab, and the acceptances made on it.
+  // Each band step is a later visit to the tab, so it starts with nothing decided.
   const [visit, setVisit] = useState(0);
-  const [decisions, setDecisions] = useState<PoolConsoleController["claimDecisions"]>({});
   const go = useCallback((next: number) => {
     setIndex(next);
     setVisit((current) => current + 1);
-    setDecisions({});
   }, []);
   useEffect(() => go(Math.min(start, flow.steps.length - 1)), [start, flow.steps.length, go]);
   const embedded = useJourneyEmbed(index, flow.steps.length, go);
@@ -518,35 +521,21 @@ function HubJourneyPage({ journey, start }: { journey: FlowId; start: number }) 
       const theirs = !step.actor || !person || person.toLowerCase() === step.actor.toLowerCase();
       if (target !== undefined && theirs) setIndex(target);
     };
-  const base = storyPoolConsole({
-    commitments: [...step.commitments],
-    claims: [...step.claims],
-    titles: STORY_HUB_DAY_TITLES,
-    claimDecisions: decisions,
-  });
-  mocked(usePoolConsoleController).mockReturnValue({
-    ...base,
-    acts: {
-      ...base.acts,
-      acceptServiceClaim: async (ask) => {
-        const row = step.claims.find(
-          (entry) =>
-            entry.claim.commitmentId === ask.commitmentId &&
-            entry.claim.claimant.toLowerCase() === ask.buyer.toLowerCase()
-        );
-        if (row) {
-          const decision = {
-            kind: "approved" as const,
-            commitmentId: ask.commitmentId.toString(),
-            at: STORYBOOK_NOW_SECONDS * 1000,
-          };
-          setDecisions((current) => ({ ...current, [claimRowKey(row)]: decision }));
-        }
-        await lead("accept")(ask.buyer);
-        return "0x0";
-      },
+  // The real pool console reads the step's promises and asks from the query cache; only the
+  // sends are stood in for, so accepting a booking moves the walk on instead of signing.
+  const client = useQueryClient();
+  useLayoutEffect(() => {
+    for (const [key, data] of stepSeeds(step)) client.setQueryData(key, data);
+  }, [client, step]);
+  mocked(useCommitmentMutation).mockReturnValue({
+    isPending: false,
+    mutateAsync: async (input: { action: string; buyer?: Address }) => {
+      if (input.action === "acceptServiceClaim") await lead("accept")(input.buyer);
+      return "0x0";
     },
-  });
+  } as unknown as ReturnType<typeof useCommitmentMutation>);
+  // A zero chain time defers to the console's own clock, the story's time.
+  pinChainClock(0);
   // The award desk's records live with the journey: prepared, then confirmed once sent.
   const [awards, setAwards] = useState<VoucherAwardRecord[]>([]);
   const mutation = <Input, Output>(mutateAsync: (input: Input) => Promise<Output>) => ({
@@ -629,6 +618,15 @@ function HubJourneyPage({ journey, start }: { journey: FlowId; start: number }) 
  * row opens its promise in the workspace's inspector, which this walk leaves out.
  */
 function HubVoucherJourney({ journey, start }: { journey: FlowId; start: number }) {
+  // The first step's reads are in the cache before the tab mounts, so nothing reads a chain.
+  const client = useQueryClient();
+  useState(() => {
+    const steps = FLOWS[journey].steps;
+    for (const [key, data] of stepSeeds(steps[Math.min(start, steps.length - 1)]!)) {
+      client.setQueryData(key, data);
+    }
+    return true;
+  });
   const router = useMemo(
     () =>
       createMemoryRouter(
@@ -639,6 +637,30 @@ function HubVoucherJourney({ journey, start }: { journey: FlowId; start: number 
   );
   return <RouterProvider router={router} />;
 }
+
+/** One step's promises and asks, under the registry keys the pool console reads. */
+function stepSeeds(step: HubStep): ReadonlyArray<readonly [QueryKey, unknown]> {
+  return [
+    [
+      queryKeys.commitmentPooling.commitments(DEFAULT_CHAIN_ID, {
+        chainId: DEFAULT_CHAIN_ID,
+        poolId: 7n,
+      }),
+      [...step.commitments],
+    ],
+    [queryKeys.commitmentPooling.poolClaims(DEFAULT_CHAIN_ID, 7n, "PENDING"), [...step.claims]],
+  ];
+}
+
+/** The pool itself, its cycles, the G$ price and the offers' titles (hub days made together fold). */
+const POOL_SEEDS: ReadonlyArray<readonly [QueryKey, unknown]> = [
+  STORY_PRICE_SEED,
+  [queryKeys.commitmentPooling.pools(DEFAULT_CHAIN_ID, STORY_GARDEN), [storyPool()]],
+  [queryKeys.commitmentPooling.cycles(DEFAULT_CHAIN_ID, 7n, {}), STORY_CYCLES],
+  ...[...STORY_HUB_DAY_TITLES].map(
+    ([cid, metadata]) => [queryKeys.commitmentPooling.metadata(cid), metadata] as const
+  ),
+];
 
 const ISSUER_CATALOG = voucherIssuerStory("issuers").routes[0]!;
 const SAFE_SEEDS = [
@@ -671,12 +693,13 @@ const meta: Meta<typeof HubVoucherJourney> = {
   parameters: { layout: "fullscreen" },
   decorators: [
     withAdminIdentity,
-    withSeededQueryClient([...STORYBOOK_ADMIN_SHELL_SEEDS, ...SAFE_SEEDS]),
+    withSeededQueryClient([...STORYBOOK_ADMIN_SHELL_SEEDS, ...POOL_SEEDS, ...SAFE_SEEDS]),
   ],
   beforeEach: () => {
     const restoreNames = nameVoucherMembers();
     const restoreConsole = resetHookMocks(
-      usePoolConsoleController,
+      useCommitmentMutation,
+      useChainClockReader,
       useVoucherConsole,
       useVoucherAwards
     );
@@ -747,10 +770,26 @@ export const SetupAndAwards: Story = { args: { journey: "setup" } };
 /** The steward's own act moves the walk on: approving Lina's booking through its dialog. */
 export const ApproveMovesTheWalkOn: Story = {
   args: { journey: "hubDay" },
+  tags: ["storybook-ci"],
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(await canvas.findByRole("button", { name: "Approve…" }));
     await userEvent.click(await screen.findByRole("button", { name: "Approve Booking" }));
     await expect(await canvas.findByText("Step 2 of 9", { exact: false })).toBeVisible();
+  },
+};
+
+/** The real pool console accepts a confirmed deposit through the tab's own dialog. */
+export const AcceptMovesTheWalkOn: Story = {
+  args: { journey: "hubDay", start: 2 },
+  tags: ["storybook-ci"],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    // Two deposits are confirmed on this step; Lina's, the first row, moves the walk on.
+    const [accept] = await canvas.findAllByRole("button", { name: "Accept…" });
+    await userEvent.click(accept!);
+    const dialog = within(await screen.findByRole("dialog"));
+    await userEvent.click(await dialog.findByRole("button", { name: /^Accept / }));
+    await expect(await canvas.findByText("Step 4 of 9", { exact: false })).toBeVisible();
   },
 };

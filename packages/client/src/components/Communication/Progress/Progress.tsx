@@ -8,9 +8,9 @@ interface FormProgressProps {
   /** Each step's name, shown under its marker. */
   steps: string[];
   /**
-   * Set when the current step waits on someone else, as a booking waits on its issuer: the
+   * Set when the current step waits on someone else, as a booking waits on its issuer: localized
    * words a screen reader hears after the step's name. Its marker shows a clock on the neutral
-   * fill instead of the filled number, so a filled marker always means the step is the reader's.
+   * fill instead of the green number, so a green marker always means the step is the reader's.
    */
   waiting?: string;
 }
@@ -75,7 +75,7 @@ export const FormProgress = ({ currentStep, steps, waiting }: FormProgressProps)
                     className={cn("w-3 h-3", pwaStatusStyles.success.text)}
                   />
                 ) : isWaitingStep ? (
-                  <RiTimeLine aria-hidden="true" className="h-3.5 w-3.5" />
+                  <RiTimeLine aria-hidden="true" className="h-3 w-3" />
                 ) : (
                   <span
                     aria-hidden="true"
