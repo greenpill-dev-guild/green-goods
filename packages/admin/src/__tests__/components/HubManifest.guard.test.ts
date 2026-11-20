@@ -40,4 +40,20 @@ describe("Hub web app manifest", () => {
       expect(existsSync(resolve(admin, "public", icon.src))).toBe(true);
     }
   });
+
+  it("draws the Hub's own icon, never the App Beta's gold-dot icon", () => {
+    const beta = ["staging-icon-512.png", "staging-apple-icon.png"].map((name) =>
+      readFileSync(resolve(admin, "../client/public", name))
+    );
+    const hubIcons = [
+      ...new Set([
+        ...(manifest.icons as Array<{ src: string }>).map((icon) => icon.src),
+        "apple-touch-icon.png",
+      ]),
+    ];
+    for (const src of hubIcons) {
+      const icon = readFileSync(resolve(admin, "public", src));
+      expect(beta.some((dotted) => dotted.equals(icon))).toBe(false);
+    }
+  });
 });
