@@ -1,8 +1,7 @@
 /** @vitest-environment happy-dom */
-// TEST-QUALITY: allow-small-test-file - Protects the account settings support destination after the public Telegram group closes.
 
 import messages from "@green-goods/shared/i18n/en.json";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { describe, expect, it, vi } from "vitest";
 import { AccountSettingsPanel } from "@/components/Layout/AccountSettingsPanel";
@@ -34,5 +33,26 @@ describe("AccountSettingsPanel", () => {
     expect(
       document.querySelector('a[href^="https://t.me/"], a[href^="https://telegram.me/"]')
     ).toBeNull();
+  });
+
+  it("offers Refresh only in the installed Hub, as a plain reload that keeps the session", () => {
+    const view = render(
+      <IntlProvider locale="en" messages={messages}>
+        <AccountSettingsPanel installed={false} />
+      </IntlProvider>
+    );
+    // A browser tab has its own reload.
+    expect(screen.queryByRole("button", { name: "Refresh the Hub" })).toBeNull();
+
+    const reload = vi.fn();
+    vi.stubGlobal("location", { ...window.location, reload });
+    view.rerender(
+      <IntlProvider locale="en" messages={messages}>
+        <AccountSettingsPanel installed />
+      </IntlProvider>
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Refresh the Hub" }));
+    expect(reload).toHaveBeenCalledOnce();
+    vi.unstubAllGlobals();
   });
 });

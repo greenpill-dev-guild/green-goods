@@ -334,12 +334,23 @@
     display: none;
   }
 
-  /* Lock the root document to prevent double scrollbars; delegate scroll to app shell */
+  /* Lock the root document to prevent double scrollbars; delegate scroll to app shell.
+     Vertical overscroll stays at the browser default, as in the App: a pull past the top
+     of the main scroller chains to the root, where the browser and the installed Hub run
+     pull-to-refresh (PRD-1534). Horizontal overscroll stays contained, so a sideways drag
+     never reveals a gap beside the shell. */
   html,
   body {
     height: 100%;
     overflow: hidden;
-    overscroll-behavior: contain;
+    overscroll-behavior-x: none;
+  }
+
+  /* An open dialog or sheet holds the scroll lock (Radix marks the body), and a pull
+     inside it must never refresh the Hub behind it. */
+  html:has(> body[data-scroll-locked]),
+  body[data-scroll-locked] {
+    overscroll-behavior-y: none;
   }
 
   #root {
