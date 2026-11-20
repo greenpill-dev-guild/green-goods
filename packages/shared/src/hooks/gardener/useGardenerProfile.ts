@@ -5,6 +5,7 @@ import { encodeFunctionData } from "viem";
 import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { logger } from "../../modules/app/logger";
+import { recordedSendAct, type SendActContext } from "../../modules/app/sendActAnalytics";
 import { assertLocalArbitrumForkSmartAccountsDisabled } from "../../modules/transactions/local-fork-safety";
 import { parseAndFormatError } from "../../utils/errors/contract-errors";
 import { useAuth } from "../auth/useAuth";
@@ -137,42 +138,53 @@ export function useGardenerProfile() {
     staleTime: 30_000, // 30 seconds
   });
 
+  // A gardener's profile is written by their own passkey account (PRD-1571).
+  const profileAct = (operation: string): SendActContext => ({
+    act: "gardener_profile",
+    operation,
+    authMode: "passkey",
+    chainId: DEFAULT_CHAIN_ID,
+  });
+
   const updateProfileMutation = useMutation({
-    mutationFn: async (profileData: Omit<GardenerProfile, "profileUpdatedAt">) => {
-      if (!smartAccountClient || !smartAccountAddress) {
-        throw new Error("Not authenticated");
+    mutationFn: recordedSendAct(
+      profileAct("setProfile"),
+      async (profileData: Omit<GardenerProfile, "profileUpdatedAt">) => {
+        if (!smartAccountClient || !smartAccountAddress) {
+          throw new Error("Not authenticated");
+        }
+
+        // Encode function call
+        const data = encodeFunctionData({
+          abi: GARDENER_ACCOUNT_ABI,
+          functionName: "setProfile",
+          args: [
+            profileData.name,
+            profileData.bio,
+            profileData.location,
+            profileData.imageURI,
+            profileData.socialLinks,
+            profileData.contactInfo,
+          ],
+        });
+
+        // Send with paymaster (gasless via Pimlico)
+        if (!smartAccountClient.account) {
+          throw new Error("Smart account not initialized");
+        }
+        assertLocalArbitrumForkSmartAccountsDisabled();
+
+        const txHash = await smartAccountClient.sendTransaction({
+          account: smartAccountClient.account,
+          chain: null,
+          to: smartAccountAddress,
+          data,
+          value: 0n,
+        });
+
+        return txHash;
       }
-
-      // Encode function call
-      const data = encodeFunctionData({
-        abi: GARDENER_ACCOUNT_ABI,
-        functionName: "setProfile",
-        args: [
-          profileData.name,
-          profileData.bio,
-          profileData.location,
-          profileData.imageURI,
-          profileData.socialLinks,
-          profileData.contactInfo,
-        ],
-      });
-
-      // Send with paymaster (gasless via Pimlico)
-      if (!smartAccountClient.account) {
-        throw new Error("Smart account not initialized");
-      }
-      assertLocalArbitrumForkSmartAccountsDisabled();
-
-      const txHash = await smartAccountClient.sendTransaction({
-        account: smartAccountClient.account,
-        chain: null,
-        to: smartAccountAddress,
-        data,
-        value: 0n,
-      });
-
-      return txHash;
-    },
+    ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: gardenerProfileKeys.all });
       toastService.success({
@@ -212,7 +224,7 @@ export function useGardenerProfile() {
     errorTitle: string;
     errorMessage: string;
   }) => ({
-    mutationFn: async (value: string) => {
+    mutationFn: recordedSendAct(profileAct(config.functionName), async (value: string) => {
       if (!smartAccountClient || !smartAccountAddress) {
         throw new Error("Not authenticated");
       }
@@ -235,7 +247,7 @@ export function useGardenerProfile() {
         data,
         value: 0n,
       });
-    },
+    }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: gardenerProfileKeys.all });
       toastService.success({

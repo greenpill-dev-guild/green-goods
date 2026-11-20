@@ -85,6 +85,11 @@ async function main(): Promise<void> {
   initAgentAnalytics({
     apiKey: config.posthogApiKey,
     enabled: config.analyticsEnabled,
+    // The same environment and release the Sentry reports carry (PRD-1560).
+    environment: config.nodeEnv,
+    release: config.sentryRelease,
+    testAccounts: config.telemetryTestAccounts,
+    testGardens: config.telemetryTestGardens,
   });
 
   logger.info(

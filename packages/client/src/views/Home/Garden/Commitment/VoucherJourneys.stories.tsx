@@ -4,16 +4,19 @@ import {
   type CommitmentEventRecord,
   type ServiceAccessAction,
   type ServiceAccessSnapshot,
+  type ServiceOfferLine,
   selectServiceAccessAction,
   serviceAccessAvailableActions,
   useServiceAccess,
   useServiceAccessMutation,
+  useServiceOfferLines,
 } from "@green-goods/shared/commitment-pooling";
 import { Button } from "@green-goods/shared/components/Button";
 import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
 import { useActions, useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useGardenCommitmentController } from "@green-goods/shared/hooks/client-ui/commitment/useGardenCommitmentController";
+import { useGardenPoolController } from "@green-goods/shared/hooks/client-ui/pool/useGardenPoolController";
 import {
   useCommitmentActivity,
   useCommitmentCycle,
@@ -27,12 +30,22 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { IntlProvider } from "react-intl";
-import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { expect, fn, mocked, userEvent, waitFor, within } from "storybook/test";
+import {
+  gardenPoolControllerFixture,
+  JOURNEY_POOL,
+  LIVE_PROMISES,
+} from "../../../../../../shared/.storybook/clientJourneyFixtures";
 import {
   withAdminIdentity,
   withSeededQueryClient,
 } from "../../../../../../shared/.storybook/decorators";
+import {
+  type JourneyFlow,
+  JourneyPlayer,
+  useJourneyEmbed,
+} from "../../../../../../shared/.storybook/journeyPlayer";
 import { resetHookMocks } from "../../../../../../shared/.storybook/moduleMocks";
 import {
   type BookingStoryService,
@@ -56,7 +69,11 @@ import {
   vouchers,
   voucherWalletStory,
 } from "../../../../../../shared/.storybook/voucherPilotFixtures";
+import { ISSUER_STEPS } from "@/components/Features/Vouchers/ServiceIssuerJourney.stories";
+import { VouchersTab } from "../../WalletSheet/VouchersTab";
+import { GardenPool } from "../Pool/GardenPool";
 import { GardenCommitment } from "./GardenCommitment";
+import { PROPOSED_HUB_DAY_STEPS } from "./VoucherHubDayProposal.stories";
 
 type Lang = "en" | "es" | "pt";
 const MESSAGES = { en: enMessages, es: esMessages, pt: ptMessages } as const;
@@ -706,13 +723,152 @@ function controllerFor(step: JourneyStep, onConfirm: () => void) {
   };
 }
 
-/** Where See Your Vouchers leads: Home, with the wallet open on its Vouchers tab. */
-function WalletDestination() {
-  const { search } = useLocation();
+/** A service on a garden's list: who promises it, what a booking takes, and what booking needs. */
+interface EntryService {
+  title: string;
+  by: string;
+  takes: bigint;
+  booking: ServiceOfferLine["booking"];
+}
+const UNIT = 1_000_000n;
+const held = (vouchers: bigint): ServiceOfferLine["booking"] => ({
+  kind: "hold",
+  held: vouchers * UNIT,
+  decimals: 6,
+});
+
+/** Where a member starts before the promise page, when the walk begins from Home. */
+interface EntryScreen {
+  screen: "wallet" | "list";
+  caption: string;
+  /** The garden's list: its services, the reader's row first. */
+  rows?: readonly EntryService[];
+  /** A request that leads the list in place of services, by its title. */
+  request?: string;
+}
+const TECH_AND_SUN_LIST: readonly EntryService[] = [
+  { title: "Hub day, up to 4 hours", by: "Tech and Sun", takes: 1n, booking: held(9n) },
+  { title: "Integration lesson, 60 minutes", by: "Teo Alves", takes: 1n, booking: held(1n) },
+  {
+    title: "Measurement coaching, 60 minutes",
+    by: "Maya Ruiz",
+    takes: 1n,
+    booking: { kind: "exchange" },
+  },
+];
+const ENTRY: Partial<Record<JourneyId, readonly EntryScreen[]>> = {
+  hubDay: [
+    {
+      screen: "wallet",
+      caption:
+        "Lina starts in her wallet's Vouchers tab, holding 9 from Tech and Sun. She opens the holding and taps Book a Service.",
+    },
+    {
+      screen: "list",
+      caption: "Tech and Sun's garden lists what its vouchers book. She opens the hub day.",
+      rows: TECH_AND_SUN_LIST,
+    },
+  ],
+  exchange: [
+    {
+      screen: "wallet",
+      caption:
+        "Lina holds 9 Tech and Sun vouchers and 2 from Green Goods. She opens the Green Goods holding and taps Book a Service.",
+    },
+    {
+      screen: "list",
+      caption: "Green Goods' garden lists its services. She opens Claude access.",
+      rows: [
+        {
+          title: "Claude access, 30 days",
+          by: "Green Goods",
+          takes: 10n,
+          booking: { kind: "exchange" },
+        },
+        { title: "Assisted session, 30 minutes", by: "Green Goods", takes: 1n, booking: held(2n) },
+      ],
+    },
+  ],
+  earn: [
+    {
+      screen: "list",
+      caption: "Riverside Commons' Promises list. Lina opens the request that pays in vouchers.",
+      request: "Teach two compost workshops",
+    },
+  ],
+};
+const OFFERED = LIVE_PROMISES[2]!;
+const REQUESTED = LIVE_PROMISES[1]!;
+
+/** Runs once when a screen's own navigation leaves it, so the walk follows the app's links. */
+function Leave({ onLeave }: { onLeave: () => void }) {
+  useEffect(onLeave, [onLeave]);
+  return null;
+}
+
+/** A garden's Promises list for an entry screen: its services to book, or an open request. */
+function EntryList({ rows, request }: { rows: readonly EntryService[]; request?: string }) {
+  const services = rows.map((service, at) => {
+    const commitmentId = BigInt(4101 + at);
+    return {
+      service,
+      title: service.title,
+      row: {
+        ...OFFERED.row,
+        commitment: {
+          ...OFFERED.row.commitment,
+          id: `42161-${commitmentId}`,
+          commitmentId,
+          metadataCID: `bafy-entry-${commitmentId}`,
+          claimMode: "APPROVAL_GATED" as const,
+          claimType: "INDIVIDUAL" as const,
+          targetUnits: 1n,
+          unitLabel: null,
+        },
+      },
+    };
+  });
+  // An open request nobody has taken up yet, ahead of the garden's other live promises.
+  const listed = request
+    ? [
+        {
+          title: request,
+          row: {
+            ...REQUESTED.row,
+            commitment: {
+              ...REQUESTED.row.commitment,
+              derivedState: "REQUESTED" as const,
+              onchainState: "REQUESTED" as const,
+              state: "REQUESTED" as const,
+              counterparty: null,
+              leadProvider: null,
+            },
+          },
+        },
+        LIVE_PROMISES[0]!,
+        OFFERED,
+      ]
+    : services;
+  mocked(useGardenPoolController).mockReturnValue(
+    gardenPoolControllerFixture(listed, { canCreate: false })
+  );
+  mocked(useServiceOfferLines).mockReturnValue(
+    new Map<string, ServiceOfferLine>(
+      services.map(({ row, service }) => [
+        row.commitment.commitmentId.toString(),
+        {
+          promisedBy: service.by,
+          gender: null,
+          takes: { units: service.takes * UNIT, decimals: 6 },
+          booking: service.booking,
+        },
+      ])
+    )
+  );
   return (
-    <p className="p-4 text-sm" data-component="VoucherJourneyDestination">
-      Home opens with the wallet on its Vouchers tab ({`/home${search}`}).
-    </p>
+    <div className="min-h-dvh bg-bg-canvas px-4 pb-24 pt-3">
+      <GardenPool pool={JOURNEY_POOL} />
+    </div>
   );
 }
 
@@ -725,14 +881,25 @@ function VoucherJourney({
   journey,
   start,
   lang,
+  fromHome,
 }: {
   journey: JourneyId;
   start: number;
   lang: Lang;
+  /** Open on the screens a member comes from: the wallet, then the garden's list. */
+  fromHome: boolean;
 }) {
   const steps: readonly JourneyStep[] = JOURNEYS[journey];
-  const [index, setIndex] = useState(Math.min(start, steps.length - 1));
-  const step = steps[index]!;
+  const entry = (fromHome && ENTRY[journey]) || [];
+  const count = entry.length + steps.length;
+  // Below zero the walk is on an entry screen; from zero, on the promise page's steps.
+  const at = (position: number) => Math.min(position, count - 1) - entry.length;
+  const [index, setIndex] = useState(at(start));
+  const embedded = useJourneyEmbed(index + entry.length, count, (position) =>
+    setIndex(at(position))
+  );
+  const entryScreen = index < 0 ? entry[index + entry.length] : undefined;
+  const step = steps[Math.max(index, 0)]!;
   const snapshot = useMemo(() => snapshotFor(step), [step]);
   const client = useQueryClient();
   const { account } = VOUCHER_STORY_SCOPE;
@@ -795,57 +962,98 @@ function VoucherJourney({
   );
   mocked(useEnsName).mockReturnValue({ data: null } as ReturnType<typeof useEnsName>);
   useEffect(() => {
-    setIndex(Math.min(start, steps.length - 1));
-  }, [start, steps.length]);
+    setIndex(Math.min(start, count - 1) - entry.length);
+  }, [start, count, entry.length]);
+  const wallet = bookingStoryWallet(snapshot, step.holds);
   const garden = snapshot.offer?.providerGarden ?? snapshot.eligibleBuyerGardens[0]?.address;
   return (
     <div className="flex min-h-dvh flex-col bg-bg-white-0 text-text-strong-950">
-      <div
-        className="sticky top-0 z-50 border-b border-stroke-soft-200 bg-bg-weak-50 p-3 text-xs"
-        data-component="VoucherJourneyNarration"
-      >
-        <p className="font-semibold text-text-sub-600">
-          Step {index + 1} of {steps.length}
-        </p>
-        <p className="mt-0.5 text-sm text-text-strong-950">{step.caption}</p>
-        <div className="mt-2 flex flex-wrap gap-2">
-          <Button
-            type="button"
-            size="compact"
-            emphasis="secondary"
-            disabled={index === 0}
-            onClick={() => setIndex(index - 1)}
-          >
-            Back
-          </Button>
-          {step.next ? (
-            <Button type="button" size="compact" onClick={() => setIndex(index + 1)}>
-              {step.next}
-            </Button>
-          ) : null}
-        </div>
-      </div>
-      <IntlProvider key={lang} locale={lang} messages={MESSAGES[lang]}>
-        <MemoryRouter
-          key={`${journey}:${snapshot.key.commitmentId}`}
-          initialEntries={[`/home/${garden}/commitments/${snapshot.key.commitmentId.toString()}`]}
+      {embedded ? null : (
+        <div
+          className="sticky top-0 z-50 border-b border-stroke-soft-200 bg-bg-weak-50 p-3 text-xs"
+          data-component="VoucherJourneyNarration"
         >
-          <Routes>
-            <Route
-              path="/home/:id/commitments/:commitmentId"
-              element={
-                step.queuedClaim ? (
-                  <JobQueueProvider>
+          <p className="font-semibold text-text-sub-600">
+            Step {index + entry.length + 1} of {count}
+          </p>
+          <p className="mt-0.5 text-sm text-text-strong-950">
+            {entryScreen?.caption ?? step.caption}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Button
+              type="button"
+              size="compact"
+              emphasis="secondary"
+              disabled={index + entry.length === 0}
+              onClick={() => setIndex(index - 1)}
+            >
+              Back
+            </Button>
+            {!entryScreen && step.next ? (
+              <Button type="button" size="compact" onClick={() => setIndex(index + 1)}>
+                {step.next}
+              </Button>
+            ) : null}
+          </div>
+        </div>
+      )}
+      <IntlProvider key={lang} locale={lang} messages={MESSAGES[lang]}>
+        {entryScreen ? (
+          // The entry screen's own links move the walk on: any navigation leaves it.
+          <MemoryRouter key={index} initialEntries={["/home"]}>
+            <Routes>
+              <Route
+                path="/home"
+                element={
+                  entryScreen.screen === "wallet" ? (
+                    <div className="flex h-dvh flex-col overflow-hidden bg-bg-white-0">
+                      <VouchersTab wallet={wallet} onClose={() => undefined} />
+                    </div>
+                  ) : (
+                    <EntryList rows={entryScreen.rows ?? []} request={entryScreen.request} />
+                  )
+                }
+              />
+              <Route path="*" element={<Leave onLeave={() => setIndex(index + 1)} />} />
+            </Routes>
+          </MemoryRouter>
+        ) : (
+          <MemoryRouter
+            key={`${journey}:${snapshot.key.commitmentId}`}
+            initialEntries={[`/home/${garden}/commitments/${snapshot.key.commitmentId.toString()}`]}
+          >
+            <Routes>
+              <Route
+                path="/home/:id/commitments/:commitmentId"
+                element={
+                  step.queuedClaim ? (
+                    <JobQueueProvider>
+                      <GardenCommitment />
+                    </JobQueueProvider>
+                  ) : (
                     <GardenCommitment />
-                  </JobQueueProvider>
-                ) : (
-                  <GardenCommitment />
-                )
-              }
-            />
-            <Route path="/home" element={<WalletDestination />} />
-          </Routes>
-        </MemoryRouter>
+                  )
+                }
+              />
+              {/* See Your Vouchers leads Home, with the wallet open on its Vouchers tab. */}
+              <Route
+                path="/home"
+                element={
+                  <div
+                    className="flex h-dvh flex-col overflow-hidden bg-bg-white-0"
+                    data-component="VoucherJourneyDestination"
+                  >
+                    <VouchersTab wallet={wallet} onClose={() => undefined} />
+                  </div>
+                }
+              />
+              {/* The page's own back arrow leaves for the list the reader came from. */}
+              {entry.length ? (
+                <Route path="*" element={<Leave onLeave={() => setIndex(-1)} />} />
+              ) : null}
+            </Routes>
+          </MemoryRouter>
+        )}
       </IntlProvider>
     </div>
   );
@@ -874,17 +1082,93 @@ const meta: Meta<typeof VoucherJourney> = {
       useGardens,
       useActions,
       useGreenGoodsEnsName,
-      useEnsName
+      useEnsName,
+      useGardenPoolController,
+      useServiceOfferLines
     ),
   argTypes: {
     journey: { control: false },
     start: { control: { type: "number", min: 0 } },
     lang: { control: "inline-radio", options: ["en", "es", "pt"] },
+    fromHome: { control: "boolean" },
   },
-  args: { start: 0, lang: "en" },
+  args: { start: 0, lang: "en", fromHome: false },
 };
 export default meta;
 type Story = StoryObj<typeof VoucherJourney>;
+
+const LINA = "Lina, a member holding vouchers";
+/** A journey as the walkthrough's panel lists it, opening on the screens a member comes from. */
+function flowNote(
+  id: JourneyId,
+  story: string,
+  title: string,
+  options: { who?: string; mainSteps?: number; side?: boolean } = {}
+): JourneyFlow {
+  const steps: readonly JourneyStep[] = JOURNEYS[id];
+  const entry = ENTRY[id] ?? [];
+  const main = options.mainSteps ?? steps.length;
+  return {
+    id,
+    title,
+    who: options.who ?? LINA,
+    story: `client-commitments-voucher-journeys--${story}`,
+    args: "fromHome:!true",
+    side: options.side,
+    steps: [...entry, ...steps.slice(0, main)],
+    sideStates: steps
+      .slice(main)
+      .map((step, at) => ({ label: step.caption, step: entry.length + main + at })),
+  };
+}
+
+/** Every App flow in one place: the panel narrates, the stage is the story it names. */
+export const Walkthrough: StoryObj = {
+  globals: { viewport: { value: undefined } },
+  render: () => (
+    <JourneyPlayer
+      surface="App"
+      flows={[
+        {
+          id: "hubDayProposed",
+          title: "Redeem a hub day · proposed",
+          who: LINA,
+          story: "client-commitments-voucher-hub-day-proposal--hub-day",
+          steps: PROPOSED_HUB_DAY_STEPS.slice(0, 8),
+          sideStates: PROPOSED_HUB_DAY_STEPS.slice(8).map((step, at) => ({
+            label: step.caption.replace(/^Side state\. /, ""),
+            step: 8 + at,
+          })),
+        },
+        {
+          id: "setup",
+          title: "Setup and awards",
+          who: "Teo, a member issuing his own vouchers",
+          story: "client-profile-service-issuer-journey--setup-and-awards",
+          steps: ISSUER_STEPS,
+        },
+        flowNote("earn", "earn-vouchers", "Earn vouchers"),
+        flowNote("hubDay", "redeem-hub-day", "Redeem a hub day · today", { mainSteps: 11 }),
+        flowNote("exchange", "exchange-then-redeem", "Exchange then redeem"),
+        flowNote("endsEarly", "claude-access-ends-early", "Access ends early", { side: true }),
+        flowNote("earnVouchersOnly", "earn-vouchers-only", "Reward waits on the reserve", {
+          side: true,
+        }),
+        flowNote("messageWaits", "cross-chain-waits", "Cross-chain waits", { side: true }),
+        flowNote("recovery", "recovery-states", "Recovery states", { side: true }),
+      ]}
+      widths={[
+        { label: "390", width: 390, height: 844 },
+        { label: "375", width: 375, height: 812 },
+        { label: "360", width: 360, height: 640 },
+      ]}
+      counterpart={{
+        label: "Open the Hub Side",
+        story: "admin-pool-voucher-journeys--walkthrough",
+      }}
+    />
+  ),
+};
 
 /** Journey 1: a request that pays Tech and Sun vouchers and G$, each arriving on its own. */
 export const EarnVouchers: Story = { args: { journey: "earn" } };

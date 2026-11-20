@@ -3,7 +3,7 @@ import {
   GARDEN_JOIN_REQUEST_RETENTION_MS,
   toGardenJoinRequestSelfRecord,
 } from "../../services/garden-join-requests";
-import { trackGardenJoinRequestEvent } from "../../services/analytics";
+import { type AgentEventSubject, trackGardenJoinRequestEvent } from "../../services/analytics";
 import { readLimitedJsonBody } from "../http/body";
 import {
   checkMaterialRateLimit,
@@ -38,23 +38,24 @@ export async function handleCreateGardenJoinRequest(
   };
   const preflight = prepareGardenJoinRequest(c, ctx);
   if (!preflight.ok) return preflight.response;
+  let subject: AgentEventSubject = { garden: preflight.garden };
   const preAuthRateError = checkRateLimit(c, ctx.deps, "join_request_create", preflight.garden);
   if (preAuthRateError) {
     ctx.deps.gardenJoinRequestRateLimitPressure?.mark(
       preflight.garden,
       ctx.deps.now?.() ?? Date.now()
     );
-    void trackCreateRejected("rate_limited");
+    void trackCreateRejected(subject, "rate_limited");
     return publicBrowserCorsResponse(c, ctx.deps, preAuthRateError, 429);
   }
   const body = await readLimitedJsonBody<unknown>(c.req.raw, BODY_LIMIT_BYTES);
   if (!body.ok) {
-    void trackCreateRejected("invalid_request");
+    void trackCreateRejected(subject, "invalid_request");
     return publicBrowserCorsResponse(c, ctx.deps, body.error, body.status);
   }
   const parsed = validateCreateGardenJoinRequest(body.value);
   if (!parsed.ok) {
-    void trackCreateRejected("invalid_request");
+    void trackCreateRejected(subject, "invalid_request");
     return publicBrowserCorsResponse(c, ctx.deps, parsed.error, 400);
   }
   const kind = parsed.value.kind ?? "garden_membership";
@@ -71,6 +72,7 @@ export async function handleCreateGardenJoinRequest(
   );
   if (!authenticated.ok) {
     void trackCreateRejected(
+      subject,
       authenticated.response.status >= 500 ? "service_unavailable" : "authentication_failed",
       false,
       "signature_verification",
@@ -78,6 +80,7 @@ export async function handleCreateGardenJoinRequest(
     );
     return authenticated.response;
   }
+  subject = { ...subject, account: authenticated.proof.accountAddress };
   const rateError = checkMaterialRateLimit(
     ctx.deps,
     "join_request_create_account",
@@ -89,6 +92,7 @@ export async function handleCreateGardenJoinRequest(
       ctx.deps.now?.() ?? Date.now()
     );
     void trackCreateRejected(
+      subject,
       "rate_limited",
       authenticated.proof.factory !== undefined,
       undefined,
@@ -101,6 +105,7 @@ export async function handleCreateGardenJoinRequest(
   const store = ctx.store;
   if (!chain || !store) {
     void trackCreateRejected(
+      subject,
       "service_unavailable",
       authenticated.proof.factory !== undefined,
       undefined,
@@ -119,6 +124,7 @@ export async function handleCreateGardenJoinRequest(
         )
       ) {
         void trackCreateRejected(
+          subject,
           "already_steward",
           authenticated.proof.factory !== undefined,
           undefined,
@@ -142,6 +148,7 @@ export async function handleCreateGardenJoinRequest(
       if (opening.status === "rejected") throw opening.reason;
       if (opening.value) {
         void trackCreateRejected(
+          subject,
           "open_joining",
           authenticated.proof.factory !== undefined,
           undefined,
@@ -159,6 +166,7 @@ export async function handleCreateGardenJoinRequest(
       if (membership.status === "rejected") throw membership.reason;
       if (membership.value) {
         void trackCreateRejected(
+          subject,
           "already_member",
           authenticated.proof.factory !== undefined,
           undefined,
@@ -184,6 +192,7 @@ export async function handleCreateGardenJoinRequest(
         ctx.deps.now?.() ?? Date.now()
       );
       void trackCreateRejected(
+        subject,
         "rate_limited",
         authenticated.proof.factory !== undefined,
         undefined,
@@ -200,6 +209,7 @@ export async function handleCreateGardenJoinRequest(
       releaseMaterialRateLimit(ctx.deps, "join_request_create_garden", preflight.garden);
       gardenRateLimitReserved = false;
       void trackCreateRejected(
+        subject,
         "proof_replayed",
         authenticated.proof.factory !== undefined,
         undefined,
@@ -231,6 +241,7 @@ export async function handleCreateGardenJoinRequest(
     }
     if ("full" in result) {
       void trackCreateRejected(
+        subject,
         "queue_full",
         authenticated.proof.factory !== undefined,
         undefined,
@@ -244,12 +255,16 @@ export async function handleCreateGardenJoinRequest(
         409
       );
     }
-    void trackGardenJoinRequestEvent("join_request_created", {
-      kind,
-      requested_via: parsed.value.requestedVia,
-      is_counterfactual: authenticated.proof.factory !== undefined,
-      retry: !result.created,
-    });
+    void trackGardenJoinRequestEvent(
+      "join_request_created",
+      {
+        kind,
+        requested_via: parsed.value.requestedVia,
+        is_counterfactual: authenticated.proof.factory !== undefined,
+        retry: !result.created,
+      },
+      subject
+    );
     return publicBrowserCorsResponse(
       c,
       ctx.deps,
@@ -262,6 +277,7 @@ export async function handleCreateGardenJoinRequest(
     }
     reportGardenJoinRequestUnavailable("create", stage, error);
     void trackCreateRejected(
+      subject,
       "service_unavailable",
       authenticated.proof.factory !== undefined,
       stage,
@@ -282,6 +298,7 @@ type CreateStage =
   | "store_create";
 
 function trackCreateRejected(
+  subject: AgentEventSubject,
   errorClass:
     | "already_member"
     | "already_steward"
@@ -296,11 +313,15 @@ function trackCreateRejected(
   stage?: CreateStage,
   kind: GardenJoinRequestKind = "garden_membership"
 ): Promise<void> {
-  return trackGardenJoinRequestEvent("join_request_create_rejected", {
-    kind,
-    error_class: errorClass,
-    is_counterfactual: isCounterfactual,
-    retry: false,
-    ...(stage ? { stage } : {}),
-  });
+  return trackGardenJoinRequestEvent(
+    "join_request_create_rejected",
+    {
+      kind,
+      error_class: errorClass,
+      is_counterfactual: isCounterfactual,
+      retry: false,
+      ...(stage ? { stage } : {}),
+    },
+    subject
+  );
 }

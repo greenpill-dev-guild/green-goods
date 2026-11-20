@@ -83,22 +83,32 @@ export async function publishProfileAvatar(
     await dependencies.clearDraft();
     return current;
   }
-  const mutation = await signedMutation(dependencies, chainId, address, avatarUri, current.version);
-  dependencies.onStage?.("saving");
-  try {
-    const record = await dependencies.save(chainId, address, mutation);
-    await dependencies.clearDraft();
-    return record;
-  } catch (error) {
-    if (!(error instanceof ProfileAvatarTransportError)) throw error;
-    const isVersionConflict = error.errorCode === "version_conflict";
-    if (!error.isAmbiguous && !isVersionConflict) throw error;
-    const refreshed = await dependencies.get(chainId, address);
-    if (refreshed.avatarUri === avatarUri) {
+  // Only the signature and the save are the send: a photo already in place sent nothing above.
+  const recordSend = dependencies.recordSend ?? ((run) => run());
+  return recordSend(async () => {
+    const mutation = await signedMutation(
+      dependencies,
+      chainId,
+      address,
+      avatarUri,
+      current.version
+    );
+    dependencies.onStage?.("saving");
+    try {
+      const record = await dependencies.save(chainId, address, mutation);
       await dependencies.clearDraft();
-      return refreshed;
+      return record;
+    } catch (error) {
+      if (!(error instanceof ProfileAvatarTransportError)) throw error;
+      const isVersionConflict = error.errorCode === "version_conflict";
+      if (!error.isAmbiguous && !isVersionConflict) throw error;
+      const refreshed = await dependencies.get(chainId, address);
+      if (refreshed.avatarUri === avatarUri) {
+        await dependencies.clearDraft();
+        return refreshed;
+      }
+      // Another signature requires another explicit action from the gardener.
+      throw error;
     }
-    // Another signature requires another explicit action from the gardener.
-    throw error;
-  }
+  });
 }
