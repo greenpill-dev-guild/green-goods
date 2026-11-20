@@ -58,11 +58,22 @@ export function GardenMembershipCard({
     intl.formatDate(memberSince, DATE_FORMAT) !== intl.formatDate(joinedAt, DATE_FORMAT)
       ? memberSince
       : null;
-  const membershipAt = rejoinedAt ?? (validDate(joinedAt) ? joinedAt : null);
+  // The current membership began at memberSince, which is null once the last role is gone; the
+  // first join alone never reads as a current membership. A card that still lists a role while the
+  // history says none (the history lagging a rejoin) reads as unavailable, not as a departure.
+  const departed =
+    !historyLoading && !historyError && history?.memberSince === null && held.length === 0;
+  const membershipAt = validDate(memberSince)
+    ? (rejoinedAt ?? (validDate(joinedAt) ? joinedAt : memberSince))
+    : null;
   const membership =
-    historyLoading || historyError || membershipAt === null ? (
+    historyLoading || historyError || departed || membershipAt === null ? (
       intl.formatMessage({
-        id: historyLoading ? "app.garden.membership.loading" : "app.garden.membership.unavailable",
+        id: historyLoading
+          ? "app.garden.membership.loading"
+          : departed
+            ? "app.garden.membership.left"
+            : "app.garden.membership.unavailable",
       })
     ) : (
       <time dateTime={new Date(membershipAt).toISOString()}>

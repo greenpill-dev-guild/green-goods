@@ -304,11 +304,15 @@ const DEFAULT_AVATAR = "/images/avatar.png";
 /**
  * Who asked, read as a person reads in the Gardeners list: their photo, their name, then their
  * short address and the day they asked, each on its own line so neither drops at 375px; the
- * time of day shows on hover. The name stays under the queue's own heading in weight.
+ * time of day shows on hover. The name takes the roster row's card title (15px in the app), under
+ * the queue's 18px section heading.
  */
 function JoinRequestPerson({ request }: { request: GardenJoinRequestQueueItem }) {
   const { formatDate, formatMessage } = useIntl();
-  const avatar = useResolvedProfileAvatar(request.accountAddress, DEFAULT_AVATAR);
+  // The queue's rows read their photos together, on the batch route, as the roster's rows do.
+  const avatar = useResolvedProfileAvatar(request.accountAddress, DEFAULT_AVATAR, undefined, {
+    list: true,
+  });
   // A request sent under a Green Goods name reads as the username alone.
   const name = formatEnsNameForDisplay(request.displayName) ?? request.displayName;
   const requestedAt = new Date(request.requestedAt);
@@ -327,7 +331,7 @@ function JoinRequestPerson({ request }: { request: GardenJoinRequestQueueItem })
         />
       </span>
       <div className="flex min-w-0 flex-col">
-        <h3 className="truncate type-title-sm text-text-strong-950" title={name}>
+        <h3 className="truncate type-card-title text-text-strong-950" title={name}>
           {name}
         </h3>
         <p

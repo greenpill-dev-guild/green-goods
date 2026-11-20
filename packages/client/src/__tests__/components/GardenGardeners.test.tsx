@@ -229,6 +229,7 @@ describe("GardenGardeners", () => {
           roleSince: {
             gardener: Date.UTC(2026, 9, 4, 12),
             steward: Date.UTC(2026, 9, 6, 12),
+            evaluator: Date.UTC(2026, 9, 8, 12),
           },
         },
       ],
@@ -250,8 +251,8 @@ describe("GardenGardeners", () => {
     );
 
     const steward = screen.getByRole("button", { name: /Member 0/i });
-    // Every role in words, no pill: a steward who also gardens reads as both.
-    expect(steward).toHaveTextContent("Steward and Gardener");
+    // Every role in words, no pill: the garden's lists and the history's other roles together.
+    expect(steward).toHaveTextContent("Steward, Evaluator, and Gardener");
     expect(screen.getByRole("button", { name: /Member 2/i })).toHaveTextContent("Steward");
     expect(screen.getByRole("button", { name: /Member 2/i })).not.toHaveTextContent("Gardener");
     expect(steward).toHaveTextContent("Joined Jun 12, 2026");

@@ -9093,6 +9093,7 @@
   "app.garden.membership.roleSince": "{role} since",
   "app.garden.membership.joinedOn": "Joined {date}",
   "app.garden.membership.rejoinedOn": "Rejoined {date}",
+  "app.garden.membership.left": "Left this garden",
   "app.garden.membership.loading": "Loading membership dates…",
   "app.garden.membership.unavailable": "Membership dates unavailable",
   "app.garden.membership.dateUnknown": "Date unknown",

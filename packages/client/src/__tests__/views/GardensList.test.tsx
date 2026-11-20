@@ -334,6 +334,36 @@ describe("GardensList", () => {
     expect(useGardenMemberHistory).toHaveBeenCalledWith({ account: MOCK_ADDRESS });
   });
 
+  it("never reads a first join as a current membership once the history has no roles", () => {
+    const left = "0x3333333333333333333333333333333333333333";
+    const lagging = "0x4444444444444444444444444444444444444444";
+    mockMyGardens.gardens = [
+      { garden: { id: left, name: "Left garden" }, membership: { roles: [], pendingJoin: false } },
+      asMine({ id: lagging, name: "Lagging garden" }),
+    ];
+    vi.mocked(useGardenMemberHistory).mockReturnValue({
+      members: [left, lagging].map((garden) => ({
+        garden,
+        account: MOCK_ADDRESS,
+        joinedAt: Date.UTC(2026, 4, 3, 12),
+        memberSince: null,
+        roleSince: {},
+      })),
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as ReturnType<typeof useGardenMemberHistory>);
+
+    render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS })));
+
+    const leftCard = screen.getByRole("button", { name: "Left garden" });
+    expect(leftCard).toHaveTextContent("Left this garden");
+    expect(leftCard).not.toHaveTextContent("May 3, 2026");
+    // Still listed with a role while the history lags a rejoin: unavailable, not a departure.
+    const laggingCard = screen.getByRole("button", { name: "Lagging garden" });
+    expect(laggingCard).toHaveTextContent("Membership dates unavailable");
+  });
+
   it("keeps a long garden name to one line inside the row", () => {
     const longName = "RegenerativeBioregionStewardshipGardenCollective2026";
     const longLocation = "RuaDasCooperativasNeighborhoodWithLongUnbrokenPlaceNameLisbonPortugal";

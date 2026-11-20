@@ -9093,6 +9093,7 @@
   "app.garden.membership.roleSince": "{role} desde",
   "app.garden.membership.joinedOn": "Se unió el {date}",
   "app.garden.membership.rejoinedOn": "Volvió a unirse el {date}",
+  "app.garden.membership.left": "Dejó este jardín",
   "app.garden.membership.loading": "Cargando fechas de membresía…",
   "app.garden.membership.unavailable": "Fechas de membresía no disponibles",
   "app.garden.membership.dateUnknown": "Fecha desconocida",

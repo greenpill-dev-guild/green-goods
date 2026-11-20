@@ -66,6 +66,17 @@ function memberRoles(member: GardenMember): GardenRole[] {
 }
 
 /**
+ * Every role a member holds: the two the garden lists (steward, gardener), and any other its
+ * member history dates (owner, evaluator and the rest). The row and the sheet read the same set.
+ */
+function heldRoles(member: GardenMember, history?: GardenMemberHistory): GardenRole[] {
+  const listed = memberRoles(member);
+  return GARDEN_ROLE_ORDER.filter(
+    (role) => listed.includes(role) || history?.roleSince[role] !== undefined
+  );
+}
+
+/**
  * The members one filter and order show. A member who holds both roles appears once in each
  * filter they match; a member whose join date is unknown sorts last either way.
  */
@@ -112,7 +123,7 @@ const GardenMemberItem = memo(function GardenMemberItem({
 }) {
   const intl = useIntl();
   const joinedAt = history?.joinedAt;
-  const roles = memberRoles(member);
+  const roles = heldRoles(member, history);
   const fact: ItemRowDetail | undefined =
     gardenContributionDetail(contribution, intl) ??
     (joinedAt
@@ -365,11 +376,7 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
             <GardenMemberDetails
               account={selected.account}
               // The roles the garden lists, and any other role their history dates (owner, evaluator).
-              roles={GARDEN_ROLE_ORDER.filter(
-                (role) =>
-                  memberRoles(selected).includes(role) ||
-                  selectedHistory?.roleSince[role] !== undefined
-              )}
+              roles={heldRoles(selected, selectedHistory)}
               fallbackAvatar={DEFAULT_AVATAR}
               chainId={chainId}
               email={selected.email}
