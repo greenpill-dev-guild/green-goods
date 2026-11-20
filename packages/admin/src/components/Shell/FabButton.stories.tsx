@@ -153,6 +153,21 @@ const restsClosed: Play = async ({ canvasElement }) => {
   await expectLayerBeneath(fab);
 };
 
+/** How far a computed box-shadow list reaches past the box on each side, in px. */
+function shadowReach(boxShadow: string) {
+  const reach = { left: 0, right: 0, top: 0, bottom: 0 };
+  for (const [, x, y, blur, spread] of boxShadow.matchAll(
+    /(-?[\d.]+)px (-?[\d.]+)px ([\d.]+)px (-?[\d.]+)px/g
+  )) {
+    const size = Number(blur) + Number(spread);
+    reach.left = Math.max(reach.left, size - Number(x));
+    reach.right = Math.max(reach.right, size + Number(x));
+    reach.top = Math.max(reach.top, size - Number(y));
+    reach.bottom = Math.max(reach.bottom, size + Number(y));
+  }
+  return reach;
+}
+
 /** Open, the button is named for closing, and each act says what it does. */
 function opensDial(...labels: string[]): Play {
   return async ({ canvasElement }) => {
@@ -163,15 +178,16 @@ function opensDial(...labels: string[]): Play {
     await expect(fab).toHaveAttribute("aria-expanded", "true");
     const items = await canvas.findAllByRole("menuitem");
     await expect(items.map((item) => item.textContent)).toEqual(labels);
-    // The dial scrolls, so it clips at its edges: each item and its 2px focus ring has to
-    // sit inside the list's box, or the ring's edge is cut off (PRD-1491).
+    // The dial scrolls, so it clips at its edges: each item, with its focus ring and its
+    // whole shadow, has to sit inside the list's box, or an edge is cut off (PRD-1491).
     const list = canvas.getByRole("menu").getBoundingClientRect();
     for (const item of items) {
       const box = item.getBoundingClientRect();
-      await expect(box.right + 2).toBeLessThanOrEqual(list.right);
-      await expect(box.left - 2).toBeGreaterThanOrEqual(list.left);
-      await expect(box.top - 2).toBeGreaterThanOrEqual(list.top);
-      await expect(box.bottom + 2).toBeLessThanOrEqual(list.bottom);
+      const reach = shadowReach(getComputedStyle(item).boxShadow);
+      await expect(box.right + Math.max(reach.right, 2)).toBeLessThanOrEqual(list.right);
+      await expect(box.left - Math.max(reach.left, 2)).toBeGreaterThanOrEqual(list.left);
+      await expect(box.top - Math.max(reach.top, 2)).toBeGreaterThanOrEqual(list.top);
+      await expect(box.bottom + Math.max(reach.bottom, 2)).toBeLessThanOrEqual(list.bottom);
     }
   };
 }

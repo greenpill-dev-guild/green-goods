@@ -152,7 +152,12 @@ export function buildGardenViewActions(
             label: "Seed Promises",
             labelId: "hub.garden.pool.act.seedPromises",
             icon: RiSeedlingLine,
-            onClick: () => navigate(adminRoutes.gardenPoolSeed({ gardenId: gardenAddress })),
+            // The canonical id first: a caller that passes only gardenId must not open the
+            // seeding flow on the default garden.
+            onClick: () =>
+              navigate(
+                adminRoutes.gardenPoolSeed({ gardenId: routeContext?.gardenId ?? gardenAddress })
+              ),
             variant: "primary" as const,
             visible: hasSelectedGarden && canManage,
             primary: true,

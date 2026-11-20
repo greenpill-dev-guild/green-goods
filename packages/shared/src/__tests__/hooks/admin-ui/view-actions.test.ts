@@ -138,11 +138,14 @@ describe("buildGardenViewActions — fixed primary", () => {
         expect(primaryIds(actions)).toEqual(["edit-garden"]);
       }
     }
-    const navigate = vi.fn();
-    buildGardenViewActions("pool", true, true, navigate, { gardenAddress: GARDEN })
-      .find((action) => action.id === "seed-promises")
-      ?.onClick();
-    expect(navigate).toHaveBeenCalledWith(`/garden/pool/seed?gardenId=${GARDEN}`);
+    // The canonical gardenId and the older gardenAddress both reach the seeding flow.
+    for (const context of [{ gardenId: GARDEN }, { gardenAddress: GARDEN }]) {
+      const navigate = vi.fn();
+      buildGardenViewActions("pool", true, true, navigate, context)
+        .find((action) => action.id === "seed-promises")
+        ?.onClick();
+      expect(navigate).toHaveBeenCalledWith(`/garden/pool/seed?gardenId=${GARDEN}`);
+    }
   });
 
   it("dropped the header edit-domains action — domains are edited in Settings", () => {

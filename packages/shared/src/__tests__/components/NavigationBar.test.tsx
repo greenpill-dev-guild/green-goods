@@ -605,13 +605,14 @@ describe("NavigationBar", () => {
     await user.click(screen.getByRole("button", { name: /open actions/i }));
 
     const launcher = screen.getByRole("menu", { name: /actions/i });
-    // The list pads 8px on every side so a scrolling dial never clips an item's ring, and
-    // sits 8px past the FAB's edge so the items stay where they were.
+    // The list pads past the items' shadow so a scrolling dial never clips it, and is
+    // offset by that padding so the items stay where they were; the padding lets taps through.
     expect(launcher.style).toMatchObject({
       position: "absolute",
-      right: "-0.5rem",
-      bottom: "100%",
-      padding: "0.5rem",
+      right: "-2rem",
+      bottom: "calc(100% - 2.5rem)",
+      padding: "1rem 2rem 3rem",
+      pointerEvents: "none",
       display: "flex",
       flexDirection: "column-reverse",
       alignItems: "flex-end",
@@ -620,6 +621,6 @@ describe("NavigationBar", () => {
     expect(launcher.style.maxHeight).toContain("100dvh");
     expect(launcher.style.maxHeight).toContain("env(safe-area-inset-top)");
     expect(launcher.style.maxHeight).toContain("env(safe-area-inset-bottom)");
-    expect(launcher.style.maxHeight).toContain("8.5rem");
+    expect(launcher.style.maxHeight).toContain("5.5rem");
   });
 });

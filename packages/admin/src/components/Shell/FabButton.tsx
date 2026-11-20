@@ -161,14 +161,15 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
         <div // eslint-disable-line jsx-a11y/interactive-supports-focus -- menu items are focusable <button role="menuitem"> children; focus moves to the first on open
           // w-max: an absolute list inside the FAB's 56px box would otherwise
           // shrink to its narrowest word and wrap every label. The list scrolls on a
-          // short screen, which clips at its edges, so it pads 8px on every side (the
-          // focus ring and the elevation shadow fit inside) and sits 8px past the
-          // FAB's right edge and onto its top, keeping the items where they were.
-          className="speed-dial-list absolute -right-2 bottom-full flex w-max flex-col-reverse items-end gap-2 overflow-y-auto overflow-x-hidden overscroll-contain p-2"
+          // short screen, which clips at its edges, so it pads past the items' shadow
+          // (--admin-speed-dial-shadow, 0 16px 30px: 30px aside, 14px up, 46px down)
+          // and is offset by that padding, so the items sit where they did: 8px above
+          // the FAB, flush with its right edge. The padding lets taps through.
+          className="speed-dial-list pointer-events-none absolute -right-8 bottom-[calc(100%-2.5rem)] flex w-max flex-col-reverse items-end gap-2 overflow-y-auto overflow-x-hidden overscroll-contain px-8 pt-4 pb-12"
           style={{
             maxHeight:
-              "calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 8.5rem)",
-            maxWidth: "calc(100vw - 1rem)",
+              "calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 5.5rem)",
+            maxWidth: "calc(100vw + 2rem)",
           }}
           data-slot="speed-dial"
           data-state="open"
@@ -200,7 +201,7 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
                     : undefined
                 }
                 className={cn(
-                  "flex min-h-11 cursor-pointer items-center gap-2 rounded-full px-3 py-2",
+                  "pointer-events-auto flex min-h-11 cursor-pointer items-center gap-2 rounded-full px-3 py-2",
                   "border border-[color:var(--admin-speed-dial-border,rgb(var(--stroke-soft-200)))]",
                   "bg-[rgb(var(--admin-surface-0))]",
                   "type-body font-medium text-text-strong",

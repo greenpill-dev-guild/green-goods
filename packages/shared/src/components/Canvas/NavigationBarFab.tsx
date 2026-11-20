@@ -134,25 +134,27 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
           className="speed-dial-list"
           style={{
             // The list scrolls on a short screen, which clips at its edges, so it pads
-            // 8px on every side (focus ring and shadow fit inside) and sits 8px past
-            // the FAB's right edge, keeping the items where they were (admin's fork).
+            // past the items' shadow (30px aside, 14px up, 46px down) and is offset by
+            // that padding, so the items sit 8px above the FAB, flush with its right
+            // edge; the padding lets taps through (admin's fork).
             position: "absolute",
-            right: "-0.5rem",
-            bottom: "100%",
+            right: "-2rem",
+            bottom: "calc(100% - 2.5rem)",
+            pointerEvents: "none",
             display: "flex",
             flexDirection: "column-reverse",
             alignItems: "flex-end",
             gap: "0.5rem",
             maxHeight:
-              "calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 8.5rem)",
+              "calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 5.5rem)",
             // Sized to its labels, not to the narrow FAB it anchors to, so no
             // label wraps a word per line (admin's fork uses `w-max`).
             width: "max-content",
-            maxWidth: "calc(100vw - 1rem)",
+            maxWidth: "calc(100vw + 2rem)",
             overflowX: "hidden",
             overflowY: "auto",
             overscrollBehavior: "contain",
-            padding: "0.5rem",
+            padding: "1rem 2rem 3rem",
           }}
           data-slot="speed-dial"
           data-state="open"
@@ -192,6 +194,7 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
                 )}
                 style={{
                   maxWidth: "calc(100vw - 2rem)",
+                  pointerEvents: "auto",
                   // Inline, so no consumer's CSS scan can drop the inert look.
                   ...(action.disabled ? { opacity: 0.55, cursor: "not-allowed" } : {}),
                   background: "var(--admin-speed-dial-bg, var(--color-material-regular))",
