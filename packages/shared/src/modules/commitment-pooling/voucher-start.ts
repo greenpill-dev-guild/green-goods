@@ -36,7 +36,7 @@ export function voucherStartFallbackDue(
 }
 
 /** The start's two sends, as the shared service actions name them. */
-export type VoucherStartAct =
+type VoucherStartAct =
   | Extract<VoucherSetupAction, { action: "finalizeVoucherActivation" }>
   | (Extract<VoucherSetupAction, { action: "dispatchVoucherSetupCommand" }> & {
       kind: "decision";
