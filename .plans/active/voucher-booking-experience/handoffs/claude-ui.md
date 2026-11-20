@@ -34,7 +34,7 @@
 - Result: client suite 183 files, 2590 tests passed; test type check clean; dead code passed; tokens passed; story plays 81 of 81 passed
 - Validated paths: `packages/client/src/views/Home/Garden/Commitment`, `packages/client/src/views/Home/WalletSheet`, `packages/client/src/views/Home/CommitmentsSheet`, `packages/client/src/views/Profile/ServiceIssuerApproveSheet.tsx`, `packages/shared/src/i18n`, `packages/shared/src/hooks/commitment-pooling/index.ts`, `packages/shared/.storybook`
 - Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- packages/client/src packages/shared/src packages/shared/.storybook` → empty
-- Open: the Promises launcher and Live tab counts don't yet include a booking's own Needs you (review item 4); that waits on the orchestrator's choice of a Shared hook.
+- Known limit: the Live tab counts a booking's own Needs you while the sheet is open (red first: the tab read nothing, then 1); Home's badge still counts the inbox alone until PR H adds the Shared read (`useCommitmentsAttention`).
 
 ## Validation Receipt
 
