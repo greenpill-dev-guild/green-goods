@@ -23,6 +23,7 @@ export function StartActions({
   selectedDomain,
   setSelectedDomain,
   onChoose,
+  gardenLine,
   notice,
 }: {
   actions: Action[];
@@ -33,6 +34,8 @@ export function StartActions({
   selectedDomain: Domain | null;
   setSelectedDomain: (domain: Domain | null) => void;
   onChoose: (uid: number) => void;
+  /** Where the work goes, under the info card (PRD-1522). */
+  gardenLine: ReactNode;
   notice: ReactNode;
 }) {
   const intl = useIntl();
@@ -52,6 +55,7 @@ export function StartActions({
         info={intl.formatMessage({ id: "app.garden.whatTypeOfWork" })}
         Icon={RiHammerFill}
       />
+      {gardenLine}
       {notice}
       {domains.length > 1 ? (
         <div

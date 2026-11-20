@@ -5,6 +5,7 @@ import { formatCommitmentUnits } from "@green-goods/shared/i18n/commitmentUnits"
 import type { Action } from "@green-goods/shared/types/domain";
 import { parseActionUID } from "@green-goods/shared/utils/action/parsers";
 import { RiHammerLine, RiHandHeartFill, RiUploadCloud2Line } from "@remixicon/react";
+import type { ReactNode } from "react";
 import { type IntlShape, useIntl } from "react-intl";
 import { FormInfo } from "@/components/Cards/Form/FormInfo";
 import {
@@ -56,12 +57,15 @@ export function StartPromise({
   selectedActionUID,
   onAddEvidence,
   onChoose,
+  gardenLine,
 }: {
   promise: StartPromiseModel;
   actions: Action[];
   selectedActionUID: number | null;
   onAddEvidence: () => void;
   onChoose: (choice: StartChoice) => void;
+  /** Where the work goes, under the promise's card (PRD-1522). */
+  gardenLine: ReactNode;
 }) {
   const intl = useIntl();
   const card = startPromiseCard(intl, promise, () => null);
@@ -97,6 +101,7 @@ export function StartPromise({
         info={[progress, due].filter(Boolean).join(" · ")}
         Icon={RiHandHeartFill}
       />
+      {gardenLine}
       {promise.takesEvidence ? (
         <ItemRow
           data-component="AddEvidence"
