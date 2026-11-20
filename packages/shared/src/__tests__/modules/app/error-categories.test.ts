@@ -1,4 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
+
+const sentry = vi.hoisted(() => ({
+  init: vi.fn(),
+  setTag: vi.fn(),
+  browserTracingIntegration: vi.fn(),
+  replayIntegration: vi.fn(),
+  captureException: vi.fn(),
+  withScope: vi.fn(),
+}));
+vi.mock("@sentry/react", () => sentry);
 import {
   registerExternalErrorReporter,
   type ExternalErrorReporterContext,
@@ -101,12 +111,19 @@ describe("contract error tracking", () => {
 
 describe("a PostHog failure and the Sentry report behind it", () => {
   // error_tracked goes out only from a production build, decided when the module loads.
-  it("carries the id of the report Sentry filed for the same handled error (PRD-1561)", async () => {
+  it("carries the id of the report Sentry filed for that handled error, never an earlier one (PRD-1561)", async () => {
     vi.resetModules();
     vi.stubEnv("DEV", false);
+    const scope = {
+      setLevel: vi.fn(),
+      setTag: vi.fn(),
+      setFingerprint: vi.fn(),
+      setContext: vi.fn(),
+    };
+    sentry.withScope.mockImplementation((run: (s: typeof scope) => void) => run(scope));
+    sentry.captureException.mockReturnValueOnce("report-1").mockReturnValueOnce("report-2");
     try {
       const { registerTelemetrySink } = await import("../../../modules/app/telemetry-sink");
-      const reporters = await import("../../../modules/app/external-error-reporters");
       const tracked: Record<string, unknown>[] = [];
       const unregisterSink = registerTelemetrySink({
         capture: (event, properties) => {
@@ -114,16 +131,27 @@ describe("a PostHog failure and the Sentry report behind it", () => {
         },
         isReady: () => true,
       });
-      const unregisterReporter = reporters.registerExternalErrorReporter(() => "sentry-event-1");
+      const { initBrowserSentry } = await import("../../../modules/app/sentry");
+      const stopSentry = initBrowserSentry({
+        dsn: "https://key@sentry.example/1",
+        surface: "client",
+      });
       const { trackError } = await import("../../../modules/app/error-categories");
 
       trackError(new Error("Indexer timed out"), { source: "useGardens", category: "graphql" });
-      unregisterReporter();
-      trackError(new Error("Indexer timed out"), { source: "useGardens", category: "graphql" });
+      trackError(new Error("Gateway refused"), { source: "useGardens", category: "graphql" });
+      stopSentry();
+      trackError(new Error("Indexer timed out again"), {
+        source: "useGardens",
+        category: "graphql",
+      });
       unregisterSink();
 
-      expect(tracked[0]).toMatchObject({ sentry_event_id: "sentry-event-1" });
-      expect(tracked[1]).not.toHaveProperty("sentry_event_id");
+      expect(tracked.map((properties) => properties.sentry_event_id)).toEqual([
+        "report-1",
+        "report-2",
+        undefined,
+      ]);
     } finally {
       vi.unstubAllEnvs();
     }
