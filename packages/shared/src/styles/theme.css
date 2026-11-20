@@ -2443,6 +2443,16 @@
     font-variant-ligatures: no-contextual;
   }
 
+  /* A plain line in the pill's place (a member's roles), one line like the title. */
+  .gg-item-row-subtitle {
+    max-inline-size: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: rgb(var(--text-strong-950));
+    font-variant-ligatures: no-contextual;
+  }
+
   .gg-item-row-title[data-lines="2"] {
     display: -webkit-box;
     -webkit-box-orient: vertical;

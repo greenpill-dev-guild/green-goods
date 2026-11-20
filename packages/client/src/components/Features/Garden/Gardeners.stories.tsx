@@ -1,12 +1,16 @@
 import { useGardenMemberContributions } from "@green-goods/shared/hooks/garden/useGardenMemberContributions";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
+import {
+  useGardenJoinRequestAvailability,
+  useGardenJoinRequests,
+} from "@green-goods/shared/hooks/garden/useGardenJoinRequests";
 import { useGardenMemberHistory } from "@green-goods/shared/hooks/garden/useGardenMemberHistory";
 import { useResolvedProfileAvatar } from "@green-goods/shared/hooks/profile/useProfileAvatar";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, fn, mocked, userEvent, waitFor, within } from "storybook/test";
 import { JOURNEY_GARDEN_RECORD } from "../../../../../shared/.storybook/clientJourneyFixtures";
-import { withSignedOutAuth } from "../../../../../shared/.storybook/decorators";
+import { withSignedOutAuth, withWagmi } from "../../../../../shared/.storybook/decorators";
 import {
   FIXTURE_IMAGE_PROFILE,
   STORYBOOK_NOW_SECONDS,
@@ -175,5 +179,168 @@ export const ContributionDetails: Story = {
   play: async ({ canvasElement }) => {
     await userEvent.click(within(canvasElement).getAllByRole("button", { name: /Gardener 1/ })[0]);
     await waitFor(() => expect(within(document.body).getByRole("dialog")).toBeVisible());
+  },
+};
+
+/** The role filter: the steward alone, then Show All from a filter nobody matches. */
+export const RoleFilter: Story = {
+  args: { members: members.slice(0, 4) },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("status")).toHaveTextContent("4 members");
+    await userEvent.selectOptions(canvas.getByRole("combobox", { name: "Role" }), "steward");
+    await expect(canvas.getAllByRole("button", { name: /Gardener \d+/ })).toHaveLength(1);
+    await expect(canvas.getByRole("status")).toHaveTextContent("1 member");
+    await userEvent.selectOptions(canvas.getByRole("combobox", { name: "Role" }), "gardener");
+    // The steward also holds the Gardener hat, so they appear here once too.
+    await expect(canvas.getAllByRole("button", { name: /Gardener \d+/ })).toHaveLength(4);
+  },
+};
+
+export const RoleFilterEmpty: Story = {
+  args: { members: members.slice(1, 4) },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.selectOptions(canvas.getByRole("combobox", { name: "Role" }), "steward");
+    await expect(canvas.getByText("No one in this garden holds this role.")).toBeVisible();
+    await userEvent.click(canvas.getByRole("button", { name: "Show All" }));
+    await expect(canvas.getAllByRole("button", { name: /Gardener \d+/ })).toHaveLength(3);
+  },
+};
+
+/**
+ * A steward's view of a member with the most details today: a Green Goods name and a recorded
+ * contribution. The sheet opens with the photo, the address to copy, the roles and the history.
+ */
+export const DetailsFull: Story = {
+  args: { members: members.slice(0, 3) },
+  beforeEach: () => {
+    mocked(useGardenMemberContributions).mockReturnValue({
+      canView: true,
+      byAccount: {
+        [members[0].account.toLowerCase()]: { status: "recorded", at: Date.UTC(2026, 10, 15, 12) },
+      },
+    });
+    mocked(useGreenGoodsEnsName).mockImplementation(
+      (address) =>
+        ({
+          data: address === members[0].account ? "tomas.greengoods.eth" : null,
+        }) as ReturnType<typeof useGreenGoodsEnsName>
+    );
+    return resetHookMocks(useGardenMemberContributions, useGreenGoodsEnsName);
+  },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getAllByRole("button", { name: /tomas/ })[0]);
+    const dialog = await within(document.body).findByRole("dialog");
+    // The sheet fades in, so wait for it to settle before reading what it shows.
+    await waitFor(() => expect(within(dialog).getByText("Joined as Gardener")).toBeVisible());
+    await expect(within(dialog).getByText("Became Steward")).toBeVisible();
+    await expect(within(dialog).getByText("Last recorded contribution")).toBeVisible();
+    await expect(within(dialog).getByText("Steward and Gardener")).toBeVisible();
+    await expect(within(dialog).getByRole("button", { name: "Copy Address" })).toBeVisible();
+  },
+};
+
+/**
+ * No source fills a member's contacts today. Once one does (an email sign-in), they join the
+ * address in the one list of things to copy, each with its own copy.
+ */
+export const DetailsWithContact: Story = {
+  args: {
+    members: [
+      { ...members[0], email: "tomas@example.org", phone: "+1 555 0100" },
+      ...members.slice(1, 3),
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getAllByRole("button", { name: /Gardener 1/ })[0]);
+    const dialog = await within(document.body).findByRole("dialog");
+    await waitFor(() => expect(within(dialog).getByText("tomas@example.org")).toBeVisible());
+    await expect(within(dialog).getByRole("button", { name: "Copy Phone" })).toBeVisible();
+    await expect(within(dialog).getByRole("button", { name: "Copy Email" })).toBeVisible();
+  },
+};
+
+/**
+ * A steward's join-request queue above the list. Each request reads as a person in the list
+ * does, and its name sits under the queue's heading in weight.
+ */
+export const JoinRequests: Story = {
+  args: { members: members.slice(0, 3), canManageRequests: true },
+  // Welcome writes the role on chain, so the queue reads the wallet's operations.
+  decorators: [withWagmi],
+  beforeEach: () => {
+    mocked(useGardenJoinRequestAvailability).mockReturnValue(true);
+    mocked(useGardenJoinRequests).mockReturnValue({
+      queue: [
+        {
+          id: "request-1",
+          accountAddress: "0x00000000000000000000000000000000000000aa",
+          displayName: "ana.greengoods.eth",
+          state: "pending",
+          revision: 1,
+          requestedAt: "2026-11-15T15:40:00.000Z",
+          note: "I tend the east beds on weekends and would like to log that work here.",
+        },
+        {
+          id: "request-2",
+          accountAddress: "0x00000000000000000000000000000000000000bb",
+          displayName: "Kwame Mensah-Bonsu",
+          state: "pending",
+          revision: 1,
+          requestedAt: "2026-11-16T09:05:00.000Z",
+        },
+      ],
+      nextCursor: undefined,
+      rateLimitedRecently: false,
+      queueState: { isLoading: false, error: null },
+      mutationState: { isLoading: false, error: null },
+      loadQueue: fn(async () => undefined),
+      resolveRequest: fn(async () => undefined),
+    } as unknown as ReturnType<typeof useGardenJoinRequests>);
+    return resetHookMocks(useGardenJoinRequestAvailability, useGardenJoinRequests);
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const heading = canvas.getByRole("heading", { level: 2, name: "Join Requests" });
+    const name = canvas.getByRole("heading", { level: 3, name: "ana" });
+    await expect(parseFloat(getComputedStyle(name).fontSize)).toBeLessThan(
+      parseFloat(getComputedStyle(heading).fontSize)
+    );
+  },
+};
+
+/** A member who joined holding both hats, with no photo: one dated row, the default avatar. */
+export const DetailsSameDayNoPhoto: Story = {
+  args: { members: members.slice(0, 3) },
+  beforeEach: () => {
+    mocked(useGardenMemberHistory).mockReturnValue({
+      members: members.slice(0, 3).map((member) => ({
+        garden: JOURNEY_GARDEN_RECORD.id,
+        account: member.account,
+        joinedAt: Date.UTC(2026, 5, 12, 12),
+        memberSince: Date.UTC(2026, 5, 12, 12),
+        roleSince: {
+          gardener: Date.UTC(2026, 5, 12, 12),
+          ...(member.isSteward ? { steward: Date.UTC(2026, 5, 12, 12) } : {}),
+        },
+      })),
+      isLoading: false,
+      isError: false,
+      refetch: fn(),
+    } as ReturnType<typeof useGardenMemberHistory>);
+    mocked(useResolvedProfileAvatar).mockReturnValue({
+      avatarUri: "/images/avatar.png",
+      isLoading: false,
+    } as ReturnType<typeof useResolvedProfileAvatar>);
+    return resetHookMocks(useGardenMemberHistory, useResolvedProfileAvatar);
+  },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getAllByRole("button", { name: /Gardener 1/ })[0]);
+    const dialog = await within(document.body).findByRole("dialog");
+    await waitFor(() =>
+      expect(within(dialog).getByText("Joined as Steward and Gardener")).toBeVisible()
+    );
+    await expect(within(dialog).getAllByText("Jun 12, 2026")).toHaveLength(1);
   },
 };

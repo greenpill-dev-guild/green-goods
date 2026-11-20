@@ -97,6 +97,12 @@ export interface ItemRowProps
    * "Confirming…", "Not sent") goes here too, never in a second pill.
    */
   status?: { label: string; tone: ItemRowTone };
+  /**
+   * A line of plain text in the pill's place, for a row whose second line says what the item is
+   * rather than its state: a member's roles in words. A row has a pill or this line, never both;
+   * the pill wins when a caller passes both.
+   */
+  subtitle?: string;
   /** At most two details, most important first. */
   details?: readonly [ItemRowDetail] | readonly [ItemRowDetail, ItemRowDetail];
   /** The 2px status edge, for work rows. */
@@ -241,7 +247,11 @@ function RowContent({
   status,
   details,
   amount,
-}: Pick<ItemRowProps, "lead" | "title" | "titleLines" | "status" | "details" | "amount">) {
+  subtitle,
+}: Pick<
+  ItemRowProps,
+  "lead" | "title" | "titleLines" | "status" | "subtitle" | "details" | "amount"
+>) {
   return (
     <>
       <Lead lead={lead} />
@@ -263,6 +273,10 @@ function RowContent({
           >
             <span className="min-w-0 truncate">{status.label}</span>
           </StatusBadge>
+        ) : subtitle ? (
+          <span className="gg-item-row-subtitle type-meta" title={subtitle}>
+            {subtitle}
+          </span>
         ) : null}
         {details?.length ? <DetailLine details={details} /> : null}
       </span>
@@ -284,6 +298,7 @@ export const ItemRow = React.forwardRef<HTMLElement, ItemRowProps>(function Item
     title,
     titleLines,
     status,
+    subtitle,
     details,
     edge,
     action,
@@ -310,6 +325,7 @@ export const ItemRow = React.forwardRef<HTMLElement, ItemRowProps>(function Item
       title={title}
       titleLines={titleLines}
       status={status}
+      subtitle={subtitle}
       details={details}
       amount={action ? undefined : amount}
     />
