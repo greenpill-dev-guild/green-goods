@@ -203,8 +203,8 @@ export interface VoucherAcceptDialogProps {
   now: number;
   /** Where this ask's acceptance stands, from here or its row. */
   phase: TxActPhase;
-  /** Where the start's two sends stand once the acceptance lands. */
-  start: VoucherStartProgress;
+  /** Where this ask's start stands once its acceptance lands; null while no ask is open. */
+  start: VoucherStartProgress | null;
   /** The pool's chain, where all three sends land. */
   chainId: number;
   /** Offline, or another act is with the wallet or the chain. */
@@ -271,7 +271,7 @@ export function VoucherAcceptDialog({
           {ask && checks ? (
             <VoucherAcceptanceChecks ask={ask} name={name} checks={checks} nowMs={now * 1000} />
           ) : null}
-          {ask ? (
+          {ask && start ? (
             <VoucherStartList
               accept={phase}
               start={start}

@@ -162,7 +162,7 @@ export function storyPoolConsole(
     claimPhase: () => ({ status: "idle" }),
     claimDecisions: {},
     claimInFlight: false,
-    voucherStart: VOUCHER_START_IDLE,
+    voucherStartFor: () => VOUCHER_START_IDLE,
     resumePhase: { status: "idle" },
     queuedPhase: () => ({ status: "idle" }),
     isActing: false,

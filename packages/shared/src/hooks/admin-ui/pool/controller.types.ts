@@ -154,8 +154,11 @@ export interface PoolConsoleController {
   claimDecisions: ClaimDecisions;
   /** An approval is with the wallet or the chain, from this card or the inspector. */
   claimInFlight: boolean;
-  /** Where the start's two sends stand, after an Accept and Start. */
-  voucherStart: VoucherStartProgress;
+  /**
+   * Where this ask's start stands after its Accept and Start: its two sends. Idle for any other
+   * ask, so one booking's sends never show on another's dialog.
+   */
+  voucherStartFor: (commitmentId: bigint, buyer: Address) => VoucherStartProgress;
   /** Where Resume Pool stands. */
   resumePhase: TxActPhase;
   /** Where the send started from this queued row stands. */

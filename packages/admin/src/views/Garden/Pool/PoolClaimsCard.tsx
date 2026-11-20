@@ -477,7 +477,7 @@ export function PoolClaimsCard({
         phase={
           accepting ? pool.claimPhase(accepting.commitmentId, accepting.buyer) : { status: "idle" }
         }
-        start={pool.voucherStart}
+        start={accepting ? pool.voucherStartFor(accepting.commitmentId, accepting.buyer) : null}
         chainId={chainId}
         disabled={disabled}
         tone={tone}

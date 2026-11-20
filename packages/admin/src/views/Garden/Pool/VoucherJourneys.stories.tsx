@@ -555,7 +555,7 @@ function HubJourneyPage({ journey, start }: { journey: FlowId; start: number }) 
   // Accept and Start's start lands at once: the walk shows its sends done, never a live read.
   mocked(useVoucherStart).mockReturnValue({
     start: async () => "started",
-    progress: STORY_START_DONE,
+    progressFor: () => STORY_START_DONE,
     reset: () => undefined,
   });
   // A zero chain time defers to the console's own clock, the story's time.

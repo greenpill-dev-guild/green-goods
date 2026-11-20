@@ -227,6 +227,7 @@ export function usePoolConsoleController(input: {
   );
   const voucherStart = useVoucherStart({ chainId, garden });
   const startVoucherBooking = voucherStart.start;
+  const resetVoucherStart = voucherStart.reset;
   // A voucher booking is the ask's decision on the same line, so its row
   // follows the act and keeps the outcome. The checks gate the wallet too,
   // not only the dialog's button, on the chain's latest block read as the act
@@ -313,6 +314,8 @@ export function usePoolConsoleController(input: {
       // acceptance has landed. One the Safe's signers still have to approve hasn't, so its start
       // waits for the member's fallback; a start that fails never undoes the acceptance.
       acceptAndStartBooking: async (ask: VoucherAsk, now: number) => {
+        // A new acceptance opens with nothing sent, whatever an earlier start left.
+        resetVoucherStart();
         const { awaitingSigners } = await acceptVoucherBooking(ask, now);
         if (awaitingSigners) return "acceptanceWaiting" as const;
         const setupId = ask.setup?.setupId;
@@ -382,6 +385,7 @@ export function usePoolConsoleController(input: {
       askedAt,
       acceptVoucherBooking,
       startVoucherBooking,
+      resetVoucherStart,
       trackPool,
       trackQueued,
       finishGroup,
@@ -439,7 +443,7 @@ export function usePoolConsoleController(input: {
     claimDecisions: claimDecisions.decisions,
     claimInFlight:
       claimDecisions.phase.status === "signing" || claimDecisions.phase.status === "confirming",
-    voucherStart: voucherStart.progress,
+    voucherStartFor: voucherStart.progressFor,
     resumePhase: actPhaseFor(poolAct.phase, RESUME_POOL_ACT_KEY),
     queuedPhase: (jobId: string) => actPhaseFor(queuedAct.phase, jobId),
     isActing: poolMutation.isPending || commitmentMutation.isPending,

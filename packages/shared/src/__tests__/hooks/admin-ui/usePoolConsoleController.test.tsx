@@ -16,6 +16,7 @@ import { queryKeys } from "../../../config/query-keys";
 import {
   usePoolConsoleController,
   useVoucherConsole,
+  VOUCHER_START_IDLE,
 } from "../../../hooks/admin-ui/pool/usePoolConsoleController";
 import type { CommitmentMutationInput } from "../../../hooks/commitment-pooling/useCommitmentMutations";
 import type { CommitmentPoolMutationInput } from "../../../hooks/commitment-pooling/useCommitmentPoolMutations";
@@ -795,7 +796,7 @@ describe("usePoolConsoleController", () => {
         "finalizeActivation",
         "dispatchSetupCommand",
       ]);
-      expect(result.current.voucherStart).toMatchObject({
+      expect(result.current.voucherStartFor(COMMITMENT.commitmentId, CLAIMANT)).toMatchObject({
         record: "done",
         send: "done",
         fee: 9n,
@@ -833,7 +834,9 @@ describe("usePoolConsoleController", () => {
       });
 
       expect(outcome).toBe("notSent");
-      expect(result.current.voucherStart.record).toBe("failed");
+      expect(result.current.voucherStartFor(COMMITMENT.commitmentId, CLAIMANT).record).toBe(
+        "failed"
+      );
       expect(
         result.current.claimDecisions[claimActKey(COMMITMENT.commitmentId, CLAIMANT)]
       ).toMatchObject({ kind: "approved" });
@@ -847,6 +850,68 @@ describe("usePoolConsoleController", () => {
         "reverted"
       );
       expect(mocks.prepareStart).not.toHaveBeenCalled();
+    });
+
+    // Through the real send record (PRD-1561): it records the send as still confirming and
+    // rethrows, and the start must not then call it failed (Codex on #1748).
+    it("says a start send past its receipt limit is still confirming, not failed", async () => {
+      mocks.commitmentMutate.mockResolvedValue("0xacce");
+      mocks.prepareStart.mockResolvedValueOnce(sends[0]);
+      mocks.sender.sendContractCall.mockRejectedValueOnce(
+        Object.assign(new Error("Receipt wait limit reached"), { name: "ReceiptWaitLimitError" })
+      );
+      const { result } = render();
+
+      let outcome: unknown;
+      await act(async () => {
+        outcome = await result.current.acts.acceptAndStartBooking(ready(), at);
+      });
+
+      expect(outcome).toBe("unconfirmed");
+      expect(result.current.voucherStartFor(COMMITMENT.commitmentId, CLAIMANT).record).toBe(
+        "confirming"
+      );
+    });
+
+    // One booking's start rows never show on another's dialog (Codex and CodeRabbit on #1748).
+    it("keeps each booking's start progress to that booking, and starts each acceptance clean", async () => {
+      mocks.commitmentMutate.mockResolvedValue("0xacce");
+      mocks.prepareStart.mockResolvedValueOnce(sends[0]).mockResolvedValueOnce(sends[1]);
+      mocks.sender.sendContractCall
+        .mockResolvedValueOnce({ hash: "0x01", sponsored: false })
+        .mockResolvedValueOnce({ hash: "0x02", sponsored: false });
+      const { result } = render();
+
+      await act(async () => {
+        await result.current.acts.acceptAndStartBooking(ready(), at);
+      });
+      expect(result.current.voucherStartFor(COMMITMENT.commitmentId, CLAIMANT)).toMatchObject({
+        record: "done",
+        send: "done",
+      });
+      // Another member's ask on the same promise opens with nothing sent.
+      expect(result.current.voucherStartFor(COMMITMENT.commitmentId, TUNDE)).toEqual(
+        VOUCHER_START_IDLE
+      );
+
+      // Accepting again starts clean, before its first send is asked for.
+      let release!: (hash: HexString) => void;
+      mocks.commitmentMutate.mockImplementationOnce(
+        () => new Promise<HexString>((resolve) => (release = resolve))
+      );
+      let pending!: Promise<unknown>;
+      act(() => {
+        pending = result.current.acts.acceptAndStartBooking(ready(), at);
+      });
+      await vi.waitFor(() => expect(release).toBeTypeOf("function"));
+      expect(result.current.voucherStartFor(COMMITMENT.commitmentId, CLAIMANT)).toEqual(
+        VOUCHER_START_IDLE
+      );
+      mocks.prepareStart.mockResolvedValueOnce({ state: { kind: "started" }, call: null });
+      await act(async () => {
+        release("0xacce");
+        await pending;
+      });
     });
   });
 

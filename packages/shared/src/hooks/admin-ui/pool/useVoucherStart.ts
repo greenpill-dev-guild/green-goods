@@ -21,6 +21,7 @@ import {
   type VoucherStartOutcome,
   type VoucherStartStep,
 } from "../../../modules/commitment-pooling/voucher-start";
+import { claimActKey } from "../../../modules/transactions/act-phase";
 import type { Address } from "../../../types/domain";
 import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
 import { useTransactionSender } from "../../blockchain/useTransactionSender";
@@ -57,20 +58,36 @@ function apply(progress: VoucherStartProgress, event: VoucherStartEvent): Vouche
   return next;
 }
 
+/** The start progress of one booking, by its ask (`claimActKey`); none before a start. */
+interface KeyedProgress {
+  key: string | null;
+  progress: VoucherStartProgress;
+}
+
+const NOTHING_STARTED: KeyedProgress = { key: null, progress: VOUCHER_START_IDLE };
+
 export function useVoucherStart(input: { chainId: number; garden: Address }): {
   start: (target: VoucherStartTarget) => Promise<VoucherStartOutcome>;
-  progress: VoucherStartProgress;
+  /** Where this booking's start stands; idle for any booking but the one last started. */
+  progressFor: (commitmentId: bigint, buyer: Address) => VoucherStartProgress;
+  /** Forget the last start, so a new acceptance opens with nothing sent. */
   reset: () => void;
 } {
   const { chainId, garden } = input;
   const sender = useTransactionSender();
   const steward = usePrimaryAddress();
   const queryClient = useQueryClient();
-  const [progress, setProgress] = useState<VoucherStartProgress>(VOUCHER_START_IDLE);
+  const [started, setStarted] = useState<KeyedProgress>(NOTHING_STARTED);
 
   const start = useCallback(
     async (target: VoucherStartTarget): Promise<VoucherStartOutcome> => {
-      setProgress(VOUCHER_START_IDLE);
+      const key = claimActKey(target.commitmentId, target.buyer);
+      // Each update lands only on the booking it was sent for.
+      const setProgress = (update: (current: VoucherStartProgress) => VoucherStartProgress) =>
+        setStarted((current) =>
+          current.key === key ? { key, progress: update(current.progress) } : current
+        );
+      setStarted({ key, progress: VOUCHER_START_IDLE });
       if (!sender || !steward) return "notSent";
       const outcome = await runVoucherStart({
         prepare: () => prepareVoucherStartSend({ chainId, garden }, target, steward),
@@ -103,6 +120,11 @@ export function useVoucherStart(input: { chainId: number; garden: Address }): {
     [chainId, garden, queryClient, sender, steward]
   );
 
-  const reset = useCallback(() => setProgress(VOUCHER_START_IDLE), []);
-  return { start, progress, reset };
+  const progressFor = useCallback(
+    (commitmentId: bigint, buyer: Address) =>
+      started.key === claimActKey(commitmentId, buyer) ? started.progress : VOUCHER_START_IDLE,
+    [started]
+  );
+  const reset = useCallback(() => setStarted(NOTHING_STARTED), []);
+  return { start, progressFor, reset };
 }
