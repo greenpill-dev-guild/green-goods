@@ -11,11 +11,13 @@ const controller: AdminLoginController = {
   setUsername: fn(),
   error: null,
   isSigningIn: false,
+  isPasskeySigningIn: false,
   canSignInByName: true,
   hasStoredCredential: false,
   storedUsername: null,
   continueByName: fn(async () => {}),
   signInWithStoredPasskey: fn(async () => {}),
+  beginWalletSignIn: fn(),
 };
 const meta: Meta<typeof AdminSignIn> = {
   title: "Admin/Identity/AdminSignIn",
@@ -55,7 +57,9 @@ export const Remembered: Story = {
   },
 };
 export const Continuing: Story = {
-  args: { controller: { ...controller, mode: "username", isSigningIn: true } },
+  args: {
+    controller: { ...controller, mode: "username", isSigningIn: true, isPasskeySigningIn: true },
+  },
 };
 export const SigningIn: Story = {
   args: {
@@ -64,6 +68,7 @@ export const SigningIn: Story = {
       hasStoredCredential: true,
       storedUsername: "storybook-steward",
       isSigningIn: true,
+      isPasskeySigningIn: true,
     },
   },
 };
@@ -97,7 +102,7 @@ const feedbackStates = [
         "Passkey recovery is temporarily unavailable. Please keep your account name and try again when the service is available. If the problem continues, open Green Goods in your recommended browser and try signing in again with the same passkey account.",
     },
   },
-  { name: "pending", controller: { ...controller, isSigningIn: true } },
+  { name: "pending", controller: { ...controller, isSigningIn: true, isPasskeySigningIn: true } },
 ];
 const screens = ["entry", "username"] as const;
 

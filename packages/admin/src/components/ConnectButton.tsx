@@ -13,6 +13,8 @@ interface ConnectButtonProps {
   /** The shared size, which the Hub sets at 28 (compact), 32 (sm) and 40px (lg). */
   size?: ButtonSize;
   disabled?: boolean;
+  /** Runs before the wallet modal opens, so a sign-in screen can clear the last attempt's error. */
+  onStart?: () => void;
 }
 
 export function ConnectButton({
@@ -21,6 +23,7 @@ export function ConnectButton({
   variant = "primary",
   size = "sm",
   disabled = false,
+  onStart,
 }: ConnectButtonProps) {
   const { formatMessage } = useIntl();
   const { isConnecting } = useAccount();
@@ -35,7 +38,10 @@ export function ConnectButton({
   return (
     <Button
       type="button"
-      onClick={() => loginWithWallet()}
+      onClick={() => {
+        onStart?.();
+        loginWithWallet();
+      }}
       loading={connecting}
       disabled={disabled}
       leadingIcon={

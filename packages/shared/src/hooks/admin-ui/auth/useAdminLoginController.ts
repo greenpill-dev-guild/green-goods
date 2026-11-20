@@ -38,11 +38,16 @@ export function useAdminLoginController({
   const [username, setUsername] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  // Whether the sign-in in flight is a passkey's, so a wallet sign-in never shows the passkey's
+  // progress. Shared auth reports both as one authenticating state.
+  const [passkeyAttempt, setPasskeyAttempt] = useState(false);
   const pendingRef = useRef(false);
   const mounted = useRef(true);
-  const awaitingActorRef = useRef<{ initialError: unknown; sawAuthenticating: boolean } | null>(
-    null
-  );
+  const awaitingActorRef = useRef<{
+    initialError: unknown;
+    sawAuthenticating: boolean;
+    creating: boolean;
+  } | null>(null);
   const canSignInByName = isPasskeyServerEnabled();
 
   useEffect(() => {
@@ -60,9 +65,11 @@ export function useAdminLoginController({
       attempt.sawAuthenticating = true;
     } else if (isAuthenticated) {
       awaitingActorRef.current = null;
+      setPasskeyAttempt(false);
     } else if (authError && (attempt.sawAuthenticating || authError !== attempt.initialError)) {
       awaitingActorRef.current = null;
-      setError(getFriendlyLoginErrorMessage(authError, intl));
+      setPasskeyAttempt(false);
+      setError(getFriendlyLoginErrorMessage(authError, intl, { creating: attempt.creating }));
     }
   }, [authError, intl, isAuthenticating, isAuthenticated]);
 
@@ -115,9 +122,10 @@ export function useAdminLoginController({
 
       pendingRef.current = true;
       setPending(true);
+      setPasskeyAttempt(true);
       setError(null);
       try {
-        awaitingActorRef.current = { initialError: authError, sawAuthenticating: false };
+        awaitingActorRef.current = { initialError: authError, sawAuthenticating: false, creating };
         if (name === undefined) {
           await loginWithPasskey(undefined);
         } else if (creating) {
@@ -127,7 +135,10 @@ export function useAdminLoginController({
         }
       } catch (cause) {
         awaitingActorRef.current = null;
-        if (mounted.current) setError(getFriendlyLoginErrorMessage(cause, intl, { creating }));
+        if (mounted.current) {
+          setPasskeyAttempt(false);
+          setError(getFriendlyLoginErrorMessage(cause, intl, { creating }));
+        }
         const message =
           cause instanceof Error ? withoutQuotedRequest(cause.message).toLowerCase() : "";
         if (!/cancel|abort|user deny|not allowed/.test(message)) {
@@ -165,8 +176,15 @@ export function useAdminLoginController({
     changeMode: (next: AdminLoginMode) => {
       if (pendingRef.current || isAuthenticating) return;
       awaitingActorRef.current = null;
+      setPasskeyAttempt(false);
       setError(null);
       setMode(next);
+    },
+    /** A new wallet attempt clears what the last attempt said, as the App's sign-in does. */
+    beginWalletSignIn: () => {
+      awaitingActorRef.current = null;
+      setPasskeyAttempt(false);
+      setError(null);
     },
     username,
     setUsername,
@@ -178,6 +196,8 @@ export function useAdminLoginController({
         })
       : error,
     isSigningIn: pending || isAuthenticating,
+    /** A passkey ceremony is in flight, as opposed to a wallet sign-in. */
+    isPasskeySigningIn: pending || (passkeyAttempt && isAuthenticating),
     canSignInByName,
     hasStoredCredential,
     storedUsername: hasStoredCredential ? getStoredUsername() : null,

@@ -5,7 +5,7 @@ import {
   useAdminLoginController,
 } from "@green-goods/shared/hooks/admin-ui/auth/useAdminLoginController";
 import { RiKey2Line } from "@remixicon/react";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminTextField } from "./AdminTextField";
 import { clearPasskeyRequestAtBoot, isPasskeyRequestedAtBoot } from "./Boot/bootPasskeyRequest";
@@ -53,6 +53,16 @@ export function AdminSignIn({ controller }: { controller: AdminLoginController }
   // A remembered passkey signs in at once, so another account needs its own way to the name
   // step. Without the passkey server that step can only create, so it says so.
   const showOtherAccount = !isForm && remembered;
+  // Back unmounts the field and, with no remembered passkey, the navigation slot too, so focus
+  // returns to the entry's first action instead of falling to the page.
+  const entryActionRef = useRef<HTMLButtonElement>(null);
+  const previousMode = useRef(controller.mode);
+  useEffect(() => {
+    if (previousMode.current === "username" && controller.mode === "entry") {
+      entryActionRef.current?.focus();
+    }
+    previousMode.current = controller.mode;
+  }, [controller.mode]);
 
   return (
     <SignInSlots
@@ -84,11 +94,12 @@ export function AdminSignIn({ controller }: { controller: AdminLoginController }
           />
         ) : (
           <Button
+            ref={entryActionRef}
             className="w-full"
             type="button"
             size="lg"
             leadingIcon={<RiKey2Line className="h-[18px] w-[18px]" aria-hidden="true" />}
-            loading={controller.isSigningIn && remembered}
+            loading={controller.isPasskeySigningIn && remembered}
             disabled={controller.isSigningIn}
             title={entryLabel}
             data-testid="passkey-start-button"
@@ -120,6 +131,7 @@ export function AdminSignIn({ controller }: { controller: AdminLoginController }
             size="lg"
             variant="secondary"
             disabled={controller.isSigningIn}
+            onStart={controller.beginWalletSignIn}
           >
             {formatMessage({
               id: "app.login.button.connectWallet",
@@ -133,7 +145,7 @@ export function AdminSignIn({ controller }: { controller: AdminLoginController }
           <p id={feedbackId} role="alert" className="type-body text-error-dark">
             {showError ? controller.error : null}
           </p>
-          {controller.isSigningIn && (isForm || remembered) ? (
+          {controller.isPasskeySigningIn && (isForm || remembered) ? (
             <p role="status" className="type-body text-text-sub">
               {formatMessage(
                 isForm

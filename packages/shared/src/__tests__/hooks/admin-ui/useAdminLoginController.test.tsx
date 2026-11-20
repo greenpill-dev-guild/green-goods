@@ -98,6 +98,9 @@ describe("useAdminLoginController", () => {
     });
     const { result, rerender } = renderHookWithProviders(() => useAdminLoginController());
     expect(result.current.error).toBeNull();
+    // A wallet sign-in holds the screen without showing a passkey's progress.
+    expect(result.current.isSigningIn).toBe(true);
+    expect(result.current.isPasskeySigningIn).toBe(false);
     mocks.auth.mockReturnValue({
       hasStoredCredential: false,
       isAuthenticating: false,
@@ -105,6 +108,10 @@ describe("useAdminLoginController", () => {
     });
     rerender();
     expect(result.current.error).toBe(expected);
+    // Trying the wallet again clears what the last attempt said.
+    act(() => result.current.beginWalletSignIn());
+    rerender();
+    expect(result.current.error).toBeNull();
   });
 
   it("says a stalled wallet request needs a reload", () => {
@@ -142,6 +149,7 @@ describe("useAdminLoginController", () => {
       void result.current.signInWithStoredPasskey();
     });
     expect(result.current.isSigningIn).toBe(true);
+    expect(result.current.isPasskeySigningIn).toBe(true);
     await act(async () => {
       void result.current.signInWithStoredPasskey();
     });
@@ -167,6 +175,22 @@ describe("useAdminLoginController", () => {
     expect(result.current.error).toBe("Sign in was canceled.");
     expect(result.current.isSigningIn).toBe(false);
     expect(mocks.trackError).not.toHaveBeenCalled();
+
+    // A create cancelled in the ceremony, whose result arrives through auth state, says no
+    // account was made.
+    mocks.serverEnabled.mockReturnValue(false);
+    const created = renderHookWithProviders(() => useAdminLoginController());
+    act(() => created.result.current.setUsername("new-steward"));
+    await act(() => created.result.current.continueByName());
+    mocks.auth.mockReturnValue({ hasStoredCredential: false, isAuthenticating: true });
+    created.rerender();
+    mocks.auth.mockReturnValue({
+      hasStoredCredential: false,
+      isAuthenticating: false,
+      error: new Error("Passkey authentication was cancelled"),
+    });
+    created.rerender();
+    expect(created.result.current.error).toBe("No account was created. Try again.");
   });
 
   it("keeps the name and a clear transport error, then recovers on retry", async () => {

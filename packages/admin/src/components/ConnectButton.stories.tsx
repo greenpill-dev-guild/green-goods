@@ -1,5 +1,4 @@
 import { AuthStateContext, useAuthState } from "@green-goods/shared/providers/Auth";
-import { RiHeart2Line } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, within } from "storybook/test";
 import { withAdminIdentity, withAdminPrimitiveFrame } from "../../../shared/.storybook/decorators";
@@ -67,14 +66,7 @@ export const StalledWallet: Story = {
 };
 
 export const WithCustomLabel: Story = {
-  args: {
-    children: (
-      <>
-        <RiHeart2Line className="h-4 w-4" aria-hidden="true" />
-        Sign in with wallet
-      </>
-    ),
-  },
+  args: { children: "Sign in with a Wallet" },
 };
 
 export const StateCatalog: Story = {
@@ -83,10 +75,7 @@ export const StateCatalog: Story = {
       <ConnectButton />
       <ConnectButton variant="secondary" />
       <ConnectButton size="lg" />
-      <ConnectButton>
-        <RiHeart2Line className="h-4 w-4" aria-hidden="true" />
-        Sign in with wallet
-      </ConnectButton>
+      <ConnectButton>Sign in with a Wallet</ConnectButton>
     </div>
   ),
 };

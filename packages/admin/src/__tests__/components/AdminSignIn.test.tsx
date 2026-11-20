@@ -5,6 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AdminSignIn } from "@/components/AdminSignIn";
+import { requestPasskeyAtBoot } from "@/components/Boot/bootPasskeyRequest";
 import { AdminAccessStateRenderer } from "@/components/Layout/AdminAccessStateRenderer";
 import { render, screen } from "../test-utils";
 
@@ -36,11 +37,13 @@ function controller(overrides: Partial<AdminLoginController> = {}): AdminLoginCo
     setUsername: vi.fn(),
     error: null,
     isSigningIn: false,
+    isPasskeySigningIn: false,
     canSignInByName: true,
     hasStoredCredential: false,
     storedUsername: null,
     continueByName: vi.fn(async () => {}),
     signInWithStoredPasskey: vi.fn(async () => {}),
+    beginWalletSignIn: vi.fn(),
     ...overrides,
   };
 }
@@ -63,12 +66,13 @@ describe("AdminSignIn", () => {
     await userEvent.click(screen.getByRole("button", { name: "Continue with Passkey" }));
     expect(state.changeMode).toHaveBeenCalledWith("username");
     await userEvent.click(screen.getByRole("button", { name: "Sign in with a Wallet" }));
+    expect(state.beginWalletSignIn).toHaveBeenCalledOnce();
     expect(mocks.wallet).toHaveBeenCalledOnce();
   });
 
   it("signs in or creates from one name step, and goes back to the entry", async () => {
     const state = controller({ mode: "username" });
-    render(<AdminSignIn controller={state} />);
+    const { rerender } = render(<AdminSignIn controller={state} />);
     expect(
       screen.getByText("Enter your username to sign in, or choose a new one to create an account.")
     ).toBeInTheDocument();
@@ -80,6 +84,9 @@ describe("AdminSignIn", () => {
     expect(state.continueByName).toHaveBeenCalledOnce();
     await userEvent.click(screen.getByRole("button", { name: "Back" }));
     expect(state.changeMode).toHaveBeenCalledWith("entry");
+    // Back removes the field and the Back button, so focus lands on the entry's first action.
+    rerender(<AdminSignIn controller={{ ...state, mode: "entry" }} />);
+    expect(screen.getByRole("button", { name: "Continue with Passkey" })).toHaveFocus();
   });
 
   it("signs a remembered steward in at once and keeps another account one tap away", async () => {
@@ -92,18 +99,36 @@ describe("AdminSignIn", () => {
   });
 
   it("holds every control while a remembered sign-in is pending", async () => {
-    render(
-      <AdminSignIn controller={controller({ hasStoredCredential: true, isSigningIn: true })} />
+    const { unmount } = render(
+      <AdminSignIn
+        controller={controller({
+          hasStoredCredential: true,
+          isSigningIn: true,
+          isPasskeySigningIn: true,
+        })}
+      />
     );
     expect(screen.getByRole("status")).toHaveTextContent("Signing you in...");
     expect(screen.getByRole("button", { name: "Sign in with a Wallet" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Use Different Username" })).toBeDisabled();
     await userEvent.click(screen.getByRole("button", { name: "Sign in with a Wallet" }));
     expect(mocks.wallet).not.toHaveBeenCalled();
+    unmount();
+    // A wallet sign-in holds the same controls but says nothing about a passkey.
+    render(
+      <AdminSignIn controller={controller({ hasStoredCredential: true, isSigningIn: true })} />
+    );
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.getByTestId("passkey-start-button")).not.toHaveAttribute("aria-busy", "true");
+    expect(screen.getByRole("button", { name: "Use Different Username" })).toBeDisabled();
   });
 
   it("holds the name and Back while the name step is pending", () => {
-    render(<AdminSignIn controller={controller({ mode: "username", isSigningIn: true })} />);
+    render(
+      <AdminSignIn
+        controller={controller({ mode: "username", isSigningIn: true, isPasskeySigningIn: true })}
+      />
+    );
     expect(screen.getByLabelText("Username or ENS handle")).toBeDisabled();
     expect(screen.getByRole("button", { name: "Back" })).toBeDisabled();
     expect(screen.getByRole("status")).toHaveTextContent("Continuing...");
@@ -151,6 +176,40 @@ describe("AdminSignIn", () => {
     await userEvent.click(screen.getByRole("button", { name: "Continue" }));
     expect(mocks.passkey).toHaveBeenCalledWith("qa-stew ard", { createIfMissing: true });
     expect(mocks.create).not.toHaveBeenCalled();
+  });
+
+  it("opens the name step once after a passkey was chosen at boot", () => {
+    vi.stubEnv("VITE_PASSKEY_SERVER_ENABLED", "true");
+    const signedOut = (
+      <MemoryRouter>
+        <AdminAccessStateRenderer state={{ status: "disconnected" }} ready={<div>Ready</div>} />
+      </MemoryRouter>
+    );
+    requestPasskeyAtBoot();
+    const first = render(signedOut);
+    expect(screen.getByLabelText("Username or ENS handle")).toBeInTheDocument();
+    first.unmount();
+    // Read once: a later sign-out starts at the entry.
+    const second = render(signedOut);
+    expect(screen.getByRole("button", { name: "Continue with Passkey" })).toBeInTheDocument();
+    second.unmount();
+    // A session that opens without that sign-in lets the request go too.
+    requestPasskeyAtBoot();
+    render(
+      <MemoryRouter>
+        <AdminAccessStateRenderer
+          state={{
+            status: "ready",
+            eligibleGardens: [],
+            resolvedDefaultGarden: null,
+            hasStaleBaseList: false,
+          }}
+          ready={<div>Ready</div>}
+        />
+      </MemoryRouter>
+    ).unmount();
+    render(signedOut);
+    expect(screen.getByRole("button", { name: "Continue with Passkey" })).toBeInTheDocument();
   });
 
   it("wires the real signed-out entry to Shared registration without the passkey server", async () => {

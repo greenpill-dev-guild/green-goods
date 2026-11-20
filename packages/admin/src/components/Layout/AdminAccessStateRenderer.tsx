@@ -4,11 +4,12 @@ import type { AdminAccessState } from "@green-goods/shared/hooks/admin-ui/useAdm
 import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { useQueryClient } from "@tanstack/react-query";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { AdminLoadingScreen } from "@/components/AdminLoadingScreen";
 import { AdminSignInContainer } from "@/components/AdminSignIn";
+import { clearPasskeyRequestAtBoot } from "@/components/Boot/bootPasskeyRequest";
 import { CanvasGardenAccessState } from "./CanvasGardenAccessState";
 import { CanvasIndexerErrorState } from "./CanvasIndexerErrorState";
 import { AdminAccessHomeShell } from "./CanvasLayout";
@@ -26,6 +27,13 @@ export function AdminAccessStateRenderer({ state, ready }: AdminAccessStateRende
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
+  const signedIn = state.status === "ready";
+  // A passkey chosen at boot is for the sign-in that follows. A session that opens without
+  // that sign-in (another tab signed in meanwhile) lets it go, so a later sign-out starts at
+  // the entry.
+  useEffect(() => {
+    if (signedIn) clearPasskeyRequestAtBoot();
+  }, [signedIn]);
 
   if (state.status === "ready") {
     return <>{ready}</>;
