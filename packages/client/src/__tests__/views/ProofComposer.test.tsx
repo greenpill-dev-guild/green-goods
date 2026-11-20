@@ -17,6 +17,7 @@ import { renderWithProviders, screen, within } from "../test-utils";
 const VIEWER = "0x1111111111111111111111111111111111111111" as const;
 const OTHER = "0x2222222222222222222222222222222222222222" as const;
 const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
+const PROVIDER_GARDEN = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" as const;
 
 const mockUseController = vi.fn();
 let controller: ProofComposerController;
@@ -53,6 +54,18 @@ vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", async (importOriginal) 
   return {
     ...(await importOriginal()),
     useOnlineStatus: () => true,
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
+    useGardens: () => ({
+      data: [
+        { id: GARDEN, name: "Riverside Commons", bannerImage: "" },
+        { id: PROVIDER_GARDEN, name: "Hilltop Garden", bannerImage: "" },
+      ],
+    }),
   };
 });
 
@@ -129,6 +142,39 @@ describe("ProofComposer", () => {
       routeGarden: GARDEN,
       onOpenYourWork: expect.any(Function),
     });
+  });
+
+  // Afo on PRD-1522: adding proof named no garden on any step. The line sits right under Media's
+  // info card, above the pinned promise.
+  it("names the garden under Media's info card, its first step, and not after it", async () => {
+    const user = userEvent.setup();
+    const { container } = render();
+    const line = screen.getByTestId("submission-garden");
+    expect(line).toHaveTextContent("Adding proof in Riverside Commons");
+    expect(line.previousElementSibling).toBe(
+      container.querySelector('[data-component="FormInfo"]')
+    );
+
+    await user.click(forward("Details"));
+    expect(screen.queryByTestId("submission-garden")).toBeNull();
+    await user.click(forward("Review Proof"));
+    expect(screen.queryByTestId("submission-garden")).toBeNull();
+  });
+
+  // Review of #1731: a provider can open the promise from the payer's garden page, and the proof
+  // goes to the provider's garden.
+  it("names the garden the proof is sent to, not the page it was opened from", () => {
+    controller = {
+      ...controller,
+      commitment: controller.commitment && {
+        ...controller.commitment,
+        providerGarden: PROVIDER_GARDEN,
+      },
+    };
+    render();
+    expect(screen.getByTestId("submission-garden")).toHaveTextContent(
+      "Adding proof in Hilltop Garden"
+    );
   });
 
   it("renders controller states without exposing the form", () => {

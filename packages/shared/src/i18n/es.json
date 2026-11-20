@@ -3742,6 +3742,7 @@
   "app.proof.details.noteHint.linkEnough": "{count, plural, one {Opcional: tu enlace es suficiente.} other {Opcional: tus enlaces son suficientes.}}",
   "app.proof.details.noteLabel": "Unas palabras",
   "app.proof.details.notePlaceholder": "Qué se hizo y cualquier cosa que deba saber quien confirma.",
+  "app.proof.gardenLine": "Añadiendo una prueba en {garden}",
   "app.proof.media.camera": "Tomar una foto",
   "app.proof.media.added": "Prueba añadida: {summary}",
   "app.proof.media.gallery": "Elegir contenido multimedia",
