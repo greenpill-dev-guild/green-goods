@@ -1,14 +1,11 @@
-import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import enMessages from "@green-goods/shared/i18n/en.json";
 import esMessages from "@green-goods/shared/i18n/es.json";
 import ptMessages from "@green-goods/shared/i18n/pt.json";
 import type { Meta, StoryObj } from "@storybook/react";
 import { type ComponentProps, useState } from "react";
 import { IntlProvider } from "react-intl";
-import { expect, screen, userEvent, within } from "storybook/test";
-import { buildCommitmentMetadata } from "@green-goods/shared/modules/commitment-pooling/metadata";
-import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment-pooling/types-core";
-import { daysAgo, daysFromNow } from "../../../../../shared/.storybook/fixtures";
+import { expect, userEvent, within } from "storybook/test";
+import { daysAgo } from "../../../../../shared/.storybook/fixtures";
 import { expectItemRowsFit } from "../../../../../shared/.storybook/itemRowFit";
 import {
   type PoolCommitmentFocus,
@@ -22,72 +19,33 @@ import {
   STORY_GROUP_TITLES,
   storyPoolConsole,
 } from "./poolStoryFixtures";
-import { STORY_STEWARD } from "./poolStoryActors";
 import {
   nameVoucherMembers,
   STORY_GREEN_GOODS_COMMITMENTS,
   STORY_GREEN_GOODS_RETURN_FAILED,
-  STORY_GREEN_GOODS_SAFE,
   STORY_GREEN_GOODS_VOUCHERS,
+  STORY_HUB_DAY_TITLES,
+  STORY_LONG_NAME_MEMBER,
   STORY_MARA_VISIT,
-  STORY_MARA_VISIT_ENDED,
   STORY_TECH_AND_SUN_COMMITMENTS,
-  STORY_TECH_AND_SUN_SAFE,
   STORY_TECH_AND_SUN_VOUCHERS,
   STORY_VOUCHER_TITLES,
+  storyHubDay,
   storyVoucherConsole,
 } from "./poolStoryVouchers";
 
 const GROUP_TITLES = new Map([...STORY_TITLES, ...STORY_GROUP_TITLES]);
 
 /** Three hub days Tech and Sun made together; Mara booked the first, and her visit is under way. */
-const HUB_DAYS_CID = "bafy-hub-days";
-const HUB_DAY_TITLES = new Map([
-  ...STORY_VOUCHER_TITLES,
-  [
-    HUB_DAYS_CID,
-    buildCommitmentMetadata({
-      title: "Hub day, up to 4 hours",
-      displayGroup: { version: 1, id: "group-hubdays01" },
-    }),
-  ],
-]);
-const hubDay = (id: number, overrides: Partial<CommitmentReadModel> = {}) =>
-  storyCommitment({
-    id: `${DEFAULT_CHAIN_ID}-${id}`,
-    commitmentId: BigInt(id),
-    onchainState: "OFFERED",
-    derivedState: "OFFERED",
-    state: "OFFERED",
-    direction: "OFFER",
-    creator: STORY_STEWARD,
-    leadProvider: STORY_STEWARD,
-    counterparty: null,
-    unitLabel: "booking",
-    targetUnits: 1n,
-    dueDate: BigInt(daysFromNow(36)),
-    requirements: [],
-    poolId: 7n,
-    commitmentSeriesId: 0n,
-    claimType: "INDIVIDUAL",
-    contributorPolicy: "LEAD_MANAGED",
-    needUID: null,
-    counterCommitmentId: 0n,
-    considerationSource: null,
-    considerationToken: null,
-    claimMode: "APPROVAL_GATED",
-    metadataCID: HUB_DAYS_CID,
-    ...overrides,
-  });
 const HUB_DAY_COPIES = [
-  hubDay(61, {
+  storyHubDay(61, {
     onchainState: "ACCEPTED",
     derivedState: "ACTIVE",
     state: "ACCEPTED",
     counterparty: STORY_MARA_VISIT.holder,
   }),
-  hubDay(62),
-  hubDay(63),
+  storyHubDay(62),
+  storyHubDay(63),
 ];
 
 /** The card owns no filter state; the story does, so the chips work. */
@@ -115,7 +73,7 @@ const meta: Meta<typeof PoolCommitmentsCard> = {
     docs: {
       description: {
         component:
-          "Offers and Asks, one card of promises for the whole pool: search, the Open · Confirmed · Past chips, a Past due chip for live rows the chain would let anyone expire, a Needs recovery chip for those and the disputed ones, and rows that open in the left inspector. Copies made together are one group row that opens the group's inspector (PRD-1022 D3), and a group's copy that didn't send folds into it with Finish Creating (n); Past due and Needs recovery still name each promise on its own. Expire now… is outlined where it sits; the red is for the confirm inside its dialog.",
+          "Offers and Asks, one card of promises for the whole pool: search, the Open · Confirmed · Past chips, a Past due chip for live rows the chain would let anyone expire, a Needs recovery chip for those and the disputed ones, and rows that open in the left inspector. Copies made together are one group row that opens the group's inspector (PRD-1022 D3), and a group's copy that didn't send folds into it with Finish Creating (n); Past due and Needs recovery still name each promise on its own. Expire now… is outlined where it sits; the red is for the confirm inside its dialog. A voucher booking's acts wait in Review Promises: its offer's row names who booked it and what one booking takes, and a group of hub days counts booked and open copies in the row's right slot.",
       },
     },
   },
@@ -127,7 +85,6 @@ const meta: Meta<typeof PoolCommitmentsCard> = {
     scope: "open",
     focus: null,
     vouchers: storyVoucherConsole(),
-    target: { gardenName: "Rio Rainforest Lab", isProtocol: false },
   },
   render: (args) => <PoolCommitmentsCardWithScope {...args} />,
 };
@@ -476,9 +433,9 @@ export const DocumentationPartial: Story = {
 };
 
 /**
- * Tech and Sun's hub days (PRD-1297 surface 6): Mara's visit is under way, so
- * its row offers Report Visit…; the two offers still being booked say how far
- * each booking has come.
+ * Tech and Sun's hub days (PRD-1297 surface 6): Mara's hub day is booked, so its row names her
+ * and what one booking takes; the two offers still being booked say how far each booking has
+ * come. Their acts wait in Review Promises, not here.
  */
 export const VoucherBookings: Story = {
   args: {
@@ -488,18 +445,20 @@ export const VoucherBookings: Story = {
       titles: STORY_VOUCHER_TITLES,
     }),
     vouchers: storyVoucherConsole(STORY_TECH_AND_SUN_VOUCHERS),
-    target: { gardenName: "Tech and Sun", isProtocol: false },
   },
   beforeEach: nameVoucherMembers,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByRole("button", { name: "Report Visit…" })).toBeVisible();
-    await expect(canvas.getByText("Booking: deposit confirmed")).toBeVisible();
-    await expect(canvas.getByText("Booking asked")).toBeVisible();
+    const mara = await canvas.findByTestId("pool-commitment-43");
+    await expect(await within(mara).findByText("Mara")).toBeVisible();
+    await expect(within(mara).getByText(/Takes 1 Tech and Sun voucher/)).toBeVisible();
+    await expect(canvas.getByText(/Booking: deposit confirmed/)).toBeVisible();
+    await expect(canvas.getByText(/Booking asked/)).toBeVisible();
+    await expect(canvas.queryByRole("button", { name: "Report Visit…" })).toBeNull();
   },
 };
 
-/** Green Goods' Claude access: Lina's stopped after 12 days, so her row needs a return proposed. */
+/** Green Goods' Claude access: Lina's stopped after 12 days; proposing her return is Review Promises' act. */
 export const VoucherEndedEarly: Story = {
   args: {
     console: storyPoolConsole({
@@ -508,58 +467,21 @@ export const VoucherEndedEarly: Story = {
       titles: STORY_VOUCHER_TITLES,
     }),
     vouchers: storyVoucherConsole(STORY_GREEN_GOODS_VOUCHERS),
-    target: { gardenName: "Green Goods Community Garden", isProtocol: true },
-    safe: STORY_GREEN_GOODS_SAFE,
   },
   beforeEach: nameVoucherMembers,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByText("Ended early · 12 of 30 days")).toBeVisible();
-    await userEvent.click(canvas.getByRole("button", { name: "Propose Return…" }));
-    await expect(await screen.findByText("Propose a Return to Lina")).toBeVisible();
-  },
-};
-
-/** The 6 back to Lina didn't arrive: the row needs recovery, and anyone can retry the same transfer. */
-export const VoucherTransferFailed: Story = {
-  args: {
-    ...VoucherEndedEarly.args,
-    vouchers: storyVoucherConsole(STORY_GREEN_GOODS_RETURN_FAILED),
-  },
-  beforeEach: nameVoucherMembers,
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await expect(await canvas.findByRole("button", { name: "Retry Transfer" })).toBeEnabled();
-    await expect(canvas.getByRole("button", { name: "Needs recovery (1)" })).toBeVisible();
-  },
-};
-
-/** Mara's hub day stopped after 2 of its 4 usable hours: the row counts hours and needs a return. */
-export const VoucherVisitEndedEarly: Story = {
-  args: {
-    ...VoucherBookings.args,
-    vouchers: storyVoucherConsole({
-      ...STORY_TECH_AND_SUN_VOUCHERS,
-      bookings: [STORY_MARA_VISIT_ENDED],
-    }),
-    safe: STORY_TECH_AND_SUN_SAFE,
-  },
-  beforeEach: nameVoucherMembers,
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await expect(await canvas.findByText("Ended early · 2 of 4 hours")).toBeVisible();
-    await userEvent.click(canvas.getByRole("button", { name: "Propose Return…" }));
-    await expect(await screen.findByText("Propose a Return to Mara")).toBeVisible();
+    await expect(await canvas.findByText(/Ended early · 12 of 30 days/)).toBeVisible();
+    await expect(canvas.queryByRole("button", { name: "Propose Return…" })).toBeNull();
   },
 };
 
 /**
- * Lina's access is past its due date and the 6 back to her didn't arrive: the
- * row keeps Retry Transfer, since expiring it would return nothing.
+ * Lina's access is past its due date and the 6 back to her didn't arrive: the row needs
+ * recovery, never Expire Now, since expiring it would return nothing; the retry is the queue's.
  */
 export const VoucherTransferFailedPastDue: Story = {
   args: {
-    ...VoucherTransferFailed.args,
     console: storyPoolConsole({
       commitments: STORY_GREEN_GOODS_COMMITMENTS.map((row) =>
         row.commitmentId === 51n ? { ...row, dueDate: BigInt(daysAgo(2)) } : row
@@ -567,35 +489,72 @@ export const VoucherTransferFailedPastDue: Story = {
       claims: [],
       titles: STORY_VOUCHER_TITLES,
     }),
+    vouchers: storyVoucherConsole(STORY_GREEN_GOODS_RETURN_FAILED),
   },
   beforeEach: nameVoucherMembers,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByRole("button", { name: "Retry Transfer" })).toBeEnabled();
+    await expect(await canvas.findByRole("button", { name: "Needs recovery (1)" })).toBeVisible();
+    await expect(canvas.getByText(/Return didn’t go through/)).toBeVisible();
     await expect(canvas.queryByRole("button", { name: "Expire Now…" })).toBeNull();
+    await expect(canvas.queryByRole("button", { name: "Retry Transfer" })).toBeNull();
   },
 };
 
-/** Copies made together fold into one row, and Mara's visit on one of them keeps its own, with its act. */
+/** Copies made together are one row, Mara's booked copy too: booked and open in the right slot. */
 export const VoucherGroupedBooking: Story = {
+  tags: ["storybook-ci"],
   args: {
     console: storyPoolConsole({
       commitments: HUB_DAY_COPIES,
       claims: [],
-      titles: HUB_DAY_TITLES,
+      titles: STORY_HUB_DAY_TITLES,
     }),
     vouchers: storyVoucherConsole({
       ...STORY_TECH_AND_SUN_VOUCHERS,
       asks: [],
       bookings: [{ ...STORY_MARA_VISIT, commitmentId: 61n }],
     }),
-    target: { gardenName: "Tech and Sun", isProtocol: false },
   },
   beforeEach: nameVoucherMembers,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByTestId("pool-group-group-hubdays01")).toBeVisible();
-    await expect(canvas.getByTestId("pool-commitment-61")).toBeVisible();
-    await expect(canvas.getByRole("button", { name: "Report Visit…" })).toBeVisible();
+    const group = await canvas.findByTestId("pool-group-group-hubdays01");
+    await expect(within(group).getByText("1 booked")).toBeVisible();
+    await expect(within(group).getByText("2 of 3 open")).toBeVisible();
+    await expect(within(group).getByText(/Takes 1 Tech and Sun voucher/)).toBeVisible();
+    await expect(canvas.queryByTestId("pool-commitment-61")).toBeNull();
+  },
+};
+
+/** A long name in Portuguese in a booked offer's right slot: it gives way with its title. */
+export const VoucherLongNamePt: Story = {
+  tags: ["storybook-ci"],
+  args: {
+    console: storyPoolConsole({
+      commitments: STORY_TECH_AND_SUN_COMMITMENTS.map((row) =>
+        row.commitmentId === 43n ? { ...row, counterparty: STORY_LONG_NAME_MEMBER } : row
+      ),
+      claims: [],
+      titles: STORY_VOUCHER_TITLES,
+    }),
+    vouchers: storyVoucherConsole({
+      ...STORY_TECH_AND_SUN_VOUCHERS,
+      bookings: [{ ...STORY_MARA_VISIT, holder: STORY_LONG_NAME_MEMBER }],
+    }),
+  },
+  decorators: [
+    (Story) => (
+      <IntlProvider locale="pt" messages={ptMessages}>
+        <Story />
+      </IntlProvider>
+    ),
+  ],
+  beforeEach: nameVoucherMembers,
+  play: async ({ canvasElement }) => {
+    const row = await within(canvasElement).findByTestId("pool-commitment-43");
+    await expect(
+      await within(row).findByTitle("Maria Aparecida dos Santos Oliveira")
+    ).toBeVisible();
   },
 };
