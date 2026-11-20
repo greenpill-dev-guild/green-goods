@@ -388,7 +388,8 @@ export function QueueRowFrame({
       <div className="flex min-h-7 items-center justify-end gap-1">{action}</div>
       {tag ? (
         <p className="col-span-2 mt-1 flex min-w-0 items-center gap-2 px-1">
-          {/* The pill can name a person, so it gives way too, after the line beside it. */}
+          {/* The line takes only the room the pill leaves; the pill, which can name a person,
+              gives way only when it alone is wider than the row. */}
           <StatusBadge
             variant={tag.tag.tone}
             size="sm"
@@ -400,7 +401,7 @@ export function QueueRowFrame({
           </StatusBadge>
           {tag.detail ? (
             <span
-              className="min-w-0 shrink-[10] truncate type-meta text-text-soft"
+              className="min-w-0 flex-1 basis-0 truncate type-meta text-text-soft"
               title={tag.detail}
             >
               {tag.detail}
