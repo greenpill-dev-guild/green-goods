@@ -51,6 +51,10 @@ vi.mock("../../../hooks/blockchain/useBaseLists", () => ({
 vi.mock("../../../hooks/work/useReviewBatch", () => ({
   useReviewBatch: () => ({}),
 }));
+// One day's work is its own read, asked for only when the URL names a day.
+vi.mock("../../../hooks/work/useGardenWorkRange", () => ({
+  useGardenWorkRange: () => ({ works: [], complete: true, hasRead: false, isLoading: false }),
+}));
 const confirmStage = vi.hoisted(() => ({ toConfirm: {} as Record<string, unknown> }));
 vi.mock("../../../hooks/admin-ui/review/useReviewConfirmStage", () => ({
   useReviewConfirmStage: () => ({
