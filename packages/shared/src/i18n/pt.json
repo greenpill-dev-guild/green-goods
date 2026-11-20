@@ -5735,7 +5735,7 @@
   "hub.settings.languageDescription": "Escolha o idioma do Green Goods Hub.",
   "hub.settings.lightMode": "Claro",
   "hub.settings.refresh": "Atualizar",
-  "hub.settings.refreshDescription": "Recarrega o Hub com os dados mais recentes. Você continua conectado.",
+  "hub.settings.refreshDescription": "Recarrega o Hub. Você continua conectado.",
   "hub.settings.refreshAction": "Atualizar o Hub",
   "hub.settings.support": "Suporte",
   "hub.settings.systemMode": "Sistema",

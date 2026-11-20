@@ -334,15 +334,16 @@
     display: none;
   }
 
-  /* Lock the root document to prevent double scrollbars; delegate scroll to app shell.
-     Vertical overscroll stays at the browser default, as in the App: a pull past the top
-     of the main scroller chains to the root, where the browser and the installed Hub run
-     pull-to-refresh (PRD-1534). Horizontal overscroll stays contained, so a sideways drag
-     never reveals a gap beside the shell. */
+  /* The document never scrolls: #root below is exactly the screen and clips the shell,
+     and the main scroller inside it owns scrolling, so there is one scrollbar. The root
+     itself is not overflow-hidden, as in the App: Chrome turns pull-to-refresh off for a
+     root whose vertical overflow is hidden, and a pull past the top of the main scroller
+     has to chain to the root, where the browser and the installed Hub run it (PRD-1534).
+     Horizontal overscroll stays contained, so a sideways drag never reveals a gap beside
+     the shell. */
   html,
   body {
     height: 100%;
-    overflow: hidden;
     overscroll-behavior-x: none;
   }
 
@@ -353,7 +354,10 @@
     overscroll-behavior-y: none;
   }
 
+  /* relative makes #root the containing block of absolutely positioned content too, so
+     the clip also holds a stray one that would otherwise make the document scrollable. */
   #root {
+    position: relative;
     height: 100%;
     min-height: 0;
     display: flex;

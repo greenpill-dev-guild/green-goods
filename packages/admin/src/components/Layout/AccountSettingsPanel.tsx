@@ -181,7 +181,7 @@ export function AccountSettingsPanel({
               label={formatMessage({ id: "hub.settings.refresh", defaultMessage: "Refresh" })}
               description={formatMessage({
                 id: "hub.settings.refreshDescription",
-                defaultMessage: "Reload the Hub with the latest data. You stay signed in.",
+                defaultMessage: "Reload the Hub. You stay signed in.",
               })}
               action={
                 <IconButton
