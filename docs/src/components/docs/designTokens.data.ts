@@ -12,6 +12,7 @@ export const COLOR_GROUPS = [
   },
   {label: "On green", keys: ["on-tertiary", "on-tertiary-action", "on-tertiary-dark"]},
   {label: "Signals", keys: ["amber", "sky"]},
+  {label: "Environment", keys: ["violet"]},
 ] as const;
 
 export const PAIRINGS = [
@@ -21,6 +22,7 @@ export const PAIRINGS = [
   {label: "Primary button, PWA dark", fg: "on-tertiary-dark", bg: "tertiary-dark"},
   {label: "Warning badge", fg: "neutral-dark", bg: "amber"},
   {label: "Info badge", fg: "neutral-dark", bg: "sky"},
+  {label: "Alpha install", fg: "on-tertiary-action", bg: "violet"},
 ] as const;
 
 /**
