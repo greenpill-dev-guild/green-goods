@@ -80,40 +80,41 @@ export function PoolGroupRow({
     { count: unsent }
   );
 
-  const booked =
-    voucher && unsent === 0
-      ? {
-          status: {
-            label:
-              counts.available > 0
-                ? formatMessage({ id: "hub.garden.pool.commitments.open", defaultMessage: "Open" })
-                : formatMessage({
-                    id: "hub.garden.pool.group.fullyBooked",
-                    defaultMessage: "Fully booked",
-                  }),
-            tone: counts.available > 0 ? ("info" as const) : ("neutral" as const),
-          },
-          amount: {
-            value:
-              counts.kept > 0
-                ? formatMessage(
-                    {
-                      id: "hub.garden.pool.group.bookedKept",
-                      defaultMessage: "{booked} booked · {kept} kept",
-                    },
-                    { booked: counts.inProgress, kept: counts.kept }
-                  )
-                : formatMessage(
-                    { id: "hub.garden.pool.group.booked", defaultMessage: "{booked} booked" },
-                    { booked: counts.inProgress }
-                  ),
-            caption: formatMessage(
-              { id: "hub.garden.pool.group.openOf", defaultMessage: "{open} of {total} open" },
-              { open: counts.available, total: counts.published }
-            ),
-          },
-        }
-      : null;
+  const voucherCounts = voucher
+    ? {
+        status: {
+          label:
+            counts.available > 0
+              ? formatMessage({ id: "hub.garden.pool.commitments.open", defaultMessage: "Open" })
+              : formatMessage({
+                  id: "hub.garden.pool.group.fullyBooked",
+                  defaultMessage: "Fully booked",
+                }),
+          tone: counts.available > 0 ? ("info" as const) : ("neutral" as const),
+        },
+        amount: {
+          value:
+            counts.kept > 0
+              ? formatMessage(
+                  {
+                    id: "hub.garden.pool.group.bookedKept",
+                    defaultMessage: "{booked} booked · {kept} kept",
+                  },
+                  { booked: counts.inProgress, kept: counts.kept }
+                )
+              : formatMessage(
+                  { id: "hub.garden.pool.group.booked", defaultMessage: "{booked} booked" },
+                  { booked: counts.inProgress }
+                ),
+          caption: formatMessage(
+            { id: "hub.garden.pool.group.openOf", defaultMessage: "{open} of {total} open" },
+            { open: counts.available, total: counts.published }
+          ),
+        },
+      }
+    : null;
+  // Finish Creating keeps the right slot while a copy is unsent; the counts move to the line.
+  const booked = unsent === 0 ? voucherCounts : null;
 
   return (
     <CommitmentRow
@@ -150,18 +151,20 @@ export function PoolGroupRow({
       due={rowDueDetail(intl, first.dueDate, Date.now())}
       group={{
         size: counts.published,
-        // A voucher offer's counts are in the right slot.
+        // A voucher offer's counts are in the right slot, or in the line beside Finish Creating.
         counts: booked
           ? ""
-          : unsent > 0
-            ? formatMessage(
-                {
-                  id: "hub.garden.pool.group.created",
-                  defaultMessage: "<b>{count}</b> created",
-                },
-                { count: counts.published, b: plain }
-              )
-            : later.join(", "),
+          : unsent > 0 && voucherCounts
+            ? `${voucherCounts.amount.value} · ${voucherCounts.amount.caption}`
+            : unsent > 0
+              ? formatMessage(
+                  {
+                    id: "hub.garden.pool.group.created",
+                    defaultMessage: "<b>{count}</b> created",
+                  },
+                  { count: counts.published, b: plain }
+                )
+              : later.join(", "),
       }}
       onOpen={onOpen}
       action={

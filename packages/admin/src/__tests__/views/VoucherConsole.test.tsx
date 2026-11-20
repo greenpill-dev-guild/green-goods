@@ -95,7 +95,11 @@ const endedEarly: VoucherBooking = {
 function offers(
   bookings: VoucherBooking[],
   acts: Partial<VoucherConsoleView["acts"]> = {},
-  options: { commitments?: CommitmentReadModel[]; titles?: PoolConsoleController["titles"] } = {}
+  options: {
+    commitments?: CommitmentReadModel[];
+    titles?: PoolConsoleController["titles"];
+    queuedGroupCopies?: PoolConsoleController["queuedGroupCopies"];
+  } = {}
 ) {
   const viewOf = (read: VoucherBooking[]) => {
     const vouchers = voucherConsoleViewFixture({
@@ -125,6 +129,7 @@ function offers(
     );
   const pool = poolConsoleControllerFixture({
     commitments,
+    ...(options.queuedGroupCopies ? { queuedGroupCopies: options.queuedGroupCopies } : {}),
     titles:
       options.titles ??
       new Map(
@@ -426,6 +431,37 @@ describe("the issuer's acts in the Promises console", () => {
     expect(
       within(screen.getByTestId("pool-booking-43")).getByRole("button", { name: "Report Visit…" })
     ).toBeEnabled();
+  });
+
+  // DL-195: Finish Creating keeps the right slot, and the counts move to the line.
+  it("moves a voucher group's booked and open counts to its line while Finish Creating holds the slot", () => {
+    const metadata = buildCommitmentMetadata({
+      title: "Hub day, up to 4 hours",
+      displayGroup: { version: 1, id: "group-hubdays01" },
+    });
+    const copy = (commitmentId: bigint, taken: boolean) =>
+      commitmentFixture({
+        id: `42161-${commitmentId}`,
+        commitmentId,
+        direction: "OFFER",
+        onchainState: taken ? "ACCEPTED" : "OFFERED",
+        derivedState: taken ? "ACTIVE" : "OFFERED",
+        state: taken ? "ACCEPTED" : "OFFERED",
+        counterparty: taken ? MARA : null,
+        metadataCID: "bafy-hub-days",
+      });
+    offers(
+      [visit],
+      {},
+      {
+        commitments: [copy(43n, true), copy(44n, false), copy(45n, false)],
+        titles: new Map([["bafy-hub-days", metadata]]),
+        queuedGroupCopies: new Map([["group-hubdays01", ["job-1"]]]),
+      }
+    );
+    const group = screen.getByTestId("pool-group-group-hubdays01");
+    expect(within(group).getByRole("button", { name: "Finish Creating (1)" })).toBeInTheDocument();
+    expect(within(group).getByText(/1 booked · 2 of 3 open/)).toBeInTheDocument();
   });
 
   // Decision 3 of the hub-day review: three numbers first, the rest folded.
