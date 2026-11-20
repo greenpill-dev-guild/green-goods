@@ -433,6 +433,36 @@ describe("the issuer's acts in the Promises console", () => {
     ).toBeEnabled();
   });
 
+  // A group whose other copies ended isn't fully booked (PR #1740, Codex).
+  it("says how many copies ended, not Fully booked, when the open ones ran out by ending", () => {
+    const metadata = buildCommitmentMetadata({
+      title: "Hub day, up to 4 hours",
+      displayGroup: { version: 1, id: "group-hubdays01" },
+    });
+    const copy = (commitmentId: bigint, state: "ACCEPTED" | "EXPIRED") =>
+      commitmentFixture({
+        id: `42161-${commitmentId}`,
+        commitmentId,
+        direction: "OFFER",
+        onchainState: state,
+        derivedState: state === "ACCEPTED" ? "ACTIVE" : "EXPIRED",
+        state,
+        counterparty: state === "ACCEPTED" ? MARA : null,
+        metadataCID: "bafy-hub-days",
+      });
+    offers(
+      [visit],
+      {},
+      {
+        commitments: [copy(43n, "ACCEPTED"), copy(44n, "EXPIRED"), copy(45n, "EXPIRED")],
+        titles: new Map([["bafy-hub-days", metadata]]),
+      }
+    );
+    const group = screen.getByTestId("pool-group-group-hubdays01");
+    expect(within(group).getByText("2 ended")).toBeInTheDocument();
+    expect(within(group).queryByText("Fully booked")).not.toBeInTheDocument();
+  });
+
   // DL-195: Finish Creating keeps the right slot, and the counts move to the line.
   it("moves a voucher group's booked and open counts to its line while Finish Creating holds the slot", () => {
     const metadata = buildCommitmentMetadata({

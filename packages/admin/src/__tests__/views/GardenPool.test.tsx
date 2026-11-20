@@ -1103,9 +1103,15 @@ describe("GardenPoolTab (W7)", () => {
 
     await openReturn();
     // The final split closed and the next read no longer lists the booking.
+    const booked = mocks.vouchers;
     mocks.vouchers = read([]);
     fireEvent.click(screen.getByRole("button", { name: "Confirmed", hidden: true }));
     expect(await screen.findByRole("dialog", { name: "Household water survey" })).toBeVisible();
+    // A later read lists it again: the return stays closed until the steward opens it.
+    mocks.vouchers = booked;
+    fireEvent.click(screen.getByRole("button", { name: "Open", hidden: true }));
+    expect(screen.getByRole("dialog", { name: "Household water survey" })).toBeVisible();
+    expect(screen.queryByRole("dialog", { name: /Propose a Return/ })).not.toBeInTheDocument();
   });
 
   it("counts a group's queued copy on its row as didn't send, with Finish Creating, not as a queued row", async () => {

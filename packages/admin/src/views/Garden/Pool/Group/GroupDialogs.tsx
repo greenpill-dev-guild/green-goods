@@ -90,6 +90,11 @@ export function GroupDialogs({
   // The return being proposed follows its booking as the read has it now.
   const [proposing, setProposing] = useState<VoucherBooking | null>(null);
   const proposingNow = proposing ? vouchers?.bookingFor(proposing.commitmentId) : undefined;
+  // A booking that left the read ends its return: a later read listing it again doesn't reopen it.
+  if (proposing && !proposingNow) {
+    setProposing(null);
+    if (step === "propose-return") setStep("inspect");
+  }
   const actDisabled = !pool.isOnline || pool.isActing;
   const optionalReturn = (commitment: CommitmentReadModel) => {
     const booking = vouchers?.bookingFor(commitment.commitmentId);

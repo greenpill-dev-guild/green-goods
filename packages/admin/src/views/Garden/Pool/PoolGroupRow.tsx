@@ -83,13 +83,19 @@ export function PoolGroupRow({
   const voucherCounts = voucher
     ? {
         status: {
+          // None open: fully booked only when no copy ended, else how many ended.
           label:
             counts.available > 0
               ? formatMessage({ id: "hub.garden.pool.group.open", defaultMessage: "Open" })
-              : formatMessage({
-                  id: "hub.garden.pool.group.fullyBooked",
-                  defaultMessage: "Fully booked",
-                }),
+              : counts.ended > 0
+                ? formatMessage(
+                    { id: "hub.garden.pool.group.ended", defaultMessage: "<b>{count}</b> ended" },
+                    { count: counts.ended, b: plain }
+                  )
+                : formatMessage({
+                    id: "hub.garden.pool.group.fullyBooked",
+                    defaultMessage: "Fully booked",
+                  }),
           tone: counts.available > 0 ? ("info" as const) : ("neutral" as const),
         },
         amount: {
