@@ -14,7 +14,7 @@ import {
 } from "./WaitingForApprovalRow";
 
 /** Where a booking's row stands this visit. */
-export type WaitingBookingState =
+type WaitingBookingState =
   /** It waits on the steward's act, which takes the right slot. */
   | { status: "waiting"; act: ReactNode }
   /** The steward's act went out from this row this visit, and the row keeps its outcome. */
