@@ -6,6 +6,7 @@ import {
   RiHandCoinLine,
   RiMedalLine,
   RiMoneyDollarCircleLine,
+  RiSeedlingLine,
   RiSettings3Line,
   RiUserAddLine,
 } from "@remixicon/react";
@@ -72,6 +73,17 @@ const gardenDial = fabConfig(
     label: "View Public",
     labelId: "hub.garden.action.viewPublic",
   }
+);
+// The Promises tab's dial (PRD-1491): Seed Promises nearest the "+", then the Garden pair.
+const gardenPromisesDial = fabConfig(
+  {
+    id: "seed-promises",
+    icon: RiSeedlingLine,
+    label: "Seed Promises",
+    labelId: "hub.garden.pool.act.seedPromises",
+  },
+  // After the primary the dial keeps the header's order: View Public, then Edit Garden.
+  ...[...gardenDial.actions].reverse()
 );
 const communityDial = fabConfig(addMember, depositWithdraw, fundCookieJar);
 const actionsFab = fabConfig({
@@ -141,6 +153,21 @@ const restsClosed: Play = async ({ canvasElement }) => {
   await expectLayerBeneath(fab);
 };
 
+/** How far a computed box-shadow list reaches past the box on each side, in px. */
+function shadowReach(boxShadow: string) {
+  const reach = { left: 0, right: 0, top: 0, bottom: 0 };
+  for (const [, x, y, blur, spread] of boxShadow.matchAll(
+    /(-?[\d.]+)px (-?[\d.]+)px ([\d.]+)px (-?[\d.]+)px/g
+  )) {
+    const size = Number(blur) + Number(spread);
+    reach.left = Math.max(reach.left, size - Number(x));
+    reach.right = Math.max(reach.right, size + Number(x));
+    reach.top = Math.max(reach.top, size - Number(y));
+    reach.bottom = Math.max(reach.bottom, size + Number(y));
+  }
+  return reach;
+}
+
 /** Open, the button is named for closing, and each act says what it does. */
 function opensDial(...labels: string[]): Play {
   return async ({ canvasElement }) => {
@@ -151,6 +178,17 @@ function opensDial(...labels: string[]): Play {
     await expect(fab).toHaveAttribute("aria-expanded", "true");
     const items = await canvas.findAllByRole("menuitem");
     await expect(items.map((item) => item.textContent)).toEqual(labels);
+    // The dial scrolls, so it clips at its edges: each item, with its focus ring and its
+    // whole shadow, has to sit inside the list's box, or an edge is cut off (PRD-1491).
+    const list = canvas.getByRole("menu").getBoundingClientRect();
+    for (const item of items) {
+      const box = item.getBoundingClientRect();
+      const reach = shadowReach(getComputedStyle(item).boxShadow);
+      await expect(box.right + Math.max(reach.right, 2)).toBeLessThanOrEqual(list.right);
+      await expect(box.left - Math.max(reach.left, 2)).toBeGreaterThanOrEqual(list.left);
+      await expect(box.top - Math.max(reach.top, 2)).toBeGreaterThanOrEqual(list.top);
+      await expect(box.bottom + Math.max(reach.bottom, 2)).toBeLessThanOrEqual(list.bottom);
+    }
   };
 }
 
@@ -167,6 +205,18 @@ export const Garden: Story = {
 };
 
 export const GardenOpen: Story = { ...Garden, play: opensDial("Edit Garden", "View Public") };
+
+/** On the Promises tab the "+" leads to adding a promise: Seed Promises sits nearest it. */
+export const GardenPromises: Story = {
+  args: { config: gardenPromisesDial },
+  parameters: { workspace: "garden" },
+  play: restsClosed,
+};
+
+export const GardenPromisesOpen: Story = {
+  ...GardenPromises,
+  play: opensDial("Seed Promises", "View Public", "Edit Garden"),
+};
 
 export const Community: Story = {
   args: { config: communityDial },
