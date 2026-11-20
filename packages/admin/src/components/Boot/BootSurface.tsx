@@ -1,8 +1,15 @@
 import { Button } from "@green-goods/shared/components/Button";
-import { RiAlertLine, RiDeleteBinLine, RiRefreshLine, RiWallet3Line } from "@remixicon/react";
+import {
+  RiAlertLine,
+  RiDeleteBinLine,
+  RiKey2Line,
+  RiRefreshLine,
+  RiWallet3Line,
+} from "@remixicon/react";
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { AdminLoadingScreen } from "@/components/AdminLoadingScreen";
 import { ConnectPrompt } from "@/components/Layout/ConnectPrompt";
+import { SignInSlots } from "@/components/SignInSlots";
 
 /**
  * The boot surfaces render before any provider exists — no IntlProvider, no
@@ -38,8 +45,8 @@ const BOOT_COPY: Record<
     connectTitle: "Connect to continue",
     connectDescription:
       "Connect your wallet or sign in with a passkey to open the Green Goods Hub.",
-    connect: "Connect Wallet",
-    passkey: "Sign in with Passkey",
+    connect: "Sign in with a Wallet",
+    passkey: "Continue with Passkey",
   },
   es: {
     loading: "Abriendo tu espacio de trabajo…",
@@ -52,8 +59,8 @@ const BOOT_COPY: Record<
     connectTitle: "Conectar para continuar",
     connectDescription:
       "Conecta tu billetera o inicia sesión con una clave de acceso para abrir el Green Goods Hub.",
-    connect: "Conectar billetera",
-    passkey: "Entrar con passkey",
+    connect: "Entrar con wallet",
+    passkey: "Continuar con clave de acceso",
   },
   pt: {
     loading: "Abrindo seu espaço de trabalho…",
@@ -66,8 +73,8 @@ const BOOT_COPY: Record<
     connectTitle: "Conectar para continuar",
     connectDescription:
       "Conecte sua carteira ou entre com uma chave de acesso para abrir o Green Goods Hub.",
-    connect: "Conectar carteira",
-    passkey: "Entrar com passkey",
+    connect: "Entrar com wallet",
+    passkey: "Continuar com chave de acesso",
   },
 };
 
@@ -118,7 +125,11 @@ export function BootShell() {
   return <AdminLoadingScreen label={copy.loading} locale={locale} />;
 }
 
-/** Provider-free entry to the existing wallet and passkey sign-in paths. */
+/**
+ * Provider-free entry to the passkey and wallet sign-in paths. It fills the same slots as
+ * the Hub's sign-in with the same two actions, so the workspace takes over without the
+ * screen changing; the copy matches the locale catalogs' `app.login.button.*` strings.
+ */
 export function BootConnect({
   onConnect,
   onPasskey,
@@ -135,27 +146,34 @@ export function BootConnect({
         description={copy.connectDescription}
         lang={locale}
         action={
-          <div className="flex flex-col items-stretch gap-2">
-            <Button
-              type="button"
-              emphasis="primary"
-              size="lg"
-              leadingIcon={<RiWallet3Line className="h-[18px] w-[18px]" aria-hidden="true" />}
-              onClick={onConnect}
-              data-testid="connect-wallet-button"
-            >
-              {copy.connect}
-            </Button>
-            <Button
-              type="button"
-              emphasis="secondary"
-              size="lg"
-              onClick={onPasskey}
-              data-testid="passkey-start-button"
-            >
-              {copy.passkey}
-            </Button>
-          </div>
+          <SignInSlots
+            slotOne={
+              <Button
+                className="w-full"
+                type="button"
+                emphasis="primary"
+                size="lg"
+                leadingIcon={<RiKey2Line className="h-[18px] w-[18px]" aria-hidden="true" />}
+                onClick={onPasskey}
+                data-testid="passkey-start-button"
+              >
+                <span className="min-w-0 truncate">{copy.passkey}</span>
+              </Button>
+            }
+            slotTwo={
+              <Button
+                className="w-full"
+                type="button"
+                emphasis="secondary"
+                size="lg"
+                leadingIcon={<RiWallet3Line className="h-[18px] w-[18px]" aria-hidden="true" />}
+                onClick={onConnect}
+                data-testid="connect-wallet-button"
+              >
+                {copy.connect}
+              </Button>
+            }
+          />
         }
       />
     </main>
