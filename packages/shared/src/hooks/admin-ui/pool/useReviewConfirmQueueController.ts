@@ -150,7 +150,8 @@ export function useReviewConfirmQueueController(input: {
   const acts = useMemo(
     () => ({
       confirm: async (row: ConfirmQueueRow) => {
-        let landed = false;
+        let kind: ConfirmDecision["kind"] = "queued";
+        let wentOut = false;
         const jobId = await jobs.enqueue({
           act: "confirm",
           commitmentId: row.commitment.commitmentId,
@@ -159,11 +160,17 @@ export function useReviewConfirmQueueController(input: {
           // hat in this garden, so a role lost before the queue sends it must not
           // hold it (CreditLib.isOrdinaryConfirmer).
           ...(row.eligibility === "OWN" ? { membershipNotRequired: true } : {}),
+          // Read as the Hub's act line reads the same reports (`actPhaseReducer`): the queue's
+          // later "queued" does not make a send that went out, or a Safe's proposal, one waiting
+          // here to be sent.
           report: (event) => {
-            if (event.stage === "landed") landed = true;
+            if (event.stage === "landed") kind = "confirmed";
+            else if (event.stage === "safe-signers") kind = "safe-signers";
+            else if (event.stage === "confirming") wentOut = true;
           },
         });
-        const decision: ConfirmDecision = { kind: landed ? "confirmed" : "queued", at: Date.now() };
+        if (kind === "queued" && wentOut) kind = "still-confirming";
+        const decision: ConfirmDecision = { kind, at: Date.now() };
         setDecisions((current) => ({ ...current, [confirmRowKey(row)]: decision }));
         return jobId;
       },

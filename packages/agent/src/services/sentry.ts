@@ -54,6 +54,8 @@ export function initAgentSentry(options: InitAgentSentryOptions): void {
 
   Sentry.setTag("app", "green-goods");
   Sentry.setTag("surface", "agent");
+  // The name PostHog events use, so one filter reads both (PRD-1560).
+  Sentry.setTag("app_surface", "agent");
   initialized = true;
 }
 

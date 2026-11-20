@@ -154,3 +154,24 @@ test("every site's vercel.json calls this step with a site it knows", () => {
     assert.equal(resolve(ROOT, root, script), resolve(ROOT, "scripts/ops/vercel-ignore.mjs"));
   }
 });
+
+// Preview builds stay off to hold build cost down; alpha is the one preview branch that builds.
+// Vercel reads this rule from the branch being pushed, so it guards every branch cut after it.
+test("the App and the Hub build only main, develop and alpha", () => {
+  for (const root of ["packages/client", "packages/admin"]) {
+    const { git } = JSON.parse(read(`${root}/vercel.json`));
+    assert.deepEqual(
+      git?.deploymentEnabled,
+      { "**": false, main: true, develop: true, alpha: true },
+      `${root}/vercel.json`
+    );
+  }
+});
+
+test("alpha's first deployment builds even when nothing it is built from differs from develop", () => {
+  const alpha = { ...compared, site: "client", ref: "alpha", changed: ["docs/docs/intro.mdx"] };
+  assert.equal(decide(alpha).build, true);
+  // Later pushes compare with alpha's own last deployment, like any other branch.
+  assert.equal(decide({ ...alpha, previous: "ccccccc" }).build, false);
+  assert.equal(decide({ ...alpha, ref: "feature/x" }).build, false);
+});

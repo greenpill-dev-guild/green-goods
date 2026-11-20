@@ -516,6 +516,40 @@ describe("reporting ceremony page", () => {
     await waitFor(() => expect(result.current.stage).toBe("published"));
   });
 
+  // PRD-1568: Safe{Wallet} answers with its proposal's hash, which the page has already reported
+  // as a transaction by the time the sender knows it is a proposal. It then says which it was.
+  it("tells the Agent a Safe only proposed the report, after the hash it reported", async () => {
+    const SAFE_TX = `0x${"5a".repeat(32)}` as const;
+    mocks.sender = {
+      authMode: "wallet",
+      supportsSponsorship: false,
+      supportsBatching: false,
+      async sendContractCall(_call, options) {
+        await options?.onBeforeBroadcast?.();
+        await options?.onBroadcastReference?.({ kind: "transaction", hash: SAFE_TX });
+        options?.onAwaiting?.("safe-signers");
+        return {
+          hash: SAFE_TX,
+          sponsored: false,
+          confirmation: "pending",
+          awaiting: "safe-signers",
+        };
+      },
+    };
+    const { result } = render();
+    await reachReview(result);
+    await act(() => result.current.publish());
+
+    expect(
+      agent.requests("POST", "/operations/op-1/outcome").map((request) => request.body?.outcome)
+    ).toEqual([
+      { kind: "broadcast", transactionHash: SAFE_TX },
+      { kind: "safe_proposal", safeTxHash: SAFE_TX },
+    ]);
+    expect(result.current.stage).toBe("submitted");
+    expect(result.current.error).toBeNull();
+  });
+
   it("keeps checking a send it can't confirm and shows the chain's answer once it settles", async () => {
     mocks.sender = {
       authMode: "wallet",

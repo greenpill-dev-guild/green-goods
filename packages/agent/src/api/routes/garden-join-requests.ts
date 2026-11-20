@@ -79,11 +79,15 @@ async function handleMine(c: Context, ctx: GardenJoinRequestRouteContext) {
         request = await store.reconcileWelcomed(preflight.garden, request.id, nowIso, kind);
       }
     }
-    void trackGardenJoinRequestEvent("join_request_status_checked", {
-      state: request?.state ?? "none",
-      kind,
-      is_counterfactual: authenticated.proof.factory !== undefined,
-    });
+    void trackGardenJoinRequestEvent(
+      "join_request_status_checked",
+      {
+        state: request?.state ?? "none",
+        kind,
+        is_counterfactual: authenticated.proof.factory !== undefined,
+      },
+      { garden: preflight.garden, account: authenticated.proof.accountAddress }
+    );
     return publicBrowserCorsResponse(c, ctx.deps, {
       ok: true,
       request: request ? toGardenJoinRequestSelfRecord(request) : null,
@@ -140,10 +144,14 @@ async function handleWithdraw(c: Context, ctx: GardenJoinRequestRouteContext) {
         "No pending request was found.",
         404
       );
-    void trackGardenJoinRequestEvent("join_request_withdrawn", {
-      kind: authenticated.proof.kind ?? "garden_membership",
-      is_counterfactual: authenticated.proof.factory !== undefined,
-    });
+    void trackGardenJoinRequestEvent(
+      "join_request_withdrawn",
+      {
+        kind: authenticated.proof.kind ?? "garden_membership",
+        is_counterfactual: authenticated.proof.factory !== undefined,
+      },
+      { garden: preflight.garden, account: authenticated.proof.accountAddress }
+    );
     return publicBrowserCorsResponse(c, ctx.deps, { ok: true });
   } catch (error) {
     reportGardenJoinRequestUnavailable("withdraw", stage, error);
