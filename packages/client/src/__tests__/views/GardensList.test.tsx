@@ -222,7 +222,9 @@ describe("GardensList", () => {
       expect.stringContaining("My Garden"),
       expect.stringContaining("Reviewed Garden"),
     ]);
-    expect(screen.getByText("Berlin")).toBeInTheDocument();
+    // The card names the member's roles in words; the garden's own page carries its location.
+    expect(rows[1]).toHaveTextContent("Evaluator");
+    expect(screen.queryByText("Berlin")).not.toBeInTheDocument();
     // Joining lives on the garden itself, so this list offers no join.
     expect(screen.queryByRole("button", { name: "Join" })).not.toBeInTheDocument();
   });
@@ -323,15 +325,46 @@ describe("GardensList", () => {
     render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS })));
 
     const rows = screen.getAllByRole("listitem");
-    expect(rows[0]).toHaveTextContent("Jun 12, 2026");
+    // One line each: when the current membership began, a rejoin named as one.
+    expect(rows[0]).toHaveTextContent("Joined Jun 12, 2026");
     expect(rows[0]).not.toHaveTextContent("May 3, 2026");
-    expect(rows[1]).toHaveTextContent("May 3, 2026");
-    expect(rows[1]).toHaveTextContent("Sep 4, 2026");
-    expect(rows[1]).toHaveTextContent("Oct 5, 2026");
+    expect(rows[1]).toHaveTextContent("Rejoined Sep 4, 2026");
+    expect(rows[1]).toHaveTextContent("Steward and Gardener");
+    expect(rows[1]).not.toHaveTextContent("Oct 5, 2026");
     expect(useGardenMemberHistory).toHaveBeenCalledWith({ account: MOCK_ADDRESS });
   });
 
-  it("constrains long garden names and locations inside the row", () => {
+  it("never reads a first join as a current membership once the history has no roles", () => {
+    const left = "0x3333333333333333333333333333333333333333";
+    const lagging = "0x4444444444444444444444444444444444444444";
+    mockMyGardens.gardens = [
+      { garden: { id: left, name: "Left garden" }, membership: { roles: [], pendingJoin: false } },
+      asMine({ id: lagging, name: "Lagging garden" }),
+    ];
+    vi.mocked(useGardenMemberHistory).mockReturnValue({
+      members: [left, lagging].map((garden) => ({
+        garden,
+        account: MOCK_ADDRESS,
+        joinedAt: Date.UTC(2026, 4, 3, 12),
+        memberSince: null,
+        roleSince: {},
+      })),
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as ReturnType<typeof useGardenMemberHistory>);
+
+    render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS })));
+
+    const leftCard = screen.getByRole("button", { name: "Left garden" });
+    expect(leftCard).toHaveTextContent("Left this garden");
+    expect(leftCard).not.toHaveTextContent("May 3, 2026");
+    // Still listed with a role while the history lags a rejoin: unavailable, not a departure.
+    const laggingCard = screen.getByRole("button", { name: "Lagging garden" });
+    expect(laggingCard).toHaveTextContent("Membership dates unavailable");
+  });
+
+  it("keeps a long garden name to one line inside the row", () => {
     const longName = "RegenerativeBioregionStewardshipGardenCollective2026";
     const longLocation = "RuaDasCooperativasNeighborhoodWithLongUnbrokenPlaceNameLisbonPortugal";
     mockMyGardens.gardens = [
@@ -340,13 +373,12 @@ describe("GardensList", () => {
 
     render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
 
+    // One line at every name length keeps the list's cards one height; the full name is the title.
     const gardenName = screen.getByText(longName);
-    expect(gardenName).toHaveClass("line-clamp-2", "min-w-0", "max-w-full");
-    expect(gardenName.className).toContain("[overflow-wrap:anywhere]");
+    expect(gardenName).toHaveClass("truncate", "min-w-0", "max-w-full");
+    expect(gardenName).toHaveAttribute("title", longName);
     expect(gardenName.parentElement).toHaveClass("min-w-0", "flex-1");
-    const location = screen.getByText(longLocation);
-    expect(location).toHaveClass("min-w-0", "truncate");
-    expect(location.parentElement).toHaveClass("min-w-0", "max-w-full");
+    expect(screen.queryByText(longLocation)).not.toBeInTheDocument();
   });
 
   it.each([

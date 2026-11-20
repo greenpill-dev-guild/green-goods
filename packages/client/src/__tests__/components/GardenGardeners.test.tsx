@@ -50,10 +50,6 @@ vi.mock("@green-goods/shared/hooks/garden/useGardenMemberContributions", () => (
   useGardenMemberContributions: vi.fn(() => ({ canView: false, byAccount: {} })),
 }));
 
-vi.mock("@/components/Inputs", () => ({
-  AddressCopy: ({ address }: { address: string }) => <span>{address}</span>,
-}));
-
 import { GardenGardeners, type GardenMember } from "../../components/Features/Garden/Gardeners";
 
 const messages = {
@@ -145,7 +141,7 @@ describe("GardenGardeners", () => {
         <GardenGardeners members={members.slice(0, 2)} garden={garden} />
       </TestIntl>
     );
-    expect(screen.getByText("Contributed 11/15/2026")).toBeInTheDocument();
+    expect(screen.getByText("Contributed Nov 15, 2026")).toBeInTheDocument();
     await user.click(screen.getAllByRole("button", { name: /Member 0/ })[0]);
     expect(
       within(screen.getByRole("dialog")).getByText("Last recorded contribution")
@@ -212,11 +208,38 @@ describe("GardenGardeners", () => {
 
     await user.click(screen.getByRole("button", { name: /Member 0/i }));
     const dialog = await screen.findByRole("dialog");
-    await user.click(within(dialog).getByRole("button", { name: "Copy" }));
+    // Everything to copy sits in one list: the address first, then the shared contacts.
+    expect(within(dialog).getByRole("button", { name: "Copy Address" })).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "Copy Email" }));
 
     await waitFor(() => expect(toastService.error).toHaveBeenCalled());
     expect(copyToClipboard).toHaveBeenCalledWith("member@example.com");
     expect(toastService.success).not.toHaveBeenCalled();
+  });
+
+  it("offers the member's Green Goods name first among what the sheet copies", async () => {
+    vi.mocked(copyToClipboard).mockResolvedValue(true);
+    vi.mocked(useGreenGoodsEnsName).mockImplementation(
+      (account) =>
+        ({
+          data: account === members[0].account ? "river.greengoods.eth" : null,
+        }) as ReturnType<typeof useGreenGoodsEnsName>
+    );
+    const user = userEvent.setup();
+    renderWithProviders(
+      <TestIntl>
+        <GardenGardeners members={[members[0]]} />
+      </TestIntl>
+    );
+
+    await user.click(screen.getByRole("button", { name: /river/i }));
+    const dialog = await screen.findByRole("dialog");
+    const copies = within(dialog)
+      .getAllByRole("button", { name: /^Copy / })
+      .map((button) => button.getAttribute("aria-label"));
+    expect(copies).toEqual(["Copy Name", "Copy Address"]);
+    await user.click(within(dialog).getByRole("button", { name: "Copy Name" }));
+    expect(copyToClipboard).toHaveBeenCalledWith("river.greengoods.eth");
   });
 
   it("shows this garden's join date instead of a gardener's earlier registration", async () => {
@@ -231,6 +254,7 @@ describe("GardenGardeners", () => {
           roleSince: {
             gardener: Date.UTC(2026, 9, 4, 12),
             steward: Date.UTC(2026, 9, 6, 12),
+            evaluator: Date.UTC(2026, 9, 8, 12),
           },
         },
       ],
@@ -252,8 +276,10 @@ describe("GardenGardeners", () => {
     );
 
     const steward = screen.getByRole("button", { name: /Member 0/i });
-    expect(within(steward).getByTitle("Steward")).toBeInTheDocument();
-    expect(within(steward).queryByTitle("Gardener")).not.toBeInTheDocument();
+    // Every role in words, no pill: the garden's lists and the history's other roles together.
+    expect(steward).toHaveTextContent("Steward, Evaluator, and Gardener");
+    expect(screen.getByRole("button", { name: /Member 2/i })).toHaveTextContent("Steward");
+    expect(screen.getByRole("button", { name: /Member 2/i })).not.toHaveTextContent("Gardener");
     expect(steward).toHaveTextContent("Joined Jun 12, 2026");
     expect(steward.querySelector("time")).toHaveAttribute(
       "datetime",
@@ -349,15 +375,25 @@ describe("GardenGardeners", () => {
     } as ReturnType<typeof useGardenMemberHistory>);
     renderWithProviders(
       <TestIntl>
-        <GardenGardeners garden={garden} members={[members[0]]} />
+        <GardenGardeners
+          garden={{ ...garden, owners: [members[0].account] }}
+          members={[members[0]]}
+        />
       </TestIntl>
     );
 
     const row = screen.getByRole("button", { name: /Member 0/i });
     expect(row).not.toHaveTextContent("Joined");
+    // The garden's own role lists still name the owner while the history is down.
+    expect(row).toHaveTextContent("Owner and Gardener");
+    // Date orders need the history, so they are disabled and the role order stays.
+    expect(screen.getByRole("option", { name: "Newest" })).toBeDisabled();
+    expect(screen.getByRole("option", { name: "Oldest" })).toBeDisabled();
+    expect(screen.getByRole("combobox", { name: "Sort" })).toHaveValue("role");
     await userEvent.setup().click(row);
     const dialog = screen.getByRole("dialog");
-    expect(within(dialog).getByText(members[0].account)).toBeInTheDocument();
+    expect(within(dialog).getByTitle(members[0].account)).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Copy Address" })).toBeInTheDocument();
     expect(dialog).toHaveTextContent(en["app.garden.membership.unavailable"]);
     expect(dialog).not.toHaveTextContent("Nov 14, 2023");
   });
@@ -377,6 +413,115 @@ describe("GardenGardeners", () => {
     expect(container.querySelector(".gg-item-row-avatar img")?.getAttribute("src")).toBe(
       "/images/avatar.png"
     );
+  });
+
+  it("filters by role, says how many it shows, and offers a way back from an empty filter", async () => {
+    const user = userEvent.setup();
+    const joined = [Date.UTC(2026, 1, 1), Date.UTC(2026, 5, 1), Date.UTC(2026, 3, 1)];
+    vi.mocked(useGardenMemberHistory).mockReturnValue({
+      members: members.slice(0, 3).map((member, index) => ({
+        garden: garden.id,
+        account: member.account,
+        joinedAt: joined[index],
+        memberSince: joined[index],
+        roleSince: { gardener: joined[index] },
+      })),
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as ReturnType<typeof useGardenMemberHistory>);
+    const view = renderWithProviders(
+      <TestIntl>
+        <GardenGardeners
+          garden={garden}
+          members={[{ ...members[0], isSteward: true }, members[1], members[2]]}
+        />
+      </TestIntl>
+    );
+    const names = () =>
+      screen
+        .getAllByRole("button", { name: /Member \d/ })
+        .map((row) => /Member \d/.exec(row.textContent ?? "")?.[0]);
+
+    expect(screen.getByText("3 members")).toBeInTheDocument();
+    await user.selectOptions(screen.getByRole("combobox", { name: "Role" }), "steward");
+    expect(screen.getByText("1 member")).toBeInTheDocument();
+    expect(names()).toEqual(["Member 0"]);
+    // The filter reads the roles the row shows: the garden's own lists count too.
+    view.rerender(
+      <TestIntl>
+        <GardenGardeners
+          garden={{ ...garden, stewards: [members[1].account] }}
+          members={[{ ...members[0], isSteward: true }, members[1], members[2]]}
+        />
+      </TestIntl>
+    );
+    expect(names()).toEqual(["Member 0", "Member 1"]);
+    view.rerender(
+      <TestIntl>
+        <GardenGardeners
+          garden={garden}
+          members={[{ ...members[0], isSteward: true }, members[1], members[2]]}
+        />
+      </TestIntl>
+    );
+    // The steward also gardens, so the Gardeners filter keeps them.
+    await user.selectOptions(screen.getByRole("combobox", { name: "Role" }), "gardener");
+    expect(names()).toEqual(["Member 0", "Member 1", "Member 2"]);
+
+    await user.selectOptions(screen.getByRole("combobox", { name: "Sort" }), "newest");
+    expect(names()).toEqual(["Member 1", "Member 2", "Member 0"]);
+    await user.selectOptions(screen.getByRole("combobox", { name: "Sort" }), "oldest");
+    expect(names()).toEqual(["Member 0", "Member 2", "Member 1"]);
+
+    view.rerender(
+      <TestIntl>
+        <GardenGardeners garden={garden} members={[members[1], members[2]]} />
+      </TestIntl>
+    );
+    await user.selectOptions(screen.getByRole("combobox", { name: "Role" }), "steward");
+    expect(screen.getByText(en["app.garden.gardeners.filter.empty"])).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Show All" }));
+    // The order chosen before stays: oldest first.
+    expect(names()).toEqual(["Member 2", "Member 1"]);
+  });
+
+  it("orders Role order by each member's highest role, from the garden's lists or the history", async () => {
+    vi.mocked(useGardenMemberHistory).mockReturnValue({
+      members: [
+        {
+          garden: garden.id,
+          account: members[2].account,
+          joinedAt: Date.UTC(2026, 5, 12, 12),
+          memberSince: Date.UTC(2026, 5, 12, 12),
+          // A steward the history knows of before the garden's lists do.
+          roleSince: { gardener: Date.UTC(2026, 5, 12, 12), steward: Date.UTC(2026, 8, 1, 12) },
+        },
+      ],
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as ReturnType<typeof useGardenMemberHistory>);
+    renderWithProviders(
+      <TestIntl>
+        <GardenGardeners
+          garden={{ ...garden, owners: [members[3].account] }}
+          members={[{ ...members[0], isSteward: true }, members[1], members[2], members[3]]}
+        />
+      </TestIntl>
+    );
+    const names = () =>
+      screen
+        .getAllByRole("button", { name: /Member \d/ })
+        .map((row) => /Member \d/.exec(row.textContent ?? "")?.[0]);
+
+    // Owner first, then the stewards in the garden's order, then the gardener.
+    expect(names()).toEqual(["Member 3", "Member 0", "Member 2", "Member 1"]);
+    // The history-only steward is under Stewards too.
+    await userEvent
+      .setup()
+      .selectOptions(screen.getByRole("combobox", { name: "Role" }), "steward");
+    expect(names()).toEqual(["Member 0", "Member 2"]);
   });
 
   it("keeps the leave action in Profile", () => {

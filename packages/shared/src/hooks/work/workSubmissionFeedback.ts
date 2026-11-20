@@ -10,6 +10,7 @@ import { UploadPolicyCancelledError } from "../../modules/work/upload-policy";
 import { isCancelledTxError } from "../../utils/errors/tx-error-classifier";
 import { SEND_STAGE_WORDS } from "../../modules/transactions/send-stage";
 import {
+  trackWorkSubmissionCancelled,
   trackWorkSubmissionFailed,
   trackWorkSubmissionOffline,
   trackWorkSubmissionQueued,
@@ -60,17 +61,25 @@ function recordFailure(error: unknown, record: FailureRecord) {
     chainId,
   };
 
-  // The person declined the Terms, or left before answering them: nothing was admitted.
+  // The person declined the Terms, left before answering them, or accepted and then left the flow:
+  // nothing was admitted.
   // A step before admission, such as a promise take-up, said why it did not go where it ran; its
   // own records say whether that was a failure or a decline, so it is not counted as a cancel.
   if (error instanceof UploadPolicyCancelledError) {
-    const terms = error.stage === "terms";
-    trackWorkSubmissionFailed({
-      ...submission,
-      error: terms ? "UploadPolicyDeclined" : "StoppedBeforeAdmission",
-      submissionPhase: "review",
-      parsedErrorFamily: terms ? "UserRejected" : "StoppedBeforeAdmission",
-    });
+    if (error.stage !== "before-admission")
+      trackWorkSubmissionCancelled({
+        ...submission,
+        submissionPhase: "review",
+        // Accepting the Terms and then leaving the flow is not a decline.
+        reason: error.stage === "flow-left" ? "flow_left" : "terms_declined",
+      });
+    else
+      trackWorkSubmissionFailed({
+        ...submission,
+        error: "StoppedBeforeAdmission",
+        submissionPhase: "review",
+        parsedErrorFamily: "StoppedBeforeAdmission",
+      });
     return undefined;
   }
 
@@ -91,11 +100,10 @@ function recordFailure(error: unknown, record: FailureRecord) {
     originalError instanceof WorkSendCancelledError ||
     (phase === "transaction" && isCancelledTxError(originalError))
   ) {
-    trackWorkSubmissionFailed({
+    trackWorkSubmissionCancelled({
       ...submission,
-      error: "UserRejected",
       submissionPhase: "transaction",
-      parsedErrorFamily: "UserRejected",
+      reason: "signature_declined",
     });
     return { cancelled: true } as const;
   }
