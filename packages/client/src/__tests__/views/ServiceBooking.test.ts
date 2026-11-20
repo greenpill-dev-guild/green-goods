@@ -1046,6 +1046,39 @@ describe("a member's act on a voucher booking", () => {
       expect(order.at(-1)).toBe("kept");
     });
 
+    // A read that trails the transfer's send still shows it unsent: kept waits rather than guess.
+    it("never confirms kept while the read shows its transfer unsent", async () => {
+      const order: string[] = [];
+      const kept = vi.fn();
+      const trailing = (writes: number) => {
+        const fixed = bookingStorySnapshot("hubDay", "transfersPending");
+        if (writes > 1) {
+          const final = fixed.voucherSetups[0]!.destination!.finalAllocation!;
+          final.release = { ...final.release, state: "pending", attempts: 0n };
+        }
+        return fixed;
+      };
+      expect(await runConfirmVisit(ready(), split, writer(trailing, order), kept)).toBe("done");
+      expect(order).toEqual(["finalizeVoucherAllocation", "executeVoucherFinalLeg"]);
+      expect(kept).not.toHaveBeenCalled();
+    });
+
+    // The runner stops at a return still arriving, before the release is sent: kept waits for it.
+    it("never confirms kept while one of two transfers is still unsent", async () => {
+      const kept = vi.fn();
+      const both = (writes: number) => {
+        const fixed = bookingStorySnapshot("hubDay", "transfersPending");
+        const final = fixed.voucherSetups[0]!.destination!.finalAllocation!;
+        final.refund = { ...final.refund, state: "pending", attempts: writes > 1 ? 1n : 0n };
+        final.release = { ...final.release, state: "pending", attempts: 0n };
+        return fixed;
+      };
+      const order: string[] = [];
+      await runConfirmVisit(ready(), split, writer(both, order), kept);
+      expect(order[0]).toBe("finalizeVoucherAllocation");
+      expect(kept).not.toHaveBeenCalled();
+    });
+
     // A return stuck in a failed transfer isn't a kept promise: Retry Transfer comes first.
     it("never confirms kept after its transfer failed", async () => {
       const order: string[] = [];
@@ -1126,6 +1159,26 @@ describe("a member's act on a voucher booking", () => {
       expect(
         bookingNeedsYouOf(snapshot, bookingStoryCoreState("hubDay", "starting"), acceptedAt)
       ).toBe(true);
+    });
+
+    // The booking's deadline on chain bounds the wait: nothing is accepted after it.
+    it("offers it fifteen minutes past the acceptance deadline even with no acceptance time", () => {
+      const snapshot = accepted();
+      const deadline = snapshot.voucherSetups[0]!.authorization.acceptanceDeadline;
+      snapshot.sourceTimestamp = deadline + 15n * 60n;
+      const booking = serviceBookingView(
+        {
+          snapshot,
+          coreState: bookingStoryCoreState("hubDay", "starting"),
+          issuer: ISSUER.hubDay,
+          approval: APPROVAL.hubDay,
+          held: vouchers(10),
+          acceptedAt: null,
+        },
+        intl
+      )!;
+      expect(booking.stage).toBe("starting");
+      expect(booking.primary?.label).toBe("Start the Booking");
     });
 
     // The index trails the chain right after acceptance, while the steward's start is going out: a

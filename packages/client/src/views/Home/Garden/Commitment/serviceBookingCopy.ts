@@ -1,3 +1,4 @@
+import { VOUCHER_START_FALLBACK_SECONDS } from "@green-goods/shared/commitment-pooling";
 import { bookingDeposited, recoveryAct } from "./serviceBookingStage";
 import type { BookingContext, ServiceFact } from "./serviceBookingTypes";
 
@@ -44,7 +45,9 @@ export function bookingSentence(ctx: BookingContext): string {
       if (member) return t("rd.n.acceptanceM.b", counted);
       return t(one ? "rd.n.acceptance1.b" : "rd.n.acceptance.b", values);
     case "stewardStarting":
-      return t(member ? "rd.n.stewardStartingM.b" : "rd.n.stewardStarting.b");
+      return t(member ? "rd.n.stewardStartingM.b" : "rd.n.stewardStarting.b", {
+        minutes: VOUCHER_START_FALLBACK_SECONDS / 60,
+      });
     case "starting":
       return t(member ? "rd.n.startingM.b" : "rd.n.starting.b");
     case "inProgress":

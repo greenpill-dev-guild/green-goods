@@ -3,6 +3,7 @@ import {
   type ServiceAccessSnapshot,
   type ServiceVoucherSetup,
   selectServiceAccessAction,
+  type VoucherLegProgress,
 } from "@green-goods/shared/commitment-pooling";
 import type { Hex } from "viem";
 import { SERVICE_ACCEPTANCE_WINDOW_SECONDS } from "./serviceBooking";
@@ -295,9 +296,16 @@ export async function runConfirmVisit(
     return result;
   });
   const final = currentVoucherSetup(latest)?.destination?.finalAllocation;
-  const transferFailed = final?.release.state === "failed" || final?.refund.state === "failed";
+  // Kept follows only transfers that went or are on their way: sent, with no failure. One never
+  // sent (the runner stops at a transfer still arriving, or a read trails) waits with a failed one.
+  const went = (leg: VoucherLegProgress) =>
+    leg.state === "succeeded" ||
+    leg.state === "not-required" ||
+    (leg.state === "pending" && leg.attempts > 0n);
+  const transfersWent =
+    final !== undefined && final !== null && went(final.release) && went(final.refund);
   // Kept's own mutation says when it fails; the promise's Confirm It Was Kept then stays offered.
-  if (end === "done" && !transferFailed && confirmKept) await confirmKept().catch(() => undefined);
+  if (end === "done" && transfersWent && confirmKept) await confirmKept().catch(() => undefined);
   return end;
 }
 

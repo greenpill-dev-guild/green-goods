@@ -21,18 +21,24 @@ export const VOUCHER_START_FALLBACK_SECONDS = 15 * 60;
 
 /**
  * Whether the member's fallback start is due: fifteen minutes after acceptance, in the source
- * chain's time. An acceptance whose time the index hasn't read yet has only just landed, while the
- * steward's start is likely going out, so the fallback waits: the source charges each send of a
- * start's decision its own fee, so two at once would pay twice. With the acceptance's time read but
- * the chain's clock unknown, the fallback shows, since it exists for the start that didn't go.
+ * chain's time. The chain keeps no acceptance time, so it comes from the index. An acceptance the
+ * index hasn't read yet has usually only just landed, while the steward's start is likely going
+ * out, so the fallback waits: the source charges each send of a start's decision its own fee, so
+ * two at once would pay twice. That wait is bounded by the acceptance deadline the booking carries
+ * on chain, since nothing is accepted after it: fifteen minutes past it, the fallback is due
+ * whatever the index says. With the chain's clock unknown, the fallback shows, since it exists for
+ * the start that didn't go.
  */
 export function voucherStartFallbackDue(
   acceptedAt: number | null | undefined,
-  now: bigint | number | null | undefined
+  now: bigint | number | null | undefined,
+  acceptanceDeadline: bigint | number | null = null
 ): boolean {
-  if (acceptedAt === null || acceptedAt === undefined) return false;
   if (now === null || now === undefined) return true;
-  return Number(now) - acceptedAt >= VOUCHER_START_FALLBACK_SECONDS;
+  const acceptedBy =
+    acceptedAt ?? (acceptanceDeadline === null ? null : Number(acceptanceDeadline));
+  if (acceptedBy === null) return false;
+  return Number(now) - acceptedBy >= VOUCHER_START_FALLBACK_SECONDS;
 }
 
 /** The start's two sends, as the shared service actions name them. */

@@ -66,7 +66,7 @@ export function serviceBookingStage(
   // lost the race says so once the booking has started.
   if (accepted) {
     if (setup.source.decisionDispatched) return "activationInTransit";
-    return voucherStartFallbackDue(input.acceptedAt, s.sourceTimestamp)
+    return voucherStartFallbackDue(input.acceptedAt, s.sourceTimestamp, a.acceptanceDeadline)
       ? "starting"
       : "stewardStarting";
   }

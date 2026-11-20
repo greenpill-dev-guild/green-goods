@@ -327,7 +327,22 @@ describe("voucherStartFallbackDue", () => {
   // An unread acceptance has only just landed, and the steward's start is likely going out.
   it("waits while the acceptance's time is unread", () => {
     expect(voucherStartFallbackDue(null, BigInt(acceptedAt + 3_600))).toBe(false);
-    expect(voucherStartFallbackDue(undefined, null)).toBe(false);
+    expect(voucherStartFallbackDue(undefined, BigInt(acceptedAt + 3_600), acceptedAt + 7_200)).toBe(
+      false
+    );
+  });
+
+  // Nothing is accepted after the deadline the booking carries on chain, so an index that never
+  // reads the acceptance can't hold the fallback back for longer than that.
+  it("is due fifteen minutes past the acceptance deadline, whatever the index says", () => {
+    const deadline = acceptedAt + 86_400;
+    const past = (seconds: number) => BigInt(deadline + seconds);
+    expect(voucherStartFallbackDue(null, past(VOUCHER_START_FALLBACK_SECONDS - 1), deadline)).toBe(
+      false
+    );
+    expect(
+      voucherStartFallbackDue(null, past(VOUCHER_START_FALLBACK_SECONDS), BigInt(deadline))
+    ).toBe(true);
   });
 
   it("offers the fallback when only the chain's time is unknown", () => {
