@@ -67,14 +67,35 @@ function memberRoles(member: GardenMember): GardenRole[] {
   );
 }
 
+/** The garden's own list of each role's holders. */
+const ROLE_HOLDERS: Record<GardenRole, (garden: Garden) => readonly Address[] | undefined> = {
+  owner: (garden) => garden.owners,
+  steward: (garden) => garden.stewards,
+  evaluator: (garden) => garden.evaluators,
+  gardener: (garden) => garden.gardeners,
+  funder: (garden) => garden.funders,
+  community: (garden) => garden.communities,
+};
+
 /**
- * Every role a member holds: the two the garden lists (steward, gardener), and any other its
- * member history dates (owner, evaluator and the rest). The row and the sheet read the same set.
+ * Every role a member holds, from the garden's own role lists, which hold while the member
+ * history is unavailable, and from the history for a role those lists have not caught up with.
+ * The row and the sheet read the same set.
  */
-function heldRoles(member: GardenMember, history?: GardenMemberHistory): GardenRole[] {
+function heldRoles(
+  member: GardenMember,
+  garden: Garden | undefined,
+  history?: GardenMemberHistory
+): GardenRole[] {
   const listed = memberRoles(member);
+  const account = member.account.toLowerCase();
   return GARDEN_ROLE_ORDER.filter(
-    (role) => listed.includes(role) || history?.roleSince[role] !== undefined
+    (role) =>
+      listed.includes(role) ||
+      (garden
+        ? (ROLE_HOLDERS[role](garden) ?? []).some((holder) => holder.toLowerCase() === account)
+        : false) ||
+      history?.roleSince[role] !== undefined
   );
 }
 
@@ -125,7 +146,7 @@ const GardenMemberItem = memo(function GardenMemberItem({
 }) {
   const intl = useIntl();
   const joinedAt = history?.joinedAt;
-  const roles = heldRoles(member, history);
+  const roles = heldRoles(member, garden, history);
   const fact: ItemRowDetail | undefined =
     gardenContributionDetail(contribution, intl) ??
     (joinedAt
@@ -213,9 +234,13 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
     });
     const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
     const [sort, setSort] = useState<MemberSort>("role");
+    // Newest and Oldest order by join date, which only the member history knows: while it is
+    // unavailable they are disabled and the list keeps the role order the select then shows.
+    const datesUnavailable = history.isError;
+    const appliedSort: MemberSort = datesUnavailable ? "role" : sort;
     const shown = useMemo(
-      () => visibleMembers(members, roleFilter, sort, historyByAccount),
-      [members, roleFilter, sort, historyByAccount]
+      () => visibleMembers(members, roleFilter, appliedSort, historyByAccount),
+      [members, roleFilter, appliedSort, historyByAccount]
     );
     const shouldVirtualize = shown.length > 40;
     // Include the row's height and the list gap; the row grows with the reader's text size.
@@ -291,11 +316,15 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
                     controlSize="compact"
                     density="condensed"
                     className="w-auto min-w-16 max-w-48 field-sizing-content"
-                    value={sort}
+                    value={appliedSort}
                     onChange={(event) => setSort(event.target.value as MemberSort)}
                   >
                     {MEMBER_SORTS.map((option) => (
-                      <option key={option} value={option}>
+                      <option
+                        key={option}
+                        value={option}
+                        disabled={datesUnavailable && option !== "role"}
+                      >
                         {sortLabel[option]}
                       </option>
                     ))}
@@ -381,7 +410,7 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
             <GardenMemberDetails
               account={selected.account}
               // The roles the garden lists, and any other role their history dates (owner, evaluator).
-              roles={heldRoles(selected, selectedHistory)}
+              roles={heldRoles(selected, garden, selectedHistory)}
               fallbackAvatar={DEFAULT_AVATAR}
               chainId={chainId}
               name={selectedGreenGoodsName || selectedEnsName || undefined}

@@ -375,12 +375,21 @@ describe("GardenGardeners", () => {
     } as ReturnType<typeof useGardenMemberHistory>);
     renderWithProviders(
       <TestIntl>
-        <GardenGardeners garden={garden} members={[members[0]]} />
+        <GardenGardeners
+          garden={{ ...garden, owners: [members[0].account] }}
+          members={[members[0]]}
+        />
       </TestIntl>
     );
 
     const row = screen.getByRole("button", { name: /Member 0/i });
     expect(row).not.toHaveTextContent("Joined");
+    // The garden's own role lists still name the owner while the history is down.
+    expect(row).toHaveTextContent("Owner and Gardener");
+    // Date orders need the history, so they are disabled and the role order stays.
+    expect(screen.getByRole("option", { name: "Newest" })).toBeDisabled();
+    expect(screen.getByRole("option", { name: "Oldest" })).toBeDisabled();
+    expect(screen.getByRole("combobox", { name: "Sort" })).toHaveValue("role");
     await userEvent.setup().click(row);
     const dialog = screen.getByRole("dialog");
     expect(within(dialog).getByTitle(members[0].account)).toBeInTheDocument();
