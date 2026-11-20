@@ -1191,10 +1191,10 @@ describe("AuthProvider wallet login bridge", () => {
       await settle(15_000);
       expect(view.result.current.walletRestore).toBe("failed");
 
-      // Reconnect: the modal opens a new pairing and the phone switches to the wallet app.
+      // Reconnect: the modal opens a new pairing and the phone switches to the wallet app,
+      // which can happen before the App draws again.
       act(() => view.result.current.loginWithWallet());
       setAccount({ isConnecting: true });
-      view.rerender();
       setVisibility("hidden");
       await settle(30_000);
       const reconnects = mocks.mockReconnect.mock.calls.length;

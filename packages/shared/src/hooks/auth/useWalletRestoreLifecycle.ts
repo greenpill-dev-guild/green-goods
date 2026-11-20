@@ -8,7 +8,7 @@ import { connectivityStore } from "../../stores/connectivity";
 import type { WalletRestoreState } from "../../types/auth";
 import type { AuthActor } from "../../workflows/authActor";
 import type { WalletConnectionType } from "../../workflows/authMachine";
-import { useWalletModalOpen } from "./useWalletModalOpen";
+import { isWalletModalOpen } from "./useWalletModalOpen";
 
 const RESTORE_DELAYED_MS = 2_000;
 const RESTORE_TIMEOUT_MS = 15_000;
@@ -52,20 +52,23 @@ function canAdvanceRestoreClock(): boolean {
   );
 }
 
+/**
+ * The App asks the wallet on its own only when it could answer, and never while
+ * the wallet modal is open: the person is connecting a wallet themselves then. A
+ * phone comes back from approving a Reconnect while the new pairing is still
+ * landing, and asking then reported the wallet gone mid-connect and could end
+ * the pairing just approved (PRD-1540). The modal is read when the page comes
+ * back, not from the last render: the wallet app can open before the App draws
+ * again. wagmi's own connecting flag is no guide here: it can stay on for a
+ * minute after the modal closes.
+ */
 function canRetryConnector(): boolean {
-  return canAdvanceRestoreClock();
+  return canAdvanceRestoreClock() && !isWalletModalOpen();
 }
 
 /**
  * Keeps persisted wallet intent protected while its connector hydrates. Says
  * where the wallet stands (`state`) and forgets the attempt on sign-out (`clear`).
- *
- * While the wallet modal is open, the person is connecting a wallet themselves,
- * and the restore does not ask the wallet on its own: a phone comes back from
- * approving a Reconnect while the new pairing is still landing, and asking then
- * reported the wallet gone mid-connect and could end the pairing just approved
- * (PRD-1540). wagmi's own connecting flag is no guide here: it can stay on for
- * a minute after the modal closes.
  */
 export function useWalletRestoreLifecycle(
   actor: AuthActor,
@@ -73,11 +76,6 @@ export function useWalletRestoreLifecycle(
   wagmiConfig: WagmiConfig
 ): { state: WalletRestoreState | null; clear: () => void } {
   const attemptRef = useRef<RestoreAttempt | null>(null);
-  const walletModalOpen = useWalletModalOpen();
-  const modalOpenRef = useRef(walletModalOpen);
-  useEffect(() => {
-    modalOpenRef.current = walletModalOpen;
-  }, [walletModalOpen]);
   const state = walletRestoreOf(snapshot);
   const restoringMode: WalletConnectionType | null = snapshot.matches({ restoring: "wallet" })
     ? "wallet"
@@ -173,13 +171,7 @@ export function useWalletRestoreLifecycle(
     let retryArmed = true;
     const retryRestore = () => {
       syncClock();
-      if (
-        !retryArmed ||
-        !canRetryConnector() ||
-        modalOpenRef.current ||
-        !actor.getSnapshot().matches("restoring")
-      )
-        return;
+      if (!retryArmed || !canRetryConnector() || !actor.getSnapshot().matches("restoring")) return;
       retryArmed = false;
       void reconnect(wagmiConfig).catch((error) => {
         logger.debug("[AuthProvider] Wallet reconnect retry did not complete", { error });
@@ -227,7 +219,7 @@ export function useWalletRestoreLifecycle(
     let attempt = 0;
     let inFlight: number | null = null;
     const retry = () => {
-      if (inFlight === attempt || !canRetryConnector() || modalOpenRef.current) return;
+      if (inFlight === attempt || !canRetryConnector()) return;
       const current = attempt;
       inFlight = current;
       void reconnect(wagmiConfig)

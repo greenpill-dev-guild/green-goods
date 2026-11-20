@@ -7,7 +7,8 @@ function subscribeWalletModalState(onStoreChange: () => void): () => void {
   return appKit.subscribeState(() => onStoreChange());
 }
 
-function getWalletModalOpenSnapshot(): boolean {
+/** Whether the wallet modal is open right now, for code that acts on events outside a render. */
+export function isWalletModalOpen(): boolean {
   return getAppKit()?.getState().open ?? false;
 }
 
@@ -24,7 +25,7 @@ function getWalletModalOpenServerSnapshot(): boolean {
 export function useWalletModalOpen(): boolean {
   return useSyncExternalStore(
     subscribeWalletModalState,
-    getWalletModalOpenSnapshot,
+    isWalletModalOpen,
     getWalletModalOpenServerSnapshot
   );
 }
