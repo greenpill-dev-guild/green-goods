@@ -2,10 +2,11 @@ import type { ReactNode } from "react";
 
 /**
  * The tab icon the build chose for this environment (production, beta or alpha): index.html
- * links it. Without that link (Storybook, tests) the production icon stands in.
+ * links it and marks the link. Where that link is absent (Storybook, which links its own logo,
+ * and tests) the production Hub icon stands in.
  */
 function hubIconUrl(): string {
-  const link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+  const link = document.querySelector<HTMLLinkElement>("link[data-hub-icon]");
   return link?.href || `${import.meta.env.BASE_URL}hub-icon-192.png`;
 }
 
