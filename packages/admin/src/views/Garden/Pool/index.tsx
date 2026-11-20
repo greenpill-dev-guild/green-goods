@@ -28,6 +28,7 @@ import { PoolStatusCard } from "./PoolStatusCard";
 import { PoolStatusCasts } from "./PoolStatusCasts";
 import { VoucherReserveCard } from "./VoucherReserveCard";
 import { currentGroup, withVoucherRecovery } from "./poolCommitmentRows";
+import { queueBookingsDue } from "./voucherQueue";
 import type { ConfirmDialog, CycleDialog, FlowState, ReasonDialog } from "./poolDialogState";
 
 export interface GardenPoolTabProps {
@@ -182,7 +183,8 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
         stats={[
           {
             id: "claims",
-            count: model.counts.claimsWaiting,
+            // Review Promises holds the booking acts as well as the asks.
+            count: model.counts.claimsWaiting + queueBookingsDue(vouchers),
             label: formatMessage({
               id: "hub.garden.pool.summary.waiting",
               defaultMessage: "To review",

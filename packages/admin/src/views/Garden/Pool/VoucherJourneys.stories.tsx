@@ -56,6 +56,7 @@ import {
   STORY_MARA_ACCESS_ASK,
   STORY_MARA_VISIT,
   STORY_MARA_VISITED,
+  STORY_MAYA_ASK,
   STORY_TECH_AND_SUN_CLAIMS,
   STORY_TECH_AND_SUN_COMMITMENTS,
   STORY_TECH_AND_SUN_SAFE,
@@ -118,7 +119,7 @@ const linaBooking = (visit: VoucherBooking): VoucherBooking => ({
 const LINA_VISIT = linaBooking(STORY_MARA_VISIT);
 const LINA_VISITED = linaBooking(STORY_MARA_VISITED);
 /** Two neighbors booked earlier, beside Mara: the list counts them, and they wait on no one. */
-const OTHERS_BOOKED = ["0x0e10", "0x0e11"].map((id) => id.padEnd(42, "0") as Address);
+const OTHERS_BOOKED = [STORY_GREEN_GOODS_CLAIMS[0]!.claim.claimant, STORY_MAYA_ASK.buyer];
 /**
  * The twenty hub days Tech and Sun made together, one row in the list: Lina asked for the
  * first, Kwesi the second, Mara and two neighbors booked three more.

@@ -5,6 +5,7 @@
 import type {
   PoolConsoleActs,
   PoolConsoleController,
+  VoucherConsoleView,
 } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import {
   commitmentFixture,
@@ -31,6 +32,7 @@ type GardenWorkspaceModule =
 
 const mocks = vi.hoisted(() => ({
   controller: null as PoolConsoleController | null,
+  vouchers: null as VoucherConsoleView | null,
   gardenController: null as ReturnType<typeof gardenController> | null,
   navigate: vi.fn(),
 }));
@@ -48,7 +50,7 @@ vi.mock("@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController", asyn
   const vouchers = voucherConsoleViewFixture();
   return {
     usePoolConsoleController: () => mocks.controller!,
-    useVoucherConsole: () => vouchers,
+    useVoucherConsole: () => mocks.vouchers ?? vouchers,
   };
 });
 
@@ -379,6 +381,7 @@ describe("GardenPoolTab (W7)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.controller = controller();
+    mocks.vouchers = null;
   });
 
   it("shows skeletons while the pool loads and a retry when the read fails", () => {
@@ -771,6 +774,42 @@ describe("GardenPoolTab (W7)", () => {
     fireEvent.click(within(stats).getByRole("button", { name: /^past due\s+1$/i }));
     expect(within(list).queryByTestId("pool-commitment-2")).not.toBeInTheDocument();
     expect(within(list).getByTestId("pool-commitment-3")).toBeInTheDocument();
+  });
+
+  // Review Promises holds booking acts too (hub-day review, 18 Nov), so To review counts them.
+  it("counts a booking act that waits on the steward under To review, with the asks", async () => {
+    const { voucherConsoleViewFixture } = await import(
+      "@green-goods/shared/__tests__/test-utils/controller-fixtures"
+    );
+    const observedAt = Number(NOW);
+    const holder = "0x7c40000000000000000000000000000000005c3d" as const;
+    mocks.controller = controller({ commitments: [commitment()] });
+    mocks.vouchers = voucherConsoleViewFixture({
+      now: observedAt,
+      snapshot: {
+        status: "observed",
+        observedAt,
+        bookings: [
+          {
+            commitmentId: 1n,
+            holder,
+            setupId: `0x${"a4".repeat(32)}`,
+            issuer: { kind: "individual", name: "Teo", chainId: 100, account: holder, decimals: 6 },
+            voucherUnits: 1_000_000n,
+            service: {
+              kind: "visit",
+              startsAt: observedAt - 86_400,
+              endsAt: observedAt - 72_000,
+              report: { checkedIn: true, usableHours: 4, ofHours: 4, photos: 2 },
+            },
+            stage: { kind: "in-progress" },
+          },
+        ],
+      },
+    });
+    renderTab();
+    const stats = screen.getByRole("list", { name: /what needs you/i });
+    expect(within(stats).getByRole("button", { name: /^to review\s+1$/i })).toBeInTheDocument();
   });
 
   it("folds copies made together into one group row, which opens the group's inspector", async () => {

@@ -110,6 +110,14 @@ export function reconcileQueueVisit(
   return { ...from, started, order, arrived, bookings };
 }
 
+/** How many bookings under way wait on the steward's act now, for What needs you's To review. */
+export function queueBookingsDue(vouchers: Pick<VoucherConsoleView, "snapshot" | "now">): number {
+  if (vouchers.snapshot.status !== "observed") return 0;
+  return vouchers.snapshot.bookings.filter(
+    (booking) => voucherBookingAct(booking, vouchers.now) !== null
+  ).length;
+}
+
 /** The visit with the steward's own act on one row, which the row keeps as its outcome. */
 export function recordQueueDone(visit: QueueVisit, key: string, done: QueueDone): QueueVisit {
   return { ...visit, done: new Map(visit.done).set(key, done) };
