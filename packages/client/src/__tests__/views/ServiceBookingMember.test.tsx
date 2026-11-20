@@ -241,7 +241,7 @@ describe("a member's lesson on the promise page", () => {
     const waiting = sheet(lesson("waitingApproval"));
     expect(
       screen.getByText(
-        "Teo Alves approves from their own account. Nothing has left your account. We'll let you know when you can deposit."
+        "Teo Alves approves from their own account. Nothing has left your account. When it's your turn to deposit, this booking says Needs you."
       )
     ).toBeInTheDocument();
     waiting.unmount();
