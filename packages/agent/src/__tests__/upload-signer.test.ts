@@ -5,10 +5,12 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createServer } from "../api/server";
 import { InMemoryPublicRateLimiter, resolveAllowedOrigins } from "../api/public-protection";
+import { initAgentAnalytics, resetAgentAnalyticsForTests } from "../services/analytics";
 import {
   DEFAULT_UPLOAD_SIGN_ALLOWED_MIME_TYPES,
   DEFAULT_UPLOAD_SIGN_MAX_FILE_SIZE,
 } from "../services/pinata-upload-signer";
+import { mockPostHog } from "./setup";
 
 const ORIGIN = "https://greengoods.app";
 const LOCAL_ADMIN_ORIGIN = "https://127.0.0.1:3002";
@@ -385,5 +387,62 @@ describe("upload signing API", () => {
     expect(first.status).toBe(200);
     expect(second.status).toBe(429);
     expect((await second.json()).errorCode).toBe("rate_limited");
+  });
+
+  it("records one outcome per signing request, and none for a refused origin (PRD-1561)", async () => {
+    resetAgentAnalyticsForTests();
+    mockPostHog.capture.mockReset();
+    initAgentAnalytics({
+      apiKey: "phc_agent_test",
+      enabled: true,
+      testGardens: validRequest().gardenAddress,
+    });
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify({ data: "https://uploads.pinata.test/v3/files/signed" }), {
+        status: 200,
+      })
+    );
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        allowedOrigins: new Set([ORIGIN]),
+        publicRateLimiter: new InMemoryPublicRateLimiter(),
+        uploadSigning: { pinataJwt: "pinata-secret", rateLimit: 1, fetch: fetchMock },
+      },
+      { logger: false }
+    );
+    const sign = (body: unknown, headers = jsonHeaders()) =>
+      app.request(PUBLIC_AGENT_ROUTES.uploadSign, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(body),
+      });
+
+    expect(
+      (await sign(validRequest(), jsonHeaders({ origin: "https://evil.example" }))).status
+    ).toBe(403);
+    expect((await sign(validRequest({ mimeType: "text/html" }))).status).toBe(400);
+    expect((await sign(validRequest())).status).toBe(200);
+    expect((await sign(validRequest())).status).toBe(429);
+
+    try {
+      expect(
+        mockPostHog.capture.mock.calls.map(([{ event, properties }]) => ({ event, ...properties }))
+      ).toMatchObject([
+        { event: "upload_sign_ended", outcome: "failed", reason: "invalid_request" },
+        {
+          event: "upload_sign_ended",
+          outcome: "confirmed",
+          reason: undefined,
+          category: "file_upload",
+          mime_type: "image/png",
+          schema_version: 1,
+          is_test_garden: true,
+        },
+        { event: "upload_sign_ended", outcome: "failed", reason: "rate_limited" },
+      ]);
+    } finally {
+      resetAgentAnalyticsForTests();
+    }
   });
 });

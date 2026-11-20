@@ -161,6 +161,7 @@ Events from before that change have none of these. Read App acts in the App proj
 | `act` | Which act, such as `garden_join`, `vault_deposit`, `garden_create`, `pool_lifecycle` or `pool_setup`. The full list is `SendActName` in `packages/shared/src/modules/app/sendActAnalytics.ts`. |
 | `operation` | Which of the act's operations ran, a fixed name from code: a contract function such as `pausePool`, or the writes of a setup run such as `seedCycle,openCycle`. |
 | `auth_mode`, `chain_id` | The sign-in kind and the chain. |
+| `attempt_id`, `schema_version` | One id per press, shared by the act's start and its ending, so a question joins them without matching on time. An explicit retry is a new press with a new id. `schema_version` is `1` (PRD-1561). |
 | `outcome` (ended only) | `confirmed` landed. `confirming` went out and may still land: a receipt wait past its limit, a send on record without a receipt, a Safe proposal, a wallet answer the person stopped waiting for, or a wallet join, which returns once it is broadcast. `queued` was kept on this device. `cancelled` was declined in the wallet. `failed` is anything else. `partial` is an act of several copies whose copies ended differently. |
 | `copies_<outcome>` (ended only) | For an act of several copies, how many copies ended each way. |
 | `parsed_error_family`, `duration_ms` (ended only) | The parsed error family of an act that did not land, never its message, and how long the act took. |
@@ -173,6 +174,21 @@ act refused because an earlier send of the same thing still holds it (`HeldByAno
 earlier send keeps its own record), and a batched save the wallet cannot batch (`NotBatchable`;
 its changes then go out one write at a time, each recorded as its own act). Only builds that
 carry PRD-1553 record these events.
+
+## Agent attempt events
+
+The Agent records card funding and upload signing as attempts (PRD-1561). Read them in the Agent
+project (262124). Each carries `schema_version: 1` and the Agent's segmentation fields, and no
+address, amount or email.
+
+| Event | Meaning |
+|---|---|
+| `funding_intent_started` | A funding intent was created: a card checkout, or a Card Endow proof the visitor's own wallet already settled. `attempt_id` is the intent's id, so an automatic retry with the same client request id shares it, and a new press gets a new one. |
+| `funding_intent_ended` | The intent's status first settled. `outcome` is `confirmed` (`funded` or `funded_late`), `failed` (`failed` or `refunded`) or `cancelled` (`expired`: an abandoned checkout, never a technical failure). `funding_status` and `failure_code` give the detail. A provider that funds an intent after it expired records a second ending with `funding_status: funded_late`; count the latest ending per `attempt_id`. |
+| `upload_sign_ended` | One upload signing request's outcome: `confirmed` with a signed URL, or `failed` with `reason` `invalid_request`, `rate_limited` or `provider_unavailable`. A request from an origin we don't serve records nothing. `category` and `mime_type` say what was to be uploaded. It carries no attempt id yet: joining it to the App's upload attempt waits for uploads to carry one. |
+
+Both funding events carry `payment_method`, `funding_intent` (`donate` or `endow`),
+`destination_type`, `source_route` and `chain_id`.
 
 ---
 

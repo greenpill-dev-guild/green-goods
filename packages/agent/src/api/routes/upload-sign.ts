@@ -11,6 +11,7 @@ import {
   normalizeUploadSignerConfig,
   PinataUploadSignerConfigError,
 } from "../../services/pinata-upload-signer";
+import { trackUploadSignEnded } from "../../services/analytics";
 import { loggers } from "../../services/logger";
 import { readLimitedJsonBody } from "../http/body";
 import type { ApiRouteContext } from "../http/route-context";
@@ -42,6 +43,7 @@ export function registerUploadSignRoutes(app: Hono, ctx: ApiRouteContext): void 
 
     const config = getUploadSigningConfig(ctx);
     if (!config.jwt) {
+      await trackUploadSignEnded({ outcome: "failed", reason: "provider_unavailable" });
       return publicBrowserCorsResponse(
         c,
         deps,
@@ -51,16 +53,32 @@ export function registerUploadSignRoutes(app: Hono, ctx: ApiRouteContext): void 
     }
 
     const bodyResult = await readLimitedJsonBody<unknown>(c.req.raw, UPLOAD_SIGN_BODY_LIMIT_BYTES);
-    if (!bodyResult.ok)
+    if (!bodyResult.ok) {
+      await trackUploadSignEnded({ outcome: "failed", reason: "invalid_request" });
       return publicBrowserCorsResponse(c, deps, bodyResult.error, bodyResult.status);
+    }
 
     const validation = validatePublicUploadSignRequest(bodyResult.value, {
       allowedMimeTypes: config.allowedMimeTypes,
       maxFileSize: config.maxFileSize,
       isAddress,
     });
-    if (!validation.ok) return publicBrowserCorsResponse(c, deps, validation.error, 400);
+    if (!validation.ok) {
+      await trackUploadSignEnded({ outcome: "failed", reason: "invalid_request" });
+      return publicBrowserCorsResponse(c, deps, validation.error, 400);
+    }
     const { request } = validation;
+    // One outcome per signing request (PRD-1561); the garden places it against the test records.
+    const recordOutcome = (reason?: "rate_limited" | "provider_unavailable") =>
+      trackUploadSignEnded(
+        {
+          outcome: reason ? "failed" : "confirmed",
+          reason,
+          category: request.category ?? "file_upload",
+          mime_type: request.mimeType,
+        },
+        request.gardenAddress
+      );
 
     const rateError = checkRateLimitWithPolicy(
       c,
@@ -69,7 +87,10 @@ export function registerUploadSignRoutes(app: Hono, ctx: ApiRouteContext): void 
       [request.category ?? "file_upload", request.mimeType].join(":"),
       getUploadSignRateLimitPolicy(ctx)
     );
-    if (rateError) return publicBrowserCorsResponse(c, deps, rateError, 429);
+    if (rateError) {
+      await recordOutcome("rate_limited");
+      return publicBrowserCorsResponse(c, deps, rateError, 429);
+    }
 
     try {
       const signUpload = deps.signPinataUploadUrl ?? createPinataSignedUploadUrl;
@@ -83,6 +104,7 @@ export function registerUploadSignRoutes(app: Hono, ctx: ApiRouteContext): void 
         now: config.now,
       });
 
+      await recordOutcome();
       return publicBrowserCorsResponse(c, deps, {
         ok: true,
         url,
@@ -94,6 +116,7 @@ export function registerUploadSignRoutes(app: Hono, ctx: ApiRouteContext): void 
       if (!(error instanceof PinataUploadSignerConfigError)) {
         log.warn({ err: error }, "Pinata upload signing failed");
       }
+      await recordOutcome("provider_unavailable");
       return publicBrowserCorsResponse(
         c,
         deps,
