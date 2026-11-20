@@ -6,6 +6,7 @@ import { type ComponentType, StrictMode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { ADMIN_LEGACY_QUERY_PERSISTENCE, ADMIN_QUERY_PERSISTENCE_DB } from "./bootConstants";
 import { BootConnect, BootErrorBoundary, BootRecovery, BootShell } from "./BootSurface";
+import { requestPasskeyAtBoot } from "./bootPasskeyRequest";
 
 /**
  * Paint a recoverable shell before application imports and guard optional services.
@@ -342,7 +343,10 @@ export async function bootAdmin(options: BootAdminOptions = {}): Promise<BootOut
   root.render(
     <BootConnect
       onConnect={() => void startApplication(true)}
-      onPasskey={() => void startApplication()}
+      onPasskey={() => {
+        requestPasskeyAtBoot();
+        void startApplication();
+      }}
     />
   );
   recheckSession();

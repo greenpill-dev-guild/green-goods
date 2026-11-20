@@ -34,31 +34,34 @@ describe("useAdminLoginController", () => {
     mocks.context.mockReturnValue({ supported: true });
   });
 
-  it("starts at the entry and dispatches registration after choosing creation", async () => {
+  it("starts at the entry, or at the name step the boot screen asked for", () => {
+    expect(renderHookWithProviders(() => useAdminLoginController()).result.current.mode).toBe(
+      "entry"
+    );
+    const { result } = renderHookWithProviders(() =>
+      useAdminLoginController({ initialMode: "username" })
+    );
+    expect(result.current.mode).toBe("username");
+  });
+
+  it("signs in by the normalized name and creates the account when none has it", async () => {
     const { result } = renderHookWithProviders(() => useAdminLoginController());
-    expect(result.current.mode).toBe("entry");
-    act(() => result.current.changeMode("create"));
-    expect(result.current.mode).toBe("create");
+    act(() => result.current.changeMode("username"));
+    act(() => result.current.setUsername(" @QA-STEW ARD "));
+    await act(() => result.current.continueByName());
+    expect(mocks.login).toHaveBeenCalledWith("qa-stew ard", { createIfMissing: true });
+    expect(mocks.create).not.toHaveBeenCalled();
+    expect(result.current.isSigningIn).toBe(false);
+    expect(result.current.error).toBeNull();
+  });
+
+  it("creates from the name step when names cannot be looked up, and clears a failure on Back", async () => {
+    mocks.serverEnabled.mockReturnValue(false);
+    const { result, rerender } = renderHookWithProviders(() => useAdminLoginController());
     act(() => result.current.setUsername(" @NEW-STEWARD "));
-    await act(() => result.current.createAccountByName());
+    await act(() => result.current.continueByName());
     expect(mocks.create).toHaveBeenCalledWith("new-steward");
     expect(mocks.login).not.toHaveBeenCalled();
-  });
-
-  it("keeps remembered users at the entry and supports explicit form navigation", () => {
-    mocks.auth.mockReturnValue({ hasStoredCredential: true, isAuthenticating: false });
-    const { result } = renderHookWithProviders(() => useAdminLoginController());
-    expect(result.current.mode).toBe("entry");
-    act(() => result.current.changeMode("create"));
-    expect(result.current.mode).toBe("create");
-    expect(mocks.create).not.toHaveBeenCalled();
-    expect(mocks.login).not.toHaveBeenCalled();
-  });
-
-  it("surfaces asynchronous registration failures and clears them when switching to sign-in", async () => {
-    const { result, rerender } = renderHookWithProviders(() => useAdminLoginController());
-    act(() => result.current.setUsername("existing-steward"));
-    await act(() => result.current.createAccountByName());
     mocks.auth.mockReturnValue({ hasStoredCredential: false, isAuthenticating: true });
     rerender();
     mocks.auth.mockReturnValue({
@@ -70,33 +73,50 @@ describe("useAdminLoginController", () => {
     });
     rerender();
     expect(result.current.error).toBe("That name is already registered.");
-    act(() => result.current.changeMode("signin"));
+    act(() => result.current.changeMode("entry"));
     expect(result.current.error).toBeNull();
-    expect(result.current.username).toBe("existing-steward");
-    await act(() => result.current.signInByName());
-    expect(mocks.login).toHaveBeenCalledWith("existing-steward");
-    expect(mocks.create).toHaveBeenCalledOnce();
+    expect(result.current.username).toBe(" @NEW-STEWARD ");
   });
 
-  it("signs in by the normalized name through Shared auth", async () => {
-    const { result } = renderHookWithProviders(() => useAdminLoginController());
-    act(() => result.current.setUsername(" @QA-STEW ARD "));
-    await act(() => result.current.signInByName());
-    expect(mocks.login).toHaveBeenCalledWith("qa-stew ard");
-    expect(result.current.isSigningIn).toBe(false);
-    expect(result.current.error).toBeNull();
-  });
-
-  it.each([
-    "createAccountByName",
-    "signInByName",
-  ] as const)("rejects a short normalized name in %s", async (action) => {
+  it("rejects a short normalized name before asking for a passkey", async () => {
     const { result } = renderHookWithProviders(() => useAdminLoginController());
     act(() => result.current.setUsername(" @AB "));
-    await act(() => result.current[action]());
+    await act(() => result.current.continueByName());
     expect(mocks.login).not.toHaveBeenCalled();
     expect(mocks.create).not.toHaveBeenCalled();
     expect(result.current.error).toBe("Display name must be at least 3 characters.");
+  });
+
+  it.each([
+    ["timeout", "Your wallet app didn't open. Try again, or sign in with a passkey."],
+    ["connect_error", "We couldn't connect your wallet. Try again, or sign in with a passkey."],
+  ] as const)("points a %s wallet attempt to a passkey once auth settles", (failure, expected) => {
+    mocks.auth.mockReturnValue({
+      hasStoredCredential: false,
+      isAuthenticating: true,
+      walletConnectFailure: failure,
+    });
+    const { result, rerender } = renderHookWithProviders(() => useAdminLoginController());
+    expect(result.current.error).toBeNull();
+    mocks.auth.mockReturnValue({
+      hasStoredCredential: false,
+      isAuthenticating: false,
+      walletConnectFailure: failure,
+    });
+    rerender();
+    expect(result.current.error).toBe(expected);
+  });
+
+  it("says a stalled wallet request needs a reload", () => {
+    mocks.auth.mockReturnValue({
+      hasStoredCredential: false,
+      isAuthenticating: false,
+      walletReleaseStalled: true,
+    });
+    const { result } = renderHookWithProviders(() => useAdminLoginController());
+    expect(result.current.error).toBe(
+      "The previous wallet request has not ended. Reload to retry, or sign in with a passkey."
+    );
   });
 
   it("keeps unnamed remembered sign-in when server-backed names are disabled", async () => {
@@ -155,7 +175,7 @@ describe("useAdminLoginController", () => {
     mocks.login.mockRejectedValueOnce(unavailable);
     const { result } = renderHookWithProviders(() => useAdminLoginController());
     act(() => result.current.setUsername("qa-steward"));
-    await act(() => result.current.signInByName());
+    await act(() => result.current.continueByName());
     expect(result.current.error).toBe("Passkey recovery is temporarily unavailable.");
     expect(result.current.username).toBe("qa-steward");
     expect(mocks.trackError).toHaveBeenCalledWith(
@@ -164,7 +184,7 @@ describe("useAdminLoginController", () => {
         metadata: { has_stored_credential: false },
       })
     );
-    await act(() => result.current.signInByName());
+    await act(() => result.current.continueByName());
     expect(result.current.error).toBeNull();
     expect(mocks.login).toHaveBeenCalledTimes(2);
   });
@@ -185,7 +205,7 @@ describe("useAdminLoginController", () => {
   ])("shows the actor's asynchronous failure: %s", async (message, expected) => {
     const { result, rerender } = renderHookWithProviders(() => useAdminLoginController());
     act(() => result.current.setUsername("qa-steward"));
-    await act(() => result.current.signInByName());
+    await act(() => result.current.continueByName());
     mocks.auth.mockReturnValue({
       hasStoredCredential: false,
       isAuthenticating: true,
@@ -217,7 +237,7 @@ it("ignores stale actor failures on mount and while starting a new ceremony", as
   const { result, rerender } = renderHookWithProviders(() => useAdminLoginController());
   expect(result.current.error).toBeNull();
   act(() => result.current.setUsername("qa-steward"));
-  await act(() => result.current.signInByName());
+  await act(() => result.current.continueByName());
   rerender();
   expect(result.current.error).toBeNull();
   mocks.auth.mockReturnValue({ hasStoredCredential: false, isAuthenticating: true, error: null });

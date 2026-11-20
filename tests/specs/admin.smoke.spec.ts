@@ -202,7 +202,7 @@ test.describe("Green Goods Hub", () => {
     await page.waitForLoadState("domcontentloaded");
 
     await expect(page.getByText("Connect to continue")).toBeVisible({ timeout: 15000 });
-    await expect(page.getByRole("button", { name: /connect wallet/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /sign in with a wallet/i })).toBeVisible();
   });
 
   test("renders the work Hub for a mocked steward", async ({ page }) => {

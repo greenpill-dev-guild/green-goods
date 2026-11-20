@@ -12,8 +12,8 @@ import { AdminSignInContainer } from "@/components/AdminSignIn";
 import { CanvasGardenAccessState } from "./CanvasGardenAccessState";
 import { CanvasIndexerErrorState } from "./CanvasIndexerErrorState";
 import { AdminAccessHomeShell } from "./CanvasLayout";
+import { ConnectPrompt } from "./ConnectPrompt";
 import { WalletRequiredConnectShell } from "./ConnectShell";
-import { SeedlingIllustration } from "./SeedlingIllustration";
 import { StewardAccessRequestContainer } from "./StewardAccessRequest";
 
 interface AdminAccessStateRendererProps {
@@ -65,32 +65,24 @@ export function AdminAccessStateRenderer({ state, ready }: AdminAccessStateRende
   }
 
   if (state.status === "disconnected") {
+    // The same connect surface as the boot screen, so a steward sees one sign-in
+    // whichever route, reload or sign-out brought them here.
     return (
-      <AdminAccessHomeShell key="signed-out">
-        <main
-          id="main-content"
-          tabIndex={-1}
-          className="flex min-h-full flex-col items-center justify-center px-6 py-16 text-center"
-        >
-          <SeedlingIllustration className="h-28 w-28" />
-          <h1 className="mt-5 type-title-lg font-semibold text-text-strong">
-            {intl.formatMessage({
-              id: "app.admin.auth.connectRequired",
-              defaultMessage: "Connect to continue",
-            })}
-          </h1>
-          <p className="mt-2 max-w-md type-body text-text-sub">
-            {intl.formatMessage({
-              id: "app.admin.auth.connectPrompt",
-              defaultMessage:
-                "Connect your wallet or sign in with a passkey to open the Green Goods Hub.",
-            })}
-          </p>
-          <div className="mt-6 w-full max-w-sm">
-            <AdminSignInContainer />
-          </div>
-        </main>
-      </AdminAccessHomeShell>
+      <main id="main-content" tabIndex={-1} key="signed-out">
+        <ConnectPrompt
+          title={intl.formatMessage({
+            id: "app.admin.auth.connectRequired",
+            defaultMessage: "Connect to continue",
+          })}
+          description={intl.formatMessage({
+            id: "app.admin.auth.connectPrompt",
+            defaultMessage:
+              "Connect your wallet or sign in with a passkey to open the Green Goods Hub.",
+          })}
+          action={<AdminSignInContainer />}
+          testId="admin-sign-in-shell"
+        />
+      </main>
     );
   }
 

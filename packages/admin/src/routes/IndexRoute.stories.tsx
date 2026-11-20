@@ -196,7 +196,9 @@ export const ConnectRequired: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(await canvas.findByRole("heading", { name: "Connect to continue" })).toBeVisible();
-    await expect(await canvas.findByRole("button", { name: "Connect Wallet" })).toBeVisible();
+    await expect(
+      await canvas.findByRole("button", { name: "Sign in with a Wallet" })
+    ).toBeVisible();
   },
 };
 
