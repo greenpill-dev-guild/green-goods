@@ -320,7 +320,6 @@ vi.mock("@green-goods/shared/hooks/admin-ui/auth/useAdminLoginController", () =>
   useAdminLoginController: () => ({
     mode: "entry",
     changeMode: vi.fn(),
-    createAccountByName: vi.fn(),
     username: "",
     setUsername: vi.fn(),
     error: null,
@@ -328,7 +327,7 @@ vi.mock("@green-goods/shared/hooks/admin-ui/auth/useAdminLoginController", () =>
     canSignInByName: false,
     hasStoredCredential: false,
     storedUsername: null,
-    signInByName: vi.fn(),
+    continueByName: vi.fn(),
     signInWithStoredPasskey: vi.fn(),
   }),
 }));
@@ -971,7 +970,9 @@ describe("CanvasShell access states", () => {
     renderCanvasShell("/review/work");
 
     expect(screen.getByRole("button", { name: /connect wallet/i })).toBeInTheDocument();
-    expect(screen.getByTestId("top-context-bar")).toBeInTheDocument();
+    // The signed-out Hub is the boot screen's connect surface, with no top bar (PRD-1491).
+    expect(screen.getByRole("heading", { name: "Connect to continue" })).toBeInTheDocument();
+    expect(screen.queryByTestId("top-context-bar")).toBeNull();
     expect(screen.queryByText("Page Transition")).not.toBeInTheDocument();
   });
 

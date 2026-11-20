@@ -11,6 +11,10 @@ import { act, fireEvent, waitFor } from "@testing-library/react";
 import { useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type AdminBootServices, type BootOutcome, bootAdmin } from "@/components/Boot/bootAdmin";
+import {
+  clearPasskeyRequestAtBoot,
+  isPasskeyRequestedAtBoot,
+} from "@/components/Boot/bootPasskeyRequest";
 
 function Ready({ onWorkspaceReady }: { onWorkspaceReady?: () => void }) {
   useEffect(() => onWorkspaceReady?.(), [onWorkspaceReady]);
@@ -96,7 +100,7 @@ describe("bootAdmin", () => {
     expect(container.querySelector("main")).not.toBeNull();
     expect(loadRoot).not.toHaveBeenCalled();
     expect(initIpfs).not.toHaveBeenCalled();
-    const button = container.querySelector("button")!;
+    const button = container.querySelector('[data-testid="connect-wallet-button"]')!;
     await act(async () => {
       fireEvent.click(button);
       fireEvent.click(button);
@@ -148,13 +152,16 @@ describe("bootAdmin", () => {
       return <Ready />;
     }
     await boot({ loadRoot: async () => ({ default: Runtime }) });
-    expect(container.textContent).toContain("Sign in with Passkey");
+    expect(container.textContent).toContain("Continue with Passkey");
     await act(async () => {
       fireEvent.click(container.querySelector('[data-testid="passkey-start-button"]')!);
     });
     expect(received).toHaveBeenCalledWith(false);
     expect(received).not.toHaveBeenCalledWith(true);
     expect(window.localStorage.getItem("greengoods_auth_mode")).toBeNull();
+    // The workspace's sign-in opens at the name step the steward asked for.
+    expect(isPasskeyRequestedAtBoot()).toBe(true);
+    clearPasskeyRequestAtBoot();
   });
 
   it.each([

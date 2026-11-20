@@ -2,6 +2,7 @@ import { useAuthActions, useAuthState } from "@green-goods/shared/providers/Auth
 import { useWalletModalOpen } from "@green-goods/shared/hooks/auth/useWalletModalOpen";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { BootConnect } from "./BootSurface";
+import { requestPasskeyAtBoot } from "./bootPasskeyRequest";
 
 /** Fresh wallet entry loads auth first; saved sessions and passkey entry load the workspace. */
 export function AdminStartupConnect({
@@ -40,6 +41,7 @@ export function AdminStartupConnect({
       onConnect={loginWithWallet}
       onPasskey={() => {
         consumed.current = true;
+        requestPasskeyAtBoot();
         setWorkspaceRequested(true);
       }}
     />
