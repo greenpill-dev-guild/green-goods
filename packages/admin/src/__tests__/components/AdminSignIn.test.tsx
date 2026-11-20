@@ -193,19 +193,12 @@ describe("AdminSignIn", () => {
     const second = render(signedOut);
     expect(screen.getByRole("button", { name: "Continue with Passkey" })).toBeInTheDocument();
     second.unmount();
-    // A session that opens without that sign-in lets the request go too.
+    // A session that opens without that sign-in lets the request go too, whatever access
+    // it lands on.
     requestPasskeyAtBoot();
     render(
       <MemoryRouter>
-        <AdminAccessStateRenderer
-          state={{
-            status: "ready",
-            eligibleGardens: [],
-            resolvedDefaultGarden: null,
-            hasStaleBaseList: false,
-          }}
-          ready={<div>Ready</div>}
-        />
+        <AdminAccessStateRenderer state={{ status: "indexer-error" }} ready={<div>Ready</div>} />
       </MemoryRouter>
     ).unmount();
     render(signedOut);

@@ -27,7 +27,9 @@ export function AdminAccessStateRenderer({ state, ready }: AdminAccessStateRende
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
-  const signedIn = state.status === "ready";
+  // Every state but these two has a session: ready, no access, an embedded wallet, or an
+  // indexer that failed after sign-in.
+  const signedIn = state.status !== "checking" && state.status !== "disconnected";
   // A passkey chosen at boot is for the sign-in that follows. A session that opens without
   // that sign-in (another tab signed in meanwhile) lets it go, so a later sign-out starts at
   // the entry.
