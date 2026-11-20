@@ -149,7 +149,7 @@
     "esbuild",
     "sharp"
   ],
-  "description": "Green Goods helps communities name their needs, make promises, document regenerative work, review it together, and turn the record into support.",
+  "description": "Green Goods helps communities name their needs, make promises, document and review regenerative work, and turn the record into support.",
   "main": "index.js",
   "directories": {
     "doc": "docs",
