@@ -68,7 +68,9 @@ export default function WalletRuntimeProviders({
           typeof window !== "undefined"
             ? import.meta.env.VITE_APP_URL || window.location.origin
             : "https://www.greengoods.app",
-        icons: ["https://greengoods.app/icon.png"],
+        // Wallets fill a square or round frame with this icon (Rabby's prompts crop to fill), so
+        // it is the padded square app icon: the wide mark (icon.png) lost both outer arcs there.
+        icons: ["https://www.greengoods.app/icon-512.png"],
         // Rabby Android reads native when moving its task to the background fails.
         ...(walletReturnUrl
           ? { redirect: { native: walletReturnUrl, universal: walletReturnUrl } }

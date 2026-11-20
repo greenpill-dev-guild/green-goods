@@ -130,7 +130,7 @@ describe("CommunityMembersTab", () => {
       },
     });
     renderMembers();
-    expect(screen.getByText("Contributed 11/15/2026")).toBeInTheDocument();
+    expect(screen.getByText("Contributed Nov 15, 2026")).toBeInTheDocument();
     expect(screen.queryByText("Joined Jun 12, 2026")).not.toBeInTheDocument();
     expect(useGardenMemberContributions).toHaveBeenCalledWith({
       garden: storyGarden,

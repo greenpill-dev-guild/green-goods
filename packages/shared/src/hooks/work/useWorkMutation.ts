@@ -270,12 +270,12 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       const hasSubmissionContext = userAddress && gardenAddress && typeof actionUID === "number";
       if (hasSubmissionContext && (!hasRecordedSend(work) || hasRevertedWorkSend(work))) {
         const receipt = await uploadPolicy.request();
-        if (!ownsFlow(origin)) throw new UploadPolicyCancelledError();
+        if (!ownsFlow(origin)) throw new UploadPolicyCancelledError("flow-left");
         assertWorkUploadConsent(receipt, userAddress);
         origin.uploadConsent = receipt;
         if (variables.beforeAdmission && !(await variables.beforeAdmission()))
           throw new UploadPolicyCancelledError("before-admission");
-        if (!ownsFlow(origin)) throw new UploadPolicyCancelledError();
+        if (!ownsFlow(origin)) throw new UploadPolicyCancelledError("flow-left");
       }
       const workSubmissionJourneyId = origin.journeyId;
 
