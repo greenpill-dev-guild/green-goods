@@ -206,7 +206,7 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
           >
             <JoinRequestPerson request={request} />
             {request.note ? (
-              <p className="whitespace-pre-wrap type-body text-text-sub-600">{request.note}</p>
+              <p className="whitespace-pre-wrap type-meta text-text-sub-600">{request.note}</p>
             ) : null}
             {declining?.id === request.id ? (
               <form className="space-y-3" onSubmit={declineRequest}>
