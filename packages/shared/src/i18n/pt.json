@@ -7617,7 +7617,7 @@
   "hub.garden.pool.voucher.reserve.descriptionAwards": "Vales que você pode enviar como recompensa ou conceder por trabalho anterior, separados das reservas",
   "hub.garden.pool.voucher.reserve.inReserve": "Em reserva",
   "hub.garden.pool.voucher.reserve.promisedShort": "Prometidos",
-  "hub.garden.pool.voucher.reserve.booked": "Reservas em curso",
+  "hub.garden.pool.voucher.reserve.booked": "Agendadas",
   "hub.garden.pool.voucher.reserve.details": "Detalhes dos vales em reserva",
   "hub.garden.pool.voucher.reserve.allowance": "Permissão de {garden}",
   "hub.garden.pool.voucher.reserve.allowanceLeft": "Restam {left} de {of}",

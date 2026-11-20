@@ -103,7 +103,8 @@ export function VoucherReserveCard({
           </Button>
         ) : null}
       </div>
-      <div className="grid grid-cols-3 gap-3">
+      {/* Bottom-aligned, so the values stay level if a label wraps in a narrow tile. */}
+      <div className="grid grid-cols-3 items-end gap-3">
         {(
           [
             [
