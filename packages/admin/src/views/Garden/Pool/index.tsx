@@ -330,6 +330,8 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
       {openGroup ? (
         <GroupDialogs
           pool={pool}
+          vouchers={vouchers}
+          safe={issuerSafe}
           group={openGroup}
           title={
             (openGroup.children[0]?.metadataCID &&

@@ -1,6 +1,9 @@
 import { SETTLEMENT_ENABLED } from "@green-goods/shared/config/app";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
-import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import type {
+  PoolConsoleController,
+  VoucherConsoleView,
+} from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import { useEnsNames } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useGoodDollarPrice } from "@green-goods/shared/hooks/blockchain/useGoodDollarPrice";
 import { useCommitmentActivity } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentPooling";
@@ -11,6 +14,10 @@ import {
   selectConfirmerEdit,
   selectRewardEdit,
 } from "@green-goods/shared/modules/commitment-pooling/display-groups";
+import type {
+  IssuerSafeThreshold,
+  VoucherBooking,
+} from "@green-goods/shared/modules/commitment-pooling/pool-console";
 import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import { goodDollarWeiToUsdCents } from "@green-goods/shared/modules/wallet/good-dollar-price";
 import type { Address } from "@green-goods/shared/types/domain";
@@ -20,6 +27,9 @@ import { formatEnsAddressName } from "@/components/EnsAddressText";
 import type { PoolCommitmentGroup } from "../poolCommitmentRows";
 import { cycleName } from "../poolPresentation";
 import { exactTime } from "../poolTime";
+import { VoucherProposeReturnDialog } from "../VoucherProposeReturnDialog";
+import { VoucherRowAct } from "../VoucherRowAct";
+import { voucherBookingOptionalAct } from "../voucherPresentation";
 import { AddToGroupDialog } from "./AddToGroupDialog";
 import { addToGroupRefusal } from "./addToGroupStatus";
 import { EditConfirmersDialog } from "./EditConfirmersDialog";
@@ -41,15 +51,27 @@ export interface GroupDialogsProps {
   onOpenCommitment: (commitment: CommitmentReadModel) => void;
   /** Start a new group in the Seed flow, from this group's terms. */
   onSeedNew: (from: CommitmentReadModel) => void;
+  /** The voucher bookings on the copies: a booked copy offers its optional return here. */
+  vouchers?: Pick<VoucherConsoleView, "bookingFor" | "acts">;
+  /** The issuer Safe's signature rule, read from the Safe, for that return's dialog. */
+  safe?: IssuerSafeThreshold;
 }
 
-type GroupStep = "inspect" | "seed-more" | "add" | "edit-reward" | "edit-confirmers";
+type GroupStep =
+  | "inspect"
+  | "seed-more"
+  | "add"
+  | "edit-reward"
+  | "edit-confirmers"
+  | "propose-return";
 
 /**
  * The group inspector and where it leads (PRD-1022 D4, D14): Seed More Like
  * This, which adds to the group or starts a new one, Edit Reward while no
- * copy is kept, and Edit Confirmers while any copy is untaken. Each dialog
- * closes back to the inspector, which says what changed.
+ * copy is kept, and Edit Confirmers while any copy is untaken. A copy whose
+ * voucher booking still runs offers its optional return beside its row
+ * (DL-195): the group's row stays folded, so this is where it is reached.
+ * Each dialog closes back to the inspector, which says what changed.
  */
 export function GroupDialogs({
   pool,
@@ -59,10 +81,33 @@ export function GroupDialogs({
   onClose,
   onOpenCommitment,
   onSeedNew,
+  vouchers,
+  safe,
 }: GroupDialogsProps) {
   const intl = useIntl();
   const { formatMessage } = intl;
   const [step, setStep] = useState<GroupStep>("inspect");
+  // The return being proposed follows its booking as the read has it now.
+  const [proposing, setProposing] = useState<VoucherBooking | null>(null);
+  const proposingNow = proposing ? vouchers?.bookingFor(proposing.commitmentId) : undefined;
+  const actDisabled = !pool.isOnline || pool.isActing;
+  const optionalReturn = (commitment: CommitmentReadModel) => {
+    const booking = vouchers?.bookingFor(commitment.commitmentId);
+    if (!booking || !vouchers || voucherBookingOptionalAct(booking) === null) return null;
+    return (
+      <VoucherRowAct
+        variant="row"
+        booking={booking}
+        act="propose"
+        disabled={actDisabled}
+        onOpen={() => {
+          setProposing(booking);
+          setStep("propose-return");
+        }}
+        onRetry={vouchers.acts.retryTransfer}
+      />
+    );
+  };
   const { chainId, garden, viewer } = pool;
   const [first] = group.children;
   const activity = useCommitmentActivity({ chainId, poolId: pool.poolId, limit: ACTIVITY_WINDOW });
@@ -154,7 +199,21 @@ export function GroupDialogs({
         canEditConfirmers={confirmerEdit.open}
         isOnline={pool.isOnline}
         onEditConfirmers={() => setStep("edit-confirmers")}
+        actFor={vouchers ? optionalReturn : undefined}
       />
+      {vouchers ? (
+        <VoucherProposeReturnDialog
+          booking={step === "propose-return" ? (proposingNow ?? null) : null}
+          title={title}
+          safe={safe}
+          disabled={actDisabled}
+          onClose={() => {
+            setProposing(null);
+            setStep("inspect");
+          }}
+          onPropose={vouchers.acts.proposeReturn}
+        />
+      ) : null}
       <SeedMoreDialog
         open={step === "seed-more"}
         onClose={() => setStep("inspect")}

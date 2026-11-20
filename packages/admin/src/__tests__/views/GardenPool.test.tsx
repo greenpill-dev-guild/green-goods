@@ -952,6 +952,61 @@ describe("GardenPoolTab (W7)", () => {
     expect(within(inspector).getByText("4 not taken up yet")).toBeInTheDocument();
   });
 
+  // A grouped copy's live booking can only propose a return here: it folds into its group, and
+  // the live read never reports an early end (PR #1740 re-review).
+  it("offers a grouped live booking's optional return in the group's inspector", async () => {
+    const { voucherConsoleViewFixture } = await import(
+      "@green-goods/shared/__tests__/test-utils/controller-fixtures"
+    );
+    const ana = STORY_GROUP_COPIES.find((copy) => copy.commitmentId === 27n)!;
+    mocks.controller = controller({
+      commitments: [commitment(), ...STORY_GROUP_COPIES],
+      titles: new Map([
+        ["bafy-1", { version: 1, title: "Prune the north beds" }],
+        ...STORY_GROUP_TITLES,
+      ]),
+    });
+    mocks.vouchers = voucherConsoleViewFixture({
+      now: Number(NOW),
+      snapshot: {
+        status: "observed",
+        observedAt: Number(NOW),
+        bookings: [
+          {
+            commitmentId: 27n,
+            holder: ana.counterparty!,
+            setupId: `0x${"a4".repeat(32)}`,
+            issuer: {
+              kind: "individual",
+              name: "Teo",
+              chainId: 100,
+              account: ana.counterparty!,
+              decimals: 6,
+            },
+            voucherUnits: 1_000_000n,
+            service: {
+              kind: "units",
+              units: 1n,
+              label: "survey",
+              returnLimit: 1_000_000n,
+              returnCeiling: 0n,
+            },
+            stage: { kind: "in-progress" },
+          },
+        ],
+      },
+    });
+    renderTab();
+    const group = screen.getByTestId("pool-group-group-00000001");
+    expect(
+      within(group).queryByRole("button", { name: "Propose Return…" })
+    ).not.toBeInTheDocument();
+    fireEvent.click(within(group).getByRole("button", { name: /household water survey/i }));
+    const inspector = await screen.findByRole("dialog", { name: "Household water survey" });
+    fireEvent.click(within(inspector).getAllByRole("button", { name: "Propose Return…" })[0]!);
+    expect(await screen.findByRole("dialog", { name: /Propose a Return/ })).toBeInTheDocument();
+  });
+
   it("counts a group's queued copy on its row as didn't send, with Finish Creating, not as a queued row", async () => {
     const queued = {
       chainId: 42161,
