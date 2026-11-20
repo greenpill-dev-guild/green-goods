@@ -43,6 +43,11 @@ import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { useIntl } from "react-intl";
 import { queryInvalidation } from "../../config/query-keys/invalidation";
+import {
+  type HeldOrSent,
+  heldOrSentEnding,
+  recordedSendAct,
+} from "../../modules/app/sendActAnalytics";
 import { HYPERCERTS_MODULE_ABI } from "../../utils/blockchain/hypercert-abis";
 
 export interface BatchProgress {
@@ -76,145 +81,155 @@ export function useBatchListForYield(gardenAddress?: Address): UseBatchListForYi
   const [progress, setProgress] = useState<BatchProgress>(INITIAL_PROGRESS);
 
   const mutation = useMutation({
-    mutationFn: async (listings: CreateListingParams[]) => {
-      if (!gardenAddress) throw new Error("Garden address required");
-      if (listings.length === 0) throw new Error("No listings to create");
+    // One act per batch, from the first signed order to the listing's receipt (PRD-1571).
+    mutationFn: recordedSendAct(
+      { act: "hypercert_listing", authMode: sender?.authMode, chainId },
+      async (listings: CreateListingParams[]): Promise<HeldOrSent> => {
+        if (!gardenAddress) throw new Error("Garden address required");
+        if (listings.length === 0) throw new Error("No listings to create");
 
-      if (!signer || !sender)
-        throw new Error(
-          formatMessage({
-            id: !signer ? "app.account.signInRequired" : "app.account.signerNotReady",
-          })
-        );
-      sender.assertReadyToSign?.();
-      if (!scope || !store().begin(scope)) return;
-      try {
-        await sender.assertOwnership?.(signer, chainId);
+        if (!signer || !sender)
+          throw new Error(
+            formatMessage({
+              id: !signer ? "app.account.signInRequired" : "app.account.signerNotReady",
+            })
+          );
+        sender.assertReadyToSign?.();
+        if (!scope || !store().begin(scope)) return "held";
+        try {
+          await sender.assertOwnership?.(signer, chainId);
 
-        const readiness = assertMarketplaceReady(chainId);
-        const moduleAddress = readiness.addresses.hypercertsModule;
+          const readiness = assertMarketplaceReady(chainId);
+          const moduleAddress = readiness.addresses.hypercertsModule;
 
-        setProgress({ total: listings.length, signed: 0, status: "signing" });
+          setProgress({ total: listings.length, signed: 0, status: "signing" });
 
-        logger.info("[useBatchListForYield] Starting batch listing", {
-          gardenAddress,
-          count: listings.length,
-          chainId,
-        });
+          logger.info("[useBatchListForYield] Starting batch listing", {
+            gardenAddress,
+            count: listings.length,
+            chainId,
+          });
 
-        // Build and sign all maker asks sequentially (each uses the signed-in account)
-        const hypercertIds: bigint[] = [];
-        const makerAskStructs: Array<{
-          quoteType: number;
-          globalNonce: bigint;
-          subsetNonce: bigint;
-          orderNonce: bigint;
-          strategyId: bigint;
-          collectionType: number;
-          collection: Address;
-          currency: Address;
-          signer: Address;
-          startTime: bigint;
-          endTime: bigint;
-          price: bigint;
-          itemIds: bigint[];
-          amounts: bigint[];
-          additionalParameters: Hex;
-        }> = [];
-        const signatures: Hex[] = [];
-        const orders: Extract<MarketplacePendingSubmission, { kind: "batch" }>["orders"] = [];
+          // Build and sign all maker asks sequentially (each uses the signed-in account)
+          const hypercertIds: bigint[] = [];
+          const makerAskStructs: Array<{
+            quoteType: number;
+            globalNonce: bigint;
+            subsetNonce: bigint;
+            orderNonce: bigint;
+            strategyId: bigint;
+            collectionType: number;
+            collection: Address;
+            currency: Address;
+            signer: Address;
+            startTime: bigint;
+            endTime: bigint;
+            price: bigint;
+            itemIds: bigint[];
+            amounts: bigint[];
+            additionalParameters: Hex;
+          }> = [];
+          const signatures: Hex[] = [];
+          const orders: Extract<MarketplacePendingSubmission, { kind: "batch" }>["orders"] = [];
 
-        for (let i = 0; i < listings.length; i++) {
-          const params = listings[i];
-          const nonces = await getOrderNonces(signer, chainId, createPublicClientForChain(chainId));
-          const makerAsk: MakerAskOrder = buildMakerAsk(params, signer, chainId, nonces);
+          for (let i = 0; i < listings.length; i++) {
+            const params = listings[i];
+            const nonces = await getOrderNonces(
+              signer,
+              chainId,
+              createPublicClientForChain(chainId)
+            );
+            const makerAsk: MakerAskOrder = buildMakerAsk(params, signer, chainId, nonces);
 
-          const validation = validateOrder(makerAsk, chainId);
-          if (!validation.valid) {
-            throw new Error(`Order #${i + 1} validation failed: ${validation.errors.join(", ")}`);
+            const validation = validateOrder(makerAsk, chainId);
+            if (!validation.valid) {
+              throw new Error(`Order #${i + 1} validation failed: ${validation.errors.join(", ")}`);
+            }
+
+            const signature = await signMakerAsk(makerAsk, sender, chainId);
+
+            hypercertIds.push(params.hypercertId);
+            makerAskStructs.push({
+              quoteType: makerAsk.quoteType,
+              globalNonce: makerAsk.globalNonce,
+              subsetNonce: makerAsk.subsetNonce,
+              orderNonce: makerAsk.orderNonce,
+              strategyId: makerAsk.strategyId,
+              collectionType: makerAsk.collectionType,
+              collection: makerAsk.collection,
+              currency: makerAsk.currency,
+              signer: makerAsk.signer,
+              startTime: makerAsk.startTime,
+              endTime: makerAsk.endTime,
+              price: makerAsk.price,
+              itemIds: makerAsk.itemIds,
+              amounts: makerAsk.amounts,
+              additionalParameters: makerAsk.additionalParameters,
+            });
+            signatures.push(signature);
+            orders.push({
+              hypercertId: params.hypercertId.toString(),
+              currency: makerAsk.currency,
+              signature,
+            });
+
+            setProgress((prev) => ({ ...prev, signed: i + 1 }));
           }
 
-          const signature = await signMakerAsk(makerAsk, sender, chainId);
+          // Submit batch transaction
+          setProgress((prev) => ({ ...prev, status: "submitting" }));
 
-          hypercertIds.push(params.hypercertId);
-          makerAskStructs.push({
-            quoteType: makerAsk.quoteType,
-            globalNonce: makerAsk.globalNonce,
-            subsetNonce: makerAsk.subsetNonce,
-            orderNonce: makerAsk.orderNonce,
-            strategyId: makerAsk.strategyId,
-            collectionType: makerAsk.collectionType,
-            collection: makerAsk.collection,
-            currency: makerAsk.currency,
-            signer: makerAsk.signer,
-            startTime: makerAsk.startTime,
-            endTime: makerAsk.endTime,
-            price: makerAsk.price,
-            itemIds: makerAsk.itemIds,
-            amounts: makerAsk.amounts,
-            additionalParameters: makerAsk.additionalParameters,
+          const call = {
+            address: moduleAddress,
+            account: signer,
+            chainId,
+            abi: HYPERCERTS_MODULE_ABI,
+            functionName: "batchListForYield",
+            args: [gardenAddress, hypercertIds, makerAskStructs, signatures],
+          };
+
+          setProgress((prev) => ({ ...prev, status: "confirming" }));
+
+          const record: MarketplacePendingSubmission = { kind: "batch", orders };
+          const result = await sender.sendContractCall(call, {
+            assertOwnership: () => sender.assertOwnership?.(signer, chainId),
+            onBeforeBroadcast: async (reference) => {
+              store().checkpoint(scope, { ...record, reference });
+            },
+            onBroadcastReference: async (reference) => {
+              store().checkpoint(scope, { ...record, reference });
+            },
           });
-          signatures.push(signature);
-          orders.push({
-            hypercertId: params.hypercertId.toString(),
-            currency: makerAsk.currency,
-            signature,
-          });
-
-          setProgress((prev) => ({ ...prev, signed: i + 1 }));
-        }
-
-        // Submit batch transaction
-        setProgress((prev) => ({ ...prev, status: "submitting" }));
-
-        const call = {
-          address: moduleAddress,
-          account: signer,
-          chainId,
-          abi: HYPERCERTS_MODULE_ABI,
-          functionName: "batchListForYield",
-          args: [gardenAddress, hypercertIds, makerAskStructs, signatures],
-        };
-
-        setProgress((prev) => ({ ...prev, status: "confirming" }));
-
-        const record: MarketplacePendingSubmission = { kind: "batch", orders };
-        const result = await sender.sendContractCall(call, {
-          assertOwnership: () => sender.assertOwnership?.(signer, chainId),
-          onBeforeBroadcast: async (reference) => {
-            store().checkpoint(scope, { ...record, reference });
-          },
-          onBroadcastReference: async (reference) => {
-            store().checkpoint(scope, { ...record, reference });
-          },
-        });
-        if (result.confirmation === "pending") {
-          store().checkpoint(scope, {
-            ...record,
-            reference: { kind: "transaction", hash: result.hash },
-          });
-          return;
-        }
-        store().clear(scope);
-
-        setProgress((prev) => ({ ...prev, status: "done" }));
-        logger.info("[useBatchListForYield] Batch listing complete", {
-          gardenAddress,
-          count: listings.length,
-        });
-      } catch (error) {
-        if (
-          error instanceof TransactionRevertedError ||
-          error instanceof TransactionReplacementError ||
-          ((isCancelledTxError(error) || refusedForWalletNetwork(error)) &&
-            !store().pending[scope]?.reference)
-        )
+          if (result.confirmation === "pending") {
+            store().checkpoint(scope, {
+              ...record,
+              reference: { kind: "transaction", hash: result.hash },
+            });
+            return "confirming";
+          }
           store().clear(scope);
-        throw error;
-      } finally {
-        store().finish(scope);
-      }
-    },
+
+          setProgress((prev) => ({ ...prev, status: "done" }));
+          logger.info("[useBatchListForYield] Batch listing complete", {
+            gardenAddress,
+            count: listings.length,
+          });
+          return "confirmed";
+        } catch (error) {
+          if (
+            error instanceof TransactionRevertedError ||
+            error instanceof TransactionReplacementError ||
+            ((isCancelledTxError(error) || refusedForWalletNetwork(error)) &&
+              !store().pending[scope]?.reference)
+          )
+            store().clear(scope);
+          throw error;
+        } finally {
+          store().finish(scope);
+        }
+      },
+      heldOrSentEnding
+    ),
     onSuccess: () => {
       if (gardenAddress) {
         const keysToInvalidate = queryInvalidation.onMarketplaceListingChanged(
@@ -306,7 +321,9 @@ export function useBatchListForYield(gardenAddress?: Address): UseBatchListForYi
     checkPending,
     isChecking: checkMutation.isPending,
     confirmWalletCancellation: (confirmedInWallet) => clearMutation.mutateAsync(confirmedInWallet),
-    batchList: (listings) => mutation.mutateAsync(listings),
+    batchList: async (listings) => {
+      await mutation.mutateAsync(listings);
+    },
     isBatching: mutation.isPending,
     progress:
       pending?.kind === "batch" && !mutation.isPending
