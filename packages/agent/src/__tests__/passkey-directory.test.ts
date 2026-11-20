@@ -36,7 +36,7 @@ const ADMIN = "https://admin.greengoods.app";
 const HUB = "https://hub.greengoods.app";
 const BETA_HUB = "https://beta.hub.greengoods.app";
 const ALPHA = "https://alpha.greengoods.app";
-const ALPHA_ADMIN = "https://alpha.admin.greengoods.app";
+const ALPHA_HUB = "https://alpha.hub.greengoods.app";
 const PREVIEW = "https://green-goods-git-some-branch-greengoods.vercel.app";
 const LOCALHOST = "http://localhost:3001";
 const LOOPBACK_ADDRESS = "http://127.0.0.1:3001";
@@ -59,7 +59,7 @@ function createDirectoryApp(
       "https://beta.admin.greengoods.app",
       BETA_HUB,
       ALPHA,
-      ALPHA_ADMIN,
+      ALPHA_HUB,
       WWW,
       ADMIN,
       HUB,
@@ -242,7 +242,7 @@ describe("passkey directory", () => {
     ["https://beta.admin.greengoods.app", "kernel-0.3.3"],
     [BETA_HUB, "kernel-0.3.3"],
     [ALPHA, "kernel-0.3.3"],
-    [ALPHA_ADMIN, "kernel-0.3.3"],
+    [ALPHA_HUB, "kernel-0.3.3"],
     [WWW, "kernel-0.3.1-legacy"],
     [ADMIN, "kernel-0.3.1-legacy"],
     [HUB, "kernel-0.3.1-legacy"],

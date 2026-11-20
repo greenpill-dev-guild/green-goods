@@ -327,6 +327,43 @@ export const Amounts: Story = {
 };
 
 /**
+ * A name in the amount's place (who booked a service, in the Hub's list) can run long: it takes
+ * up to two fifths of the row and gives way with an ellipsis, its full text as its title, while
+ * the title beside it keeps its room. Amounts never truncate.
+ */
+export const AmountNameTruncates: Story = {
+  render: () => (
+    <div data-surface-scope="admin">
+      <Column width={296}>
+        <ItemRow
+          lead={{ kind: "icon", icon: <RiSeedlingLine /> }}
+          title="Hub day, up to 4 hours"
+          status={{ label: "Accepted", tone: "info" }}
+          details={["Takes 1 Tech and Sun voucher"]}
+          amount={{
+            value: "Maria Aparecida dos Santos Oliveira",
+            caption: "booked",
+            truncate: true,
+          }}
+          onOpen={fn()}
+        />
+      </Column>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const value = canvasElement.querySelector<HTMLElement>(".gg-item-row-amount-value")!;
+    const row = value.closest(".gg-item-row") as HTMLElement;
+    await expect(value).toHaveAttribute("title", "Maria Aparecida dos Santos Oliveira");
+    await expect(value.getBoundingClientRect().width).toBeLessThanOrEqual(
+      row.getBoundingClientRect().width * 0.4 + 0.5
+    );
+    await expect(value.getBoundingClientRect().right).toBeLessThanOrEqual(
+      row.getBoundingClientRect().right
+    );
+  },
+};
+
+/**
  * A detail line never wraps. At 288px the second detail no longer fits beside the first, so
  * it drops whole, separator and all; a first detail too long on its own ends in an ellipsis.
  */
