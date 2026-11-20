@@ -55,6 +55,14 @@ const EMPTY_SCOPE_COPY: Record<
       defaultMessage: "Work you approve moves here from Pending.",
     },
   },
+  // Every status of one day, opened from the Activity calendar.
+  all: {
+    title: { id: "hub.work.dayEmpty", defaultMessage: "Nothing submitted this day" },
+    description: {
+      id: "hub.work.dayEmptyDescription",
+      defaultMessage: "Work a gardener sends on this day appears here.",
+    },
+  },
 };
 
 // While older work is not loaded, a scope that finds nothing in the newest page
@@ -65,6 +73,7 @@ const EMPTY_RECENT_SCOPE_TITLE: Record<ReviewWorkScope, { id: string; defaultMes
     id: "hub.work.noRecentApproved",
     defaultMessage: "Nothing approved in recent work",
   },
+  all: { id: "hub.work.dayEmpty", defaultMessage: "Nothing submitted this day" },
 };
 
 interface ReviewWorkQueueProps {

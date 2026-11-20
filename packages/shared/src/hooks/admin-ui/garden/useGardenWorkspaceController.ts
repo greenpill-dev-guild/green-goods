@@ -25,6 +25,15 @@ import {
   resolveAdminWorkspaceSectionRoute,
 } from "../navigation/workspaceNavigation";
 import { buildGardenViewActions, resolveGardenView } from "./garden.utils";
+import { useGardenWorkCalendar } from "./useGardenWorkCalendar";
+
+export type { GardenWorkCalendar, WorkCalendarReadState } from "./useGardenWorkCalendar";
+export {
+  dateOfDay,
+  type WorkCalendarDay,
+  type WorkCalendarStatus,
+  type WorkStatusCounts,
+} from "./workCalendar";
 
 type ActivityFilter = "all" | "work" | "impact" | "community";
 
@@ -59,6 +68,10 @@ export function useGardenWorkspaceController() {
   // The seeding console is a route-backed dialog over the Pool tab (§6.3).
   const poolSeedOpen = location.pathname.startsWith("/garden/pool/seed");
   const range = parseGardenRange(searchParams.get("range"));
+  const workCalendar = useGardenWorkCalendar({
+    gardenId: selectedGarden?.id as Address | undefined,
+    active: view === "activity",
+  });
   const section = searchParams.get("section") ?? undefined;
   const selectedItem = searchParams.get("item") ?? undefined;
   const settingsOpen = selectedItem === EDIT_GARDEN_ROUTE_ITEM;
@@ -349,6 +362,7 @@ export function useGardenWorkspaceController() {
     treasuryBalance: formatAssetAmounts(endowmentByAsset, locale),
     updateOverviewQueryState,
     view,
+    workCalendar,
     gardenAddress: garden?.id as Address | undefined,
   };
 }

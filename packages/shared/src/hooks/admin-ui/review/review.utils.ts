@@ -100,8 +100,32 @@ export function parseSortDirection(value: string | null): SortDirection {
   return value === "oldest" ? "oldest" : "newest";
 }
 
-export function parseWorkScope(value: string | null | undefined): ReviewWorkScope {
-  return value === "approved" ? "approved" : "pending";
+/**
+ * The Work tab's scope. Pending is the usual default; a tab narrowed to one day defaults to
+ * every status, since that is what the Activity calendar counted for the day.
+ */
+export function parseWorkScope(value: string | null | undefined, hasDay = false): ReviewWorkScope {
+  if (value === "approved") return "approved";
+  return hasDay && value !== "pending" ? "all" : "pending";
+}
+
+/** One choice in Review's sort control. */
+export interface SortOption {
+  value: SortDirection;
+  label: string;
+}
+
+export function buildSortOptions(formatMessage: FormatMessage): SortOption[] {
+  return [
+    {
+      value: "newest",
+      label: formatMessage({ id: "hub.review.sort.newest", defaultMessage: "Newest" }),
+    },
+    {
+      value: "oldest",
+      label: formatMessage({ id: "hub.review.sort.oldest", defaultMessage: "Oldest" }),
+    },
+  ];
 }
 
 // ============================================================================
