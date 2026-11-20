@@ -13,7 +13,7 @@ export function bookingSentence(ctx: BookingContext): string {
   const counted = { ...values, count: one ? 1 : 2 };
   // A deposit's confirmation that never arrived waits on the reader's Retry Confirmation.
   if (stage === "confirmingDeposit" && recoveryAct(stage, ctx.setup) === "retryConfirm")
-    return t("rd.n.confirmStuck.b");
+    return t("rd.n.confirmStuck.b", counted);
   switch (stage) {
     case "open":
     case "notEnough":

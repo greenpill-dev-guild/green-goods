@@ -8,7 +8,7 @@ import type {
   ServiceAccessSnapshot,
 } from "@green-goods/shared/commitment-pooling";
 import { identicalOpenCopyKey } from "@green-goods/shared/modules/commitment-pooling/display-groups";
-import { bookingNeedsYouOf } from "../Garden/Commitment/serviceBooking";
+import { bookingNeedsYouOf, mayBeBooking } from "../Garden/Commitment/serviceBooking";
 
 /**
  * What the To confirm tab lists, and so what its badge and the launcher count:
@@ -38,12 +38,7 @@ export function bookingReadKeys(
   const seen = new Set<string>();
   return rows.flatMap(({ commitment }) => {
     const id = commitment.commitmentId.toString();
-    const booking =
-      commitment.direction === "OFFER" &&
-      commitment.claimMode === "APPROVAL_GATED" &&
-      commitment.claimType === "INDIVIDUAL" &&
-      commitment.creator?.toLowerCase() !== viewer.toLowerCase();
-    if (!booking || seen.has(id)) return [];
+    if (!mayBeBooking(commitment, viewer) || seen.has(id)) return [];
     seen.add(id);
     return [{ sourceChainId, coreModule, commitmentId: commitment.commitmentId, buyer: viewer }];
   });

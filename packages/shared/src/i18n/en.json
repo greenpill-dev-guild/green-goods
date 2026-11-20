@@ -8758,7 +8758,7 @@
   "app.voucher.rw.d.retrying": "Payout retrying",
   "app.voucher.rd.n.deposit1.b": "{issuer} approved. Deposit your voucher to hold your place. {issuer} accepts by {d1}.",
   "app.voucher.rd.n.acceptance1.b": "Your voucher is held for this booking. {issuer} accepts by {d1}. Until then you can cancel and get it back.",
-  "app.voucher.rd.n.confirmStuck.b": "Your voucher is held for this booking, but the confirmation that it arrived didn't reach Green Goods. Retry Confirmation sends it again.",
+  "app.voucher.rd.n.confirmStuck.b": "{count, plural, one {Your voucher is} other {Your {n} vouchers are}} held for this booking, but the confirmation that {count, plural, one {it} other {they}} arrived didn't reach Green Goods. Retry Confirmation sends it again.",
   "app.voucher.rd.n.changed1.b": "Your deposit was made under the old terms, so this booking can't start. Cancel to get your voucher back, then book again.",
   "app.voucher.pay.v.deadline1S": "Before {issuer} accepts, you can cancel any time and get your voucher back.",
   "app.voucher.ex.f.rateSH": "The pilot's accepted ratio; it doesn't make the services equal in value",

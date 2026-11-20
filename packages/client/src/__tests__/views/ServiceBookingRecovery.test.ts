@@ -109,6 +109,20 @@ describe("a voucher booking's unfinished acts", () => {
     );
     expect(booking.secondary?.label).toBe("Cancel Booking");
     expect(serviceActOffered("retryConfirm", stuck, null)).toBe(true);
+    // Ten vouchers are counted as ten.
+    const many = serviceBookingView(
+      {
+        snapshot: bookingStorySnapshot("access", "confirmingDeposit", { ackStuck: true }),
+        coreState: "OFFERED",
+        issuer: VOUCHER_STORY_ISSUERS.greenGoods,
+        approval: VOUCHER_STORY_APPROVALS.greenGoods,
+        held: vouchers(10),
+      },
+      intl
+    )!;
+    expect(many.band.sentence).toMatch(
+      /^Your 10 vouchers are held for this booking, but the confirmation that they arrived/
+    );
     const confirming = bookingStorySnapshot("hubDay", "confirmingDeposit");
     expect(view(confirming, "confirmingDeposit").primary).toBeNull();
     expect(serviceActOffered("retryConfirm", confirming, null)).toBe(false);

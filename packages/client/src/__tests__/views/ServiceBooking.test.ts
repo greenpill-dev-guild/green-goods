@@ -728,6 +728,27 @@ describe("voucher booking on the promise page", () => {
     expect(before.tracker).toMatchObject({ at: 3 });
   });
 
+  // A dispute raised on a proposed return keeps the issuer's return limit: it reported less.
+  it.each([
+    ["hubDay", "Nothing delivered", 0, 1],
+    ["access", "12 of 30 days", 12, 30],
+  ] as const)("keeps the reported delivery when a %s return is disputed", (service, reported, done, of) => {
+    const booking = serviceBookingView(
+      {
+        snapshot: bookingStorySnapshot(service, "returnProposed"),
+        coreState: "DISPUTED",
+        issuer: ISSUER[service],
+        approval: APPROVAL[service],
+        held: vouchers(8),
+        proofRecorded: true,
+      },
+      intl
+    )!;
+    expect(booking.stage).toBe("problemReported");
+    expect(booking.facts.find((fact) => fact.id === "reported")?.value).toBe(reported);
+    expect(booking.delivery).toMatchObject({ done, of });
+  });
+
   // A cancellation sent before any deposit has nothing to send back.
   it("says nothing comes back when a booking is canceled before its deposit", () => {
     const snapshot = bookingStorySnapshot("hubDay", "waitingApproval");

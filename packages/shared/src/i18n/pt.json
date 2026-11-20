@@ -8758,7 +8758,7 @@
   "app.voucher.rw.d.retrying": "Pagamento em nova tentativa",
   "app.voucher.rd.n.deposit1.b": "{issuer} aprovou. Deposite seu vale para garantir seu lugar. {issuer} aceita até {d1}.",
   "app.voucher.rd.n.acceptance1.b": "Seu vale está guardado para esta reserva. {issuer} aceita até {d1}. Até lá você pode cancelar e recuperá-lo.",
-  "app.voucher.rd.n.confirmStuck.b": "Seu vale está guardado para esta reserva, mas a confirmação de que ele chegou não alcançou a Green Goods. Tentar confirmação de novo a envia outra vez.",
+  "app.voucher.rd.n.confirmStuck.b": "{count, plural, one {Seu vale está guardado} other {Seus {n} vales estão guardados}} para esta reserva, mas a confirmação de que {count, plural, one {ele chegou} other {eles chegaram}} não alcançou a Green Goods. Tentar confirmação de novo a envia outra vez.",
   "app.voucher.rd.n.changed1.b": "Seu depósito foi feito com as condições anteriores, então esta reserva não pode começar. Cancele para recuperar seu vale e depois reserve de novo.",
   "app.voucher.pay.v.deadline1S": "Antes de {issuer} aceitar, você pode cancelar quando quiser e recuperar seu vale.",
   "app.voucher.ex.f.rateSH": "A proporção aceita do piloto; não iguala o valor dos serviços",

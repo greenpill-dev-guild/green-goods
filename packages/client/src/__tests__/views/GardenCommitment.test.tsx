@@ -1895,6 +1895,21 @@ describe("a voucher booking on the promise page", () => {
     expect(screen.queryByRole("heading", { name: "History" })).toBeNull();
   });
 
+  it("draws an ordinary promise's team at once while the service read is out", () => {
+    // An open offer anyone takes up is no voucher booking, so nothing waits for the read.
+    const page = bookingStoryController("hubDay", "OFFERED");
+    page.detail!.commitment.claimMode = "OPEN";
+    mockUseController.mockReturnValue(page);
+    mockUseServiceAccess.mockReturnValue({
+      data: undefined,
+      status: "pending",
+      fetchStatus: "fetching",
+      refetch: vi.fn(),
+    });
+    render();
+    expect(screen.getByRole("heading", { name: "Team" })).toBeInTheDocument();
+  });
+
   it("says Needs you when the promise waits on the reader under a booking that doesn't", () => {
     show(
       bookingStorySnapshot("hubDay", "transfersPending"),

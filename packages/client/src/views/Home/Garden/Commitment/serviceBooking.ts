@@ -1,4 +1,5 @@
 import {
+  type CommitmentReadModel,
   liveVoucherIssuerName,
   type ServiceAccessSnapshot,
   type VoucherIssuer,
@@ -138,6 +139,23 @@ export function bookingVoucherPair(
           : null;
 }
 
+/**
+ * A promise that may be the reader's booking of a service: an approval-gated offer one person
+ * takes up, made by someone else. Only these are read as bookings, and only these hold their
+ * team and History back until the read answers.
+ */
+export function mayBeBooking(
+  commitment: Pick<CommitmentReadModel, "direction" | "claimMode" | "claimType" | "creator">,
+  viewer: Address | null | undefined
+): boolean {
+  return (
+    commitment.direction === "OFFER" &&
+    commitment.claimMode === "APPROVAL_GATED" &&
+    commitment.claimType === "INDIVIDUAL" &&
+    (!viewer || commitment.creator?.toLowerCase() !== viewer.toLowerCase())
+  );
+}
+
 /** A promise its service's own acts govern: the generic take-up and claims step aside. */
 export function isServiceAccessPromise(s: ServiceAccessSnapshot | null | undefined): boolean {
   return s?.knownService === true || s?.acceptancePolicy.blockGenericMemberAcceptance === true;
@@ -221,10 +239,11 @@ export function serviceBookingView(
   const final = d?.finalAllocation ?? null;
   const deadline = setup?.authorization.acceptanceDeadline ?? null;
   // The split the holder can approve: the issuer's return limit comes back, the rest is released.
+  // A problem raised on a proposed return keeps that limit, since it says what was delivered.
   const ceiling = d?.issuerReturnCeiling ?? 0n;
   const refund = final
     ? final.allocation.refundVoucherUnits
-    : stage === "returnProposed"
+    : stage === "returnProposed" || stage === "problemReported"
       ? ceiling < units
         ? ceiling
         : units

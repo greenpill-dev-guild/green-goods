@@ -555,6 +555,8 @@ export function bookingStoryController(
     id: `42161-${k.commitmentId}`,
     commitmentId: k.commitmentId,
     direction: "OFFER",
+    // A voucher service is an approval-gated offer one person takes up.
+    claimMode: "APPROVAL_GATED",
     creator: k.issuer.account,
     leadProvider: k.issuer.account,
     counterparty: taken ? buyer : null,

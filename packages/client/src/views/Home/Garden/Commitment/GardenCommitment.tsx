@@ -35,7 +35,7 @@ import { proofOnPhoneLine } from "./proofOnPhone";
 import { SavedCommitment } from "./SavedCommitment";
 import { ServicePromise } from "./ServicePromise";
 import type { ServicePromiseParts } from "./servicePromiseTypes";
-import { serviceReadOutcome } from "./serviceBooking";
+import { mayBeBooking, serviceReadOutcome } from "./serviceBooking";
 import { selectStatusBand } from "./statusBand";
 import { WithdrawSheet } from "./WithdrawSheet";
 import { TakeUpReviewSheet } from "./TakeUpReviewSheet";
@@ -121,6 +121,7 @@ export function GardenCommitment() {
 
   const detail = controller.detail;
   const { commitment, contributors, requirements } = detail;
+  const bookingUnread = serviceRead === "unresolved" && mayBeBooking(commitment, controller.viewer);
   const requiredWorkApproved =
     requirements.length > 0 && requirements.every((row) => row.approvedCount >= row.requiredCount);
   const genericAct = commitmentActForKind(controller.actKind);
@@ -309,8 +310,7 @@ export function GardenCommitment() {
         {serviceRead === "failed" ? (
           <MembershipCheckFailed check="service" onRetry={() => void serviceAccess.refetch()} />
         ) : null}
-        {/* A booking has no team or History; until the read says it isn't one, hold them back. */}
-        {service.booking || serviceRead === "unresolved" ? null : (
+        {service.booking || bookingUnread ? null : (
           <CommitmentTeam
             commitment={commitment}
             contributors={contributors}
@@ -402,7 +402,7 @@ export function GardenCommitment() {
           }
           onLink={(workUID, requirementIndex) => setLinkOpen({ workUID, requirementIndex })}
         />
-        {service.booking || serviceRead === "unresolved" ? null : (
+        {service.booking || bookingUnread ? null : (
           <CommitmentHistory
             chainId={controller.chainId}
             commitment={commitment}
