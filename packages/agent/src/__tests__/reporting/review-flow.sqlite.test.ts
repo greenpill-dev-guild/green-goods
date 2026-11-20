@@ -448,4 +448,35 @@ describe("steward review", () => {
     expect(sentTexts().filter((text) => text === unread)).toHaveLength(1);
     expect(await harness.say(BOLA, "STATUS")).toEqual([unread]);
   });
+
+  // PRD-1568: the page could not report the proposal's hash first, so the proposal comes alone.
+  it("tells a steward a decision a Safe only proposed waits for its signers, and records it once run", async () => {
+    await publishedWork();
+    await linkedSteward();
+    const summary = await decide("Approve", "Looks right");
+    const token = /CONFIRM (\d{4})/.exec(summary[0] ?? "")?.[1];
+    await harness.say(BOLA, `CONFIRM ${token}`);
+    const { browser, view } = await openDecisionPage();
+    const envelope = view.operation?.envelope;
+    if (!envelope) throw new Error("Expected an envelope");
+    const attempt = await reserve(browser, view, envelope);
+    await reportOutcome(browser, view, envelope, attempt.body.attemptId, {
+      kind: "safe_proposal",
+      safeTxHash: `0x${"5a".repeat(32)}`,
+    });
+    await harness.drain();
+    const safeSigners =
+      "Waiting for the Safe's signers. Your Safe has the proposal. It goes through once enough of the Safe's owners sign it. I'll message you when your review is recorded.";
+    expect(sentTexts().filter((text) => text === safeSigners)).toHaveLength(1);
+    expect(await harness.say(BOLA, "STATUS")).toEqual([safeSigners]);
+
+    harness.chain.submit({
+      attester: stewardAccount.address,
+      to: envelope.call.to,
+      data: envelope.call.data,
+    });
+    harness.clock.advance(10 * 60_000);
+    await harness.drain();
+    expect(sentTexts().at(-1)).toBe("Your review is recorded ✅");
+  });
 });

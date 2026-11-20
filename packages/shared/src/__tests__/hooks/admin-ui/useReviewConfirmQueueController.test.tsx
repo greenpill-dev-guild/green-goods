@@ -245,6 +245,38 @@ describe("useReviewConfirmQueueController", () => {
     ]);
   });
 
+  // PRD-957: what the send reported decides the row, as the Hub's act line reads the same reports.
+  // A Safe's proposal, or a send whose receipt outlasted its wait, is not queued here to send.
+  it.each([
+    ["a Safe only proposed", ["confirming", "safe-signers", "queued"], "safe-signers"],
+    ["sent, its receipt still out", ["confirming", "queued"], "still-confirming"],
+    ["queued before it went out", ["queued"], "queued"],
+    ["landed", ["confirming", "landed"], "confirmed"],
+  ])("holds a confirmation %s as that outcome", async (_case, stages, status) => {
+    mocks.enqueue.mockImplementation(async (input) => {
+      const report = (input as { report?: (event: { stage: string }) => void }).report;
+      for (const stage of stages) report?.({ stage });
+      return "job-123";
+    });
+    const full = confirmationInput();
+    const { result, rerender } = renderHook(
+      ({ toConfirm }) =>
+        useReviewConfirmQueueController({ chainId: DEMO_CHAIN_ID, toConfirm, search: "" }),
+      { initialProps: { toConfirm: full } }
+    );
+
+    await act(async () => {
+      await result.current.acts.confirm(result.current.rows[0]!);
+    });
+    expect(result.current.rows[0]?.state.status).toBe(status);
+
+    // Once the read no longer lists it, a send still on its way has landed after all; one made
+    // here keeps saying so, and one only queued here keeps saying that.
+    rerender({ toConfirm: toConfirmFixture({ ...full, groups: [], fallback: [] }) });
+    const settled = status === "safe-signers" || status === "still-confirming" ? "gone" : status;
+    expect(result.current.rows[0]?.state.status).toBe(settled);
+  });
+
   it("names each copy from a group by its group's size, one row per copy", async () => {
     const copies = [1001n, 1011n, 1012n].map((commitmentId) =>
       commitmentFixture({ commitmentId, metadataCID: "bafy-set" })

@@ -1,6 +1,6 @@
 import type { PublicationEnvelope } from "@green-goods/shared/modules/agent-reporting";
 import type { Hex } from "viem";
-import { type AttemptRecord, latestAttempt } from "./attempts";
+import { type AttemptRecord, latestAttempt, SAFE_SIGNERS } from "./attempts";
 import type { ReportingCopyKey } from "./copy";
 import type { ClaimedJob } from "./jobs";
 import { participantWriter } from "./notify";
@@ -182,11 +182,13 @@ const STILL_CONFIRMING_AFTER_MS = 120_000;
  * as sent, or one the Agent sent under a permission, whether or not the bundler accepted it. A
  * bundler that refuses an operation does not prove it never reached the chain, so the check runs
  * either way. A browser that reported an uncertain send, or never reported at all, has already
- * heard that the chain is being checked and that it will hear back.
+ * heard that the chain is being checked and that it will hear back. One a Safe only proposed has
+ * heard that it waits for the Safe's signers, which "still confirming" would contradict.
  */
 function sentSilently(attempt: AttemptRecord | null): boolean {
   // A late hash moves a callback-missing attempt to broadcast and keeps its reason.
-  if (!attempt || attempt.reasonCode === "callback_missing") return false;
+  if (!attempt || attempt.reasonCode === "callback_missing" || attempt.reasonCode === SAFE_SIGNERS)
+    return false;
   if (attempt.state === "broadcast") return true;
   return attempt.state === "uncertain" && attempt.mode === "delegated";
 }
@@ -269,4 +271,18 @@ export function chainCheckStopped(
     return "draftId" in subject ? "publish.publishedChecking" : "review.recordedChecking";
   const reason = attemptStopReason(core, operation);
   return reason === null ? null : stopReply("draftId" in subject ? "draft" : "review", reason);
+}
+
+/**
+ * What STATUS answers while the current attempt at a report or a decision waits for a Safe's
+ * signers, as the chat said when the proposal went out; null otherwise.
+ */
+export function awaitingSafeSigners(
+  core: ReportingCore,
+  subject: { draftId: string } | { reviewIntentId: string }
+): ReportingCopyKey | null {
+  const operation = operationForSubject(core, subject);
+  if (operation?.state !== "reconciling") return null;
+  if (latestAttempt(core, operation.id)?.reasonCode !== SAFE_SIGNERS) return null;
+  return "draftId" in subject ? "publish.safeSigners" : "review.safeSigners";
 }

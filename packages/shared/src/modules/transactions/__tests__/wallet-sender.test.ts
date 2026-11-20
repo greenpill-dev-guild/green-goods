@@ -277,6 +277,31 @@ describe("WalletSender", () => {
       expect(result.hash).toBe(safeStyleHash);
       expect(result.confirmation).toBe("pending");
       expect(result.sponsored).toBe(false);
+      expect(result.awaiting).toBeUndefined();
+      expect(mockDeps.waitForTransactionReceipt).not.toHaveBeenCalled();
+    });
+
+    // PRD-957: a Safe that answers with a short proposal id waits on its signers, as one that
+    // answers with the 32-byte safeTxHash does, so a queued act says so instead of checking.
+    it("says a Safe's short proposal id waits for the Safe's signers", async () => {
+      const proposalId = `0x${"5a".repeat(20)}` as `0x${string}`;
+      mockWriteContractAsync.mockResolvedValueOnce(proposalId);
+      mockDeps.readWalletAnswer.mockResolvedValueOnce("safe-proposal");
+      const onAwaiting = vi.fn();
+
+      await expect(sender.sendContractCall(TEST_CALL, { onAwaiting })).resolves.toEqual({
+        hash: proposalId,
+        sponsored: false,
+        confirmation: "pending",
+        awaiting: "safe-signers",
+      });
+      expect(onAwaiting).toHaveBeenCalledWith("safe-signers");
+      // Asked of the account that signs: the connected one when the call names none.
+      expect(mockDeps.readWalletAnswer).toHaveBeenCalledWith(
+        MOCK_ADDRESSES.deployer,
+        proposalId,
+        TEST_CALL.chainId
+      );
       expect(mockDeps.waitForTransactionReceipt).not.toHaveBeenCalled();
     });
 

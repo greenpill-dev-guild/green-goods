@@ -16,10 +16,16 @@ import { useEnsAvatar } from "../blockchain/useEnsAvatar";
 import { useEnsName } from "../blockchain/useEnsName";
 import { uploadFileToIPFS } from "../../modules/data/ipfs/upload";
 import {
+  recordSendAct,
+  type SendActEndingDetail,
+  sendActEnding,
+} from "../../modules/app/sendActAnalytics";
+import {
   clearProfileAvatarDraft,
   classifyProfileAvatarFailure,
   loadProfileAvatarDraft,
   normalizeProfileAvatarFile,
+  ProfileAvatarTransportError,
   publishProfileAvatar,
   profileAvatarTransport,
   resolveProfileAvatar,
@@ -59,6 +65,13 @@ export interface ProfileAvatarReadOptions {
    * already reads.
    */
   list?: boolean;
+}
+
+/** A save the server may have taken, which a read could not prove, may still have landed. */
+function profileAvatarSaveEnding(error: unknown): SendActEndingDetail {
+  if (error instanceof ProfileAvatarTransportError && error.isAmbiguous)
+    return { outcome: "confirming", parsedErrorFamily: "ProfileAvatarSaveUnconfirmed" };
+  return sendActEnding(error);
 }
 
 export function useProfileAvatar(
@@ -225,6 +238,14 @@ export function useProfileAvatarEditor(chainIdOrOptions?: number | ProfileAvatar
             if (isCurrentOperation()) setStage(nextStage);
           },
           getFactoryArgs,
+          // The signature and the save are the act; a photo already in place records none.
+          recordSend: (run) =>
+            recordSendAct(
+              { act: "profile_avatar", operation: input.action, authMode: auth.authMode, chainId },
+              run,
+              () => "confirmed",
+              profileAvatarSaveEnding
+            ),
         });
         queryClient.setQueryData(profileAvatarKeys.record(chainId, address), record);
         if (isCurrentOperation()) {

@@ -13,6 +13,7 @@ import { roleKeys } from "../../../config/query-keys/identity";
 import { MOCK_ADDRESSES } from "../../test-utils/mock-factories";
 import { createTestQueryClient } from "../../test-utils/query-client";
 import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
+import { captureSendActs } from "../../test-utils/send-acts";
 
 // ============================================
 // Mocks
@@ -496,8 +497,17 @@ describe("useDeploymentRegistry", () => {
       const { result } = renderHookWithQueryClient(() => useGardenCreators());
       await waitFor(() => expect(result.current.canManage).toBe(true));
 
-      await expect(result.current.addCreator(creator)).resolves.toBe(true);
+      const { acts, sent } = await captureSendActs(() =>
+        expect(result.current.addCreator(creator)).resolves.toBe(true)
+      );
 
+      // One act per change, named by the call and carrying no address (PRD-1571).
+      expect(acts).toEqual([
+        ["send_act_started", "garden_creator_allowlist", undefined],
+        ["send_act_ended", "garden_creator_allowlist", "confirmed"],
+      ]);
+      expect(sent).toContain("addtoallowlist");
+      expect(sent).not.toContain(creator.slice(2).toLowerCase());
       expect(mockSendContractCall).toHaveBeenCalledWith(
         expect.objectContaining({
           address: mockDeploymentRegistryAddress,
@@ -580,21 +590,30 @@ describe("useDeploymentRegistry", () => {
       const { result } = renderHookWithQueryClient(() => useGardenCreators());
       await waitFor(() => expect(result.current.canManage).toBe(true));
 
-      await expect(result.current.addCreator(creator)).resolves.toBe(true);
+      const { acts } = await captureSendActs(() =>
+        expect(result.current.addCreator(creator)).resolves.toBe(true)
+      );
+      expect(acts.at(-1)).toEqual(["send_act_ended", "garden_creator_allowlist", "confirming"]);
     });
 
     it.each([
-      { when: "the person declines the signature", error: new Error("User rejected the request") },
+      {
+        when: "the person declines the signature",
+        error: new Error("User rejected the request"),
+        ending: "cancelled",
+      },
       {
         when: "the receipt shows a revert",
         error: new TransactionRevertedError(`0x${"3".repeat(64)}`),
+        ending: "failed",
       },
       {
         // viem refused the write for the wallet's network and the check before a retry failed.
         when: "the wallet changed network and the write was not tried again",
         error: new WalletWriteNotRetriedError(new Error("Switch to Arbitrum failed")),
+        ending: "failed",
       },
-    ])("reports the change as not sent when $when", async ({ error }) => {
+    ])("reports the change as not sent when $when", async ({ error, ending }) => {
       registryAnswers({ canManage: true, allowlist: [] });
       mockSimulateTransaction.mockResolvedValue({ success: true });
       mockSendContractCall.mockImplementation(
@@ -606,7 +625,10 @@ describe("useDeploymentRegistry", () => {
       const { result } = renderHookWithQueryClient(() => useGardenCreators());
       await waitFor(() => expect(result.current.canManage).toBe(true));
 
-      await expect(result.current.addCreator(creator)).resolves.toBe(false);
+      const { acts } = await captureSendActs(() =>
+        expect(result.current.addCreator(creator)).resolves.toBe(false)
+      );
+      expect(acts.at(-1)).toEqual(["send_act_ended", "garden_creator_allowlist", ending]);
       await waitFor(() => expect(result.current.isWriting).toBe(false));
     });
   });
