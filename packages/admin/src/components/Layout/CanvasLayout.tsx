@@ -191,7 +191,9 @@ export function CanvasLayout() {
                   paddingBottom: isDesktop
                     ? "var(--admin-main-bottom-clearance-desktop, 6.25rem)"
                     : "var(--admin-main-bottom-clearance-mobile, calc(env(safe-area-inset-bottom) + 9.5rem))",
-                  overscrollBehaviorY: "contain",
+                  // A pull past the top chains to the root, which runs the browser's
+                  // pull-to-refresh, as the App does (PRD-1534).
+                  overscrollBehaviorY: "auto",
                   WebkitOverflowScrolling: "touch",
                 }}
               >

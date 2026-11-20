@@ -1,13 +1,21 @@
 import { SheetBody } from "@green-goods/shared/components/Canvas/SheetBody";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { SheetDivider } from "@green-goods/shared/components/Canvas/SheetDivider";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { getChainName } from "@green-goods/shared/config/chains";
 import { useTheme } from "@green-goods/shared/hooks/app/useTheme";
 import { type Locale, useApp } from "@green-goods/shared/providers/App";
+import { isStandaloneMode } from "@green-goods/shared/utils/app/pwa";
 import { getBlockExplorer } from "@green-goods/shared/utils/blockchain/chain-registry";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import { RiComputerLine, RiExternalLinkLine, RiMoonLine, RiSunLine } from "@remixicon/react";
+import {
+  RiComputerLine,
+  RiExternalLinkLine,
+  RiMoonLine,
+  RiRefreshLine,
+  RiSunLine,
+} from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { AdminChoiceGroup } from "../AdminChoiceGroup";
 import { type AccountPanelLayout, accountPanelBodyProps } from "./accountPanelLayout";
@@ -32,6 +40,12 @@ interface AccountSettingsPanelProps {
   /** `sheet` (default) is the side sheet; `page` is the mobile Profile route. */
   layout?: AccountPanelLayout;
   className?: string;
+  /**
+   * Whether the Hub runs as an installed app, read from the display mode by default. An
+   * installed app has no reload control of its own, and iOS gives it no pull to refresh,
+   * so About offers a Refresh there (PRD-1534).
+   */
+  installed?: boolean;
 }
 
 function SettingsSectionHeader({ title, description }: { title: string; description?: string }) {
@@ -69,12 +83,20 @@ function ExternalLinkRow({ href, label }: { href: string; label: string }) {
  * About. Identity actions (Disconnect) live in the Account panel — settings
  * hold preferences, not who-you-are.
  */
-export function AccountSettingsPanel({ layout = "sheet", className }: AccountSettingsPanelProps) {
+export function AccountSettingsPanel({
+  layout = "sheet",
+  className,
+  installed = isStandaloneMode(),
+}: AccountSettingsPanelProps) {
   const { formatMessage } = useIntl();
   const { theme, setTheme } = useTheme();
   const { locale, availableLocales, switchLanguage } = useApp();
   const appVersion = import.meta.env.VITE_APP_VERSION || "dev";
   const chainName = getChainName(DEFAULT_CHAIN_ID);
+  const refreshLabel = formatMessage({
+    id: "hub.settings.refreshAction",
+    defaultMessage: "Refresh the Hub",
+  });
 
   return (
     <SheetBody {...accountPanelBodyProps(layout, className)}>
@@ -154,6 +176,28 @@ export function AccountSettingsPanel({ layout = "sheet", className }: AccountSet
             label={formatMessage({ id: "hub.settings.version", defaultMessage: "Version" })}
             value={<span className="tabular-nums">{appVersion}</span>}
           />
+          {installed ? (
+            <FactRow
+              label={formatMessage({ id: "hub.settings.refresh", defaultMessage: "Refresh" })}
+              description={formatMessage({
+                id: "hub.settings.refreshDescription",
+                defaultMessage: "Reload the Hub. You stay signed in.",
+              })}
+              action={
+                <IconButton
+                  type="button"
+                  emphasis="secondary"
+                  size="sm"
+                  icon={<RiRefreshLine className="h-[18px] w-[18px]" aria-hidden="true" />}
+                  aria-label={refreshLabel}
+                  title={refreshLabel}
+                  // A plain reload keeps the session, drafts and the query cache: no
+                  // cache clearing and no service-worker reset (PRD-1534).
+                  onClick={() => window.location.reload()}
+                />
+              }
+            />
+          ) : null}
         </FactList>
         <ExternalLinkRow
           href={DOCS_URL}
