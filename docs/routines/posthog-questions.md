@@ -125,7 +125,7 @@ lands.
 | `work_submission_offline` | The Submit only saved the work to the queue to send later. `reason`: `offline`, `connection-unconfirmed`, or `not-sent` (online, but the queue keeps it). |
 | `work_submission_queued` | The Submit's send is on record but not confirmed yet (`status: awaiting-confirmation`). |
 | `work_submission_failed` | The Submit failed. Before PRD-1561, `parsed_error_family: UserRejected` marked a cancel, a declined Terms prompt included. |
-| `work_submission_cancelled` | The person stopped the Submit: `reason` is `terms_declined`, `signature_declined`, or `flow_left` (they accepted the Terms, then moved to another draft, account or flow before admission) (PRD-1561). Never a technical failure. |
+| `work_submission_cancelled` | The person stopped the Submit: `reason` is `terms_declined`, `signature_declined`, or `flow_left` (they accepted the Terms, then moved to another draft or flow before admission; a change of account records nothing) (PRD-1561). Never a technical failure. |
 | `offline_job_started` | The queue starts a try: a send, or the check of a send already on record (`confirming`). `explicit` when a person's tap asked for it. |
 | `offline_job_skipped` | A started try ended with nothing sent and no answer, or a tap the queue could not act on. `reason` is a code such as `awaiting-confirmation`, `offline` or `wallet-reconnect-required`. |
 | `offline_job_receipt_wait_limit` | A queued send went out but its receipt did not come within the queue's limit (`limit_ms`), so the job waits as still confirming. `job_kind`, `explicit` and `auth_mode` say what was sent and how. |
