@@ -6,7 +6,7 @@
  */
 
 import { QueryClientProvider } from "@tanstack/react-query";
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -60,11 +60,6 @@ const mockReviewProps = vi.fn();
 const mockWorkForSheetProps = vi.fn();
 let mockActiveTab = "Intro";
 let mockStartSkipped = false;
-let mockShowSkeleton = false;
-// Start Fresh sets the draft aside and returns the flow to Start, as the controller does.
-const mockStartFresh = vi.fn(async () => {
-  mockActiveTab = "Intro";
-});
 interface MockWorkLinkIntent {
   commitmentId: bigint;
   requirementIndex: number;
@@ -154,7 +149,7 @@ vi.mock("@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowControlle
     draft: {
       showDraftSheet: false,
       handleContinueDraft: vi.fn(),
-      startFresh: mockStartFresh,
+      startFresh: vi.fn(),
       saveState: mockDraftSaveState,
       missingAttachments: [],
       retry: mockDraftRetry,
@@ -191,7 +186,7 @@ vi.mock("@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowControlle
     reviewConfig: {},
     reviewData: { garden: mockGardens[0], action: mockActions[0] },
     setAudioNotes: mockWorkFlowState.setAudioNotes,
-    showSkeleton: mockShowSkeleton,
+    showSkeleton: false,
     start: { skipped: mockStartSkipped, waiting: false, back: mockStartBack },
     submissionCompleted: false,
     submit: vi.fn(),
@@ -206,15 +201,16 @@ vi.mock("@green-goods/shared/modules/app/posthog", () => ({
 
 // Mock child components to simplify
 vi.mock("../../views/Garden/Start", () => ({
-  WorkStart: (props: unknown) => {
+  WorkStart: (props: { gardenLine?: unknown }) => {
     mockStartProps(props);
-    return createElement("div", { "data-testid": "work-start" }, "Start Step");
+    return createElement("div", { "data-testid": "work-start" }, "Start Step", props.gardenLine);
   },
   StartSkeleton: () => createElement("div", { "data-testid": "start-skeleton" }),
 }));
 
 vi.mock("../../views/Garden/Media", () => ({
-  WorkMedia: () => createElement("div", { "data-testid": "work-media" }, "Media Step"),
+  WorkMedia: (props: { gardenLine?: unknown }) =>
+    createElement("div", { "data-testid": "work-media" }, "Media Step", props.gardenLine),
 }));
 
 vi.mock("../../views/Garden/Details", () => ({
@@ -247,12 +243,8 @@ vi.mock("@/components/Communication", () => ({
   FormProgress: () => createElement("div", { "data-testid": "form-progress" }),
 }));
 
-const mockDraftSheetProps = vi.fn();
 vi.mock("@/components/Sheets", () => ({
-  DraftSheet: (props: Record<string, unknown>) => {
-    mockDraftSheetProps(props);
-    return null;
-  },
+  DraftSheet: () => null,
 }));
 
 vi.mock("@/components/Features/Work", async (importOriginal) => ({
@@ -345,7 +337,6 @@ describe("Garden (Work) View", () => {
     mockSelection.gardenAddress = null;
     mockActiveTab = "Intro";
     mockStartSkipped = false;
-    mockShowSkeleton = false;
     mockLinkIntent = null;
     mockLinkIntentStatus = "none";
     mockHasPendingLinkRecovery = false;
@@ -380,7 +371,7 @@ describe("Garden (Work) View", () => {
     expect(mockDraftRetry).toHaveBeenCalledOnce();
   });
 
-  it("says under the steps where the work goes", () => {
+  it("says on Start where the work goes", () => {
     mockNamedGarden = {
       id: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       name: "Hilltop Garden",
@@ -432,54 +423,16 @@ describe("Garden (Work) View", () => {
     expect(screen.queryByTestId("submission-garden")).toBeNull();
   });
 
-  // Afo on PRD-1522: a draft that reopens past Start named its garden on no step it opened on.
-  it("names the garden on the step a resumed draft opens on, and not on the steps around it", () => {
+  // Afo on PRD-1522: the garden is named once, on the first step, so a draft that reopens past
+  // it names none.
+  it("names no garden when a draft reopens past the first step", () => {
+    mockActiveTab = "Details";
     mockNamedGarden = {
       id: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       name: "Hilltop Garden",
       bannerImage: "",
     };
-    // The draft is still being read: the flow holds its place.
-    mockShowSkeleton = true;
-    const view = renderWithProviders();
-
-    // It picks up at Details, its first step still to do.
-    mockShowSkeleton = false;
-    mockActiveTab = "Details";
-    view.rerender(view.tree());
-    expect(screen.getByTestId("submission-garden")).toHaveTextContent("Hilltop Garden");
-
-    mockActiveTab = "Media";
-    view.rerender(view.tree());
-    expect(screen.queryByTestId("submission-garden")).toBeNull();
-    mockActiveTab = "Review";
-    view.rerender(view.tree());
-    expect(screen.queryByTestId("submission-garden")).toBeNull();
-    mockActiveTab = "Details";
-    view.rerender(view.tree());
-    expect(screen.getByTestId("submission-garden")).toBeInTheDocument();
-  });
-
-  // Review of #1731: a fresh start after a resumed draft kept naming the draft's step.
-  it("names the garden on Start after Start Fresh, not on the set-aside draft's step", async () => {
-    mockNamedGarden = {
-      id: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-      name: "Hilltop Garden",
-      bannerImage: "",
-    };
-    mockActiveTab = "Details";
-    const view = renderWithProviders();
-    expect(screen.getByTestId("submission-garden")).toBeInTheDocument();
-
-    const { onStartFresh } = mockDraftSheetProps.mock.lastCall?.[0] as {
-      onStartFresh: () => Promise<void>;
-    };
-    await act(() => onStartFresh());
-    view.rerender(view.tree());
-    expect(screen.getByTestId("submission-garden")).toBeInTheDocument();
-
-    mockActiveTab = "Details";
-    view.rerender(view.tree());
+    renderWithProviders();
     expect(screen.queryByTestId("submission-garden")).toBeNull();
   });
 

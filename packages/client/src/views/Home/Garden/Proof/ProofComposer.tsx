@@ -219,12 +219,16 @@ export function ProofComposer() {
           };
 
   // Every stage leads with its heading card, then the promise it is for (DL-058), then a
-  // save that failed, then the stage itself.
+  // save that failed, then the stage itself. Media, the first step, names the garden under its
+  // heading, and no later step repeats it (PRD-1522).
   const renderStage = (stage: SubmissionStage, pinned: ReactNode) => {
     const heading = headingFor(stage);
     return (
       <>
         <FormInfo title={heading.title} info={heading.info} Icon={heading.Icon} />
+        {garden && stage === "media" ? (
+          <SubmissionGardenLine garden={garden} kind="evidence" />
+        ) : null}
         {pinned}
         {controller.draftPersistence === "failed" ? (
           <Alert
@@ -307,17 +311,7 @@ export function ProofComposer() {
 
   return (
     <>
-      <SubmissionFlow
-        flow={flow}
-        keepFormStill
-        renderStage={renderStage}
-        // Adding proof opens on Media, its first step, which alone names the garden (PRD-1522).
-        lead={
-          garden && flow.stage === "media" ? (
-            <SubmissionGardenLine garden={garden} kind="evidence" />
-          ) : null
-        }
-      />
+      <SubmissionFlow flow={flow} keepFormStill renderStage={renderStage} />
       <WorkUploadConsentDialog kind="evidence" prompt={controller.uploadPolicy} />
 
       <ImagePreviewDialog

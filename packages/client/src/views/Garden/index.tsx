@@ -8,7 +8,7 @@ import { useWorkSubmissionFlowController } from "@green-goods/shared/hooks/clien
 import { SEND_STAGE_WORDS } from "@green-goods/shared/modules/transactions/send-stage";
 import type { Address } from "@green-goods/shared/types/domain";
 import { RiErrorWarningLine, RiRefreshLine } from "@remixicon/react";
-import { type FC, type ReactNode, useState } from "react";
+import type { FC, ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { FlowBarNote, SubmissionFlow, WorkViewSkeleton } from "@/components/Features/Work";
 import { DraftSheet } from "@/components/Sheets";
@@ -103,19 +103,12 @@ const Work: FC = () => {
     workSubmissionJourneyId,
   } = controller;
 
-  // The garden is named on the flow's first step, Start or Media when Start's answer was known
-  // (decision 17), and on the step this visit opened on once its draft was read: a resumed draft
-  // picks up past Start. Other steps do not repeat it; Review names it in its summary (PRD-1522).
-  const [openedOn, setOpenedOn] = useState<SubmissionStage | null>(null);
-  // Reading a draft again (another account's) opens the flow anew.
-  if (showSkeleton && openedOn !== null) setOpenedOn(null);
-  if (!showSkeleton && openedOn === null) setOpenedOn(flow.stage);
-  // A fresh start opens the new work on Start, wherever the set-aside draft had opened.
-  const startFresh = async () => {
-    await draft.startFresh();
-    setOpenedOn(null);
-  };
-  const namesGarden = flow.stage === (start.skipped ? "media" : "start") || flow.stage === openedOn;
+  // The garden is named once, under the info card of the flow's first step: Start, or Media when
+  // Start's answer was known (decision 17). A draft that reopens past that step names none, and
+  // later steps do not repeat it; Review names it in its summary (PRD-1522).
+  const gardenLine = namedSubmissionGarden ? (
+    <SubmissionGardenLine garden={namedSubmissionGarden} />
+  ) : null;
 
   // The work kind's piece at each stage. Once a promise is chosen at Start, every later step
   // names it after its heading (D16, O9): the shell hands the pinned card in, and its sheet
@@ -152,6 +145,7 @@ const Work: FC = () => {
               onRetry: () => void refetchCommitmentLinkChoices(),
               onLetGo: clearLinkIntent,
             }}
+            gardenLine={gardenLine}
           />
         );
       case "media":
@@ -178,6 +172,7 @@ const Work: FC = () => {
             actionUID={actionUID}
             heicStateOf={heicStateOf}
             onRetryHeicConversion={retryHeicConversion}
+            gardenLine={start.skipped ? gardenLine : null}
             pinned={pinned}
           />
         );
@@ -237,7 +232,7 @@ const Work: FC = () => {
         onContinue={draft.handleContinueDraft}
         onClose={draft.close}
         legacyRecovery={draft.legacyRecovery}
-        onStartFresh={startFresh}
+        onStartFresh={draft.startFresh}
         onManage={draft.manage}
         imageCount={images.length}
       />
@@ -247,9 +242,6 @@ const Work: FC = () => {
         tallBar={isSchedulingDependentLink || hasPendingLinkRecovery}
         lead={
           <>
-            {namedSubmissionGarden && namesGarden ? (
-              <SubmissionGardenLine garden={namedSubmissionGarden} />
-            ) : null}
             {controller.submissionOutcome?.kind === "awaiting-confirmation" && (
               <p role="status">{intl.formatMessage(SEND_STAGE_WORDS["still-confirming"].label)}</p>
             )}

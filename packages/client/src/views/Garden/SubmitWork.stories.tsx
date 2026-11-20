@@ -128,7 +128,7 @@ export const StartOnPromises: Story = {
 
 /**
  * A resumed draft whose garden is not the active one: Start in the draft's garden, which one
- * line under the steps names (decision 28).
+ * line under Start's info card names (decision 28).
  */
 export const StartForAResumedDraft: Story = {
   beforeEach: onStep("start", {

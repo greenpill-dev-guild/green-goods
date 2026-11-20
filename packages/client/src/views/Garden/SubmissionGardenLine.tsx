@@ -10,11 +10,12 @@ const LINE_MESSAGES = {
 } as const;
 
 /**
- * Where the work or the proof goes, said once under the steps: on the flow's first step,
- * and on the step a resumed draft opens on, whether the work is for the active garden or
+ * Where the work or the proof goes, said once, under the info card of the flow's first step
+ * (Start, or Media when Start is skipped), whether the work is for the active garden or
  * another that a resumed draft, a promise link or navigation state chose (decision 28,
  * PRD-1492): the submission flow hides Home's chip, so nothing else names it before Review.
- * Other steps do not repeat it (PRD-1522). The garden's banner leads, as the chip's does.
+ * A draft that reopens past that step, and every later step, show no line (PRD-1522).
+ * The garden's banner leads, as the chip's does.
  * The line is written to fit one line; a long name wraps rather than losing
  * the end that tells two gardens apart, and clips at two lines, as the info
  * panel does.

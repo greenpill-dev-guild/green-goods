@@ -171,6 +171,21 @@ describe("WorkStart", () => {
     expect(within(card).getByText(info)).toBeVisible();
   });
 
+  // Afo on PRD-1522: the garden line sits right under the info card, on whichever screen Start shows.
+  it.each([
+    ["actions", startStep()],
+    ["promises", startStep({ screen: { kind: "promises" }, promises: [promise([1], false)] })],
+    ["promise", startStep({ screen: { kind: "promise", promise: promise([1], true) } })],
+  ])("puts the garden line right under the info card on the %s screen", (_screen, start) => {
+    const { container } = renderStart({
+      start,
+      gardenLine: <p data-testid="garden-line">Logging work in Hilltop Garden</p>,
+    });
+    const card = container.querySelector('[data-component="FormInfo"]') as HTMLElement;
+
+    expect(card.nextElementSibling).toBe(screen.getByTestId("garden-line"));
+  });
+
   it("filters the tiles with the domain chips, which choose nothing and move nothing", () => {
     const onDomain = vi.fn();
     const start = startStep();

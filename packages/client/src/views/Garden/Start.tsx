@@ -7,7 +7,7 @@ import type { Domain } from "@green-goods/shared/types/domain";
 import { parseActionUID } from "@green-goods/shared/utils/action/parsers";
 import { localizeAction } from "@green-goods/shared/utils/action/translations";
 import { RiCloseLine, RiHammerLine, RiHandHeartFill, RiRefreshLine } from "@remixicon/react";
-import { useMemo } from "react";
+import { type ReactNode, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { FormInfo } from "@/components/Cards/Form/FormInfo";
 import { PromiseCard } from "@/components/Features/Commitments";
@@ -32,6 +32,8 @@ export interface WorkStartProps {
   gardenQuestion: StartGardenQuestionProps | null;
   /** The page's promise link, when it no longer holds or could not be checked. */
   link: { status: Controller["linkIntentStatus"]; onRetry: () => void; onLetGo: () => void };
+  /** Where the work goes, under the info card of whichever screen Start shows (PRD-1522). */
+  gardenLine?: ReactNode;
 }
 
 /**
@@ -52,6 +54,7 @@ export function WorkStart({
   setSelectedDomain,
   gardenQuestion,
   link,
+  gardenLine = null,
 }: WorkStartProps) {
   const intl = useIntl();
   // Every card and tile reads its action in the reader's language.
@@ -133,6 +136,7 @@ export function WorkStart({
           selectedActionUID={selectedActionUID}
           onAddEvidence={() => start.addEvidence(screen.promise)}
           onChoose={(choice) => void start.choosePromiseAction(choice)}
+          gardenLine={gardenLine}
         />
       ) : screen.kind === "promises" ? (
         <>
@@ -142,6 +146,7 @@ export function WorkStart({
             info={intl.formatMessage({ id: "app.garden.start.promises.info" })}
             Icon={RiHandHeartFill}
           />
+          {gardenLine}
           {linkNotice ?? readNotice}
           <div className="flex flex-col gap-(--gg-list-gap)">
             {start.promises.map((promise) => (
@@ -192,6 +197,7 @@ export function WorkStart({
           selectedDomain={selectedDomain}
           setSelectedDomain={setSelectedDomain}
           onChoose={(uid) => void start.chooseAction(uid)}
+          gardenLine={gardenLine}
           notice={linkNotice ?? readNotice}
         />
       )}

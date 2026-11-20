@@ -144,12 +144,15 @@ describe("ProofComposer", () => {
     });
   });
 
-  // Afo on PRD-1522: adding proof named no garden on any step.
-  it("names the garden on Media, its first step, and not after it", async () => {
+  // Afo on PRD-1522: adding proof named no garden on any step. The line sits right under Media's
+  // info card, above the pinned promise.
+  it("names the garden under Media's info card, its first step, and not after it", async () => {
     const user = userEvent.setup();
-    render();
-    expect(screen.getByTestId("submission-garden")).toHaveTextContent(
-      "Adding proof in Riverside Commons"
+    const { container } = render();
+    const line = screen.getByTestId("submission-garden");
+    expect(line).toHaveTextContent("Adding proof in Riverside Commons");
+    expect(line.previousElementSibling).toBe(
+      container.querySelector('[data-component="FormInfo"]')
     );
 
     await user.click(forward("Details"));
