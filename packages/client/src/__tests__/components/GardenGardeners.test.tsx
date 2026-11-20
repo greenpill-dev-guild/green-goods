@@ -217,6 +217,31 @@ describe("GardenGardeners", () => {
     expect(toastService.success).not.toHaveBeenCalled();
   });
 
+  it("offers the member's Green Goods name first among what the sheet copies", async () => {
+    vi.mocked(copyToClipboard).mockResolvedValue(true);
+    vi.mocked(useGreenGoodsEnsName).mockImplementation(
+      (account) =>
+        ({
+          data: account === members[0].account ? "river.greengoods.eth" : null,
+        }) as ReturnType<typeof useGreenGoodsEnsName>
+    );
+    const user = userEvent.setup();
+    renderWithProviders(
+      <TestIntl>
+        <GardenGardeners members={[members[0]]} />
+      </TestIntl>
+    );
+
+    await user.click(screen.getByRole("button", { name: /river/i }));
+    const dialog = await screen.findByRole("dialog");
+    const copies = within(dialog)
+      .getAllByRole("button", { name: /^Copy / })
+      .map((button) => button.getAttribute("aria-label"));
+    expect(copies).toEqual(["Copy Name", "Copy Address"]);
+    await user.click(within(dialog).getByRole("button", { name: "Copy Name" }));
+    expect(copyToClipboard).toHaveBeenCalledWith("river.greengoods.eth");
+  });
+
   it("shows this garden's join date instead of a gardener's earlier registration", async () => {
     const joinedAt = Date.UTC(2026, 5, 12, 12);
     vi.mocked(useGardenMemberHistory).mockReturnValue({
