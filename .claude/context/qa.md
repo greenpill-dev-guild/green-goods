@@ -173,7 +173,8 @@ Environment attribution: a run records its environment (production, beta/staging
 it opens, the QA app shows it in the header, and the session header and the Linear parent lede
 repeat it. A tester who crosses to another environment for one case prefixes that note with
 `[beta]`, `[prod]`, or `[local]`: every verdict taken outside the run's environment carries its
-prefix, whichever of the three the run's is.
+prefix, whichever of the three the run's is. A verdict taken on alpha, the experiments site at
+`alpha.greengoods.app`, carries `[alpha]`; alpha is not a run environment of its own.
 
 ## Runs
 

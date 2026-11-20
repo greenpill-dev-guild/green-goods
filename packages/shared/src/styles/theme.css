@@ -2541,6 +2541,20 @@
     white-space: nowrap;
   }
 
+  /* A name in the amount's place can run long: it takes up to two fifths of the row and gives
+   * way with an ellipsis, its full text in its title. An amount is never cut. */
+  .gg-item-row-amount[data-truncate] {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 40%;
+  }
+
+  .gg-item-row-amount[data-truncate] .gg-item-row-amount-value {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   .gg-item-row-amount-caption {
     color: rgb(var(--text-sub-600));
     white-space: nowrap;

@@ -27,13 +27,20 @@ export type PasskeyDirectoryAccountProfile =
   | typeof LEGACY_PASSKEY_PROFILE
   | typeof KERNEL_033_PASSKEY_PROFILE;
 
+/** The sites that create Kernel 0.3.3 accounts: beta, and alpha for experiments before beta. */
+const KERNEL_033_REGISTRATION_HOSTS = [
+  "beta.greengoods.app",
+  "beta.admin.greengoods.app",
+  "beta.hub.greengoods.app",
+  "alpha.greengoods.app",
+  "alpha.hub.greengoods.app",
+];
+
 /** Defaults apply only at creation; an account's recorded recipe never follows its current site. */
 export function getDefaultPasskeyRegistrationProfile(
   hostname: string
 ): PasskeyDirectoryAccountProfile {
-  return ["beta.greengoods.app", "beta.admin.greengoods.app", "beta.hub.greengoods.app"].includes(
-    hostname.toLowerCase()
-  )
+  return KERNEL_033_REGISTRATION_HOSTS.includes(hostname.toLowerCase())
     ? KERNEL_033_PASSKEY_PROFILE
     : LEGACY_PASSKEY_PROFILE;
 }

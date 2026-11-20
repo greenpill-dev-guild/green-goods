@@ -5,7 +5,7 @@ import {
 } from "@green-goods/shared/public-contracts/join-requests";
 import type { Context } from "hono";
 import { readLimitedJsonBody } from "../http/body";
-import { trackGardenJoinRequestEvent } from "../../services/analytics";
+import { type AgentEventSubject, trackGardenJoinRequestEvent } from "../../services/analytics";
 import { checkRateLimit, publicBrowserCorsResponse } from "../http/public";
 import {
   authenticateGardenJoinRequest,
@@ -104,7 +104,10 @@ export async function handleGardenJoinRequestResolution(
         new Date(ctx.deps.now?.() ?? Date.now()).toISOString(),
         kind
       );
-      void trackResolution("welcomed", authenticated.proof.factory !== undefined, kind);
+      void trackResolution("welcomed", authenticated.proof.factory !== undefined, kind, {
+        garden: preflight.garden,
+        account: authenticated.proof.accountAddress,
+      });
       return publicBrowserCorsResponse(c, ctx.deps, { ok: true, request: welcomed });
     }
     if (request.revision !== parsed.value.expectedRevision) {
@@ -169,7 +172,10 @@ export async function handleGardenJoinRequestResolution(
         status
       );
     }
-    void trackResolution("declined", authenticated.proof.factory !== undefined, kind);
+    void trackResolution("declined", authenticated.proof.factory !== undefined, kind, {
+      garden: preflight.garden,
+      account: authenticated.proof.accountAddress,
+    });
     return publicBrowserCorsResponse(c, ctx.deps, { ok: true, request: resolved.request });
   } catch (error) {
     reportGardenJoinRequestUnavailable("resolve", stage, error);
@@ -177,14 +183,20 @@ export async function handleGardenJoinRequestResolution(
   }
 }
 
+/** The subject is the steward who resolved it and the garden: the account that acted. */
 function trackResolution(
   resolution: "declined" | "welcomed",
   isCounterfactual: boolean,
-  kind: GardenJoinRequestKind
+  kind: GardenJoinRequestKind,
+  subject: AgentEventSubject
 ): Promise<void> {
-  return trackGardenJoinRequestEvent("join_request_resolved", {
-    kind,
-    resolution,
-    is_counterfactual: isCounterfactual,
-  });
+  return trackGardenJoinRequestEvent(
+    "join_request_resolved",
+    {
+      kind,
+      resolution,
+      is_counterfactual: isCounterfactual,
+    },
+    subject
+  );
 }

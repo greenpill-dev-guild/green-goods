@@ -88,10 +88,6 @@ const defaultServices: AdminBootServices = {
     const { initBrowserSentry } = await import("@green-goods/shared/sentry");
     initBrowserSentry({
       dsn: import.meta.env.VITE_SENTRY_ADMIN_DSN,
-      environment: import.meta.env.VITE_SENTRY_ENVIRONMENT || import.meta.env.MODE,
-      release: import.meta.env.VITE_APP_VERSION
-        ? `green-goods-admin@${import.meta.env.VITE_APP_VERSION}`
-        : undefined,
       surface: "admin",
       debug: import.meta.env.VITE_SENTRY_DEBUG === "true",
     });

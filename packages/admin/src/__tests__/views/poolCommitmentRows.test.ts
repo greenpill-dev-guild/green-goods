@@ -84,39 +84,34 @@ describe("pool commitment row projection", () => {
     expect(select("open", "pastDue")).toEqual([{ kind: "single", record: taken }]);
   });
 
-  // A copy whose booking waits on the steward keeps its own row, and the group keeps its row even
-  // when every copy does (Codex on #1352).
-  it("keeps the group's row beside copies that stand alone, even when all of them do", () => {
+  // A copy whose booking waited on the steward kept a row of its own beside its group; the
+  // act moved to Review Promises, so the list shows each promise once (hub-day review, 18 Nov).
+  it("folds every copy into its group's one row", () => {
     const hubDay = (id: string, commitmentId: bigint) =>
       commitmentFixture({ id, commitmentId, onchainState: "ACCEPTED", metadataCID: "bafy-hub" });
     const first = hubDay("a", 21n);
     const second = hubDay("b", 22n);
-    const metadataByCID = new Map([
-      [
-        "bafy-hub",
-        buildCommitmentMetadata({
-          title: "Hub day",
-          displayGroup: { version: 1, id: "group-00000002" },
-        }),
-      ],
-    ]);
-    const select = (alone: ReadonlySet<string>) =>
-      selectPoolCommitmentRows({
-        model: {
-          groups: { open: [first, second], confirmed: [], past: [] },
-          dueLive: [],
-          needsRecovery: [],
-        },
-        commitments: [first, second],
-        metadataByCID,
-        scope: "open",
-        focus: null,
-        search: "",
-        titleOf,
-        standsAlone: (row) => alone.has(row.id),
-      }).map(idOf);
-
-    expect(select(new Set(["b"]))).toEqual(["group-00000002", "b"]);
-    expect(select(new Set(["a", "b"]))).toEqual(["group-00000002", "a", "b"]);
+    const rows = selectPoolCommitmentRows({
+      model: {
+        groups: { open: [first, second], confirmed: [], past: [] },
+        dueLive: [],
+        needsRecovery: [],
+      },
+      commitments: [first, second],
+      metadataByCID: new Map([
+        [
+          "bafy-hub",
+          buildCommitmentMetadata({
+            title: "Hub day",
+            displayGroup: { version: 1, id: "group-00000002" },
+          }),
+        ],
+      ]),
+      scope: "open",
+      focus: null,
+      search: "",
+      titleOf,
+    }).map(idOf);
+    expect(rows).toEqual(["group-00000002"]);
   });
 });

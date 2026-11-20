@@ -11,7 +11,7 @@
  */
 
 import { waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 
 import {
   retryQueuedCommitmentJob,
@@ -19,6 +19,7 @@ import {
 } from "../hooks/commitment-pooling/useCommitmentJobs";
 import { toastService } from "../components/Toast/toast.service";
 import { TakeUpNotSent } from "../modules/commitment-pooling/take-up";
+import { jobQueueDB } from "../modules/job-queue/db";
 import type { Address } from "../types/domain";
 import { renderHookWithProviders } from "./test-utils/render-helpers";
 
@@ -337,6 +338,32 @@ describe("useCommitmentJobs", () => {
 
       expect(mocks.retryJob).toHaveBeenCalledWith("job-1");
       expect(report).toHaveBeenLastCalledWith(last);
+    });
+
+    // PRD-957: a tap on an act a Safe already proposed only settles its record, so no stage
+    // reports the Safe's signers; the record still says it waits for them.
+    it("says a send already on record as a Safe's proposal waits for its signers", async () => {
+      mocks.sender = { authMode: "wallet" };
+      mocks.processJob.mockResolvedValue({
+        success: false,
+        skipped: true,
+        error: "awaiting-confirmation",
+      });
+      const stored = vi.spyOn(jobQueueDB, "getJob").mockResolvedValue({
+        id: "job-1",
+        kind: "confirmation",
+        payload: {
+          sendCheckpoint: { transactionHash: `0x${"5a".repeat(32)}`, awaiting: "safe-signers" },
+        },
+      } as never);
+      onTestFinished(() => stored.mockRestore());
+      const report = vi.fn();
+
+      await jobs().current.enqueue({ ...confirm, report });
+      await retryQueuedCommitmentJob("job-1", { authMode: "wallet" } as never, report);
+
+      const stages = report.mock.calls.map(([event]) => event.stage);
+      expect(stages).toEqual(["admitted", "safe-signers", "queued", "safe-signers", "queued"]);
     });
 
     describe("Add and Send", () => {
