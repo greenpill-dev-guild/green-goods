@@ -19,7 +19,11 @@ export {
   usePoolParticipationSummary,
 } from "./useCommitmentPooling";
 export { useCommitmentPoolingAvailability } from "./useCommitmentPoolingAvailability";
-export { useServiceAccess, useServiceAccessMutation } from "./useServiceAccess";
+export {
+  useServiceAccess,
+  useServiceAccessMutation,
+  useServiceAccessReads,
+} from "./useServiceAccess";
 export { useServiceOfferLines } from "./useServiceOfferLines";
 export { useServiceIssuerOperations } from "./useServiceIssuerOperations";
 export {

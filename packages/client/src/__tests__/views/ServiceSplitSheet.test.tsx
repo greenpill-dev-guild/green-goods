@@ -89,6 +89,13 @@ function openSheet(stage: "readyToClose" | "returnProposed") {
 describe("Approve the Final Split", () => {
   it("asks the reader to confirm the hub day only when the split says it happened", () => {
     const delivered = openSheet("readyToClose");
+    // The booking's own tracker, at its last marker: the reader's step, so no clock.
+    const current = screen
+      .getByRole("list", { name: "Steps" })
+      .querySelector('[aria-current="step"]');
+    expect(current).toHaveTextContent("Done");
+    expect(current).not.toHaveTextContent("waiting");
+    expect(screen.queryByRole("list", { name: "Steps for this booking" })).toBeNull();
     expect(screen.getByRole("checkbox", { name: "I had the hub day" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Approve Split" })).toBeDisabled();
     delivered.unmount();

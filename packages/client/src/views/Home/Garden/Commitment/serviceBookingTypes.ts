@@ -5,7 +5,6 @@ import type {
   VoucherIssuer,
   VoucherIssuerApproval,
 } from "@green-goods/shared/commitment-pooling";
-import type { ServiceStripStep } from "./ServiceStepStrip";
 
 /**
  * Which of the pilot's services a booking is. The working terms name a Tech and Sun hub day and
@@ -40,6 +39,10 @@ export type ServiceBookingStage =
   | "problemReported";
 
 export type ServiceBandTone = "neutral" | "waiting" | "attention" | "kept";
+export interface ServicePill {
+  labelId: string;
+  tone: "success" | "warning" | "error" | "info" | "neutral";
+}
 export type ServiceStepState = "done" | "now" | "todo" | "warn" | "fail";
 /**
  * `send` runs a transfer the split fixed that nobody sent yet; `retryConfirm` sends a deposit's
@@ -65,26 +68,17 @@ export interface ServiceAct {
 }
 
 export interface ServiceFact {
-  id: "get" | "give" | "held" | "next" | "back" | "vouchers" | "deadline";
+  id: "get" | "takes" | "by" | "held" | "next" | "back" | "vouchers" | "deadline" | "reported";
   label: string;
   value: string;
   detail: string | null;
 }
-
-/** The promise's own event a booking step is the same act as, which dates it in History. */
-export type BookingHistoryAnchor =
-  | "CLAIM_REQUESTED"
-  | "ACCEPTED"
-  | "READY_FOR_CONFIRMATION"
-  | "FULFILLED"
-  | "CANCELLED";
 
 export interface ServiceStep {
   id: string;
   text: string;
   state: ServiceStepState;
   stateLabel: string;
-  anchor?: BookingHistoryAnchor;
 }
 
 export interface ServicePhase {
@@ -103,10 +97,22 @@ export interface ServiceTransfer {
   stateLabel: string;
 }
 
-/** Promise kept? after a booking's split: the strip, the split already approved, and its note. */
+/**
+ * A booking's place in the PWA's own tracker (`FormProgress`): the same four markers on every
+ * service, the current one, and who it waits on when the step isn't the reader's.
+ */
+export interface BookingTracker {
+  /** Book, Deposit, Service, Done, in the reader's language. */
+  markers: string[];
+  /** The current marker, 1 to 4; 5 once every marker is done. */
+  at: 1 | 2 | 3 | 4 | 5;
+  /** Who or what the current marker waits on, in words; null when the step is the reader's. */
+  waiting: string | null;
+}
+
+/** Promise kept? after a booking's split: the tracker, the split already approved, and its note. */
 export interface ServiceConfirmExtras {
-  steps: ServiceStripStep[];
-  stepsLabel: string;
+  tracker: BookingTracker;
   split: { label: string; value: string; detail: string };
   note: string;
   passkey: string;
@@ -121,24 +127,29 @@ export interface ServiceBookingView {
     tone: ServiceBandTone;
     sentence: string;
     needsYou: boolean;
-    /** Set only where the promise's own state words say too little ("Ended early"). */
-    pillId: string | null;
     /**
-     * The booking's own state beside the promise's pill, while the promise still reads "Offered"
-     * or "Awaiting confirmation" through a deposit, a cancellation or a return ("Deposit
-     * confirming", "Vouchers back"). Null where the pill, or its replacement, already says it.
+     * The one pill: where the booking stands, in place of the promise's own state, which reads
+     * "Offered" through the whole deposit. Null where the promise's own pill says it ("Kept").
      */
-    chip: { labelId: string; tone: "success" | "warning" | "error" | "info" | "neutral" } | null;
+    pill: ServicePill | null;
   };
+  /** Where the booking sits on Book, Deposit, Service and Done; null once it was canceled. */
+  tracker: BookingTracker | null;
+  /** The facts that matter now: what you get, your voucher, Accept by, what was reported. */
   facts: ServiceFact[];
+  /** What the page no longer says up front, kept under How booking works or Booking details. */
+  howItWorks: ServiceFact[];
   termsVersion: string | null;
   phases: ServicePhase[];
   transfers: ServiceTransfer[];
   /** Chains, Safes and record numbers, only under Transaction details (D2). */
   details: string[];
   messageLinks: { label: string; href: string }[];
-  /** Delivery for Progress and proof: a count once reported, else what comes next. */
-  delivery: { label: string; done: number; of: number } | { none: string } | null;
+  /**
+   * Delivery for Progress and proof: a count once reported. Until then it is pending, and the
+   * booking's page leaves Progress and proof out: its card says what comes next.
+   */
+  delivery: { label: string; done: number; of: number } | "pending" | null;
   primary: ServiceAct | null;
   secondary: ServiceAct | null;
   /**
@@ -151,8 +162,6 @@ export interface ServiceBookingView {
    * so its act stays disabled with the reason beside it. A booking already under way goes ahead.
    */
   issuerPaused: boolean;
-  /** Booking events that happened, for History, newest first. */
-  events: ServiceStep[];
   /** The split this booking can freeze now: what was reported, within the issuer's return limit. */
   split: { delivered: bigint; release: bigint; refund: bigint } | null;
   /** Set once the split is final, for the promise's own Confirm It Was Kept. */
@@ -209,6 +218,11 @@ export interface ServiceBookingInput {
   } | null;
   /** The member's own words when they reported a problem, and when. */
   problem?: { at: number; text: string } | null;
+  /**
+   * The promise holds the issuer's proof. A dispute keeps the promise's state from saying whether
+   * the delivery was reported; its proof does, so a problem raised after delivery keeps it.
+   */
+  proofRecorded?: boolean;
 }
 
 /** What the page's copy and steps read from one booking, worked out once. */

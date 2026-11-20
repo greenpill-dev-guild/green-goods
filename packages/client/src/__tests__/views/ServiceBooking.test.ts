@@ -32,6 +32,7 @@ import {
   type ServiceActStep,
 } from "../../views/Home/Garden/Commitment/serviceActs";
 import {
+  bookingNeedsYouOf,
   bookingVoucherIssuer,
   bookingVoucherPair,
   catalogVoucherIssuer,
@@ -169,7 +170,9 @@ describe("voucher booking on the promise page", () => {
     expect(result.primary?.kind ?? null).toBe(sent ? null : "redeem");
     expect(result.messageLinks).toHaveLength(sent ? 1 : 0);
     expect(result.details[0]).toBe("No vouchers have been deposited for this booking.");
-    expect(result.facts[0]?.value).toContain("still in your account");
+    expect(result.facts.find((fact) => fact.id === "vouchers")?.value).toContain(
+      "still in your account"
+    );
     if (!sent) {
       snapshot.availableActions = serviceAccessAvailableActions(snapshot);
       setup.availableActions = ["dispatchVoucherSetupCommand"];
@@ -196,7 +199,7 @@ describe("voucher booking on the promise page", () => {
     )!;
     expect(result.stage).toBe("activationInTransit");
     expect(result.primary).toBeNull();
-    expect(result.band.sentence).toContain("has been sent");
+    expect(result.band.sentence).toContain("being confirmed");
   });
   it.each([
     ["waitingApproval", "No vouchers have been deposited"],
@@ -206,24 +209,48 @@ describe("voucher booking on the promise page", () => {
     expect(view("hubDay", stage).details[0]).toContain(expected);
   });
   it.each([
-    ["hubDay", "open", "Open for booking.", "Review and Redeem", null],
-    ["hubDay", "waitingApproval", "their Safe needs 1 signature", null, "Cancel Booking"],
+    ["hubDay", "open", "Booking takes 1 Tech and Sun voucher.", "Book", null],
+    [
+      "hubDay",
+      "waitingApproval",
+      "Tech and Sun approves your booking next",
+      null,
+      "Cancel Booking",
+    ],
     [
       "hubDay",
       "readyToDeposit",
-      "Deposit your voucher into the escrow",
+      "Deposit your voucher to hold your place. Tech and Sun accepts by Nov 2.",
       "Deposit 1 Voucher",
       "Cancel Booking",
     ],
-    ["hubDay", "confirmingDeposit", "Green Goods confirms the deposit", null, "Cancel Booking"],
-    ["hubDay", "waitingAcceptance", "Tech and Sun accepts by", null, "Cancel Booking"],
-    ["hubDay", "starting", "Starting fixes the terms", "Start the Booking", null],
-    ["hubDay", "inProgress", "You're booked", null, "Report a Problem"],
+    [
+      "hubDay",
+      "confirmingDeposit",
+      "Your voucher is held for this booking. Tech and Sun accepts by Nov 2.",
+      null,
+      "Cancel Booking",
+    ],
+    [
+      "hubDay",
+      "waitingAcceptance",
+      "Your voucher is held for this booking. Tech and Sun accepts by Nov 2.",
+      null,
+      "Cancel Booking",
+    ],
+    ["hubDay", "starting", "Start the booking to fix its terms", "Start the Booking", null],
+    [
+      "hubDay",
+      "inProgress",
+      "You're booked for a hub day at Tech and Sun",
+      null,
+      "Report a Problem",
+    ],
     [
       "hubDay",
       "readyToClose",
-      "Approve the final split, then confirm",
-      "Approve the Final Split",
+      "Tech and Sun reported your visit. Approve the split, then confirm your visit",
+      "Approve the Split",
       "Report a Problem",
     ],
     [
@@ -234,11 +261,17 @@ describe("voucher booking on the promise page", () => {
       "Report a Problem",
     ],
     ["hubDay", "transfersPending", "Your voucher goes to Tech and Sun's reserve", null, null],
-    ["hubDay", "returnFailed", "Your voucher is still in escrow", "Retry Transfer", null],
+    [
+      "hubDay",
+      "returnFailed",
+      "Your voucher is still held for this booking",
+      "Retry Transfer",
+      null,
+    ],
     [
       "hubDay",
       "canceling",
-      "Your vouchers come back once the cancellation reaches the escrow",
+      "What you deposited comes back once the cancellation is confirmed",
       null,
       null,
     ],
@@ -258,11 +291,17 @@ describe("voucher booking on the promise page", () => {
       null,
     ],
     ["hubDay", "problemReported", "You reported a problem", null, null],
-    ["access", "notEnough", "Open for booking.", "Exchange Vouchers", "Review Terms"],
+    [
+      "access",
+      "notEnough",
+      "Booking takes 10 Green Goods vouchers.",
+      "Exchange Vouchers",
+      "Review Terms",
+    ],
     [
       "access",
       "readyToDeposit",
-      "Deposit 10 vouchers into the escrow",
+      "Deposit your 10 vouchers to hold your place",
       "Deposit 10 Vouchers",
       "Cancel Booking",
     ],
@@ -290,11 +329,49 @@ describe("voucher booking on the promise page", () => {
     expect(booking.secondary?.label ?? null).toBe(secondary);
   });
 
+  // The member's page speaks plainly: the plumbing words stay under Booking details.
+  it.each(
+    (
+      [
+        "open",
+        "waitingApproval",
+        "readyToDeposit",
+        "confirmingDeposit",
+        "waitingAcceptance",
+        "starting",
+        "inProgress",
+        "readyToClose",
+        "returnProposed",
+        "transfersPending",
+        "returnFailed",
+        "closed",
+        "canceling",
+        "canceled",
+        "acceptedFirst",
+        "termsChanged",
+        "problemReported",
+      ] as const
+    ).flatMap((stage) =>
+      (["hubDay", "access"] as const).map((service) => [service, stage] as const)
+    )
+  )("keeps escrow, the final split, the voucher network and Safe signatures off %s %s", (service, stage) => {
+    const booking = view(service, stage, {
+      approval: VOUCHER_STORY_APPROVALS.techAndSunTwoOfThree,
+    });
+    const said = [
+      booking.band.sentence,
+      booking.primary?.label,
+      booking.secondary?.label,
+      ...booking.facts.flatMap((fact) => [fact.label, fact.value, fact.detail]),
+    ].join(" ");
+    expect(said).not.toMatch(/escrow|final split|voucher network|Safe|signature/i);
+  });
+
   it("says Kept only after the member confirms, and Ended early only after the stewards close", () => {
     expect(view("hubDay", "transfersPending").band.sentence).not.toMatch(/kept/i);
     expect(view("hubDay", "closed", { coreState: "FULFILLED" }).band).toMatchObject({
       tone: "kept",
-      pillId: null,
+      pill: null,
       sentence:
         "You confirmed the hub day was kept, and your voucher went to Tech and Sun's reserve.",
     });
@@ -302,24 +379,23 @@ describe("voucher booking on the promise page", () => {
     expect(settled).toMatchObject({
       sentence:
         "Settled: 6 back to you, 4 to Green Goods' reserve. Confirming the promise is the last step.",
-      pillId: null,
+      pill: { labelId: "app.voucher.pp.chip.transfersPending", tone: "info" },
     });
     const early = view("access", "closed", { coreState: "CANCELLED" }).band;
-    expect(early.pillId).toBe("app.voucher.pp.st.endedEarly");
+    expect(early.pill).toEqual({ labelId: "app.voucher.pp.st.endedEarly", tone: "neutral" });
     expect(early.sentence).toContain("closed the promise as ended early");
     expect(early.sentence).not.toMatch(/\bkept\b/i);
   });
 
-  it("reads the Safe's signature count from the Safe and never states one it could not read", () => {
-    expect(
-      view("hubDay", "waitingApproval", { approval: VOUCHER_STORY_APPROVALS.techAndSunTwoOfThree })
-        .band.sentence
-    ).toContain("their Safe needs 2 of 3 signatures");
-    const unread = view("hubDay", "waitingApproval", {
-      approval: VOUCHER_STORY_APPROVALS.unavailable,
-    }).band.sentence;
-    expect(unread).toBe("Next: Tech and Sun approves your booking");
-    expect(unread).not.toMatch(/signature/);
+  it("says who approves next without a Safe's signature count, read or not", () => {
+    for (const approval of [
+      VOUCHER_STORY_APPROVALS.techAndSunTwoOfThree,
+      VOUCHER_STORY_APPROVALS.unavailable,
+    ]) {
+      expect(view("hubDay", "waitingApproval", { approval }).band.sentence).toBe(
+        "Tech and Sun approves your booking next. Nothing has left your account, and you can cancel any time before Tech and Sun accepts."
+      );
+    }
   });
 
   it("keeps a return pending until its transfer arrives, and a failed one for the same amount", () => {
@@ -328,7 +404,9 @@ describe("voucher booking on the promise page", () => {
       ["6 back to you", "Pending"],
       ["4 to Green Goods' reserve", "Pending"],
     ]);
-    expect(pending.facts[0]?.value).toBe("6 Green Goods vouchers on their way back to you");
+    expect(pending.facts.find((fact) => fact.id === "vouchers")?.value).toBe(
+      "6 Green Goods vouchers on their way back to you"
+    );
     const failed = view("access", "returnFailed");
     expect(failed.transfers[0]).toMatchObject({
       stateLabel: "Didn't go through",
@@ -428,11 +506,12 @@ describe("voucher booking on the promise page", () => {
       body: "Claude access takes 10. You can exchange other vouchers in the shared pool, or earn more.",
       act: null,
     });
-    expect(short.facts.find((fact) => fact.id === "give")).toMatchObject({
+    expect(short.facts.find((fact) => fact.id === "takes")).toMatchObject({
+      label: "It takes",
       value: "10 Green Goods vouchers",
       detail: "You hold 2.",
     });
-    expect(short.band.chip).toBeNull();
+    expect(short.band.pill).toEqual({ labelId: "app.voucher.pp.chip.open", tone: "info" });
   });
 
   // Approved, then the vouchers left the account: the deposit would be refused, so it isn't offered.
@@ -441,7 +520,7 @@ describe("voucher booking on the promise page", () => {
     expect(short.band.sentence).toBe(
       "Tech and Sun approved, but you hold 0 Tech and Sun vouchers. Exchange or earn 1 Tech and Sun voucher before Nov 2, or cancel the booking."
     );
-    expect(short.facts[0]?.value).toBe(
+    expect(short.facts.find((fact) => fact.id === "vouchers")?.value).toBe(
       "0 Tech and Sun vouchers in your account; this booking takes 1"
     );
     expect(short.door).toEqual({
@@ -452,33 +531,58 @@ describe("voucher booking on the promise page", () => {
     expect(short.primary).toEqual({ kind: "exchange", label: "Exchange Vouchers" });
     expect(short.secondary).toEqual({ kind: "cancel", label: "Cancel Booking" });
     const enough = view("hubDay", "readyToDeposit", { held: vouchers(1) });
-    expect(enough.facts[0]?.value).toBe("1 Tech and Sun voucher, still in your account");
+    expect(enough.facts.find((fact) => fact.id === "vouchers")?.value).toBe(
+      "1 Tech and Sun voucher, still in your account"
+    );
     expect(enough.primary?.label).toBe("Deposit 1 Voucher");
     expect(enough.door).toBeNull();
   });
 
-  // The promise reads "Offered" through the whole deposit, so the booking carries its own state.
+  // One pill says where the booking stands; the promise's own "Offered" never sits beside it.
   it.each([
-    ["waitingApproval", "app.voucher.pp.chip.waitingApproval", "info"],
+    ["open", "app.voucher.pp.chip.open", "info"],
+    ["waitingApproval", "app.voucher.pp.chip.waitingApproval", "neutral"],
     ["readyToDeposit", "app.voucher.pp.chip.readyToDeposit", "warning"],
-    ["confirmingDeposit", "app.voucher.pp.chip.confirmingDeposit", "info"],
-    ["waitingAcceptance", "app.voucher.pp.chip.waitingAcceptance", "info"],
-    ["canceling", "app.voucher.pp.chip.canceling", "neutral"],
-    ["canceled", "app.voucher.pp.chip.canceled", "success"],
+    ["confirmingDeposit", "app.voucher.pp.chip.waitingAcceptance", "neutral"],
+    ["waitingAcceptance", "app.voucher.pp.chip.waitingAcceptance", "neutral"],
+    ["starting", "app.voucher.pp.chip.accepted", "info"],
+    ["inProgress", "app.voucher.pp.chip.booked", "success"],
+    ["readyToClose", "app.voucher.pp.chip.visitReported", "warning"],
+    ["returnProposed", "app.voucher.pp.chip.visitReported", "warning"],
     ["transfersPending", "app.voucher.pp.chip.transfersPending", "info"],
-  ] as const)("marks the booking's own state at %s", (stage, labelId, tone) => {
+    ["returnFailed", "app.voucher.pp.chip.returnFailed", "error"],
+    ["canceling", "app.voucher.pp.chip.canceling", "neutral"],
+    ["canceled", "app.voucher.pp.chip.canceled", "neutral"],
+  ] as const)("gives the booking one status pill at %s", (stage, labelId, tone) => {
     const booking = view("hubDay", stage);
-    expect(booking.band.chip).toEqual({ labelId, tone });
+    expect(booking.band.pill).toEqual({ labelId, tone });
     expect(en).toHaveProperty(labelId);
   });
 
-  it("leaves the pill alone where it already says enough", () => {
-    expect(view("hubDay", "open").band.chip).toBeNull();
-    expect(view("hubDay", "inProgress").band.chip).toBeNull();
-    expect(view("hubDay", "closed", { coreState: "FULFILLED" }).band.chip).toBeNull();
-    // "Awaiting delivery" replaces the pill while a request is on its way; no second word.
-    const transit = view("hubDay", "waitingApproval");
-    transit.band.pillId = "app.voucher.wait.messagePending";
+  // DL-196: request names a kind of promise, so the booking's own words never use it.
+  it("never calls a booking a request in the words it adds", () => {
+    const unsent = bookingStorySnapshot("hubDay", "waitingApproval");
+    unsent.voucherSetups[0]!.destination!.result.phase = "none";
+    unsent.voucherSetups[0]!.source.authorizationDispatched = false;
+    const booking = serviceBookingView(
+      {
+        snapshot: unsent,
+        coreState: "OFFERED",
+        issuer: ISSUER.hubDay,
+        approval: APPROVAL.hubDay,
+        held: vouchers(9),
+      },
+      intl
+    )!;
+    expect(booking.stage).toBe("requestNotSent");
+    expect(en[booking.band.pill!.labelId as keyof typeof en]).toBe("Booking not sent");
+    expect(view("hubDay", "waitingApproval").band.sentence).not.toMatch(/request/i);
+  });
+
+  it("leaves the promise's own pill where it already says enough", () => {
+    expect(view("hubDay", "closed", { coreState: "FULFILLED" }).band.pill).toBeNull();
+    expect(view("hubDay", "problemReported").band.pill).toBeNull();
+    // A request on its way reads as the wait it is: for approval.
     const snapshot = bookingStorySnapshot("hubDay", "waitingApproval");
     snapshot.voucherSetups[0]!.destination!.result.phase = "none";
     snapshot.voucherSetups[0]!.source.authorizationDispatched = true;
@@ -493,10 +597,199 @@ describe("voucher booking on the promise page", () => {
       intl
     )!;
     expect(inTransit.stage).toBe("requestInTransit");
-    expect(inTransit.band).toMatchObject({
-      pillId: "app.voucher.wait.messagePending",
-      chip: null,
+    expect(inTransit.band.pill).toEqual({
+      labelId: "app.voucher.pp.chip.waitingApproval",
+      tone: "neutral",
     });
+  });
+
+  // The PWA's own tracker: Book, Deposit, Service, Done, with a clock when someone else acts.
+  it.each([
+    ["hubDay", "open", 1, null],
+    ["hubDay", "waitingApproval", 2, "waiting on Tech and Sun"],
+    ["hubDay", "readyToDeposit", 2, null],
+    ["hubDay", "confirmingDeposit", 3, "waiting on Tech and Sun"],
+    ["hubDay", "waitingAcceptance", 3, "waiting on Tech and Sun"],
+    ["hubDay", "termsChanged", 3, null],
+    ["hubDay", "starting", 3, null],
+    ["hubDay", "inProgress", 3, null],
+    ["hubDay", "acceptedFirst", 3, null],
+    ["hubDay", "problemReported", 3, "waiting on the garden's stewards"],
+    ["hubDay", "readyToClose", 4, null],
+    ["hubDay", "returnProposed", 4, null],
+    ["hubDay", "transfersPending", 4, null],
+    ["hubDay", "returnFailed", 4, null],
+    ["hubDay", "closed", 5, null],
+    ["hubDay", "canceling", 3, "being confirmed"],
+    ["access", "transfersPending", 4, "being confirmed"],
+    ["access", "closed", 5, null],
+  ] as const)("puts %s %s on the booking's markers", (service, stage, at, waiting) => {
+    expect(view(service, stage).tracker).toEqual({
+      markers: ["Book", "Deposit", "Service", "Done"],
+      at,
+      waiting,
+    });
+  });
+
+  it("waits on the network while a request or a start is on its way, and drops a canceled booking's tracker", () => {
+    const sent = bookingStorySnapshot("hubDay", "waitingApproval");
+    sent.voucherSetups[0]!.destination!.result.phase = "none";
+    sent.voucherSetups[0]!.source.authorizationDispatched = true;
+    const started = bookingStorySnapshot("hubDay", "starting");
+    started.voucherSetups[0]!.source.decisionDispatched = true;
+    const at = (snapshot: ServiceAccessSnapshot, coreState: CommitmentDerivedState) =>
+      serviceBookingView(
+        {
+          snapshot,
+          coreState,
+          issuer: ISSUER.hubDay,
+          approval: APPROVAL.hubDay,
+          held: vouchers(9),
+        },
+        intl
+      )!.tracker;
+    expect(at(sent, "OFFERED")).toMatchObject({ at: 2, waiting: "waiting on Tech and Sun" });
+    // Agreed but not sent: sending it is the reader's own step, still on Book.
+    const unsent = bookingStorySnapshot("hubDay", "waitingApproval");
+    unsent.voucherSetups[0]!.destination!.result.phase = "none";
+    unsent.voucherSetups[0]!.source.authorizationDispatched = false;
+    expect(at(unsent, "OFFERED")).toMatchObject({ at: 1, waiting: null });
+    expect(at(started, "ACCEPTED")).toMatchObject({ at: 3, waiting: "being confirmed" });
+    expect(view("hubDay", "canceled").tracker).toBeNull();
+  });
+
+  it("gives the facts that matter now: what you get, your voucher, Accept by while it matters, and what was reported", () => {
+    const ids = (stage: BookingStoryStage, coreState?: CommitmentDerivedState) =>
+      view("hubDay", stage, coreState ? { coreState } : {}).facts.map((fact) => fact.id);
+    expect(ids("open")).toEqual(["get", "takes", "by"]);
+    expect(ids("waitingApproval")).toEqual(["get", "vouchers", "deadline"]);
+    expect(ids("waitingAcceptance")).toEqual(["get", "vouchers", "deadline"]);
+    expect(ids("inProgress")).toEqual(["get", "vouchers"]);
+    expect(ids("readyToClose")).toEqual(["get", "vouchers", "reported"]);
+    expect(view("hubDay", "open").facts).toEqual([
+      {
+        id: "get",
+        label: "You get",
+        value: "One visit of up to 4 hours",
+        detail: "Workspace, power and connectivity, in your name.",
+      },
+      { id: "takes", label: "It takes", value: "1 Tech and Sun voucher", detail: "You hold 10." },
+      { id: "by", label: "Offered by", value: "Tech and Sun", detail: null },
+    ]);
+    const deadline = view("hubDay", "waitingAcceptance").facts.find((f) => f.id === "deadline");
+    expect(deadline).toMatchObject({ label: "Accept by", value: "Nov 2", detail: null });
+    expect(view("hubDay", "readyToClose").facts.find((f) => f.id === "reported")).toMatchObject({
+      label: "Reported",
+      value: "The full hub day",
+    });
+    const kept = view("hubDay", "closed", { coreState: "FULFILLED" }).facts;
+    expect(kept[0]).toMatchObject({ label: "You got" });
+    expect(kept.find((f) => f.id === "vouchers")).toMatchObject({
+      label: "Your voucher",
+      value: "1 Tech and Sun voucher went to Tech and Sun's reserve",
+    });
+    expect(view("access", "transfersPending").facts.find((f) => f.id === "reported")?.value).toBe(
+      "12 of 30 days"
+    );
+  });
+
+  // What the open offer's facts used to explain now waits behind How booking works.
+  it("keeps who holds the vouchers, who acts next and what comes back for How booking works", () => {
+    expect(view("hubDay", "open").howItWorks.map((fact) => fact.id)).toEqual([
+      "held",
+      "next",
+      "back",
+    ]);
+    expect(view("hubDay", "waitingApproval").howItWorks.map((fact) => fact.id)).toEqual(["back"]);
+  });
+
+  // DL-192 hides proof only before delivery: a dispute raised after the issuer's report keeps it.
+  it("keeps what was reported when a problem is raised after delivery", () => {
+    const disputed = (proofRecorded: boolean) =>
+      serviceBookingView(
+        {
+          snapshot: bookingStorySnapshot("hubDay", "problemReported"),
+          coreState: "DISPUTED",
+          issuer: ISSUER.hubDay,
+          approval: APPROVAL.hubDay,
+          held: vouchers(8),
+          proofRecorded,
+        },
+        intl
+      )!;
+    const after = disputed(true);
+    expect(after.stage).toBe("problemReported");
+    expect(after.delivery).toEqual({ label: "Hub day delivered", done: 1, of: 1 });
+    expect(after.facts.find((fact) => fact.id === "reported")?.value).toBe("The full hub day");
+    expect(after.tracker).toMatchObject({ at: 4, waiting: "waiting on the garden's stewards" });
+    const before = disputed(false);
+    expect(before.delivery).toBe("pending");
+    expect(before.facts.find((fact) => fact.id === "reported")).toBeUndefined();
+    expect(before.tracker).toMatchObject({ at: 3 });
+  });
+
+  // A dispute raised on a proposed return keeps the issuer's return limit: it reported less.
+  it.each([
+    ["hubDay", "Nothing delivered", 0, 1],
+    ["access", "12 of 30 days", 12, 30],
+  ] as const)("keeps the reported delivery when a %s return is disputed", (service, reported, done, of) => {
+    const booking = serviceBookingView(
+      {
+        snapshot: bookingStorySnapshot(service, "returnProposed"),
+        coreState: "DISPUTED",
+        issuer: ISSUER[service],
+        approval: APPROVAL[service],
+        held: vouchers(8),
+        proofRecorded: true,
+      },
+      intl
+    )!;
+    expect(booking.stage).toBe("problemReported");
+    expect(booking.facts.find((fact) => fact.id === "reported")?.value).toBe(reported);
+    expect(booking.delivery).toMatchObject({ done, of });
+  });
+
+  // A cancellation sent before any deposit has nothing to send back.
+  it("says nothing comes back when a booking is canceled before its deposit", () => {
+    const snapshot = bookingStorySnapshot("hubDay", "waitingApproval");
+    snapshot.voucherSetups[0]!.source.decision = "abort";
+    snapshot.voucherSetups[0]!.source.decisionDispatched = true;
+    const canceling = serviceBookingView(
+      {
+        snapshot,
+        coreState: "OFFERED",
+        issuer: ISSUER.hubDay,
+        approval: APPROVAL.hubDay,
+        held: vouchers(9),
+      },
+      intl
+    )!;
+    expect(canceling.stage).toBe("canceling");
+    expect(canceling.band.sentence).not.toMatch(/deposited/);
+    expect(canceling.band.sentence).toContain("Nothing left your account");
+    expect(canceling.facts.find((fact) => fact.id === "vouchers")?.value).toBe(
+      "1 Tech and Sun voucher, still in your account"
+    );
+    expect(canceling.tracker).toMatchObject({ at: 2, waiting: "being confirmed" });
+  });
+
+  // A list row says Needs you from the booking's own stage, as the page's band does.
+  it.each([
+    ["open", false],
+    ["waitingApproval", false],
+    ["readyToDeposit", true],
+    ["waitingAcceptance", false],
+    // Until the steward's Accept also starts it (PR E), starting is the member's to do.
+    ["starting", true],
+    ["inProgress", false],
+    ["readyToClose", true],
+    ["returnProposed", true],
+    ["returnFailed", true],
+    ["closed", false],
+  ] as const)("says a booking row needs the reader at %s: %s", (stage, needsYou) => {
+    const snapshot = bookingStorySnapshot("hubDay", stage);
+    expect(bookingNeedsYouOf(snapshot, bookingStoryCoreState("hubDay", stage))).toBe(needsYou);
+    expect(view("hubDay", stage).band.needsYou).toBe(needsYou);
   });
 
   // One voucher, one name: the catalog names a live issuer before the wallet does, and an asset

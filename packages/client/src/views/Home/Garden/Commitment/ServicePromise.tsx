@@ -65,10 +65,10 @@ import { VoucherPilotJourney } from "./VoucherPilotJourney";
 export function ServicePromise({
   serviceKey,
   access,
-  coreState,
-  creator,
+  commitment,
   gardenName,
   heading,
+  note = null,
   hasCoreAct,
   isOnline,
   onReport,
@@ -77,6 +77,7 @@ export function ServicePromise({
 }: ServicePromiseProps) {
   const intl = useIntl();
   const navigate = useNavigate();
+  const coreState = commitment.derivedState;
   const mutation = useServiceAccessMutation(serviceKey);
   const snapshot = access.data ?? null;
   const walletChain = snapshot?.key.sourceChainId;
@@ -131,7 +132,8 @@ export function ServicePromise({
         {
           snapshot,
           coreState,
-          creator,
+          creator: commitment.creator,
+          proofRecorded: commitment.evidenceCount > 0,
           viewer: serviceKey?.buyer,
           issuer,
           matched: matchedIssuer,
@@ -324,8 +326,13 @@ export function ServicePromise({
   const showPanel = isServiceAccessPromise(snapshot) || (snapshot?.voucherSetups.length ?? 0) > 0;
 
   return children({
-    band: ownOffer ? ownOffer.band : (booking?.band ?? rewards?.band ?? null),
-    takes: ownOffer?.takes ?? null,
+    identity: {
+      serviceBand: ownOffer ? ownOffer.band : (booking?.band ?? rewards?.band ?? null),
+      serviceTakes: ownOffer?.takes ?? null,
+      // A request's rewards draw in their own section, which leads with the vouchers.
+      rewardsBelow: rewards !== null,
+      promisedInBooking: booking !== null,
+    },
     body: (
       <>
         {booking || rewards ? (
@@ -368,7 +375,7 @@ export function ServicePromise({
                 }}
               />
             ) : null}
-            {booking ? <ServiceAccessSection view={booking} /> : null}
+            {booking ? <ServiceAccessSection view={booking} note={note} /> : null}
             {rewards ? <ServiceRewardsSection view={rewards} /> : null}
             {ownOffer ? null : (
               <ServiceReadStatus
@@ -401,9 +408,9 @@ export function ServicePromise({
     ),
     bar,
     delivery: booking?.delivery ?? null,
-    bookingLines: booking?.events ?? [],
     confirm: booking?.confirm ?? null,
-    rewards: rewards !== null,
+    booking: booking !== null,
+    tracker: booking?.tracker ?? null,
     sheets: (
       <>
         {sheet === "exchange" && liveCheckout && liveCheckout.account === walletAccount ? (

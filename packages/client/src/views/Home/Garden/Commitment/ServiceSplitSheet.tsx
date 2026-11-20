@@ -3,10 +3,10 @@ import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow"
 import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
 import { useEffect, useId, useState } from "react";
 import { useIntl } from "react-intl";
+import { FormProgress } from "@/components/Communication";
 import { formatVoucherMessage } from "./serviceBooking";
 import type { ServiceBookingView } from "./serviceBookingTypes";
 import { detailed } from "./ServiceRedeemSheet";
-import { ServiceStepStrip } from "./ServiceStepStrip";
 
 export interface ServiceSplitSheetProps {
   open: boolean;
@@ -54,7 +54,6 @@ export function ServiceSplitSheet({
   const back = w.count(split.refund);
   const done = Number(split.delivered);
   const of = w.accessDays;
-  const confirmsAfter = split.refund === 0n;
   // Nothing was delivered when the whole booking comes back: no "I had it" box, no received line.
   const delivered = split.delivered > 0n;
   // A hub day that returns part of its voucher was cut short, never the full day.
@@ -99,15 +98,13 @@ export function ServiceSplitSheet({
       }}
     >
       <div className="space-y-4" data-component="ServiceSplitSheet">
-        <ServiceStepStrip
-          label={t("pay.journey")}
-          steps={[
-            { id: "split", label: t("rd.sh.split"), state: "now" },
-            ...(confirmsAfter
-              ? [{ id: "kept", label: t("rd.sh.kept"), state: "todo" as const }]
-              : []),
-          ]}
-        />
+        {view.tracker ? (
+          <FormProgress
+            currentStep={view.tracker.at}
+            steps={view.tracker.markers}
+            waiting={view.tracker.waiting ?? undefined}
+          />
+        ) : null}
         <div
           className="flex h-8 overflow-hidden rounded-[var(--radius-md)] border border-stroke-soft-200 text-xs font-bold"
           role="img"

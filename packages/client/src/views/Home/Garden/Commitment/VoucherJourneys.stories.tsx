@@ -1,7 +1,6 @@
 import { claimFixture } from "@green-goods/shared/__tests__/test-utils/commitment-pooling-fixtures";
 import {
   type CommitmentDerivedState,
-  type CommitmentEventRecord,
   type ServiceAccessAction,
   type ServiceAccessSnapshot,
   type ServiceOfferLine,
@@ -58,7 +57,6 @@ import {
   type RewardStoryState,
   rewardStoryController,
   rewardStorySnapshot,
-  VOUCHER_STORY_AGREED_AT,
   VOUCHER_STORY_NAMES,
   VOUCHER_STORY_WALLET_KEY,
 } from "../../../../../../shared/.storybook/voucherBookingFixtures";
@@ -73,7 +71,6 @@ import { ISSUER_STEPS } from "@/components/Features/Vouchers/ServiceIssuerJourne
 import { VouchersTab } from "../../WalletSheet/VouchersTab";
 import { GardenPool } from "../Pool/GardenPool";
 import { GardenCommitment } from "./GardenCommitment";
-import { PROPOSED_HUB_DAY_STEPS } from "./VoucherHubDayProposal.stories";
 
 type Lang = "en" | "es" | "pt";
 const MESSAGES = { en: enMessages, es: esMessages, pt: ptMessages } as const;
@@ -97,14 +94,14 @@ interface JourneyStep {
     tweak?: (snapshot: ServiceAccessSnapshot) => ServiceAccessSnapshot;
     /** The service read failed, so the page has no snapshot. */
     readFailed?: boolean;
+    /** The issuer's proof is on the promise: a problem raised after the delivery was reported. */
+    proofRecorded?: boolean;
   };
   reward?: { state: RewardStoryState; withGd: boolean };
   /** The pool garden's steward decides the member's already-submitted reward claim. */
   stewardReview?: "ready" | "paused" | "unread";
   /** A retained offline claim needs agreement before it can resume. */
   queuedClaim?: boolean;
-  /** The promise's own History, newest first. */
-  events?: CommitmentEventRecord[];
   /** What the reader holds now, in whole vouchers. */
   holds: { techAndSun: number; greenGoods: number };
   /** The other person's act that moves the journey on, as the band's button. */
@@ -115,87 +112,112 @@ interface JourneyStep {
 
 const HUB_DAY: JourneyStep[] = [
   {
-    caption: "Lina holds 9 Tech and Sun vouchers. A hub day takes 1.",
+    caption:
+      "Lina holds 9 Tech and Sun vouchers. The page says what a hub day takes, and one button books it.",
     booking: { service: "hubDay", stage: "open" },
     holds: { techAndSun: 9, greenGoods: 0 },
     acts: { requestClaim: 1 },
   },
   {
-    caption: "She agreed to the exact terms. Tech and Sun's Safe approves next.",
+    caption:
+      "She agreed to the terms. The tracker's clock says the next step waits on Tech and Sun, not on Lina.",
     booking: { service: "hubDay", stage: "waitingApproval" },
     holds: { techAndSun: 9, greenGoods: 0 },
     next: "Tech and Sun approves",
     acts: { abortVoucherSetup: 11 },
   },
   {
-    caption: "Tech and Sun approved. Lina deposits her voucher into this booking's escrow.",
+    caption:
+      "Tech and Sun approved. The Deposit marker is filled because the step is Lina's, and the status says Needs you.",
     booking: { service: "hubDay", stage: "readyToDeposit" },
     holds: { techAndSun: 9, greenGoods: 0 },
     acts: { approveVoucherAllowance: 3, presentVoucherSetup: 3, abortVoucherSetup: 11 },
   },
   {
-    caption: "The voucher is in escrow. Green Goods confirms the deposit.",
+    caption:
+      "Deposited. Confirming the deposit and Tech and Sun's acceptance are one wait to Lina.",
     booking: { service: "hubDay", stage: "confirmingDeposit" },
     holds: { techAndSun: 8, greenGoods: 0 },
     next: "Green Goods confirms the deposit",
     acts: { abortVoucherSetup: 11 },
   },
   {
-    caption: "Tech and Sun accepts by 2 November, or Lina can still cancel.",
+    caption:
+      "Tech and Sun accepts by 2 November. Until then Lina can cancel and get her voucher back.",
     booking: { service: "hubDay", stage: "waitingAcceptance" },
     holds: { techAndSun: 8, greenGoods: 0 },
     next: "Tech and Sun accepts",
     acts: { abortVoucherSetup: 11 },
   },
   {
-    caption: "Accepted. Lina starts the booking on the voucher network; that fixes the terms.",
+    caption: "Accepted. Lina starts the booking, which fixes its terms.",
     booking: { service: "hubDay", stage: "starting" },
     holds: { techAndSun: 8, greenGoods: 0 },
     acts: { dispatchVoucherSetupCommand: 6 },
   },
   {
-    caption: "Lina is booked. After her visit, Tech and Sun reports it.",
+    caption: "Booked. The Service marker is Lina's: she goes to the hub.",
     booking: { service: "hubDay", stage: "inProgress" },
     holds: { techAndSun: 8, greenGoods: 0 },
     next: "Tech and Sun reports the hub day",
   },
   {
-    caption: "Tech and Sun reported the visit. Lina approves the final split.",
+    caption:
+      "Tech and Sun reported the visit. Lina approves the split, then confirms her visit; the delivery's proof is back on the page.",
     booking: { service: "hubDay", stage: "readyToClose" },
     holds: { techAndSun: 8, greenGoods: 0 },
     acts: { finalizeVoucherAllocation: 8 },
   },
   {
     caption:
-      "The split is fixed and its transfer is on its way. Lina confirms the promise was kept.",
+      "The split is approved and its transfer is on its way. Lina confirms the promise was kept.",
     booking: { service: "hubDay", stage: "transfersPending" },
     holds: { techAndSun: 8, greenGoods: 0 },
     acts: { executeVoucherFinalLeg: 8, confirm: 9 },
   },
   {
     caption:
-      "Kept, after Lina confirmed it. The voucher is still on its way to Tech and Sun's reserve.",
+      "Kept, after Lina confirmed it. The tracker's clock waits on the voucher's way to Tech and Sun's reserve.",
     booking: { service: "hubDay", stage: "transfersPending", confirmed: true },
     holds: { techAndSun: 8, greenGoods: 0 },
     next: "The transfer arrives",
   },
   {
-    caption: "Kept, and the voucher arrived in Tech and Sun's reserve.",
+    caption: "Done. Every marker is ticked and the page says where the voucher went.",
     booking: { service: "hubDay", stage: "closed" },
     holds: { techAndSun: 8, greenGoods: 0 },
   },
   {
     caption:
-      "Lina canceled before Tech and Sun accepted. Her voucher comes back once the cancellation reaches the escrow.",
+      "Lina canceled before Tech and Sun accepted. Her voucher comes back once the cancellation is confirmed.",
     booking: { service: "hubDay", stage: "canceling" },
     holds: { techAndSun: 8, greenGoods: 0 },
-    next: "The cancellation reaches the escrow",
+    next: "The cancellation is confirmed",
     acts: { dispatchVoucherSetupCommand: 12 },
   },
   {
-    caption: "Canceled. Her voucher is back in her account.",
+    caption: "Canceled. Her voucher is back in her account, and the booking leaves the tracker.",
     booking: { service: "hubDay", stage: "canceled" },
     holds: { techAndSun: 9, greenGoods: 0 },
+  },
+  {
+    caption:
+      "A visit cut short: Tech and Sun proposes half the voucher back, and Lina reviews the split.",
+    booking: {
+      service: "hubDay",
+      stage: "returnProposed",
+      tweak: (snapshot) => ({
+        ...snapshot,
+        voucherSetups: snapshot.voucherSetups.map((row) => ({
+          ...row,
+          destination: row.destination && {
+            ...row.destination,
+            issuerReturnCeiling: vouchers(0.5),
+          },
+        })),
+      }),
+    },
+    holds: { techAndSun: 8, greenGoods: 0 },
   },
 ];
 
@@ -349,26 +371,6 @@ const EARN_VOUCHERS_ONLY: JourneyStep[] = [
   },
 ];
 
-/** One of the hub day's events on the promise itself, minutes after Lina agreed. */
-function hubDayEvent(eventType: string, minutes: number, byIssuer: boolean): CommitmentEventRecord {
-  return {
-    id: `story-hub-day-${eventType}`,
-    chainId: VOUCHER_STORY_SCOPE.sourceChainId,
-    poolId: null,
-    cycleId: null,
-    commitmentId: 4101n,
-    eventType,
-    actor: byIssuer ? VOUCHER_STORY_ISSUERS.techAndSun.account : VOUCHER_STORY_SCOPE.account,
-    configurationKey: null,
-    previousValue: null,
-    newValue: null,
-    units: null,
-    data: null,
-    txHash: `0x${minutes.toString(16).padStart(64, "0")}`,
-    timestamp: Number(VOUCHER_STORY_AGREED_AT) + minutes * 60,
-  };
-}
-
 /** A booking's setup with its destination changed, for the states a fixture stage doesn't draw. */
 const withDestination =
   (change: Partial<NonNullable<ServiceAccessSnapshot["voucherSetups"][number]["destination"]>>) =>
@@ -410,16 +412,9 @@ const RECOVERY: JourneyStep[] = [
   },
   {
     caption:
-      "Lina confirmed while her voucher was still on its way: History shows the confirmation last, above the split.",
+      "Lina confirmed while her voucher was still on its way: the booking stays Closing, its tracker waiting on the transfer.",
     booking: { service: "hubDay", stage: "transfersPending", confirmed: true },
     holds: { techAndSun: 8, greenGoods: 0 },
-    events: [
-      hubDayEvent("CONFIRMATION_RECORDED", 4 * 60, false),
-      hubDayEvent("READY_FOR_CONFIRMATION", 3 * 60, true),
-      hubDayEvent("ACCEPTED", 60, true),
-      hubDayEvent("CLAIM_REQUESTED", 0, false),
-      hubDayEvent("CREATED", -60, true),
-    ],
   },
   {
     caption:
@@ -458,6 +453,12 @@ const RECOVERY: JourneyStep[] = [
       "Lina holds no Tech and Sun vouchers. The deposit isn't offered until she does; she can exchange, or cancel.",
     booking: { service: "hubDay", stage: "readyToDeposit", options: { held: 0n } },
     holds: { techAndSun: 0, greenGoods: 0 },
+  },
+  {
+    caption:
+      "Lina reported a problem after Tech and Sun reported the visit: the proof stays, and the tracker waits on the garden's stewards.",
+    booking: { service: "hubDay", stage: "problemReported", proofRecorded: true },
+    holds: { techAndSun: 8, greenGoods: 0 },
   },
   {
     caption: "A hub day cut short: half the voucher back, and the hub day counted as delivered.",
@@ -706,7 +707,9 @@ function controllerFor(step: JourneyStep, onConfirm: () => void) {
       : stage === "closed" && service === "access"
         ? "ACCEPTED"
         : bookingStoryCoreState(service, stage, confirmed));
-  const controller = bookingStoryController(service, core);
+  const controller = bookingStoryController(service, core, {
+    proofRecorded: step.booking!.proofRecorded,
+  });
   return {
     ...controller,
     confirmation: {
@@ -946,7 +949,7 @@ function VoucherJourney({
   );
   mocked(usePrimaryAddress).mockReturnValue(account);
   mocked(useCommitmentActivity).mockReturnValue({
-    events: step.events ?? [],
+    events: [],
     isError: false,
   } as unknown as ReturnType<typeof useCommitmentActivity>);
   mocked(useCommitmentCycle).mockReturnValue({
@@ -1130,17 +1133,6 @@ export const Walkthrough: StoryObj = {
       surface="App"
       flows={[
         {
-          id: "hubDayProposed",
-          title: "Redeem a hub day · proposed",
-          who: LINA,
-          story: "client-commitments-voucher-hub-day-proposal--hub-day",
-          steps: PROPOSED_HUB_DAY_STEPS.slice(0, 8),
-          sideStates: PROPOSED_HUB_DAY_STEPS.slice(8).map((step, at) => ({
-            label: step.caption.replace(/^Side state\. /, ""),
-            step: 8 + at,
-          })),
-        },
-        {
           id: "setup",
           title: "Setup and awards",
           who: "Teo, a member issuing his own vouchers",
@@ -1148,7 +1140,7 @@ export const Walkthrough: StoryObj = {
           steps: ISSUER_STEPS,
         },
         flowNote("earn", "earn-vouchers", "Earn vouchers"),
-        flowNote("hubDay", "redeem-hub-day", "Redeem a hub day · today", { mainSteps: 11 }),
+        flowNote("hubDay", "redeem-hub-day", "Redeem a hub day", { mainSteps: 11 }),
         flowNote("exchange", "exchange-then-redeem", "Exchange then redeem"),
         flowNote("endsEarly", "claude-access-ends-early", "Access ends early", { side: true }),
         flowNote("earnVouchersOnly", "earn-vouchers-only", "Reward waits on the reserve", {
@@ -1198,7 +1190,7 @@ export const AgreedRewardKeepsBooking: Story = {
     const canvas = within(canvasElement);
     const page = within(canvasElement.ownerDocument.body);
     await expect(canvas.queryByRole("button", { name: "Take It Up" })).not.toBeInTheDocument();
-    await userEvent.click(await canvas.findByRole("button", { name: "Review and Redeem" }));
+    await userEvent.click(await canvas.findByRole("button", { name: "Book" }));
     await expect(await page.findByRole("dialog", { name: "Review and Redeem" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Agree to These Terms" })).toBeVisible();
   },
@@ -1276,12 +1268,12 @@ export const HubDayAgreeAndDeposit: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await canvas.findByRole("button", { name: "Review and Redeem" }));
+    await userEvent.click(await canvas.findByRole("button", { name: "Book" }));
     await userEvent.click(await page.findByRole("button", { name: "Agree to These Terms" }));
     await expect(await page.findByText("Tech and Sun approves the booking next.")).toBeVisible();
     await userEvent.click(page.getByRole("button", { name: "Done" }));
     await expect(canvas.getByRole("region", { name: "Where this stands" })).toHaveTextContent(
-      "their Safe needs 1 signature"
+      "Tech and Sun approves your booking next."
     );
     await userEvent.click(canvas.getByRole("button", { name: "Tech and Sun approves" }));
     await userEvent.click(await canvas.findByRole("button", { name: "Deposit 1 Voucher" }));
@@ -1290,7 +1282,7 @@ export const HubDayAgreeAndDeposit: Story = {
     await userEvent.click(page.getByRole("button", { name: "View Booking" }));
     await waitFor(() =>
       expect(canvas.getByRole("region", { name: "Where this stands" })).toHaveTextContent(
-        "Green Goods confirms the deposit"
+        "Your voucher is held for this booking."
       )
     );
   },
