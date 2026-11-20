@@ -3,8 +3,11 @@
  * it with browser controls, labelled it with the page title, and drew its favicon inside
  * Android's own shape. The manifest gives it its own window, the short home-screen label
  * "GG Hub", a maskable icon and a linen splash; every icon it names has to ship.
+ *
+ * Its icon is the Hub's own: the production ground (white, the green mark) with a HUB band,
+ * so an installed Hub never looks like the App beside it, in any environment.
  */
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -33,18 +36,22 @@ describe("Hub web app manifest", () => {
     expect(manifest.id).toBe("./");
   });
 
-  it("ships every icon it names, a maskable one included", () => {
-    const icons = manifest.icons as Array<{ src: string; purpose: string }>;
+  it("ships every icon it names at the size it declares, a maskable one included", () => {
+    const icons = manifest.icons as Array<{ src: string; sizes: string; purpose: string }>;
     expect(icons.some((icon) => icon.purpose === "maskable")).toBe(true);
     for (const icon of icons) {
-      expect(existsSync(resolve(admin, "public", icon.src))).toBe(true);
+      const png = readFileSync(resolve(admin, "public", icon.src));
+      // A PNG's header holds its width and height at bytes 16 and 20.
+      expect(`${png.readUInt32BE(16)}x${png.readUInt32BE(20)}`).toBe(icon.sizes);
     }
+    const apple = readFileSync(resolve(admin, "public/apple-touch-icon.png"));
+    expect([apple.readUInt32BE(16), apple.readUInt32BE(20)]).toEqual([180, 180]);
   });
 
-  it("draws the Hub's own icon, never the App Beta's gold-dot icon", () => {
-    const beta = ["staging-icon-512.png", "staging-apple-icon.png"].map((name) =>
-      readFileSync(resolve(admin, "../client/public", name))
-    );
+  it("draws the Hub's own icon, never one of the App's", () => {
+    const appIcons = readdirSync(resolve(admin, "../client/public"))
+      .filter((name) => name.endsWith(".png"))
+      .map((name) => readFileSync(resolve(admin, "../client/public", name)));
     const hubIcons = [
       ...new Set([
         ...(manifest.icons as Array<{ src: string }>).map((icon) => icon.src),
@@ -53,7 +60,7 @@ describe("Hub web app manifest", () => {
     ];
     for (const src of hubIcons) {
       const icon = readFileSync(resolve(admin, "public", src));
-      expect(beta.some((dotted) => dotted.equals(icon))).toBe(false);
+      expect(appIcons.some((appIcon) => appIcon.equals(icon))).toBe(false);
     }
   });
 
