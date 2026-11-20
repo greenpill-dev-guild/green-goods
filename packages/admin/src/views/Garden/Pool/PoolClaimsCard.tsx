@@ -60,6 +60,11 @@ export interface PoolClaimsCardProps {
   onOpen: (row: PoolClaimRequestRow) => void;
   /** Open the promise a booking under way is for. */
   onOpenPromise: (commitment: CommitmentReadModel) => void;
+  /**
+   * The pool has closed or been composted: no ask can be decided, but a booking can still owe a
+   * transfer, so only booking rows show.
+   */
+  bookingsOnly?: boolean;
 }
 
 /** A Safe file changes nothing until the signers execute it, so only a sent act has an outcome. */
@@ -98,6 +103,7 @@ export function PoolClaimsCard({
   onDecline,
   onOpen,
   onOpenPromise,
+  bookingsOnly = false,
 }: PoolClaimsCardProps) {
   const intl = useIntl();
   const { formatMessage } = intl;
@@ -123,17 +129,19 @@ export function PoolClaimsCard({
   const [queue, setQueue] = useState(() => emptyQueueVisit(visit));
   // The asks' visit takes its first read one render after the pool's; until then the queue
   // waits, so asks and bookings read together keep the asks first.
-  const asksRead = !pool.isLoading && (approvals.rows.length > 0 || pool.claims.length === 0);
+  const askRows = bookingsOnly ? [] : approvals.rows;
+  const asksRead =
+    bookingsOnly || (!pool.isLoading && (approvals.rows.length > 0 || pool.claims.length === 0));
   const nextQueue = asksRead
     ? reconcileQueueVisit(queue, {
         pool: visit,
-        askKeys: approvals.rows.map((item) => item.key),
+        askKeys: askRows.map((item) => item.key),
         vouchers,
       })
     : queue;
   if (nextQueue !== queue) setQueue(nextQueue);
-  const record = (key: string, act: QueueDone["act"]) =>
-    setQueue((current) => recordQueueDone(current, key, { act, at: Date.now() }));
+  const record = (key: string, act: QueueDone["act"], claimHash?: string) =>
+    setQueue((current) => recordQueueDone(current, key, { act, at: Date.now(), claimHash }));
 
   const askOf = (item: WaitingRow) =>
     vouchers.askFor(item.row.claim.commitmentId, item.row.claim.claimant) ??
@@ -166,7 +174,7 @@ export function PoolClaimsCard({
     // Approved only once it is: a Safe that needs more than this signature still waits on others.
     const completes = safe?.status === "observed" && safe.threshold === 1;
     if (sendsDirectly(ask.issuer) && completes)
-      record(bookingRowKey({ ...ask, holder: ask.buyer }), "approve");
+      record(bookingRowKey({ ...ask, holder: ask.buyer }), "approve", ask.claimHash);
   };
   const bookingActs: Pick<VoucherConsoleView, "acts"> = {
     acts: {
@@ -199,9 +207,10 @@ export function PoolClaimsCard({
     const stage = selectVoucherAskStage(ask, vouchers.now);
     const act = voucherAskAct(stage, approves(ask));
     const done = queue.done.get(item.key);
-    // The Safe's approval sent here holds as its outcome until accepting is the next act.
+    // The Safe's approval sent here holds as its outcome until accepting is the next act, and
+    // only for the ask it answered.
     const outcome =
-      done?.act === "approve" && act !== "accept"
+      done?.act === "approve" && done.claimHash === ask.claimHash && act !== "accept"
         ? { label: queueDoneLabel("approve", formatMessage), at: done.at }
         : undefined;
     const booked = vouchers.bookingFor(ask.commitmentId);
@@ -242,7 +251,7 @@ export function PoolClaimsCard({
   };
 
   // One row a person and promise, in the order first seen: their ask, then their booking's act.
-  const asks = new Map(approvals.rows.map((item) => [item.key, item]));
+  const asks = new Map(askRows.map((item) => [item.key, item]));
   const order = [...queue.order, ...[...asks.keys()].filter((key) => !queue.order.includes(key))];
   let waiting = 0;
   let decidedCount = 0;

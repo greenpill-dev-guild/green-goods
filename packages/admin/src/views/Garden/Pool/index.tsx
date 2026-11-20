@@ -184,7 +184,7 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
           {
             id: "claims",
             // Review Promises holds the booking acts as well as the asks.
-            count: model.counts.claimsWaiting + queueBookingsDue(vouchers),
+            count: model.counts.claimsWaiting + queueBookingsDue(vouchers, pool.claims),
             label: formatMessage({
               id: "hub.garden.pool.summary.waiting",
               defaultMessage: "To review",
@@ -239,10 +239,12 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
           comes first of all on a phone; from two columns a grid area puts it atop the main column. */}
       {voucherNotice ? <div className="garden-tab-notice">{voucherNotice}</div> : null}
       {/* Everything that waits on the steward, first on a phone and atop the right column from
-          two columns: its own cell, so reading order and the eye agree at every width. */}
-      {!preOpen && !finished ? (
+          two columns: its own cell, so reading order and the eye agree at every width. A closed
+          pool keeps it while a booking still owes a transfer, which anyone may retry. */}
+      {!preOpen && (!finished || queueBookingsDue(vouchers) > 0) ? (
         <div className="garden-tab-lead">
           <PoolClaimsCard
+            bookingsOnly={finished}
             console={pool}
             vouchers={vouchers}
             target={target}

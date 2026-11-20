@@ -580,6 +580,25 @@ describe("PoolClaimsCard (Review Promises)", () => {
         expect(within(row).getByRole("button", { name: "Accept…" })).toBeEnabled();
       });
 
+      // A fresh ask by the same person reuses the row's key (PR #1740, Codex).
+      it("offers Approve… again when the same person asks afresh after an approval this visit", async () => {
+        const approveBooking = vi.fn().mockResolvedValue(undefined);
+        const view = queue(bookingsFor([], { approveBooking }, [linaAsk]), {
+          claims: [linaRow],
+          titles: bookingTitles,
+        });
+        fireEvent.click(screen.getByRole("button", { name: "Approve…" }));
+        const dialog = await screen.findByRole("dialog");
+        fireEvent.click(within(dialog).getByRole("button", { name: "Approve Booking" }));
+        await waitFor(() => expect(screen.getByText("Approved")).toBeInTheDocument());
+
+        // Lina asks again: a new consent, so a new ask waiting on the Safe.
+        const again = { ...linaAsk, claimHash: `0x${"c2".repeat(32)}` as const };
+        view.rerender({}, bookingsFor([], { approveBooking }, [again]));
+        expect(screen.getByRole("button", { name: "Approve…" })).toBeEnabled();
+        expect(screen.queryByText("Approved")).not.toBeInTheDocument();
+      });
+
       it("keeps Approve… on a booking whose Safe needs more signatures than the steward's", async () => {
         const approveBooking = vi.fn().mockResolvedValue(undefined);
         const pool = poolConsoleControllerFixture({ claims: [linaRow], titles: bookingTitles });

@@ -30,6 +30,8 @@ export interface QueueDone {
   act: "approve" | Exclude<QueueBookingAct, "retry">;
   /** When it landed, in milliseconds. */
   at: number;
+  /** The consent an approval answered: the same person asking afresh is a new ask. */
+  claimHash?: string;
 }
 
 export interface QueueVisit {
@@ -110,11 +112,20 @@ export function reconcileQueueVisit(
   return { ...from, started, order, arrived, bookings };
 }
 
-/** How many bookings under way wait on the steward's act now, for What needs you's To review. */
-export function queueBookingsDue(vouchers: Pick<VoucherConsoleView, "snapshot" | "now">): number {
+/**
+ * How many bookings under way wait on the steward's act now, for What needs you's To review. A
+ * booking whose ask the pool still lists is that ask's row in the queue, so it counts once, with
+ * the asks (`pendingAsks`).
+ */
+export function queueBookingsDue(
+  vouchers: Pick<VoucherConsoleView, "snapshot" | "now">,
+  pendingAsks: readonly PoolClaimRequestRow[] = []
+): number {
   if (vouchers.snapshot.status !== "observed") return 0;
+  const asked = new Set(pendingAsks.map(claimRowKey));
   return vouchers.snapshot.bookings.filter(
-    (booking) => voucherBookingAct(booking, vouchers.now) !== null
+    (booking) =>
+      voucherBookingAct(booking, vouchers.now) !== null && !asked.has(bookingRowKey(booking))
   ).length;
 }
 

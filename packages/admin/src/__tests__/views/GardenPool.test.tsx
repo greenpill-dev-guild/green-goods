@@ -812,6 +812,80 @@ describe("GardenPoolTab (W7)", () => {
     expect(within(stats).getByRole("button", { name: /^to review\s+1$/i })).toBeInTheDocument();
   });
 
+  // A pool can close with a transfer still owed: its retry stays reachable (PR #1740, Codex).
+  it("keeps a failed voucher transfer's Retry Transfer in a pool that has closed, with no asks to decide", async () => {
+    const { voucherConsoleViewFixture } = await import(
+      "@green-goods/shared/__tests__/test-utils/controller-fixtures"
+    );
+    const holder = "0x7c40000000000000000000000000000000005c3d" as const;
+    mocks.controller = controller({
+      pool: pool({ state: "CLOSED" }),
+      commitments: [
+        commitment({ onchainState: "FULFILLED", derivedState: "FULFILLED", state: "FULFILLED" }),
+      ],
+      claims: [pendingClaim()],
+    });
+    mocks.vouchers = voucherConsoleViewFixture({
+      now: Number(NOW),
+      snapshot: {
+        status: "observed",
+        observedAt: Number(NOW),
+        bookings: [
+          {
+            commitmentId: 1n,
+            holder,
+            setupId: `0x${"a4".repeat(32)}`,
+            issuer: { kind: "individual", name: "Teo", chainId: 100, account: holder, decimals: 6 },
+            voucherUnits: 1_000_000n,
+            service: { kind: "access", daysUsed: 12, daysOf: 30 },
+            stage: { kind: "return-failed", units: 500_000n },
+          },
+        ],
+      },
+    });
+    renderTab();
+    const queue = screen.getByTestId("pool-claims");
+    expect(within(queue).getByRole("button", { name: "Retry Transfer" })).toBeEnabled();
+    expect(within(queue).queryByRole("button", { name: /^approve$/i })).not.toBeInTheDocument();
+  });
+
+  // The voucher read can show a booking before the pool read drops the ask it came from.
+  it("counts a booking and the ask it came from once under To review", async () => {
+    const { voucherConsoleViewFixture } = await import(
+      "@green-goods/shared/__tests__/test-utils/controller-fixtures"
+    );
+    const ask = pendingClaim();
+    const observedAt = Number(NOW);
+    mocks.controller = controller({ commitments: [commitment()], claims: [ask] });
+    mocks.vouchers = voucherConsoleViewFixture({
+      now: observedAt,
+      snapshot: {
+        status: "observed",
+        observedAt,
+        bookings: [
+          {
+            commitmentId: ask.claim.commitmentId,
+            holder: ask.claim.claimant,
+            setupId: `0x${"a4".repeat(32)}`,
+            issuer: {
+              kind: "individual",
+              name: "Teo",
+              chainId: 100,
+              account: ask.claim.claimant,
+              decimals: 6,
+            },
+            voucherUnits: 1_000_000n,
+            service: { kind: "access", daysUsed: 12, daysOf: 30 },
+            stage: { kind: "return-failed", units: 500_000n },
+          },
+        ],
+      },
+    });
+    renderTab();
+    const stats = screen.getByRole("list", { name: /what needs you/i });
+    expect(within(stats).getByRole("button", { name: /^to review\s+1$/i })).toBeInTheDocument();
+  });
+
   it("folds copies made together into one group row, which opens the group's inspector", async () => {
     mocks.controller = controller({
       commitments: [commitment(), ...STORY_GROUP_COPIES],
