@@ -137,6 +137,8 @@ import {
 import {
   trackGardenJoinCancelled,
   trackGardenJoinFailed,
+  trackGardenJoinStarted,
+  trackGardenJoinSuccess,
 } from "../../modules/app/analytics-events";
 import { trackContractError } from "../../modules/app/error-tracking";
 import { registerTelemetrySink } from "../../modules/app/telemetry-sink";
@@ -536,6 +538,14 @@ describe("hooks/garden/useJoinGarden", () => {
           ["send_act_started", "embedded", undefined],
           ["send_act_ended", "embedded", "confirming"],
         ]);
+        // The join funnel names the same sign-in kind as the send act.
+        for (const tracker of [trackGardenJoinStarted, trackGardenJoinSuccess])
+          expect(
+            vi
+              .mocked(tracker)
+              .mock.calls.slice(-2)
+              .map(([properties]) => properties.authMode)
+          ).toEqual(["wallet", "embedded"]);
         const sent = JSON.stringify(captured);
         expect(sent).not.toContain(MOCK_ADDRESSES.smartAccount);
         expect(sent).not.toContain(MOCK_ADDRESSES.garden);

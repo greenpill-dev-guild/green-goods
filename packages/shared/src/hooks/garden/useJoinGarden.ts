@@ -225,8 +225,10 @@ export function useJoinGarden() {
         throw new Error(formatMessage({ id: "app.garden.joinMissingInfo" }));
       }
 
-      // Track join started
-      const authMode = client?.account ? "passkey" : "wallet";
+      // A passkey account sends through its smart account; any other sign-in sends through the
+      // wallet path, and an embedded wallet keeps its own kind in every record (PRD-1570).
+      const sendsByWallet = !client?.account;
+      const authMode = sendsByWallet ? (signIn === "embedded" ? "embedded" : "wallet") : "passkey";
       addBreadcrumb("garden_join_started", { gardenAddress, authMode });
       trackGardenJoinStarted({
         gardenAddress,
@@ -245,11 +247,9 @@ export function useJoinGarden() {
 
       try {
         // A wallet join returns once it is broadcast, before its receipt: it may still land.
-        const joinEnding = () => (authMode === "wallet" ? "confirming" : "confirmed");
-        // An embedded wallet joins through the wallet path, but records its own sign-in kind.
-        const actAuthMode = authMode === "wallet" && signIn === "embedded" ? signIn : authMode;
+        const joinEnding = () => (sendsByWallet ? "confirming" : "confirmed");
         const txHash = await recordSendAct(
-          { act: "garden_join", authMode: actAuthMode, chainId },
+          { act: "garden_join", authMode, chainId },
           () =>
             submitJoinGarden(
               {

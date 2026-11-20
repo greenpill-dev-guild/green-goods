@@ -800,9 +800,14 @@ describe("hooks/vault/useVaultOperations", () => {
           awaiting: "safe-signers",
         },
       },
+      "SafeProposalPending",
     ],
-    ["past its receipt limit", { rejects: new ReceiptWaitLimitError(120_000, { hash: sentHash }) }],
-  ] as const)("says an Endow approval %s may still land, in both error modes, and ends confirming (PRD-1570)", async (_case, approval) => {
+    [
+      "past its receipt limit",
+      { rejects: new ReceiptWaitLimitError(120_000, { hash: sentHash }) },
+      "SendStillConfirming",
+    ],
+  ] as const)("says an Endow approval %s may still land, in both error modes, and ends confirming (PRD-1570)", async (_case, approval, parsedName) => {
     for (const errorMode of ["inline", "auto"] as const) {
       vi.clearAllMocks();
       const { thrown, endings } = await endowWithApproval(errorMode, approval);
@@ -810,9 +815,8 @@ describe("hooks/vault/useVaultOperations", () => {
       // The stage error keeps the send as its cause, so it reads as one that may still land.
       expect(thrown).toMatchObject({ name: "VaultDepositStageError", stage: "approval" });
       expect(mayStillLand(thrown)).toBe(true);
-      expect(["SafeProposalPending", "SendStillConfirming"]).toContain(
-        parseContractError(thrown).name
-      );
+      // A Safe proposal says the Safe's owners hold it, even through the stage error.
+      expect(parseContractError(thrown).name).toBe(parsedName);
       expect(endings).toEqual(["confirming"]);
       // Neither mode shows "Approval failed"; the handler says it may still land.
       expect(toastService.error).not.toHaveBeenCalled();
