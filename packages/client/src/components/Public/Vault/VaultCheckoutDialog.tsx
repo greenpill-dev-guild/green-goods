@@ -12,10 +12,7 @@ import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
 import { useOctantVaultWalletBalances } from "@green-goods/shared/hooks/vault/useOctantVaultWalletBalances";
 import { useOctantVaultWalletEndow } from "@green-goods/shared/hooks/vault/useOctantVaultWalletEndow";
 import { useWrapEthToWeth } from "@green-goods/shared/hooks/vault/useWrapEthToWeth";
-import {
-  VaultDepositStageError,
-  type VaultEndowLifecycleStep,
-} from "@green-goods/shared/hooks/vault/vault-helpers";
+import type { VaultEndowLifecycleStep } from "@green-goods/shared/hooks/vault/vault-helpers";
 import { getOctantVaultAssetDisplayPolicy } from "@green-goods/shared/modules/vault-crowdfunding/copy";
 import type { OctantVaultCampaignManifest } from "@green-goods/shared/modules/vault-crowdfunding/manifest";
 import { getOctantVaultCampaignTransactionState } from "@green-goods/shared/modules/vault-crowdfunding/route-manage";
@@ -31,7 +28,6 @@ import {
   formatTokenAmount,
   normalizeDecimalInput,
 } from "@green-goods/shared/utils/blockchain/vaults";
-import { parseContractError } from "@green-goods/shared/utils/errors/contract-errors";
 import { mayStillLand } from "@green-goods/shared/utils/errors/tx-error-classifier";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
@@ -49,6 +45,7 @@ import {
   getTxExplorerUrl,
   getVaultCheckoutTransactionLabel,
 } from "./VaultCheckoutShell";
+import { VaultEndowNotice } from "./VaultEndowNotice";
 
 const ETH_SYMBOL = "ETH";
 /**
@@ -340,12 +337,9 @@ function VaultCheckoutDialogContent({
     !hasCompletedWrapForAmount;
   const walletBusy =
     walletEndow.isPending || wrapEthToWeth.isPending || pendingSubmissionKey !== null;
-  // An approval or deposit with no receipt yet may still go through: say so, and hold the
-  // action until the dialog resets, so a second send cannot land twice (PRD-1570).
-  const endowStillLanding =
-    walletEndow.error && mayStillLand(walletEndow.error)
-      ? parseContractError(walletEndow.error)
-      : null;
+  // An approval or deposit with no receipt yet may still go through: hold the action until the
+  // dialog resets, so a second send cannot land twice (PRD-1570).
+  const endowMayStillLand = walletEndow.error ? mayStillLand(walletEndow.error) : false;
   const resetWalletEndow = walletEndow.reset;
   const resetWrapEthToWeth = wrapEthToWeth.reset;
   const updateWalletConnectRequested = useCallback((requested: boolean) => {
@@ -768,7 +762,7 @@ function VaultCheckoutDialogContent({
 
   const actionDisabled =
     walletBusy ||
-    endowStillLanding !== null ||
+    endowMayStillLand ||
     walletBalanceDecisionPending ||
     localForkBlocksWalletEndow ||
     insufficientWethBlocksSubmit ||
@@ -1157,34 +1151,7 @@ function VaultCheckoutDialogContent({
               </p>
             </div>
           ) : null}
-          {endowStillLanding ? (
-            <p
-              role="status"
-              className="rounded-none bg-bg-weak-50 p-4 text-sm leading-[1.55] text-text-sub-600"
-            >
-              {endowStillLanding.messageKey
-                ? formatMessage({
-                    id: endowStillLanding.messageKey,
-                    defaultMessage: endowStillLanding.message,
-                  })
-                : endowStillLanding.message}
-            </p>
-          ) : walletEndow.error ? (
-            <p className="rounded-none bg-error-lighter/30 p-4 text-sm leading-[1.55] text-error-base">
-              {walletEndow.error instanceof VaultDepositStageError &&
-              walletEndow.error.reason === "insufficientBalance"
-                ? formatMessage({
-                    id: "public.vaults.walletEndow.insufficientWeth",
-                    defaultMessage:
-                      "This wallet needs more WETH for this endowment. Wrap ETH to WETH first, then try again.",
-                  })
-                : formatMessage({
-                    id: "public.vaults.walletEndow.error",
-                    defaultMessage:
-                      "We couldn't submit this endowment. Review the wallet message and try again.",
-                  })}
-            </p>
-          ) : null}
+          {walletEndow.error ? <VaultEndowNotice error={walletEndow.error} /> : null}
         </div>
       </CheckoutScreen>
     </CheckoutSurface>
