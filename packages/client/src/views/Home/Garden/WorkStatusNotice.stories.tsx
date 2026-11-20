@@ -28,7 +28,7 @@ const withLocale: Decorator = (Story, context) => {
   );
 };
 
-/** The work, with the time it took, as the queue keeps it on this phone. */
+/** The work, with the time it took and its details, as the queue keeps it on this phone. */
 function page(work: Work, submissionState?: string): Work {
   const metadata = JSON.parse(work.metadata) as Record<string, unknown>;
   return {
@@ -37,6 +37,7 @@ function page(work: Work, submissionState?: string): Work {
     metadata: JSON.stringify({
       ...metadata,
       ...(submissionState ? { submissionState } : {}),
+      details: { binsTurned: 2 },
       timeSpentMinutes: 90,
     }),
   };
@@ -72,7 +73,8 @@ function QueuedWorkPage({ work, isOnline = true, preparation = "working" }: Queu
         <WorkViewSection
           garden={JOURNEY_GARDEN_RECORD}
           work={work}
-          workMetadata={null}
+          // The page reads a queued work's saved details from its own record (PRD-1505).
+          workMetadata={JSON.parse(work.metadata)}
           metadataStatus="success"
           viewingMode="gardener"
           actionTitle={work.title}
