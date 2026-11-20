@@ -42,6 +42,8 @@ const COMMON_PWA_ASSETS = ["favicon.ico"];
 const STAGING_MANIFEST_ID = "/?gg_pwa=staging";
 const ALPHA_MANIFEST_ID = "/?gg_pwa=alpha";
 const STAGING_DARK_SURFACE = "#111b13";
+// Alpha is told apart by colour: a violet icon, title bar and splash, where beta is dark green.
+const ALPHA_VIOLET = "#6d28d9";
 /** The Vercel branch that serves alpha.greengoods.app; its builds always carry the alpha branding. */
 const ALPHA_BRANCH = "alpha";
 // The installed app's ground, serialized from the DesignMD canvas tokens: the
@@ -130,7 +132,7 @@ const STAGING_INCLUDE_ASSETS = [
   "images/staging-ms-icon-310x310.png",
 ];
 
-// Alpha's icons are beta's artwork with the gold dot turned blue, under the same file layout.
+// Alpha's icons are the production logo in white on violet, with no dot, under beta's file layout.
 const toAlphaAsset = (src: string) => src.replace("staging-", "alpha-");
 const ALPHA_APPLE_TOUCH_ICONS = STAGING_APPLE_TOUCH_ICONS.map((icon) => ({
   ...icon,
@@ -193,6 +195,13 @@ export function createPwaManifestBranding(flavor: PwaManifestFlavor): PwaManifes
       // Beta's home-screen label is plain, so this one names alpha to tell the two apart.
       shortName: "GG Alpha",
       description: "Green Goods Alpha: Experiments shared with a few testers before beta",
+      themeColor: ALPHA_VIOLET,
+      backgroundColor: ALPHA_VIOLET,
+      htmlThemeColorLight: ALPHA_VIOLET,
+      htmlThemeColorDark: ALPHA_VIOLET,
+      appThemeColorLight: ALPHA_VIOLET,
+      appThemeColorDark: ALPHA_VIOLET,
+      msTileColor: ALPHA_VIOLET,
       msTileImage: toAlphaAsset("images/staging-ms-icon-144x144.png"),
       browserIcon: toAlphaAsset("staging-icon-192.png"),
       shortcutIcon: toAlphaAsset("staging-icon-192.png"),
