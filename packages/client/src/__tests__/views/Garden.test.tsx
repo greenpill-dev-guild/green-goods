@@ -201,15 +201,16 @@ vi.mock("@green-goods/shared/modules/app/posthog", () => ({
 
 // Mock child components to simplify
 vi.mock("../../views/Garden/Start", () => ({
-  WorkStart: (props: unknown) => {
+  WorkStart: (props: { gardenLine?: React.ReactNode }) => {
     mockStartProps(props);
-    return createElement("div", { "data-testid": "work-start" }, "Start Step");
+    return createElement("div", { "data-testid": "work-start" }, "Start Step", props.gardenLine);
   },
   StartSkeleton: () => createElement("div", { "data-testid": "start-skeleton" }),
 }));
 
 vi.mock("../../views/Garden/Media", () => ({
-  WorkMedia: () => createElement("div", { "data-testid": "work-media" }, "Media Step"),
+  WorkMedia: (props: { pinned?: React.ReactNode }) =>
+    createElement("div", { "data-testid": "work-media" }, "Media Step", props.pinned),
 }));
 
 vi.mock("../../views/Garden/Details", () => ({
@@ -370,7 +371,7 @@ describe("Garden (Work) View", () => {
     expect(mockDraftRetry).toHaveBeenCalledOnce();
   });
 
-  it("says under the steps where the work goes", () => {
+  it("says on Start where the work goes", () => {
     mockNamedGarden = {
       id: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       name: "Hilltop Garden",
@@ -419,6 +420,19 @@ describe("Garden (Work) View", () => {
 
     mockActiveTab = "Details";
     view.rerender(view.tree());
+    expect(screen.queryByTestId("submission-garden")).toBeNull();
+  });
+
+  // Afo on PRD-1522: the garden is named once, on the first step, so a draft that reopens past
+  // it names none.
+  it("names no garden when a draft reopens past the first step", () => {
+    mockActiveTab = "Details";
+    mockNamedGarden = {
+      id: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      name: "Hilltop Garden",
+      bannerImage: "",
+    };
+    renderWithProviders();
     expect(screen.queryByTestId("submission-garden")).toBeNull();
   });
 

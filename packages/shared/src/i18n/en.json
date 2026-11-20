@@ -3739,6 +3739,7 @@
   "app.proof.details.noteHint.linkEnough": "{count, plural, one {Optional: your link is enough.} other {Optional: your links are enough.}}",
   "app.proof.details.noteLabel": "A few words",
   "app.proof.details.notePlaceholder": "What was done, and anything the confirmer should know.",
+  "app.proof.gardenLine": "Adding proof in {garden}",
   "app.proof.media.camera": "Take a Photo",
   "app.proof.media.added": "Proof added: {summary}",
   "app.proof.media.gallery": "Choose Media",
