@@ -18,7 +18,8 @@
   - Page, tracker, pill, facts, plain words, sheets' tracker, rows' Needs you: the updated booking tests failed on the old code, 126 failed and 232 passed across `ServiceBooking.test.ts`, `ServiceBookingMember.test.tsx`, `ServiceSplitSheet.test.tsx`, `ServiceBookingRecovery.test.ts`, `ServicePromise.test.tsx`, `GardenCommitment.test.tsx`, `VouchersTab.test.tsx` and `CommitmentsSheet.test.tsx`.
   - Follow-ups, each red first: Progress and proof on an open offer (1 failed), the issuer sheet's three markers (1), the wallet rows needing wagmi's provider (6), the Book marker and DL-196 wording (the marker cases and three wording cases), the deposit wait promising a notice (1).
   - Review round 1, run against HEAD's source for the nine changed modules before restoring the fix: a dispute after delivery, Start as Needs you, the stuck confirmation, a cancellation before any deposit, and holding Team and History during an unresolved read (6 failed, 5 passed).
-  - GREEN: the focused booking files pass (373 in the last round), and the full client suite passes (see the receipt below).
+  - Review round 2, against HEAD's source: a dispute raised on a proposed return (hub day and access) and the stuck confirmation's voucher count (3 failed); Team on an ordinary promise while the service read is pending (1 failed, 1 passed).
+  - GREEN: the focused booking files pass (373 in round 1, 364 in round 2), and the full client suite passes (see the receipt below).
 - PR D records its own proof here when it opens.
 - Proof limit: none recorded
 
@@ -28,10 +29,10 @@
 
 ## PR C Validation Receipt
 
-- Tested implementation commit SHA: `78ea9e2e108a90d8c4b2b0b104714d3863b8b0d6`
-- Run at (UTC): `2026-11-20T01:25:37Z`
+- Tested implementation commit SHA: `0d50721c648a62fd79b070f33d0b28c523ec12e5`
+- Run at (UTC): `2026-11-20T01:41:04Z`
 - Exact command(s): `bun run test` and `bun run typecheck --scope tests` (packages/client); `bun run check --only dead-code`; `bash scripts/design/check-tokens.sh`; `bunx vitest run --config vitest.storybook.config.ts --project=storybook` on `Progress.stories.tsx` and the eight touched client story files (packages/shared)
-- Result: client suite 183 files, 2590 tests passed; test type check clean; dead code passed; tokens passed; story plays 81 of 81 passed
+- Result: client suite 183 files, 2595 tests passed; test type check clean; dead code passed; tokens passed; story plays 81 of 81 passed
 - Validated paths: `packages/client/src/views/Home/Garden/Commitment`, `packages/client/src/views/Home/WalletSheet`, `packages/client/src/views/Home/CommitmentsSheet`, `packages/client/src/views/Profile/ServiceIssuerApproveSheet.tsx`, `packages/shared/src/i18n`, `packages/shared/src/hooks/commitment-pooling/index.ts`, `packages/shared/.storybook`
 - Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- packages/client/src packages/shared/src packages/shared/.storybook` → empty
 - Known limit: the Live tab counts a booking's own Needs you while the sheet is open (red first: the tab read nothing, then 1); Home's badge still counts the inbox alone until PR H adds the Shared read (`useCommitmentsAttention`).
