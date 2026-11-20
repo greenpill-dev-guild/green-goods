@@ -83,6 +83,7 @@ export const ANALYTICS_EVENTS = {
   WORK_SUBMISSION_QUEUED: "work_submission_queued",
   WORK_SUBMISSION_SUCCESS: "work_submission_success",
   WORK_SUBMISSION_FAILED: "work_submission_failed",
+  WORK_SUBMISSION_CANCELLED: "work_submission_cancelled",
   WORK_SUBMISSION_OFFLINE: "work_submission_offline",
   WORK_WALLET_REQUEST_STARTED: "work_wallet_request_started",
   WORK_WALLET_REQUEST_EXPIRED: "work_wallet_request_expired",
@@ -267,17 +268,14 @@ export const trackWorkSubmissionSuccess = createTracker<{
   submissionPhase?: WorkSubmissionPhase;
 }>(ANALYTICS_EVENTS.WORK_SUBMISSION_SUCCESS, workSubmissionTrackerOptions);
 
-export const trackWorkSubmissionFailed = createTracker<{
-  gardenAddress?: string;
-  actionUID?: number;
-  error: string;
-  authMode: AuthMode;
-  imageCount?: number;
-  workSubmissionJourneyId?: string;
-  chainId?: number;
-  submissionPhase?: WorkSubmissionPhase;
-  parsedErrorFamily?: string;
-}>(ANALYTICS_EVENTS.WORK_SUBMISSION_FAILED, workSubmissionTrackerOptions);
+export const trackWorkSubmissionFailed = createTracker<
+  WorkTrackingSafeMetadata & { gardenAddress?: string; error: string }
+>(ANALYTICS_EVENTS.WORK_SUBMISSION_FAILED, workSubmissionTrackerOptions);
+
+/** A Submit declined at the Terms or the wallet's signature: never a failure (PRD-1561). */
+export const trackWorkSubmissionCancelled = createTracker<
+  WorkTrackingSafeMetadata & { reason: "terms_declined" | "flow_left" | "signature_declined" }
+>(ANALYTICS_EVENTS.WORK_SUBMISSION_CANCELLED, workSubmissionTrackerOptions);
 
 export const trackWorkWalletRequestStarted = createTracker<WorkTrackingSafeMetadata>(
   ANALYTICS_EVENTS.WORK_WALLET_REQUEST_STARTED,

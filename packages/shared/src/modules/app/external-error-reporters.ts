@@ -12,7 +12,11 @@ export type ExternalErrorReporterContext = {
   metadata?: Record<string, unknown>;
 };
 
-export type ExternalErrorReporter = (error: Error, context: ExternalErrorReporterContext) => void;
+/** Files an error elsewhere; hands back the id of the report it filed, if it filed one. */
+export type ExternalErrorReporter = (
+  error: Error,
+  context: ExternalErrorReporterContext
+) => string | undefined | void;
 
 const reporters = new Set<ExternalErrorReporter>();
 
@@ -23,12 +27,19 @@ export function registerExternalErrorReporter(reporter: ExternalErrorReporter): 
   };
 }
 
-export function captureExternalError(error: Error, context: ExternalErrorReporterContext): void {
+/** Hands the error to every reporter; returns the first report id one of them filed. */
+export function captureExternalError(
+  error: Error,
+  context: ExternalErrorReporterContext
+): string | undefined {
+  let reportId: string | undefined;
   for (const reporter of reporters) {
     try {
-      reporter(error, context);
+      const id = reporter(error, context);
+      if (typeof id === "string" && id && !reportId) reportId = id;
     } catch {
       // External reporters must never break the existing PostHog error path.
     }
   }
+  return reportId;
 }
