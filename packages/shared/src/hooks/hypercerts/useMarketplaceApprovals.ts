@@ -46,6 +46,11 @@ import { useIntl } from "react-intl";
 import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { batchKeys } from "../../config/query-keys/garden";
 import { queryInvalidation } from "../../config/query-keys/invalidation";
+import {
+  type HeldOrSent,
+  heldOrSentEnding,
+  recordedSendAct,
+} from "../../modules/app/sendActAnalytics";
 import { marketplaceKeys } from "../../config/query-keys/hypercert";
 
 export interface UseMarketplaceApprovalsResult {
@@ -141,7 +146,7 @@ export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
     account: NonNullable<typeof steward>,
     sends: readonly ApprovalSend[],
     budget: BatchBudget
-  ) => {
+  ): Promise<HeldOrSent> => {
     const record: Extract<MarketplacePendingSubmission, { kind: "approval" }> = {
       kind: "approval",
       steps: sends.map(({ step }) => step),
@@ -166,7 +171,7 @@ export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
       );
     } catch (error) {
       // Sent, and nobody can say yet whether it landed: the record and its reference stay.
-      if (error instanceof BatchConfirmationPendingError) return;
+      if (error instanceof BatchConfirmationPendingError) return "confirming";
       // It was promised one signature, so going one approval at a time takes another press.
       if (error instanceof Error && NOT_BATCHABLE.has(error.message))
         queryClient.setQueryData(overCeilingsKey, true);
@@ -185,73 +190,81 @@ export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
       async (step) =>
         (await checkMarketplaceApprovals(account, chainId))[step as MarketplaceApprovalStep]
     )({ account, chainId, itemIds: record.steps, receipts: [] }).catch(() => []);
-    if (granted.length === record.steps.length) store().clear(pendingScope);
+    if (granted.length === record.steps.length) {
+      store().clear(pendingScope);
+      return "confirmed";
+    }
     // Until the chain shows both, the send stays pending under its receipt, which Check
     // Confirmation reads again.
-    else checkpoint({ kind: "transaction", hash: landed.hash });
+    checkpoint({ kind: "transaction", hash: landed.hash });
+    return "confirming";
   };
 
   const grantMutation = useMutation({
-    mutationFn: async () => {
-      if (!steward || !sender)
-        throw new Error(
-          formatMessage({
-            id: !steward ? "app.account.signInRequired" : "app.account.signerNotReady",
-          })
-        );
-      if (!scope || !store().begin(scope)) return;
-      try {
-        await sender.assertOwnership?.(steward, chainId);
-        const txs = await buildApprovalTransactions(steward, chainId);
-        const sends = (
-          [
-            ["exchangeApproved", txs.grantExchange],
-            ["minterApproved", txs.approveMinter],
-          ] as const
-        ).flatMap(([step, call]): ApprovalSend[] =>
-          call ? [{ step, call: { ...call, account: steward, chainId } }] : []
-        );
-        const budget = route.rail ? marketplaceApprovalBudget(route.rail, chainId) : null;
-        if (sends.length > 1 && together && budget) {
-          await grantTogether(scope, steward, sends, budget);
-          return;
-        }
-        // The second approval starts only after the first has confirmed.
-        for (const { step, call } of sends) {
-          const record: MarketplacePendingSubmission = { kind: "approval", steps: [step] };
-          try {
-            const result = await sender.sendContractCall(call, {
-              assertOwnership: () => sender.assertOwnership?.(steward, chainId),
-              onBeforeBroadcast: async (reference) => {
-                store().checkpoint(scope, { ...record, reference });
-              },
-              onBroadcastReference: async (reference) => {
-                store().checkpoint(scope, { ...record, reference });
-              },
-            });
-            if (result.confirmation === "pending") {
-              store().checkpoint(scope, {
-                ...record,
-                reference: { kind: "transaction", hash: result.hash },
+    // One act per press, from the first signature to the last approval's receipt (PRD-1571).
+    mutationFn: recordedSendAct(
+      { act: "marketplace_approval", authMode: sender?.authMode, chainId },
+      async (): Promise<HeldOrSent> => {
+        if (!steward || !sender)
+          throw new Error(
+            formatMessage({
+              id: !steward ? "app.account.signInRequired" : "app.account.signerNotReady",
+            })
+          );
+        if (!scope || !store().begin(scope)) return "held";
+        try {
+          await sender.assertOwnership?.(steward, chainId);
+          const txs = await buildApprovalTransactions(steward, chainId);
+          const sends = (
+            [
+              ["exchangeApproved", txs.grantExchange],
+              ["minterApproved", txs.approveMinter],
+            ] as const
+          ).flatMap(([step, call]): ApprovalSend[] =>
+            call ? [{ step, call: { ...call, account: steward, chainId } }] : []
+          );
+          const budget = route.rail ? marketplaceApprovalBudget(route.rail, chainId) : null;
+          if (sends.length > 1 && together && budget)
+            return await grantTogether(scope, steward, sends, budget);
+          // The second approval starts only after the first has confirmed.
+          for (const { step, call } of sends) {
+            const record: MarketplacePendingSubmission = { kind: "approval", steps: [step] };
+            try {
+              const result = await sender.sendContractCall(call, {
+                assertOwnership: () => sender.assertOwnership?.(steward, chainId),
+                onBeforeBroadcast: async (reference) => {
+                  store().checkpoint(scope, { ...record, reference });
+                },
+                onBroadcastReference: async (reference) => {
+                  store().checkpoint(scope, { ...record, reference });
+                },
               });
-              return;
-            }
-            store().clear(scope);
-          } catch (error) {
-            if (
-              error instanceof TransactionRevertedError ||
-              error instanceof TransactionReplacementError ||
-              ((isCancelledTxError(error) || refusedForWalletNetwork(error)) &&
-                !store().pending[scope]?.reference)
-            )
+              if (result.confirmation === "pending") {
+                store().checkpoint(scope, {
+                  ...record,
+                  reference: { kind: "transaction", hash: result.hash },
+                });
+                return "confirming";
+              }
               store().clear(scope);
-            throw error;
+            } catch (error) {
+              if (
+                error instanceof TransactionRevertedError ||
+                error instanceof TransactionReplacementError ||
+                ((isCancelledTxError(error) || refusedForWalletNetwork(error)) &&
+                  !store().pending[scope]?.reference)
+              )
+                store().clear(scope);
+              throw error;
+            }
           }
+          return "confirmed";
+        } finally {
+          store().finish(scope);
         }
-      } finally {
-        store().finish(scope);
-      }
-    },
+      },
+      heldOrSentEnding
+    ),
     onSuccess: () => {
       const keysToInvalidate = queryInvalidation.invalidateMarketplace();
       for (const key of keysToInvalidate) {

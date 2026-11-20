@@ -156,6 +156,14 @@ test("the checked-in env.schema can be synced as written", () => {
   assert.deepEqual(findSyncProblems(readFileSync(checkedInSchemaPath, "utf8")), []);
 });
 
+test("a production App build requires the Hub's address, which About This Garden opens", () => {
+  // Beta shipped without it and the steward's Hub row disappeared with no warning (PRD-1526).
+  const schema = parseSchema(checkedInSchemaPath);
+  for (const profile of ["production", "production-client"]) {
+    assert.ok(requiredKeysForProfile(schema, profile).includes("VITE_ADMIN_APP_URL"), profile);
+  }
+});
+
 test("a fresh isolated setup satisfies the checked-in schema's dev profile", (t) => {
   const root = mkdtempSync(join(tmpdir(), "env-baseline-"));
   t.after(() => rmSync(root, { recursive: true, force: true }));

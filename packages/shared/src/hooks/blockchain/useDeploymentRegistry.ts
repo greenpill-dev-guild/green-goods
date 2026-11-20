@@ -11,6 +11,7 @@ import { getNetworkConfig } from "../../config/blockchain";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { STALE_TIMES } from "../../config/react-query";
 import { logger } from "../../modules/app/logger";
+import { recordSendAct } from "../../modules/app/sendActAnalytics";
 import { requireConfirmed } from "../../modules/transactions/confirmation";
 import {
   TransactionConfirmationPendingError,
@@ -305,34 +306,44 @@ export function useGardenCreators(): GardenCreators {
         let couldReachNetwork = false;
         try {
           await executeWithToast(
-            async () => {
-              try {
-                const result = await sender.sendContractCall(
-                  {
-                    address: registry,
-                    // The account the simulation and the permission read were for, and no other.
-                    account: address,
-                    abi,
-                    functionName,
-                    args: [creator],
-                    chainId,
-                  },
-                  {
-                    assertOwnership: () => sender.assertOwnership?.(address, chainId),
-                    onBeforeBroadcast: async () => {
-                      couldReachNetwork = true;
-                    },
+            // One act per change, from the signature to its receipt (PRD-1571).
+            () =>
+              recordSendAct(
+                {
+                  act: "garden_creator_allowlist",
+                  operation: functionName,
+                  authMode: sender.authMode,
+                  chainId,
+                },
+                async () => {
+                  try {
+                    const result = await sender.sendContractCall(
+                      {
+                        address: registry,
+                        // The account the simulation and the permission read were for, and no other.
+                        account: address,
+                        abi,
+                        functionName,
+                        args: [creator],
+                        chainId,
+                      },
+                      {
+                        assertOwnership: () => sender.assertOwnership?.(address, chainId),
+                        onBeforeBroadcast: async () => {
+                          couldReachNetwork = true;
+                        },
+                      }
+                    );
+                    // A wallet that queues the call, a Safe say, answers before it runs.
+                    return requireConfirmed(result);
+                  } catch (error) {
+                    if (mayStillLand(error, couldReachNetwork)) {
+                      throw new TransactionConfirmationPendingError();
+                    }
+                    throw error;
                   }
-                );
-                // A wallet that queues the call, a Safe say, answers before it runs.
-                return requireConfirmed(result);
-              } catch (error) {
-                if (mayStillLand(error, couldReachNetwork)) {
-                  throw new TransactionConfirmationPendingError();
                 }
-                throw error;
-              }
-            },
+              ),
             { ...messages, context: "garden creators" }
           );
           return true;
