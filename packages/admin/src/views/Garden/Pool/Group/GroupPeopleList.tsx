@@ -30,6 +30,11 @@ export interface GroupPeopleListProps {
   /** Copies whose next act is this steward's own: their rows say "Needs you". */
   waitingOnYou: ReadonlySet<string>;
   onOpenCommitment: (commitment: CommitmentReadModel) => void;
+  /**
+   * An act a taken copy offers beside its row (a voucher booking's optional return), or null.
+   * It sits outside the row's button, which opens the copy.
+   */
+  actFor?: (commitment: CommitmentReadModel) => ReactNode;
 }
 
 /**
@@ -47,6 +52,7 @@ export function GroupPeopleList({
   rewarded,
   waitingOnYou,
   onOpenCommitment,
+  actFor,
 }: GroupPeopleListProps) {
   const intl = useIntl();
   const { formatMessage } = intl;
@@ -136,12 +142,16 @@ export function GroupPeopleList({
   };
 
   return (
-    <ul className="divide-y divide-stroke-soft" data-testid="group-people">
+    <ul className="@container divide-y divide-stroke-soft" data-testid="group-people">
       {taken.map((row) => {
         const chip = commitmentStateChip(row.commitment, formatMessage);
+        const act = actFor?.(row.commitment) ?? null;
         return (
-          <li key={row.commitment.id}>
-            <AdminListRow onClick={() => onOpenCommitment(row.commitment)} className={ROW_CLASS}>
+          <li key={row.commitment.id} className={act ? "flex items-center gap-2" : undefined}>
+            <AdminListRow
+              onClick={() => onOpenCommitment(row.commitment)}
+              className={act ? `${ROW_CLASS} min-w-0 flex-1` : ROW_CLASS}
+            >
               <span className={TEXT_CLASS}>
                 {row.commitment.counterparty ? (
                   <ClaimantName
@@ -178,6 +188,7 @@ export function GroupPeopleList({
                 <RiArrowRightSLine className="h-4 w-4 shrink-0 text-text-soft" aria-hidden />
               </span>
             </AdminListRow>
+            {act ? <span className="shrink-0">{act}</span> : null}
           </li>
         );
       })}

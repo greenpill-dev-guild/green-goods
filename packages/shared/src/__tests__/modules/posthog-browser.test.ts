@@ -7,7 +7,10 @@ import {
   dropSkippedTransitionExceptions,
   initializePostHog,
   protectReportingCeremonies,
+  segmentEvent,
+  tagExternalExceptions,
 } from "../../modules/app/posthog-browser";
+import { getTelemetrySegmentation } from "../../modules/app/telemetry-context";
 import { recordCrash } from "../../modules/app/crash-reports";
 import { restoreExceptionTopLevelProps } from "../../modules/app/posthog";
 
@@ -224,12 +227,36 @@ describe("dropSkippedTransitionExceptions", () => {
   });
 });
 
+describe("segmentEvent", () => {
+  it("replaces a returning browser's stale segmentation on the first pageview (PRD-1560)", () => {
+    // PostHog sends this pageview from inside init, with the last visit's persisted properties.
+    const out = segmentEvent(
+      makeEvent(
+        {
+          $current_url: "https://greengoods.app/",
+          release: "previous-release",
+          is_test_account: true,
+        },
+        "$pageview"
+      )
+    );
+
+    expect(out?.properties).toMatchObject({
+      $current_url: "https://greengoods.app/",
+      ...getTelemetrySegmentation(),
+    });
+    expect(out?.properties.release).not.toBe("previous-release");
+    // No account is known yet, so the flag says so instead of keeping the old one.
+    expect(out?.properties.is_test_account).toBe("unknown");
+  });
+});
+
 describe("initializePostHog", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("protects ceremony pages, then drops development-host exceptions before other filtering", () => {
+  it("protects ceremony pages, drops development-host exceptions first, and tags external ones last", () => {
     initializePostHog("test-project-key");
 
     expect(posthogMock.init).toHaveBeenCalledWith(
@@ -241,6 +268,8 @@ describe("initializePostHog", () => {
           restoreExceptionTopLevelProps,
           dropExtensionExceptions,
           dropSkippedTransitionExceptions,
+          tagExternalExceptions,
+          segmentEvent,
         ],
       })
     );

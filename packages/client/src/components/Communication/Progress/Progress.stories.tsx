@@ -40,6 +40,26 @@ export const SubmitWork: Story = {
   },
 };
 
+/**
+ * A booking's step that waits on someone else (DL-191): the current marker shows a clock on the
+ * neutral fill instead of its number, and a screen reader hears who it waits on after its name.
+ */
+export const WaitingOnSomeoneElse: Story = {
+  args: {
+    currentStep: 2,
+    steps: ["Book", "Deposit", "Service", "Done"],
+    waiting: "waiting on Tech and Sun",
+  },
+  play: async ({ canvasElement }) => {
+    const list = within(canvasElement).getByRole("list", { name: "Steps" });
+    const steps = within(list).getAllByRole("listitem");
+    await expect(steps[1]).toHaveAttribute("aria-current", "step");
+    await expect(steps[1]).toHaveTextContent("Deposit, waiting on Tech and Sun");
+    await expect(within(steps[1]).queryByText("2")).toBeNull();
+    await expect(within(steps[2]).getByText("3")).toBeVisible();
+  },
+};
+
 /** Adding proof: the same four markers, Start already checked as the path opens on Media (DL-153). */
 export const AddingProof: Story = {
   args: { currentStep: 2, steps: ["Start", "Media", "Details", "Review"] },

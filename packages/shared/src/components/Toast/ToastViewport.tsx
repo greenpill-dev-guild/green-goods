@@ -7,6 +7,7 @@ import {
   type ToastPosition,
 } from "react-hot-toast";
 import { useIntl } from "react-intl";
+import { TOAST_VIEWPORT_TOP } from "./toast.placement";
 import { setToastTranslator, type ToastStatus, type ToastTranslator } from "./toast.service";
 
 export type ToastViewportVariant = "default" | "editorial";
@@ -15,7 +16,7 @@ export type ToastViewportVariant = "default" | "editorial";
 // see-through status bar draws the clock over the app.
 const BASE_CONTAINER_STYLE: CSSProperties = {
   zIndex: 20000,
-  top: "calc(1.5rem + env(safe-area-inset-top, 0px))",
+  top: TOAST_VIEWPORT_TOP,
   left: "50%",
   transform: "translateX(-50%)",
   width: "min(420px, calc(100vw - 2rem))",

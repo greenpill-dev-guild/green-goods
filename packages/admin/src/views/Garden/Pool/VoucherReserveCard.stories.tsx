@@ -31,7 +31,7 @@ const meta: Meta<typeof VoucherReserveCard> = {
     docs: {
       description: {
         component:
-          "Your Reserve (PRD-1297 surface 6, `SIssuer`), in the rail of an issuing garden's Promises tab under Review Promises: the vouchers its promised rewards draw on, kept apart from bookings, the funding garden's allowance, the service terms, the Safe's approvals read from the Safe, and the published cap. When the allowance can't cover a promised reward, the reward waits and Raise Allowance… repairs it. Balances and Riverside Commons are fictional.",
+          "Your Reserve (PRD-1297 surface 6, `SIssuer`), in the rail of an issuing garden's Promises tab under Review Promises. It leads with three numbers: the vouchers in reserve, kept apart from bookings, the rewards promised from them, and the bookings open. The funding garden's allowance, the service terms, the Safe's approvals read from the Safe, and the published cap fold under Reserve details. When the allowance can't cover a promised reward, the reward waits and Raise Allowance… repairs it. Balances and Riverside Commons are fictional.",
       },
     },
   },
@@ -55,8 +55,17 @@ const meta: Meta<typeof VoucherReserveCard> = {
 export default meta;
 type Story = StoryObj<typeof VoucherReserveCard>;
 
-/** Tech and Sun's reserve: 8 vouchers, 2 of Riverside Commons' 4 left, one signature per booking. */
-export const TechAndSun: Story = {};
+/** Tech and Sun's reserve: 8 in reserve, 3 promised, 3 booked; the rest folded until opened. */
+export const TechAndSun: Story = {
+  tags: ["storybook-ci"],
+  play: async ({ canvasElement }) => {
+    const card = within(canvasElement);
+    await expect(
+      card.getAllByTestId("voucher-reserve-stat").map((tile) => tile.textContent)
+    ).toEqual(["In reserve8", "Promised3", "Booked3"]);
+    await expect(card.getByText("Allowance for Riverside Commons")).not.toBeVisible();
+  },
+};
 
 /** Green Goods' reserve, where the Safe signs two of five. */
 export const GreenGoods: Story = {
@@ -65,9 +74,9 @@ export const GreenGoods: Story = {
     safe: STORY_GREEN_GOODS_SAFE,
   },
   play: async ({ canvasElement }) => {
-    await expect(
-      within(canvasElement).getByText("Your Safe signs each one, 2 of 5 signatures")
-    ).toBeVisible();
+    const card = within(canvasElement);
+    await userEvent.click(card.getByText("Reserve details"));
+    await expect(card.getByText("Your Safe signs each one, 2 of 5 signatures")).toBeVisible();
   },
 };
 

@@ -137,6 +137,8 @@ import {
 import {
   trackGardenJoinCancelled,
   trackGardenJoinFailed,
+  trackGardenJoinStarted,
+  trackGardenJoinSuccess,
 } from "../../modules/app/analytics-events";
 import { trackContractError } from "../../modules/app/error-tracking";
 import { registerTelemetrySink } from "../../modules/app/telemetry-sink";
@@ -162,6 +164,7 @@ describe("hooks/garden/useJoinGarden", () => {
     // Default mocks
     mockUseUser.mockReturnValue({
       smartAccountAddress: MOCK_ADDRESSES.smartAccount,
+      primaryAddress: MOCK_ADDRESSES.smartAccount,
       smartAccountClient: createMockSmartAccountClient(),
       eoa: null,
     });
@@ -228,6 +231,7 @@ describe("hooks/garden/useJoinGarden", () => {
 
       mockUseUser.mockReturnValue({
         smartAccountAddress: MOCK_ADDRESSES.smartAccount,
+        primaryAddress: MOCK_ADDRESSES.smartAccount,
         smartAccountClient: mockClient,
         eoa: null,
       });
@@ -258,6 +262,7 @@ describe("hooks/garden/useJoinGarden", () => {
 
       mockUseUser.mockReturnValue({
         smartAccountAddress: MOCK_ADDRESSES.smartAccount,
+        primaryAddress: MOCK_ADDRESSES.smartAccount,
         smartAccountClient: mockClient,
         eoa: null,
       });
@@ -304,6 +309,7 @@ describe("hooks/garden/useJoinGarden", () => {
 
       mockUseUser.mockReturnValue({
         smartAccountAddress: MOCK_ADDRESSES.smartAccount,
+        primaryAddress: MOCK_ADDRESSES.smartAccount,
         smartAccountClient: mockClient,
         eoa: null,
       });
@@ -331,6 +337,7 @@ describe("hooks/garden/useJoinGarden", () => {
         else mockClient.sendTransaction.mockResolvedValue(send);
         mockUseUser.mockReturnValue({
           smartAccountAddress: MOCK_ADDRESSES.smartAccount,
+          primaryAddress: MOCK_ADDRESSES.smartAccount,
           smartAccountClient: mockClient,
           eoa: null,
         });
@@ -390,6 +397,7 @@ describe("hooks/garden/useJoinGarden", () => {
 
       mockUseUser.mockReturnValue({
         smartAccountAddress: MOCK_ADDRESSES.smartAccount,
+        primaryAddress: MOCK_ADDRESSES.smartAccount,
         smartAccountClient: mockClient,
         eoa: null,
       });
@@ -415,6 +423,7 @@ describe("hooks/garden/useJoinGarden", () => {
 
       mockUseUser.mockReturnValue({
         smartAccountAddress: MOCK_ADDRESSES.smartAccount,
+        primaryAddress: MOCK_ADDRESSES.smartAccount,
         smartAccountClient: mockClient,
         eoa: null,
       });
@@ -485,6 +494,7 @@ describe("hooks/garden/useJoinGarden", () => {
           .mockRejectedValueOnce(timedOut);
         mockUseUser.mockReturnValue({
           smartAccountAddress: MOCK_ADDRESSES.smartAccount,
+          primaryAddress: MOCK_ADDRESSES.smartAccount,
           smartAccountClient: mockClient,
           eoa: null,
         });
@@ -505,11 +515,14 @@ describe("hooks/garden/useJoinGarden", () => {
 
         // A wallet join returns at broadcast, before its receipt, so it may still land. An
         // embedded wallet joins the same way and records its own sign-in kind.
-        for (const authMode of ["wallet", "embedded"]) {
+        for (const authMode of ["wallet", "embedded"] as const) {
+          // The shapes useUser() returns: an embedded wallet has no eoa and no smart account,
+          // only the primary address it derives (PRD-1570).
           mockUseUser.mockReturnValue({
             smartAccountAddress: null,
             smartAccountClient: null,
-            eoa: { address: MOCK_ADDRESSES.smartAccount },
+            eoa: authMode === "wallet" ? { address: MOCK_ADDRESSES.smartAccount } : null,
+            primaryAddress: MOCK_ADDRESSES.smartAccount,
             authMode,
           });
           const wallet = renderHookWithProviders(() => useJoinGarden(), { queryClient });
@@ -525,6 +538,14 @@ describe("hooks/garden/useJoinGarden", () => {
           ["send_act_started", "embedded", undefined],
           ["send_act_ended", "embedded", "confirming"],
         ]);
+        // The join funnel names the same sign-in kind as the send act.
+        for (const tracker of [trackGardenJoinStarted, trackGardenJoinSuccess])
+          expect(
+            vi
+              .mocked(tracker)
+              .mock.calls.slice(-2)
+              .map(([properties]) => properties.authMode)
+          ).toEqual(["wallet", "embedded"]);
         const sent = JSON.stringify(captured);
         expect(sent).not.toContain(MOCK_ADDRESSES.smartAccount);
         expect(sent).not.toContain(MOCK_ADDRESSES.garden);
@@ -544,6 +565,7 @@ describe("hooks/garden/useJoinGarden", () => {
 
       mockUseUser.mockReturnValue({
         smartAccountAddress: MOCK_ADDRESSES.smartAccount,
+        primaryAddress: MOCK_ADDRESSES.smartAccount,
         smartAccountClient: mockClient,
         eoa: null,
       });

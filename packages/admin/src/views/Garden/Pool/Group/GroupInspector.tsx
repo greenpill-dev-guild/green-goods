@@ -42,6 +42,8 @@ export interface GroupInspectorProps {
   onSeedMore: () => void;
   onEditReward: () => void;
   onEditConfirmers?: () => void;
+  /** An act a taken copy offers beside its row (`GroupPeopleList`). */
+  actFor?: (commitment: CommitmentReadModel) => ReactNode;
 }
 
 const bold = (chunks: ReactNode[]) => (
@@ -74,6 +76,7 @@ export function GroupInspector({
   onSeedMore,
   onEditReward,
   onEditConfirmers,
+  actFor,
 }: GroupInspectorProps) {
   const intl = useIntl();
   const { formatMessage } = intl;
@@ -300,6 +303,7 @@ export function GroupInspector({
           rewarded={rewarded}
           waitingOnYou={waitingOnYou}
           onOpenCommitment={onOpenCommitment}
+          actFor={actFor}
         />
         <p className="mt-3 type-meta text-text-soft">
           {formatMessage({

@@ -9,6 +9,7 @@ import {
   isPasskeyServerEnabled,
   normalizePasskeyAccountIdentifier,
 } from "../../config/passkeyServer";
+import { getDefaultPasskeyRegistrationProfile } from "../../public-contracts/passkey-directory";
 
 const DIRECTORY_URL = "https://agent.greengoods.app/public/passkeys/rpc";
 const DIRECTORY_ENV = { PROD: true };
@@ -272,6 +273,8 @@ describe("config/passkeyServer", () => {
         "https://beta.admin.greengoods.app",
         "https://hub.greengoods.app",
         "https://beta.hub.greengoods.app",
+        "https://alpha.greengoods.app",
+        "https://alpha.hub.greengoods.app",
       ]) {
         expect(
           classifyPasskeyCeremonyContext({
@@ -363,5 +366,27 @@ describe("config/passkeyServer", () => {
         origin: "https://beta.admin.greengoods.app",
       });
     });
+  });
+});
+
+describe("getDefaultPasskeyRegistrationProfile", () => {
+  it("gives beta and alpha the Kernel 0.3.3 account and every other site the legacy one", () => {
+    for (const host of [
+      "beta.greengoods.app",
+      "beta.admin.greengoods.app",
+      "beta.hub.greengoods.app",
+      "alpha.greengoods.app",
+      "ALPHA.hub.greengoods.app",
+    ]) {
+      expect(getDefaultPasskeyRegistrationProfile(host), host).toBe("kernel-0.3.3");
+    }
+    for (const host of [
+      "www.greengoods.app",
+      "admin.greengoods.app",
+      "alpha.admin.greengoods.app",
+      "alpha.example.com",
+    ]) {
+      expect(getDefaultPasskeyRegistrationProfile(host), host).toBe("kernel-0.3.1-legacy");
+    }
   });
 });

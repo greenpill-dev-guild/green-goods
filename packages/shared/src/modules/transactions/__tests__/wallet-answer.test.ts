@@ -47,4 +47,14 @@ describe("readWalletAnswer", () => {
     vi.mocked(reader.getCode).mockRejectedValue(new Error("rpc down"));
     await expect(readWalletAnswer(reader, ACCOUNT, ANSWER)).resolves.toBe("transaction");
   });
+
+  // PRD-957: a short proposal id names no transaction, and the node refuses to look it up.
+  it.each([
+    ["a Safe", chain(SAFE_CODE, 2n), "safe-proposal"],
+    ["a plain account", chain("0x"), "transaction"],
+  ] as const)("reads a short id from %s as a %s", async (_case, reader, expected) => {
+    const shortId = `0x${"5a".repeat(20)}` as Hex;
+    vi.mocked(reader.getTransaction).mockRejectedValue(new Error("invalid argument 0: hex string"));
+    await expect(readWalletAnswer(reader, ACCOUNT, shortId)).resolves.toBe(expected);
+  });
 });
