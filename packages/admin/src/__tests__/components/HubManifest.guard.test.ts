@@ -56,4 +56,11 @@ describe("Hub web app manifest", () => {
       expect(beta.some((dotted) => dotted.equals(icon))).toBe(false);
     }
   });
+
+  it("shows wallets the Hub's square icon, not the App's wide logo they crop", () => {
+    const root = readFileSync(resolve(admin, "src/components/Boot/AdminRoot.tsx"), "utf8");
+    expect(root).toContain("hub-icon-512.png");
+    expect(root).not.toContain("greengoods.app/icon.png");
+    expect(existsSync(resolve(admin, "public/hub-icon-512.png"))).toBe(true);
+  });
 });
