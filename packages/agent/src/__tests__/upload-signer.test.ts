@@ -424,6 +424,20 @@ describe("upload signing API", () => {
     expect((await sign(validRequest({ mimeType: "text/html" }))).status).toBe(400);
     expect((await sign(validRequest())).status).toBe(200);
     expect((await sign(validRequest())).status).toBe(429);
+    const unconfigured = createServer(
+      {
+        isAIReady: () => true,
+        allowedOrigins: new Set([ORIGIN]),
+        uploadSigning: { fetch: fetchMock },
+      },
+      { logger: false }
+    );
+    const outage = await unconfigured.request(PUBLIC_AGENT_ROUTES.uploadSign, {
+      method: "POST",
+      headers: jsonHeaders(),
+      body: JSON.stringify(validRequest()),
+    });
+    expect(outage.status).toBe(503);
 
     try {
       expect(
@@ -440,6 +454,15 @@ describe("upload signing API", () => {
           is_test_garden: true,
         },
         { event: "upload_sign_ended", outcome: "failed", reason: "rate_limited" },
+        // An outage is recorded with what was to be uploaded, and its garden.
+        {
+          event: "upload_sign_ended",
+          outcome: "failed",
+          reason: "provider_unavailable",
+          category: "file_upload",
+          mime_type: "image/png",
+          is_test_garden: true,
+        },
       ]);
     } finally {
       resetAgentAnalyticsForTests();

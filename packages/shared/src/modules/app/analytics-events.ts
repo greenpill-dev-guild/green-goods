@@ -274,7 +274,7 @@ export const trackWorkSubmissionFailed = createTracker<
 
 /** A Submit declined at the Terms or the wallet's signature: never a failure (PRD-1561). */
 export const trackWorkSubmissionCancelled = createTracker<
-  WorkTrackingSafeMetadata & { reason: "terms_declined" | "signature_declined" }
+  WorkTrackingSafeMetadata & { reason: "terms_declined" | "flow_left" | "signature_declined" }
 >(ANALYTICS_EVENTS.WORK_SUBMISSION_CANCELLED, workSubmissionTrackerOptions);
 
 export const trackWorkWalletRequestStarted = createTracker<WorkTrackingSafeMetadata>(

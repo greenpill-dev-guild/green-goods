@@ -8,7 +8,8 @@ const GARDEN = "0x1111111111111111111111111111111111111111";
 
 const intent: FundingIntentRecord = {
   id: "fi_attempt",
-  gardenId: GARDEN,
+  // The Card Endow flow keys a garden by its campaign slug, not its address.
+  gardenId: "attempt-garden",
   gardenName: "Attempt Garden",
   destinationType: "vault",
   destinationAddress: "0x2222222222222222222222222222222222222222",
@@ -82,8 +83,28 @@ describe("funding intent attempts (PRD-1561)", () => {
       source_route: "/vaults",
       chain_id: 11155111,
       app_surface: "agent",
-      is_test_garden: true,
+      // A slug cannot be placed against the test garden records, which hold addresses.
+      is_test_garden: "unknown",
     });
+  });
+
+  it("records one ending when two deliveries settle the same intent together", async () => {
+    const store = withFundingAttemptAnalytics(new MemoryFundingIntentStore());
+    await store.create(intent);
+
+    await Promise.all([
+      store.update({ ...intent, status: "funded" }),
+      store.update({ ...intent, status: "funded", updatedAt: "2026-04-27T12:05:00.000Z" }),
+    ]);
+
+    expect(captured().filter(({ event }) => event === "funding_intent_ended")).toEqual([
+      {
+        event: "funding_intent_ended",
+        attempt_id: "fi_attempt",
+        outcome: "confirmed",
+        funding_status: "funded",
+      },
+    ]);
   });
 
   it("counts an abandoned checkout as cancelled and a provider failure as failed", async () => {

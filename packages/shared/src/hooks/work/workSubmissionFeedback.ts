@@ -61,15 +61,17 @@ function recordFailure(error: unknown, record: FailureRecord) {
     chainId,
   };
 
-  // The person declined the Terms, or left before answering them: nothing was admitted.
+  // The person declined the Terms, left before answering them, or accepted and then left the flow:
+  // nothing was admitted.
   // A step before admission, such as a promise take-up, said why it did not go where it ran; its
   // own records say whether that was a failure or a decline, so it is not counted as a cancel.
   if (error instanceof UploadPolicyCancelledError) {
-    if (error.stage === "terms")
+    if (error.stage !== "before-admission")
       trackWorkSubmissionCancelled({
         ...submission,
         submissionPhase: "review",
-        reason: "terms_declined",
+        // Accepting the Terms and then leaving the flow is not a decline.
+        reason: error.stage === "flow-left" ? "flow_left" : "terms_declined",
       });
     else
       trackWorkSubmissionFailed({

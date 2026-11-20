@@ -31,8 +31,23 @@ function fundingAttemptProperties(record: FundingIntentRecord) {
  * attempt id, so an automatic retry with the same client request id shares it and a new press
  * gets a new one. A provider that funds an intent after it expired records a second ending,
  * `funding_status: funded_late`, which supersedes the expiry.
+ *
+ * Writes to one intent run one at a time in this process, so two deliveries settling it together
+ * (a webhook and the expiry sweep, or a redelivered webhook) read each other's status and record
+ * one ending.
  */
 export function withFundingAttemptAnalytics(store: FundingIntentStore): FundingIntentStore {
+  const writes = new Map<string, Promise<unknown>>();
+  function oneAtATime<T>(intentId: string, write: () => Promise<T>): Promise<T> {
+    const queued = (writes.get(intentId) ?? Promise.resolve()).catch(() => undefined).then(write);
+    writes.set(intentId, queued);
+    const release = () => {
+      if (writes.get(intentId) === queued) writes.delete(intentId);
+    };
+    queued.then(release, release);
+    return queued;
+  }
+
   async function recordEnding(
     previous: FundingIntentStatus | undefined,
     record: FundingIntentRecord
@@ -57,21 +72,23 @@ export function withFundingAttemptAnalytics(store: FundingIntentStore): FundingI
     appendEvent: (intentId, status, note, providerEventId) =>
       store.appendEvent(intentId, status, note, providerEventId),
     ...(store.listPending ? { listPending: store.listPending.bind(store) } : {}),
-    async create(record) {
-      const created = await store.create(record);
-      await trackFundingIntentEvent(
-        "funding_intent_started",
-        fundingAttemptProperties(created),
-        created.gardenId
-      );
-      await recordEnding(undefined, created);
-      return created;
-    },
-    async update(record) {
-      const previous = await store.getById(record.id);
-      const updated = await store.update(record);
-      await recordEnding(previous?.status, updated);
-      return updated;
-    },
+    create: (record) =>
+      oneAtATime(record.id, async () => {
+        const created = await store.create(record);
+        await trackFundingIntentEvent(
+          "funding_intent_started",
+          fundingAttemptProperties(created),
+          created.gardenId
+        );
+        await recordEnding(undefined, created);
+        return created;
+      }),
+    update: (record) =>
+      oneAtATime(record.id, async () => {
+        const previous = await store.getById(record.id);
+        const updated = await store.update(record);
+        await recordEnding(previous?.status, updated);
+        return updated;
+      }),
   };
 }

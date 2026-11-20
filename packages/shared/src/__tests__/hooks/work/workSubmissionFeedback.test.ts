@@ -208,10 +208,17 @@ describe("recording a Submit's ending", () => {
     expect(trackWorkSubmissionSuccess).toHaveBeenCalledOnce();
   });
 
-  it("records a declined Terms prompt as a Submit the person cancelled, not a failure", () => {
-    recordWorkSubmissionFailure(new UploadPolicyCancelledError(), options, journey, { images: [] });
+  it.each([
+    ["a declined Terms prompt", new UploadPolicyCancelledError(), "terms_declined"],
+    [
+      "accepted Terms in a flow the person then left",
+      new UploadPolicyCancelledError("flow-left"),
+      "flow_left",
+    ],
+  ])("records %s as a Submit the person cancelled, not a failure", (_case, stopped, reason) => {
+    recordWorkSubmissionFailure(stopped, options, journey, { images: [] });
     expect(trackWorkSubmissionCancelled).toHaveBeenCalledExactlyOnceWith(
-      expect.objectContaining({ reason: "terms_declined", submissionPhase: "review" })
+      expect.objectContaining({ reason, submissionPhase: "review" })
     );
     expect(trackWorkSubmissionFailed).not.toHaveBeenCalled();
     expect(trackContractError).not.toHaveBeenCalled();

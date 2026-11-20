@@ -42,16 +42,6 @@ export function registerUploadSignRoutes(app: Hono, ctx: ApiRouteContext): void 
     if (originError) return publicBrowserCorsResponse(c, deps, originError, 403);
 
     const config = getUploadSigningConfig(ctx);
-    if (!config.jwt) {
-      await trackUploadSignEnded({ outcome: "failed", reason: "provider_unavailable" });
-      return publicBrowserCorsResponse(
-        c,
-        deps,
-        safeError("provider_unavailable", "Upload signing is unavailable right now."),
-        503
-      );
-    }
-
     const bodyResult = await readLimitedJsonBody<unknown>(c.req.raw, UPLOAD_SIGN_BODY_LIMIT_BYTES);
     if (!bodyResult.ok) {
       await trackUploadSignEnded({ outcome: "failed", reason: "invalid_request" });
@@ -79,6 +69,17 @@ export function registerUploadSignRoutes(app: Hono, ctx: ApiRouteContext): void 
         },
         request.gardenAddress
       );
+
+    // A valid request is read first, so an outage is recorded with what was to be uploaded.
+    if (!config.jwt) {
+      await recordOutcome("provider_unavailable");
+      return publicBrowserCorsResponse(
+        c,
+        deps,
+        safeError("provider_unavailable", "Upload signing is unavailable right now."),
+        503
+      );
+    }
 
     const rateError = checkRateLimitWithPolicy(
       c,
