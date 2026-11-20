@@ -153,12 +153,19 @@ const hubDayRead = (
   bookings: [STORY_MARA_VISITED, ...(lina.booking ? [lina.booking] : [])],
   reserve,
 });
+/** Lina's and Kwesi's asks, on the hub days as the list has them. */
+const onHubDay = (row: PoolClaimRequestRow, id: number): PoolClaimRequestRow => ({
+  ...row,
+  commitment: storyHubDay(id),
+});
+const LINA_ASKED = onHubDay(LINA_CLAIM, 41);
+const KWESI_ASKED = onHubDay(KWESI_CLAIM, 42);
 const HUB_DAY_ASKED = {
   commitments: hubDays("open"),
-  claims: [LINA_CLAIM, KWESI_CLAIM],
+  claims: [LINA_ASKED, KWESI_ASKED],
   actor: LINA,
 };
-const HUB_DAY_BOOKED = { commitments: hubDays("taken"), claims: [KWESI_CLAIM], actor: LINA };
+const HUB_DAY_BOOKED = { commitments: hubDays("taken"), claims: [KWESI_ASKED], actor: LINA };
 
 const HUB_DAY: HubStep[] = [
   {
@@ -204,7 +211,7 @@ const HUB_DAY: HubStep[] = [
   {
     caption: "Kept. Lina's voucher is back in your reserve, and her booking has left the queue.",
     commitments: hubDays("kept"),
-    claims: [KWESI_CLAIM],
+    claims: [KWESI_ASKED],
     actor: LINA,
     vouchers: hubDayRead({}, { ...TAS_RESERVE, inReserve: TAS_RESERVE.inReserve + VOUCHER }),
   },
