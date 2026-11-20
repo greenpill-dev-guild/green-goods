@@ -38,9 +38,6 @@ vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   useCommitmentMetadataFor: () => ({ version: 1, title: "Hub day, up to 4 hours" }),
   useServiceAccess: (...key: unknown[]) => booked.service(...key),
 }));
-vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
-  usePrimaryAddress: () => "0x1111111111111111111111111111111111111111",
-}));
 
 import { VouchersTab } from "../../views/Home/WalletSheet/VouchersTab";
 
@@ -225,12 +222,12 @@ describe("VouchersTab", () => {
     const row = screen.getByRole("button", { name: /Hub day, up to 4 hours/ });
     expect(within(row).getByText(pill)).toBeInTheDocument();
     expect(within(row).getByText(caption)).toBeInTheDocument();
-    // The booking is read as its own page reads it: this promise, for this reader.
+    // The booking is read as its own page reads it: this promise, for the wallet's own reader.
     expect(booked.service).toHaveBeenLastCalledWith({
       sourceChainId: 42161,
       coreModule: "0x000000000000000000000000000000000000f100",
       commitmentId: 1023n,
-      buyer: "0x1111111111111111111111111111111111111111",
+      buyer: ACCOUNT,
     });
     booked.service.mockImplementation(() => ({ data: undefined }));
     booked.state = "OFFERED";

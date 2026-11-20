@@ -282,6 +282,7 @@ export const CommitmentsSheet: React.FC<CommitmentsSheetProps> = ({ isOpen, onCl
               waiting={waiting}
               waitingRead={waitingRead}
               pastDueIds={pastDueIds}
+              viewer={viewer}
             />
           )}
           {selectedTab === "over-time" && (

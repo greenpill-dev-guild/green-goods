@@ -14,7 +14,6 @@ import { Button } from "@green-goods/shared/components/Button";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { ItemRow, ItemRowSkeleton } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
-import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
 import type { Address } from "@green-goods/shared/types/domain";
 import {
   RiArrowGoBackLine,
@@ -130,6 +129,7 @@ export function VouchersTab({ wallet, failed = false, onClose }: VouchersTabProp
               <li key={`booking-${escrow.booking.setupId}`}>
                 <VoucherBookingRow
                   escrow={escrow}
+                  reader={wallet.account}
                   issuer={issuerName(escrow.issuer)}
                   onOpen={() => go(voucherBookingPath(escrow.booking))}
                 />
@@ -176,31 +176,28 @@ interface BookingRowProps {
 
 /**
  * A booking: its offer's title, where it stands, and what the escrow holds for it, or what the
- * deposit takes once approved. It reads the booking as its own page does, so it says Needs you
- * exactly when the page does: the deposit, the split, a failed transfer.
+ * deposit takes once approved. It reads the booking as its own page does, for the wallet's own
+ * reader, so it says Needs you exactly when the page does: the deposit, the split, a failed
+ * transfer.
  */
 function VoucherBookingRow({
   escrow,
+  reader,
   issuer,
   onOpen,
-}: BookingRowProps & { escrow: VoucherBookingEscrow }) {
+}: BookingRowProps & { escrow: VoucherBookingEscrow; reader: Address }) {
   const intl = useIntl();
-  const viewer = usePrimaryAddress() as Address | null;
   const { commitment } = useCommitment({
     chainId: escrow.booking.sourceChainId,
     commitmentId: escrow.booking.commitmentId,
   });
   const title = useCommitmentMetadataFor(commitment ?? undefined)?.title;
-  const booking = useServiceAccess(
-    viewer
-      ? {
-          sourceChainId: escrow.booking.sourceChainId,
-          coreModule: escrow.booking.coreModule,
-          commitmentId: escrow.booking.commitmentId,
-          buyer: viewer,
-        }
-      : null
-  );
+  const booking = useServiceAccess({
+    sourceChainId: escrow.booking.sourceChainId,
+    coreModule: escrow.booking.coreModule,
+    commitmentId: escrow.booking.commitmentId,
+    buyer: reader,
+  });
   const needsYou = bookingNeedsYouOf(booking.data, commitment?.derivedState);
   const depositDue = escrow.stage === "awaiting-deposit";
   const label = (id: string) => intl.formatMessage({ id });

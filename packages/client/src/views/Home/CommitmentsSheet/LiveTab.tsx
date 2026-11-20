@@ -6,7 +6,6 @@ import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import type { Address, Garden } from "@green-goods/shared/types/domain";
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
-import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
 import {
   type CommitmentPoolRecord,
   type CommitmentsInbox,
@@ -65,6 +64,8 @@ export interface LiveTabProps {
   pastDueIds?: ReadonlySet<string>;
   /** Where the read behind `waiting` stands, so an unanswered read never passes for none. */
   waitingRead?: { isLoading: boolean; isError: boolean; retry: () => void };
+  /** The reader, whose bookings among the rows are read for what they need from them. */
+  viewer?: Address | null;
 }
 
 /** The copies a folded row opens: drawn while they close, and already in place on the way back. */
@@ -106,6 +107,7 @@ export function LiveTab({
   waiting = [],
   pastDueIds,
   waitingRead,
+  viewer = null,
 }: LiveTabProps) {
   const intl = useIntl();
   const { formatMessage } = intl;
@@ -121,7 +123,6 @@ export function LiveTab({
   const serviceLines = useServiceOfferLines({ chainId: DEFAULT_CHAIN_ID, offers: listed });
   // A booking's own step (its deposit, its split) needs the reader before the promise's acts say
   // so: each is read as its page reads it, sharing that page's cached read.
-  const viewer = usePrimaryAddress() as Address | null;
   const bookingKeys = useMemo(
     () =>
       bookingReadKeys([...inbox.live, ...waiting], {
