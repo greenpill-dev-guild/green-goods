@@ -2,6 +2,7 @@
 import { render, screen } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { describe, expect, it } from "vitest";
+import { FactRow } from "../../components/Cards/FactRow";
 import { GardenMembershipDates } from "../../components/GardenMembershipDates";
 import messages from "../../i18n/en.json";
 import type { GardenMemberHistory } from "../../types/domain";
@@ -21,16 +22,46 @@ const show = (props: Parameters<typeof GardenMembershipDates>[0]) =>
   );
 
 describe("GardenMembershipDates", () => {
-  it("shows first join, rejoin, and each current role as distinct dated facts", () => {
+  it("folds roles into the join or rejoin they began with and dates later roles once", () => {
     const { container } = show({ history });
     expect(screen.getByText("Joined this garden")).toBeInTheDocument();
-    expect(screen.getByText("Rejoined")).toBeInTheDocument();
-    expect(screen.getByText("Steward since")).toBeInTheDocument();
+    expect(screen.getByText("Rejoined as Gardener")).toBeInTheDocument();
+    expect(screen.getByText("Became Steward")).toBeInTheDocument();
     expect(screen.getByText("Jul 3, 2026").closest("time")).toHaveAttribute(
       "dateTime",
       "2026-07-03T00:00:00.000Z"
     );
-    expect(container.querySelectorAll("dt")).toHaveLength(4);
+    expect(container.querySelectorAll("dt")).toHaveLength(3);
+  });
+
+  it("names every role that began on the join day in one row with the date once", () => {
+    const sameDay = Date.UTC(2026, 5, 12);
+    show({
+      history: {
+        ...history,
+        joinedAt: sameDay,
+        memberSince: sameDay,
+        roleSince: { gardener: sameDay, steward: sameDay },
+      },
+    });
+    expect(screen.getByText("Joined as Steward and Gardener")).toBeInTheDocument();
+    expect(screen.getAllByText("Jun 12, 2026")).toHaveLength(1);
+    expect(screen.queryByText(/since/)).not.toBeInTheDocument();
+  });
+
+  it("groups roles that began together on a later day", () => {
+    const joined = Date.UTC(2026, 0, 10);
+    const later = Date.UTC(2026, 3, 2);
+    show({
+      history: {
+        ...history,
+        joinedAt: joined,
+        memberSince: joined,
+        roleSince: { gardener: joined, steward: later, evaluator: later },
+      },
+    });
+    expect(screen.getByText("Joined as Gardener")).toBeInTheDocument();
+    expect(screen.getByText("Became Steward and Evaluator")).toBeInTheDocument();
   });
 
   it("never labels a continuous membership as a rejoin and keeps compact facts short", () => {
@@ -55,6 +86,20 @@ describe("GardenMembershipDates", () => {
     show({ history, roles: ["owner"] });
     expect(screen.getByText("Owner since")).toBeInTheDocument();
     expect(screen.getByText("Date unknown")).toBeInTheDocument();
-    expect(screen.queryByText("Steward since")).not.toBeInTheDocument();
+    expect(screen.queryByText("Became Steward")).not.toBeInTheDocument();
+  });
+
+  it("keeps further facts in the same list, and after an unavailable history", () => {
+    const extra = <FactRow label="Last recorded contribution" value="Nov 15, 2026" />;
+    const { container, rerender } = show({ history, children: extra });
+    expect(container.querySelectorAll("dl")).toHaveLength(1);
+    expect(container.querySelectorAll("dt")).toHaveLength(4);
+    rerender(
+      <IntlProvider locale="en" messages={messages}>
+        <GardenMembershipDates isError>{extra}</GardenMembershipDates>
+      </IntlProvider>
+    );
+    expect(screen.getByText("Membership dates unavailable")).toBeInTheDocument();
+    expect(screen.getByText("Last recorded contribution")).toBeInTheDocument();
   });
 });

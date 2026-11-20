@@ -117,9 +117,24 @@ export interface SendActContext {
   operation?: string;
   authMode: AuthMode | undefined;
   chainId?: number;
+  /** Set by `recordSendAct`: one id per attempt, on its start and its ending (PRD-1561). */
+  attemptId?: string;
 }
 
 const OPTIONS = { includeSessionId: false };
+
+/**
+ * The version of the send-act records' shape (PRD-1561). Raise it when a property changes
+ * meaning, so a question can tell the old records from the new.
+ */
+const SEND_ACT_SCHEMA_VERSION = 1;
+
+/** A fresh id for one attempt: one press of the act, never shared with an explicit retry. */
+function newAttemptId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function")
+    return crypto.randomUUID();
+  return `attempt_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+}
 
 /**
  * Viem's own timeouts already read as unconfirmed. A sender's own receipt limit
@@ -215,6 +230,8 @@ function contextProperties(context: SendActContext) {
     operation: context.operation,
     auth_mode: context.authMode ?? null,
     chain_id: context.chainId,
+    attempt_id: context.attemptId,
+    schema_version: SEND_ACT_SCHEMA_VERSION,
   };
 }
 
@@ -277,6 +294,7 @@ export async function recordSendAct<T>(
   endingOfError: (error: unknown) => SendActEndingDetail = sendActEnding
 ): Promise<T> {
   const startedAt = Date.now();
+  context = { ...context, attemptId: newAttemptId() };
   trackSendActStarted(context);
   let result: T;
   try {

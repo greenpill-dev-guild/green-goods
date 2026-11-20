@@ -43,9 +43,9 @@ describe("GardenContributionDate", () => {
     expect(container).toBeEmptyDOMElement();
   });
   it.each([
-    ["en", en, "Contributed 11/15/2026"],
-    ["es", es, "Contribuyó el 15/11/2026"],
-    ["pt", pt, "Contribuiu em 15/11/2026"],
+    ["en", en, "Contributed Nov 15, 2026"],
+    ["es", es, "Contribuyó el 15 nov 2026"],
+    ["pt", pt, "Contribuiu em 15 de nov. de 2026"],
   ] as const)("uses an accurate short row label and complete localized date in %s", (locale, messages, text) => {
     const intl = createIntl({ locale, messages, timeZone: "UTC" }, createIntlCache());
     expect(
