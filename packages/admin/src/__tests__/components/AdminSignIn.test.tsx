@@ -120,8 +120,10 @@ describe("AdminSignIn", () => {
   it("creates from the name step when names cannot be looked up", async () => {
     const state = controller({ canSignInByName: false, hasStoredCredential: true });
     const { unmount } = render(<AdminSignIn controller={state} />);
-    // A remembered passkey still signs in; another account can only be created.
+    // A remembered passkey still signs in, and another account can still be created.
     expect(screen.queryByRole("button", { name: "Use Different Username" })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Create Account" }));
+    expect(state.changeMode).toHaveBeenCalledWith("username");
     unmount();
     const form = controller({ mode: "username", canSignInByName: false });
     render(<AdminSignIn controller={form} />);

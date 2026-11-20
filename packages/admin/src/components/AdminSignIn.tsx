@@ -50,8 +50,9 @@ export function AdminSignIn({ controller }: { controller: AdminLoginController }
           defaultMessage: "Continue with Passkey",
         })
       : createLabel;
-  // A remembered passkey signs in at once, so another account needs its own way to the name step.
-  const showOtherAccount = !isForm && remembered && controller.canSignInByName;
+  // A remembered passkey signs in at once, so another account needs its own way to the name
+  // step. Without the passkey server that step can only create, so it says so.
+  const showOtherAccount = !isForm && remembered;
 
   return (
     <SignInSlots
@@ -168,14 +169,14 @@ export function AdminSignIn({ controller }: { controller: AdminLoginController }
             disabled={controller.isSigningIn}
             onClick={() => controller.changeMode(isForm ? "entry" : "username")}
           >
-            {formatMessage(
-              isForm
-                ? { id: "app.login.button.back", defaultMessage: "Back" }
-                : {
+            {isForm
+              ? formatMessage({ id: "app.login.button.back", defaultMessage: "Back" })
+              : controller.canSignInByName
+                ? formatMessage({
                     id: "app.login.button.useDifferentUsername",
                     defaultMessage: "Use Different Username",
-                  }
-            )}
+                  })
+                : createLabel}
           </Button>
         ) : null
       }
