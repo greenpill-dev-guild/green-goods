@@ -29,7 +29,8 @@ const DEFAULT_PRODUCTION_AGENT_URL = "https://agent.greengoods.app";
 // lives only in Fly secrets, so this live preflight is what guards the list.
 // https://hub.greengoods.app and https://beta.hub.greengoods.app join it once
 // they serve the Hub and the secret lists them (PRD-1485); until then they
-// would fail every production smoke run.
+// would fail every production smoke run. https://alpha.greengoods.app and
+// https://alpha.hub.greengoods.app join on the same terms (PRD-1517).
 const PRODUCTION_AGENT_BROWSER_ORIGINS = [
   "https://greengoods.app",
   "https://www.greengoods.app",

@@ -19,22 +19,22 @@ export type CopyValues = Record<string, string | number>;
 
 /**
  * The shared send stage words a template names, in each language: the bot says still confirming
- * in the words the App and the Hub use (PRD-1552), from the same Shared catalog entries.
+ * (PRD-1552) and waiting for the Safe's signers (PRD-1568) in the words the App and the Hub use,
+ * from the same Shared catalog entries.
  */
-const STILL_CONFIRMING = SEND_STAGE_WORDS["still-confirming"].detail;
+function stageWords(catalog: unknown): CopyValues {
+  const say = (word: { id: string; defaultMessage: string }) =>
+    (catalog as Record<string, string>)[word.id] ?? word.defaultMessage;
+  return {
+    stillConfirming: say(SEND_STAGE_WORDS["still-confirming"].detail),
+    safeSigners: say(SEND_STAGE_WORDS["safe-signers"].label),
+    safeSignersDetail: say(SEND_STAGE_WORDS["safe-signers"].detail),
+  };
+}
 const STAGE_WORDS: Record<AgentLocale, CopyValues> = {
-  en: {
-    stillConfirming:
-      (enCatalog as Record<string, string>)[STILL_CONFIRMING.id] ?? STILL_CONFIRMING.defaultMessage,
-  },
-  es: {
-    stillConfirming:
-      (esCatalog as Record<string, string>)[STILL_CONFIRMING.id] ?? STILL_CONFIRMING.defaultMessage,
-  },
-  pt: {
-    stillConfirming:
-      (ptCatalog as Record<string, string>)[STILL_CONFIRMING.id] ?? STILL_CONFIRMING.defaultMessage,
-  },
+  en: stageWords(enCatalog),
+  es: stageWords(esCatalog),
+  pt: stageWords(ptCatalog),
 };
 
 /** Fills a localized template. Unknown placeholders stay visible so a missing value is noticed. */

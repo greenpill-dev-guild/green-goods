@@ -67,6 +67,9 @@ export interface Config {
 
   posthogApiKey?: string;
   analyticsEnabled: boolean;
+  /** Comma-separated test account and garden addresses that mark our own traffic (PRD-1560). */
+  telemetryTestAccounts?: string;
+  telemetryTestGardens?: string;
   sentryDsn?: string;
   sentryEnabled: boolean;
   sentryTracesSampleRate: number;
@@ -167,6 +170,8 @@ export function loadConfig(): Config {
       : undefined,
 
     posthogApiKey,
+    telemetryTestAccounts: process.env.TELEMETRY_TEST_ACCOUNTS,
+    telemetryTestGardens: process.env.TELEMETRY_TEST_GARDENS,
     analyticsEnabled,
     sentryDsn,
     sentryEnabled,

@@ -1,7 +1,7 @@
 import designTokens from "@green-goods/shared/styles/design-md.generated.json";
 import { PWA_MANIFEST_ID } from "./pwaRouting";
 
-type PwaManifestFlavor = "production" | "staging";
+type PwaManifestFlavor = "production" | "staging" | "alpha";
 
 interface PwaManifestIcon {
   src: string;
@@ -40,7 +40,10 @@ export interface PwaManifestBranding {
 
 const COMMON_PWA_ASSETS = ["favicon.ico"];
 const STAGING_MANIFEST_ID = "/?gg_pwa=staging";
+const ALPHA_MANIFEST_ID = "/?gg_pwa=alpha";
 const STAGING_DARK_SURFACE = "#111b13";
+/** The Vercel branch that serves alpha.greengoods.app; its builds always carry the alpha branding. */
+const ALPHA_BRANCH = "alpha";
 // The installed app's ground, serialized from the DesignMD canvas tokens: the
 // linen canvas and the warm dark floor that shared theme.css paints as the app's
 // bg-canvas in each theme.
@@ -127,12 +130,32 @@ const STAGING_INCLUDE_ASSETS = [
   "images/staging-ms-icon-310x310.png",
 ];
 
+// Alpha's icons are beta's artwork with the gold dot turned blue, under the same file layout.
+const toAlphaAsset = (src: string) => src.replace("staging-", "alpha-");
+const ALPHA_APPLE_TOUCH_ICONS = STAGING_APPLE_TOUCH_ICONS.map((icon) => ({
+  ...icon,
+  src: toAlphaAsset(icon.src),
+}));
+const ALPHA_MANIFEST_ICONS = STAGING_MANIFEST_ICONS.map((icon) => ({
+  ...icon,
+  src: toAlphaAsset(icon.src),
+}));
+const ALPHA_INCLUDE_ASSETS = STAGING_INCLUDE_ASSETS.map(toAlphaAsset);
+
 function normalizeFlavor(value: string | undefined): PwaManifestFlavor | undefined {
   const flavor = value?.trim().toLowerCase();
   if (!flavor) return undefined;
   if (["staging", "stage", "stg", "qa"].includes(flavor)) return "staging";
   if (["production", "prod"].includes(flavor)) return "production";
+  if (flavor === "alpha") return "alpha";
   return undefined;
+}
+
+// Deployment signals choose only between beta and production, as they did before alpha: alpha comes
+// from an explicit flavor or the alpha branch, so an `alpha` here falls through to the next signal.
+function normalizeDeploymentFlavor(value: string | undefined): PwaManifestFlavor | undefined {
+  const flavor = normalizeFlavor(value);
+  return flavor === "alpha" ? undefined : flavor;
 }
 
 export function resolvePwaManifestFlavor(
@@ -145,18 +168,40 @@ export function resolvePwaManifestFlavor(
 
   if (explicitFlavor) return explicitFlavor;
 
+  // Vercel calls an alpha build a preview, so its branch is the only deployment signal it has.
+  if (env.VERCEL_GIT_COMMIT_REF === ALPHA_BRANCH) return "alpha";
+
   const deploymentFlavor =
-    normalizeFlavor(env.VERCEL_TARGET_ENV) ||
-    normalizeFlavor(env.VITE_VERCEL_TARGET_ENV) ||
-    normalizeFlavor(env.SENTRY_ENVIRONMENT) ||
-    normalizeFlavor(env.VITE_SENTRY_ENVIRONMENT) ||
-    normalizeFlavor(env.APP_ENV) ||
-    normalizeFlavor(env.VITE_APP_ENV);
+    normalizeDeploymentFlavor(env.VERCEL_TARGET_ENV) ||
+    normalizeDeploymentFlavor(env.VITE_VERCEL_TARGET_ENV) ||
+    normalizeDeploymentFlavor(env.SENTRY_ENVIRONMENT) ||
+    normalizeDeploymentFlavor(env.VITE_SENTRY_ENVIRONMENT) ||
+    normalizeDeploymentFlavor(env.APP_ENV) ||
+    normalizeDeploymentFlavor(env.VITE_APP_ENV);
 
   return deploymentFlavor === "staging" ? "staging" : "production";
 }
 
 export function createPwaManifestBranding(flavor: PwaManifestFlavor): PwaManifestBranding {
+  if (flavor === "alpha") {
+    return {
+      ...createPwaManifestBranding("staging"),
+      flavor,
+      // Its own install identity, so alpha installs beside beta and production on one phone.
+      manifestId: ALPHA_MANIFEST_ID,
+      name: "Green Goods Alpha",
+      // Beta's home-screen label is plain, so this one names alpha to tell the two apart.
+      shortName: "GG Alpha",
+      description: "Green Goods Alpha: Experiments shared with a few testers before beta",
+      msTileImage: toAlphaAsset("images/staging-ms-icon-144x144.png"),
+      browserIcon: toAlphaAsset("staging-icon-192.png"),
+      shortcutIcon: toAlphaAsset("staging-icon-192.png"),
+      appleTouchIcons: ALPHA_APPLE_TOUCH_ICONS,
+      manifestIcons: ALPHA_MANIFEST_ICONS,
+      includeAssets: ALPHA_INCLUDE_ASSETS,
+    };
+  }
+
   if (flavor === "staging") {
     return {
       flavor,
