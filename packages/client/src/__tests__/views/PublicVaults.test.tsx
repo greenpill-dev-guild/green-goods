@@ -1600,6 +1600,50 @@ describe("VaultsPage", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("says a Safe-proposed Endow approval may still go through and offers no second send (PRD-1570)", async () => {
+    sharedHookMocks.authMode = "wallet";
+    sharedHookMocks.primaryAddress = VALID_RECEIVER_ADDRESS;
+    // The Safe's pending answer, as the sender raises it, wrapped by the approval stage.
+    const proposal = Object.assign(new Error("transaction-confirmation-pending"), {
+      name: "TransactionConfirmationPendingError",
+      submission: {
+        hash: `0x${"ab".repeat(32)}`,
+        sponsored: false,
+        confirmation: "pending",
+        awaiting: "safe-signers",
+      },
+    });
+    sharedHookMocks.octantVaultWalletEndowError = new VaultDepositStageError(
+      "approval",
+      "Approval is waiting for the Safe",
+      undefined,
+      { cause: proposal }
+    );
+
+    renderContent([makeCompleteCampaign()]);
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Endow to Synthetic complete campaign",
+      })
+    );
+    fireEvent.change(screen.getByLabelText("Amount to endow"), {
+      target: { value: "2.50" },
+    });
+
+    expect(
+      await screen.findByText(
+        "Your Safe has the proposal. It goes through once enough of the Safe's owners sign it."
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        "We couldn't submit this endowment. Review the wallet message and try again."
+      )
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Approve vault access (1/2)" })).toBeDisabled();
+  });
+
   it("shows the onchain vault total on the campaign card", () => {
     sharedHookMocks.octantVaultStats = {
       totalAssets: 15000000000n,

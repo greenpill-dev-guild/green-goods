@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ConfigEnv, UserConfig } from "vite";
 
@@ -44,5 +45,46 @@ describe("admin build runtime", () => {
     } else {
       expect(config.define).not.toHaveProperty("process.env.NODE_ENV");
     }
+  });
+});
+
+describe("admin telemetry segmentation", () => {
+  it("hands the bundle its surface, release and test records, with accounts only as digests", async () => {
+    const account = "0x00000000000000000000000000000000000000Aa";
+    const garden = "0x00000000000000000000000000000000000000CC";
+    vi.stubEnv("SENTRY_AUTH_TOKEN", "");
+    vi.stubEnv("VITE_APP_VERSION", "3ee6594ef3e5");
+    vi.stubEnv("TELEMETRY_TEST_ACCOUNTS", ` ${account} `);
+    vi.stubEnv("TELEMETRY_TEST_GARDENS", `${garden},`);
+
+    const config = await (adminConfig as (env: ConfigEnv) => Promise<UserConfig>)({
+      command: "serve",
+      mode: "development",
+    });
+
+    expect(config.define).toMatchObject({
+      "import.meta.env.VITE_APP_SURFACE": '"admin"',
+      "import.meta.env.VITE_TELEMETRY_RELEASE": '"green-goods-admin@3ee6594ef3e5"',
+      "import.meta.env.VITE_TELEMETRY_TEST_GARDENS": JSON.stringify(garden.toLowerCase()),
+      "import.meta.env.VITE_TELEMETRY_TEST_ACCOUNT_DIGESTS": JSON.stringify(
+        createHash("sha256").update(account.toLowerCase()).digest("hex")
+      ),
+    });
+    expect(JSON.stringify(config.define)).not.toContain(account.slice(2).toLowerCase());
+  });
+
+  it("leaves out a list holding an entry that is not an address, so its events say unknown", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.stubEnv("SENTRY_AUTH_TOKEN", "");
+    vi.stubEnv("TELEMETRY_TEST_ACCOUNTS", "0x00000000000000000000000000000000000000aa,0xtypo");
+
+    const config = await (adminConfig as (env: ConfigEnv) => Promise<UserConfig>)({
+      command: "serve",
+      mode: "development",
+    });
+
+    expect(config.define).toMatchObject({
+      "import.meta.env.VITE_TELEMETRY_TEST_ACCOUNT_DIGESTS": '""',
+    });
   });
 });
