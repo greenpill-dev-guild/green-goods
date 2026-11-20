@@ -5,7 +5,11 @@ import {
 } from "@green-goods/shared/commitment-pooling";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
-import { useVoucherConsole } from "@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController";
+import {
+  useVoucherConsole,
+  useVoucherStart,
+  type VoucherStartProgress,
+} from "@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController";
 import type {
   IssuerSafeThreshold,
   VoucherAsk,
@@ -74,6 +78,13 @@ import {
 import { awardStoryRecord } from "./voucherAwardStoryFixtures";
 
 const VOUCHER = 1_000_000n;
+/** Accept and Start's two start sends, landed. */
+const STORY_START_DONE: VoucherStartProgress = {
+  record: "done",
+  send: "done",
+  fee: 41_000_000_000_000n,
+  hashes: { record: `0x${"b1".repeat(32)}`, send: `0x${"b2".repeat(32)}` },
+};
 /** The steward's own acts on the console, each leading to the step that follows it. */
 type HubAct = "approve" | "accept" | "report" | "propose" | "retry" | "raise" | "send" | "award";
 
@@ -541,6 +552,12 @@ function HubJourneyPage({ journey, start }: { journey: FlowId; start: number }) 
       return "0x0";
     },
   } as unknown as ReturnType<typeof useCommitmentMutation>);
+  // Accept and Start's start lands at once: the walk shows its sends done, never a live read.
+  mocked(useVoucherStart).mockReturnValue({
+    start: async () => "started",
+    progressFor: () => STORY_START_DONE,
+    reset: () => undefined,
+  });
   // A zero chain time defers to the console's own clock, the story's time.
   pinChainClock(0);
   // The award desk's records live with the journey: prepared, then confirmed once sent.
@@ -793,7 +810,7 @@ export const AcceptMovesTheWalkOn: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     // Two deposits are confirmed on this step; Lina's, the first row, moves the walk on.
-    const [accept] = await canvas.findAllByRole("button", { name: "Accept…" });
+    const [accept] = await canvas.findAllByRole("button", { name: "Accept and Start…" });
     await userEvent.click(accept!);
     const dialog = within(await screen.findByRole("dialog"));
     await userEvent.click(await dialog.findByRole("button", { name: /^Accept / }));

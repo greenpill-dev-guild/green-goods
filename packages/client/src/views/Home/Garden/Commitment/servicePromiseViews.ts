@@ -68,6 +68,8 @@ export interface ServicePromiseViewsInput {
   creator: CommitmentReadModel["creator"];
   /** The promise holds proof, so a dispute raised on it came after the issuer's report. */
   proofRecorded: boolean;
+  /** When the promise was taken up: a booking's acceptance, which its fallback start counts from. */
+  acceptedAt?: number | null;
   viewer: Address | undefined;
   issuer: ServiceBookingInput["issuer"];
   /** The wallet's own entry for the issuer, which alone knows what the reader holds of it. */
@@ -125,6 +127,7 @@ export function servicePromiseViews(
           approval: input.approval,
           held,
           proofRecorded: input.proofRecorded,
+          acceptedAt: input.acceptedAt,
         },
         intl
       );

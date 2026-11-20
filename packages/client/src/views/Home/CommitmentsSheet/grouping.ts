@@ -70,16 +70,19 @@ export function withBookingReads(
   rows: { live: readonly InboxCommitment[]; waiting: readonly InboxCommitment[] },
   reads: readonly { data?: ServiceAccessSnapshot | null }[]
 ): { live: InboxCommitment[]; waiting: InboxCommitment[]; actCount: number } {
-  const stateOf = new Map(
+  const promiseOf = new Map(
     [...rows.live, ...rows.waiting].map(({ commitment }) => [
       commitment.commitmentId.toString(),
-      commitment.derivedState,
+      commitment,
     ])
   );
   const needs = new Set(
     reads.flatMap(({ data }) => {
       const id = data?.key.commitmentId.toString();
-      return id && bookingNeedsYouOf(data, stateOf.get(id)) ? [id] : [];
+      const promise = id ? promiseOf.get(id) : undefined;
+      return id && bookingNeedsYouOf(data, promise?.derivedState, promise?.acceptanceAt)
+        ? [id]
+        : [];
     })
   );
   const live = withBookingNeedsYou(rows.live, needs);

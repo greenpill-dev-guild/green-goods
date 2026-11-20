@@ -150,10 +150,11 @@ const HUB_DAY: JourneyStep[] = [
     acts: { abortVoucherSetup: 11 },
   },
   {
-    caption: "Accepted. Lina starts the booking, which fixes its terms.",
+    caption:
+      "Accepted. Tech and Sun's Accept and Start sends the start, so Lina has nothing to do. She can start it herself if it hasn't gone after 15 minutes.",
     booking: { service: "hubDay", stage: "starting" },
     holds: { techAndSun: 8, greenGoods: 0 },
-    acts: { dispatchVoucherSetupCommand: 6 },
+    next: "The start lands",
   },
   {
     caption: "Booked. The Service marker is Lina's: she goes to the hub.",

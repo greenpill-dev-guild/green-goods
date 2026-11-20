@@ -280,6 +280,9 @@ export function bookingTracker(ctx: BookingContext): BookingTracker | null {
       return yours(deposited ? 3 : 2);
     case "canceling":
       return waits(deposited ? 3 : 2, confirming);
+    // The steward who accepted is sending the start (DL-193).
+    case "stewardStarting":
+      return waits(3, accepter);
     case "starting":
     case "inProgress":
     case "acceptedFirst":

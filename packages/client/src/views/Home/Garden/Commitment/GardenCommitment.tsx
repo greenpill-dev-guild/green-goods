@@ -139,8 +139,7 @@ export function GardenCommitment() {
   const act = workIsPrimary
     ? { kind: "linkWork" as const, labelId: "app.commitment.act.linkWork" }
     : selectedAct;
-  // Nonmembers see joining guidance instead of an act. Wait while membership
-  // is being read or an act is already on its way.
+  // Nonmembers see joining guidance instead of an act, once membership is read and none is sending.
   const untaken = commitment.derivedState === "OFFERED" || commitment.derivedState === "REQUESTED";
   const noActToOffer = ordinary && !act && !controller.queue.hasPendingJob && untaken;
   const showJoinToAct = noActToOffer && controller.membership.isMember === false;
@@ -490,6 +489,7 @@ export function GardenCommitment() {
       hasCoreAct={Boolean(act)}
       isOnline={controller.isOnline}
       onReport={controller.confirmation.canNotYet ? () => setConfirmOpen("report") : null}
+      confirmKept={act?.kind === "confirm" ? controller.acts.confirm : null}
       takeUp={rewardTakeUp}
     >
       {page}

@@ -1,6 +1,7 @@
-import type {
-  ServiceAccessSnapshot,
-  ServiceVoucherSetup,
+import {
+  type ServiceAccessSnapshot,
+  type ServiceVoucherSetup,
+  voucherStartFallbackDue,
 } from "@green-goods/shared/commitment-pooling";
 import type {
   ServiceActKind,
@@ -25,7 +26,7 @@ export function currentVoucherSetup(s: ServiceAccessSnapshot): ServiceVoucherSet
 
 /** The stage a voucher booking is in; null when the promise has no voucher route. */
 export function serviceBookingStage(
-  input: Pick<ServiceBookingInput, "snapshot" | "coreState" | "held">
+  input: Pick<ServiceBookingInput, "snapshot" | "coreState" | "held" | "acceptedAt">
 ): ServiceBookingStage | null {
   const { snapshot: s, coreState } = input;
   const voucher = s.offer?.route === "voucher" ? s.offer.voucher : null;
@@ -60,9 +61,15 @@ export function serviceBookingStage(
       return "readyToClose";
     return d.holderAbortRequested ? "acceptedFirst" : "inProgress";
   }
-  // Accepted but not started: Start the Booking records the activation and sends it. A
-  // cancellation that lost the race says so once the booking has started.
-  if (accepted) return setup.source.decisionDispatched ? "activationInTransit" : "starting";
+  // Accepted but not started: the steward's Accept and Start sends the start (DL-193). Once the
+  // fallback is due, Start the Booking records the activation and sends it. A cancellation that
+  // lost the race says so once the booking has started.
+  if (accepted) {
+    if (setup.source.decisionDispatched) return "activationInTransit";
+    return voucherStartFallbackDue(input.acceptedAt, s.sourceTimestamp, a.acceptanceDeadline)
+      ? "starting"
+      : "stewardStarting";
+  }
   if (!setup.source.authorizationDispatched) return "requestNotSent";
   if (!d || d.result.phase === "none") return "requestInTransit";
   if (d.result.phase === "authorized")
@@ -75,7 +82,7 @@ export function serviceBookingStage(
 const NEEDS_YOU = new Set<ServiceBookingStage>([
   "requestNotSent",
   "readyToDeposit",
-  // The member starts an accepted booking until the steward's Accept starts it too (DL-193).
+  // The steward's start didn't go, so its fallback, Start the Booking, is the member's (DL-193).
   "starting",
   "readyToClose",
   "returnProposed",
@@ -87,6 +94,7 @@ export const WAITING = new Set<ServiceBookingStage>([
   "open",
   "notEnough",
   "requestInTransit",
+  "stewardStarting",
   "activationInTransit",
   "waitingApproval",
   "confirmingDeposit",
@@ -177,6 +185,7 @@ const PILL: Partial<Record<ServiceBookingStage, ServicePill>> = {
   confirmingDeposit: pill("waitingAcceptance", "neutral"),
   waitingAcceptance: pill("waitingAcceptance", "neutral"),
   termsChanged: pill("termsChanged", "warning"),
+  stewardStarting: pill("accepted", "info"),
   starting: pill("accepted", "info"),
   activationInTransit: pill("accepted", "info"),
   inProgress: pill("booked", "success"),
@@ -237,6 +246,7 @@ export const POSITION: Record<ServiceBookingStage, number> = {
   termsChanged: 3,
   canceling: 3,
   canceled: 3,
+  stewardStarting: 4,
   starting: 4,
   activationInTransit: 4,
   inProgress: 5,

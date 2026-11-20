@@ -23,7 +23,7 @@ export interface VoucherAskRowView {
   /** When the member agreed, what the escrow holds, and the deadline. */
   detail: string;
   /**
-   * Approve… or Accept…, each opening its confirm dialog; none while the booking waits on
+   * Approve… or Accept and Start…, each opening its confirm dialog; none while the booking waits on
    * someone else. `escrow` marks an act on the issuer's escrow (the Safe's approval), which a
    * paused pool doesn't stop, so it stays offered while the pool's own acts wait.
    */

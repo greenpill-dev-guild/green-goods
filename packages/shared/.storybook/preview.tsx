@@ -34,6 +34,7 @@ sb.mock(import("../src/hooks/app/useOnlineStatus.ts"), { spy: true });
 // acts. (usePoolConsoleController.ts itself re-exports a type inline, which the module mock turns
 // into a runtime export that does not exist, so it is never mocked.)
 sb.mock(import("../src/hooks/admin-ui/pool/useVoucherConsole.ts"), { spy: true });
+sb.mock(import("../src/hooks/admin-ui/pool/useVoucherStart.ts"), { spy: true });
 sb.mock(import("../src/hooks/commitment-pooling/useCommitmentMutations.ts"), { spy: true });
 sb.mock(import("../src/hooks/commitment-pooling/useExpiryClock.ts"), { spy: true });
 sb.mock(import("../src/hooks/admin-ui/pool/useProtocolFundingOperationsController.ts"), { spy: true });

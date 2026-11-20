@@ -3,18 +3,38 @@ import OffersABI from "@green-goods/contracts/abis/ICommitmentServiceOffers.json
 import SourceABI from "@green-goods/contracts/abis/VoucherRedemptionModule.json";
 import EscrowABI from "@green-goods/contracts/abis/GnosisVoucherEscrow.json";
 import EntitlementABI from "@green-goods/contracts/abis/VoucherEntitlementModule.json";
+import type { Address } from "../../types/domain";
 import type { ContractCall } from "../transactions/types";
 import type { ServiceLiveRoute } from "./service-access-live-config";
 import type { ServiceAccessAction, ServiceAccessSnapshot } from "./service-access-types";
 
-/** One explicit member approval per call. No role simulator, issuer act or automatic second spend. */
+/**
+ * The two sends the source lets anyone make: recording an accepted booking's activation, and
+ * sending a decision the source already recorded to the escrow. The steward's start uses them for
+ * an activation; nothing else is ever sent for the member.
+ */
+function startsBooking(a: ServiceAccessAction): boolean {
+  return (
+    a.action === "finalizeVoucherActivation" ||
+    (a.action === "dispatchVoucherSetupCommand" && a.kind === "decision")
+  );
+}
+
+/**
+ * One explicit approval per call. No role simulator, issuer act or automatic second spend. Every
+ * call is the member's own, except a booking's start, which `sender` (the steward who accepted it,
+ * DL-193) may send for them from their own account and pay for.
+ */
 export function serviceLiveCall(
   s: ServiceAccessSnapshot,
   a: ServiceAccessAction,
-  route: ServiceLiveRoute
+  route: ServiceLiveRoute,
+  sender: Address = s.key.buyer
 ): ContractCall {
+  if (sender.toLowerCase() !== s.key.buyer.toLowerCase() && !startsBooking(a))
+    throw new Error("Only a booking's start can be sent for its member");
   const source = (functionName: string, args: readonly unknown[], value = 0n): ContractCall => ({
-    account: s.key.buyer,
+    account: sender,
     chainId: s.key.sourceChainId,
     address: route.source.address,
     abi: SourceABI as Abi,

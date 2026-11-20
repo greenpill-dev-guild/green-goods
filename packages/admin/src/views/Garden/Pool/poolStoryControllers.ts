@@ -5,6 +5,7 @@
  */
 
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { VOUCHER_START_IDLE } from "@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController";
 import type {
   CommitmentDialogController,
   PoolFundingControllerView,
@@ -118,6 +119,7 @@ export function storyPoolConsole(
     expire: noop,
     acceptClaim: noop,
     acceptServiceClaim: noop,
+    acceptAndStartBooking: async () => "started",
     declineClaim: noop,
     retryQueued: async () => undefined,
     discardQueued: async () => undefined,
@@ -160,6 +162,7 @@ export function storyPoolConsole(
     claimPhase: () => ({ status: "idle" }),
     claimDecisions: {},
     claimInFlight: false,
+    voucherStartFor: () => VOUCHER_START_IDLE,
     resumePhase: { status: "idle" },
     queuedPhase: () => ({ status: "idle" }),
     isActing: false,

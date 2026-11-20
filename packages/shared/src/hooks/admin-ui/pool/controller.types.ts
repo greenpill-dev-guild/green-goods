@@ -38,7 +38,16 @@ import type {
   VoucherConsoleSnapshot,
   VoucherIssuerReserve,
 } from "../../../modules/commitment-pooling/voucher-console";
+import type { VoucherStartOutcome } from "../../../modules/commitment-pooling/voucher-start";
 import type { CommitmentWorkDecision } from "../../../modules/commitment-pooling/work-decisions";
+import type { VoucherStartProgress } from "./useVoucherStart";
+
+/**
+ * How an Accept and Start ended once the acceptance went: the start's own ending, or
+ * `acceptanceWaiting` when the acceptance is a Safe proposal its signers still have to approve,
+ * so no start could follow it.
+ */
+export type VoucherAcceptAndStartOutcome = VoucherStartOutcome | "acceptanceWaiting";
 import type { CommitmentMetadataV1 } from "../../../modules/commitment-pooling/metadata";
 import type {
   PoolFundingSnapshot,
@@ -86,6 +95,13 @@ export interface PoolConsoleActs {
    * than `now`, and refuses before the wallet while one fails.
    */
   acceptServiceClaim: (ask: VoucherAsk, now: number) => Promise<HexString>;
+  /**
+   * Accept and Start (DL-193): accept the booking as `acceptServiceClaim` does, then send its
+   * start from the steward's own wallet, recording the activation and sending it to the escrow.
+   * A failed acceptance throws; a start that doesn't go resolves with how it ended, since the
+   * booking stays accepted and the member's fallback covers it.
+   */
+  acceptAndStartBooking: (ask: VoucherAsk, now: number) => Promise<VoucherAcceptAndStartOutcome>;
   declineClaim: (commitmentId: bigint, claimant: Address, reason: string) => Promise<HexString>;
   /** Send a creation still queued on this device, as the steward's own tap. */
   retryQueued: (jobId: string) => Promise<void>;
@@ -138,6 +154,11 @@ export interface PoolConsoleController {
   claimDecisions: ClaimDecisions;
   /** An approval is with the wallet or the chain, from this card or the inspector. */
   claimInFlight: boolean;
+  /**
+   * Where this ask's start stands after its Accept and Start: its two sends. Idle for any other
+   * ask, so one booking's sends never show on another's dialog.
+   */
+  voucherStartFor: (commitmentId: bigint, buyer: Address) => VoucherStartProgress;
   /** Where Resume Pool stands. */
   resumePhase: TxActPhase;
   /** Where the send started from this queued row stands. */

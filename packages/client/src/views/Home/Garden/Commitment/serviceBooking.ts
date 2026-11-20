@@ -208,10 +208,11 @@ export function ownServiceOfferView(
  */
 export function bookingNeedsYouOf(
   snapshot: ServiceAccessSnapshot | null | undefined,
-  coreState: ServiceBookingInput["coreState"] | null | undefined
+  coreState: ServiceBookingInput["coreState"] | null | undefined,
+  acceptedAt?: number | null
 ): boolean {
   if (!snapshot || !coreState) return false;
-  const stage = serviceBookingStage({ snapshot, coreState, held: null });
+  const stage = serviceBookingStage({ snapshot, coreState, held: null, acceptedAt });
   return stage !== null && bookingNeedsYou(stage, currentVoucherSetup(snapshot));
 }
 
@@ -334,7 +335,10 @@ export function serviceBookingView(
             : t("rd.a.deposit", { n })
           : kind === "exchange"
             ? t("of.a.exchange")
-            : t(`rd.a.${kind}`),
+            : // A visit delivered in full and one cut short close the same way (DL-192).
+              kind === "close" || kind === "review"
+              ? t("rd.a.confirmVisit")
+              : t(`rd.a.${kind}`),
   });
   const held = input.held ?? 0n;
   // Approved, but the reader holds less than the deposit takes: the deposit would be refused, so

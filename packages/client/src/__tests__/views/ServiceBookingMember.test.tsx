@@ -45,6 +45,8 @@ function lesson(
           : (snapshot.offer?.voucher?.units ??
             snapshot.voucherSetups[0]?.authorization.voucherUnits ??
             vouchers(1)),
+      // At starting the steward's start didn't go: accepted long ago, so the fallback is due.
+      acceptedAt: stage === "starting" ? 0 : undefined,
     },
     intl
   );
@@ -132,7 +134,7 @@ describe("a member's lesson on the promise page", () => {
     ],
     [
       "starting",
-      "You're accepted. Start the booking to fix its terms. Starting doesn't mean the service happened.",
+      "You're accepted, but your booking hasn't started. Start the booking to fix its terms. Starting doesn't mean the service happened.",
     ],
   ] as const)("says who acts next while the booking is at %s", (stage, sentence) => {
     expect(lesson(stage).band.sentence).toBe(sentence);

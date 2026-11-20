@@ -12,6 +12,24 @@ import type {
 const same = (a: string, b: string | null | undefined) => a.toLowerCase() === b?.toLowerCase();
 const uint = (value: bigint, bits = 256) => value >= 0n && value < 1n << BigInt(bits);
 
+/**
+ * The source accepted exactly this setup: its claim, nonce, terms and setup module. Only then may
+ * its activation be recorded, by the member or by whoever starts it for them.
+ */
+export function voucherSetupAcceptedExactly(row: ServiceVoucherSetup): boolean {
+  const a = row.authorization;
+  const accepted = row.source.acceptedEver;
+  return (
+    accepted !== null &&
+    same(accepted.setupId, row.setupId) &&
+    same(accepted.authorizationHash, row.authorizationHash) &&
+    same(accepted.claimHash, a.claimHash) &&
+    accepted.requestNonce === a.requestNonce &&
+    accepted.termsRevision === a.termsRevision &&
+    same(accepted.setupModule, a.sourceModule)
+  );
+}
+
 /** Every recovery belongs to its frozen setup, including a previous claim's unpaid return. */
 export function voucherSetupAvailableActions(
   s: ServiceAccessSnapshot,
@@ -36,17 +54,8 @@ export function voucherSetupAvailableActions(
   const source = s.capabilities.canSendSource;
   const holder = s.capabilities.canSignHolder && same(a.holder, s.capabilities.gnosisHolder);
   const buyer = s.capabilities.canSignSource && same(a.buyer, s.capabilities.sourceBuyer);
-  const accepted = row.source.acceptedEver;
-  const exactAccepted =
-    accepted !== null &&
-    same(accepted.setupId, row.setupId) &&
-    same(accepted.authorizationHash, row.authorizationHash) &&
-    same(accepted.claimHash, a.claimHash) &&
-    accepted.requestNonce === a.requestNonce &&
-    accepted.termsRevision === a.termsRevision &&
-    same(accepted.setupModule, a.sourceModule);
   if (source && row.source.decision === "none") {
-    if (exactAccepted) actions.push("finalizeVoucherActivation");
+    if (voucherSetupAcceptedExactly(row)) actions.push("finalizeVoucherActivation");
     else {
       const current =
         s.coreState === "OFFERED" &&

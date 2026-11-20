@@ -39,7 +39,7 @@ export interface WaitingBookingRowProps {
 /**
  * A booking under way in Review Promises, on the asks' own row: the member who holds it and,
  * for a visit, its day; "Booking · title" under them; the one act it waits for on the right,
- * where Approve… and Accept… sit on an ask; then its pill and line across the row. A booking is
+ * where Approve… and Accept and Start… sit on an ask; then its pill and line across the row. A booking is
  * the member's already, so there is nothing to decline. Once the act goes out, the row keeps
  * its outcome for the visit (DL-067).
  */

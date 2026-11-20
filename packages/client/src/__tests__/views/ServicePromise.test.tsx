@@ -48,6 +48,7 @@ function promise(snapshot: ServiceAccessSnapshot, refetch: () => void, options: 
         hasCoreAct={false}
         isOnline={options.online ?? true}
         onReport={null}
+        confirmKept={null}
         takeUp={null}
       >
         {({ body, bar }) => (

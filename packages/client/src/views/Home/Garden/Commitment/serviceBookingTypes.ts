@@ -24,6 +24,7 @@ export type ServiceBookingStage =
   | "readyToDeposit"
   | "confirmingDeposit"
   | "waitingAcceptance"
+  | "stewardStarting"
   | "starting"
   | "activationInTransit"
   | "inProgress"
@@ -223,6 +224,11 @@ export interface ServiceBookingInput {
    * the delivery was reported; its proof does, so a problem raised after delivery keeps it.
    */
   proofRecorded?: boolean;
+  /**
+   * When the booking was accepted (the promise's `acceptanceAt`), in seconds; null or absent while
+   * unread. The member's Start the Booking waits fifteen minutes from it for the steward's start.
+   */
+  acceptedAt?: number | null;
 }
 
 /** What the page's copy and steps read from one booking, worked out once. */
