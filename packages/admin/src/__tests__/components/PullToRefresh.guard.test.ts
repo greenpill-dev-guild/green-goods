@@ -27,13 +27,22 @@ describe("Hub pull-to-refresh", () => {
     expect(shellRule).toContain("overflow: clip");
     // A stray absolutely positioned element is clipped too, not left to grow the page.
     expect(shellRule).toContain("position: relative");
+    // An overflow utility on the element would win over the rule and leave #root scrollable.
+    expect(source("../index.html")).toMatch(/<div id="root"><\/div>/);
   });
 
-  it("lets a pull past the top of the main scroller chain to the root", () => {
+  it("lets a pull past the top of the main scroller chain to the root, on touch only", () => {
     expect(source("components/Layout/CanvasLayout.tsx")).toContain('overscrollBehaviorY: "auto"');
+    // A trackpad has no gesture to reach, so the root does not bounce under it.
+    expect(css).toMatch(
+      /@media \(hover: hover\) and \(pointer: fine\)\s*\{\s*html\s*\{\s*overscroll-behavior-y: none;/
+    );
   });
 
   it("turns the gesture off while a dialog holds the scroll lock", () => {
-    expect(css).toMatch(/body\[data-scroll-locked\]\s*\{\s*overscroll-behavior-y: none;/);
+    // The root is what runs the gesture, so the lock has to reach html, not only body.
+    expect(css).toMatch(
+      /html:has\(> body\[data-scroll-locked\]\),\s*body\[data-scroll-locked\]\s*\{\s*overscroll-behavior-y: none;/
+    );
   });
 });

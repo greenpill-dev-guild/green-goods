@@ -354,8 +354,18 @@
     overscroll-behavior-y: none;
   }
 
+  /* A mouse or trackpad has no pull-to-refresh, and a Mac's elastic scroll would bounce the
+     whole shell, the app bar with it, past either end of the main scroller. */
+  @media (hover: hover) and (pointer: fine) {
+    html {
+      overscroll-behavior-y: none;
+    }
+  }
+
   /* relative makes #root the containing block of absolutely positioned content too, so
-     the clip also holds a stray one that would otherwise make the document scrollable. */
+     the clip also holds a stray one that would otherwise make the document scrollable. A clip,
+     unlike hidden, cannot be scrolled by code either, so scrollIntoView never shifts the shell.
+     No overflow utility goes on #root in index.html: one would win over this rule. */
   #root {
     position: relative;
     height: 100%;
