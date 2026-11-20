@@ -205,8 +205,10 @@ export function WorkStart({
   );
 }
 
-/** The step before its answer: the guidance card's place and the tiles', as they will land. */
-/** Start while it loads, with the garden line in its place under the info card (DL-185). */
+/**
+ * The step before its answer: the guidance card's place, the garden line under it, and the
+ * tiles', as they will land (DL-185).
+ */
 export function StartSkeleton({ gardenLine = null }: { gardenLine?: ReactNode }) {
   return (
     <div className="flex flex-col gap-4" aria-busy="true" data-component="WorkStartSkeleton">

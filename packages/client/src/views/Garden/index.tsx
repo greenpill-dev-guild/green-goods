@@ -117,7 +117,10 @@ const Work: FC = () => {
     switch (stage) {
       case "start":
         return showSkeleton ? (
-          <StartSkeleton gardenLine={gardenLine} />
+          // While a draft is read, its garden is not settled yet: keep the line's row, not a name.
+          <StartSkeleton
+            gardenLine={gardenLine && <div aria-hidden="true" className="h-[22px]" />}
+          />
         ) : (
           <WorkStart
             start={start}
