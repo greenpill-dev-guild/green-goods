@@ -33,6 +33,9 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const ALWAYS_BUILD_REFS = new Set(["main"]);
 // A branch with no deployment yet is compared with staging instead.
 const FALLBACK_BRANCH = "develop";
+// Branches whose build differs from develop's for the same source (alpha's branding and analytics
+// follow the branch), so their first deployment cannot be judged by comparing with develop.
+const OWN_BUILD_REFS = new Set(["alpha"]);
 const FETCH_TIMEOUT_MS = 20_000;
 
 const TESTS = /\.(test|spec)\.[cm]?[jt]sx?$|(^|\/)__tests__\//;
@@ -133,22 +136,26 @@ export function isInput(site, path) {
 const build = (reason, matches = []) => ({ build: true, reason, matches });
 
 // Verdicts that need no comparison, so the caller can leave git alone.
-function settledWithoutComparing({ site, ref }) {
+function settledWithoutComparing({ site, ref, previous }) {
   if (!Object.hasOwn(SITES, site ?? "")) return build(`unknown site "${site}"`);
   // Without the branch, production cannot be told apart from a preview. Vercel
   // omits it when a project does not expose system environment variables.
   if (!ref) return build("branch unknown (VERCEL_GIT_COMMIT_REF is not set)");
   if (ALWAYS_BUILD_REFS.has(ref)) return build(`${ref} always builds`);
+  if (OWN_BUILD_REFS.has(ref) && !previous) {
+    return build(`the first deployment of ${ref} always builds: its output differs from ${FALLBACK_BRANCH}'s`);
+  }
   return null;
 }
 
 /**
- * The decision, free of git and the environment. `base` and `head` are resolved
- * commit SHAs; `changed` is the list of paths that differ between them, or null
- * when it could not be read.
+ * The decision, free of git and the environment. `previous` is the commit of the
+ * branch's last deployment, if any; `base` and `head` are resolved commit SHAs;
+ * `changed` is the list of paths that differ between them, or null when it could
+ * not be read.
  */
-export function decide({ site, ref, base, head, changed }) {
-  const settled = settledWithoutComparing({ site, ref });
+export function decide({ site, ref, previous, base, head, changed }) {
+  const settled = settledWithoutComparing({ site, ref, previous });
   if (settled) return settled;
   if (!base || !head) return build("no commit to compare with");
   // Usually a redeploy someone asked for, to pick up new environment variables.
@@ -256,10 +263,11 @@ function main() {
   const env = process.env;
   const site = process.argv[2];
   const ref = env.VERCEL_GIT_COMMIT_REF;
+  const previous = env.VERCEL_GIT_PREVIOUS_SHA;
   const say = (line) => process.stdout.write(`vercel-ignore: ${line}\n`);
 
-  const compared = settledWithoutComparing({ site, ref }) ? null : compare(env);
-  const verdict = decide({ site, ref, ...compared });
+  const compared = settledWithoutComparing({ site, ref, previous }) ? null : compare(env);
+  const verdict = decide({ site, ref, previous, ...compared });
   say(`site=${site} ref=${ref ?? "?"}`);
   if (compared) say(compared.note);
   say(`${verdict.build ? "BUILD" : "SKIP"}: ${verdict.reason}`);

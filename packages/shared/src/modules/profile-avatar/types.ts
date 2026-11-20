@@ -43,6 +43,8 @@ export type ProfileAvatarPublishDependencies = {
   onStage?: (stage: "normalizing" | "uploading" | "signing" | "saving") => void;
   now?: () => number;
   getFactoryArgs?: () => Promise<AccountFactoryArgs | undefined>;
+  /** Wraps the signature and the save, the only part that sends; a no-op return skips it. */
+  recordSend?: (run: () => Promise<ProfileAvatarRecord>) => Promise<ProfileAvatarRecord>;
 };
 
 export class ProfileAvatarTransportError extends Error {

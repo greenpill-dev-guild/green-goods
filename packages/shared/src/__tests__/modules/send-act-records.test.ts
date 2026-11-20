@@ -313,13 +313,6 @@ const RECORDED_ELSEWHERE: Record<string, string> = {
   "garden/createGardenOperation.ts": "member changes record admin_member_*",
   "garden/useGardenJoinRequests.ts": "signs an API session, not a send; garden_join_request_*",
   "yield/useHarvestDistribution.ts": "records admin_harvest_distribution_*",
-  // Not yet recorded: hypercert listings, Karma, deployments and profile signatures.
-  "blockchain/useDeploymentRegistry.ts": "follow-up",
-  "garden/useKarmaIntegration.ts": "follow-up",
-  "gardener/useGardenerProfile.ts": "follow-up",
-  "hypercerts/useBatchListForYield.ts": "follow-up",
-  "hypercerts/useMarketplaceApprovals.ts": "follow-up",
-  "profile/useProfileAvatar.ts": "follow-up",
 };
 
 const SEND_PRIMITIVE =

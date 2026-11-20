@@ -354,11 +354,21 @@ export function mayStillLand(error: unknown): boolean {
  * its limit, or the answer was a proposal or a lost reply): in the words `classifyTxError` uses,
  * never as failed, nor as a timeout that invites trying again (PRD-1551).
  */
+/** The pending send's own answer, on the error or on one it wraps as its `cause`. */
+function pendingSubmission(error: unknown, depth = 0): { awaiting?: string } | undefined {
+  if (depth > 4 || !(error instanceof Error)) return undefined;
+  const { submission, cause } = error as Error & {
+    submission?: { awaiting?: string };
+    cause?: unknown;
+  };
+  return submission ?? pendingSubmission(cause, depth + 1);
+}
+
 export function parseUnconfirmedSend(error: unknown, raw: string): ParsedContractError | null {
   if (!isUnconfirmedTxError(error)) return null;
-  // A Safe proposal waits for the Safe's owners, not the network, and says so.
-  const submission = (error as { submission?: { awaiting?: string } }).submission;
-  if (submission?.awaiting === "safe-signers")
+  // A Safe proposal waits for the Safe's owners, not the network, and says so, even when a
+  // stage error wraps it.
+  if (pendingSubmission(error)?.awaiting === "safe-signers")
     return {
       raw,
       name: "SafeProposalPending",

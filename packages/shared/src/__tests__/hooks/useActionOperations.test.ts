@@ -20,6 +20,7 @@ import type { TransactionSender } from "../../modules/transactions/types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useActionRegistrationStore } from "../../stores/useActionRegistrationStore";
 import { useActionOperations } from "../../hooks/action/useActionOperations";
+import { captureSendActs } from "../test-utils/send-acts";
 
 vi.mock("../../modules/app/analytics-events", () => ({
   trackAdminActionCreateFailed: vi.fn(),
@@ -289,6 +290,44 @@ describe("useActionOperations", () => {
       const response = await runInAct(() => result.current.updateActionTitle("1", "New title"));
       expect(response.success).toBe(false);
       expect(send).not.toHaveBeenCalled();
+    });
+
+    it("records each registration and edit as one act, ending as it settled (PRD-1571)", async () => {
+      const { result } = renderHook(() => useActionOperations(11155111));
+      const { acts, sent } = await captureSendActs(async () => {
+        vi.mocked(simulateTransaction).mockResolvedValue({ success: true });
+        await runInAct(() =>
+          result.current.registerAction({
+            startTime: 1234567890,
+            endTime: 1234567900,
+            title: "Waste Repair Event",
+            slug: "waste.repair_event",
+            domain: 3,
+            instructions: "bafy-test-cid",
+            capitals: [1, 5],
+            media: ["bafy-media-cid"],
+          })
+        );
+        vi.mocked(simulateTransaction).mockResolvedValueOnce({
+          success: false,
+          error: { name: "SimulationError", message: "Transaction would revert", raw: "revert" },
+        });
+        await runInAct(() => result.current.updateActionTitle("1", "Refused title"));
+        send.mockResolvedValueOnce({ hash: "0xopaque", sponsored: false, confirmation: "pending" });
+        await runInAct(() => result.current.updateActionTitle("1", "Pending title"));
+      });
+
+      expect(acts).toEqual([
+        ["send_act_started", "action_register", undefined],
+        ["send_act_ended", "action_register", "confirmed"],
+        ["send_act_started", "action_edit", undefined],
+        ["send_act_ended", "action_edit", "failed"],
+        ["send_act_started", "action_edit", undefined],
+        ["send_act_ended", "action_edit", "confirming"],
+      ]);
+      expect(sent).toContain("simulationerror");
+      for (const text of ["waste repair", "refused title", "pending title", "0xopaque"])
+        expect(sent).not.toContain(text);
     });
 
     it("does not report an opaque pending submission as confirmed", async () => {

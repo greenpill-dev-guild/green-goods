@@ -13,6 +13,7 @@ import type { Address, Garden } from "../../../types/domain";
 import type { KarmaIntegrationProjection } from "../../../types/karma";
 import { createTestQueryClient } from "../../test-utils/query-client";
 import { renderHookWithProviders } from "../../test-utils/render-helpers";
+import { captureSendActs } from "../../test-utils/send-acts";
 import { createFakeBatchingSender } from "../../test-utils/transaction-fakes";
 
 const GARDEN = "0x1111111111111111111111111111111111111111" as Address;
@@ -197,9 +198,18 @@ describe("useKarmaIntegration query and mutation seams", () => {
     const { result } = renderHookWithProviders(() => useKarmaIntegration(garden), { queryClient });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    await act(async () => {
-      await expect(result.current.reconcile()).rejects.toBe(partialFailure);
-    });
+    const { acts, sent } = await captureSendActs(() =>
+      act(async () => {
+        await expect(result.current.reconcile()).rejects.toBe(partialFailure);
+      })
+    );
+    // The first call landed before the second failed: the act keeps both (PRD-1571).
+    expect(acts).toEqual([
+      ["send_act_started", "karma_sync", undefined],
+      ["send_act_ended", "karma_sync", "partial"],
+    ]);
+    expect(sent).toContain('"copies_confirmed":1');
+    expect(sent).toContain('"copies_failed":1');
 
     expect(mocks.sendContractCall).toHaveBeenNthCalledWith(
       1,
@@ -257,8 +267,14 @@ describe("useKarmaIntegration query and mutation seams", () => {
     const { result } = renderHookWithProviders(() => useKarmaIntegration(garden));
     await waitFor(() => expect(result.current.signatures).toBe(1));
 
-    await act(() => result.current.reconcile());
+    const { acts, sent } = await captureSendActs(() => act(() => result.current.reconcile()));
 
+    // The transaction landed, so the act did, even though one sync inside it failed (PRD-1571).
+    expect(acts).toEqual([
+      ["send_act_started", "karma_sync", undefined],
+      ["send_act_ended", "karma_sync", "confirmed"],
+    ]);
+    for (const value of [GARDEN, OWNER]) expect(sent).not.toContain(value.slice(2).toLowerCase());
     expect(sender.submitAtomicBatch).toHaveBeenCalledOnce();
     expect(vi.mocked(sender.submitAtomicBatch!).mock.calls[0][0]).toEqual([
       expect.objectContaining({ functionName: "reconcileProject", args: [GARDEN] }),
@@ -269,5 +285,42 @@ describe("useKarmaIntegration query and mutation seams", () => {
     expect(mocks.toast.error).toHaveBeenCalledWith(
       expect.objectContaining({ description: expect.stringMatching(/^One part of this sync/) })
     );
+  });
+
+  it("ends a listed sync still confirming while nobody can say it landed (PRD-1571)", async () => {
+    mocks.listed = true;
+    mocks.sender = createFakeBatchingSender(OWNER);
+    const { result } = renderHookWithProviders(() => useKarmaIntegration(garden));
+    await waitFor(() => expect(result.current.signatures).toBe(1));
+
+    const { acts } = await captureSendActs(() => act(() => result.current.reconcile()));
+
+    expect(acts).toEqual([
+      ["send_act_started", "karma_sync", undefined],
+      ["send_act_ended", "karma_sync", "confirming"],
+    ]);
+  });
+
+  it("keeps a sequential call still awaiting its receipt as confirming when a later one fails (PRD-1571)", async () => {
+    const failure = new Error("access transaction failed");
+    mocks.sendContractCall
+      .mockResolvedValueOnce({
+        hash: `0x${"66".repeat(32)}`,
+        sponsored: false,
+        confirmation: "pending",
+      })
+      .mockRejectedValueOnce(failure);
+    const { result } = renderHookWithProviders(() => useKarmaIntegration(garden));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    const { acts, sent } = await captureSendActs(() =>
+      act(async () => {
+        await expect(result.current.reconcile()).rejects.toBe(failure);
+      })
+    );
+
+    expect(acts.at(-1)).toEqual(["send_act_ended", "karma_sync", "partial"]);
+    expect(sent).toContain('"copies_confirming":1');
+    expect(sent).not.toContain('"copies_confirmed"');
   });
 });
