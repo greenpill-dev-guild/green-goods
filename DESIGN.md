@@ -17,6 +17,7 @@ colors:
   on-tertiary-dark: "#0C0A09"
   amber: "#D97706"
   sky: "#3B82F6"
+  violet: "#5B2CC9"
   neutral: "#FAF8F5"
   neutral-dark: "#110C08"
 typography:
@@ -108,6 +109,9 @@ components:
     typography: "{typography.label-md}"
     padding: "{spacing.sm}"
     rounded: "{rounded.full}"
+  alpha-install-ground:
+    backgroundColor: "{colors.violet}"
+    textColor: "{colors.on-tertiary-action}"
   button-primary:
     backgroundColor: "{colors.tertiary-action}"
     textColor: "{colors.on-tertiary-action}"
@@ -221,6 +225,7 @@ Four roles, defined by **how much of the screen each occupies**, not a palette r
 **Supporting accents** (situational, not core hierarchy):
 - **Amber** #D97706: Warnings, seasonal indicators, secondary warmth
 - **Sky** #3B82F6: Information, external links, evaluation/assessment context
+- **Violet** #5B2CC9: Marks the alpha environment only (its install icon, title bar and splash); never a product accent
 
 **State colors:** Information (Sky), Warning (Amber), Error (red), Success (Tertiary green).
 

@@ -18,7 +18,8 @@
     "tertiary-action": "#1A7544",
     "tertiary-action-hover": "#16643B",
     "tertiary-dark": "#C2F5DA",
-    "tertiary-dark-hover": "#84EBB4"
+    "tertiary-dark-hover": "#84EBB4",
+    "violet": "#5B2CC9"
   },
   "rounded": {
     "2xl": "24px",
