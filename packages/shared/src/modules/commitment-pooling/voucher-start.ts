@@ -9,6 +9,7 @@
  */
 
 import type { Hex } from "viem";
+import { mayStillLand } from "../../utils/errors/tx-error-classifier";
 import { logger } from "../app/logger";
 import type { ContractCall, TxResult } from "../transactions/types";
 import type { ServiceAccessSnapshot } from "./service-access-types";
@@ -20,15 +21,17 @@ export const VOUCHER_START_FALLBACK_SECONDS = 15 * 60;
 
 /**
  * Whether the member's fallback start is due: fifteen minutes after acceptance, in the source
- * chain's time. When either time is unknown the fallback shows, since it exists for the start that
- * didn't go; the shared selector still refuses a start that is no longer needed.
+ * chain's time. An acceptance whose time the index hasn't read yet has only just landed, while the
+ * steward's start is likely going out, so the fallback waits: the source charges each send of a
+ * start's decision its own fee, so two at once would pay twice. With the acceptance's time read but
+ * the chain's clock unknown, the fallback shows, since it exists for the start that didn't go.
  */
 export function voucherStartFallbackDue(
   acceptedAt: number | null | undefined,
   now: bigint | number | null | undefined
 ): boolean {
-  if (acceptedAt === null || acceptedAt === undefined || now === null || now === undefined)
-    return true;
+  if (acceptedAt === null || acceptedAt === undefined) return false;
+  if (now === null || now === undefined) return true;
   return Number(now) - acceptedAt >= VOUCHER_START_FALLBACK_SECONDS;
 }
 
@@ -143,8 +146,10 @@ const READ_AGAIN_MS = 2_000;
 
 /**
  * Runs the start: each send only when a fresh read offers it, each its own approval. A read that
- * still offers the send that just landed is read again, never sent twice. A failure after the
- * acceptance never undoes it: the booking stays accepted and the fallback covers the start.
+ * trails a send that just landed (the acceptance, or the start's own record) is read again, never
+ * acted on: nothing is sent twice. A send that may still land is said to be confirming, never
+ * failed. A failure after the acceptance never undoes it: the booking stays accepted and the
+ * fallback covers the start.
  */
 export async function runVoucherStart(
   deps: VoucherStartDependencies
@@ -162,12 +167,16 @@ export async function runVoucherStart(
     }
     const { state, call } = next;
     if (state.kind === "started") return "started";
-    if (state.kind !== "send" || !call) return "notSent";
-    const step = voucherStartStep(state.act);
-    if (step === landed) {
+    // The acceptance has its receipt; a read that doesn't show it yet trails the chain.
+    const trailing =
+      state.kind === "notAccepted" ||
+      (state.kind === "send" && voucherStartStep(state.act) === landed);
+    if (trailing) {
       await wait(READ_AGAIN_MS);
       continue;
     }
+    if (state.kind !== "send" || !call) return "notSent";
+    const step = voucherStartStep(state.act);
     deps.report({
       step,
       status: "signing",
@@ -177,6 +186,11 @@ export async function runVoucherStart(
     try {
       result = await deps.send(call, step);
     } catch (error) {
+      // Past its limit, or stopped while the wallet may still hold it (PRD-1551): not a failure.
+      if (mayStillLand(error)) {
+        deps.report({ step, status: "confirming" });
+        return "unconfirmed";
+      }
       logger.warn("[voucher-start] a send of the start didn't go through", { error, step });
       deps.report({ step, status: "failed" });
       return "notSent";

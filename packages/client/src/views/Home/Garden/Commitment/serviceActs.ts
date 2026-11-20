@@ -277,9 +277,10 @@ export async function runServiceAct(
 
 /**
  * Confirm Your Visit (DL-192): approve the split, send its transfer, then confirm the promise was
- * kept, in that order, each its own approval. Kept runs only once the split's act is done: a prompt
- * declined after the split was fixed stops there, and the page says where the close stopped. Kept's
- * own failure is its act's to report.
+ * kept, in that order, each its own approval. Kept runs only once the split's act is done and no
+ * transfer it fixed failed: a prompt declined after the split was fixed stops there, and a failed
+ * transfer waits for its Retry Transfer, while the page says where the close stopped. A transfer
+ * still on its way doesn't hold kept back. Kept's own failure is its act's to report.
  */
 export async function runConfirmVisit(
   snapshot: ServiceAccessSnapshot,
@@ -287,9 +288,16 @@ export async function runConfirmVisit(
   send: (action: ServiceAccessAction) => Promise<{ snapshot: ServiceAccessSnapshot }>,
   confirmKept: (() => Promise<unknown>) | null
 ): Promise<ServiceActEnd> {
-  const end = await runServiceAct(snapshot, splitStep(split), send);
+  let latest = snapshot;
+  const end = await runServiceAct(snapshot, splitStep(split), async (action) => {
+    const result = await send(action);
+    latest = result.snapshot;
+    return result;
+  });
+  const final = currentVoucherSetup(latest)?.destination?.finalAllocation;
+  const transferFailed = final?.release.state === "failed" || final?.refund.state === "failed";
   // Kept's own mutation says when it fails; the promise's Confirm It Was Kept then stays offered.
-  if (end === "done" && confirmKept) await confirmKept().catch(() => undefined);
+  if (end === "done" && !transferFailed && confirmKept) await confirmKept().catch(() => undefined);
   return end;
 }
 

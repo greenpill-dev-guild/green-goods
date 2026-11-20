@@ -70,11 +70,17 @@ function view(
       issuer: ISSUER[service],
       approval: options.approval ?? APPROVAL[service],
       held: options.held ?? (stage === "notEnough" ? vouchers(2) : vouchers(10)),
+      acceptedAt: acceptedAtFor(stage),
     },
     intl
   );
   if (!result) throw new Error(`No booking view for ${service} ${stage}`);
   return result;
+}
+
+/** At starting the steward's start didn't go: accepted long ago, so the member's fallback is due. */
+function acceptedAtFor(stage: BookingStoryStage): number | undefined {
+  return stage === "starting" ? 0 : undefined;
 }
 
 describe("a voucher offer as the person who made it reads it", () => {
@@ -789,7 +795,9 @@ describe("voucher booking on the promise page", () => {
     ["closed", false],
   ] as const)("says a booking row needs the reader at %s: %s", (stage, needsYou) => {
     const snapshot = bookingStorySnapshot("hubDay", stage);
-    expect(bookingNeedsYouOf(snapshot, bookingStoryCoreState("hubDay", stage))).toBe(needsYou);
+    expect(
+      bookingNeedsYouOf(snapshot, bookingStoryCoreState("hubDay", stage), acceptedAtFor(stage))
+    ).toBe(needsYou);
     expect(view("hubDay", stage).band.needsYou).toBe(needsYou);
   });
 
@@ -1000,17 +1008,52 @@ describe("a member's act on a voucher booking", () => {
     const ready = () => bookingStorySnapshot("hubDay", "readyToClose");
     const split = view("hubDay", "readyToClose").split!;
 
-    it("approves the split and runs its transfer before it confirms the promise kept", async () => {
-      const order: string[] = [];
-      const send = async (action: ServiceAccessAction) => {
+    /** The read after each write: the split fixed with its transfer unsent, then the transfer's end. */
+    const readAfter = (transfer: "succeeded" | "failed" | "pending") => (writes: number) => {
+      const fixed = bookingStorySnapshot("hubDay", "transfersPending");
+      if (writes === 1) return fixed;
+      const ended = structuredClone(fixed);
+      const final = ended.voucherSetups[0]!.destination!.finalAllocation!;
+      final.release = { ...final.release, state: transfer, attempts: 1n };
+      return ended;
+    };
+    const writer = (read: (writes: number) => ServiceAccessSnapshot, order: string[]) => {
+      let writes = 0;
+      return async (action: ServiceAccessAction) => {
+        writes += 1;
         order.push(action.action);
-        return { snapshot: bookingStorySnapshot("hubDay", "closed") };
+        return { snapshot: read(writes) };
       };
+    };
+
+    it("approves the split and sends its transfer before it confirms the promise kept", async () => {
+      const order: string[] = [];
       const kept = async () => {
         order.push("kept");
       };
+      const send = writer(readAfter("succeeded"), order);
       expect(await runConfirmVisit(ready(), split, send, kept)).toBe("done");
-      expect(order).toEqual(["finalizeVoucherAllocation", "kept"]);
+      expect(order).toEqual(["finalizeVoucherAllocation", "executeVoucherFinalLeg", "kept"]);
+    });
+
+    it("confirms kept while the transfer is on its way", async () => {
+      const order: string[] = [];
+      const kept = vi.fn(async () => {
+        order.push("kept");
+      });
+      const send = writer(readAfter("pending"), order);
+      expect(await runConfirmVisit(ready(), split, send, kept)).toBe("done");
+      expect(order.at(-1)).toBe("kept");
+    });
+
+    // A return stuck in a failed transfer isn't a kept promise: Retry Transfer comes first.
+    it("never confirms kept after its transfer failed", async () => {
+      const order: string[] = [];
+      const kept = vi.fn();
+      const send = writer(readAfter("failed"), order);
+      expect(await runConfirmVisit(ready(), split, send, kept)).toBe("done");
+      expect(order).toEqual(["finalizeVoucherAllocation", "executeVoucherFinalLeg"]);
+      expect(kept).not.toHaveBeenCalled();
     });
 
     it.each([
@@ -1066,7 +1109,7 @@ describe("a member's act on a voucher booking", () => {
       expect(booking.primary).toBeNull();
       expect(booking.band.needsYou).toBe(false);
       expect(booking.band.sentence).toBe(
-        "Tech and Sun accepted you and is starting your booking. There's nothing for you to do."
+        "Tech and Sun accepted you. Your booking should start within 15 minutes. If it doesn't, you can start it here."
       );
       expect(booking.tracker).toMatchObject({ at: 3, waiting: "waiting on Tech and Sun" });
       expect(
@@ -1085,8 +1128,26 @@ describe("a member's act on a voucher booking", () => {
       ).toBe(true);
     });
 
-    it("offers it at once when the acceptance's time hasn't been read", () => {
-      expect(view("hubDay", "starting").stage).toBe("starting");
+    // The index trails the chain right after acceptance, while the steward's start is going out: a
+    // second send of the decision would pay its fee twice.
+    it("waits while the acceptance's time hasn't been read", () => {
+      const snapshot = accepted();
+      const booking = serviceBookingView(
+        {
+          snapshot,
+          coreState: bookingStoryCoreState("hubDay", "starting"),
+          issuer: ISSUER.hubDay,
+          approval: APPROVAL.hubDay,
+          held: vouchers(10),
+          acceptedAt: null,
+        },
+        intl
+      )!;
+      expect(booking.stage).toBe("stewardStarting");
+      expect(booking.primary).toBeNull();
+      expect(bookingNeedsYouOf(snapshot, bookingStoryCoreState("hubDay", "starting"), null)).toBe(
+        false
+      );
     });
   });
 
@@ -1108,6 +1169,7 @@ describe("a member's act on a voucher booking", () => {
           issuer: ISSUER.hubDay,
           approval: APPROVAL.hubDay,
           held: vouchers(10),
+          acceptedAt: acceptedAtFor("starting"),
         },
         intl
       );

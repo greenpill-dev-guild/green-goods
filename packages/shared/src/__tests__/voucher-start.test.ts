@@ -269,7 +269,31 @@ describe("runVoucherStart", () => {
     expect(events.at(-1)).toEqual({ step: "record", status: "failed" });
   });
 
-  it("sends nothing while the acceptance hasn't landed on the source", async () => {
+  // Past its limit, or stopped while the wallet may still hold it (PRD-1551).
+  it.each([
+    "ReceiptWaitLimitError",
+    "WalletAnswerAbandonedError",
+  ])("says a send that may still land is confirming after a %s, never failed", async (name) => {
+    const { deps, events } = harness(
+      [sendOf("record")],
+      [Object.assign(new Error(name), { name })]
+    );
+    await expect(runVoucherStart(deps)).resolves.toBe("unconfirmed");
+    expect(events.at(-1)).toEqual({ step: "record", status: "confirming" });
+  });
+
+  // The acceptance has its receipt, so a read that doesn't show it yet trails the chain.
+  it("reads again when the first read trails the acceptance, then starts", async () => {
+    const { deps, sent } = harness(
+      [{ kind: "notAccepted" }, sendOf("record"), sendOf("send"), { kind: "started" }],
+      [landed("0x01"), landed("0x02")]
+    );
+    await expect(runVoucherStart(deps)).resolves.toBe("started");
+    expect(sent).toEqual(["record", "dispatch"]);
+    expect(deps.wait).toHaveBeenCalledTimes(1);
+  });
+
+  it("sends nothing while the acceptance never shows on the source", async () => {
     const { deps, sent } = harness([{ kind: "notAccepted" }], []);
     await expect(runVoucherStart(deps)).resolves.toBe("notSent");
     expect(sent).toEqual([]);
@@ -300,8 +324,13 @@ describe("voucherStartFallbackDue", () => {
     ).toBe(true);
   });
 
-  it("offers the fallback when the acceptance's time or the chain's time is unknown", () => {
-    expect(voucherStartFallbackDue(null, 5n)).toBe(true);
+  // An unread acceptance has only just landed, and the steward's start is likely going out.
+  it("waits while the acceptance's time is unread", () => {
+    expect(voucherStartFallbackDue(null, BigInt(acceptedAt + 3_600))).toBe(false);
+    expect(voucherStartFallbackDue(undefined, null)).toBe(false);
+  });
+
+  it("offers the fallback when only the chain's time is unknown", () => {
     expect(voucherStartFallbackDue(acceptedAt, null)).toBe(true);
   });
 

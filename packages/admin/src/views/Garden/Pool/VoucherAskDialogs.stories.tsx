@@ -133,7 +133,7 @@ export const AcceptBooking: Story = {
     await expect(checks.querySelectorAll('[data-holds="true"]')).toHaveLength(4);
     // Three approvals and the start's network fee, before the confirm (DL-193).
     await expect(
-      dialog.getByText("Your wallet will ask you to approve three times.")
+      dialog.getByText("Your wallet will ask you to approve up to three times.")
     ).toBeVisible();
     await expect(dialog.getByText(/Network fee: about 0\.000041 ETH/)).toBeVisible();
     await expect(dialog.getByRole("button", { name: "Accept and Start" })).toBeEnabled();

@@ -9,8 +9,9 @@ import type { ServiceLiveRoute } from "./service-access-live-config";
 import type { ServiceAccessAction, ServiceAccessSnapshot } from "./service-access-types";
 
 /**
- * A booking's start, which the source lets anyone send once the booking is accepted: recording its
- * activation, then sending that decision to the escrow. Nothing else is sent for the member.
+ * The two sends the source lets anyone make: recording an accepted booking's activation, and
+ * sending a decision the source already recorded to the escrow. The steward's start uses them for
+ * an activation; nothing else is ever sent for the member.
  */
 function startsBooking(a: ServiceAccessAction): boolean {
   return (

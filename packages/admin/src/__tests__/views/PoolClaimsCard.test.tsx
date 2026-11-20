@@ -297,7 +297,7 @@ describe("PoolClaimsCard (Review Promises)", () => {
       ).toHaveLength(4);
       // Three approvals, said up front, with the start's network fee before the confirm (DL-193).
       expect(
-        within(dialog).getByText("Your wallet will ask you to approve three times.")
+        within(dialog).getByText("Your wallet will ask you to approve up to three times.")
       ).toBeInTheDocument();
       const sends = within(dialog).getByTestId("voucher-accept-start");
       expect(

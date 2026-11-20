@@ -264,7 +264,7 @@ export function VoucherAcceptDialog({
           }}
           note={formatMessage({
             id: "hub.garden.pool.voucher.acceptStart.wallet",
-            defaultMessage: "Your wallet will ask you to approve three times.",
+            defaultMessage: "Your wallet will ask you to approve up to three times.",
           })}
           progress={null}
         >
