@@ -503,6 +503,8 @@ describe("PoolClaimsCard (Review Promises)", () => {
 
         const row = await screen.findByTestId("pool-booking-43");
         await waitFor(() => expect(within(row).getByText("Reported")).toBeInTheDocument());
+        // The pill names a person, so it can truncate and carries its words as a title (Rule 4).
+        expect(within(row).getByTitle("Waiting for Mara to confirm")).toBeInTheDocument();
         view.rerender({}, bookingsFor([]));
         expect(within(screen.getByTestId("pool-booking-43")).getByText("Reported")).toBeVisible();
         expect(screen.queryByRole("button", { name: "Report Visit…" })).not.toBeInTheDocument();

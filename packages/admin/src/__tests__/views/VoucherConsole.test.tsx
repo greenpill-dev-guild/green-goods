@@ -365,7 +365,8 @@ describe("the issuer's acts in the Promises console", () => {
     const list = screen.getByTestId("pool-commitments");
     expect(within(list).queryByRole("button", { name: /Report Visit|Propose Return/ })).toBeNull();
     const row = screen.getByTestId("pool-commitment-43");
-    expect(within(row).getByText("Mara")).toBeInTheDocument();
+    // A name can be long: it truncates in the right slot and carries itself as a title (Rule 4).
+    expect(within(row).getByText("Mara")).toHaveAttribute("title", "Mara");
     expect(within(row).getByText("booked")).toBeInTheDocument();
     expect(within(row).getByText(/Takes 1 Green Goods voucher/)).toBeInTheDocument();
     expect(screen.getByTestId("pool-booking-43")).toBeInTheDocument();

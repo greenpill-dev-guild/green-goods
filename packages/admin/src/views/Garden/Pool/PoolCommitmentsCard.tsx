@@ -364,6 +364,7 @@ export function PoolCommitmentsCard({
                     bookedBy && !slotTaken
                       ? {
                           value: bookedBy,
+                          truncate: true,
                           caption: formatMessage({
                             id: "hub.garden.pool.voucher.row.holder",
                             defaultMessage: "booked",

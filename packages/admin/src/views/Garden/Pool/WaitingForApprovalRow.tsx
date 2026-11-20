@@ -363,16 +363,21 @@ export function QueueRowFrame({
       <div className="flex min-h-7 items-center justify-end gap-1">{action}</div>
       {tag ? (
         <p className="col-span-2 mt-1 flex min-w-0 items-center gap-2 px-1">
+          {/* The pill can name a person, so it gives way too, after the line beside it. */}
           <StatusBadge
             variant={tag.tag.tone}
             size="sm"
             showIcon={false}
-            className="shrink-0 whitespace-nowrap"
+            className="min-w-0 max-w-full whitespace-nowrap"
+            title={tag.tag.label}
           >
-            {tag.tag.label}
+            <span className="min-w-0 truncate">{tag.tag.label}</span>
           </StatusBadge>
           {tag.detail ? (
-            <span className="min-w-0 truncate type-meta text-text-soft" title={tag.detail}>
+            <span
+              className="min-w-0 shrink-[10] truncate type-meta text-text-soft"
+              title={tag.detail}
+            >
               {tag.detail}
             </span>
           ) : null}
