@@ -59,7 +59,7 @@ export const WithFeedbackAndNavigation: Story = {
   args: {
     feedback: (
       <p role="alert" className="type-body text-error-dark">
-        Your wallet app didn't open. Try again, or sign in with a passkey.
+        {"Your wallet app didn't open. Try again, or sign in with a passkey."}
       </p>
     ),
     navigation: (
