@@ -48,7 +48,7 @@ interface GardenGardenersProps {
 
 /** Which members the list shows: everyone, or the holders of one role. */
 type RoleFilter = "all" | "steward" | "gardener";
-/** The list's order: stewards first as the garden lists them, or by when each member joined. */
+/** The list's order: by each member's highest role, or by when each member joined. */
 type MemberSort = "role" | "newest" | "oldest";
 const ROLE_FILTERS: readonly RoleFilter[] = ["all", "steward", "gardener"];
 const MEMBER_SORTS: readonly MemberSort[] = ["role", "newest", "oldest"];
@@ -115,7 +115,14 @@ function visibleMembers(
   const matching = members.filter(
     (member) => filter === "all" || heldRoles(member, garden, history(member)).includes(filter)
   );
-  if (sort === "role") return matching;
+  if (sort === "role") {
+    // Highest held role first, by GARDEN_ROLE_ORDER; the garden's own listing order within one.
+    const rank = (member: GardenMember) => {
+      const highest = heldRoles(member, garden, history(member))[0];
+      return highest ? GARDEN_ROLE_ORDER.indexOf(highest) : GARDEN_ROLE_ORDER.length;
+    };
+    return [...matching].sort((a, b) => rank(a) - rank(b));
+  }
   const joinedAt = (member: GardenMember) => history(member)?.joinedAt ?? null;
   return [...matching].sort((a, b) => {
     const first = joinedAt(a);

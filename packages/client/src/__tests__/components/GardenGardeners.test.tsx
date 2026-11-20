@@ -486,6 +486,44 @@ describe("GardenGardeners", () => {
     expect(names()).toEqual(["Member 2", "Member 1"]);
   });
 
+  it("orders Role order by each member's highest role, from the garden's lists or the history", async () => {
+    vi.mocked(useGardenMemberHistory).mockReturnValue({
+      members: [
+        {
+          garden: garden.id,
+          account: members[2].account,
+          joinedAt: Date.UTC(2026, 5, 12, 12),
+          memberSince: Date.UTC(2026, 5, 12, 12),
+          // A steward the history knows of before the garden's lists do.
+          roleSince: { gardener: Date.UTC(2026, 5, 12, 12), steward: Date.UTC(2026, 8, 1, 12) },
+        },
+      ],
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as ReturnType<typeof useGardenMemberHistory>);
+    renderWithProviders(
+      <TestIntl>
+        <GardenGardeners
+          garden={{ ...garden, owners: [members[3].account] }}
+          members={[{ ...members[0], isSteward: true }, members[1], members[2], members[3]]}
+        />
+      </TestIntl>
+    );
+    const names = () =>
+      screen
+        .getAllByRole("button", { name: /Member \d/ })
+        .map((row) => /Member \d/.exec(row.textContent ?? "")?.[0]);
+
+    // Owner first, then the stewards in the garden's order, then the gardener.
+    expect(names()).toEqual(["Member 3", "Member 0", "Member 2", "Member 1"]);
+    // The history-only steward is under Stewards too.
+    await userEvent
+      .setup()
+      .selectOptions(screen.getByRole("combobox", { name: "Role" }), "steward");
+    expect(names()).toEqual(["Member 0", "Member 2"]);
+  });
+
   it("keeps the leave action in Profile", () => {
     renderWithProviders(
       <IntlProvider locale="en" messages={en}>
