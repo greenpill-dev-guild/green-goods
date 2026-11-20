@@ -23,7 +23,7 @@ import { TopNav } from "@/components/Navigation";
 import { FixedBar } from "../FixedBar";
 
 /** The four markers a booking shows, in the tracker Submit Work uses. */
-const MARKERS = ["Request", "Deposit", "Visit", "Done"];
+const MARKERS = ["Book", "Deposit", "Service", "Done"];
 
 type SheetId = "book" | "deposit" | "confirm" | "split";
 
@@ -79,7 +79,7 @@ export const PROPOSED_HUB_DAY_STEPS: readonly ProposedStep[] = [
     secondary: "Cancel Booking",
   },
   {
-    caption: "Moment 2. A notice brought Lina back: the marker is filled because the step is hers.",
+    caption: "Moment 2. Lina came back to deposit: the marker is green because the step is hers.",
     at: 2,
     pill: { label: "Deposit due", tone: "warning" },
     band: "attention",
@@ -121,7 +121,7 @@ export const PROPOSED_HUB_DAY_STEPS: readonly ProposedStep[] = [
     done: 5,
   },
   {
-    caption: "Booked. The Visit marker is Lina's: she goes to the hub.",
+    caption: "Booked. The Service marker is Lina's: she goes to the hub.",
     next: "Tech and Sun reports the visit",
     at: 3,
     pill: { label: "Booked", tone: "success" },
