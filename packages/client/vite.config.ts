@@ -16,6 +16,7 @@ import {
 import {
   assertEnvParity,
   assertSentryDsnResolvable,
+  clearAlphaAnalyticsKeys,
   dropVercelFrameworkVariables,
 } from "../../scripts/lib/env-parity.mjs";
 import { resolveTunnelHmrConfig } from "../../scripts/lib/vite-tunnel-hmr.js";
@@ -248,6 +249,9 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     });
     assertSentryDsnResolvable({ app: "client", sentryDsn, env: process.env });
   }
+  // After the parity check, which would warn about the keys it empties: alpha sends no
+  // product analytics.
+  clearAlphaAnalyticsKeys(process.env);
   const sentryRelease = `green-goods-client@${shortAppVersion}`;
   const indexerProxyTarget =
     process.env.VITE_ENVIO_INDEXER_URL?.trim() || "http://localhost:3006/v1/graphql";

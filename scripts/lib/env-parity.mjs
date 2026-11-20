@@ -104,3 +104,20 @@ export function dropVercelFrameworkVariables(env = process.env) {
     if (key.startsWith("VITE_VERCEL_")) delete env[key];
   }
 }
+
+/** The Vercel branch that serves alpha.greengoods.app and alpha.admin.greengoods.app. */
+const ALPHA_BRANCH = "alpha";
+// The Hub falls back to the App's key when its own is empty, so both go.
+const ANALYTICS_KEYS = ["VITE_POSTHOG_KEY", "VITE_POSTHOG_ADMIN_KEY"];
+
+/**
+ * Alpha carries experiments shown to a few testers, and PostHog labels events by chain rather
+ * than by deployment, so alpha's sessions would land in the product numbers as production's.
+ * An empty key keeps PostHog off; an empty value, unlike a deleted one, also outranks any env
+ * file Vite reads. Call it before anything reads the keys. Returns whether this build is alpha's.
+ */
+export function clearAlphaAnalyticsKeys(env = process.env) {
+  if (env.VERCEL_GIT_COMMIT_REF !== ALPHA_BRANCH) return false;
+  for (const key of ANALYTICS_KEYS) env[key] = "";
+  return true;
+}

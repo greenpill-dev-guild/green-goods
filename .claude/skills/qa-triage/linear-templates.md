@@ -200,7 +200,7 @@ review actions; two cross-surface failures trace to shared date handling.">
 
 Build under test: client `<sha>` · admin `<sha>`
 Run: Run <N> · <label> · <environment>
-Environment: <production | beta (staging) | local: the session default; a verdict taken elsewhere carries a `[beta]`, `[prod]`, or `[local]` note prefix>
+Environment: <production | beta (staging) | local: the session default; a verdict taken elsewhere carries a `[beta]`, `[prod]`, `[local]`, or `[alpha]` note prefix>
 Full report: [QA session YYYY-MM-DD · full report](<linear-document-url>)
 
 ## Results by priority

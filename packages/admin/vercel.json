@@ -4,10 +4,30 @@
   "buildCommand": "bun run build",
   "outputDirectory": "dist",
   "framework": "vite",
+  "git": {
+    "deploymentEnabled": {
+      "**": false,
+      "main": true,
+      "develop": true,
+      "alpha": true
+    }
+  },
   "routes": [
     {
       "src": "/assets/(.*)\\.map",
       "status": 404
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "alpha.admin.greengoods.app" }],
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
     }
   ],
   "rewrites": [
