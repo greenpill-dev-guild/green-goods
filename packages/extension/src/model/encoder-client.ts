@@ -4,7 +4,6 @@ import type { EncoderDevice, EncoderRequest, EncoderResponse } from "./encoder-m
 
 export type EncoderProgress = Extract<EncoderResponse, { type: "progress" }>;
 export type EncoderLoaded = Extract<EncoderResponse, { type: "loaded" }>;
-export type EncoderEmbedded = Extract<EncoderResponse, { type: "embedded" }>;
 
 export class EncoderClient {
   private readonly worker: Worker;
