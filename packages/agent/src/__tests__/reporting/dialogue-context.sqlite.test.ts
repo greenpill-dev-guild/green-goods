@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { pendingGoal } from "../../services/reporting/dialogue-goal";
 import { MODEL_INPUT_POLICY } from "../../services/reporting/model-policy";
 import type { InterpretationResult } from "../../services/reporting/interpretation";
 import { TestBrowser } from "./support/browser";
@@ -82,6 +83,12 @@ describe("what a model is given", () => {
       { key: "g2", label: "Aiyeloja Family Garden" },
     ]);
     const sent = JSON.stringify(request).toLowerCase();
+    // A model that answers with a garden's own key, and not the identifier it was given, names
+    // nothing: the report still has no garden.
+    harness.interpreter.responses = [{ ...read("report_content"), gardenKey: TAS.key }];
+    expect((await harness.say(ADA, "it was at the school garden")).at(-1)).toContain(
+      "Which garden is this report for?"
+    );
     for (const secret of [
       "800 000 0001",
       "ada@example.org",
@@ -123,28 +130,57 @@ describe("what a model is given", () => {
     expect(later?.message.text).toBe("question number 5?");
   });
 
-  it("bounds a long message and a long catalogue", async () => {
+  it("bounds a long message and a long catalogue, and keeps the report's own activity", async () => {
     const planting = harness.catalog.actions.get(TAS.key)?.[0];
     if (!planting) throw new Error("fixture activity missing");
-    harness.catalog.actions.set(
-      TAS.key,
-      Array.from({ length: 400 }, (_, index) => ({
+    harness.catalog.actions.set(TAS.key, [
+      ...Array.from({ length: 400 }, (_, index) => ({
         ...planting,
         definition: {
           ...planting.definition,
           actionUID: 1_000 + index,
           title: `Activity ${index} ${"with a long name ".repeat(20)}`,
         },
-      }))
-    );
+      })),
+      planting,
+    ]);
     await consented(ADA, "Today I planted twelve baobab seedlings by the fence");
     await harness.press(ADA, "TAS");
+    // The last of 401 activities, chosen by its name; then a long reply to its species question.
+    harness.interpreter.responses = [read()];
+    await harness.say(ADA, "Tree planting");
+    await harness.say(ADA, "12");
     const request = await heard(ADA, `it was mostly ${"digging and watering ".repeat(150)}`);
 
     expect(request.message.text).toHaveLength(MODEL_INPUT_POLICY.maxMessageChars);
     expect(request.actions.length).toBeLessThanOrEqual(MODEL_INPUT_POLICY.maxActivities);
-    expect(request.actions[0]?.title.length).toBeLessThanOrEqual(MODEL_INPUT_POLICY.maxLabelChars);
+    expect(request.actions[0]?.uid).toBe(planting.definition.actionUID);
+    expect(request.actions[1]?.title.length).toBeLessThanOrEqual(MODEL_INPUT_POLICY.maxLabelChars);
     expect(JSON.stringify(request).length).toBeLessThanOrEqual(MODEL_INPUT_POLICY.maxSnapshotChars);
+  });
+
+  it("names a disputed garden by its identifier, never by its address", async () => {
+    await consented(ADA, "Today I planted twelve baobab seedlings by the fence");
+    await harness.press(ADA, "TAS");
+    // The gardener chose TAS; a model then reads the family garden in a later message.
+    harness.interpreter.responses = [{ ...read("report_content"), gardenKey: "g2" }];
+    await harness.say(ADA, "we worked beside the family garden");
+    const request = await heard(ADA, "what are you asking me?");
+
+    expect(request.conflicts).toEqual([{ field: "garden", proposed: "g2" }]);
+    expect(JSON.stringify(request).toLowerCase()).not.toContain(AIYELOJA.address.toLowerCase());
+  });
+
+  it("answers without the model when an earlier message can no longer be read", async () => {
+    await consented(ADA, "Today I planted twelve baobab seedlings by the fence");
+    const asked = harness.interpreter.requests.length;
+    harness.core.db
+      .query("UPDATE inbox_events SET payload_ciphertext = 'unreadable' WHERE state = 'consumed'")
+      .run();
+
+    const replies = await harness.say(ADA, "which one is mine?");
+    expect(replies.at(-1)).toContain("Which garden is this report for?");
+    expect(harness.interpreter.requests).toHaveLength(asked);
   });
 
   it("gives one chat nothing another chat said", async () => {
@@ -209,6 +245,26 @@ describe("the goal a chat was asked for", () => {
     expect(await link(BOLA, stewardAccount)).toEqual([
       `Your account ${stewardAccount.address.toLowerCase()} is now linked.\nYour gardens: TAS.`,
     ]);
+  });
+
+  it("is read only by the identity that set it", async () => {
+    harness.chain.grantRole(TAS.address, stewardAccount.address, { operator: true });
+    await harness.say(BOLA, "REVIEW");
+    await harness.press(BOLA, "I agree");
+    const { conversation_id: conversationId, participant_id: participantId } = harness.core.db
+      .query("SELECT conversation_id, participant_id FROM dialogue_goals")
+      .get() as { conversation_id: string; participant_id: string };
+
+    expect(pendingGoal(harness.core, { conversationId, participantId, identityEpoch: 1 })).toBe(
+      "review"
+    );
+    // The same person after recovering the account elsewhere, and anyone else in the chat.
+    expect(pendingGoal(harness.core, { conversationId, participantId, identityEpoch: 2 })).toBe(
+      null
+    );
+    expect(
+      pendingGoal(harness.core, { conversationId, participantId: "someone-else", identityEpoch: 1 })
+    ).toBe(null);
   });
 
   it("leaves a goal a day old alone", async () => {

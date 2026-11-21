@@ -5,7 +5,7 @@ import {
 import type { Address } from "@green-goods/shared/types/domain";
 import { pairFromChat } from "../channel-pairing";
 import { issueContinuation, revokeOpenRequests } from "../continuations";
-import { forgetGoal, pendingGoal } from "../dialogue-goal";
+import { forgetGoal, type PendingGoal, pendingGoal } from "../dialogue-goal";
 import { commitDraft, type DraftRecord } from "../drafts";
 import { gardenScope, isUnlisted, type ReportingGarden } from "../gardens";
 import { retireUnusedGrants } from "../grants-store";
@@ -215,7 +215,6 @@ export function disconnectAccount(writer: TurnWriter, thenConnect: boolean): voi
     .run({ participant: binding.participantId });
   revokeParticipantSessions(core, binding.participantId);
   endRecognition(core, binding.participantId);
-  forgetGoal(core, ctx.conversationId);
   const gardenQuestion = ctx.prompt?.kind === "select_garden";
   // A garden question listed this account's gardens. The account that is linked next gets its own
   // list when it pairs, so until then the question is closed and not left to be answered.
@@ -271,15 +270,9 @@ function resumeUnderAccount(writer: TurnWriter, draft: DraftRecord, external: Tu
  * asked to review is shown the work waiting, without asking again. An open report keeps the
  * conversation, so the goal is dropped and REVIEW asks for the list when the steward wants it.
  */
-function resumeGoal(writer: TurnWriter): void {
+function resumeGoal(writer: TurnWriter, goal: PendingGoal | null): void {
   const { core, ctx } = writer;
-  if (!ctx.binding || !ctx.account) return;
-  const goal = pendingGoal(core, {
-    conversationId: ctx.conversationId,
-    participantId: ctx.binding.participantId,
-    identityEpoch: ctx.binding.identityEpoch,
-  });
-  if (goal !== "review") return;
+  if (goal !== "review" || !ctx.binding || !ctx.account) return;
   if (ctx.draft) return forgetGoal(core, ctx.conversationId);
   listWorkToReview(writer, ctx.binding.participantId);
 }
@@ -292,6 +285,13 @@ function resumeGoal(writer: TurnWriter): void {
 export function handlePairing(writer: TurnWriter, code: string, external: TurnExternal): void {
   const { core, ctx } = writer;
   if (!ctx.binding) return writer.say("link.pairFailed");
+  // Read as the chat stood when it asked: pairing may join it to a person known from another
+  // channel, and the goal belongs to the one who set it here.
+  const goal = pendingGoal(core, {
+    conversationId: ctx.conversationId,
+    participantId: ctx.binding.participantId,
+    identityEpoch: ctx.binding.identityEpoch,
+  });
   const result = pairFromChat(core, ctx.subjectId, ctx.binding.participantId, code);
   if (result.status === "no_match") return writer.say("link.pairFailed");
   if (result.status === "account_taken") return writer.say("link.accountTaken");
@@ -311,7 +311,7 @@ export function handlePairing(writer: TurnWriter, code: string, external: TurnEx
   // summary is put again naming the account, so what is confirmed next is the publication as it
   // will be made.
   if (draft && ctx.account) resumeUnderAccount(writer, draft, external);
-  resumeGoal(writer);
+  resumeGoal(writer, goal);
   if (draft && lifecycleState(draft) === "authority") {
     enqueueJob(core, {
       kind: "resolve_authority",

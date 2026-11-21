@@ -15,7 +15,7 @@ import type {
   InterpretationRequest,
   InterpretationResult,
 } from "../interpretation";
-import { MODEL_INPUT_POLICY, sanitizeModelText } from "../model-policy";
+import { MODEL_INPUT_POLICY, REDACTION_MARK, sanitizeModelText } from "../model-policy";
 import { readReplyMessage } from "../outbox";
 import type { ReportingCore } from "../runtime";
 import { parseCommand } from "./commands";
@@ -33,9 +33,10 @@ export interface DialogueView {
 }
 
 /**
- * The assistant's replies a model may read as context: the questions a report or a decision
- * asked. Summaries, links, account replies and outcomes are left out, so no confirmation code,
- * address or result reaches a provider through history.
+ * The assistant's replies a model may read as context: the questions the report in hand asked.
+ * Summaries, links, account replies and outcomes are left out, so no confirmation code, address or
+ * result reaches a provider through history. A decision's questions are left out too: what a
+ * steward says about someone's work is not context for a report.
  */
 const QUESTION_KINDS = new Set([
   "select_garden",
@@ -48,9 +49,6 @@ const QUESTION_KINDS = new Set([
   "evidence",
   "conflict",
   "edit_field",
-  "review_decision",
-  "review_confidence",
-  "review_feedback",
 ]);
 
 const label = (text: string) => sanitizeModelText(text, MODEL_INPUT_POLICY.maxLabelChars);
@@ -61,13 +59,16 @@ function labels(map: Record<string, string> | undefined): Record<string, string>
     : undefined;
 }
 
+/** A field as a model may read it. A repeater's nested fields are never asked in chat, so they stay out. */
 function publicInput(input: WorkInput): WorkInput {
   const optionLabels = labels(input.optionLabels);
   const bandLabels = labels(input.bandLabels);
   return {
-    ...input,
+    key: input.key,
     title: label(input.title),
     placeholder: label(input.placeholder ?? ""),
+    type: input.type,
+    required: input.required,
     options: (input.options ?? []).map(label),
     ...(input.bands ? { bands: input.bands.map(label) } : {}),
     ...(optionLabels ? { optionLabels } : {}),
@@ -79,15 +80,17 @@ function publicInput(input: WorkInput): WorkInput {
 const fieldText = (value: string | null) =>
   value === null ? null : sanitizeModelText(value, MODEL_INPUT_POLICY.maxFieldChars);
 
+/** A field's value as a model may read it; anything that is not plain text or a number stays out. */
 function publicValue(value: unknown): unknown {
   if (typeof value === "string") return fieldText(value);
-  return Array.isArray(value) ? value.map((item) => label(String(item))) : value;
+  if (Array.isArray(value)) return value.map((item) => label(String(item)));
+  return typeof value === "number" ? value : null;
 }
 
 /**
  * When the context a model may read begins: at the consent in force, at the last time an account
- * was linked or unlinked, and at the start of the open report or the end of the last one,
- * whichever is latest. A turn handled before then belongs to another consent, another account or
+ * was linked or unlinked, at the chat's own link to its person, and at the start of the open
+ * report or the end of the last one, whichever is latest. A turn handled before then belongs to another consent, another account or
  * another report.
  */
 function contextStart(core: ReportingCore, ctx: TurnContext): number {
@@ -107,6 +110,13 @@ function contextStart(core: ReportingCore, ctx: TurnContext): number {
         )
         .get({ participant }) as { at: number | null })
     : { at: null };
+  // A chat that joined a person known from another channel keeps nothing from before it joined.
+  const channel = core.db
+    .query(
+      `SELECT MAX(MAX(created_at, COALESCE(verified_at, 0))) AS at FROM channel_bindings
+       WHERE channel_subject_id = $subject AND status IN ('provisional','active','suspended')`
+    )
+    .get({ subject: ctx.subjectId }) as { at: number | null };
   const report = ctx.draft
     ? (core.db
         .query(
@@ -119,12 +129,13 @@ function contextStart(core: ReportingCore, ctx: TurnContext): number {
            WHERE conversation_id = $conversation AND lifecycle <> 'open'`
         )
         .get({ conversation: params.conversation }) as { at: number | null });
-  return Math.max(consent.at ?? 0, account.at ?? 0, report?.at ?? 0);
+  return Math.max(consent.at ?? 0, account.at ?? 0, channel.at ?? 0, report?.at ?? 0);
 }
 
 /**
- * The questions a turn asked, read from the replies it committed. The question still open is left
- * out: the snapshot carries it on its own.
+ * The questions a turn asked of a report, read from the replies it committed. The question still
+ * open is left out: the snapshot carries it on its own. A reply's key opens with the event that
+ * caused it, so the lookup is a range over the key's own index.
  */
 function questionsAskedBy(
   core: ReportingCore,
@@ -133,11 +144,13 @@ function questionsAskedBy(
 ): DialogueTurn[] {
   const rows = core.db
     .query(
-      `SELECT id, reply_kind, payload_ciphertext FROM delivery_outbox
-       WHERE dedupe_key LIKE $prefix AND prompt_id IS NOT NULL
-         AND ($open IS NULL OR prompt_id <> $open) ORDER BY dispatch_seq`
+      `SELECT o.id, o.reply_kind, o.payload_ciphertext FROM delivery_outbox o
+       JOIN conversation_prompts p ON p.id = o.prompt_id
+       WHERE o.dedupe_key >= $from AND o.dedupe_key < $to AND p.subject_kind = 'draft'
+         AND ($open IS NULL OR o.prompt_id <> $open) ORDER BY o.dispatch_seq`
     )
-    .all({ prefix: `${eventId}:%`, open: openPromptId }) as Array<{
+    // ";" is the character after ":", so the range holds exactly the keys that open "<event>:".
+    .all({ from: `${eventId}:`, to: `${eventId};`, open: openPromptId }) as Array<{
     id: string;
     reply_kind: string;
     payload_ciphertext: string | null;
@@ -153,7 +166,8 @@ function questionsAskedBy(
 
 /**
  * The turns before this one, oldest first, at most `maxTurns`. A person's turn is what they typed:
- * commands, codes and button taps are left out, since the state already holds what they did.
+ * commands, codes and button taps are left out, since the state already holds what they did, and
+ * so is anything said while a decision on someone's work was open in the chat.
  */
 function earlierTurns(core: ReportingCore, ctx: TurnContext): DialogueTurn[] {
   const events = core.db
@@ -162,6 +176,10 @@ function earlierTurns(core: ReportingCore, ctx: TurnContext): DialogueTurn[] {
        WHERE conversation_id = $conversation AND channel_subject_id = $subject AND kind = 'message'
          AND state = 'consumed' AND consumed_at >= $since AND arrival_seq < $before
          AND payload_ciphertext IS NOT NULL
+         AND NOT EXISTS (SELECT 1 FROM review_intents r
+           WHERE r.conversation_id = inbox_events.conversation_id
+             AND inbox_events.consumed_at >= r.created_at
+             AND (r.lifecycle = 'open' OR inbox_events.consumed_at <= r.updated_at))
        ORDER BY arrival_seq DESC LIMIT $limit`
     )
     .all({
@@ -190,7 +208,7 @@ function earlierTurns(core: ReportingCore, ctx: TurnContext): DialogueTurn[] {
 
 function openQuestion(core: ReportingCore, ctx: TurnContext): DialogueQuestion | null {
   const prompt = ctx.prompt;
-  if (!prompt || !QUESTION_KINDS.has(prompt.kind)) return null;
+  if (!prompt || prompt.subjectKind !== "draft" || !QUESTION_KINDS.has(prompt.kind)) return null;
   const row = core.db
     .query(
       `SELECT id, payload_ciphertext FROM delivery_outbox WHERE prompt_id = $prompt
@@ -219,7 +237,10 @@ function goalOf(core: ReportingCore, ctx: TurnContext): DialogueGoal {
   return pending ?? "none";
 }
 
-/** Keeps the snapshot inside its size bound: earlier turns go first, then the last activities listed. */
+/**
+ * Keeps the snapshot inside its size bound: earlier turns go first, then the last activities
+ * listed. The first activity stays, so one very large definition can still exceed the bound.
+ */
 function bounded(snapshot: DialogueSnapshot): DialogueSnapshot {
   const fits = (candidate: DialogueSnapshot) =>
     JSON.stringify(candidate).length <= MODEL_INPUT_POLICY.maxSnapshotChars;
@@ -243,6 +264,17 @@ export function dialogueView(
   const content = ctx.draft?.content ?? null;
   const offered = input.gardens.slice(0, MODEL_INPUT_POLICY.maxGardens);
   const gardenKeys = new Map(offered.map((garden, index) => [`g${index + 1}`, garden.key]));
+  /** The identifier this turn gave a garden, or null for one it does not offer. */
+  const gardenId = (address: string | undefined): string | null => {
+    const at = offered.findIndex((garden) => garden.address === address?.toLowerCase());
+    return at < 0 ? null : `g${at + 1}`;
+  };
+  // The report's own activity is listed first, so a long catalogue never crowds it out.
+  const activities = [...input.activities].sort(
+    (one, other) =>
+      Number(other.definition.actionUID === content?.actionUID) -
+      Number(one.definition.actionUID === content?.actionUID)
+  );
   const provenance: DialogueSnapshot["provenance"] = {};
   for (const [field, read] of Object.entries(content?.provenance ?? {})) {
     if (read)
@@ -271,14 +303,17 @@ export function dialogueView(
     provenance,
     conflicts: (content?.conflicts ?? []).map((conflict) => ({
       field: conflict.field,
-      proposed: publicValue(conflict.proposed),
+      proposed:
+        conflict.field === "garden"
+          ? gardenId((conflict.proposed as { address?: string } | null)?.address)
+          : publicValue(conflict.proposed),
     })),
     requirements: content ? outstandingRequirements(content, ctx.draft?.snapshot ?? null) : [],
     gardens: [...gardenKeys.keys()].map((key, index) => ({
       key,
       label: label(offered[index]?.label ?? ""),
     })),
-    actions: input.activities.slice(0, MODEL_INPUT_POLICY.maxActivities).map((activity) => ({
+    actions: activities.slice(0, MODEL_INPUT_POLICY.maxActivities).map((activity) => ({
       uid: activity.definition.actionUID,
       title: label(activity.definition.title),
       inputs: activity.definition.inputs.map(publicInput),
@@ -290,6 +325,8 @@ export function dialogueView(
     resolve: (result) => ({
       ...result,
       gardenKey: result.gardenKey === null ? null : (gardenKeys.get(result.gardenKey) ?? null),
+      // A value read from where an identifier was taken out is not a value the gardener gave.
+      facts: result.facts.filter((fact) => !REDACTION_MARK.test(JSON.stringify(fact.value))),
     }),
   };
 }

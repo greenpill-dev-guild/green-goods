@@ -10,7 +10,9 @@ describe("model input sanitizer", () => {
     [`signed 0x${"ab".repeat(65)}`, "signed [address]"],
     ["see https://greengoods.app/agent/reporting/abc123?t=secret now", "see [link] now"],
     ["www.example.org/garden has photos", "[link] has photos"],
-    ["escríbeme a ada@example.org", "escríbeme a [email]"],
+    ["escríbeme a josé@example.org", "escríbeme a [email]"],
+    ["join at t.me/joinchat/AAAA or greengoods.app/pair?code=abc123", "join at [link] or [link]"],
+    ["mi número es 06 12 34 56 78", "mi número es [phone]"],
     ["I am vitalik.eth and @ada_gardens on Telegram", "I am [account] and [handle] on Telegram"],
     [`token ${"a1B2".repeat(10)} was in the link`, "token [token] was in the link"],
   ])("removes the identifier in %j", (text, expected) => {
@@ -21,6 +23,12 @@ describe("model input sanitizer", () => {
     "At TAS today I planted 12 baobab seedlings by the fence. It took 3 hours.",
     "Instalamos 1,5 kW de paneles el 2026-11-21 a las 10:30",
     "Plantamos 1200 mudas em 45 minutos, e 14 no dia 21/11/2026",
+    // A date beside a count, a list of counts and a large quantity are not phone numbers.
+    "2026-11-21 120 seedlings planted",
+    "On 21.11.2026 3 hours of weeding, 8.30-12.30 with 15 people",
+    "beds: 10 20 30 40 50\n120\n340\n5600",
+    "Planted 1.000.000.000 seeds in rows 3@2.5m apart",
+    "three-hundred-and-forty-five-thousand-six-hundred seedlings",
   ])("keeps the quantities, dates and words of %j", (story) => {
     expect(sanitizeModelText(story, 500)).toBe(story);
   });

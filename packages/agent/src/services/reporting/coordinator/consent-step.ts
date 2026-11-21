@@ -53,6 +53,7 @@ export function answerConsent(writer: TurnWriter, answer: "agree" | "decline"): 
   if (ctx.prompt?.kind === "processing_consent") resolvePrompt(core, ctx.prompt.id);
   if (answer === "decline") {
     purgeQuarantined(writer);
+    forgetGoal(core, ctx.conversationId);
     writer.say("consent.declined");
     audit(core, "consent_declined", { kind: "channel_subject", id: ctx.subjectId });
     return;

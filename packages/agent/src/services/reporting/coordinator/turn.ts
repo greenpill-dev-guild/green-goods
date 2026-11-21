@@ -1,5 +1,6 @@
 import { outstandingRequirements } from "@green-goods/shared/modules/agent-reporting";
 import type { Address } from "@green-goods/shared/types/domain";
+import { createLogger } from "../../logger";
 import type { CatalogResult, ReportingCatalog } from "../catalog";
 import { accountAwaitingPair } from "../channel-pairing";
 import { inTransaction } from "../database";
@@ -93,6 +94,8 @@ export interface CoordinatorDeps {
    */
   stopping?: AbortSignal;
 }
+
+const log = createLogger("reporting");
 
 const MAX_REPLANS = 3;
 const PAUSE_RETRY_MS = 5 * 60 * 1000;
@@ -234,19 +237,12 @@ async function gatherExternal(
   const needsCatalog = garden !== null && reportPlan && (choosing || answersOther || changing);
   let result: CatalogResult | null = garden && needsCatalog ? await activitiesOf(garden) : null;
   let interpretation: InterpretationResult | null = null;
-  if (forModel) {
-    const view = dialogueView(core, ctx, {
+  if (forModel && deps.interpreter) {
+    interpretation = await interpretTurn(deps, ctx, {
       text: forModel,
       gardens: gardensIn(scope),
       activities: result?.ok ? result.actions : [],
     });
-    const read = await interpretWithDeadline(
-      deps.interpreter,
-      view.request,
-      deps.interpretationTimeoutMs,
-      modelMeter(core)
-    );
-    interpretation = read && view.resolve(read);
     // A garden the model read for a report that has none yet: its activities are read in this
     // turn too, so the reply can ask which activity instead of failing to list them.
     const named = gardensIn(scope).find((candidate) => candidate.key === interpretation?.gardenKey);
@@ -256,6 +252,35 @@ async function gatherExternal(
     }
   }
   return { catalog: { garden, result }, interpretation };
+}
+
+/**
+ * What a model reads in the turn, or null when it could not be asked. Building its view reads
+ * earlier messages back; one that cannot be read is no reason to leave the person without an
+ * answer, so the turn goes on without the model, as it does when the model itself fails.
+ */
+async function interpretTurn(
+  deps: CoordinatorDeps,
+  ctx: TurnContext,
+  input: Parameters<typeof dialogueView>[2]
+): Promise<InterpretationResult | null> {
+  let view: ReturnType<typeof dialogueView>;
+  try {
+    view = dialogueView(deps.core, ctx, input);
+  } catch (error) {
+    log.warn(
+      { cause: error instanceof Error ? error.name : "unknown" },
+      "A conversation's context could not be read; the turn continues without the model"
+    );
+    return null;
+  }
+  const read = await interpretWithDeadline(
+    deps.interpreter,
+    view.request,
+    deps.interpretationTimeoutMs,
+    modelMeter(deps.core)
+  );
+  return read && view.resolve(read);
 }
 
 type TurnOutcome = "consume" | "hold" | "pause";

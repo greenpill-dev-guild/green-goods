@@ -1,5 +1,6 @@
 import { envelopeIssues, type ResourceView } from "@green-goods/shared/modules/agent-reporting";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { setControl } from "../../services/reporting/controls";
 import { TestBrowser } from "./support/browser";
 import {
   adaAccount,
@@ -334,6 +335,22 @@ describe("steward review", () => {
     await publishedWork();
     harness.chain.grantRole(TAS.address, adaAccount.address, { gardener: true, operator: true });
     expect(await harness.say(ADA, "REVIEW")).toEqual(["There's no work waiting for your review."]);
+  });
+
+  it("keeps what a steward said about someone's work out of what a model later reads", async () => {
+    await publishedWork();
+    await linkedSteward();
+    await decide("Approve", "The counts look inflated to me");
+    await harness.say(BOLA, "CANCEL");
+    setControl(harness.core, "model_processing", true, { actor: "test", reason: "review turns" });
+    harness.interpreter.responses = [
+      { intent: "unclear", gardenKey: null, actionUID: null, facts: [], models: ["fixture-model"] },
+    ];
+    await harness.say(BOLA, "I also weeded the north beds today");
+
+    const request = harness.interpreter.requests.at(-1);
+    expect(request?.message.text).toBe("I also weeded the north beds today");
+    expect(JSON.stringify(request)).not.toMatch(/inflated|approve or reject|How confident/i);
   });
 
   it("tells a linked account without an operator role that it cannot review", async () => {
