@@ -1,0 +1,255 @@
+// @vitest-environment happy-dom
+import type { PublicGardenPassportRecord } from "@green-goods/shared/commitment-pooling/public";
+import messages from "@green-goods/shared/i18n/en.json";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import type { ReactNode } from "react";
+import { IntlProvider } from "react-intl";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+const { detail, passport, refetch } = vi.hoisted(() => ({
+  detail: vi.fn(),
+  passport: vi.fn(),
+  refetch: vi.fn(),
+}));
+vi.mock("@green-goods/shared/hooks/public/usePublicGardenDetail", () => ({
+  usePublicGardenDetail: detail,
+}));
+vi.mock("@green-goods/shared/commitment-pooling/public", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling/public")>()),
+  usePublicGardenPassport: passport,
+}));
+vi.mock("@green-goods/shared/config/default-chain", () => ({ DEFAULT_CHAIN_ID: 42161 }));
+vi.mock("../../components/Public/PublicFooter", () => ({ PublicFooter: () => null }));
+vi.mock("../../components/Public/PublicEditorialHero", () => ({
+  PublicEditorialHero: ({ title, actions }: { title: ReactNode; actions?: ReactNode }) => (
+    <header>
+      <h1>{title}</h1>
+      {actions}
+    </header>
+  ),
+}));
+
+import { PublicGardenRow } from "../../components/Public/PublicGardenRow";
+import GardenPassport from "../../views/Public/GardenPassport";
+import { gardenPassportFixture, PASSPORT_FIXTURE_GARDEN } from "../fixtures/gardenPassport";
+
+const GARDEN = PASSPORT_FIXTURE_GARDEN;
+const record = gardenPassportFixture;
+
+function show(
+  state: { published?: boolean; passport?: PublicGardenPassportRecord; isError?: boolean } = {},
+  garden: unknown = { garden: { id: GARDEN, name: "Riverside Garden" }, unlisted: false }
+) {
+  detail.mockReturnValue({
+    data: garden ?? undefined,
+    isLoading: false,
+    isError: garden === null,
+    refetch,
+  });
+  passport.mockReturnValue({
+    published: state.published ?? true,
+    passport: state.passport,
+    isPending: false,
+    isError: state.isError ?? false,
+    refetch,
+  });
+  return render(
+    <IntlProvider locale="en" messages={messages}>
+      <MemoryRouter initialEntries={[`/gardens/${GARDEN}/passport`]}>
+        <Routes>
+          <Route path="/gardens/:id/passport" element={<GardenPassport />} />
+        </Routes>
+      </MemoryRouter>
+    </IntlProvider>
+  );
+}
+
+const line = (name: string) => screen.getByRole("group", { name });
+
+afterEach(() => {
+  cleanup();
+  vi.clearAllMocks();
+});
+
+describe("a garden's public passport", () => {
+  it("opens on one sentence and four lines a funder can read in order", () => {
+    show({ passport: record() });
+
+    expect(
+      screen.getByRole("heading", { name: "Passport of Riverside Garden", level: 1 })
+    ).toBeInTheDocument();
+    // One paragraph, read as one sentence, whatever elements it is built from.
+    expect(screen.getByTestId("passport-sentence")).toHaveTextContent(
+      /neighbors have taken up 8 promises in this garden\. 4 are kept, and 3 are still to deliver\. 1 was not kept\. 7,200 G\$ in support has reached the garden\./
+    );
+    expect(
+      screen.getAllByRole("heading", { level: 2 }).map((heading) => heading.textContent)
+    ).toEqual(expect.arrayContaining(["Promised", "Supported", "Delivered", "Still to deliver"]));
+
+    expect(within(line("Promised")).getByText("8 promises taken up")).toBeInTheDocument();
+    expect(within(line("Supported")).getByText("7,200 G$ received")).toBeInTheDocument();
+    expect(
+      within(line("Supported")).getByText("40 G$ sent and not yet confirmed.")
+    ).toBeInTheDocument();
+    expect(within(line("Delivered")).getByText("4 promises kept")).toBeInTheDocument();
+    expect(within(line("Delivered")).getByText("3 of 12")).toBeInTheDocument();
+    // Each unit keeps its own row: 12 hub days and 5 workshops are never 17 of anything.
+    expect(screen.queryByText(/17/)).not.toBeInTheDocument();
+
+    const still = within(line("Still to deliver"));
+    expect(still.getByText("3 promises still to deliver")).toBeInTheDocument();
+    expect(still.getByText("7 of 12")).toBeInTheDocument();
+    expect(still.getByText(/Not kept: 1 promise whose term ended/)).toBeInTheDocument();
+    expect(still.getByText("2 of 12")).toBeInTheDocument();
+    // Workshops are all delivered, so they are not listed as still to deliver.
+    expect(still.queryByText("workshops")).not.toBeInTheDocument();
+
+    // Every ledger line says how fresh it is and where it comes from.
+    expect(within(line("Promised")).getByText(/Last change on record/)).toBeInTheDocument();
+    expect(screen.getAllByText("Where this comes from").length).toBeGreaterThanOrEqual(4);
+  });
+
+  it("keeps vouchers and G$ apart, each in its own unit, and a declared amount unpaid", () => {
+    show({ passport: record() });
+
+    expect(
+      within(line("On offer")).getByText("2 offers can be booked with a voucher")
+    ).toBeInTheDocument();
+    expect(
+      within(line("Earned through work")).getByText("3 voucher awards issued")
+    ).toBeInTheDocument();
+    expect(within(line("Bought")).getByText("No vouchers bought.")).toBeInTheDocument();
+    const used = within(line("Used for services"));
+    expect(used.getByText("3 bookings: 2 accepted, 1 declined")).toBeInTheDocument();
+    // Delivery is what the holder approved, not the vouchers that moved.
+    expect(used.getByText("20 of 60")).toBeInTheDocument();
+    expect(used.getByText("7 GGV")).toBeInTheDocument();
+    expect(
+      within(line("In the exchange pool")).getByText("Not published here yet.")
+    ).toBeInTheDocument();
+
+    const members = within(line("Paid to members"));
+    expect(members.getByText("3 payments confirmed")).toBeInTheDocument();
+    // 120 G$ declared for members, 60 confirmed: 60 is declared and not yet paid.
+    const declared = members.getByText("Declared, not yet paid").closest("div");
+    expect(declared).toHaveTextContent("60 G$");
+    expect(
+      members.getByText(/1 kept promise declares a G\$ payment that has no payment plan yet/)
+    ).toBeInTheDocument();
+    // G$ only: no figure is converted to another currency.
+    expect(document.body.textContent).not.toMatch(/USD|US\$|(?<!G)\$\d/);
+  });
+
+  it("holds back figures that would point at a person, and says a failed source failed", () => {
+    const base = record();
+    if (base.promises.status !== "available" || base.settlement.status !== "available") return;
+    show({
+      passport: record({
+        promises: {
+          ...base.promises,
+          value: {
+            ...base.promises.value,
+            breakdown: null,
+            units: base.promises.value.units.map((unit) => ({
+              ...unit,
+              stillToDeliver: null,
+              notDelivered: null,
+            })),
+          },
+        },
+        vouchers: { status: "unavailable" },
+        settlement: {
+          ...base.settlement,
+          value: { ...base.settlement.value, memberPayments: { withheld: true } },
+        },
+      }),
+    });
+
+    // A small record does not say which unresolved promise lapsed.
+    const still = within(line("Still to deliver"));
+    expect(still.getByText("4 promises not yet kept")).toBeInTheDocument();
+    expect(still.getByText("9 of 12")).toBeInTheDocument();
+    expect(still.queryByText(/Not kept:/)).not.toBeInTheDocument();
+    expect(
+      within(line("Paid to members")).getByText(/Too few members have been paid/)
+    ).toBeInTheDocument();
+
+    // The voucher read failed: its lines say so and offer the read again, never a zero.
+    const earned = within(line("Earned through work"));
+    expect(
+      earned.getByText("This part of the record could not be read just now.")
+    ).toBeInTheDocument();
+    expect(earned.queryByText("No vouchers issued yet.")).not.toBeInTheDocument();
+    fireEvent.click(earned.getByRole("button", { name: "Try Again" }));
+    expect(refetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("says a garden has not published a passport, without reading or showing a figure", async () => {
+    show({ published: false });
+
+    expect(screen.getByText("This garden has not published a passport.")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Promised" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "View the Garden" })).toHaveAttribute(
+      "href",
+      "/gardens/riverside-garden"
+    );
+    await waitFor(() => {
+      expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute(
+        "content",
+        "noindex"
+      );
+    });
+  });
+
+  it("tells a failed passport, a missing garden and an unreadable garden apart", () => {
+    show({ isError: true });
+    expect(
+      screen.getByText("This public record is temporarily unavailable. Please try again.")
+    ).toBeInTheDocument();
+    cleanup();
+
+    show({}, { garden: null, unlisted: false });
+    expect(screen.getByRole("heading", { name: "Garden not found" })).toBeInTheDocument();
+    cleanup();
+
+    show({}, null);
+    expect(
+      screen.getByRole("heading", { name: "This garden could not be loaded" })
+    ).toBeInTheDocument();
+  });
+
+  it("links a funder to the passport from the Fund row only where one is published", () => {
+    const row = (address: string, slug: string) => (
+      <IntlProvider locale="en" messages={messages}>
+        <MemoryRouter>
+          <PublicGardenRow
+            garden={
+              {
+                id: address,
+                address,
+                slug,
+                name: slug,
+                stewards: [],
+                gardenerCount: 0,
+                fieldNoteCount: 0,
+                lastActivityAt: 0,
+              } as never
+            }
+            onSupport={() => {}}
+          />
+        </MemoryRouter>
+      </IntlProvider>
+    );
+    // The one garden on the reviewed list, on the chain it is published for.
+    render(row("0xf7b892886998dae960d64a9db488336684f137a0", "published-garden"));
+    expect(screen.getByRole("link", { name: /Read the Passport/ })).toHaveAttribute(
+      "href",
+      "/gardens/published-garden/passport"
+    );
+    cleanup();
+
+    render(row(GARDEN, "another-garden"));
+    expect(screen.queryByRole("link", { name: /Read the Passport/ })).not.toBeInTheDocument();
+  });
+});

@@ -5,6 +5,7 @@ import {
   usePublicGardens,
 } from "@green-goods/shared/hooks/public/usePublicGardens";
 import { usePublicGardenHypercerts } from "@green-goods/shared/hooks/public/usePublicGardenHypercerts";
+import { isPublicPassportPublished } from "@green-goods/shared/commitment-pooling/public";
 import { usePublicGardenDetail } from "@green-goods/shared/hooks/public/usePublicGardenDetail";
 import { useEffect, useMemo } from "react";
 import { Helmet } from "react-helmet-async";
@@ -269,6 +270,15 @@ export default function GardenDetail() {
                     defaultMessage: "Support This Garden",
                   })}
                 </EditorialPrimaryLink>
+              ) : null}
+              {/* Only a garden whose stewards agreed to publish has a passport to read. */}
+              {garden && identity && isPublicPassportPublished(chainId, garden.id as Address) ? (
+                <EditorialGhostLink to={`/gardens/${encodeURIComponent(identity.slug)}/passport`}>
+                  {formatMessage({
+                    id: "public.passport.read",
+                    defaultMessage: "Read the Passport",
+                  })}
+                </EditorialGhostLink>
               ) : null}
               <EditorialGhostLink to="/impact">
                 {formatMessage({
