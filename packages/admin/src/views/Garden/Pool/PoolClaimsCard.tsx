@@ -98,6 +98,22 @@ function acceptAndStartNotice(
           { minutes }
         ),
       };
+    // The wallet answered with no receipt (PRD-1574): the acceptance itself may still land.
+    case "acceptanceConfirming":
+      return {
+        title: intl.formatMessage({
+          id: "hub.garden.pool.voucher.acceptStart.acceptingTitle",
+          defaultMessage: "The acceptance is still being confirmed",
+        }),
+        message: intl.formatMessage(
+          {
+            id: "hub.garden.pool.voucher.acceptStart.acceptingBody",
+            defaultMessage:
+              "Nothing was started. If it lands, the member can start the booking from the app {minutes} minutes after you accepted.",
+          },
+          { minutes }
+        ),
+      };
     case "unconfirmed":
       return {
         title: intl.formatMessage({

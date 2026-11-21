@@ -700,7 +700,7 @@ describe("usePoolConsoleController", () => {
         commitmentId: COMMITMENT.commitmentId,
         buyer: CLAIMANT,
         expectedClaimHash: ready.claimHash,
-        send: ACT_SEND,
+        send: { ...ACT_SEND, onUnconfirmed: expect.any(Function) },
       },
     ]);
     // It is the ask's decision, on the same line Approve uses, so its row keeps the outcome.
@@ -818,6 +818,25 @@ describe("usePoolConsoleController", () => {
       });
 
       expect(outcome).toBe("acceptanceWaiting");
+      expect(mocks.prepareStart).not.toHaveBeenCalled();
+      expect(mocks.sender.sendContractCall).not.toHaveBeenCalled();
+    });
+
+    // PRD-1574: a wallet's opaque answer is no acceptance yet, so no start follows it and the
+    // Hub says the acceptance is still being confirmed, not that the start wasn't sent.
+    it("starts nothing behind an acceptance that is still being confirmed", async () => {
+      mocks.commitmentMutate.mockImplementation(async (input) => {
+        if ("send" in input) (input.send as { onUnconfirmed?: () => void }).onUnconfirmed?.();
+        return "0x1234";
+      });
+      const { result } = render();
+
+      let outcome: unknown;
+      await act(async () => {
+        outcome = await result.current.acts.acceptAndStartBooking(ready(), at);
+      });
+
+      expect(outcome).toBe("acceptanceConfirming");
       expect(mocks.prepareStart).not.toHaveBeenCalled();
       expect(mocks.sender.sendContractCall).not.toHaveBeenCalled();
     });

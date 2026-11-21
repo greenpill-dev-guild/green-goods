@@ -43,11 +43,14 @@ import type { CommitmentWorkDecision } from "../../../modules/commitment-pooling
 import type { VoucherStartProgress } from "./useVoucherStart";
 
 /**
- * How an Accept and Start ended once the acceptance went: the start's own ending, or
- * `acceptanceWaiting` when the acceptance is a Safe proposal its signers still have to approve,
- * so no start could follow it.
+ * How an Accept and Start ended once the acceptance went: the start's own ending, or, when no
+ * start could follow, `acceptanceWaiting` for a Safe proposal its signers still have to approve
+ * and `acceptanceConfirming` for a wallet answer with no receipt yet, which may still land.
  */
-export type VoucherAcceptAndStartOutcome = VoucherStartOutcome | "acceptanceWaiting";
+export type VoucherAcceptAndStartOutcome =
+  | VoucherStartOutcome
+  | "acceptanceWaiting"
+  | "acceptanceConfirming";
 import type { CommitmentMetadataV1 } from "../../../modules/commitment-pooling/metadata";
 import type {
   PoolFundingSnapshot,
