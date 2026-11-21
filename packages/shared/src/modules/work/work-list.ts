@@ -1,4 +1,5 @@
 import { getEASConfig } from "../../config/blockchain";
+import type { Address } from "../../types/domain";
 import type { EASWork, EASWorkApproval, EASWorkListRow } from "../../types/eas-responses";
 import { isZeroBytes32 } from "../../utils/blockchain/bytes";
 import { logger } from "../app/logger";
@@ -8,6 +9,7 @@ import {
   getWorkApprovalsForWork,
   getWorkListPage,
   getWorksByUIDs,
+  getWorksInRange,
   readWorkApprovalsForWorks,
   WORK_LIST_PAGE_SIZE,
 } from "../data/eas";
@@ -184,6 +186,69 @@ export function readGardenActivity({
       withLatestApproval(work, byWork.get(work.id.toLowerCase()) ?? [])
     );
     return { rows, complete };
+  });
+}
+
+/** Every work a garden received in a period, each with its latest decision. */
+export interface GardenWorkRange {
+  /** Oldest first. A row whose decisions could not be read carries no `approval`. */
+  rows: EASWorkListRow[];
+  /** False when the period holds more works than one read lists, so some are missing. */
+  complete: boolean;
+}
+
+/**
+ * The works submitted to a garden between two moments, however many the garden has received
+ * since: what a month or a day of the garden shows. The garden screen's page holds only the
+ * newest works, so a period read from it would silently miss the rest. `from` is included,
+ * `to` is not; both are in seconds. A status that could not be read stays unknown.
+ */
+export function readGardenWorkRange({
+  garden,
+  chainId,
+  from,
+  to,
+  visibility,
+}: {
+  garden: Address;
+  chainId: number;
+  from: number;
+  to: number;
+  visibility?: WorkVisibilitySnapshot;
+}): Promise<GardenWorkRange> {
+  return inTurn(async () => {
+    const exclusions = visibility ?? (await readWorkVisibility(chainId));
+    const { works, truncated } = await getWorksInRange(garden, {
+      ...exclusions,
+      chainId,
+      from,
+      to,
+    });
+    if (works.length === 0) return { rows: [], complete: !truncated };
+    let approvals: EASWorkApproval[];
+    let unread: Set<string>;
+    try {
+      const result = await readWorkApprovalsForWorks(
+        works.map((work) => work.id),
+        chainId
+      );
+      approvals = result.approvals;
+      unread = new Set(result.failedWorkUIDs.map((uid) => uid.toLowerCase()));
+    } catch (error) {
+      logger.warn("[readGardenWorkRange] Decisions could not be read; statuses stay unknown", {
+        error,
+        garden,
+      });
+      return { rows: works, complete: !truncated };
+    }
+    const byWork = groupByWork(approvals);
+    return {
+      rows: works.map((work) => {
+        const key = work.id.toLowerCase();
+        return unread.has(key) ? work : withLatestApproval(work, byWork.get(key) ?? []);
+      }),
+      complete: !truncated,
+    };
   });
 }
 
