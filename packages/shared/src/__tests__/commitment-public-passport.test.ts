@@ -100,13 +100,15 @@ function indexer(tables: Record<string, Row[] | Error>, poolId: string | null = 
         return { data: { CommitmentPool: pools } as never };
       }
       if (operationName === "getPublicPassportVoucherUse") {
-        // Whether anyone used a voucher: at most one exchange and one booking that name it.
-        const used = ["VoucherPoolExchange", "VoucherServiceSetup"].map(
-          (name) => tables[name] ?? []
-        );
+        // Whether a voucher has moved: one exchange or booking that names it, or any award.
+        const used = [
+          "VoucherPoolExchange",
+          "VoucherServiceSetup",
+          "EarnedVoucherDistribution",
+        ].map((name) => tables[name] ?? []);
         const failed = used.find((table) => table instanceof Error);
         if (failed) return { error: failed as Error };
-        const [exchanges, bookings] = used as Row[][];
+        const [exchanges, bookings, awards] = used as Row[][];
         const tokens = variables.tokens as string[];
         const names = (token: unknown) => tokens.includes(String(token));
         return {
@@ -116,6 +118,9 @@ function indexer(tables: Record<string, Row[] | Error>, poolId: string | null = 
               .filter((row) => names(row.tokenIn) || names(row.tokenOut))
               .slice(0, 1),
             VoucherServiceSetup: bookings.filter((row) => names(row.token)).slice(0, 1),
+            EarnedVoucherDistribution: awards
+              .filter((row) => row.preparedSeen === true && row.chainId === variables.chainId)
+              .slice(0, 1),
           } as never,
         };
       }
@@ -993,13 +998,15 @@ describe("a garden's passport", () => {
     // Two more left the reserve and are not in the pool: they are with someone.
     expect(value((await supplyOf(chain(8n * VOUCHERS))).supply)).toMatchObject(held);
 
-    // The balances look untouched, but one exchange in the pool or one booking has happened.
+    // The balances look untouched, but one exchange in the pool, one booking or one award exists.
     // The pool's holding would now differ from what it was seeded with by one person's amount.
     const exchange = { id: "x-1", moduleAddress: pool.deployment.address.toLowerCase() };
     const inUse: Record<string, Row[]>[] = [
       { VoucherPoolExchange: [{ ...exchange, tokenIn: token, tokenOut: OTHER_TOKEN }] },
       { VoucherPoolExchange: [{ ...exchange, tokenIn: OTHER_TOKEN, tokenOut: token }] },
       { VoucherServiceSetup: [{ id: "setup-9", token }] },
+      // An award names no voucher, and an awarded voucher put into the pool leaves no other trace.
+      { EarnedVoucherDistribution: [{ id: "award-1", chainId: CHAIN, preparedSeen: true }] },
     ];
     for (const used of inUse) {
       expect(value((await supplyOf(untouched, used)).supply)).toMatchObject(held);

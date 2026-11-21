@@ -96,7 +96,8 @@ describe("a garden's public passport", () => {
     expect(within(line("Delivered")).getByText("4 promises kept")).toBeInTheDocument();
     expect(within(line("Delivered")).getByText("3 of 12")).toBeInTheDocument();
     // Each unit keeps its own row: 12 hub days and 5 workshops are never 17 of anything.
-    expect(screen.queryByText(/17/)).not.toBeInTheDocument();
+    // A figure of 17 on its own or before "of", not a 17 inside a date.
+    expect(screen.queryByText(/^17( of|$)/)).not.toBeInTheDocument();
 
     const still = within(line("Still to deliver"));
     expect(still.getByText("3 promises still to deliver")).toBeInTheDocument();
@@ -311,7 +312,9 @@ describe("a garden's public passport", () => {
     expect(
       pool().getByText("The Riverside exchange pool may hold 40 GGV at most.")
     ).toBeInTheDocument();
-    expect(pool().getByText(/are held back\. People have started using/)).toBeInTheDocument();
+    expect(
+      pool().getByText(/are held back\. This voucher has started to move/)
+    ).toBeInTheDocument();
     expect(pool().queryByText(/GGV in the Riverside exchange pool/)).not.toBeInTheDocument();
     expect(pool().queryByText(/GGV outstanding\./)).not.toBeInTheDocument();
     cleanup();

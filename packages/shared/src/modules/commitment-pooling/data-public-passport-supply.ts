@@ -33,9 +33,8 @@ export interface PassportVoucherChain {
  * reading is taken at the last finalized block, a few minutes old, which cannot be reorganized
  * away and which every node behind the endpoint already has.
  */
-function publicVoucherChain(): PassportVoucherChain {
+function publicVoucherChain(deadline: AbortSignal): PassportVoucherChain {
   const url = getRpcUrl(VOUCHER_CHAIN_ID);
-  const deadline = AbortSignal.timeout(READ_TIMEOUT_MS);
   const request = async (method: string, params: readonly unknown[]): Promise<unknown> => {
     const response = await fetch(url, {
       method: "POST",
@@ -76,32 +75,33 @@ const same = (left: string, right: string) => left.toLowerCase() === right.toLow
 const spellings = (address: string) => [...new Set([address.toLowerCase(), address])];
 
 /**
- * Whether anyone has used the voucher yet: exchanged it in a reviewed pool, or presented it for a
- * booking. One row is enough, so one row is all that is asked for.
+ * Whether the voucher has started to move: exchanged in a reviewed pool, presented for a booking,
+ * or awarded to someone. One row of any kind is enough, so one row of each is all that is asked
+ * for. An award does not name its voucher in the index, so any award counts for every voucher: a
+ * member who puts an awarded voucher into the pool would otherwise leave no trace here.
  */
 async function voucherInUse(
+  sourceChainId: number,
   token: Address,
   pools: readonly Address[],
-  reader: GraphQLReader
+  reader: GraphQLReader,
+  deadline: AbortSignal
 ): Promise<boolean> {
-  const result = await reader.query<
-    Record<"VoucherPoolExchange" | "VoucherServiceSetup", RawRow[]>
-  >(
-    `query PublicPassportVoucherUse($tokens: [String!]!, $pools: [String!]!) {
+  const entities = ["VoucherPoolExchange", "VoucherServiceSetup", "EarnedVoucherDistribution"];
+  const result = await reader.query<Record<string, RawRow[]>>(
+    `query PublicPassportVoucherUse($chainId: Int!, $tokens: [String!]!, $pools: [String!]!) {
       VoucherPoolExchange(where: { moduleAddress: { _in: $pools }, _or: [{ tokenIn: { _in: $tokens } }, { tokenOut: { _in: $tokens } }] }, limit: 1) { id }
       VoucherServiceSetup(where: { token: { _in: $tokens } }, limit: 1) { id }
+      EarnedVoucherDistribution(where: { chainId: { _eq: $chainId }, preparedSeen: { _eq: true } }, limit: 1) { id }
     }`,
-    { tokens: spellings(token), pools: pools.flatMap(spellings) },
+    { chainId: sourceChainId, tokens: spellings(token), pools: pools.flatMap(spellings) },
     "getPublicPassportVoucherUse",
-    AbortSignal.timeout(READ_TIMEOUT_MS)
+    deadline
   );
   if (result.error) throw result.error;
-  const exchanges = result.data?.VoucherPoolExchange;
-  const bookings = result.data?.VoucherServiceSetup;
-  if (!Array.isArray(exchanges) || !Array.isArray(bookings)) {
-    throw new Error("Passport voucher use records are unavailable");
-  }
-  return exchanges.length + bookings.length > 0;
+  const rows = entities.map((entity) => result.data?.[entity]);
+  if (!rows.every(Array.isArray)) throw new Error("Passport voucher use records are unavailable");
+  return rows.some((found) => (found as RawRow[]).length > 0);
 }
 
 /**
@@ -110,11 +110,12 @@ async function voucherInUse(
  * A garden that issues no voucher on the reviewed route reads nothing.
  *
  * A pool's holding moves with each person's exchange, and outstanding minus the pools is what
- * holders have. No source counts the people behind either, so a single exchange or booking
- * would show as one person's amount beside what the pool was seeded with. Both figures are
- * published only while nobody has used the voucher: no exchange in a reviewed pool, no booking,
- * and nothing outside the pools. After that they are held back and the holding limit, which is
- * the pool's own policy, stays.
+ * holders have. No source counts the people behind either, so a single exchange, booking or
+ * award would show as one person's amount beside what the pool was seeded with. Both figures are
+ * published only while the voucher has not started to move: no exchange in a reviewed pool, no
+ * booking, no award, and nothing outside the pools. After that they are held back and the holding
+ * limit, which is the pool's own policy, stays. A voucher one person issues is left out
+ * altogether: its supply is that person's own.
  */
 export async function readPassportVoucherSupply(
   chainId: number,
@@ -122,14 +123,20 @@ export async function readPassportVoucherSupply(
   options: { chain?: PassportVoucherChain; reader?: GraphQLReader; route?: ServiceIssuerRoute } = {}
 ): Promise<{ supply: PassportVoucherSupply[]; asOf: number | null }> {
   const route = options.route ?? GREEN_GOODS_ISSUER_ROUTE;
+  const collective = (token: string) =>
+    route.assets.some((asset) => same(asset.token.address, token) && asset.kind === "collective");
   const issued =
     chainId === route.service.sourceChainId
-      ? route.service.assets.filter((asset) => asset.garden && same(asset.garden, garden))
+      ? route.service.assets.filter(
+          (asset) => asset.garden && same(asset.garden, garden) && collective(asset.token)
+        )
       : [];
   if (issued.length === 0) return { supply: [], asOf: null };
 
+  // One limit covers the chain and the index together.
+  const deadline = AbortSignal.timeout(READ_TIMEOUT_MS);
   const reader = options.reader ?? greenGoodsIndexer;
-  const chain = options.chain ?? publicVoucherChain();
+  const chain = options.chain ?? publicVoucherChain(deadline);
   const block = await chain.block();
   const call = (to: Address, data: Hex) => chain.call(to, data, block.hash);
   const totalSupply = async (token: Address) =>
@@ -178,9 +185,11 @@ export async function readPassportVoucherSupply(
         totalSupply(voucher.token),
         balanceOf(voucher.token, asset.ownerReserve),
         voucherInUse(
+          route.service.sourceChainId,
           voucher.token,
           listedIn.map((pool) => pool.deployment.address),
-          reader
+          reader,
+          deadline
         ),
         Promise.all(
           listedIn.map(async (pool) => {
