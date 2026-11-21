@@ -14,8 +14,11 @@
  * restoring connect, within the limit counts as not restored, and wagmi moves on
  * to the next wallet and then releases the lock. A connect the person starts is
  * never bounded. The limit leaves room for two stuck calls inside the App's
- * 15-second restore deadline, so a wallet that answers behind a silent one is
- * reached before the App says the wallet did not answer.
+ * 15-second restore deadline, so a wallet that answers behind a silent one in the
+ * same restore is reached before the App says the wallet did not answer. One that
+ * registers later is reached by the App's next ask, which can land after that
+ * notice; the notice then clears. `getProvider()` stays unbounded: a connect the
+ * person starts waits on it too.
  *
  * @module modules/auth/connector-restore-deadline
  */
