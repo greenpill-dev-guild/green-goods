@@ -19,18 +19,23 @@ function isSameLocalDay(a: Date, b: Date): boolean {
  */
 export function useCalendarNow(): Date {
   const [now, setNow] = useState(() => new Date());
+  // Counts every check, which re-arms the midnight timer even when the day has not turned:
+  // a clock or time-zone change can wake it early.
+  const [checks, setChecks] = useState(0);
   const { set } = useTimeout();
 
   const refresh = useCallback(() => {
     const next = new Date();
     setNow((current) => (isSameLocalDay(current, next) ? current : next));
+    setChecks((count) => count + 1);
   }, []);
 
   useEffect(() => {
-    const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    const at = new Date();
+    const nextMidnight = new Date(at.getFullYear(), at.getMonth(), at.getDate() + 1);
     // A second past midnight, so the new instant is surely on the new day.
-    return set(refresh, Math.max(1_000, nextMidnight.getTime() - Date.now() + 1_000));
-  }, [now, refresh, set]);
+    return set(refresh, Math.max(1_000, nextMidnight.getTime() - at.getTime() + 1_000));
+  }, [checks, refresh, set]);
 
   useDocumentEvent("visibilitychange", () => {
     if (document.visibilityState === "visible") refresh();

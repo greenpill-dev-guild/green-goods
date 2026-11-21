@@ -1,6 +1,11 @@
 import { act, renderHook } from "@testing-library/react";
+import { createElement, type ReactNode } from "react";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { worksKeys } from "../../../config/query-keys/work";
 import { useCalendarNow } from "../../../hooks/admin-ui/garden/useCalendarNow";
+import { useGardenWorkCalendar } from "../../../hooks/admin-ui/garden/useGardenWorkCalendar";
+import { refreshApprovalReads } from "../../../modules/work/approval-read-refresh";
 import {
   buildWorkCalendar,
   parseWorkDay,
@@ -12,6 +17,24 @@ import { parseWorkScope } from "../../../hooks/admin-ui/review/review.utils";
 import { resolveReviewRouteState } from "../../../hooks/admin-ui/review/review.workbenchModel";
 import { adminRoutes } from "../../../utils/navigation/admin-routes";
 import { createMockWork } from "../../test-utils/mock-factories";
+import { createTestQueryClient } from "../../test-utils/query-client";
+
+const rangeRead = vi.hoisted(() => ({
+  current: {
+    works: [] as unknown[],
+    unknownIds: new Set<string>(),
+    complete: true,
+    hasRead: true,
+    isLoading: false,
+    isFetching: false,
+    isError: false,
+    isPaused: false,
+    refetch: () => Promise.resolve(),
+  },
+}));
+vi.mock("../../../hooks/work/useGardenWorkRange", () => ({
+  useGardenWorkRange: () => rangeRead.current,
+}));
 
 // Local wall times, so the suite reads the same in every zone it runs in.
 const at = (year: number, month: number, day: number, hour = 12) =>
@@ -134,5 +157,59 @@ describe("the calendar's today on a Hub left open", () => {
     act(() => vi.advanceTimersByTime(60_000));
     expect(result.current.getMonth()).toBe(11);
     expect(result.current.getDate()).toBe(1);
+  });
+});
+
+describe("a decision made from the calendar's day", () => {
+  it("rereads the garden's months and days, so the decision does not flip back to Pending", () => {
+    const client = createTestQueryClient();
+    const invalidate = vi.spyOn(client, "invalidateQueries");
+    refreshApprovalReads(client, 42161, { gardenId: "0xGarden", workUID: "0xwork" }, false);
+    const day = worksKeys.range("0xgarden", 42161, 100, 200);
+    const prefixes = invalidate.mock.calls.map(([filters]) => filters?.queryKey ?? []);
+    expect(prefixes.some((prefix) => prefix.every((part, index) => part === day[index]))).toBe(
+      true
+    );
+  });
+});
+
+describe("the calendar's URL", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    rangeRead.current = { ...rangeRead.current, hasRead: true, isPaused: false };
+  });
+
+  function renderCalendar(entry: string) {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(NOW);
+    const wrapper = ({ children }: { children: ReactNode }) =>
+      createElement(MemoryRouter, { initialEntries: [entry] }, children);
+    return renderHook(
+      () => ({
+        calendar: useGardenWorkCalendar({ gardenId: "0xgarden", active: true }),
+        location: useLocation(),
+      }),
+      { wrapper }
+    );
+  }
+
+  it("opens a day linked without its month in that day's month", () => {
+    const { result } = renderCalendar("/garden/activity?day=2026-10-03");
+    expect(result.current.calendar.month).toBe("2026-10");
+    expect(result.current.calendar.openDay?.day).toBe("2026-10-03");
+  });
+
+  it("keeps the feed's range when a day opens", () => {
+    const { result } = renderCalendar("/garden/activity?range=7d");
+    act(() => result.current.calendar.handleOpenDay("2026-11-03"));
+    expect(result.current.location.search).toContain("range=7d");
+    expect(result.current.location.search).toContain("day=2026-11-03");
+  });
+
+  it("keeps a month read before going offline and says it is the last read", () => {
+    rangeRead.current = { ...rangeRead.current, hasRead: true, isPaused: true };
+    const { result } = renderCalendar("/garden/activity");
+    expect(result.current.calendar.state).toBe("ready");
+    expect(result.current.calendar.stale).toBe(true);
   });
 });

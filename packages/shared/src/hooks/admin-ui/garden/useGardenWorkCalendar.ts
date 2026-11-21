@@ -47,9 +47,14 @@ export function useGardenWorkCalendar({
   const { searchParams, updateSearch } = useCanvasSearchParams();
   // One "today" per local day: steady while a month is read, moving on once the day turns.
   const now = useCalendarNow();
-  const month = parseWorkMonth(searchParams.get("month"), now);
-  const currentMonth = monthOfDate(now);
   const requestedDay = active ? parseWorkDay(searchParams.get("day"), now) : null;
+  const monthValue = searchParams.get("month");
+  // A day link without a month opens that day's month, so it holds across midnight too.
+  const month =
+    monthValue === null && requestedDay
+      ? monthOfDay(requestedDay)
+      : parseWorkMonth(monthValue, now);
+  const currentMonth = monthOfDate(now);
   const openDayKey = requestedDay && monthOfDay(requestedDay) === month ? requestedDay : null;
   const range = useMemo(() => workMonthRange(month), [month]);
   const read = useGardenWorkRange(active ? gardenId : undefined, active ? range : null);
@@ -85,10 +90,15 @@ export function useGardenWorkCalendar({
   const showCurrentMonth = useCallback(() => showMonth(currentMonth), [currentMonth, showMonth]);
 
   const monthParam = month === currentMonth ? undefined : month;
+  // The feed's range rides along, so the feed behind the dialog keeps the steward's choice.
+  const rangeParam = searchParams.get("range") ?? undefined;
   const handleOpenDay = useCallback(
     (day: WorkDayKey) =>
-      pushRouteItem(navigate, adminRoutes.gardenActivity({ gardenId, month: monthParam, day })),
-    [gardenId, monthParam, navigate]
+      pushRouteItem(
+        navigate,
+        adminRoutes.gardenActivity({ gardenId, month: monthParam, day, range: rangeParam })
+      ),
+    [gardenId, monthParam, navigate, rangeParam]
   );
   const handleCloseDay = useRouteItemClose(openDayKey !== null, "day");
   const { unknownIds } = read;
