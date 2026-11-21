@@ -195,7 +195,8 @@ export function summarizePassportPromises(
   for (const row of due) {
     if (row.provider) providers.add(row.provider);
   }
-  // The garden page publishes a kept rate under this same floor.
+  // The same floor the garden page applies to its kept rate. That page counts the promises in
+  // the garden's pool, so the two can differ once gardens take up promises in each other's pools.
   const floorMet =
     selectPublicPromiseKeptRate({
       commitmentsFulfilled: BigInt(kept.length),

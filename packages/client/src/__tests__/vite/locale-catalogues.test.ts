@@ -128,9 +128,13 @@ describe("locale catalogue bundles", () => {
               ? resolve(dirname(path), specifier)
               : null;
           if (!base) return [];
-          const file = [base, `${base}.ts`, `${base}.tsx`, join(base, "index.ts")].find(
-            (candidate) => sources.has(candidate)
-          );
+          const file = [
+            base,
+            `${base}.ts`,
+            `${base}.tsx`,
+            join(base, "index.ts"),
+            join(base, "index.tsx"),
+          ].find((candidate) => sources.has(candidate));
           return file ? [file] : [];
         }
       );
@@ -156,10 +160,19 @@ describe("locale catalogue bundles", () => {
           imports(path).some((imported) => carrying.has(imported))
       )
     ).toEqual([routeTable]);
+    // The table lists the website's routes, then the installed app's: a page that shows the copy
+    // is loaded lazily, and only from the website's part.
+    const table = sources.get(routeTable) ?? "";
+    const website = table.slice(
+      table.indexOf("id: CLIENT_ROUTE_IDS.publicShell,"),
+      table.indexOf("id: CLIENT_ROUTE_IDS.pwaRuntime,")
+    );
     for (const page of imports(routeTable).filter((imported) => carrying.has(imported))) {
       const name = page.slice(client.length + 1).replace(/\.tsx?$/, "");
-      expect(sources.get(routeTable)).toContain(`import("@/${name}")`);
-      expect(sources.get(routeTable)).not.toMatch(new RegExp(`from\\s+["']@/${name}["']`));
+      const lazy = `import("@/${name}")`;
+      expect(website).toContain(lazy);
+      expect(table.split(lazy)).toHaveLength(website.split(lazy).length);
+      expect(table).not.toMatch(new RegExp(`from\\s+["']@/${name}["']`));
     }
   });
 
