@@ -51,7 +51,8 @@ const kept = (id: number, fields: Row = {}) =>
 function indexer(tables: Record<string, Row[] | Error>, poolId: string | null = "7") {
   const calls: { entity: string; variables: Row }[] = [];
   const reader: GraphQLReader = {
-    query: async (document, variables = {}, operationName = "") => {
+    query: async (document, input, operationName = "") => {
+      const variables: Row = input ?? {};
       if (operationName === "getPublicPassportPool") {
         const pools = poolId === null ? [] : [{ id: `${CHAIN}-${poolId}`, poolId }];
         return { data: { CommitmentPool: pools } as never };
@@ -60,11 +61,11 @@ function indexer(tables: Record<string, Row[] | Error>, poolId: string | null = 
       calls.push({ entity, variables });
       const table = tables[entity] ?? [];
       if (table instanceof Error) return { error: table };
-      const ids = (variables as Row).ids as string[] | undefined;
+      const ids = variables.ids as string[] | undefined;
       const byCommitment = String(document).includes("[numeric!]!");
       const rows = table
         .filter((row) => !ids || ids.includes(String(byCommitment ? row.commitmentId : row.id)))
-        .filter((row) => String(row.id) > String((variables as Row).after))
+        .filter((row) => String(row.id) > String(variables.after))
         .sort((left, right) => String(left.id).localeCompare(String(right.id)))
         .slice(0, 100);
       return { data: { [entity]: rows } as never };

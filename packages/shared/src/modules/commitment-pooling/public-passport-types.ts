@@ -167,7 +167,7 @@ export interface PassportSettlement {
   }>;
 }
 
-export interface PassportUnavailableSources {
+interface PassportUnavailableSources {
   promises: boolean;
   vouchers: boolean;
   settlement: boolean;
