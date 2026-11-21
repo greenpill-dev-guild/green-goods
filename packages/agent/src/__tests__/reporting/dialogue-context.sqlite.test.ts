@@ -159,6 +159,44 @@ describe("what a model is given", () => {
     expect(JSON.stringify(request).length).toBeLessThanOrEqual(MODEL_INPUT_POLICY.maxSnapshotChars);
   });
 
+  it("leaves out a choice whose value it would have to alter, and sends nothing past the bound", async () => {
+    const planting = harness.catalog.actions.get(AIYELOJA.key)?.[0];
+    if (!planting) throw new Error("fixture activity missing");
+    const species = (options: string[]) => [
+      {
+        ...planting,
+        definition: {
+          ...planting.definition,
+          inputs: [
+            {
+              key: "species",
+              title: "Species",
+              placeholder: "",
+              type: "select" as const,
+              required: true,
+              options,
+            },
+          ],
+        },
+      },
+    ];
+    const wallet = adaAccount.address;
+    harness.catalog.actions.set(TAS.key, species(["baobab", wallet, "neem"]));
+    await consented(ADA, "Today I planted twelve baobab seedlings by the fence");
+    await harness.press(ADA, "TAS");
+    const request = await heard(ADA, "which species do you mean?");
+    expect(request.actions[0]?.inputs[0]?.options).toEqual(["baobab", "neem"]);
+
+    // One activity too large for the bound: the question is still answered, with no model.
+    harness.catalog.actions.set(
+      TAS.key,
+      species(Array.from({ length: 600 }, (_, index) => `species ${index} ${"x".repeat(100)}`))
+    );
+    const asked = harness.interpreter.requests.length;
+    expect((await harness.say(ADA, "and now?")).length).toBeGreaterThan(0);
+    expect(harness.interpreter.requests).toHaveLength(asked);
+  });
+
   it("names a disputed garden by its identifier, never by its address", async () => {
     await consented(ADA, "Today I planted twelve baobab seedlings by the fence");
     await harness.press(ADA, "TAS");

@@ -53,24 +53,40 @@ const QUESTION_KINDS = new Set([
 
 const label = (text: string) => sanitizeModelText(text, MODEL_INPUT_POLICY.maxLabelChars);
 
-function labels(map: Record<string, string> | undefined): Record<string, string> | undefined {
+/**
+ * The choices a model may name. A choice is named by its own value, which the report then stores,
+ * so a value the sanitizer would change is left out instead of being sent altered: the model
+ * cannot pick it, and the gardener still can.
+ */
+const namable = (values: readonly string[]) => values.filter((value) => label(value) === value);
+
+function labels(
+  map: Record<string, string> | undefined,
+  values: readonly string[]
+): Record<string, string> | undefined {
   return map
-    ? Object.fromEntries(Object.entries(map).map(([key, value]) => [label(key), label(value)]))
+    ? Object.fromEntries(
+        values
+          .filter((value) => map[value] !== undefined)
+          .map((value) => [value, label(map[value] as string)])
+      )
     : undefined;
 }
 
 /** A field as a model may read it. A repeater's nested fields are never asked in chat, so they stay out. */
 function publicInput(input: WorkInput): WorkInput {
-  const optionLabels = labels(input.optionLabels);
-  const bandLabels = labels(input.bandLabels);
+  const options = namable(input.options ?? []);
+  const bands = input.bands ? namable(input.bands) : undefined;
+  const optionLabels = labels(input.optionLabels, options);
+  const bandLabels = labels(input.bandLabels, bands ?? []);
   return {
     key: input.key,
     title: label(input.title),
     placeholder: label(input.placeholder ?? ""),
     type: input.type,
     required: input.required,
-    options: (input.options ?? []).map(label),
-    ...(input.bands ? { bands: input.bands.map(label) } : {}),
+    options,
+    ...(bands ? { bands } : {}),
     ...(optionLabels ? { optionLabels } : {}),
     ...(bandLabels ? { bandLabels } : {}),
     ...(input.unit ? { unit: label(input.unit) } : {}),
@@ -239,7 +255,8 @@ function goalOf(core: ReportingCore, ctx: TurnContext): DialogueGoal {
 
 /**
  * Keeps the snapshot inside its size bound: earlier turns go first, then the last activities
- * listed. The first activity stays, so one very large definition can still exceed the bound.
+ * listed. A snapshot still too large after that is not sent at all, and the turn goes on without
+ * the model.
  */
 function bounded(snapshot: DialogueSnapshot): DialogueSnapshot {
   const fits = (candidate: DialogueSnapshot) =>
@@ -248,6 +265,7 @@ function bounded(snapshot: DialogueSnapshot): DialogueSnapshot {
   while (!fits(next) && next.turns.length > 0) next = { ...next, turns: next.turns.slice(1) };
   while (!fits(next) && next.actions.length > 1)
     next = { ...next, actions: next.actions.slice(0, -1) };
+  if (!fits(next)) throw new Error("The dialogue snapshot exceeds its size bound");
   return next;
 }
 
