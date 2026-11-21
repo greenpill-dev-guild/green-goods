@@ -6,6 +6,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
+  mockBoundConnectorRestores,
   mockCreateAppKit,
   mockEnv,
   mockGetUniversalProvider,
@@ -26,6 +27,7 @@ const {
     })
   );
   return {
+    mockBoundConnectorRestores: vi.fn(),
     mockGetUniversalProvider,
     mockWalletConnectMetadata,
     mockCreateAppKit: vi.fn((_options?: unknown) => ({
@@ -59,6 +61,10 @@ vi.mock("@reown/appkit/react", () => ({
 
 vi.mock("@reown/appkit-adapter-wagmi", () => ({
   WagmiAdapter: mockWagmiAdapter,
+}));
+
+vi.mock("../../modules/auth/connector-restore-deadline", () => ({
+  boundConnectorRestores: (config: unknown) => mockBoundConnectorRestores(config),
 }));
 
 vi.mock("../../lib/env", () => ({
@@ -168,6 +174,12 @@ describe("AppKit config", () => {
         ],
         allWallets: "HIDE",
       })
+    );
+    // Bounded before AppKit starts its launch restore (PRD-1575).
+    const adapter = mockWagmiAdapter.mock.instances[0] as unknown as { wagmiConfig: unknown };
+    expect(mockBoundConnectorRestores).toHaveBeenCalledWith(adapter.wagmiConfig);
+    expect(mockBoundConnectorRestores.mock.invocationCallOrder[0]).toBeLessThan(
+      mockCreateAppKit.mock.invocationCallOrder[0] ?? 0
     );
   });
 
