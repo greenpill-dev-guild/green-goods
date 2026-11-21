@@ -64,7 +64,7 @@ function mapPromiseRow(row: RawRow): PassportPromiseRow {
 }
 
 /** Whether review registered this promise as a rehearsal, by its cycle or by its own id. */
-export function isRegisteredRehearsal(chainId: number, row: RawRow): boolean {
+function isRegisteredRehearsal(chainId: number, row: RawRow): boolean {
   const poolId = integer(row.poolId);
   if (
     publicRehearsalCommitments(chainId, poolId).some(
