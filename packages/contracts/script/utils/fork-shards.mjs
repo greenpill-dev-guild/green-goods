@@ -176,6 +176,7 @@ export const SHARD_ORDER = ["arbitrum", "settlement-lane", "sepolia", "ethereum"
 export const MANUAL_FORK_FILES = {
   "test/fork/ArbitrumAuditHardening.t.sol": "Audit-hardening release proof requires the pinned Arbitrum block and private exact predecessor, candidate Safe packet and garden inventory files; run explicitly before packet approval, including the cold six-proposal role-revocation case.",
   "test/fork/CeloHats.t.sol": "Legacy unpinned probe of Celo Hats tree 31; it reads the latest block and skips without CELO_RPC_URL.",
+  "test/fork/ArbitrumConvictionSyncActivation.t.sol": "PRD-1377 conviction sync rehearsal against current Arbitrum state; it needs a fresh reviewed block, the live garden count and the live Hats implementation, so it runs in the hats-module-upgrade-arbitrum shard before the Hats upgrade broadcast and before pools are authorized.",
   "test/fork/ArbitrumHatsProtocolDelegation.t.sol": "PRD-615 release proof requires a reviewed current-state block and private exact Safe packet/prerequisite files; run explicitly before packet approval, with the seven-call rehearsal recorded in private release evidence.",
 };
 
