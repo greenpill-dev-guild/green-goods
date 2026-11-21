@@ -5,8 +5,9 @@ the voting power registry. That does not authorize the Hats module inside the po
 Only the pool's council or owner can grant that authority. A garden is not ready for
 conviction voting until both pools authorize the upgraded Hats module.
 
-PRD-1377 includes the authorizations for the existing 18 gardens. For every future
-garden, prepare the missing authorizations with the read-only release command:
+The reviewed PRD-1377 authorization packet covers the gardens that existed when it was
+built. A garden minted after that packet is not in it. For every such garden, and every
+future garden, prepare the missing authorizations with the read-only release command:
 
 ```sh
 bun run contracts -- release conviction-sync --network arbitrum --mode plan \
@@ -43,8 +44,49 @@ also revoke a test member's role and confirm successful sync events from both po
 and removal of that member's stale support. Production role changes need their own
 authorization; this check does not authorize changing anyone's roles.
 
+## Rehearse against current chain state
+
+Before the upgrade broadcast, the upgrade wrapper runs the `hats-module-upgrade-arbitrum`
+fork shard. It discovers every garden from the garden token, including gardens minted
+through the upgradeable account proxy, and rehearses this whole sequence against the
+deployed pools: role grants fail to sync before the upgrade and authorization, the upgrade
+alone does not fix that, authorization alone does not fix that, and after both, every
+garden's role grants and revocations sync both pools. It also clears six stale support
+positions on the newest garden's pools when its member loses their last role. Run it with
+a fresh block, the live garden count and the live implementation:
+
+```sh
+HATS_MODULE_UPGRADE_FORK_BLOCK_NUMBER="$PROOF_BLOCK" ARBITRUM_FORK_BLOCK_NUMBER="$PROOF_BLOCK" \
+HATS_MODULE_UPGRADE_GARDEN_COUNT="$LIVE_GARDEN_COUNT" \
+HATS_MODULE_UPGRADE_EXPECTED_IMPLEMENTATION="$LIVE_HATS_IMPLEMENTATION" \
+  bun run test:shard run hats-module-upgrade-arbitrum
+```
+
+The rehearsal pranks each pool's council instead of signing, so it complements the
+private Safe packet rehearsal rather than replacing it.
+
+## Pools a community has not enabled
+
+Sync does not need it, but a member can only activate points in a pool that its
+community has enabled. Some communities have not enabled their gardens' pools, and
+`activatePoints` then reverts `StrategyDisabled()`. Only the community council can call
+`addStrategy(pool)`, so each such pool needs its own reviewed Safe call. The rehearsal
+logs how many live pools are not enabled and enables the newest garden's pools on the
+fork only. Neither PRD-1377 batch enables a pool.
+
+## Before governance returns
+
 Governance remains hidden until its separate release decision. A successful sync
-check alone is not approval to expose proposal creation or voting.
+check alone is not approval to expose proposal creation or voting. That decision needs,
+at a fresh block:
+
+- the upgraded Hats implementation active, with `release conviction-sync --mode verify`
+  passing for every live garden;
+- every live pool enabled in its community;
+- one real role removal that logs `ConvictionSyncTriggered` on both of that garden's
+  pools.
+
+## Hook gas and app headroom
 
 The Hats contract requires enough caller gas for its configured sync hooks. Each hook receives
 at most one million gas; CALL/EIP-150 overhead and a completion reserve are included. An

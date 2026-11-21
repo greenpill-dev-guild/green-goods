@@ -77,8 +77,9 @@ export const SHARDS = {
   },
   "hats-module-upgrade-arbitrum": {
     chain: "ARBITRUM",
-    description: "Reviewed current-state Arbitrum rehearsal of the live HatsModule UUPS upgrade",
-    glob: "test/fork/ArbitrumHatsModuleUpgrade.t.sol",
+    description:
+      "Reviewed current-state Arbitrum rehearsal of the live HatsModule UUPS upgrade and conviction sync activation",
+    glob: "test/fork/{ArbitrumHatsModuleUpgrade,ArbitrumConvictionSyncActivation}.t.sol",
     requiredPositiveIntegerEnv: HATS_MODULE_REHEARSAL_INPUTS,
     requiredAddressEnv: HATS_MODULE_REHEARSAL_ADDRESS_INPUTS,
   },
