@@ -1,4 +1,5 @@
 import type { Domain } from "../../../types/domain";
+import { parseReviewWaitingBand } from "../../../utils/garden-detail";
 import { parseWorkDay } from "../garden/workCalendar";
 import type { AdminSheetSide } from "../navigation/sheetRegistry";
 import {
@@ -57,6 +58,8 @@ export interface ReviewRouteStateInput {
   scopeParam?: string | null;
   /** The calendar day the Work tab is narrowed to, as the URL has it. */
   dayParam?: string | null;
+  /** The waiting-time band the pending list is narrowed to, as the URL has it. */
+  waitingParam?: string | null;
   routedWorkIdParam?: string;
   routedAssessmentIdParam?: string;
   activeContentId: string | null;
@@ -134,6 +137,7 @@ export function resolveReviewRouteState({
   sortParam,
   scopeParam,
   dayParam,
+  waitingParam,
   routedWorkIdParam,
   routedAssessmentIdParam,
   activeContentId,
@@ -146,6 +150,7 @@ export function resolveReviewRouteState({
   const requestedStage = resolvePipelineStageFromPath(pathname);
   // A day narrows only the Work tab; the other stages ignore one left in the URL.
   const workDay = requestedStage === "work" ? parseWorkDay(dayParam, new Date()) : null;
+  const workScope = parseWorkScope(scopeParam, workDay !== null);
   const { routeSheetContentId, routeSheetSide } = resolveReviewRouteSheet({
     isSubmitRoute,
     routeWorkId,
@@ -163,7 +168,12 @@ export function resolveReviewRouteState({
     routeWorkId,
     sortDirection: parseSortDirection(sortParam),
     workDay,
-    workScope: parseWorkScope(scopeParam, workDay !== null),
+    workScope,
+    // A band narrows only pending work, and never a day's list of every status.
+    waitingBand:
+      requestedStage === "work" && workDay === null && workScope === "pending"
+        ? parseReviewWaitingBand(waitingParam)
+        : null,
   };
 }
 
