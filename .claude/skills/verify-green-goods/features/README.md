@@ -6,7 +6,8 @@ feature file as the recipe.
 
 ## Baseline preconditions
 
-- Dependencies are installed; nothing else is needed (no `.env`, indexer, chain or agent).
+- Dependencies and Playwright's Chromium (`bun x playwright install chromium`) are installed;
+  nothing else is needed (no `.env`, indexer, chain or agent).
 - `bun scripts/dev/verify-control.ts launch client --run <run-id>` (and `launch admin` for the Hub)
   reported ready, and `doctor --run <run-id>` prints `ok` at the current HEAD.
 - The client signs in as `user` (`0x1234…7890`) unless a recipe names another `--role`; the Hub as

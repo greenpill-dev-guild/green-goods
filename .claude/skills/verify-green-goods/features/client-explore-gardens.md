@@ -27,7 +27,8 @@ Preconditions:
   The snapshot shows a button `Member Test Community Garden 1 member · Nairobi`.
 - **Open the garden.** `--step "click:heading:Test Community Garden"`, then
   `--step "expect-url:/home/0x1234567890abcdef1234567890abcdef12345678"` and
-  `--step "expect-hidden:heading:Explore Gardens"`.
+  `--step "expect-hidden:heading:Explore Gardens"`, then wait for the garden page itself with
+  `--step "expect:group:Garden sections"` (the page shows `Loading garden...` first).
 - **Proof.** `--step "snapshot:detail-<width>.aria.txt" --step "screenshot:detail-<width>.png"`.
   The snapshot shows heading level 1 `Test Community Garden`, `Nairobi`, a `Garden sections` group
   with `Work`, `Insights` and `Gardeners`, and the empty-work heading
@@ -36,7 +37,8 @@ Preconditions:
 ## Gotchas
 
 - The URL changes before the garden page renders; capturing right after `expect-url` records the
-  Explore list. Wait with `expect-hidden:heading:Explore Gardens`.
+  Explore list, and leaving Explore does not mean the garden has loaded. Wait with
+  `expect-hidden:heading:Explore Gardens`, then `expect:group:Garden sections`.
 - The card heading and the page heading share the name, so `expect:heading:Test Community Garden`
   alone cannot tell the two pages apart.
 - The list's `Filters` button is disabled until the gardens load; it says nothing about the journey.

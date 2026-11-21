@@ -18,7 +18,7 @@ queue's offline uploads need authenticated Brave, and this skill never stands in
 ## Launch
 
 Preconditions: dependencies installed (`bun install` done; the pre-push hook and CI assume the
-same). No `.env` value is needed: the server runs on Sepolia in Vite's `test` mode with telemetry
+same), and Playwright's Chromium installed once with `bun x playwright install chromium`. No `.env` value is needed: the server runs on Sepolia in Vite's `test` mode with telemetry
 off, and the browser answers indexer, EAS and RPC reads from fixtures. The server listens on
 127.0.0.1 only, and the browser blocks requests to a local Agent (3005) or indexer (3006), so a run
 never reads or writes a developer's running services.
@@ -60,6 +60,7 @@ bun scripts/dev/verify-control.ts drive client --run <run-id> --feature <feature
   --step "click:heading:Test Community Garden" \
   --step "expect-url:/home/0x1234567890abcdef1234567890abcdef12345678" \
   --step "expect-hidden:heading:Explore Gardens" \
+  --step "expect:group:Garden sections" \
   --step "snapshot:detail-375.aria.txt" \
   --step "screenshot:detail-375.png"
 ```
@@ -71,7 +72,7 @@ bun scripts/dev/verify-control.ts drive client --run <run-id> --feature <feature
 - Add `?presentation=pwa` to client paths to get the installed-app shell on a desktop browser.
 - The client fixtures (`tests/helpers/mock-backend.ts`) answer one garden, one action and the
   attestations a scenario names; any other indexer, EAS or RPC request fails the drive with a
-  `FAIL unhandled:` line naming it. Nothing checks that a journey made the reads it should, so
+  `FAIL unhandled:` or `FAIL fixture:` line naming it. Nothing checks that a journey made the reads it should, so
   prove the result on the page. A journey that needs other data needs a fixture change,
   not a weaker journey.
 - Run every journey at `--width 375` and `--width 1280`.

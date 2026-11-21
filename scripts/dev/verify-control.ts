@@ -98,14 +98,24 @@ function writeState(dir: string, state: ServerState) {
  * process that is gone.
  */
 function output(command: string[], emptyExit?: number): string {
-  const result = Bun.spawnSync(command, { stderr: "pipe" });
+  let result: ReturnType<typeof Bun.spawnSync>;
+  try {
+    // A fixed zone and locale, so ps prints a start time that reads the same in every shell.
+    result = Bun.spawnSync(command, { stderr: "pipe", env: { ...process.env, TZ: "UTC", LC_ALL: "C" } });
+  } catch (error) {
+    throw new Error(`${command[0]} is required and could not run: ${(error as Error).message}`);
+  }
   if (result.exitCode === 0) return result.stdout.toString().trim();
   if (result.exitCode === emptyExit && !result.stderr.toString().trim()) return "";
   throw new Error(`${command.join(" ")} failed (${result.exitCode}): ${result.stderr.toString().trim()}`);
 }
 
 const startTime = (pid: number) => output(["ps", "-o", "lstart=", "-p", String(pid)], 1);
-const bootTime = () => output(["sysctl", "-n", "kern.boottime"]);
+/** An id for this boot of the machine: Linux's boot_id, or macOS's boot session uuid. */
+const bootId = () =>
+  existsSync("/proc/sys/kernel/random/boot_id")
+    ? readFileSync("/proc/sys/kernel/random/boot_id", "utf8").trim()
+    : output(["sysctl", "-n", "kern.bootsessionuuid"]);
 
 /** Every process whose group is `pgid`, with its start time and command line. */
 function groupMembers(pgid: number): { pid: number; command: string }[] {
@@ -118,7 +128,7 @@ function groupMembers(pgid: number): { pid: number; command: string }[] {
 
 /** Process groups listening on `port`. */
 function listenerGroups(port: number): number[] {
-  const pids = output(["lsof", "-nP", "-t", `-iTCP:${port}`, "-sTCP:LISTEN"], 1).split("\n").filter(Boolean);
+  const pids = output(["lsof", "-nPw", "-t", `-iTCP:${port}`, "-sTCP:LISTEN"], 1).split("\n").filter(Boolean);
   return [...new Set(pids.map((pid) => Number(output(["ps", "-o", "pgid=", "-p", pid], 1))).filter(Boolean))];
 }
 
@@ -129,13 +139,13 @@ function listenerGroups(port: number): number[] {
  * command names the run's port), since a group id is free again once its group has exited.
  */
 function owned(state: ServerState): boolean {
-  if (state.repoRoot !== repoRoot || state.boot !== bootTime()) return false;
+  if (state.repoRoot !== repoRoot || state.boot !== bootId()) return false;
   const leaderStart = startTime(state.pid);
   if (leaderStart) return leaderStart === state.started;
   return groupMembers(state.pid).some(({ command }) => command.includes("vite") && command.includes(`--port ${state.port}`));
 }
 
-/** Stop this run's group, waiting for it to go; true once nothing of it is left. */
+/** Stop this run's group, waiting for it to go; true once nothing this run can prove its own is left. */
 async function stopGroup(state: ServerState): Promise<boolean> {
   for (const [signal, waitMs] of [["SIGTERM", 10_000], ["SIGKILL", 5_000]] as const) {
     if (!owned(state)) return true;
@@ -157,11 +167,21 @@ async function probe(port: number): Promise<string | null> {
   for (const scheme of ["https", "http"]) {
     const url = `${scheme}://localhost:${port}`;
     try {
-      const response = await fetch(url, { tls: { rejectUnauthorized: false } } as RequestInit);
+      const response = await fetch(url, { tls: { rejectUnauthorized: false }, signal: AbortSignal.timeout(5_000) } as RequestInit);
       if (response.ok && (await response.text()).includes("Green Goods")) return url;
     } catch {}
   }
   return null;
+}
+
+/**
+ * Every PostHog and Sentry key env.schema names, set empty. Vite copies a root .env value only
+ * where the key is undefined, so removing a key would let the developer's real one back in.
+ */
+function telemetryBlanks(): Record<string, string> {
+  const schema = readFileSync(path.join(repoRoot, "env.schema"), "utf8");
+  const keys = [...schema.matchAll(/^([A-Z][A-Z0-9_]*(?:POSTHOG|SENTRY)[A-Z0-9_]*)=/gm)].map((match) => match[1]);
+  return Object.fromEntries(keys.map((key) => [key, ""]));
 }
 
 async function launch(argv: string[]) {
@@ -170,8 +190,14 @@ async function launch(argv: string[]) {
   const { run, dir } = runDir(argv);
   const existing = readState(dir, app);
   if (existing && owned(existing)) fail(`${app} is already running for run ${run}${existing.url ? ` at ${existing.url}` : ""}; run cleanup first`);
+  if (existing && listenerGroups(existing.port).includes(existing.pid)) {
+    fail(`${app}'s recorded group ${existing.pid} still serves port ${existing.port} but cannot be proven this run's; stop it by hand`);
+  }
   if (existing) rmSync(statePath(dir, app));
   const { cwd, port } = APPS[app];
+  // Read before spawning, so nothing between spawn and the state file can throw.
+  const boot = bootId();
+  const commit = headCommit();
   if (listenerGroups(port).length || (await probe(port))) fail(`port ${port} is in use by a process this run did not start; stop it first`);
   const log = path.join(dir, `${app}.server.log`);
   const out = openSync(log, "a");
@@ -186,6 +212,7 @@ async function launch(argv: string[]) {
       stdio: ["ignore", out, out],
       env: {
         ...process.env,
+        ...telemetryBlanks(),
         APP_ENV: "test",
         NODE_ENV: "test",
         VITE_CHAIN_ID: "11155111",
@@ -206,9 +233,14 @@ async function launch(argv: string[]) {
   );
   child.unref();
   if (!child.pid) fail(`${app} dev server did not start; see ${log}`);
-  const started = startTime(child.pid);
+  let started = "";
+  try {
+    started = startTime(child.pid);
+  } catch {}
   if (!started) {
-    process.kill(-child.pid, "SIGTERM");
+    try {
+      process.kill(-child.pid, "SIGTERM");
+    } catch {}
     fail(`could not read the start time of the ${app} server it just started; stopped it`);
   }
   // Recorded before waiting, so cleanup can stop a launch that was interrupted.
@@ -217,13 +249,13 @@ async function launch(argv: string[]) {
     status: "starting",
     pid: child.pid,
     started,
-    boot: bootTime(),
+    boot,
     port,
     url: null,
     log,
     repoRoot,
     startedAt: new Date().toISOString(),
-    commit: headCommit(),
+    commit,
   };
   writeState(dir, state);
   const deadline = Date.now() + 180_000;
@@ -259,7 +291,12 @@ async function doctor(argv: string[]) {
     const state = readState(dir, app);
     if (!state) continue;
     found += 1;
-    const problem = await unhealthy(state);
+    let problem: string | null;
+    try {
+      problem = await unhealthy(state);
+    } catch (error) {
+      problem = `could not check: ${(error as Error).message}`;
+    }
     healthy &&= !problem;
     console.log(
       `${problem ? "FAIL" : "ok  "} ${app}: pid ${state.pid}, ${state.url ?? "no url"}, started ${state.startedAt} at ${state.commit}` +
@@ -290,7 +327,16 @@ async function drive(argv: string[]) {
   const evidence = path.join(dir, feature);
   mkdirSync(evidence, { recursive: true });
   const failureShot = path.join(evidence, `failure-${width}.png`);
-  rmSync(failureShot, { force: true });
+  // A retry must not leave an earlier attempt's captures beside this attempt's transcript.
+  const captures = steps.flatMap((step) => (/^(snapshot|screenshot):/.test(step) ? [step.slice(step.indexOf(":") + 1)] : []));
+  for (const name of captures) {
+    try {
+      rmSync(evidenceFile(evidence, name), { force: true });
+    } catch (error) {
+      fail((error as Error).message);
+    }
+  }
+  for (const file of [failureShot, path.join(evidence, `transcript-${width}.txt`)]) rmSync(file, { force: true });
 
   const transcript: string[] = [`feature ${feature}, app ${app}, role ${role}, width ${width}, server ${url} at ${state.commit}`];
   const consoleErrors: string[] = [];
@@ -402,14 +448,22 @@ async function cleanup(argv: string[]) {
     const state = readState(dir, app);
     if (!state) continue;
     // Only the process group this run started, proven by its recorded start time or surviving
-    // group; never anything found by name or port.
-    const running = owned(state);
-    if (await stopGroup(state)) {
-      rmSync(statePath(dir, app));
-      console.log(`verify-control: ${running ? "stopped" : "found no running"} ${app} (group ${state.pid}) for run ${run}`);
-    } else {
+    // group; never anything found by name or port. Any doubt keeps the state file.
+    try {
+      const running = owned(state);
+      if (!running && listenerGroups(state.port).includes(state.pid)) {
+        stuck = true;
+        console.error(`verify-control: ${app} group ${state.pid} still serves port ${state.port} but cannot be proven this run's; stop it by hand, then remove ${path.relative(repoRoot, statePath(dir, app))}`);
+      } else if (await stopGroup(state)) {
+        rmSync(statePath(dir, app));
+        console.log(`verify-control: ${running ? "stopped" : "found no running"} ${app} (group ${state.pid}) for run ${run}`);
+      } else {
+        stuck = true;
+        console.error(`verify-control: ${app} group ${state.pid} is still running; its state file is kept`);
+      }
+    } catch (error) {
       stuck = true;
-      console.error(`verify-control: ${app} group ${state.pid} is still running; its state file is kept`);
+      console.error(`verify-control: could not check ${app} (${(error as Error).message}); its state file is kept`);
     }
   }
   console.log(`verify-control: evidence kept in ${path.relative(repoRoot, dir)}`);
