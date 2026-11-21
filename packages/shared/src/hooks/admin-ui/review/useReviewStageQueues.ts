@@ -12,6 +12,8 @@ export function useReviewStageQueues<
   THypercert extends Parameters<typeof filterHypercerts>[0][number],
 >(input: {
   works: Parameters<typeof filterWorksByScope>[0];
+  /** Where an opened work is found: every work, not only the scope's or band's list. */
+  selectableWorks?: Parameters<typeof filterWorksByScope>[0];
   workScope: Parameters<typeof filterWorksByScope>[1];
   actionsMap: Parameters<typeof filterWorksByScope>[2];
   normalizedSearch: string;
@@ -25,6 +27,7 @@ export function useReviewStageQueues<
 }) {
   const {
     works,
+    selectableWorks = works,
     workScope,
     actionsMap,
     normalizedSearch,
@@ -54,8 +57,8 @@ export function useReviewStageQueues<
 
   const selectedWork = useMemo(() => {
     const resolvedId = routeWorkId ?? activeWorkDetailId;
-    return resolvedId ? works.find((work) => work.id === resolvedId) : undefined;
-  }, [activeWorkDetailId, routeWorkId, works]);
+    return resolvedId ? selectableWorks.find((work) => work.id === resolvedId) : undefined;
+  }, [activeWorkDetailId, routeWorkId, selectableWorks]);
 
   // Read from every assessment, not the searched list: a record opened by its
   // link stays open whatever the search box holds, as a work detail does.

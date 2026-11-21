@@ -10,7 +10,7 @@ import { Button } from "@green-goods/shared/components/Button";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { RiCalendarLine } from "@remixicon/react";
 import { useMemo } from "react";
-import { useIntl } from "react-intl";
+import { defineMessages, useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
@@ -24,6 +24,13 @@ import {
 } from "@/components/Layout/CanvasRouteFrame";
 import { CanvasWorkspaceSelectionState } from "@/components/Layout/CanvasWorkspaceSelectionState";
 import { ReviewFlowDialogs, ReviewSheetDescriptor, ReviewStageContent } from "./components";
+
+const WAITING_BAND_LABEL = defineMessages({
+  under2d: { id: "hub.review.work.waiting.under2d", defaultMessage: "Under 2 Days" },
+  days2to7: { id: "hub.review.work.waiting.days2to7", defaultMessage: "2 to 7 Days" },
+  weeks1to2: { id: "hub.review.work.waiting.weeks1to2", defaultMessage: "1 to 2 Weeks" },
+  over2w: { id: "hub.review.work.waiting.over2w", defaultMessage: "Over 2 Weeks" },
+});
 
 export default function ReviewView() {
   const { formatMessage, formatDate } = useIntl();
@@ -150,6 +157,47 @@ export default function ReviewView() {
                         onToggle={() => review.handleWorkScopeChange("approved")}
                       />
                     </div>
+                    {/* How long pending work has waited (PRD-1577). Plain ink, never a
+                        warning: age is information (DL-044). Not on a day's list. */}
+                    {review.workDay ? null : (
+                      <div
+                        className="flex flex-wrap items-center gap-1.5"
+                        role="group"
+                        aria-label={formatMessage({
+                          id: "hub.review.work.waiting",
+                          defaultMessage: "Waiting time",
+                        })}
+                      >
+                        {review.waitingBands.map((band) => (
+                          <AdminFilterChip
+                            key={band.id}
+                            label={formatMessage(
+                              review.waitingBandsComplete
+                                ? {
+                                    id: "hub.review.work.waiting.count",
+                                    defaultMessage: "{band} ({count})",
+                                  }
+                                : {
+                                    id: "hub.review.work.waiting.atLeast",
+                                    defaultMessage: "{band} ({count}+)",
+                                  },
+                              {
+                                band: formatMessage(WAITING_BAND_LABEL[band.id]),
+                                count: band.count,
+                              }
+                            )}
+                            selected={review.waitingBand === band.id}
+                            // An empty band has nothing to show, unless its count is only a minimum.
+                            disabled={
+                              band.count === 0 &&
+                              review.waitingBandsComplete &&
+                              review.waitingBand !== band.id
+                            }
+                            onToggle={() => review.handleWaitingBandChange(band.id)}
+                          />
+                        ))}
+                      </div>
+                    )}
                     <AdminSortSelect
                       value={review.sortDirection}
                       onChange={(value) => review.updateSearch({ sort: value }, false)}
@@ -230,6 +278,11 @@ export default function ReviewView() {
                   stage={review.stage}
                   works={review.scopedWorks}
                   workScope={review.workScope}
+                  onClearWaitingBand={
+                    review.waitingBand
+                      ? () => review.handleWaitingBandChange(review.waitingBand!)
+                      : undefined
+                  }
                   assessments={review.assessmentList}
                   hypercerts={review.hypercertList}
                   // Oldest first lists nothing until the whole history is read. A day's
@@ -271,7 +324,13 @@ export default function ReviewView() {
                   // A day's list is for reading and opening: batch review and older pages
                   // belong to the queue, which holds the works they act on.
                   reviewBatch={review.workDay ? undefined : review.reviewBatch}
-                  olderWork={review.workDay ? undefined : review.olderWork}
+                  // A day is read on its own, and a band whose oldest work is in needs no
+                  // older page, so neither offers one.
+                  olderWork={
+                    review.workDay || (review.waitingBand && !review.needsOlderWork)
+                      ? undefined
+                      : review.olderWork
+                  }
                   olderHypercerts={review.olderHypercerts}
                 />
               </div>
