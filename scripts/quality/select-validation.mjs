@@ -829,7 +829,7 @@ export function selectValidation(input = {}, options = {}) {
     const matchingPaths = changedPaths.filter((path) => {
       if (!groupMatches(path, rule)) return false;
       if (rule.exact?.includes(path)) return true;
-      if (rule.check === "browser-proof" && isValidationOnlyPath(path)) return false;
+      if (["browser-proof", "rendered-proof"].includes(rule.check) && isValidationOnlyPath(path)) return false;
       if (rule.check === "ontology" && isValidationOnlyPath(path)) return false;
       if (
         ["source-structure", "design-guardrails"].includes(rule.check) &&
