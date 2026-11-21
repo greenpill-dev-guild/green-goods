@@ -16,8 +16,8 @@ import { passportAmount, passportDate, passportIsoDate } from "./gardenPassportF
 /**
  * What the exchange pools hold of the vouchers this garden issues, read from the voucher chain.
  * Three facts on three sentences: what a pool holds, the most it may hold, and what is
- * outstanding. The outstanding total stays out while any of it is with holders, because nobody
- * has counted the people behind that number.
+ * outstanding. Once people use a voucher, the holding and the outstanding total stay out, because
+ * nobody has counted the people behind those numbers; the holding limit stays.
  */
 export function PassportExchangePool({
   supply,
@@ -59,7 +59,7 @@ export function PassportExchangePool({
         <PassportNothingYet>
           {formatMessage({
             id: "public.passport.vouchers.pool.none",
-            defaultMessage: "This garden issues no voucher of its own.",
+            defaultMessage: "This garden issues no voucher that the exchange pool lists.",
           })}
         </PassportNothingYet>
       ) : (
@@ -84,29 +84,33 @@ function VoucherSupply({ voucher }: { voucher: PassportVoucherSupply }) {
   return (
     <div className="flex flex-col gap-2">
       {voucher.pools.map((pool) => (
-        <div key={pool.name} className="flex flex-col gap-2">
-          <PassportFigure>
-            {formatMessage(
-              {
-                id: "public.passport.vouchers.pool.figure",
-                defaultMessage: "{amount} {symbol} in the {pool} exchange pool",
-              },
-              { amount: amount(pool.holding), symbol, pool: pool.name }
-            )}
-          </PassportFigure>
+        <div key={pool.id} className="flex flex-col gap-2">
+          {pool.holding !== null ? (
+            <PassportFigure>
+              {formatMessage(
+                {
+                  id: "public.passport.vouchers.pool.figure",
+                  defaultMessage: "{amount} {symbol} in the {pool} exchange pool",
+                },
+                { amount: amount(pool.holding), symbol, pool: pool.name }
+              )}
+            </PassportFigure>
+          ) : null}
           <PassportNote>
-            {pool.listed
+            {!pool.listed
               ? formatMessage(
-                  {
-                    id: "public.passport.vouchers.pool.limit",
-                    defaultMessage: "The pool may hold {amount} {symbol} at most.",
-                  },
-                  { amount: amount(pool.holdingLimit), symbol }
+                  { id: "public.passport.vouchers.pool.notListed" },
+                  { pool: pool.name }
                 )
-              : formatMessage({
-                  id: "public.passport.vouchers.pool.notListed",
-                  defaultMessage: "This pool does not list the voucher right now.",
-                })}
+              : pool.holding !== null
+                ? formatMessage(
+                    { id: "public.passport.vouchers.pool.limit" },
+                    { amount: amount(pool.holdingLimit), symbol }
+                  )
+                : formatMessage(
+                    { id: "public.passport.vouchers.pool.limitNamed" },
+                    { amount: amount(pool.holdingLimit), symbol, pool: pool.name }
+                  )}
           </PassportNote>
         </div>
       ))}

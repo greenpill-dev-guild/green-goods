@@ -93,6 +93,9 @@ describe("locale catalogue bundles", () => {
     expect(packedBytes).toBeLessThan(originalBytes);
   });
 
+  // A tripwire, not a proof. It reads literal message ids and literal import specifiers, so an id
+  // assembled at run time, a glob import or a computed specifier outside the route table passes
+  // unseen. The route test holds the other end: no passport route in the installed app's tree.
   it("leaves out only copy that no code the installed app can reach refers to", async () => {
     const root = resolve(import.meta.dirname, "../../..");
     const client = resolve(root, "src");

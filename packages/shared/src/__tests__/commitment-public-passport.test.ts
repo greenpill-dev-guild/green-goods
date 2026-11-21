@@ -99,6 +99,26 @@ function indexer(tables: Record<string, Row[] | Error>, poolId: string | null = 
         const pools = poolId === null ? [] : [{ id: `${CHAIN}-${poolId}`, poolId }];
         return { data: { CommitmentPool: pools } as never };
       }
+      if (operationName === "getPublicPassportVoucherUse") {
+        // Whether anyone used a voucher: at most one exchange and one booking that name it.
+        const used = ["VoucherPoolExchange", "VoucherServiceSetup"].map(
+          (name) => tables[name] ?? []
+        );
+        const failed = used.find((table) => table instanceof Error);
+        if (failed) return { error: failed as Error };
+        const [exchanges, bookings] = used as Row[][];
+        const tokens = variables.tokens as string[];
+        const names = (token: unknown) => tokens.includes(String(token));
+        return {
+          data: {
+            VoucherPoolExchange: exchanges
+              .filter((row) => (variables.pools as string[]).includes(String(row.moduleAddress)))
+              .filter((row) => names(row.tokenIn) || names(row.tokenOut))
+              .slice(0, 1),
+            VoucherServiceSetup: bookings.filter((row) => names(row.token)).slice(0, 1),
+          } as never,
+        };
+      }
       const entity = operationName.replace("getPublicPassport", "");
       calls.push({ entity, variables, document: String(document) });
       const table = tables[entity] ?? [];
@@ -876,11 +896,12 @@ describe("a garden's passport", () => {
     });
   });
 
-  it("reads what the exchange pool holds from the voucher chain, and holds back what holders have", async () => {
+  it("reads what the exchange pool holds from the voucher chain, until people use the voucher", async () => {
     const VOUCHERS = 1_000_000n;
     const tsv = GREEN_GOODS_ISSUER_ROUTE.assets.find((asset) => asset.id === "tech-and-sun")!;
+    const token = tsv.token.address.toLowerCase();
     const issuer = GREEN_GOODS_ISSUER_ROUTE.service.assets.find(
-      (asset) => asset.token.toLowerCase() === tsv.token.address.toLowerCase()
+      (asset) => asset.token.toLowerCase() === token
     )!.garden!;
     const pool = GREEN_GOODS_ISSUER_ROUTE.pools[0];
     const abi = parseAbi([
@@ -889,46 +910,72 @@ describe("a garden's passport", () => {
       "function limitOf(address,address) view returns (uint256)",
       "function have(address) view returns (bool)",
     ]);
-    const same = (left: string, right: string) => left.toLowerCase() === right.toLowerCase();
-    /** The voucher's token, its pool's limiter and registry, answering from one block. */
-    const chain = (reserve: bigint, blocks: bigint[] = []): PassportVoucherChain => ({
-      block: async () => ({ number: 77n, timestamp: 1_800_000 }),
+    const same = (left: unknown, right: string) =>
+      String(left).toLowerCase() === right.toLowerCase();
+    const BLOCK = `0x${"7".repeat(64)}` as const;
+    /** The token, and its pool's limiter and registry, each answering only the call meant for it. */
+    const chain = (reserve: bigint, blocks: string[] = []): PassportVoucherChain => ({
+      block: async () => ({ hash: BLOCK, timestamp: 1_800_000 }),
       call: async (to, data, block) => {
         blocks.push(block);
-        const { functionName, args } = decodeFunctionData({ abi, data });
+        const { functionName, args = [] } = decodeFunctionData({ abi, data });
         const answer = (): bigint | boolean => {
-          if (functionName === "have" && same(to, pool.registry.address)) return true;
-          if (functionName === "limitOf" && same(to, pool.limiter.address)) return 20n * VOUCHERS;
-          if (!same(to, tsv.token.address)) throw new Error("unexpected contract");
+          if (functionName === "have" && same(to, pool.registry.address) && same(args[0], token)) {
+            return true;
+          }
+          if (
+            functionName === "limitOf" &&
+            same(to, pool.limiter.address) &&
+            same(args[0], token) &&
+            same(args[1], pool.deployment.address)
+          ) {
+            return 20n * VOUCHERS;
+          }
+          if (!same(to, token)) throw new Error("unexpected call");
           if (functionName === "totalSupply") return 20n * VOUCHERS;
-          const holder = String(args?.[0]);
-          if (same(holder, tsv.ownerReserve)) return reserve;
-          if (same(holder, pool.deployment.address)) return 10n * VOUCHERS;
-          throw new Error("unexpected holder");
+          if (functionName === "balanceOf" && same(args[0], tsv.ownerReserve)) return reserve;
+          if (functionName === "balanceOf" && same(args[0], pool.deployment.address)) {
+            return 10n * VOUCHERS;
+          }
+          throw new Error("unexpected call");
         };
         return encodeFunctionResult({ abi, functionName, result: answer() } as never);
       },
     });
-    const supplyOf = async (voucherChain: PassportVoucherChain, garden: Address = issuer) =>
+    const supplyOf = async (
+      voucherChain: PassportVoucherChain,
+      tables: Record<string, Row[] | Error> = {},
+      garden: Address = issuer
+    ) =>
       getPublicGardenPassport(CHAIN, garden, {
         now: NOW,
-        reader: indexer({ VoucherCoreConfiguration: PINS }).reader,
+        reader: indexer({ VoucherCoreConfiguration: PINS, ...tables }).reader,
         voucherChain,
       });
+    const untouched = chain(10n * VOUCHERS);
+    const held = [
+      {
+        heldBack: true,
+        outstanding: null,
+        // The holding limit is the pool's policy, so it stays.
+        pools: [{ holding: null, holdingLimit: 20n * VOUCHERS, listed: true }],
+      },
+    ];
 
-    // Ten of twenty are out of the reserve, and the pool holds all ten: nothing is with a holder.
-    const blocks: bigint[] = [];
+    // Ten of twenty are out of the reserve, the pool holds all ten, and nobody has used one.
+    const blocks: string[] = [];
     const inPool = await supplyOf(chain(10n * VOUCHERS, blocks));
     expect(inPool.supply).toEqual({
       status: "available",
       asOf: 1_800_000,
       value: [
         {
-          token: tsv.token.address.toLowerCase(),
+          token,
           symbol: "TSV",
           decimals: 6,
           pools: [
             {
+              id: "green-goods",
               name: "Green Goods",
               listed: true,
               holding: 10n * VOUCHERS,
@@ -936,19 +983,42 @@ describe("a garden's passport", () => {
             },
           ],
           outstanding: 10n * VOUCHERS,
-          outsidePools: false,
+          heldBack: false,
         },
       ],
     });
     // Every figure answers from the one block the reading was taken at.
-    expect(new Set(blocks)).toEqual(new Set([77n]));
+    expect(new Set(blocks)).toEqual(new Set([BLOCK]));
 
-    // Two more left the reserve and are not in the pool. Outstanding minus the pool would be
-    // what holders have, and nobody counted the holders: the total waits, the pool's figures stay.
-    const withHolders = value((await supplyOf(chain(8n * VOUCHERS))).supply);
-    expect(withHolders).toMatchObject([
-      { outstanding: null, outsidePools: true, pools: [{ holding: 10n * VOUCHERS }] },
-    ]);
+    // Two more left the reserve and are not in the pool: they are with someone.
+    expect(value((await supplyOf(chain(8n * VOUCHERS))).supply)).toMatchObject(held);
+
+    // The balances look untouched, but one exchange in the pool or one booking has happened.
+    // The pool's holding would now differ from what it was seeded with by one person's amount.
+    const exchange = { id: "x-1", moduleAddress: pool.deployment.address.toLowerCase() };
+    const inUse: Record<string, Row[]>[] = [
+      { VoucherPoolExchange: [{ ...exchange, tokenIn: token, tokenOut: OTHER_TOKEN }] },
+      { VoucherPoolExchange: [{ ...exchange, tokenIn: OTHER_TOKEN, tokenOut: token }] },
+      { VoucherServiceSetup: [{ id: "setup-9", token }] },
+    ];
+    for (const used of inUse) {
+      expect(value((await supplyOf(untouched, used)).supply)).toMatchObject(held);
+    }
+    // Another voucher's exchange, or one in a pool outside the reviewed list, is not this one's.
+    for (const unrelated of [
+      { VoucherPoolExchange: [{ ...exchange, tokenIn: OTHER_TOKEN, tokenOut: VOUCHER }] },
+      { VoucherPoolExchange: [{ id: "x-2", moduleAddress: OTHER_MODULE, tokenIn: token }] },
+    ]) {
+      expect(value((await supplyOf(untouched, unrelated)).supply)).toMatchObject([
+        { heldBack: false, outstanding: 10n * VOUCHERS },
+      ]);
+    }
+
+    // Not knowing whether anyone used the voucher is not the same as knowing nobody did.
+    const unknown = await supplyOf(untouched, {
+      VoucherPoolExchange: new Error("indexer timeout"),
+    });
+    expect(unknown.supply).toEqual({ status: "unavailable" });
 
     // A reserve larger than the supply is a reading that does not add up, not a figure.
     const broken = await supplyOf(chain(21n * VOUCHERS));
@@ -963,7 +1033,7 @@ describe("a garden's passport", () => {
       },
       call: async () => "0x",
     };
-    expect((await supplyOf(silent, GARDEN)).supply).toEqual({
+    expect((await supplyOf(silent, {}, GARDEN)).supply).toEqual({
       status: "available",
       asOf: null,
       value: [],

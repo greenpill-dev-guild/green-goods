@@ -286,23 +286,33 @@ describe("a garden's public passport", () => {
     ).toBeInTheDocument();
   });
 
-  it("holds back the outstanding vouchers once holders have some, and tells no voucher from no reading", () => {
+  it("holds back the pool's figures once people use a voucher, and tells no voucher from no reading", () => {
     const base = record();
     if (base.supply.status !== "available") throw new Error("the fixture must be readable");
     const voucher = base.supply.value[0]!;
     const pool = () => within(line("In the exchange pool"));
 
-    // Some vouchers are outside the pool: the total would give away what holders have.
+    // People have used the voucher: the holding and the total could each be one person's.
     show({
       passport: record({
         supply: {
           ...base.supply,
-          value: [{ ...voucher, outstanding: null, outsidePools: true }],
+          value: [
+            {
+              ...voucher,
+              outstanding: null,
+              heldBack: true,
+              pools: [{ ...voucher.pools[0]!, holding: null }],
+            },
+          ],
         },
       }),
     });
-    expect(pool().getByText("10 GGV in the Riverside exchange pool")).toBeInTheDocument();
-    expect(pool().getByText(/The number outstanding is held back/)).toBeInTheDocument();
+    expect(
+      pool().getByText("The Riverside exchange pool may hold 40 GGV at most.")
+    ).toBeInTheDocument();
+    expect(pool().getByText(/are held back\. People have started using/)).toBeInTheDocument();
+    expect(pool().queryByText(/GGV in the Riverside exchange pool/)).not.toBeInTheDocument();
     expect(pool().queryByText(/GGV outstanding\./)).not.toBeInTheDocument();
     cleanup();
 
@@ -321,13 +331,19 @@ describe("a garden's public passport", () => {
         },
       }),
     });
-    expect(pool().getByText("This pool does not list the voucher right now.")).toBeInTheDocument();
-    expect(pool().getByText(/^No GGV is outstanding\./)).toBeInTheDocument();
-    expect(pool().queryByText(/The pool may hold/)).not.toBeInTheDocument();
+    expect(
+      pool().getByText("The Riverside exchange pool does not list this voucher right now.")
+    ).toBeInTheDocument();
+    expect(
+      pool().getByText("No GGV is outstanding. All of them are with the garden itself.")
+    ).toBeInTheDocument();
+    expect(pool().queryByText(/pool may hold/)).not.toBeInTheDocument();
     cleanup();
 
     show({ passport: record({ supply: { status: "available", asOf: null, value: [] } }) });
-    expect(pool().getByText("This garden issues no voucher of its own.")).toBeInTheDocument();
+    expect(
+      pool().getByText("This garden issues no voucher that the exchange pool lists.")
+    ).toBeInTheDocument();
     cleanup();
 
     // The voucher chain could not be read: that is not the same as issuing no voucher.

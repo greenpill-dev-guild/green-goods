@@ -205,11 +205,14 @@ export interface PassportSettlement {
 
 /** One reviewed exchange pool's place for a voucher. */
 export interface PassportPoolHolding {
+  /** The pool's reviewed id, unique among a voucher's pools. */
+  id: string;
   /** The pool's public name. */
   name: string;
   /** Whether the pool's registry admits the voucher today. */
   listed: boolean;
-  holding: bigint;
+  /** Null once anyone has used the voucher: the holding moves with each person's exchange. */
+  holding: bigint | null;
   /** The most the pool may hold of this voucher. Zero before a limit is set, and once delisted. */
   holdingLimit: bigint;
 }
@@ -223,13 +226,14 @@ export interface PassportVoucherSupply {
   symbol: string;
   decimals: number;
   pools: PassportPoolHolding[];
-  /**
-   * Vouchers out of the issuer's reserve. Null while some of them are outside the pools: that
-   * remainder is what holders have, and the page cannot count the people behind it.
-   */
+  /** Vouchers out of the issuer's reserve. Null once anyone has used the voucher. */
   outstanding: bigint | null;
-  /** Some outstanding vouchers are outside the pools: with holders, or in a booking. */
-  outsidePools: boolean;
+  /**
+   * People have started using the voucher (an exchange, a booking, or vouchers outside the
+   * pools), and no source counts them, so a holding or an outstanding total could be one
+   * person's amount. Both are null, and the holding limit, which is the pool's policy, stays.
+   */
+  heldBack: boolean;
 }
 
 interface PassportUnavailableSources {

@@ -30,10 +30,16 @@ export function gardenPassportFixture(
           symbol: "GGV",
           decimals: 6,
           pools: [
-            { name: "Riverside", listed: true, holding: 10_000_000n, holdingLimit: 40_000_000n },
+            {
+              id: "riverside",
+              name: "Riverside",
+              listed: true,
+              holding: 10_000_000n,
+              holdingLimit: 40_000_000n,
+            },
           ],
           outstanding: 10_000_000n,
-          outsidePools: false,
+          heldBack: false,
         },
       ],
     },

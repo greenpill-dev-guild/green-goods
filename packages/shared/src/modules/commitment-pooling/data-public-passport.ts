@@ -50,7 +50,8 @@ async function section<T>(
  * One garden's passport. Promises, vouchers and payments come from the indexer; promises come
  * first, since vouchers and payments are joined to them, so a failed promise read leaves both
  * unavailable instead of unjoined. What the exchange pools hold is on the voucher chain only and
- * is read from it directly, apart from the rest, for a garden that issues a voucher.
+ * is read from it directly, for a garden that issues a voucher; the indexer says whether anyone
+ * has used the voucher yet, which decides whether those figures can be shown.
  * A failed pool lookup throws: it is not the same as a garden with no pool, which can still have
  * taken up promises in another pool.
  */
@@ -76,7 +77,10 @@ export async function getPublicGardenPassport(
   // Loaded on demand: the chain reader carries the reviewed issuer records and an ABI codec.
   const supplyRead = section("supply", garden, async () => {
     const { readPassportVoucherSupply } = await import("./data-public-passport-supply");
-    const read = await readPassportVoucherSupply(chainId, garden, { chain: options.voucherChain });
+    const read = await readPassportVoucherSupply(chainId, garden, {
+      chain: options.voucherChain,
+      reader,
+    });
     return { value: read.supply, asOf: read.asOf };
   });
 
