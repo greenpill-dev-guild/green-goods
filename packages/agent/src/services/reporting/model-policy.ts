@@ -36,8 +36,14 @@ const REDACTIONS: ReadonlyArray<readonly [RegExp, string]> = [
   [/\bhttps?:\/\/\S+/giu, "[link]"],
   [/\bwww\.\S+/giu, "[link]"],
   [/[\p{L}\p{N}._%+-]+@[\p{L}\p{N}-]+(?:\.[\p{L}\p{N}-]+)*\.\p{L}{2,}/gu, "[email]"],
-  // A domain followed by a path, written without its scheme: "t.me/joinchat/abc".
-  [/\b(?:[\p{L}\p{N}-]+\.)+\p{L}{2,}\/\S*/gu, "[link]"],
+  // A link written without its scheme: a host followed by a path, a query or a fragment, as in
+  // "t.me/joinchat/abc" and "photos.example.org?key=1", or a bare host under an ending that is
+  // not also an everyday word. Endings are matched in lower case, so "trees.Me" stays a sentence.
+  [/\b(?:[\p{L}\p{N}-]+\.)+\p{L}{2,}[/?#]\S*/gu, "[link]"],
+  [
+    /\b(?:[\p{L}\p{N}-]+\.)+(?:com|org|net|app|xyz|dev|info|link|page|site|io)(?:\.[a-z]{2})?\b(?!\.?\p{L})/gu,
+    "[link]",
+  ],
   // Account addresses, transaction hashes and signatures.
   [/\b0x[0-9a-f]{8,}\b/giu, "[address]"],
   [/\b[\w-]+(?:\.[\w-]+)*\.eth\b/giu, "[account]"],
@@ -56,7 +62,6 @@ const DATE = /\d{4}[-./]\d{1,2}[-./]\d{1,2}|\d{1,2}[-./]\d{1,2}[-./]\d{4}/u;
  * unbroken; or its groups end in four digits, as "800 000 0001" and "91234-5678" do.
  */
 function looksLikePhone(run: string): boolean {
-  if (DATE.test(run)) return false;
   const groups = run.match(/\d+/gu) ?? [];
   const digits = groups.join("").length;
   if (digits > 15) return false;
@@ -65,11 +70,20 @@ function looksLikePhone(run: string): boolean {
   return groups.length === 1 || (groups.length <= 4 && groups.at(-1)?.length === 4);
 }
 
+/** A run of digits with any phone number in it taken out. A date inside the run is kept, and what
+ * stands on either side of it is judged on its own: "2026-11-21 08000000001" loses the number. */
+function withoutPhone(run: string): string {
+  const date = DATE.exec(run);
+  if (!date) return looksLikePhone(run) ? "[phone]" : run;
+  const beside = (part: string) => part.replace(/\+?\(?\d[\d ().-]*\d/u, withoutPhone);
+  return `${beside(run.slice(0, date.index))}${date[0]}${beside(run.slice(date.index + date[0].length))}`;
+}
+
 /** Text as a model may read it: identifiers removed, then cut to `maxChars`. */
 export function sanitizeModelText(text: string, maxChars: number): string {
   // Nothing past a few times the bound can survive the cut, so it is not worth matching against.
   let clean = text.slice(0, maxChars * 4);
   for (const [pattern, replacement] of REDACTIONS) clean = clean.replace(pattern, replacement);
-  clean = clean.replace(DIGIT_RUN, (run) => (looksLikePhone(run) ? "[phone]" : run)).trim();
+  clean = clean.replace(DIGIT_RUN, withoutPhone).trim();
   return clean.length > maxChars ? `${clean.slice(0, maxChars - 1).trimEnd()}…` : clean;
 }

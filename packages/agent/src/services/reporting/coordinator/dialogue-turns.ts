@@ -76,7 +76,8 @@ function contextStart(core: ReportingCore, ctx: TurnContext): number {
 }
 
 /**
- * The questions a turn asked of a report, read from the replies it committed. The question still
+ * The questions a turn asked of a report and the person was sent, read from the replies it
+ * committed: one a newer question replaced before it went out was never seen. The question still
  * open is left out: the snapshot carries it on its own. A reply's key opens with the event that
  * caused it, so the lookup is a range over the key's own index.
  */
@@ -90,6 +91,7 @@ function questionsAskedBy(
       `SELECT o.id, o.reply_kind, o.payload_ciphertext FROM delivery_outbox o
        JOIN conversation_prompts p ON p.id = o.prompt_id
        WHERE o.dedupe_key >= $from AND o.dedupe_key < $to AND p.subject_kind = 'draft'
+         AND o.state IN ('accepted','sent','delivered','read')
          AND ($open IS NULL OR o.prompt_id <> $open) ORDER BY o.dispatch_seq`
     )
     // ";" is the character after ":", so the range holds exactly the keys that open "<event>:".
@@ -122,7 +124,7 @@ export function earlierTurns(core: ReportingCore, ctx: TurnContext): DialogueTur
          AND NOT EXISTS (SELECT 1 FROM review_intents r
            WHERE r.conversation_id = inbox_events.conversation_id
              AND inbox_events.consumed_at >= r.created_at
-             AND (r.lifecycle = 'open' OR inbox_events.consumed_at <= r.updated_at))
+             AND (r.lifecycle = 'open' OR inbox_events.received_at <= r.updated_at))
        ORDER BY arrival_seq DESC LIMIT $limit`
     )
     .all({

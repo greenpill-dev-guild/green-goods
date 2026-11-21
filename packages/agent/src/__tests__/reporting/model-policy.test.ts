@@ -13,6 +13,9 @@ describe("model input sanitizer", () => {
     ["escríbeme a josé@example.org", "escríbeme a [email]"],
     ["join at t.me/joinchat/AAAA or greengoods.app/pair?code=abc123", "join at [link] or [link]"],
     ["mi número es 06 12 34 56 78", "mi número es [phone]"],
+    ["on 2026-11-21 call 08000000001", "on 2026-11-21 call [phone]"],
+    ["2026-11-21 08000000001", "2026-11-21 [phone]"],
+    ["photos.example.org?key=secret and my-garden.app", "[link] and [link]"],
     ["I am vitalik.eth and @ada_gardens on Telegram", "I am [account] and [handle] on Telegram"],
     [`token ${"a1B2".repeat(10)} was in the link`, "token [token] was in the link"],
   ])("removes the identifier in %j", (text, expected) => {
@@ -29,6 +32,8 @@ describe("model input sanitizer", () => {
     "beds: 10 20 30 40 50\n120\n340\n5600",
     "Planted 1.000.000.000 seeds in rows 3@2.5m apart",
     "three-hundred-and-forty-five-thousand-six-hundred seedlings",
+    // A full stop with no space after it is not a link.
+    "We cleared the garden.We planted 12 trees.Me and Ada",
   ])("keeps the quantities, dates and words of %j", (story) => {
     expect(sanitizeModelText(story, 500)).toBe(story);
   });
