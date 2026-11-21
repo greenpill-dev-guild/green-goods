@@ -78,6 +78,8 @@ export function useWalletRestoreLifecycle(
   wagmiConfig: WagmiConfig
 ): { state: WalletRestoreState | null; clear: () => void } {
   const attemptRef = useRef<RestoreAttempt | null>(null);
+  // The restoring effect's retry, for the moment a restore settles without a wallet.
+  const retryRestoreRef = useRef<(() => void) | null>(null);
   const state = walletRestoreOf(snapshot);
   const restoringMode: WalletConnectionType | null = snapshot.matches({ restoring: "wallet" })
     ? "wallet"
@@ -201,6 +203,7 @@ export function useWalletRestoreLifecycle(
       else retryArmed = true;
     };
     const unsubscribeConnectivity = connectivityStore.subscribeStatus(handleConnectivity);
+    retryRestoreRef.current = retryRestore;
 
     startClock();
     window.addEventListener("online", retryRestore);
@@ -208,10 +211,27 @@ export function useWalletRestoreLifecycle(
     return () => {
       stopClock();
       unsubscribeConnectivity();
+      if (retryRestoreRef.current === retryRestore) retryRestoreRef.current = null;
       window.removeEventListener("online", retryRestore);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, [actor, beginAttempt, restoringMode, wagmiConfig]);
+
+  // wagmi runs one restore at a time and skips any asked for meanwhile, such as
+  // AppKit's restore of a WalletConnect session that registers just after launch.
+  // When a restore settles with no wallet while the App still waits, it asks once
+  // more, which reaches the wallets the skipped restore would have (PRD-1575). A
+  // wallet that never answers cannot hold that first restore open: each wallet's
+  // answer has a time limit (`boundConnectorRestores`).
+  const wagmiStatus = wagmiConfig.state.status;
+  const previousWagmiStatusRef = useRef(wagmiStatus);
+  useEffect(() => {
+    const previous = previousWagmiStatusRef.current;
+    previousWagmiStatusRef.current = wagmiStatus;
+    const settledWithoutWallet =
+      (previous === "connecting" || previous === "reconnecting") && wagmiStatus === "disconnected";
+    if (settledWithoutWallet && restoringMode === "wallet") retryRestoreRef.current?.();
+  }, [restoringMode, wagmiStatus]);
 
   // A wallet session kept after a timeout asks the wallet again each time the
   // app returns or comes back online, until the wallet answers or the member signs out.
@@ -221,8 +241,9 @@ export function useWalletRestoreLifecycle(
   useEffect(() => {
     if (!walletAwaitingReconnect) return;
     awaitedReconnectRef.current = true;
-    // One attempt per return or reconnection: an attempt the connector never
-    // settles is abandoned by the next one instead of blocking it.
+    // One attempt per return or reconnection. wagmi skips an attempt while an
+    // earlier one runs; a wallet's time limit (`boundConnectorRestores`) ends that
+    // earlier one, so the next return asks again.
     let attempt = 0;
     let inFlight: number | null = null;
     const retry = () => {

@@ -970,6 +970,48 @@ describe("AuthProvider wallet login bridge", () => {
     }
   });
 
+  // PRD-1575: wagmi skips a restore asked for while another runs, such as AppKit's restore of a
+  // WalletConnect session that registers just after launch. When the launch restore settles
+  // with no wallet, the App asks once more instead of waiting for the next return.
+  it("asks once more when a restore settles with no wallet while the App still waits", async () => {
+    vi.useFakeTimers();
+    try {
+      localStorage.setItem(AUTH_MODE_STORAGE_KEY, "wallet");
+      actor.stop();
+      actor = createAuthTestActor("wallet", TEST_WALLET);
+      actor.start();
+      mocks.mockGetAuthActor.mockReturnValue(actor);
+      // One config for the page, as wagmi's provider gives; its status reads the account live.
+      const pageConfig = mocks.mockUseConfig();
+      mocks.mockUseConfig.mockImplementation(() => pageConfig);
+      setAccount({ isConnecting: true });
+
+      const view = renderAuth();
+      await act(async () => void (await vi.advanceTimersByTimeAsync(5_000)));
+      expect(view.result.current.walletRestore).toBe("restoring");
+      expect(mocks.mockReconnect).not.toHaveBeenCalled();
+
+      setAccount(disconnectedAccount);
+      view.rerender();
+      await act(async () => void (await vi.advanceTimersByTimeAsync(0)));
+      expect(mocks.mockReconnect).toHaveBeenCalledTimes(1);
+
+      // Once: a second restore that also settles empty waits for the next return.
+      setAccount({ isConnecting: true });
+      view.rerender();
+      setAccount(disconnectedAccount);
+      view.rerender();
+      await act(async () => void (await vi.advanceTimersByTimeAsync(0)));
+      expect(mocks.mockReconnect).toHaveBeenCalledTimes(1);
+
+      // A wallet that never answers still ends in one notice.
+      await act(async () => void (await vi.advanceTimersByTimeAsync(10_000)));
+      expect(view.result.current.walletRestore).toBe("failed");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("ends a bounded restore with privacy-safe timeout telemetry", async () => {
     vi.useFakeTimers();
     try {
