@@ -70,6 +70,30 @@ export const GARDEN_ROLE_ORDER: readonly GardenRole[] = [
 ] as const;
 
 /**
+ * The roles each role's grant also gives, matching the HatsModule grant cascade. An owner's grant
+ * gives Steward and Gardener but not Evaluator: an owner needs no Evaluator hat (the PRD-1554
+ * ruling). A steward's own grant gives Evaluator and Gardener. Each is its own hat, so a sub-role
+ * removed on its own, or one an older grant never minted, stays missing until restored.
+ */
+const GARDEN_SUB_ROLES = {
+  owner: ["steward", "gardener"],
+  steward: ["evaluator", "gardener"],
+} as const satisfies Partial<Record<GardenRole, readonly GardenRole[]>>;
+
+/**
+ * The roles a person's roles include but they do not hold, in role order. An owner's Steward hat
+ * comes from the Owner grant, so it implies no Evaluator.
+ */
+export function missingSubRoles(roles: readonly GardenRole[]): GardenRole[] {
+  const implied: readonly GardenRole[] = roles.includes("owner")
+    ? GARDEN_SUB_ROLES.owner
+    : roles.includes("steward")
+      ? GARDEN_SUB_ROLES.steward
+      : [];
+  return GARDEN_ROLE_ORDER.filter((role) => implied.includes(role) && !roles.includes(role));
+}
+
+/**
  * Color scheme names for role-based styling.
  * Maps to design system color tokens (e.g., bg-warning-lighter, text-warning-base)
  */

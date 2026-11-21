@@ -3,6 +3,7 @@ import {
   useAddMembersBatch,
   useGardenOperations,
   useRemoveMemberRoles,
+  useSubRoleCheck,
 } from "@green-goods/shared/hooks/garden/useGardenOperations";
 import { useRouteItemClose } from "@green-goods/shared/hooks/navigation/useCanvasSearchParams";
 import type { Address } from "@green-goods/shared/types/domain";
@@ -15,6 +16,7 @@ import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { isAddress } from "viem";
 import { AddMembersDialog } from "@/components/Garden/AddMembersDialog";
+import { runAddMembers } from "@/components/Garden/addMembersRun";
 import { ManageMembersDialog } from "@/components/Garden/ManageMembersDialog";
 
 export type CommunityMembersDialogsProps = Pick<
@@ -70,6 +72,10 @@ export function CommunityMembersDialogs({
   const addMembersBatch = useAddMembersBatch(garden.id);
   const removal = useRemoveMemberRoles(garden.id);
   const gardenAddress = garden.id;
+  const checkSubRoles = useSubRoleCheck(
+    isAddress(gardenAddress) ? gardenAddress : undefined,
+    garden.chainId
+  );
   const canManageMembers = canManage || canManageStewards;
   const allowedRoles = GARDEN_ROLE_ORDER.filter(
     (role) =>
@@ -89,6 +95,16 @@ export function CommunityMembersDialogs({
     }),
     [operations]
   );
+  // Restoring a missing sub-role is an add: one grantRoles signature where the rail can batch.
+  const restoreSubRoles = async (address: Address, roles: readonly GardenRole[]) => {
+    const run = await runAddMembers({
+      rows: roles.map((role) => ({ address, role })),
+      addOne: (role, member) => addByRole[role](member),
+      addBatch: addMembersBatch.available ? addMembersBatch.add : undefined,
+      onLanded: scheduleBackgroundRefetch,
+    });
+    return run.remaining.length === 0 && run.thrown === undefined;
+  };
   const openAddMembers = (prefill?: Address) => {
     setRoleTarget(undefined);
     setAddMembersPrefill(prefill);
@@ -130,6 +146,9 @@ export function CommunityMembersDialogs({
         removal={removal}
         onRosterStale={scheduleBackgroundRefetch}
         onAddMembers={openAddMembers}
+        restoreRoles={
+          canManageMembers ? { check: checkSubRoles, restore: restoreSubRoles } : undefined
+        }
       />
       {isAddress(gardenAddress) ? (
         <AddMembersDialog

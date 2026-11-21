@@ -20,6 +20,8 @@ import { storyGarden, storyRoleMembers } from "./communityStoryFixtures";
 
 const addGardener = vi.hoisted(() => vi.fn());
 const addSteward = vi.hoisted(() => vi.fn());
+const addEvaluator = vi.hoisted(() => vi.fn());
+const checkSubRoles = vi.hoisted(() => vi.fn());
 const removeOwner = vi.hoisted(() => vi.fn());
 const scheduleBackgroundRefetch = vi.hoisted(() => vi.fn());
 type AddMembersBatch = ReturnType<typeof useAddMembersBatch>;
@@ -27,7 +29,13 @@ const batchState = vi.hoisted(() => ({ available: false, add: vi.fn<AddMembersBa
 
 // The chain and the wallet are this suite's edges; the action, the URL and the dialogs are real.
 vi.mock("@green-goods/shared/hooks/garden/useGardenOperations", () => ({
-  useGardenOperations: () => ({ isLoading: false, addGardener, addSteward, removeOwner }),
+  useGardenOperations: () => ({
+    isLoading: false,
+    addGardener,
+    addSteward,
+    addEvaluator,
+    removeOwner,
+  }),
   useAddMembersBatch: () => ({
     hold: null,
     saved: [],
@@ -38,6 +46,7 @@ vi.mock("@green-goods/shared/hooks/garden/useGardenOperations", () => ({
     signaturesFor: (count: number) => Math.ceil(count / 10),
   }),
   useRemoveMemberRoles: () => ({ account: null, check: vi.fn(), remove: vi.fn() }),
+  useSubRoleCheck: () => checkSubRoles,
 }));
 vi.mock("@green-goods/shared/hooks/profile/useProfileAvatar", async (importOriginal) => ({
   ...(await importOriginal()),
@@ -460,5 +469,30 @@ describe("CommunityMembersDialogs: Add Member (DL-140)", () => {
       expect(screen.queryByRole("dialog", { name: "Manage Roles" })).not.toBeInTheDocument()
     );
     expect(currentUrl()).toBe(TAB_URL);
+  });
+});
+
+describe("CommunityMembersDialogs: restoring a missing sub-role (PRD-979)", () => {
+  beforeEach(() => {
+    addEvaluator.mockReset().mockResolvedValue({ success: true });
+    addGardener.mockReset();
+    checkSubRoles.mockReset();
+    scheduleBackgroundRefetch.mockClear();
+  });
+
+  it("grants only what the chain lacks, through the add path, from the person's Manage Roles row", async () => {
+    const steward = storyRoleMembers.steward[0];
+    // The indexed list shows the steward with neither sub-role; the chain already has Gardener.
+    checkSubRoles.mockResolvedValue(["evaluator"]);
+    renderAt(`/community/members?gardenId=${storyGarden.id}&item=manage-members&member=${steward}`);
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Restore Evaluator and Gardener" })
+    );
+
+    await waitFor(() => expect(addEvaluator).toHaveBeenCalledWith(steward));
+    expect(checkSubRoles).toHaveBeenCalledWith(steward, ["evaluator", "gardener"]);
+    expect(addGardener).not.toHaveBeenCalled();
+    expect(scheduleBackgroundRefetch).toHaveBeenCalled();
   });
 });

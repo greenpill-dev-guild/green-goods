@@ -20,6 +20,7 @@ import { FlowStatusRow } from "../Layout/FlowStatusRow";
 import { ManageRolesSelectionSummary } from "./ManageRolesSelectionSummary";
 import { ManageRolesFilters } from "./ManageRolesFilters";
 import { ManageRolesPersonRow } from "./ManageRolesPersonRow";
+import { RestoreRolesNotice, type RestoreRolesNoticeProps } from "./RestoreRolesNotice";
 import { MemberNameReaders, withMemberName } from "./MemberNames";
 import {
   blockedRoles,
@@ -71,6 +72,8 @@ export interface ManageMembersDialogProps {
   onRosterStale?: () => void;
   /** Opens Add Members, with the person this dialog is showing when it shows one. */
   onAddMembers: (prefill?: Address) => void;
+  /** Restores the roles a person's role gives but they lack; absent where the viewer cannot. */
+  restoreRoles?: Pick<RestoreRolesNoticeProps, "check" | "restore">;
   /** A route item opened it, so the router guards a selection: browser Back asks first. */
   closesByRoute?: boolean;
   tone?: AdminDialogProps["tone"];
@@ -101,6 +104,7 @@ export function ManageMembersDialog({
   removal,
   onRosterStale,
   onAddMembers,
+  restoreRoles,
   closesByRoute = false,
   tone,
 }: ManageMembersDialogProps) {
@@ -440,6 +444,18 @@ export function ManageMembersDialog({
                       onAddRole={onAddRole ? () => onAddRole(person.address) : undefined}
                       addRoleDisabled={picks.length > 0}
                       disabled={busy}
+                      restoreNotice={
+                        restoreRoles ? (
+                          <RestoreRolesNotice
+                            address={person.address}
+                            roles={person.roles}
+                            allowedRoles={allowedRoles}
+                            disabled={busy || picks.length > 0}
+                            onRosterStale={onRosterStale}
+                            {...restoreRoles}
+                          />
+                        ) : undefined
+                      }
                     />
                   );
                 })}

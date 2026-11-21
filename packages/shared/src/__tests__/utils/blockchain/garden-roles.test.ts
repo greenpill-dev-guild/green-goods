@@ -3,6 +3,7 @@ import {
   type GardenRole,
   type GardenRoleRemovalInput,
   gardenRoleRemovalBlock,
+  missingSubRoles,
 } from "../../../utils/blockchain/garden-roles";
 
 const OWNER = "0x1111111111111111111111111111111111111111";
@@ -60,5 +61,23 @@ describe("utils/blockchain/garden-roles gardenRoleRemovalBlock", () => {
         "gardener"
       )
     ).toBe("no-access");
+  });
+});
+
+describe("utils/blockchain/garden-roles missingSubRoles", () => {
+  it("never asks an owner for Evaluator: their Steward hat comes from the Owner grant", () => {
+    expect(missingSubRoles(["owner", "steward", "gardener"])).toEqual([]);
+    expect(missingSubRoles(["owner", "steward"])).toEqual(["gardener"]);
+    expect(missingSubRoles(["owner", "funder"])).toEqual(["steward", "gardener"]);
+  });
+
+  it("names the Evaluator and Gardener a steward's own grant gives", () => {
+    expect(missingSubRoles(["steward", "gardener"])).toEqual(["evaluator"]);
+    expect(missingSubRoles(["steward"])).toEqual(["evaluator", "gardener"]);
+  });
+
+  it("finds nothing missing for roles with no sub-roles", () => {
+    expect(missingSubRoles(["steward", "evaluator", "gardener"])).toEqual([]);
+    expect(missingSubRoles(["evaluator", "funder", "community"])).toEqual([]);
   });
 });
