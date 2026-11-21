@@ -708,6 +708,8 @@
         ".claude/skills/review/SKILL.md",
         ".claude/skills/ship/README.md",
         ".claude/skills/ship/SKILL.md",
+        ".claude/skills/verify-green-goods/README.md",
+        ".claude/skills/verify-green-goods/SKILL.md",
         ".mcp.json",
         "AGENTS.md",
         "package.json",

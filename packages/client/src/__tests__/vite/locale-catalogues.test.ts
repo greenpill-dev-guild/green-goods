@@ -1,11 +1,17 @@
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { runInNewContext } from "node:vm";
 import { gzipSync } from "node:zlib";
 import type { ResolvedConfig } from "vite";
 import { afterEach, describe, expect, it } from "vitest";
-import { createLocaleCataloguesPlugin } from "../../../vite/locale-catalogues";
+import {
+  createLocaleCataloguesPlugin,
+  WEBSITE_ONLY_MESSAGE_PREFIXES,
+} from "../../../vite/locale-catalogues";
+
+const websiteOnly = (key: string) =>
+  WEBSITE_ONLY_MESSAGE_PREFIXES.some((prefix) => key.startsWith(prefix));
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -61,7 +67,7 @@ async function emit(plugin: ReturnType<typeof createLocaleCataloguesPlugin>, pat
 }
 
 describe("locale catalogue bundles", () => {
-  it("preserves every canonical message and shares keys to reduce the complete payload", async () => {
+  it("preserves every message the installed app can show and shares keys to reduce the payload", async () => {
     const root = resolve(import.meta.dirname, "../../..");
     const plugin = await configure(root);
     const tables = new Map<string, string>();
@@ -69,7 +75,12 @@ describe("locale catalogue bundles", () => {
     let packedBytes = 0;
     for (const locale of ["en", "es", "pt"]) {
       const path = resolve(root, `../shared/src/i18n/${locale}.json`);
-      const messages = JSON.parse(await readFile(path, "utf8"));
+      const source: Record<string, string> = JSON.parse(await readFile(path, "utf8"));
+      // The website's own pages are not in the installed app, so their copy is left out.
+      const messages = Object.fromEntries(
+        Object.entries(source).filter(([key]) => !websiteOnly(key))
+      );
+      expect(Object.keys(messages).length).toBeLessThan(Object.keys(source).length);
       const output = await emit(plugin, path);
       expect(output.messages).toEqual(messages);
       expect(Object.keys(output.messages!)).toEqual(Object.keys(messages));
@@ -80,6 +91,89 @@ describe("locale catalogue bundles", () => {
     expect(tables.size).toBe(1);
     packedBytes += [...tables.values()].reduce((sum, code) => sum + gzipSync(code).length, 0);
     expect(packedBytes).toBeLessThan(originalBytes);
+  });
+
+  it("leaves out only copy that no code the installed app can reach refers to", async () => {
+    const root = resolve(import.meta.dirname, "../../..");
+    const client = resolve(root, "src");
+    // The website's pages and pieces. The installed app's routes omit the pages, but its code
+    // does import some of the pieces, so a folder alone does not keep copy out of the app.
+    const websiteOnlyCode = /\/client\/src\/(views\/Public|components\/Public)\//;
+    const sources = new Map<string, string>();
+    const visit = async (directory: string) => {
+      for (const entry of await readdir(directory, { withFileTypes: true })) {
+        const path = join(directory, entry.name);
+        if (entry.isDirectory()) {
+          if (entry.name !== "node_modules" && entry.name !== "__tests__") await visit(path);
+        } else if (/\.tsx?$/.test(entry.name) && !/\.(test|stories)\.tsx?$/.test(entry.name)) {
+          sources.set(path, await readFile(path, "utf8"));
+        }
+      }
+    };
+    for (const folder of ["src", "../shared/src", "../admin/src"]) {
+      await visit(resolve(root, folder));
+    }
+    const refers = (path: string) =>
+      WEBSITE_ONLY_MESSAGE_PREFIXES.some((prefix) => sources.get(path)?.includes(prefix));
+    const paths = [...sources.keys()];
+    expect(paths.filter((path) => refers(path) && !websiteOnlyCode.test(path))).toEqual([]);
+
+    // The client files each file imports, static or lazy.
+    const imports = (path: string) =>
+      [...(sources.get(path) ?? "").matchAll(/(?:from|import)\s*\(?\s*["']([^"']+)["']/g)].flatMap(
+        ([, specifier]) => {
+          const base = specifier.startsWith("@/")
+            ? join(client, specifier.slice(2))
+            : specifier.startsWith(".")
+              ? resolve(dirname(path), specifier)
+              : null;
+          if (!base) return [];
+          const file = [
+            base,
+            `${base}.ts`,
+            `${base}.tsx`,
+            join(base, "index.ts"),
+            join(base, "index.tsx"),
+          ].find((candidate) => sources.has(candidate));
+          return file ? [file] : [];
+        }
+      );
+    // The website's files that show the copy, themselves or through one another.
+    const carrying = new Set(paths.filter(refers));
+    for (let grew = true; grew; ) {
+      grew = false;
+      for (const path of paths.filter((candidate) => websiteOnlyCode.test(candidate))) {
+        if (!carrying.has(path) && imports(path).some((imported) => carrying.has(imported))) {
+          carrying.add(path);
+          grew = true;
+        }
+      }
+    }
+    // Only the route table reaches them from the rest of the client, and only through the
+    // website's lazy routes.
+    const routeTable = resolve(client, "config/routes.tsx");
+    expect(
+      paths.filter(
+        (path) =>
+          path.startsWith(client) &&
+          !websiteOnlyCode.test(path) &&
+          imports(path).some((imported) => carrying.has(imported))
+      )
+    ).toEqual([routeTable]);
+    // The table lists the website's routes, then the installed app's: a page that shows the copy
+    // is loaded lazily, and only from the website's part.
+    const table = sources.get(routeTable) ?? "";
+    const website = table.slice(
+      table.indexOf("id: CLIENT_ROUTE_IDS.publicShell,"),
+      table.indexOf("id: CLIENT_ROUTE_IDS.pwaRuntime,")
+    );
+    for (const page of imports(routeTable).filter((imported) => carrying.has(imported))) {
+      const name = page.slice(client.length + 1).replace(/\.tsx?$/, "");
+      const lazy = `import("@/${name}")`;
+      expect(website).toContain(lazy);
+      expect(table.split(lazy)).toHaveLength(website.split(lazy).length);
+      expect(table).not.toMatch(new RegExp(`from\\s+["']@/${name}["']`));
+    }
   });
 
   it("keeps distinct keys, order, Unicode and ICU placeholders intact", async () => {
