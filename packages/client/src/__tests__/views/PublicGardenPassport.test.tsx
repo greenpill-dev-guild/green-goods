@@ -36,6 +36,7 @@ import { gardenPassportFixture, PASSPORT_FIXTURE_GARDEN } from "../fixtures/gard
 
 const GARDEN = PASSPORT_FIXTURE_GARDEN;
 const record = gardenPassportFixture;
+const G = 10n ** 18n;
 
 function show(
   state: { published?: boolean; passport?: PublicGardenPassportRecord; isError?: boolean } = {},
@@ -143,8 +144,12 @@ describe("a garden's public passport", () => {
     // Recorded is not sent: the 25 G$ waiting to go out is never shown as on its way.
     expect(members.getByText("Recorded, not yet sent").closest("div")).toHaveTextContent("25 G$");
     expect(members.getByText("Sent, not yet confirmed").closest("div")).toHaveTextContent("0 G$");
+    expect(members.getByText("Declared in payment plans").closest("div")).toHaveTextContent(
+      "120 G$"
+    );
+    // A kept promise with its payment only declared may be due to members or to a garden.
     expect(
-      members.getByText(/1 kept promise declares a G\$ payment that has no payment plan yet/)
+      screen.getByText(/1 kept promise declares a G\$ payment that has no payment plan yet/)
     ).toBeInTheDocument();
     // G$ only: no figure is converted to another currency.
     expect(document.body.textContent).not.toMatch(/USD|US\$|(?<!G)\$\d/);
@@ -215,6 +220,12 @@ describe("a garden's public passport", () => {
           value: {
             ...base.promises.value,
             breakdown: { ...base.promises.value.breakdown!, stillOpen: 0, notKept: 4 },
+            // Fewer than three people promised hub days, so that unit's split is held back.
+            units: base.promises.value.units.map((unit) =>
+              unit.unitLabel === "hub days"
+                ? { ...unit, stillToDeliver: null, notDelivered: null }
+                : unit
+            ),
           },
         },
         vouchers: {
@@ -226,7 +237,17 @@ describe("a garden's public passport", () => {
         },
         settlement: {
           ...base.settlement,
-          value: { ...base.settlement.value, memberPayments: { ...members, lines: null } },
+          value: {
+            ...base.settlement.value,
+            memberPayments: { ...members, lines: null, declaredUnpaid: null },
+            support: {
+              ...base.settlement.value.support,
+              // Past what a floating-point number holds exactly: it must print as recorded.
+              lines: [
+                { ...base.settlement.value.support.lines[0]!, confirmed: 9007199254740993n * G },
+              ],
+            },
+          },
         },
       }),
     });
@@ -242,6 +263,12 @@ describe("a garden's public passport", () => {
     const lapsed = within(line("Still to deliver"));
     expect(lapsed.getByText("Nothing is waiting to be delivered.")).toBeInTheDocument();
     expect(lapsed.getByText(/Not kept: 4 promises/)).toBeInTheDocument();
+    expect(lapsed.getByText(/Fewer than three people promised these units/)).toBeInTheDocument();
+    expect(lapsed.getByText("9 of 12")).toBeInTheDocument();
+    expect(lapsed.queryByText("2 of 12")).not.toBeInTheDocument();
+    expect(
+      within(line("Supported")).getByText("9,007,199,254,740,993 G$ received")
+    ).toBeInTheDocument();
   });
 
   it("says a garden has not published a passport, without reading or showing a figure", async () => {

@@ -162,6 +162,18 @@ export function PassportMoneySection({
           )}
         </PassportLine>
       </div>
+      {/* A promise kept with its payment only declared is the gap a funder most needs to see.
+          The payment may be due to members or to a garden, so it sits under neither line. */}
+      {value && value.keptAwaitingPaymentPlan > 0 ? (
+        <div className="mt-8">
+          <PassportNote>
+            {formatMessage(
+              { id: "public.passport.money.noPlan" },
+              { count: value.keptAwaitingPaymentPlan }
+            )}
+          </PassportNote>
+        </div>
+      ) : null}
     </Section>
   );
 }
@@ -170,67 +182,43 @@ function MemberPayments({ settlement }: { settlement: PassportSettlement }) {
   const intl = useIntl();
   const { formatMessage } = intl;
   const group = settlement.memberPayments;
-  // A promise kept with its payment only declared is the gap a funder most needs to see.
-  const waitingForPlan =
-    settlement.keptAwaitingPaymentPlan > 0 ? (
-      <PassportNote>
-        {formatMessage(
-          { id: "public.passport.money.members.noPlan" },
-          { count: settlement.keptAwaitingPaymentPlan }
-        )}
-      </PassportNote>
-    ) : null;
   if (group.withheld) {
     return (
-      <>
-        <PassportNote>
-          {formatMessage({ id: "public.passport.money.members.withheld" })}
-        </PassportNote>
-        {waitingForPlan}
-      </>
+      <PassportNote>{formatMessage({ id: "public.passport.money.members.withheld" })}</PassportNote>
     );
   }
   const paymentsOnRecord = OUTCOMES.reduce((sum, result) => sum + group.payments[result], 0);
   if (group.plans === 0 && paymentsOnRecord === 0) {
     return (
-      <>
-        <PassportNothingYet>
-          {formatMessage({
-            id: "public.passport.money.members.none",
-            defaultMessage: "No payment to members is on record yet.",
-          })}
-        </PassportNothingYet>
-        {waitingForPlan}
-      </>
+      <PassportNothingYet>
+        {formatMessage({
+          id: "public.passport.money.members.none",
+          defaultMessage: "No payment to members is on record yet.",
+        })}
+      </PassportNothingYet>
     );
   }
   const byOutcome = formatMessage({
     id: "public.passport.money.byOutcome",
     defaultMessage: "By outcome",
   });
-  const confirmedByToken = new Map((group.lines ?? []).map((line) => [line.token, line.confirmed]));
-  // What the plans declare, in the tokens the page can name. Where the amounts by outcome are
-  // published, the part not yet confirmed is shown; where they are held back, the whole is.
-  const declaredRows = group.declared.flatMap((line) => {
-    const token = passportMoneyToken(line.token);
-    if (!token) return [];
-    const confirmed = confirmedByToken.get(line.token) ?? 0n;
-    const unpaid = line.amount > confirmed ? line.amount - confirmed : 0n;
-    return [
-      {
-        unitLabel: group.lines
-          ? formatMessage({
-              id: "public.passport.money.declared",
-              defaultMessage: "Declared, not yet paid",
-            })
-          : formatMessage({
-              id: "public.passport.money.declaredTotal",
-              defaultMessage: "Declared in payment plans",
-            }),
-        value: `${passportAmount(intl, group.lines ? unpaid : line.amount, token.decimals)} ${token.symbol}`,
-      },
-    ];
-  });
+  // What the plans assign to members, in the tokens the page can name: the whole, and the part
+  // not yet confirmed as paid. Each is shown only while at least three members share it.
+  const declaredRows = (
+    lines: { token: PassportMoneyLine["token"]; amount: bigint }[],
+    label: string
+  ) =>
+    lines.flatMap((line) => {
+      const token = passportMoneyToken(line.token);
+      return token
+        ? [
+            {
+              unitLabel: label,
+              value: `${passportAmount(intl, line.amount, token.decimals)} ${token.symbol}`,
+            },
+          ]
+        : [];
+    });
   return (
     <>
       <PassportFigure>
@@ -244,8 +232,28 @@ function MemberPayments({ settlement }: { settlement: PassportSettlement }) {
           id: "public.passport.money.declaredLabel",
           defaultMessage: "Declared",
         })}
-        rows={declaredRows}
+        rows={[
+          ...declaredRows(
+            group.declared ?? [],
+            formatMessage({
+              id: "public.passport.money.declaredTotal",
+              defaultMessage: "Declared in payment plans",
+            })
+          ),
+          ...declaredRows(
+            group.declaredUnpaid ?? [],
+            formatMessage({
+              id: "public.passport.money.declared",
+              defaultMessage: "Declared, not yet paid",
+            })
+          ),
+        ]}
       />
+      {group.declared === null ? (
+        <PassportNote>
+          {formatMessage({ id: "public.passport.money.members.declaredHeld" })}
+        </PassportNote>
+      ) : null}
       {group.lines ? (
         group.lines.map((line) => (
           <PassportUnitRows key={line.token} label={byOutcome} rows={amountRows(intl, line)} />
@@ -264,7 +272,6 @@ function MemberPayments({ settlement }: { settlement: PassportSettlement }) {
           { plans: group.plans, finalized: group.plansFinalized, revised: group.plansRevised }
         )}
       </PassportNote>
-      {waitingForPlan}
       <PassportSource>
         <p>{formatMessage({ id: "public.passport.money.members.source" })}</p>
       </PassportSource>

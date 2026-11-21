@@ -32,9 +32,12 @@ export interface PassportUnitLine {
   delivered: bigint;
   /** `promised - delivered`, whatever the reason. */
   undelivered: bigint;
-  /** Undelivered units in promises still open. Null below the display floor. */
+  /**
+   * Undelivered units in promises still open. Null below the display floor, and for a unit that
+   * fewer than three people promise.
+   */
   stillToDeliver: bigint | null;
-  /** Undelivered units in promises whose term ended unkept. Null below the display floor. */
+  /** Undelivered units in promises whose term ended unkept. Null where `stillToDeliver` is. */
   notDelivered: bigint | null;
   /** Units in offers nobody has taken up yet: capacity on offer, not an obligation. */
   onOffer: bigint;
@@ -181,8 +184,17 @@ export interface PassportSettlement {
     /** Plans changed after their first snapshot, each change with its recorded reason. */
     plansRevised: number;
     payments: PassportPaymentCounts;
-    /** What the plans declare for members, by token. A declared amount is intent, not a payment. */
-    declared: { token: Address; amount: bigint }[];
+    /**
+     * What the plans assign to members, by token. A declared amount is intent, not a payment.
+     * Null while fewer than three members share it, or while a plan has not assigned its
+     * members' amounts yet.
+     */
+    declared: { token: Address; amount: bigint }[] | null;
+    /**
+     * The part of `declared` whose payment is not confirmed. Null while fewer than three members
+     * share it, so it cannot be one member's unpaid amount.
+     */
+    declaredUnpaid: { token: Address; amount: bigint }[] | null;
     /**
      * Amounts by state. Null while any one amount has fewer than three recipients behind it, so
      * no amount can be one member's pay. The counts above stay.

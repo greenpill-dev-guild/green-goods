@@ -6,6 +6,7 @@ import { getPublicGardenPassport } from "../modules/commitment-pooling/data-publ
 import { GREEN_GOODS_ISSUER_ROUTE } from "../modules/commitment-pooling/service-issuer-live-config";
 import type { PassportSection } from "../modules/commitment-pooling/public-passport-types";
 import type { Address } from "../types/domain";
+import { getNetworkContracts } from "../utils/blockchain/contracts";
 
 const CHAIN = 42161;
 const GARDEN = "0x1111111111111111111111111111111111111111" as Address;
@@ -14,6 +15,21 @@ const GDOLLAR = "0x62b8b11039fcfe5ab0c56e502b1c372a3d2a9c7a";
 const VOUCHER = GREEN_GOODS_ISSUER_ROUTE.assets[0].token.address.toLowerCase();
 const NOW = 2_000_000;
 type Row = Record<string, unknown>;
+
+// The deployed promise module, and the two voucher modules it pins in these tests.
+const CORE = getNetworkContracts(CHAIN).commitmentPoolingModule.toLowerCase();
+const EARNED = `0x${"e".repeat(40)}`;
+const BOOKINGS = `0x${"b".repeat(40)}`;
+const OTHER_MODULE = `0x${"d".repeat(40)}`;
+const PINS = [
+  {
+    id: `${CHAIN}-${CORE}`,
+    earnedModule: EARNED,
+    serviceSetupModule: BOOKINGS,
+    earnedPinSeen: true,
+    servicePinSeen: true,
+  },
+];
 
 const person = (n: number) => `0x${n.toString(16).padStart(40, "0")}`;
 
@@ -84,10 +100,13 @@ function indexer(tables: Record<string, Row[] | Error>, poolId: string | null = 
       const table = tables[entity] ?? [];
       if (table instanceof Error) return { error: table };
       const ids = variables.ids as string[] | undefined;
-      const byCommitment = String(document).includes("[numeric!]!");
+      // The field the ids are matched on: a promise id, a plan id or the row's own id.
+      const idField = /(\w+): \{ _in: \$ids/.exec(String(document))?.[1] ?? "id";
       const rows = table
         .filter((row) => variables.poolId === undefined || row.poolId === variables.poolId)
-        .filter((row) => !ids || ids.includes(String(byCommitment ? row.commitmentId : row.id)))
+        .filter((row) => variables.module === undefined || row.moduleAddress === variables.module)
+        .filter((row) => variables.core === undefined || row.coreModule === variables.core)
+        .filter((row) => !ids || ids.includes(String(row[idField])))
         .filter((row) => String(row.id) > String(variables.after))
         .sort((left, right) => String(left.id).localeCompare(String(right.id)))
         .slice(0, 100);
@@ -100,7 +119,7 @@ function indexer(tables: Record<string, Row[] | Error>, poolId: string | null = 
 function read(tables: Record<string, Row[] | Error>, poolId: string | null = "7", chain = CHAIN) {
   return getPublicGardenPassport(chain, GARDEN, {
     now: NOW,
-    reader: indexer(tables, poolId).reader,
+    reader: indexer({ VoucherCoreConfiguration: PINS, ...tables }, poolId).reader,
   });
 }
 
@@ -190,13 +209,14 @@ describe("a garden's passport", () => {
         notDelivered: 3n,
         onOffer: 0n,
       },
+      // One person promised every workshop, so that unit's split would be that person's record.
       {
         unitLabel: "workshops",
         promised: 2n,
         delivered: 0n,
         undelivered: 2n,
-        stillToDeliver: 2n,
-        notDelivered: 0n,
+        stillToDeliver: null,
+        notDelivered: null,
         onOffer: 0n,
       },
     ]);
@@ -232,7 +252,15 @@ describe("a garden's passport", () => {
         ],
         // A booking against the rehearsal promise is not a booking on the record.
         VoucherServiceSetup: [
-          { id: "setup-1", commitmentId: "1", holder: person(1), token: VOUCHER, updatedAt: 1 },
+          {
+            id: "setup-1",
+            commitmentId: "1",
+            holder: person(1),
+            token: VOUCHER,
+            moduleAddress: BOOKINGS,
+            coreModule: CORE,
+            updatedAt: 1,
+          },
         ],
       },
       "1"
@@ -267,8 +295,9 @@ describe("a garden's passport", () => {
         dueDate: "0",
         ...fields,
       });
-    const revision = (commitmentId: number, n: number, paymentRoute: number) => ({
-      id: `rev-${commitmentId}-${n}`,
+    const revision = (commitmentId: number, n: number, paymentRoute: number, module = CORE) => ({
+      id: `rev-${module}-${commitmentId}-${n}`,
+      moduleAddress: module,
       commitmentId: String(commitmentId),
       revision: String(n),
       paymentRoute,
@@ -288,6 +317,8 @@ describe("a garden's passport", () => {
         // The latest revision decides: this offer went back to G$.
         revision(4, 1, 2),
         revision(4, 2, 1),
+        // Another module used the same promise id: its record is not this garden's offer.
+        revision(4, 3, 2, OTHER_MODULE),
       ],
     });
 
@@ -306,11 +337,14 @@ describe("a garden's passport", () => {
     ]);
     expect(vouchers.earned).toMatchObject({ withheld: false, recorded: 0, issued: 0 });
     expect(vouchers.bookings).toMatchObject({ withheld: false, requested: 0 });
+    // The offers themselves date the figure: taking one up changes it with no new revision.
+    expect(passport.vouchers).toMatchObject({ asOf: 7000 });
   });
 
   it("traces each issued award to a kept promise and how it was confirmed", async () => {
-    const award = (commitmentId: number, delivered: boolean | null) => ({
-      id: `award-${commitmentId}`,
+    const award = (commitmentId: number, delivered: boolean | null, module = EARNED) => ({
+      id: `award-${module}-${commitmentId}`,
+      moduleAddress: module,
       entitlementId: `0x${commitmentId}`,
       commitmentId: String(commitmentId),
       delivered,
@@ -326,6 +360,7 @@ describe("a garden's passport", () => {
       ],
       EarnedVoucherTerms: [1, 2, 3, 4].map((id) => ({
         id: `terms-${id}`,
+        moduleAddress: EARNED,
         commitmentId: String(id),
         revision: "1",
         approvedSeen: id !== 4,
@@ -337,6 +372,8 @@ describe("a garden's passport", () => {
         award(3, false),
         award(4, true),
         award(5, null),
+        // An award another module recorded for the same promise id is not this garden's.
+        award(1, true, OTHER_MODULE),
       ],
     };
     const passport = await read(tables);
@@ -360,11 +397,17 @@ describe("a garden's passport", () => {
       EarnedVoucherDistribution: [award(1, true), award(2, false)],
     });
     expect(value(few.vouchers).earned).toEqual({ withheld: true });
+
+    // Until the promise module pins an earned-voucher module, no award can count.
+    const unpinned = await read({ ...tables, VoucherCoreConfiguration: [] });
+    expect(value(unpinned.vouchers).earned).toMatchObject({ withheld: false, recorded: 0 });
   });
 
   it("keeps presentment, confirmed delivery and discharge apart for services booked with vouchers", async () => {
     const booking = (n: number, fields: Row = {}) => ({
-      id: `setup-${n}`,
+      id: `setup-${String(n).padStart(2, "0")}`,
+      moduleAddress: BOOKINGS,
+      coreModule: CORE,
       commitmentId: "1",
       holder: person(n),
       token: VOUCHER,
@@ -383,6 +426,17 @@ describe("a garden's passport", () => {
       setupRefundedUnits: refunded,
       timestamp: 9100,
     });
+    const final = (n: number, refundState = 3) => ({
+      id: `final-${n}`,
+      approvedDeliveredServiceUnits: "20",
+      releaseVoucherUnits: "7",
+      refundVoucherUnits: "3",
+      releaseState: 3,
+      refundState,
+      timestamp: 9500,
+    });
+    // Delivered in part: each holder approved 20 of 30 seat days.
+    const delivered = (n: number) => booking(n, { latestFinalResultId: `final-${n}` });
     // This garden also provides a service offered in another pool.
     const elsewhere = (n: number) =>
       booking(n, { commitmentId: "50", serviceUnits: "45", unitLabelHash: "0xminutes" });
@@ -394,54 +448,35 @@ describe("a garden's passport", () => {
         promise(60, { poolId: "1", cycleId: "1" }),
       ],
       VoucherServiceSetup: [
-        // Delivered in part: the holder approved 20 of 30 seat days.
-        booking(1, { latestFinalResultId: "final-1" }),
-        booking(2),
-        // Ended after the deposit: the vouchers went back.
-        booking(3),
-        // A booking with no result yet presented nothing.
-        booking(4, { latestSetupResultId: null }),
+        delivered(1),
+        delivered(2),
+        delivered(3),
         elsewhere(5),
         elsewhere(6),
         elsewhere(7),
         booking(8, { commitmentId: "60" }),
+        // Recorded by a module the promise module never pinned: not this garden's booking.
+        booking(9, { moduleAddress: OTHER_MODULE }),
       ],
-      VoucherServiceSetupResult: [
-        result(1, 3),
-        result(2, 3),
-        result(3, 5, "10"),
-        result(5, 3),
-        result(6, 3),
-        result(7, 3),
-        result(8, 3),
-      ],
-      VoucherServiceFinalResult: [
-        {
-          id: "final-1",
-          approvedDeliveredServiceUnits: "20",
-          releaseVoucherUnits: "7",
-          refundVoucherUnits: "3",
-          releaseState: 3,
-          refundState: 2,
-          timestamp: 9500,
-        },
-      ],
+      VoucherServiceSetupResult: [1, 2, 3, 5, 6, 7, 8, 9].map((n) => result(n, 3)),
+      VoucherServiceFinalResult: [final(1), final(2), final(3)],
     };
     const passport = await read(tables);
 
-    // Seven bookings: the one against the rehearsal promise is not on the record.
+    // Six bookings: the rehearsal one and the other module's are not on the record.
     expect(value(passport.vouchers).bookings).toEqual({
       withheld: false,
-      requested: 7,
-      accepted: 5,
-      notStarted: 1,
-      settled: 1,
-      transfersFailed: 1,
+      requested: 6,
+      accepted: 6,
+      notStarted: 0,
+      settled: 3,
+      transfersFailed: 0,
       amounts: {
-        // Minutes and seat days are different services and never one figure.
+        // Minutes and seat days are different services and never one figure. Vouchers going
+        // back to the issuer (21) are counted apart from what the holders approved (60).
         services: [
           { unitLabel: "minutes", booked: 135n, confirmedDelivered: 0n },
-          { unitLabel: "seat days", booked: 90n, confirmedDelivered: 20n },
+          { unitLabel: "seat days", booked: 90n, confirmedDelivered: 60n },
         ],
         vouchers: [
           {
@@ -449,23 +484,33 @@ describe("a garden's passport", () => {
             symbol: "GGV",
             decimals: 6,
             presented: 60n,
-            returnedToIssuer: 7n,
-            refundedToHolder: 10n,
-            awaitingTransfer: 3n,
+            returnedToIssuer: 21n,
+            refundedToHolder: 9n,
+            awaitingTransfer: 0n,
           },
         ],
       },
     });
 
-    // Five people booked, but one service has a single booking: its units would be that
-    // person's, so no unit figure is published while the counts stay.
-    const oneLineThin = await read({
+    // A fourth booking ended after its deposit, and one refund failed. Seven people booked, but
+    // the units waiting to move are one person's, so no unit figure is published. Counts stay.
+    const oneFigureThin = await read({
       ...tables,
-      VoucherServiceSetup: tables.VoucherServiceSetup.slice(0, 5),
+      VoucherServiceSetup: [...tables.VoucherServiceSetup, booking(4), delivered(10)],
+      VoucherServiceSetupResult: [
+        ...tables.VoucherServiceSetupResult,
+        result(4, 5, "10"),
+        result(10, 3),
+      ],
+      VoucherServiceFinalResult: [...tables.VoucherServiceFinalResult, final(10, 2)],
     });
-    expect(value(oneLineThin.vouchers).bookings).toMatchObject({
+    expect(value(oneFigureThin.vouchers).bookings).toEqual({
       withheld: false,
-      requested: 5,
+      requested: 8,
+      accepted: 7,
+      notStarted: 1,
+      settled: 4,
+      transfersFailed: 1,
       amounts: null,
     });
 
@@ -487,19 +532,28 @@ describe("a garden's passport", () => {
       });
     const plan = (n: number, fields: Row = {}) => ({
       id: `plan-${n}`,
+      payoutPlanId: String(n),
       commitmentId: String(n),
       token: GDOLLAR,
-      declaredAmount: "100",
       finalized: true,
       latestEditReasonCID: null,
       updatedAt: 9700,
       ...fields,
     });
+    // What a plan assigns to one member, tied to that member's payment once one exists.
+    const share = (planId: number, n: number, amount: string, paid = true) => ({
+      id: `share-${planId}-${String(n).padStart(2, "0")}`,
+      payoutPlanId: String(planId),
+      contributor: person(n),
+      amount,
+      disbursementEntityId: paid ? member(n, "", "").id : null,
+      updatedAt: 9650,
+    });
     const tables = {
       Commitment: [
         kept(1, { considerationRail: "CELO_SETTLEMENT", payoutPlanId: "1" }),
         // Kept, with a payment declared and no plan: nothing says it was paid.
-        kept(2, { considerationRail: "CELO_SETTLEMENT", payoutPlanId: null }),
+        kept(2, { considerationRail: "CELO_SETTLEMENT", payoutPlanId: null, updatedAt: 9900 }),
         kept(3, { considerationRail: "NONE" }),
         promise(4, { considerationRail: "CELO_SETTLEMENT" }),
       ],
@@ -515,17 +569,25 @@ describe("a garden's passport", () => {
         member(6, "QUEUED", "5"),
       ],
       CommitmentPayoutPlan: [
-        // 100 declared: 10 stays with the garden, so 90 is declared for its members.
-        plan(1, { gardenRetainedAmount: "10" }),
-        plan(2, { finalized: false, latestEditReasonCID: "bafyreason", declaredAmount: "30" }),
+        plan(1),
+        plan(2, { finalized: false, latestEditReasonCID: "bafyreason" }),
+      ],
+      ContributorPayout: [
+        share(1, 1, "20"),
+        share(1, 2, "20"),
+        share(1, 3, "20"),
+        share(2, 4, "10"),
+        share(2, 5, "10"),
+        share(2, 6, "5"),
       ],
     };
-    const { reader, calls } = indexer(tables);
-    const settlement = value(
-      (await getPublicGardenPassport(CHAIN, GARDEN, { now: NOW, reader })).settlement
-    );
+    const { reader, calls } = indexer({ VoucherCoreConfiguration: PINS, ...tables });
+    const passport = await getPublicGardenPassport(CHAIN, GARDEN, { now: NOW, reader });
+    const settlement = value(passport.settlement);
 
     expect(settlement.keptAwaitingPaymentPlan).toBe(1);
+    // The promise kept without a plan dates this section, though no payment row changed.
+    expect(passport.settlement).toMatchObject({ asOf: 9900 });
     // Queued is not sent, and sent is not received.
     expect(settlement.support).toEqual({
       payments: { confirmed: 1, sent: 1, queued: 1, failed: 0, cancelled: 0 },
@@ -533,13 +595,14 @@ describe("a garden's passport", () => {
         { token: GDOLLAR, confirmed: 500n, sent: 40n, queued: 9n, failed: 0n, cancelled: 0n },
       ],
     });
-    // 120 declared for members, 60 paid: a declared, queued or sent amount is never received.
+    // 85 declared for six members, 60 paid to three: the other three share the unpaid 25.
     expect(settlement.memberPayments).toEqual({
       withheld: false,
       plans: 2,
       plansFinalized: 1,
       plansRevised: 1,
-      declared: [{ token: GDOLLAR, amount: 120n }],
+      declared: [{ token: GDOLLAR, amount: 85n }],
+      declaredUnpaid: [{ token: GDOLLAR, amount: 25n }],
       payments: { confirmed: 3, sent: 0, queued: 3, failed: 0, cancelled: 0 },
       lines: [{ token: GDOLLAR, confirmed: 60n, sent: 0n, queued: 25n, failed: 0n, cancelled: 0n }],
     });
@@ -548,21 +611,57 @@ describe("a garden's passport", () => {
       "payoutKind: { _eq: CONTRIBUTOR_CONSIDERATION }"
     );
 
-    // One failed payment would publish one member's pay: the amounts wait, the counts stay.
-    const oneFailed = value(
-      (await read({ ...tables, Disbursement: [...tables.Disbursement, member(7, "FAILED", "15")] }))
-        .settlement
-    );
-    expect(oneFailed.memberPayments).toMatchObject({
+    const members = async (changes: Record<string, Row[]>) =>
+      value((await read({ ...tables, ...changes })).settlement).memberPayments;
+
+    // One failed payment would publish one member's pay: the amounts wait, the counts stay,
+    // and the declared total stands alone, where nothing can be subtracted from it.
+    expect(
+      await members({
+        Disbursement: [...tables.Disbursement, member(7, "FAILED", "15")],
+        ContributorPayout: [...tables.ContributorPayout, share(2, 7, "15")],
+      })
+    ).toMatchObject({
       withheld: false,
       payments: { confirmed: 3, queued: 3, failed: 1 },
-      declared: [{ token: GDOLLAR, amount: 120n }],
+      declared: [{ token: GDOLLAR, amount: 100n }],
+      declaredUnpaid: null,
       lines: null,
     });
 
-    // Two members paid, or a plan with nobody paid yet: figures that would point at a person wait.
-    for (const rows of [tables.Disbursement.slice(0, 5), tables.Disbursement.slice(0, 3)]) {
-      const few = value((await read({ ...tables, Disbursement: rows })).settlement);
+    // A new plan with one member and no payment: declared minus paid would be that member's
+    // amount, so the declared total is held while the paid amounts stay published.
+    expect(
+      await members({
+        CommitmentPayoutPlan: [plan(1), plan(3)],
+        Disbursement: tables.Disbursement.slice(0, 6),
+        ContributorPayout: [...tables.ContributorPayout.slice(0, 3), share(3, 8, "40", false)],
+      })
+    ).toMatchObject({
+      withheld: false,
+      plans: 2,
+      declared: null,
+      declaredUnpaid: null,
+      lines: [{ confirmed: 60n }],
+    });
+
+    // A plan that has not assigned its members' amounts leaves the declared total unknown.
+    expect(
+      await members({ ContributorPayout: tables.ContributorPayout.slice(0, 3) })
+    ).toMatchObject({ withheld: false, declared: null, declaredUnpaid: null });
+
+    // Two members in all, paid or only named in a plan: nothing about them is published.
+    for (const changes of [
+      {
+        Disbursement: tables.Disbursement.slice(0, 5),
+        ContributorPayout: tables.ContributorPayout.slice(0, 2),
+      },
+      {
+        Disbursement: tables.Disbursement.slice(0, 3),
+        ContributorPayout: [share(1, 1, "20", false)],
+      },
+    ]) {
+      const few = value((await read({ ...tables, ...changes })).settlement);
       expect(few.memberPayments).toEqual({ withheld: true });
       expect(few.support.payments.confirmed).toBe(1);
     }
@@ -602,6 +701,7 @@ describe("a garden's passport", () => {
 
   it("reads a long record in pages and scopes every read to the garden", async () => {
     const { reader, calls } = indexer({
+      VoucherCoreConfiguration: PINS,
       Commitment: Array.from({ length: 230 }, (_, index) => kept(index + 1)),
     });
     const passport = await getPublicGardenPassport(CHAIN, GARDEN.toUpperCase() as Address, {
@@ -619,5 +719,10 @@ describe("a garden's passport", () => {
         garden: GARDEN,
       });
     }
+    // Bookings are read from the pinned booking module acting for the deployed promise module.
+    expect(calls.find((call) => call.entity === "VoucherServiceSetup")?.variables).toMatchObject({
+      module: BOOKINGS,
+      core: CORE,
+    });
   });
 });

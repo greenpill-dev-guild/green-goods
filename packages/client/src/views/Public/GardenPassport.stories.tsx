@@ -159,6 +159,7 @@ export const NothingYet: Story = {
             plansRevised: 0,
             payments: { confirmed: 0, sent: 0, queued: 0, failed: 0, cancelled: 0 },
             declared: [],
+            declaredUnpaid: [],
             lines: [],
           },
         },

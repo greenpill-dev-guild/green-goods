@@ -3,11 +3,50 @@ import type { GraphQLReader } from "../data/graphql-client";
 import { integer, number, type RawRow } from "./data-core";
 import { readPassportBookings } from "./data-public-passport-bookings";
 import { isStandingOffer, type PassportPromiseRow } from "./data-public-passport-promises";
-import { passportRowTimes, readPassportRowsByCommitments } from "./data-public-passport-reads";
+import {
+  passportRowTimes,
+  readPassportRowsByIds,
+  readPassportRowsIn,
+} from "./data-public-passport-reads";
 import { type PassportVouchers, PUBLIC_PASSPORT_MIN_PEOPLE } from "./public-passport-types";
 
 /** `ServiceOfferRevision.paymentRoute`: the offer takes a voucher. */
 const VOUCHER_PAYMENT_ROUTE = 2;
+
+/**
+ * The modules whose voucher records count: the deployed promise module, and the earned-voucher
+ * and booking modules it pinned. The indexer keys voucher records by chain and emitting module,
+ * so records from any other module are never joined to this garden's promises.
+ */
+export interface PassportVoucherModules {
+  core: Address;
+  /** Null until the promise module pins one: no award can count before then. */
+  earned: Address | null;
+  /** Null until the promise module pins one: no booking can count before then. */
+  bookings: Address | null;
+}
+
+async function readVoucherModules(
+  chainId: number,
+  core: Address,
+  reader: GraphQLReader
+): Promise<PassportVoucherModules> {
+  const [pins] = await readPassportRowsByIds(
+    reader,
+    "VoucherCoreConfiguration",
+    "id earnedModule serviceSetupModule earnedPinSeen servicePinSeen",
+    [`${chainId}-${core.toLowerCase()}`]
+  );
+  const pinned = (seen: unknown, module: unknown) =>
+    seen === true && typeof module === "string" && /^0x[0-9a-f]{40}$/i.test(module)
+      ? (module.toLowerCase() as Address)
+      : null;
+  return {
+    core,
+    earned: pinned(pins?.earnedPinSeen, pins?.earnedModule),
+    bookings: pinned(pins?.servicePinSeen, pins?.serviceSetupModule),
+  };
+}
 
 function latestPerCommitment(rows: readonly RawRow[]): Map<bigint, RawRow> {
   const latest = new Map<bigint, RawRow>();
@@ -23,38 +62,43 @@ function latestPerCommitment(rows: readonly RawRow[]): Map<bigint, RawRow> {
 
 async function readEarned(
   chainId: number,
+  module: Address | null,
   promises: readonly PassportPromiseRow[],
   reader: GraphQLReader
 ): Promise<{ earned: PassportVouchers["earned"]; changed: number[] }> {
   const taken = promises.filter((row) => row.takenUp);
-  const ids = taken.map((row) => row.commitmentId);
+  const scope = {
+    chainId,
+    field: "commitmentId" as const,
+    values: taken.map((row) => row.commitmentId),
+    module: module ?? undefined,
+  };
   const [terms, awards] =
-    ids.length === 0
+    taken.length === 0 || module === null
       ? [[], []]
       : await Promise.all([
-          readPassportRowsByCommitments(
+          readPassportRowsIn(
             reader,
             "EarnedVoucherTerms",
             "id commitmentId revision approvedSeen updatedAt",
-            chainId,
-            ids
+            scope
           ),
-          readPassportRowsByCommitments(
+          readPassportRowsIn(
             reader,
             "EarnedVoucherDistribution",
             "id entitlementId commitmentId delivered updatedAt",
-            chainId,
-            ids,
-            ", preparedSeen: { _eq: true }"
+            { ...scope, extra: "preparedSeen: { _eq: true }" }
           ),
         ]);
   const byId = new Map(taken.map((row) => [row.commitmentId, row]));
-  const people = new Set<string>();
-  for (const award of awards) {
-    const provider = byId.get(integer(award.commitmentId))?.provider;
-    if (provider) people.add(provider);
-  }
-  const changed = [...passportRowTimes(terms), ...passportRowTimes(awards)];
+  const awarded = awards.flatMap((award) => byId.get(integer(award.commitmentId)) ?? []);
+  const people = new Set(awarded.flatMap((promise) => promise.provider ?? []));
+  // The promises behind the awards decide what is traced, so their changes date the figures too.
+  const changed = [
+    ...passportRowTimes(terms),
+    ...passportRowTimes(awards),
+    ...awarded.map((promise) => promise.updatedAt),
+  ];
   // No award is a publishable zero; one or two people's awards are not.
   if (awards.length > 0 && people.size < PUBLIC_PASSPORT_MIN_PEOPLE) {
     return { earned: { withheld: true }, changed };
@@ -88,24 +132,30 @@ async function readEarned(
 export async function readPassportVouchers(
   chainId: number,
   garden: Address,
+  core: Address,
   promises: readonly PassportPromiseRow[],
   rehearsalIds: ReadonlySet<bigint>,
   now: number,
   reader: GraphQLReader
 ): Promise<{ vouchers: PassportVouchers; asOf: number | null }> {
+  const modules = await readVoucherModules(chainId, core, reader);
   const standing = promises.filter((row) => isStandingOffer(row, now));
   const [revisions, earned, bookings] = await Promise.all([
     standing.length === 0
       ? Promise.resolve([])
-      : readPassportRowsByCommitments(
+      : readPassportRowsIn(
           reader,
           "ServiceOfferRevision",
           "id commitmentId revision paymentRoute timestamp",
-          chainId,
-          standing.map((row) => row.commitmentId)
+          {
+            chainId,
+            field: "commitmentId",
+            values: standing.map((row) => row.commitmentId),
+            module: modules.core,
+          }
         ),
-    readEarned(chainId, promises, reader),
-    readPassportBookings(chainId, garden, promises, rehearsalIds, reader),
+    readEarned(chainId, modules.earned, promises, reader),
+    readPassportBookings(chainId, garden, modules, promises, rehearsalIds, reader),
   ]);
   const latest = latestPerCommitment(revisions);
   const bookable = standing.filter(
@@ -117,7 +167,13 @@ export async function readPassportVouchers(
       capacity.set(row.unitLabel, (capacity.get(row.unitLabel) ?? 0n) + row.targetUnits);
     }
   }
-  const changed = [...passportRowTimes(revisions), ...earned.changed, ...bookings.changed];
+  // An offer leaves this figure when it is taken up or its term ends, so its own change counts.
+  const changed = [
+    ...passportRowTimes(revisions),
+    ...bookable.map((row) => row.updatedAt),
+    ...earned.changed,
+    ...bookings.changed,
+  ];
   return {
     asOf: changed.length === 0 ? null : Math.max(...changed),
     vouchers: {

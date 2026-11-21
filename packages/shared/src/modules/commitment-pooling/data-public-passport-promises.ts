@@ -5,7 +5,10 @@ import {
 import type { GraphQLReader } from "../data/graphql-client";
 import { readPassportRows } from "./data-public-passport-reads";
 import { integer, type RawRow } from "./data-core";
-import { selectPublicPromiseKeptRate } from "./disclosure";
+import {
+  PUBLIC_PROMISE_KEPT_MIN_DISTINCT_PROVIDERS,
+  selectPublicPromiseKeptRate,
+} from "./disclosure";
 import type { PassportPromises, PassportUnitLine } from "./public-passport-types";
 
 const PROMISE_FIELDS = /* GraphQL */ `
@@ -143,17 +146,29 @@ export function summarizePassportPromises(
       distinctProviderCount: BigInt(providers.size),
     }).kind === "rate";
 
+  // A unit that only one or two people promise is those people's record, whatever the pool's
+  // size, so each unit's split waits for its own three people.
+  const peopleByUnit = new Map<string, Set<string>>();
+  for (const row of due) {
+    if (!row.unitLabel || !row.provider) continue;
+    const people = peopleByUnit.get(row.unitLabel) ?? new Set<string>();
+    peopleByUnit.set(row.unitLabel, people);
+    people.add(row.provider);
+  }
   const units = new Map<string, PassportUnitLine>();
   const line = (label: string) => {
     let entry = units.get(label);
     if (!entry) {
+      const split =
+        detailed &&
+        BigInt(peopleByUnit.get(label)?.size ?? 0) >= PUBLIC_PROMISE_KEPT_MIN_DISTINCT_PROVIDERS;
       entry = {
         unitLabel: label,
         promised: 0n,
         delivered: 0n,
         undelivered: 0n,
-        stillToDeliver: detailed ? 0n : null,
-        notDelivered: detailed ? 0n : null,
+        stillToDeliver: split ? 0n : null,
+        notDelivered: split ? 0n : null,
         onOffer: 0n,
       };
       units.set(label, entry);

@@ -2,7 +2,7 @@ import type { Address } from "../../types/domain";
 import type { GraphQLReader } from "../data/graphql-client";
 import { integer, type RawRow } from "./data-core";
 import type { PassportPromiseRow } from "./data-public-passport-promises";
-import { readPassportRows } from "./data-public-passport-reads";
+import { readPassportRows, readPassportRowsIn } from "./data-public-passport-reads";
 import {
   type PassportMoneyLine,
   type PassportPaymentCounts,
@@ -119,7 +119,7 @@ export async function readPassportSettlement(
     readPassportRows(
       reader,
       "CommitmentPayoutPlan",
-      "id commitmentId token declaredAmount gardenRetainedAmount beneficiaryAmount finalized latestEditReasonCID updatedAt",
+      "id payoutPlanId commitmentId token finalized latestEditReasonCID updatedAt",
       "chainId: { _eq: $chainId }, providerGarden: { _eq: $garden }, payoutKind: { _eq: CONTRIBUTOR_CONSIDERATION }",
       scope,
       declarations
@@ -129,32 +129,87 @@ export async function readPassportSettlement(
   const toGarden = tally(payments.filter((row) => row.kind !== "CONTRIBUTOR_CONSIDERATION"));
   const toMemberRows = payments.filter((row) => row.kind === "CONTRIBUTOR_CONSIDERATION");
   const toMembers = tally(toMemberRows);
-  const people = new Set<string>();
+
+  // What each plan assigns to each member. Read to know how many members stand behind a declared
+  // amount, and which of those amounts is not confirmed as paid yet. Never published by member.
+  const assigned = (
+    plans.length === 0
+      ? []
+      : await readPassportRowsIn(
+          reader,
+          "ContributorPayout",
+          "id payoutPlanId contributor amount disbursementEntityId updatedAt",
+          {
+            chainId,
+            field: "payoutPlanId",
+            values: plans.map((plan) => integer(plan.payoutPlanId)),
+          }
+        )
+  ).filter((payout) => integer(payout.amount) > 0n);
+  const planOf = new Map(plans.map((plan) => [integer(plan.payoutPlanId), plan]));
+  const stateOf = new Map(payments.map((row) => [String(row.id), row.state]));
+  const unpaid = assigned.filter(
+    (payout) => stateOf.get(String(payout.disbursementEntityId)) !== "CONFIRMED"
+  );
+  const membersOf = (payouts: readonly RawRow[]) =>
+    new Set(
+      payouts.flatMap((payout) =>
+        typeof payout.contributor === "string" ? [payout.contributor.toLowerCase()] : []
+      )
+    );
+  const byToken = (payouts: readonly RawRow[]) => {
+    const totals = new Map<Address, bigint>();
+    for (const payout of payouts) {
+      const plan = planOf.get(integer(payout.payoutPlanId));
+      if (!plan) throw new Error("Passport payout names no payment plan");
+      const token = tokenOf(plan);
+      totals.set(token, (totals.get(token) ?? 0n) + integer(payout.amount));
+    }
+    return [...totals.entries()]
+      .map(([token, amount]) => ({ token, amount }))
+      .sort((left, right) => left.token.localeCompare(right.token));
+  };
+
+  const people = membersOf(assigned);
   for (const row of toMemberRows) {
     if (typeof row.recipient === "string") people.add(row.recipient.toLowerCase());
   }
   // A plan with no payment yet still declares what named members are due, so it waits too.
   const withheld =
     (toMemberRows.length > 0 || plans.length > 0) && people.size < PUBLIC_PASSPORT_MIN_PEOPLE;
-
-  const declared = new Map<Address, bigint>();
-  for (const plan of plans) {
-    const token = tokenOf(plan);
-    // A plan's declared amount is what the garden keeps, what a beneficiary garden gets and
-    // what its members get. Only the members' part is declared for them.
-    const others = integer(plan.gardenRetainedAmount) + integer(plan.beneficiaryAmount);
-    const forMembers = integer(plan.declaredAmount) - others;
-    declared.set(token, (declared.get(token) ?? 0n) + (forMembers > 0n ? forMembers : 0n));
-  }
-  const changed = [...payments, ...plans].flatMap((row) =>
-    typeof row.updatedAt === "number" ? [row.updatedAt] : []
+  // Three people overall is not three people behind each amount: a single failed payment would
+  // publish one member's pay. Each amount waits until three members stand behind it.
+  const lines =
+    toMembers.fewestPeopleBehindAnAmount >= PUBLIC_PASSPORT_MIN_PEOPLE ? toMembers.lines : null;
+  // A plan that has not assigned its members' amounts leaves the declared total unknown.
+  const everyPlanAssigned = plans.every((plan) =>
+    assigned.some((payout) => integer(payout.payoutPlanId) === integer(plan.payoutPlanId))
   );
+  // Declared minus confirmed is the unpaid part, so the declared total can stand beside the
+  // amounts only when that unpaid part is itself shared by three members, or is nothing.
+  const unpaidShared = unpaid.length === 0 || membersOf(unpaid).size >= PUBLIC_PASSPORT_MIN_PEOPLE;
+  const declared =
+    everyPlanAssigned &&
+    (assigned.length === 0 || membersOf(assigned).size >= PUBLIC_PASSPORT_MIN_PEOPLE) &&
+    (lines === null || unpaidShared)
+      ? byToken(assigned)
+      : null;
+  const declaredUnpaid = declared !== null && lines !== null ? byToken(unpaid) : null;
+
+  const waitingForPlan = promises.filter(
+    (row) => row.kept && row.declaresPayment && !row.hasPaymentPlan
+  );
+  // A promise kept with no plan changes this section without any payment row changing.
+  const changed = [
+    ...[...payments, ...plans, ...assigned].flatMap((row) =>
+      typeof row.updatedAt === "number" ? [row.updatedAt] : []
+    ),
+    ...waitingForPlan.map((row) => row.updatedAt),
+  ];
   return {
     asOf: changed.length === 0 ? null : Math.max(...changed),
     settlement: {
-      keptAwaitingPaymentPlan: promises.filter(
-        (row) => row.kept && row.declaresPayment && !row.hasPaymentPlan
-      ).length,
+      keptAwaitingPaymentPlan: waitingForPlan.length,
       support: { payments: toGarden.payments, lines: toGarden.lines },
       memberPayments: withheld
         ? { withheld: true }
@@ -165,16 +220,10 @@ export async function readPassportSettlement(
             plansRevised: plans.filter(
               (plan) => typeof plan.latestEditReasonCID === "string" && plan.latestEditReasonCID
             ).length,
-            declared: [...declared.entries()]
-              .map(([token, amount]) => ({ token, amount }))
-              .sort((left, right) => left.token.localeCompare(right.token)),
+            declared,
+            declaredUnpaid,
             payments: toMembers.payments,
-            // Three people overall is not three people behind each amount: a single failed
-            // payment would publish one member's pay. Amounts wait until every one clears it.
-            lines:
-              toMembers.fewestPeopleBehindAnAmount >= PUBLIC_PASSPORT_MIN_PEOPLE
-                ? toMembers.lines
-                : null,
+            lines,
           },
     },
   };

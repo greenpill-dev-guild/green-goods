@@ -1,7 +1,7 @@
 import { CELO_G_DOLLAR_TOKEN } from "@green-goods/shared/config/tokens";
 import type { Address } from "@green-goods/shared/types/domain";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import type { IntlShape } from "react-intl";
-import { formatUnits } from "viem";
 
 /** A day on the record, in the reader's locale. */
 export function passportDate(intl: IntlShape, seconds: number): string {
@@ -13,9 +13,12 @@ export function passportIsoDate(seconds: number): string {
   return new Date(seconds * 1000).toISOString();
 }
 
-/** A token amount in whole units, to two decimals at most. */
+/**
+ * A token amount in whole units, to two decimals at most. Formatted from the integer itself: an
+ * amount past what a floating-point number holds exactly must still print as the record has it.
+ */
 export function passportAmount(intl: IntlShape, amount: bigint, decimals: number): string {
-  return intl.formatNumber(Number(formatUnits(amount, decimals)), { maximumFractionDigits: 2 });
+  return formatTokenAmount(amount, decimals, 2, intl.locale);
 }
 
 /**

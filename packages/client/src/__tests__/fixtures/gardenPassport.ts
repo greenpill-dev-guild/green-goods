@@ -127,6 +127,7 @@ export function gardenPassportFixture(
           plansRevised: 1,
           payments: { confirmed: 3, sent: 0, queued: 3, failed: 0, cancelled: 0 },
           declared: [{ token: GDOLLAR, amount: 120n * G }],
+          declaredUnpaid: [{ token: GDOLLAR, amount: 60n * G }],
           lines: [
             {
               token: GDOLLAR,

@@ -59,24 +59,39 @@ function chunks<T>(values: readonly T[]): T[][] {
   return out;
 }
 
-/** Rows of one entity that belong to the named promises. */
-export async function readPassportRowsByCommitments(
+/**
+ * Rows of one entity whose `field` is one of the given ids, on one chain. `module` scopes the
+ * read to the one module whose events are authoritative: the indexer keys these records by chain
+ * and emitting module, so a bare promise id is never enough to join them.
+ */
+export async function readPassportRowsIn(
   reader: GraphQLReader,
   entity: string,
   fields: string,
-  chainId: number,
-  commitmentIds: readonly bigint[],
-  extra = ""
+  scope: {
+    chainId: number;
+    field: "commitmentId" | "payoutPlanId";
+    values: readonly bigint[];
+    module?: string;
+    extra?: string;
+  }
 ): Promise<RawRow[]> {
+  const module = scope.module?.toLowerCase();
+  const where = [
+    "chainId: { _eq: $chainId }",
+    `${scope.field}: { _in: $ids }`,
+    ...(module ? ["moduleAddress: { _eq: $module }"] : []),
+    ...(scope.extra ? [scope.extra] : []),
+  ].join(", ");
   const pages = await Promise.all(
-    chunks(commitmentIds.map((id) => id.toString())).map((ids) =>
+    chunks(scope.values.map((id) => id.toString())).map((ids) =>
       readPassportRows(
         reader,
         entity,
         fields,
-        `chainId: { _eq: $chainId }, commitmentId: { _in: $ids }${extra}`,
-        { chainId, ids },
-        "$chainId: Int!, $ids: [numeric!]!"
+        where,
+        { chainId: scope.chainId, ids, ...(module ? { module } : {}) },
+        `$chainId: Int!, $ids: [numeric!]!${module ? ", $module: String!" : ""}`
       )
     )
   );

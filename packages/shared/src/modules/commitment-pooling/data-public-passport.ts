@@ -14,6 +14,14 @@ export interface PublicGardenPassportReadOptions {
   /** The moment the read is taken at, in seconds. Offers past their term stop counting as open. */
   now?: number;
   reader?: GraphQLReader;
+  /** The promise module whose voucher records count. Defaults to the chain's deployed one. */
+  coreModule?: Address;
+}
+
+/** Loaded on demand so pages that only import this module do not carry the deployment records. */
+async function deployedPromiseModule(chainId: number): Promise<Address> {
+  const { getNetworkContracts } = await import("../../utils/blockchain/contracts");
+  return getNetworkContracts(chainId).commitmentPoolingModule as Address;
 }
 
 const UNAVAILABLE = { status: "unavailable" } as const;
@@ -74,7 +82,16 @@ export async function getPublicGardenPassport(
     const { rows, rehearsalIds } = promiseRead.value;
     [vouchers, settlement] = await Promise.all([
       section("vouchers", garden, async () => {
-        const read = await readPassportVouchers(chainId, garden, rows, rehearsalIds, now, reader);
+        const core = options.coreModule ?? (await deployedPromiseModule(chainId));
+        const read = await readPassportVouchers(
+          chainId,
+          garden,
+          core,
+          rows,
+          rehearsalIds,
+          now,
+          reader
+        );
         return { value: read.vouchers, asOf: read.asOf };
       }),
       section("settlement", garden, async () => {

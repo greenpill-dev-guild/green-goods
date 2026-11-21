@@ -5,9 +5,10 @@ import { isRegisteredRehearsal, type PassportPromiseRow } from "./data-public-pa
 import {
   passportRowTimes,
   readPassportRows,
-  readPassportRowsByCommitments,
   readPassportRowsByIds,
+  readPassportRowsIn,
 } from "./data-public-passport-reads";
+import type { PassportVoucherModules } from "./data-public-passport-vouchers";
 import {
   type PassportServiceLine,
   type PassportVoucherLine,
@@ -59,13 +60,16 @@ async function promisesBehind(
     ),
   ];
   if (elsewhere.length > 0) {
-    const rows = await readPassportRowsByCommitments(
+    const rows = await readPassportRowsIn(
       reader,
       "Commitment",
       "id commitmentId poolId cycleId unitLabel",
-      chainId,
-      elsewhere,
-      ", creationSeen: { _eq: true }"
+      {
+        chainId,
+        field: "commitmentId",
+        values: elsewhere,
+        extra: "creationSeen: { _eq: true }",
+      }
     );
     for (const row of rows) {
       const id = integer(row.commitmentId);
@@ -85,18 +89,28 @@ async function promisesBehind(
 export async function readPassportBookings(
   chainId: number,
   garden: Address,
+  modules: PassportVoucherModules,
   promises: readonly PassportPromiseRow[],
   rehearsalIds: ReadonlySet<bigint>,
   reader: GraphQLReader
 ): Promise<{ bookings: PassportVouchers["bookings"]; changed: number[] }> {
-  const indexed = await readPassportRows(
-    reader,
-    "VoucherServiceSetup",
-    "id commitmentId holder token voucherUnits serviceUnits unitLabelHash latestSetupResultId latestFinalResultId updatedAt",
-    "chainId: { _eq: $chainId }, providerGarden: { _eq: $garden }, authorizationSeen: { _eq: true }",
-    { chainId, garden: garden.toLowerCase() },
-    "$chainId: Int!, $garden: String!"
-  );
+  // Only the booking module the promise module pinned, acting for that promise module, counts.
+  const indexed =
+    modules.bookings === null
+      ? []
+      : await readPassportRows(
+          reader,
+          "VoucherServiceSetup",
+          "id commitmentId holder token voucherUnits serviceUnits unitLabelHash latestSetupResultId latestFinalResultId updatedAt",
+          "chainId: { _eq: $chainId }, moduleAddress: { _eq: $module }, coreModule: { _eq: $core }, providerGarden: { _eq: $garden }, authorizationSeen: { _eq: true }",
+          {
+            chainId,
+            garden: garden.toLowerCase(),
+            module: modules.bookings,
+            core: modules.core.toLowerCase(),
+          },
+          "$chainId: Int!, $garden: String!, $module: String!, $core: String!"
+        );
   const behind = await promisesBehind(chainId, indexed, promises, rehearsalIds, reader);
   const setups = indexed.filter((setup) => !behind.rehearsals.has(integer(setup.commitmentId)));
   const resultIds = (field: string) =>
@@ -131,9 +145,12 @@ export async function readPassportBookings(
   const finalResultById = new Map(finalResults.map((row) => [String(row.id), row]));
   const services = new Map<string, PassportServiceLine>();
   const vouchers = new Map<string, PassportVoucherLine>();
-  // Distinct holders behind each line, read to apply the people floor and never published.
+  // Distinct holders behind each published figure, read to apply the people floor and never
+  // published. A line's holders are not the holders behind each of its figures: three people can
+  // book a service while only one booking has settled.
   const holders = new Map<string, Set<string>>();
-  const seen = (cell: string, setup: RawRow) => {
+  const add = (setup: RawRow, cell: string, units: bigint) => {
+    if (units === 0n) return;
     const set = holders.get(cell) ?? new Set<string>();
     holders.set(cell, set);
     const holder = holderOf(setup);
@@ -156,7 +173,6 @@ export async function readPassportBookings(
       awaitingTransfer: 0n,
     };
     vouchers.set(token, voucher);
-    seen(`voucher:${token}`, setup);
     // A promise the index does not hold keeps its own line under its label's hash: service
     // units of unknown kinds are never one figure.
     const label = behind.labels.get(integer(setup.commitmentId)) ?? null;
@@ -167,7 +183,17 @@ export async function readPassportBookings(
       confirmedDelivered: 0n,
     };
     services.set(lineKey, service);
-    seen(`service:${lineKey}`, setup);
+    const countService = (figure: "booked" | "confirmedDelivered", units: bigint) => {
+      service[figure] += units;
+      add(setup, `${lineKey}:${figure}`, units);
+    };
+    const countVoucher = (
+      figure: "presented" | "returnedToIssuer" | "refundedToHolder" | "awaitingTransfer",
+      units: bigint
+    ) => {
+      voucher[figure] += units;
+      add(setup, `${token}:${figure}`, units);
+    };
 
     const result = setupResultById.get(String(setup.latestSetupResultId));
     const phase = result ? number(result.phase) : 0;
@@ -176,36 +202,41 @@ export async function readPassportBookings(
     const ended = phase === PHASE.abortRefundPending || phase === PHASE.aborted;
     if (phase === PHASE.active) accepted += 1;
     if (ended) notStarted += 1;
-    else service.booked += integer(setup.serviceUnits);
-    if (phase >= PHASE.deposited) voucher.presented += deposited;
-    voucher.refundedToHolder += setupRefunded;
-    if (phase === PHASE.abortRefundPending) voucher.awaitingTransfer += deposited - setupRefunded;
+    else countService("booked", integer(setup.serviceUnits));
+    if (phase >= PHASE.deposited) countVoucher("presented", deposited);
+    countVoucher("refundedToHolder", setupRefunded);
+    if (phase === PHASE.abortRefundPending) {
+      countVoucher("awaitingTransfer", deposited - setupRefunded);
+    }
 
     const final = finalResultById.get(String(setup.latestFinalResultId));
     if (!final) continue;
     settled += 1;
-    service.confirmedDelivered += integer(final.approvedDeliveredServiceUnits);
+    countService("confirmedDelivered", integer(final.approvedDeliveredServiceUnits));
     const legs = [
       {
         units: integer(final.releaseVoucherUnits),
         state: number(final.releaseState),
-        to: "issuer",
+        to: "returnedToIssuer",
       },
-      { units: integer(final.refundVoucherUnits), state: number(final.refundState), to: "holder" },
+      {
+        units: integer(final.refundVoucherUnits),
+        state: number(final.refundState),
+        to: "refundedToHolder",
+      },
     ] as const;
     for (const leg of legs) {
       if (leg.state === LEG.succeeded) {
-        if (leg.to === "issuer") voucher.returnedToIssuer += leg.units;
-        else voucher.refundedToHolder += leg.units;
+        countVoucher(leg.to, leg.units);
       } else if (leg.state === LEG.pending || leg.state === LEG.failed) {
-        voucher.awaitingTransfer += leg.units;
+        countVoucher("awaitingTransfer", leg.units);
         if (leg.state === LEG.failed) transfersFailed += 1;
       }
     }
   }
   await nameVoucherAssets([...vouchers.values()]);
-  // Three holders overall is not three behind each line: one person's booking under its own
-  // label would publish that person's units. The unit figures wait until every line clears it.
+  // Three holders overall is not three behind each figure: one settled booking would publish
+  // one person's delivered units. The unit figures wait until every one of them clears it.
   const everyLineCovered = [...holders.values()].every(
     (set) => set.size >= PUBLIC_PASSPORT_MIN_PEOPLE
   );

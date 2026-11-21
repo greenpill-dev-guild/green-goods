@@ -231,7 +231,7 @@ export function PassportLedger({
                   {
                     id: "public.passport.delivered.partly",
                     defaultMessage:
-                      "Partly delivered: {count, plural, one {# promise has} other {# promises have}} some units approved and some still open.",
+                      "Partly delivered: {count, plural, one {# promise has} other {# promises have}} some units approved and some not.",
                   },
                   { count: record.breakdown.partlyDelivered }
                 )}

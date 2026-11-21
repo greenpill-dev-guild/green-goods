@@ -26,8 +26,14 @@ export function StillToDeliver({
   const { formatMessage } = useIntl();
   const { breakdown } = record;
   const open = openPromises(record);
-  // With the split published, a unit whose promises all lapsed belongs under Not kept only.
-  const units = record.units.filter((unit) => (unit.stillToDeliver ?? unit.undelivered) > 0n);
+  // With the split published, a unit whose promises all lapsed belongs under Not kept only. A
+  // unit that fewer than three people promised keeps its split back, in a list of its own.
+  const units = record.units.filter((unit) =>
+    breakdown ? (unit.stillToDeliver ?? 0n) > 0n : unit.undelivered > 0n
+  );
+  const unsplit = breakdown
+    ? record.units.filter((unit) => unit.stillToDeliver === null && unit.undelivered > 0n)
+    : [];
   return (
     <>
       {open === 0 ? (
@@ -65,6 +71,21 @@ export function StillToDeliver({
           value: ofPromised(unit.stillToDeliver ?? unit.undelivered, unit.promised),
         }))}
       />
+      {unsplit.length > 0 ? (
+        <>
+          <PassportUnitRows
+            label={formatMessage({
+              id: "public.passport.still.unsplitUnits",
+              defaultMessage: "Not yet delivered, by unit",
+            })}
+            rows={unsplit.map((unit) => ({
+              unitLabel: unit.unitLabel,
+              value: ofPromised(unit.undelivered, unit.promised),
+            }))}
+          />
+          <PassportNote>{formatMessage({ id: "public.passport.still.unsplitNote" })}</PassportNote>
+        </>
+      ) : null}
       {breakdown && breakdown.awaitingConfirmation > 0 ? (
         <PassportNote>
           {formatMessage(
