@@ -2,9 +2,9 @@
 
 **Feature Slug**: `ens-l2-sender-admin-recovery`
 **Stage**: `backlog`
-**Status**: `BACKLOG — support UI exists; sender recovery and live inventory remain gated`
+**Status**: `BACKLOG — registrar contract and carry-over on a pull request for review; deploy and cutover not started`
 **Created**: `2026-04-26`
-**Last Updated**: `2026-10-06`
+**Last Updated**: `2026-11-21`
 
 ## Status reconciliation (2026-10-06)
 
@@ -18,6 +18,10 @@ Current source includes `ENSUsernameChangeRequest` and its Profile entry, prepar
 | 2 | Keep the legacy sponsored-release gate until sender recovery is live | Prevents passkey users from calling unsupported `releaseNameSponsored()` on the current Arbitrum sender |
 | 3 | Treat current-contract username changes as support-assisted | Same-passkey users can still release through existing `releaseName()` if the smart account is funded |
 | 4 | Build L2 recovery as a focused contract/admin workstream | The gap is structural and should not be buried inside generic ENS ops polish |
+| 5 | Sender v2 is an upgradeable (UUPS) registrar on Arbitrum; the L1 receiver stays and is re-pointed with `setL2Sender` (Afo, 21 Nov 2026) | No ENS names move on Ethereum, and later changes no longer need a new contract and migration |
+| 6 | Every existing registration is carried over unchanged from a manifest built from the sender's events (Afo, 21 Nov 2026) | Nobody loses a name; the sender's mappings cannot be listed on chain |
+| 7 | The owner may release a member's name with a support reference, never a garden name, and may assign the released name to a named account at once (Afo, 21 Nov 2026) | Exact-name recovery after a lost passkey needs both steps; garden names stay permanent |
+| 8 | Members get no self-service release; a name changes only through the operator path (Afo, 21 Nov 2026) | Closes the release-and-reclaim loop on sponsored fees |
 
 ## Requirements Coverage
 
@@ -86,6 +90,31 @@ Expose a compact admin/support workflow for pending username-change requests, ex
 ### Step 6: Remove Legacy Gate After Verification
 
 Only after sender v2 is live and verified, remove the legacy-address sponsored-release block and re-enable self-service passkey release/change where appropriate.
+
+## Progress (2026-11-21)
+
+| Step | State |
+|---|---|
+| 1 Support policy | Decided: decisions 7 and 8 above. The four cases map to: same passkey wanting a new name, and lost passkey wanting the exact old name, both go through operator release then assign; lost passkey wanting any new name registers under the new account; an abusive name is an operator release. |
+| 2 Recovery functions | Done on the pull request, with [handoff](handoffs/claude-contracts.md). |
+| 3 Migration manifest | Done as a fork rehearsal that rebuilds the manifest from live events and reconciles it with the sender and with L1 ([report](reports/2026-11-21-live-state-fork.md)). An operator command that writes the manifest to a file is still to build. |
+| 4 Deploy and rewire | Not started. The order to follow is below. |
+| 5 Admin and support surface | Not started. |
+| 6 Remove the legacy gate | Not started; waits for step 4. |
+
+## Cutover order (for step 4; nothing here is authorized yet)
+
+The previous sender cannot be paused and L1 reports nothing back when it skips a message, so the order matters.
+
+1. Deploy the registrar and its proxy. Do not authorize the garden token on it yet.
+2. Freeze the previous sender with owner calls: set its protocol hat to one nobody wears, withdraw its ETH, and remove the garden token as an authorized caller. Member claims and garden registrations through it now revert.
+3. Wait until every message the previous sender already sent has landed on L1.
+4. Build the manifest from the previous sender's registration and release events. Check every row against the sender's state and against the L1 receiver (same account, same type). Stop on any mismatch. Check the other direction too: the L1 receiver must hold no name the manifest lacks, counting its own registration events and any name its owner registered directly. A name only L1 holds would make L1 skip a later registration without a word.
+5. Import the manifest into the registrar, check the import against the sender, and end the import.
+6. Point the L1 receiver at the registrar (`setL2Sender`), then point the garden token at it (`setENSModule`) and authorize the garden token on the registrar.
+7. Verify on both chains: a garden registration lands on L1, and the previous sender's messages are refused.
+
+Operator recovery after cutover: release the name, confirm the L1 receiver shows it free, then assign it. If L1 skipped a registration, clear L1 and use `adminResendRegistration`.
 
 ## Validation
 
