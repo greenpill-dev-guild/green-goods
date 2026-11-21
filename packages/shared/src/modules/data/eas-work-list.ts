@@ -249,6 +249,7 @@ export const getWorksInRange = async (
     ...(options.excludedWorkUIDs?.length ? { id: { notIn: [...options.excludedWorkUIDs] } } : {}),
   };
   const works: EASWork[] = [];
+  const seen = new Set<string>();
   // Counted in rows EAS returned, so a malformed row that is skipped still moves the page on.
   let read = 0;
   for (;;) {
@@ -268,12 +269,16 @@ export const getWorksInRange = async (
     }
     const page = data.attestations.slice(0, wanted);
     read += page.length;
-    works.push(
-      ...validatedAttestations(page, "getWorksInRange").map(
-        ({ id, attester, recipient, timeCreated, decodedDataJson }) =>
-          parseDataToWork(id, { attester, recipient, time: Number(timeCreated) }, decodedDataJson)
-      )
-    );
+    // An attestation indexed between pages shifts the offsets, so a row can come back twice.
+    for (const work of validatedAttestations(page, "getWorksInRange").map(
+      ({ id, attester, recipient, timeCreated, decodedDataJson }) =>
+        parseDataToWork(id, { attester, recipient, time: Number(timeCreated) }, decodedDataJson)
+    )) {
+      const key = work.id.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      works.push(work);
+    }
     if (data.attestations.length <= wanted) return { works, truncated: false };
     if (read >= limit) return { works, truncated: true };
   }

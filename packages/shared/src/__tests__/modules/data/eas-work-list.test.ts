@@ -218,4 +218,18 @@ describe("getWorksInRange", () => {
     expect(exact.works).toHaveLength(300);
     expect(exact.truncated).toBe(false);
   });
+
+  it("lists a work once when a late attestation shifts the next page back over it", async () => {
+    // The second page starts one row early, as when an earlier attestation is indexed
+    // between the two reads.
+    const shifted = vi.fn(async (_document, variables) => {
+      const start = variables.skip === 0 ? 0 : variables.skip - 1;
+      return { data: { attestations: records.slice(start, start + variables.take) } };
+    });
+    const page = await getWorksInRange(GARDEN, { chainId: 42161, from: 1000, to: 1450 }, {
+      query: shifted,
+    } as unknown as GraphQLReader);
+    const ids = page.works.map((work) => work.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
 });
