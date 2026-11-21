@@ -259,7 +259,7 @@ export function getWagmiConfig(): Config {
 }
 
 function mockAuthSeamActive(): boolean {
-  return import.meta.env.DEV && typeof window !== "undefined" && hasMockAuthOverride();
+  return import.meta.env.DEV === true && typeof window !== "undefined" && hasMockAuthOverride();
 }
 
 let mockAuthConfig: Config | null = null;
