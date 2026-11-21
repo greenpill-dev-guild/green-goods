@@ -72,7 +72,7 @@ function publicVoucherChain(deadline: AbortSignal): PassportVoucherChain {
 
 const same = (left: string, right: string) => left.toLowerCase() === right.toLowerCase();
 /** An address as the index may hold it: lower case, or as the event wrote it. */
-const spellings = (address: string) => [...new Set([address.toLowerCase(), address])];
+const spellings = (address: Address): string[] => [...new Set([address.toLowerCase(), address])];
 
 /**
  * Whether the voucher has started to move: exchanged in a reviewed pool, presented for a booking,
