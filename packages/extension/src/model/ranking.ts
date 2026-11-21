@@ -63,13 +63,17 @@ export function cosineScores(queries: ArrayLike<number>[], documents: ArrayLike<
   return queries.map((query) => documents.map((document) => cosine(query, document)));
 }
 
-// 1-based position of each document in a row, best first; ties share the worse position, so a
-// scorer that cannot separate two documents never gets credit for the right one.
-export function positions(row: number[]): number[] {
-  return row.map((score, index) => 1 + row.filter((other, j) => other > score || (other === score && j !== index)).length);
+// 1-based position of each document in a row, best first. An exact tie is settled by `tieBreak`
+// (a second score per document) when one is given; a tie that remains shares the worse position, so
+// a scorer that cannot separate two documents never gets credit for the right one.
+export function positions(row: number[], tieBreak?: number[]): number[] {
+  const tieAbove = (j: number, index: number) => j !== index && !(tieBreak && (tieBreak[index] ?? 0) > (tieBreak[j] ?? 0));
+  return row.map((score, index) => 1 + row.filter((other, j) => other > score || (other === score && tieAbove(j, index))).length);
 }
 
-// Reciprocal rank fusion (k = 60) of two scorers over the same documents.
+// Reciprocal rank fusion (k = 60) of two scorers over the same documents. Two documents whose ranks
+// are swapped between the scorers (first and second, second and first) score exactly the same, so
+// summarize fused scores with a tie-break.
 export function fusedScores(first: number[][], second: number[][], k = 60): number[][] {
   return first.map((row, q) => {
     const a = positions(row);
@@ -87,8 +91,8 @@ export interface RankingSummary {
   positions: number[];
 }
 
-export function summarize(scores: number[][], correctIndex: number[]): RankingSummary {
-  const found = scores.map((row, q) => positions(row)[correctIndex[q] ?? -1] ?? Number.POSITIVE_INFINITY);
+export function summarize(scores: number[][], correctIndex: number[], tieBreak?: number[][]): RankingSummary {
+  const found = scores.map((row, q) => positions(row, tieBreak?.[q])[correctIndex[q] ?? -1] ?? Number.POSITIVE_INFINITY);
   const top1 = found.filter((position) => position === 1).length;
   const top3 = found.filter((position) => position <= 3).length;
   return { requirements: found.length, top1, top3, top1Share: top1 / found.length, top3Share: top3 / found.length, positions: found };

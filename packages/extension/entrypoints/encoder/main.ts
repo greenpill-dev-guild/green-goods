@@ -1,6 +1,6 @@
 import { EncoderClient, type EncoderLoaded } from "../../src/model/encoder-client";
 import { correctSectionIndexes, ENCODER_FIXTURE } from "../../src/model/encoder-fixture";
-import { ENCODER_DTYPE, ENCODER_MODEL_ID, type EncoderDevice } from "../../src/model/encoder-model";
+import { ENCODER_DTYPE, ENCODER_MODEL_ID, ENCODER_REVISION, type EncoderDevice } from "../../src/model/encoder-model";
 import { bm25Scores, cosineScores, fusedScores, percentile, type RankingSummary, summarize } from "../../src/model/ranking";
 
 // The encoder page the g0 rig drives over CDP. One page runs one load and its ranking passes, so
@@ -97,7 +97,8 @@ async function run({ device, numThreads, passes = 2 }: { device: EncoderDevice; 
     const combinedScores = fusedScores(keywordScores, encoderScores);
     const keyword = summarize(keywordScores, correct);
     const encoderSummary = summarize(encoderScores, correct);
-    const combined = summarize(combinedScores, correct);
+    // An exact fusion tie goes to the document the encoder scores higher.
+    const combined = summarize(combinedScores, correct, encoderScores);
     const finished = performance.now();
     results.push({
       totalRankMs: finished - started,
@@ -219,6 +220,7 @@ declare global {
 
 window.__encoder = {
   ready: true,
+  model: { id: ENCODER_MODEL_ID, revision: ENCODER_REVISION, dtype: ENCODER_DTYPE },
   fixture: { synthetic: ENCODER_FIXTURE.synthetic, requirements: ENCODER_FIXTURE.requirements.length, sections: ENCODER_FIXTURE.sections.length },
   environment,
   run,

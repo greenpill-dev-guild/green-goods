@@ -101,10 +101,11 @@ export class Cdp {
     return res.result.value;
   }
   // Call a function in the page with arguments carried by the protocol, so no value is ever
-  // spliced into source text. `fn` must be self-contained: it is sent as its source.
-  async callFunction(sessionId, fn, args = [], { awaitPromise = true } = {}) {
+  // spliced into source text. `fn` must be self-contained: it is sent as its source. With
+  // `timeoutMs`, a call that has not answered by then rejects; the caller closes the target.
+  async callFunction(sessionId, fn, args = [], { awaitPromise = true, timeoutMs = null } = {}) {
     const { result: global } = await this.send("Runtime.evaluate", { expression: "globalThis" }, sessionId);
-    const res = await this.send(
+    const sent = this.send(
       "Runtime.callFunctionOn",
       {
         objectId: global.objectId,
@@ -115,6 +116,15 @@ export class Cdp {
       },
       sessionId,
     );
+    // A call abandoned at its deadline may still reject later; that rejection is expected.
+    sent.catch(() => undefined);
+    let timer;
+    const deadline = timeoutMs
+      ? new Promise((_, reject) => {
+          timer = setTimeout(() => reject(new Error(`callFunctionOn did not answer within ${timeoutMs} ms`)), timeoutMs);
+        })
+      : null;
+    const res = await (deadline ? Promise.race([sent, deadline]) : sent).finally(() => clearTimeout(timer));
     if (res.exceptionDetails) {
       const d = res.exceptionDetails;
       throw new Error(`callFunctionOn threw: ${d.exception?.description ?? d.text}`);

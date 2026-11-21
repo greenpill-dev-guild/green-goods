@@ -14,6 +14,16 @@ describe("encoder ranking", () => {
     expect(summarize(fusedScores(keyword, [[0.1, 0.8, 0.2]]), [1]).top1).toBe(1);
   });
 
+  it("settles a fusion tie between swapped ranks by the tie-break score, and only then", () => {
+    const keyword = [[0.9, 0.5, 0]];
+    const encoder = [[0.4, 0.8, 0]];
+    const fused = fusedScores(keyword, encoder);
+    expect(fused[0]?.[0]).toBe(fused[0]?.[1]);
+    expect(summarize(fused, [1]).top1).toBe(0);
+    expect(summarize(fused, [1], encoder).top1).toBe(1);
+    expect(summarize(fused, [0], encoder).positions).toEqual([2]);
+  });
+
   it("uses the nearest-rank percentile", () => {
     expect(percentile([5, 1, 4, 2, 3], 50)).toBe(3);
     expect(percentile([...Array(20).keys()].map((i) => i + 1), 95)).toBe(19);

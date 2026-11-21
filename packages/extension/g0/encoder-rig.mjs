@@ -4,7 +4,8 @@
 // a Node sanity check over the same model files. Every text it embeds is synthetic.
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { loadavg } from "node:os";
 import { dirname, join } from "node:path";
 import { startMemorySampler } from "./memory-sampler.mjs";
@@ -13,6 +14,11 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const NETWORK_SCHEME = /^(https?|wss?):/i;
 const MODEL_ID = "nomic-ai/nomic-embed-text-v1.5";
 const PROBE_URL = `https://huggingface.co/api/models/${MODEL_ID}`;
+// A page call that has not answered by its deadline fails the phase, and the target is closed.
+const CALL_TIMEOUT_MS = 2 * 60 * 1000;
+const RUN_TIMEOUT_MS = 30 * 60 * 1000;
+// The process fallback must reach this share of the requested slowdown, or the phase fails.
+const THROTTLE_TOLERANCE = 0.75;
 
 // Auto-attaches to the page's workers (and their nested workers) before they run, enables Network
 // on every session to record what each one requests, and can throttle or cut the network.
@@ -117,6 +123,14 @@ function startDutyCycle(pids, rate, periodMs = 40) {
       if (active) setTimeout(loop, runMs);
     }, periodMs - runMs);
   };
+  // A rig that exits or is interrupted mid-phase must never leave the renderer stopped.
+  const resume = () => signal("SIGCONT");
+  const interrupted = () => {
+    resume();
+    process.exit(130);
+  };
+  process.on("exit", resume);
+  process.once("SIGINT", interrupted);
   loop();
   return {
     pids,
@@ -124,7 +138,9 @@ function startDutyCycle(pids, rate, periodMs = 40) {
     periodMs,
     stop() {
       active = false;
-      signal("SIGCONT");
+      resume();
+      process.off("exit", resume);
+      process.off("SIGINT", interrupted);
       return { pids, rate, periodMs, runMs, cycles };
     },
   };
@@ -173,7 +189,7 @@ async function navigateAndWait(browser, page) {
   throw new Error(`encoder page did not become ready; console: ${browser.cdp.logs(page.sessionId).join(" | ")}`);
 }
 
-const call = (browser, page, fn, args = []) => browser.cdp.callFunction(page.sessionId, fn, args);
+const call = (browser, page, fn, args = [], timeoutMs = CALL_TIMEOUT_MS) => browser.cdp.callFunction(page.sessionId, fn, args, { timeoutMs });
 
 async function encoderRun(browser, label, options, { goOffline = false, cpuThrottleRate = 1, calibrate = false } = {}) {
   const page = await openEncoderPage(browser, browser.extensionId);
@@ -203,16 +219,23 @@ async function encoderRun(browser, label, options, { goOffline = false, cpuThrot
         devtools: { iterations: devtools.iterations, observedSlowdown: before.iterations / Math.max(devtools.iterations, 1) },
         mechanism: "devtools",
       };
-      if (calibration.devtools.observedSlowdown < cpuThrottleRate * 0.75) {
+      if (calibration.devtools.observedSlowdown < cpuThrottleRate * THROTTLE_TOLERANCE) {
         await meter.throttle(1);
-        dutyCycle = startDutyCycle(extensionRendererPids(browser.userDataDir), cpuThrottleRate);
-        const process = await busy();
-        calibration.process = { pids: dutyCycle.pids, iterations: process.iterations, observedSlowdown: before.iterations / Math.max(process.iterations, 1) };
+        const pids = extensionRendererPids(browser.userDataDir);
         calibration.mechanism = "process duty cycle (SIGSTOP/SIGCONT)";
+        if (pids.length === 0) throw new Error("throttle: no extension renderer process found to duty-cycle");
+        dutyCycle = startDutyCycle(pids, cpuThrottleRate);
+        const process = await busy();
+        calibration.process = { pids, iterations: process.iterations, observedSlowdown: before.iterations / Math.max(process.iterations, 1) };
       }
+      const achieved = calibration.process?.observedSlowdown ?? calibration.devtools.observedSlowdown;
+      calibration.tolerance = THROTTLE_TOLERANCE;
       console.log(`  calibration: ${JSON.stringify(calibration)}`);
+      if (achieved < cpuThrottleRate * THROTTLE_TOLERANCE) {
+        throw new Error(`throttle: observed ${achieved.toFixed(2)}x, below ${THROTTLE_TOLERANCE} of the requested ${cpuThrottleRate}x`);
+      }
     }
-    run = await call(browser, page, (opts) => globalThis.__encoder.run(opts), [options]);
+    run = await call(browser, page, (opts) => globalThis.__encoder.run(opts), [options], RUN_TIMEOUT_MS);
     if (goOffline) {
       const duringRun = meter.report();
       const pausedDuringRun = interception.paused.length;
@@ -280,6 +303,25 @@ async function exportModelFiles(browser, modelDir) {
   }
 }
 
+// The installed version of a package Transformers.js depends on, read from its own package.json.
+function installedVersion(name) {
+  try {
+    const transformers = createRequire(import.meta.url).resolve("@huggingface/transformers");
+    let dir = dirname(createRequire(transformers).resolve(name));
+    while (dir !== dirname(dir)) {
+      const file = join(dir, "package.json");
+      if (existsSync(file)) {
+        const manifest = JSON.parse(readFileSync(file, "utf8"));
+        if (manifest.name === name) return manifest.version;
+      }
+      dir = dirname(dir);
+    }
+  } catch {
+    // reported as unknown below
+  }
+  return null;
+}
+
 const cosine = (a, b) => {
   let dot = 0;
   let na = 0;
@@ -325,11 +367,43 @@ async function nodeSanity(modelDir, fixture, browserRuns) {
     });
   }
   return {
-    runtime: `onnxruntime-node ${JSON.parse(readFileSync(join(dirname(new URL(import.meta.url).pathname), "..", "node_modules", "@huggingface", "transformers", "package.json"), "utf8")).dependencies["onnxruntime-node"]}`,
+    runtime: `onnxruntime-node ${installedVersion("onnxruntime-node") ?? "unknown"}`,
     nodeVersion: process.version,
     loadMs,
     comparisons,
   };
+}
+
+// Cosines between the browser's own sanity vectors: the two backends' warm runs, and each backend's
+// cold run against its warm run.
+function browserAgreement(backends) {
+  const vectors = (run) => (run?.sanity ? [...run.sanity.queries, ...run.sanity.documents] : null);
+  const compare = (first, second) => {
+    const a = vectors(first);
+    const b = vectors(second);
+    if (!a || !b) return null;
+    return a.map((item) => {
+      const other = b.find((candidate) => candidate.id === item.id);
+      return { id: item.id, cosine: other && other.vector.length ? cosine(item.vector, other.vector) : null };
+    });
+  };
+  return {
+    wasmWarmVsWebgpuWarm: compare(backends.wasm?.warm?.run, backends.webgpu?.warm?.run),
+    wasmColdVsWarm: compare(backends.wasm?.cold?.run, backends.wasm?.warm?.run),
+    webgpuColdVsWarm: compare(backends.webgpu?.cold?.run, backends.webgpu?.warm?.run),
+  };
+}
+
+// Every phase error in the result, so the run's failure count includes them.
+function phaseFailures(result) {
+  const failures = [];
+  for (const [device, runs] of Object.entries(result.backends)) {
+    if (runs.error) failures.push({ phase: device, error: runs.error });
+    for (const [phase, entry] of Object.entries(runs)) if (entry?.error) failures.push({ phase: `${device} ${phase}`, error: entry.error });
+  }
+  for (const [device, runs] of Object.entries(result.backends)) if (runs.revisionError) failures.push({ phase: `${device} revision`, error: runs.revisionError });
+  if (result.node?.error) failures.push({ phase: "node", error: result.node.error });
+  return failures;
 }
 
 export async function runEncoder({ launch, outDir, log, fixturePath, phases = null }) {
@@ -339,14 +413,15 @@ export async function runEncoder({ launch, outDir, log, fixturePath, phases = nu
   const modelDir = join(outDir, "encoder-model");
   for (const device of ["wasm", "webgpu"]) {
     if (!want(device) && !(device === "wasm" && want("constrained"))) continue;
-    // A full run starts from an empty profile so the first download is measured; a partial run
-    // (`--encoder-phases constrained`) reuses the profile the full run left with the model cached.
-    const browser = await launch(`encoder-${device}`, { freshProfile: !phases });
+    // A run that includes this backend's cold phase starts from an empty profile so the first
+    // download is measured; `--encoder-phases constrained` reuses the profile with the model cached.
+    const browser = await launch(`encoder-${device}`, { freshProfile: want(device) });
     const runs = {};
     try {
       const page = await openEncoderPage(browser, browser.extensionId);
       await navigateAndWait(browser, page);
       runs.environment = await call(browser, page, () => globalThis.__encoder.environment());
+      result.pinned ??= await call(browser, page, () => globalThis.__encoder.model);
       if (device === "wasm" && want("wasm")) result.hub = await call(browser, page, () => globalThis.__encoder.hubMetadata()).catch((error) => ({ error: String(error.message) }));
       await browser.cdp.closeTarget(page.targetId);
       if (!want(device)) {
@@ -362,8 +437,14 @@ export async function runEncoder({ launch, outDir, log, fixturePath, phases = nu
         await navigateAndWait(browser, probe);
         const entries = await call(browser, probe, () => globalThis.__encoder.cacheEntries());
         await browser.cdp.closeTarget(probe.targetId);
-        return { entries, bytes: entries.reduce((sum, entry) => sum + entry.bytes, 0) };
+        const revisions = [...new Set(entries.map((entry) => entry.headers["x-repo-commit"]).filter(Boolean))];
+        return { entries, bytes: entries.reduce((sum, entry) => sum + entry.bytes, 0), revisions };
       })();
+      // Both backends must have loaded the pinned revision, or their numbers are not comparable.
+      const { revisions } = runs.cacheAfterCold;
+      if (revisions.length !== 1 || revisions[0] !== result.pinned?.revision) {
+        runs.revisionError = `cached revision ${revisions.join(", ") || "none"} is not the pinned ${result.pinned?.revision}`;
+      }
       log(`encoder ${device}: warm`);
       runs.warm = await encoderRun(browser, `${device} warm (browser cache)`, { device, passes: 3 });
       log(`encoder ${device}: offline`);
@@ -381,7 +462,13 @@ export async function runEncoder({ launch, outDir, log, fixturePath, phases = nu
     }
     result.backends[device] = runs;
   }
-  if (!want("node")) return result;
+  result.agreement = browserAgreement(result.backends);
+  if (want("node")) await runNodeSanity(result, modelDir, fixture, log);
+  result.failures = phaseFailures(result);
+  return result;
+}
+
+async function runNodeSanity(result, modelDir, fixture, log) {
   try {
     result.node = await nodeSanity(modelDir, fixture, {
       wasm: result.backends.wasm?.warm?.run,
@@ -392,5 +479,4 @@ export async function runEncoder({ launch, outDir, log, fixturePath, phases = nu
     result.node = { error: String(error.stack ?? error) };
     log(`encoder node sanity FAILED: ${result.node.error}`);
   }
-  return result;
 }

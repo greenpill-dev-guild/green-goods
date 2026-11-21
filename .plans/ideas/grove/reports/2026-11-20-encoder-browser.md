@@ -1,8 +1,10 @@
 # G0 encoder: a 137M-parameter text encoder inside the browser, offline, on one machine
 
-**Date:** 2026-11-20. **Scope:** whether `nomic-ai/nomic-embed-text-v1.5` (quantized ONNX, through Transformers.js) runs fully inside the browser and offline in the existing G0 rig, measured on WebAssembly and WebGPU separately. **Code:** `packages/extension` on branch `research/grove-encoder-browser-test`. The measurements ran on a local checkout based on develop at `a0d503abc`, where `packages/extension` pinned `@huggingface/transformers` 4.2.0; the branch was then rebased onto a later develop that pins 4.3.2, which this report did not measure. In the code, the worker is `src/model/encoder.worker.ts`, the page is `entrypoints/encoder/`, scoring is `src/model/ranking.ts`, the rig item is `g0/encoder-rig.mjs`. Raw sheets stayed in the gitignored `g0/out/`: `observations-encoder-2026-11-20T20-13-46-529Z.json` (the full run) and `observations-encoder-2026-11-20T20-57-54-952Z.json` (the throttled constrained rerun, merged into `observations.json`, which keeps the first attempt as `constrainedSuperseded`). **Time box:** 90 minutes; the work started at 12:04 PST.
+**Date:** 2026-11-20. **Scope:** whether `nomic-ai/nomic-embed-text-v1.5` (quantized ONNX, through Transformers.js) runs fully inside the browser and offline in the existing G0 rig, measured on WebAssembly and WebGPU separately. **Code:** `packages/extension`, first on branch `research/grove-encoder-browser-test` and now part of the Grove hub's pull request on `research/grove-architecture-alignment`. The measurements ran on a local checkout based on develop at `a0d503abc`, where `packages/extension` pinned `@huggingface/transformers` 4.2.0; the branch was then rebased onto a later develop that pins 4.3.2, which this report did not measure. In the code, the worker is `src/model/encoder.worker.ts`, the page is `entrypoints/encoder/`, scoring is `src/model/ranking.ts`, the rig item is `g0/encoder-rig.mjs`. Raw sheets stayed in the gitignored `g0/out/`: `observations-encoder-2026-11-20T20-13-46-529Z.json` (the full run) and `observations-encoder-2026-11-20T20-57-54-952Z.json` (the throttled constrained rerun, merged into `observations.json`, which keeps the first attempt as `constrainedSuperseded`). **Time box:** 90 minutes; the work started at 12:04 PST.
 
-Every text embedded here is synthetic. No real garden, person, project or review appears in the fixture. No model weights are committed; they live in scratch browser profiles and in `g0/out/encoder-model/`. This report is immutable; corrections go in a new dated report.
+Every text embedded here is synthetic. No real garden, person, project or review appears in the fixture. No model weights are committed; they live in scratch browser profiles and in `g0/out/encoder-model/`.
+
+**Corrected before merge.** An independent review of the rig, before this report reached develop, changed one figure and three statements, all recomputed from the same raw sheets: the combined top-1 counts (rows 7 and 8, and the ranking table), the Node runtime's source, where the browser-to-browser cosines come from, and what the memory figure can see. No measurement was rerun and no gate result changed. Once on develop this report is immutable; later corrections go in a new dated report.
 
 ## Results at a glance
 
@@ -15,7 +17,7 @@ Every text embedded here is synthetic. No real garden, person, project or review
 | 5 | Rank all 40 requirements against all 120 sections | 105.7 to 111.1 s warm; 106.9 s offline | 116.5 to 128.3 s warm; 149.6 s offline |
 | 6 | Correct section ranked first (top three), keyword alone | 28 of 40 (34) | 28 of 40 (34) |
 | 7 | The same, encoder alone | 29 of 40 (38) | 30 of 40 (38) |
-| 8 | The same, both combined | 29 of 40 (39) | 30 of 40 (39) |
+| 8 | The same, both combined | 30 of 40 (39) | 31 of 40 (39) |
 | 9 | Peak extension renderer memory, highest run | 1,580 MiB | 1,809 MiB |
 | 10 | Offline rerun: network requests attempted | 0 | 0 |
 | 11 | Constrained pass (2 threads, 4x CPU throttle): rank time | 529.9 s under a process throttle measured at 3.63x (170.0 s on 2 threads without an effective throttle) | not run (WebAssembly only, as asked) |
@@ -46,7 +48,7 @@ Ranges are across the warm passes (three per backend). Ranking figures were iden
 | Real profiles | Never opened. The full run created fresh `encoder-wasm` and `encoder-webgpu` profiles; the throttled rerun reused `encoder-wasm` with the model already cached |
 | Page | `chrome-extension://<id>/encoder.html`, cross-origin isolated (COOP `same-origin`, COEP `credentialless`), so WebAssembly threads and `measureUserAgentSpecificMemory()` are available. `navigator.hardwareConcurrency` 10; `navigator.deviceMemory` 16 (the API's cap) |
 | WebGPU | Adapter vendor `apple`, architecture `metal-3`, `shader-f16` present, in the page and in the worker |
-| Runtimes | `@huggingface/transformers` 4.2.0, the version pinned in `packages/extension` at the measured base (develop has since moved to 4.3.2, not measured here); in the browser it bundles `onnxruntime-web` 1.26.0-dev.20260416-b7804b056c and uses the `asyncify` WebAssembly from the extension's `ort/`; in Node it uses `onnxruntime-node` 1.24.3 (CPU). No dependency was installed or upgraded |
+| Runtimes | `@huggingface/transformers` 4.2.0, the version pinned in `packages/extension` at the measured base (develop has since moved to 4.3.2, not measured here); in the browser it bundles `onnxruntime-web` 1.26.0-dev.20260416-b7804b056c and uses the `asyncify` WebAssembly from the extension's `ort/`; in Node it uses `onnxruntime-node` 1.24.3 (CPU), the only version in the lockfile at `a0d503abc`. The rig's sheet printed this from Transformers.js's declared dependency rather than the installed package; it now reads the installed package. No dependency was installed or upgraded |
 | Toolchain | Node v24.20.0 ran the rig; Bun 1.4.2 ran the package scripts |
 | Machine load | 1-minute load average 7.3 at the start of the WebAssembly cold run, 9.5 warm, 10.6 offline, 11.2 for the first constrained pass; 7.9, 14.1 and 11.7 for the WebGPU cold, warm and offline runs; 14.9 for the throttled rerun. Other sessions on the machine were running their own work |
 
@@ -55,7 +57,7 @@ Ranges are across the warm passes (three per backend). Ranking figures were iden
 | Field | Value | Against "137 million parameters, Apache-2.0, about 137 MB quantized" |
 |---|---|---|
 | Repository | `nomic-ai/nomic-embed-text-v1.5` | |
-| Revision | `e9b6763023c676ca8431644204f50c2b100d9aab` (last modified 2026-04-07T14:17:02Z). Files were fetched through `resolve/main`; the three JSON files carried `x-repo-commit` with this hash, and the ONNX file's bytes match the hub's sha256 for it at this revision | |
+| Revision | `e9b6763023c676ca8431644204f50c2b100d9aab` (last modified 2026-04-07T14:17:02Z). Files were fetched through `resolve/main`; every cached file on both backends (six per profile, twelve in all) carried `x-repo-commit` with this hash, and the ONNX file's bytes match the hub's sha256 for it at this revision. The rig now pins this revision and fails a run whose cache shows another | |
 | File | `onnx/model_quantized.onnx` (Transformers.js `dtype: "q8"`), 137,296,292 bytes, sha256 `b4342336debaea79de872370664b0aaeb67dea4605513d00ee236ea871a81f27`. The hub's `onnx/model_int8.onnx` is the same file (same size and hash) | Matches: 137.3 MB (130.9 MiB) |
 | Other files fetched | `tokenizer.json` 711,396 bytes, `config.json` 2,538, `tokenizer_config.json` 1,191; 138,011,417 bytes in Cache Storage in all | |
 | Parameters | 136,731,648, from the hub's safetensors index (F32). The quantized ONNX file was not counted separately | Matches when rounded: 136.7 million |
@@ -70,7 +72,7 @@ Ranges are across the warm passes (three per backend). Ranking figures were iden
 
 `packages/extension/src/model/encoder-fixture.json`, labeled `"synthetic": true`. It has 40 invented requirements from a fictional funding call for community land projects: 20 on growing practice (rainwater storage, soil tests, composting, seed saving, frost dates, erosion and so on) and 20 on governance, money and reporting. It also has 120 invented application sections of 180 to 211 words (median 191; 23,102 words in all), shuffled with a fixed seed. Each requirement has exactly one section written to satisfy it, plus two sections on the same topic that share its vocabulary and do not satisfy it. That makes it a hard-negative test, not a topic-matching test. Requirements tokenize to 29 to 43 tokens with the prefix (median 34) and sections to 207 to 267 (median 231). Place names (Hollowmere, Ashcombe, Pennybrook) are invented. Two language-model subagents drafted the texts from a written brief. A script checked the word counts and ASCII, and the proper nouns were reviewed by hand.
 
-**Scoring.** Keyword scoring is BM25 (k1 1.2, b 0.75) over lowercase word tokens with a short English stopword list and no stemming. The encoder score is cosine similarity. Combined is reciprocal rank fusion (k 60) of the two. A tie puts the correct section at the worse position, so a scorer gets no credit for a tie.
+**Scoring.** Keyword scoring is BM25 (k1 1.2, b 0.75) over lowercase word tokens with a short English stopword list and no stemming. The encoder score is cosine similarity. Combined is reciprocal rank fusion (k 60) of the two. Fusion gives two sections exactly the same score when their ranks are swapped between the scorers (first and second against second and first), so an exact fusion tie goes to the section the encoder scores higher. Any other tie puts the correct section at the worse position, so a scorer gets no credit for a tie.
 
 ## Results
 
@@ -110,9 +112,11 @@ Each pass embeds 40 requirements and 120 sections and then scores. Scoring (BM25
 |---|---|---|---|---|
 | Keyword (BM25) alone | 28 of 40 (70%) | 34 of 40 (85%) | 28 of 40 (70%) | 34 of 40 (85%) |
 | Encoder alone | 29 of 40 (72.5%) | 38 of 40 (95%) | 30 of 40 (75%) | 38 of 40 (95%) |
-| Both, reciprocal rank fusion | 29 of 40 (72.5%) | 39 of 40 (97.5%) | 30 of 40 (75%) | 39 of 40 (97.5%) |
+| Both, reciprocal rank fusion | 30 of 40 (75%) | 39 of 40 (97.5%) | 31 of 40 (77.5%) | 39 of 40 (97.5%) |
 
 Each backend gave the same figures in every pass, and the constrained passes matched WebAssembly. The one-requirement difference between backends comes from their slightly different vectors (next section).
+
+**The combined row, corrected.** Two requirements, R13 and R24, end in an exact fusion tie in every pass on both backends: keyword ranks the correct section second and the encoder first for R13, and the reverse for R24, with one other section holding the swapped ranks each time. The rig as first run counted both ties as misses and reported 29 and 30. Settling each tie by the encoder's score wins R13 and loses R24, which gives 30 and 31: combined ranks the correct section first once more than the encoder alone on each backend. Breaking the ties by keyword score instead gives the same counts. Counting both ties as hits would give 31 and 32; that rule is not used here.
 
 ### Memory
 
@@ -131,6 +135,8 @@ Resident set size of every Brave process of the launch, sampled with `ps` every 
 
 The page's own measure stays near 375 MB in every run, but the renderer's resident size varies between runs from 656 to 1,809 MiB without a pattern by pass count. This sheet does not explain the spread. The gate is read against the highest peak.
 
+**What resident size can miss.** On macOS, `ps` resident size leaves out compressed pages and memory the GPU driver allocates, and it counts shared mappings. The GPU process peaked at only 87 to 104 MiB in the WebGPU runs, so either the weights did not live on the GPU or the meter could not see them. The WebGPU memory pass therefore rests on a figure that may undercount; a physical-footprint sample (`footprint`) would settle it and was not taken.
+
 ### Offline rerun
 
 After the cold and warm runs had cached the model, a new page opened with two meters running: Network domain recording on the page and on every worker and nested worker, attached before each one started; and `Fetch.enable` on the browser session for all of Brave. The browser-level interception failed every `http`, `https` and `ws` request with `InternetDisconnected` and let everything else through. The rig also asked every session for `Network.emulateNetworkConditions` offline, but it ignored errors from that call, so whether it applied to the workers is not recorded; the interception alone is enough to explain the controls failing.
@@ -146,7 +152,7 @@ The full run completed in both cases, with the same rankings as online. Transfor
 
 The first attempt throttled with the DevTools protocol, as asked. Two findings came out of it. `Emulation.setCPUThrottlingRate` on a worker session returns `Operation is only supported for pages, not workers (-32000)`. Throttling the page left the worker's busy loop at 0.94x and 1.01x of its unthrottled speed in two calibrations, so that run was really two threads at full speed: 170.0 s.
 
-The rerun kept two threads and replaced the throttle mechanism. The rig stops and resumes the extension renderer processes (every thread in them, the worker and ONNX Runtime's pool included) with `SIGSTOP` and `SIGCONT`: in each 40 ms period they run 10 ms. A two-second busy loop in the worker measured 18,447 iterations unthrottled, 18,200 under DevTools throttling (1.01x) and 5,075 under the duty cycle (3.63x). The calibrated slowdown is slightly under the 4x asked for. Under it, the model loaded from cache in 6.3 s and ranking the fixture took 529.9 s: 42.2 s for the 40 requirements and 487.3 s for the 120 sections, with the same rankings as every other WebAssembly pass and no network requests. That is 3.1 times the 170.0 s of the unthrottled two-thread pass.
+The rerun kept two threads and replaced the throttle mechanism. The rig stops and resumes the extension renderer processes (every thread in them, the worker and ONNX Runtime's pool included) with `SIGSTOP` and `SIGCONT`: in each 40 ms period they run 10 ms. A two-second busy loop in the worker measured 18,447 iterations unthrottled, 18,200 under DevTools throttling (1.01x) and 5,075 under the duty cycle (3.63x). The calibrated slowdown is slightly under the 4x asked for. The rig now fails a constrained phase that finds no renderer process or reaches less than 0.75 of the requested rate (3x for 4x); this run's 3.63x is above that. Under it, the model loaded from cache in 6.3 s and ranking the fixture took 529.9 s: 42.2 s for the 40 requirements and 487.3 s for the 120 sections, with the same rankings as every other WebAssembly pass and no network requests. That is 3.1 times the 170.0 s of the unthrottled two-thread pass.
 
 ### Node sanity check
 
@@ -160,7 +166,7 @@ The rig copied the four model files out of the `encoder-wasm` profile's Cache St
 | S025 (section) | 0.99002 | 0.99152 | 0.99359 |
 | S001 (section) | 0.98683 | 0.98639 | 0.99424 |
 
-Within one backend the vectors are exactly repeatable: cold against warm gave a cosine of 1.0 for all five on WebAssembly. Across runtimes, the same int8 file gives vectors that differ in the second or third decimal of the cosine, between Node and the browser and between the two browser backends. That suggests the gap belongs to the quantized graph's numerics across ONNX Runtime builds (1.24.3 CPU against 1.26 dev web), not to a bug in either path. It was not proven: the fp32 `onnx/model.onnx` would separate the two, and it was not run.
+The last column, and the cold-against-warm figures below, were computed after the run from the browser vectors stored in the sheet; the rig as first run did not compute them, and now records them as `agreement`. Within one backend the vectors are exactly repeatable: cold against warm gave a cosine of 1.0 for all five, on WebAssembly and on WebGPU. Across runtimes, the same int8 file gives vectors that differ in the second or third decimal of the cosine, between Node and the browser and between the two browser backends. That suggests the gap belongs to the quantized graph's numerics across ONNX Runtime builds (1.24.3 CPU against 1.26 dev web), not to a bug in either path. It was not proven: the fp32 `onnx/model.onnx` would separate the two, and it was not run.
 
 ## Failed gates
 
@@ -177,7 +183,7 @@ Within one backend the vectors are exactly repeatable: cold against warm gave a 
 - **The fixture is invented.** Two language-model subagents wrote the 160 texts from a brief, with hard negatives on purpose. The ranking figures say how the three scorers compare on this fixture. They say nothing about accuracy on real reviews, real applications or real gardens.
 - **The constrained pass is a stand-in.** Two threads with a 3.63x duty cycle on a fast CPU is not a measurement of a weaker laptop, whose memory bandwidth, caches and thermals differ.
 - **One file, one way of running it.** Only `model_quantized.onnx` was measured, embedding one text at a time. Batching, shorter sections, the `fp16` and `q4f16` files on WebGPU, a 512-dimension Matryoshka slice, and Transformers.js versions after 4.2.0 were not measured.
-- **Memory is resident size, sampled.** Peaks come from `ps` every 250 ms and vary between runs (656 to 1,809 MiB for the renderer) without an explanation in this sheet.
+- **Memory is resident size, sampled.** Peaks come from `ps` every 250 ms and vary between runs (656 to 1,809 MiB for the renderer) without an explanation in this sheet. Resident size may not see GPU allocations, so the WebGPU figure in particular may undercount.
 - **Not measured at all:** behaviour on a cold browser start with the cache evicted under storage pressure, power draw, and the Admin Hub origin.
 
 ## How to rerun
@@ -188,7 +194,7 @@ bun run --cwd packages/extension g0 -- --only encoder
 bun run --cwd packages/extension g0 -- --only encoder --encoder-phases constrained
 ```
 
-The full run takes about 45 minutes on this machine and downloads the model twice (once per fresh profile). On this branch the rig runs the versions develop now pins (Transformers.js 4.3.2), not the 4.2.0 measured here, so a rerun is a new measurement. The second command reruns only the constrained pass on the cached `encoder-wasm` profile and merges it into `g0/out/observations.json`. The model files the Node check uses are exported to `g0/out/encoder-model/` and stay out of Git.
+The full run takes about 45 minutes on this machine and downloads the model twice (once per fresh profile). On this branch the rig runs the versions develop now pins (Transformers.js 4.3.2), not the 4.2.0 measured here, so a rerun is a new measurement. The second command reruns only the constrained pass on the cached `encoder-wasm` profile and merges it into `g0/out/observations.json`, keeping every replaced phase in a list; a rerun that fails leaves that sheet unchanged. A failure inside any encoder phase, a page call that does not answer in time, an ineffective throttle or a cached revision other than the pinned one now counts as a failure of the run. The model files the Node check uses are exported to `g0/out/encoder-model/` and stay out of Git.
 
 ## A sentence a grant application can quote
 

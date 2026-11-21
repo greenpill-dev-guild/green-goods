@@ -336,26 +336,36 @@ if (only.has("model") || only.has("pi")) {
   }
 }
 const encoderPhases = option("--encoder-phases", null);
-await step("encoder", () =>
-  runEncoder({ launch, outDir, log, fixturePath: join(packageDir, "src", "model", "encoder-fixture.json"), phases: encoderPhases ? new Set(encoderPhases.split(",")) : null }),
-);
+await step("encoder", async () => {
+  const result = await runEncoder({ launch, outDir, log, fixturePath: join(packageDir, "src", "model", "encoder-fixture.json"), phases: encoderPhases ? new Set(encoderPhases.split(",")) : null });
+  // A phase that failed inside the encoder item counts as a failure of the run.
+  for (const failure of result.failures) {
+    log(`encoder ${failure.phase} FAILED: ${failure.error}`);
+    observations.failures.push({ step: `encoder ${failure.phase}`, error: failure.error });
+  }
+  return result;
+});
 observations.finishedAt = new Date().toISOString();
 const stamped = join(outDir, `observations-${[...only].join("-")}-${observations.startedAt.replace(/[:.]/g, "-")}.json`);
 writeFileSync(stamped, JSON.stringify(observations, null, 2));
-// A partial encoder rerun (--encoder-phases) replaces only its phases in the sheet the last full run left.
+// A partial encoder rerun (--encoder-phases) replaces only its phases in the sheet the last full run
+// left, and keeps every replaced phase in a list. A rerun that failed leaves that sheet as it was.
 const sheet = join(outDir, "observations.json");
-if (encoderPhases && observations.results.encoder && existsSync(sheet)) {
-  const previous = JSON.parse(readFileSync(sheet, "utf8"));
-  const before = previous.results?.encoder;
-  if (before) {
-    for (const [device, runs] of Object.entries(observations.results.encoder.backends)) {
-      const kept = before.backends[device] ?? {};
-      for (const phase of Object.keys(runs)) if (kept[phase] && phase !== "environment") kept[`${phase}Superseded`] = kept[phase];
-      before.backends[device] = { ...kept, ...runs };
+const previous = encoderPhases && existsSync(sheet) ? JSON.parse(readFileSync(sheet, "utf8")) : null;
+const before = previous?.results?.encoder;
+if (!encoderPhases) writeFileSync(sheet, JSON.stringify(observations, null, 2));
+else if (observations.failures.length > 0 && before) log(`partial rerun failed; ${sheet} left unchanged`);
+else if (before) {
+  for (const [device, runs] of Object.entries(observations.results.encoder.backends)) {
+    const kept = before.backends[device] ?? {};
+    for (const phase of Object.keys(runs)) {
+      if (!kept[phase] || phase === "environment") continue;
+      const earlier = kept[`${phase}Superseded`];
+      kept[`${phase}Superseded`] = [...(Array.isArray(earlier) ? earlier : earlier ? [earlier] : []), kept[phase]];
     }
-    before.reruns = [...(before.reruns ?? []), { phases: encoderPhases, startedAt: observations.startedAt, sheet: stamped }];
-    previous.failures = [...(previous.failures ?? []), ...observations.failures];
-    writeFileSync(sheet, JSON.stringify(previous, null, 2));
-  } else writeFileSync(sheet, JSON.stringify(observations, null, 2));
+    before.backends[device] = { ...kept, ...runs };
+  }
+  before.reruns = [...(before.reruns ?? []), { phases: encoderPhases, startedAt: observations.startedAt, sheet: stamped }];
+  writeFileSync(sheet, JSON.stringify(previous, null, 2));
 } else writeFileSync(sheet, JSON.stringify(observations, null, 2));
 log(`wrote ${stamped}; failures: ${observations.failures.length}`);

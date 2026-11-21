@@ -3,6 +3,7 @@ import {
   ENCODER_DIMENSIONS,
   ENCODER_DTYPE,
   ENCODER_MODEL_ID,
+  ENCODER_REVISION,
   type EncoderDevice,
   type EncoderRequest,
   type EncoderResponse,
@@ -35,6 +36,7 @@ async function load(device: EncoderDevice, numThreads?: number): Promise<void> {
   extractor = (await pipeline("feature-extraction", ENCODER_MODEL_ID, {
     dtype: ENCODER_DTYPE,
     device,
+    revision: ENCODER_REVISION,
     progress_callback: (event: { status?: string; file?: string; loaded?: number; total?: number }) => {
       if (event.status === "initiate" || event.status === "progress" || event.status === "done") {
         post({ type: "progress", file: event.file ?? "", loaded: event.loaded ?? 0, total: event.total ?? 0, status: event.status, at: performance.now() });
