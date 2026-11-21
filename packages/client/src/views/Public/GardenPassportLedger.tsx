@@ -140,14 +140,25 @@ export function PassportLedger({
                     )}
                   </PassportFigure>
                 ) : null}
-                {entry.line.awaiting > 0n ? (
+                {entry.line.sent > 0n ? (
                   <PassportNote>
                     {formatMessage(
                       {
                         id: "public.passport.supported.awaiting",
                         defaultMessage: "{amount} {symbol} sent and not yet confirmed.",
                       },
-                      { amount: entry.amount(entry.line.awaiting), symbol: entry.symbol }
+                      { amount: entry.amount(entry.line.sent), symbol: entry.symbol }
+                    )}
+                  </PassportNote>
+                ) : null}
+                {entry.line.queued > 0n ? (
+                  <PassportNote>
+                    {formatMessage(
+                      {
+                        id: "public.passport.supported.queued",
+                        defaultMessage: "{amount} {symbol} recorded and not yet sent.",
+                      },
+                      { amount: entry.amount(entry.line.queued), symbol: entry.symbol }
                     )}
                   </PassportNote>
                 ) : null}

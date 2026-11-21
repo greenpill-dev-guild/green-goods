@@ -30,7 +30,7 @@ export function StillToDeliver({
   const units = record.units.filter((unit) => (unit.stillToDeliver ?? unit.undelivered) > 0n);
   return (
     <>
-      {record.unresolved === 0 ? (
+      {open === 0 ? (
         <PassportNothingYet>
           {formatMessage({
             id: "public.passport.still.none",
@@ -75,6 +75,11 @@ export function StillToDeliver({
             },
             { count: breakdown.awaitingConfirmation }
           )}
+        </PassportNote>
+      ) : null}
+      {breakdown && breakdown.pastDue > 0 ? (
+        <PassportNote>
+          {formatMessage({ id: "public.passport.still.pastDue" }, { count: breakdown.pastDue })}
         </PassportNote>
       ) : null}
       {breakdown && breakdown.notKept > 0 ? (

@@ -135,7 +135,7 @@ export function PassportSource({ children }: { children: ReactNode }) {
 export function PassportUnavailable({ onRetry }: { onRetry: () => void }) {
   const { formatMessage } = useIntl();
   return (
-    <p role="status" className="text-base leading-relaxed text-text-sub-600">
+    <p className="text-base leading-relaxed text-text-sub-600">
       {formatMessage({
         id: "public.passport.unavailable",
         defaultMessage: "This part of the record could not be read just now.",
@@ -172,20 +172,24 @@ export function PassportUnitRows({
 }) {
   if (rows.length === 0) return null;
   return (
-    <dl aria-label={label} className="border-b border-stroke-soft-200">
-      {rows.map((row) => (
-        <div
-          key={row.unitLabel}
-          className="flex items-baseline justify-between gap-4 border-t border-stroke-soft-200 py-2.5 text-sm"
-        >
-          <dt className="truncate text-text-sub-600" title={row.unitLabel}>
-            {row.unitLabel}
-          </dt>
-          <dd className="shrink-0 text-right font-mono text-xs tabular-nums text-text-strong-950">
-            {row.value}
-          </dd>
-        </div>
-      ))}
-    </dl>
+    // The name sits on a group: a description list has no role that carries one.
+    <div role="group" aria-label={label}>
+      <dl className="border-b border-stroke-soft-200">
+        {rows.map((row, index) => (
+          <div
+            // Two lines can share a label (services whose unit the record cannot name).
+            key={`${row.unitLabel}:${index}`}
+            className="flex items-baseline justify-between gap-4 border-t border-stroke-soft-200 py-2.5 text-sm"
+          >
+            <dt className="line-clamp-2 break-words text-text-sub-600" title={row.unitLabel}>
+              {row.unitLabel}
+            </dt>
+            <dd className="shrink-0 text-right font-mono text-xs tabular-nums text-text-strong-950">
+              {row.value}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </div>
   );
 }

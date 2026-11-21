@@ -31,7 +31,13 @@ export function gardenPassportFixture(
         due: 8,
         kept: 4,
         unresolved: 4,
-        breakdown: { stillOpen: 3, awaitingConfirmation: 1, notKept: 1, partlyDelivered: 1 },
+        breakdown: {
+          stillOpen: 3,
+          awaitingConfirmation: 1,
+          notKept: 1,
+          partlyDelivered: 1,
+          pastDue: 1,
+        },
         standingOffers: 2,
         units: [
           {
@@ -76,21 +82,23 @@ export function gardenPassportFixture(
           withheld: false,
           requested: 3,
           accepted: 2,
-          declined: 1,
+          notStarted: 1,
           settled: 1,
           transfersFailed: 1,
-          services: [{ unitLabel: "seat days", booked: 60n, confirmedDelivered: 20n }],
-          vouchers: [
-            {
-              token: VOUCHER,
-              symbol: "GGV",
-              decimals: 6,
-              presented: 30_000_000n,
-              returnedToIssuer: 7_000_000n,
-              refundedToHolder: 10_000_000n,
-              awaitingTransfer: 3_000_000n,
-            },
-          ],
+          amounts: {
+            services: [{ unitLabel: "seat days", booked: 60n, confirmedDelivered: 20n }],
+            vouchers: [
+              {
+                token: VOUCHER,
+                symbol: "GGV",
+                decimals: 6,
+                presented: 30_000_000n,
+                returnedToIssuer: 7_000_000n,
+                refundedToHolder: 10_000_000n,
+                awaitingTransfer: 3_000_000n,
+              },
+            ],
+          },
         },
       },
     },
@@ -100,12 +108,13 @@ export function gardenPassportFixture(
       value: {
         keptAwaitingPaymentPlan: 1,
         support: {
-          payments: { confirmed: 2, awaiting: 1, failed: 0, cancelled: 0 },
+          payments: { confirmed: 2, sent: 1, queued: 0, failed: 0, cancelled: 0 },
           lines: [
             {
               token: GDOLLAR,
               confirmed: 7200n * G,
-              awaiting: 40n * G,
+              sent: 40n * G,
+              queued: 0n,
               failed: 0n,
               cancelled: 0n,
             },
@@ -116,14 +125,15 @@ export function gardenPassportFixture(
           plans: 2,
           plansFinalized: 1,
           plansRevised: 1,
-          payments: { confirmed: 3, awaiting: 1, failed: 1, cancelled: 0 },
+          payments: { confirmed: 3, sent: 0, queued: 3, failed: 0, cancelled: 0 },
           declared: [{ token: GDOLLAR, amount: 120n * G }],
           lines: [
             {
               token: GDOLLAR,
               confirmed: 60n * G,
-              awaiting: 25n * G,
-              failed: 15n * G,
+              sent: 0n,
+              queued: 25n * G,
+              failed: 0n,
               cancelled: 0n,
             },
           ],

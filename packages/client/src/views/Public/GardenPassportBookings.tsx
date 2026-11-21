@@ -74,46 +74,58 @@ export function PassportBookings({ bookings }: { bookings: PassportVouchers["boo
       </PassportNothingYet>
     );
   }
-  const unnamed = bookings.vouchers.some((line) => line.symbol === null);
+  const unnamed = bookings.amounts?.vouchers.some((line) => line.symbol === null) ?? false;
   return (
     <>
       <PassportFigure>
         {formatMessage(
           { id: "public.passport.vouchers.used.figure" },
-          { count: bookings.requested, accepted: bookings.accepted, declined: bookings.declined }
+          {
+            count: bookings.requested,
+            accepted: bookings.accepted,
+            notStarted: bookings.notStarted,
+          }
         )}
       </PassportFigure>
-      <PassportUnitRows
-        label={formatMessage({
-          id: "public.passport.vouchers.used.delivered",
-          defaultMessage: "Delivered, as the holder approved it",
-        })}
-        rows={bookings.services.map((line) => ({
-          unitLabel:
-            line.unitLabel ??
-            formatMessage({
-              id: "public.passport.vouchers.used.unlabeled",
-              defaultMessage: "Service units",
-            }),
-          value: formatMessage(
-            { id: "public.passport.vouchers.used.deliveredOf" },
-            {
-              delivered: formatNumber(line.confirmedDelivered),
-              booked: formatNumber(line.booked),
-            }
-          ),
-        }))}
-      />
-      {bookings.vouchers.map((line) => (
-        <PassportUnitRows
-          key={line.token}
-          label={formatMessage(
-            { id: "public.passport.vouchers.used.movements" },
-            { symbol: line.symbol ?? "" }
-          )}
-          rows={voucherRows(intl, line)}
-        />
-      ))}
+      {bookings.amounts ? (
+        <>
+          <PassportUnitRows
+            label={formatMessage({
+              id: "public.passport.vouchers.used.delivered",
+              defaultMessage: "Delivered, as the holder approved it",
+            })}
+            rows={bookings.amounts.services.map((line) => ({
+              unitLabel:
+                line.unitLabel ??
+                formatMessage({
+                  id: "public.passport.vouchers.used.unlabeled",
+                  defaultMessage: "Service units",
+                }),
+              value: formatMessage(
+                { id: "public.passport.vouchers.used.deliveredOf" },
+                {
+                  delivered: formatNumber(line.confirmedDelivered),
+                  booked: formatNumber(line.booked),
+                }
+              ),
+            }))}
+          />
+          {bookings.amounts.vouchers.map((line) => (
+            <PassportUnitRows
+              key={line.token}
+              label={formatMessage(
+                { id: "public.passport.vouchers.used.movements" },
+                { symbol: line.symbol ?? "" }
+              )}
+              rows={voucherRows(intl, line)}
+            />
+          ))}
+        </>
+      ) : (
+        <PassportNote>
+          {formatMessage({ id: "public.passport.vouchers.used.amountsHeld" })}
+        </PassportNote>
+      )}
       {unnamed ? (
         <PassportNote>
           {formatMessage({ id: "public.passport.vouchers.used.unnamed" })}

@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 import type { Address } from "../../types/domain";
 import {
+  isPublicPassportPublished,
   publicRehearsalCommitments,
   publicRehearsalCycles,
   publicReviewedWorkExclusionIds,
@@ -38,6 +39,14 @@ describe("reviewed public record policy", () => {
     expect(
       publicWorkReviewStatus({ id: "0x" + "a".repeat(64), gardenAddress }, 42161)
     ).toBeUndefined();
+  });
+
+  it("publishes a passport only for the one garden whose owner agreed", () => {
+    const published = "0xF7b892886998DAe960D64a9db488336684F137A0" as Address;
+    expect(isPublicPassportPublished(42161, published)).toBe(true);
+    // Consent is per garden and per chain: an open pool elsewhere publishes nothing.
+    expect(isPublicPassportPublished(42161, gardenAddress as Address)).toBe(false);
+    expect(isPublicPassportPublished(11155111, published)).toBe(false);
   });
 
   it("hides a reviewed record only in the garden it was reviewed for", () => {

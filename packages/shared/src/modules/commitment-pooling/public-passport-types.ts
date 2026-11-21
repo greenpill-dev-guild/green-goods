@@ -65,6 +65,11 @@ export interface PassportPromises {
     notKept: number;
     /** Unresolved promises with some units approved and some not. */
     partlyDelivered: number;
+    /**
+     * Open promises whose due date has passed and that nobody has confirmed or closed yet. They
+     * still count as open: a promise lapses only when its term is closed on the record.
+     */
+    pastDue: number;
   } | null;
   /** Offers still open for someone to take up. */
   standingOffers: number;
@@ -121,23 +126,38 @@ export interface PassportVouchers {
   bookings: PassportPeopleGroup<{
     requested: number;
     accepted: number;
-    declined: number;
+    /** Bookings that ended before the service started, whoever ended them. */
+    notStarted: number;
     /** Bookings with a final split on record. */
     settled: number;
     /** Transfers of a final split that failed and wait for recovery. */
     transfersFailed: number;
-    services: PassportServiceLine[];
-    vouchers: PassportVoucherLine[];
+    /**
+     * Unit figures by service and by voucher. Null while any one line has fewer than three
+     * holders behind it, so no line can be one person's booking.
+     */
+    amounts: { services: PassportServiceLine[]; vouchers: PassportVoucherLine[] } | null;
   }>;
 }
 
-/** Amounts in one token. Amounts in different tokens are never added together. */
+/** How many payments ended in each state. */
+export interface PassportPaymentCounts {
+  /** Arrival acknowledged by the paying chain. Only this is money received. */
+  confirmed: number;
+  /** Sent to the paying chain, arrival not yet acknowledged. */
+  sent: number;
+  /** Recorded and not yet sent. */
+  queued: number;
+  failed: number;
+  cancelled: number;
+}
+
+/** Amounts in one token, by the same states. Different tokens are never added together. */
 export interface PassportMoneyLine {
   token: Address;
-  /** Arrival acknowledged by the paying chain. Only this is money received. */
   confirmed: bigint;
-  /** Queued or sent, not yet acknowledged. */
-  awaiting: bigint;
+  sent: bigint;
+  queued: bigint;
   failed: bigint;
   cancelled: bigint;
 }
@@ -150,7 +170,7 @@ export interface PassportSettlement {
   keptAwaitingPaymentPlan: number;
   /** Money sent to the garden itself. */
   support: {
-    payments: { confirmed: number; awaiting: number; failed: number; cancelled: number };
+    payments: PassportPaymentCounts;
     lines: PassportMoneyLine[];
   };
   /** Money sent to members for kept promises, against what each payment plan declared. */
@@ -160,10 +180,14 @@ export interface PassportSettlement {
     plansFinalized: number;
     /** Plans changed after their first snapshot, each change with its recorded reason. */
     plansRevised: number;
-    payments: { confirmed: number; awaiting: number; failed: number; cancelled: number };
+    payments: PassportPaymentCounts;
     /** What the plans declare for members, by token. A declared amount is intent, not a payment. */
     declared: { token: Address; amount: bigint }[];
-    lines: PassportMoneyLine[];
+    /**
+     * Amounts by state. Null while any one amount has fewer than three recipients behind it, so
+     * no amount can be one member's pay. The counts above stay.
+     */
+    lines: PassportMoneyLine[] | null;
   }>;
 }
 

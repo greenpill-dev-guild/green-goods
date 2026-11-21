@@ -1,5 +1,6 @@
 import type {
   PassportMoneyLine,
+  PassportPaymentCounts,
   PassportSection,
   PassportSettlement,
 } from "@green-goods/shared/commitment-pooling/public";
@@ -18,64 +19,63 @@ import { passportAmount, passportMoneyToken } from "./gardenPassportFormat";
 import { Section } from "./GardenDetailSections";
 
 /**
- * `§ 02 G$ payments` on the passport: what was declared beside what was sent, confirmed, failed or
- * canceled. A declared amount is intent. Only a confirmed arrival is money received, and the two
- * are never shown as one figure. Amounts stay in G$ and are not converted.
+ * `§ 02 G$ payments` on the passport: what was declared beside what was recorded, sent,
+ * confirmed, failed or canceled. A declared amount is intent, a recorded payment has not been
+ * sent, and a sent one has not arrived. Only a confirmed arrival is money received, and none of
+ * these is ever shown as another. Amounts stay in G$ and are not converted.
  */
 
-/** One token's payments by outcome, each as its own row. */
-function outcomeRows(
-  intl: IntlShape,
-  line: PassportMoneyLine,
-  declared?: bigint
-): { unitLabel: string; value: string }[] {
+type Outcome = keyof PassportPaymentCounts;
+
+function outcomeLabels(intl: IntlShape): Record<Outcome, string> {
+  const { formatMessage } = intl;
+  return {
+    confirmed: formatMessage({
+      id: "public.passport.money.confirmed",
+      defaultMessage: "Confirmed as arrived",
+    }),
+    sent: formatMessage({
+      id: "public.passport.money.awaiting",
+      defaultMessage: "Sent, not yet confirmed",
+    }),
+    queued: formatMessage({
+      id: "public.passport.money.queued",
+      defaultMessage: "Recorded, not yet sent",
+    }),
+    failed: formatMessage({
+      id: "public.passport.money.failed",
+      defaultMessage: "Sent and did not arrive",
+    }),
+    cancelled: formatMessage({
+      id: "public.passport.money.cancelled",
+      defaultMessage: "Canceled",
+    }),
+  };
+}
+
+const OUTCOMES: readonly Outcome[] = ["confirmed", "sent", "queued", "failed", "cancelled"];
+
+/** One token's payments by outcome, each as its own row. An unnamed token keeps no figure. */
+function amountRows(intl: IntlShape, line: PassportMoneyLine) {
   const token = passportMoneyToken(line.token);
   if (!token) return [];
-  const { formatMessage } = intl;
-  const amount = (value: bigint) =>
-    `${passportAmount(intl, value, token.decimals)} ${token.symbol}`;
-  const rows = [
-    {
-      unitLabel: formatMessage({
-        id: "public.passport.money.confirmed",
-        defaultMessage: "Confirmed as arrived",
-      }),
-      value: amount(line.confirmed),
-    },
-    {
-      unitLabel: formatMessage({
-        id: "public.passport.money.awaiting",
-        defaultMessage: "Sent, not yet confirmed",
-      }),
-      value: amount(line.awaiting),
-    },
-    {
-      unitLabel: formatMessage({
-        id: "public.passport.money.failed",
-        defaultMessage: "Sent and did not arrive",
-      }),
-      value: amount(line.failed),
-    },
-    {
-      unitLabel: formatMessage({
-        id: "public.passport.money.cancelled",
-        defaultMessage: "Canceled before sending",
-      }),
-      value: amount(line.cancelled),
-    },
-  ];
-  return declared === undefined
-    ? rows
-    : [
-        {
-          unitLabel: formatMessage({
-            id: "public.passport.money.declared",
-            defaultMessage: "Declared, not yet paid",
-          }),
-          value: amount(declared > line.confirmed ? declared - line.confirmed : 0n),
-        },
-        ...rows,
-      ];
+  const labels = outcomeLabels(intl);
+  return OUTCOMES.map((result) => ({
+    unitLabel: labels[result],
+    value: `${passportAmount(intl, line[result], token.decimals)} ${token.symbol}`,
+  }));
+}
+
+/** How many payments ended in each state, where the amounts themselves are held back. */
+function countRows(intl: IntlShape, payments: PassportPaymentCounts) {
+  const labels = outcomeLabels(intl);
+  return OUTCOMES.map((result) => ({
+    unitLabel: labels[result],
+    value: intl.formatMessage(
+      { id: "public.passport.money.paymentCount" },
+      { count: payments[result] }
+    ),
+  }));
 }
 
 export function PassportMoneySection({
@@ -90,6 +90,10 @@ export function PassportMoneySection({
   const meta =
     settlement.status === "available" ? <PassportFreshness asOf={settlement.asOf} /> : null;
   const value = settlement.status === "available" ? settlement.value : null;
+  const byOutcome = formatMessage({
+    id: "public.passport.money.byOutcome",
+    defaultMessage: "By outcome",
+  });
   return (
     <Section
       id="public-passport-money"
@@ -132,11 +136,8 @@ export function PassportMoneySection({
               {value.support.lines.map((line) => (
                 <PassportUnitRows
                   key={line.token}
-                  label={formatMessage({
-                    id: "public.passport.money.byOutcome",
-                    defaultMessage: "By outcome",
-                  })}
-                  rows={outcomeRows(intl, line)}
+                  label={byOutcome}
+                  rows={amountRows(intl, line)}
                 />
               ))}
               <PassportSource>
@@ -189,7 +190,8 @@ function MemberPayments({ settlement }: { settlement: PassportSettlement }) {
       </>
     );
   }
-  if (group.plans === 0 && group.lines.length === 0) {
+  const paymentsOnRecord = OUTCOMES.reduce((sum, result) => sum + group.payments[result], 0);
+  if (group.plans === 0 && paymentsOnRecord === 0) {
     return (
       <>
         <PassportNothingYet>
@@ -202,20 +204,33 @@ function MemberPayments({ settlement }: { settlement: PassportSettlement }) {
       </>
     );
   }
-  const declaredByToken = new Map(group.declared.map((line) => [line.token, line.amount]));
-  // A plan can declare an amount before any payment exists for its token.
-  const lines: PassportMoneyLine[] = [
-    ...group.lines,
-    ...group.declared
-      .filter((line) => !group.lines.some((paid) => paid.token === line.token))
-      .map((line) => ({
-        token: line.token,
-        confirmed: 0n,
-        awaiting: 0n,
-        failed: 0n,
-        cancelled: 0n,
-      })),
-  ];
+  const byOutcome = formatMessage({
+    id: "public.passport.money.byOutcome",
+    defaultMessage: "By outcome",
+  });
+  const confirmedByToken = new Map((group.lines ?? []).map((line) => [line.token, line.confirmed]));
+  // What the plans declare, in the tokens the page can name. Where the amounts by outcome are
+  // published, the part not yet confirmed is shown; where they are held back, the whole is.
+  const declaredRows = group.declared.flatMap((line) => {
+    const token = passportMoneyToken(line.token);
+    if (!token) return [];
+    const confirmed = confirmedByToken.get(line.token) ?? 0n;
+    const unpaid = line.amount > confirmed ? line.amount - confirmed : 0n;
+    return [
+      {
+        unitLabel: group.lines
+          ? formatMessage({
+              id: "public.passport.money.declared",
+              defaultMessage: "Declared, not yet paid",
+            })
+          : formatMessage({
+              id: "public.passport.money.declaredTotal",
+              defaultMessage: "Declared in payment plans",
+            }),
+        value: `${passportAmount(intl, group.lines ? unpaid : line.amount, token.decimals)} ${token.symbol}`,
+      },
+    ];
+  });
   return (
     <>
       <PassportFigure>
@@ -224,30 +239,31 @@ function MemberPayments({ settlement }: { settlement: PassportSettlement }) {
           { count: group.payments.confirmed }
         )}
       </PassportFigure>
-      {lines.map((line) => (
-        <PassportUnitRows
-          key={line.token}
-          label={formatMessage({
-            id: "public.passport.money.byOutcome",
-            defaultMessage: "By outcome",
-          })}
-          rows={outcomeRows(intl, line, declaredByToken.get(line.token) ?? 0n)}
-        />
-      ))}
+      <PassportUnitRows
+        label={formatMessage({
+          id: "public.passport.money.declaredLabel",
+          defaultMessage: "Declared",
+        })}
+        rows={declaredRows}
+      />
+      {group.lines ? (
+        group.lines.map((line) => (
+          <PassportUnitRows key={line.token} label={byOutcome} rows={amountRows(intl, line)} />
+        ))
+      ) : (
+        <>
+          <PassportUnitRows label={byOutcome} rows={countRows(intl, group.payments)} />
+          <PassportNote>
+            {formatMessage({ id: "public.passport.money.members.amountsHeld" })}
+          </PassportNote>
+        </>
+      )}
       <PassportNote>
         {formatMessage(
           { id: "public.passport.money.members.plans" },
           { plans: group.plans, finalized: group.plansFinalized, revised: group.plansRevised }
         )}
       </PassportNote>
-      {group.payments.failed > 0 ? (
-        <PassportNote>
-          {formatMessage(
-            { id: "public.passport.money.members.failed" },
-            { count: group.payments.failed }
-          )}
-        </PassportNote>
-      ) : null}
       {waitingForPlan}
       <PassportSource>
         <p>{formatMessage({ id: "public.passport.money.members.source" })}</p>

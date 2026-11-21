@@ -74,7 +74,7 @@ export async function getPublicGardenPassport(
     const { rows, rehearsalIds } = promiseRead.value;
     [vouchers, settlement] = await Promise.all([
       section("vouchers", garden, async () => {
-        const read = await readPassportVouchers(chainId, garden, rows, now, reader);
+        const read = await readPassportVouchers(chainId, garden, rows, rehearsalIds, now, reader);
         return { value: read.vouchers, asOf: read.asOf };
       }),
       section("settlement", garden, async () => {

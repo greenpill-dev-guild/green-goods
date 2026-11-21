@@ -37,6 +37,7 @@ export function PassportSentence({ passport }: { passport: PublicGardenPassportR
     );
   }
   const record = promises.value;
+  const since = record.since === null ? "" : passportDate(intl, record.since);
   const support =
     settlement.status === "available"
       ? namedSupport(intl, settlement.value).filter((entry) => entry.line.confirmed > 0n)
@@ -51,19 +52,24 @@ export function PassportSentence({ passport }: { passport: PublicGardenPassportR
             id: "public.passport.sentence.none",
             defaultMessage: "No one has taken up a promise in this garden yet.",
           })
-        : formatMessage(
-            {
-              id: "public.passport.sentence.promises",
-              defaultMessage:
-                "Since {since}, neighbors have taken up {due, plural, one {# promise} other {# promises}} in this garden. {kept, plural, =0 {None is kept yet} one {# is kept} other {# are kept}}, and {open, plural, =0 {none is waiting} one {# is still to deliver} other {# are still to deliver}}.",
-            },
-            {
-              since: record.since === null ? "" : passportDate(intl, record.since),
-              due: record.due,
-              kept: record.kept,
-              open: openPromises(record),
-            }
-          )}
+        : record.breakdown
+          ? formatMessage(
+              {
+                id: "public.passport.sentence.promises",
+                defaultMessage:
+                  "Since {since}, neighbors have taken up {due, plural, one {# promise} other {# promises}} in this garden. {kept, plural, =0 {None is kept yet} one {# is kept} other {# are kept}}, and {open, plural, =0 {none is waiting} one {# is still to deliver} other {# are still to deliver}}.",
+              },
+              { since, due: record.due, kept: record.kept, open: record.breakdown.stillOpen }
+            )
+          : // A small record does not say which of its unresolved promises have lapsed.
+            formatMessage(
+              {
+                id: "public.passport.sentence.promisesSmall",
+                defaultMessage:
+                  "Since {since}, neighbors have taken up {due, plural, one {# promise} other {# promises}} in this garden. {kept, plural, =0 {None is kept yet} one {# is kept} other {# are kept}}, and {open, plural, =0 {none is waiting} one {# is not yet kept} other {# are not yet kept}}.",
+              },
+              { since, due: record.due, kept: record.kept, open: record.unresolved }
+            )}
       {record.breakdown && record.breakdown.notKept > 0
         ? ` ${formatMessage(
             {

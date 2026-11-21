@@ -13,6 +13,7 @@ export {
 } from "../hooks/public/usePublicGardenPool";
 export type {
   PassportMoneyLine,
+  PassportPaymentCounts,
   PassportPeopleGroup,
   PassportPromises,
   PassportSection,

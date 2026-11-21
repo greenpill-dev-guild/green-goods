@@ -102,6 +102,10 @@ describe("a garden's public passport", () => {
     expect(still.getByText("7 of 12")).toBeInTheDocument();
     expect(still.getByText(/Not kept: 1 promise whose term ended/)).toBeInTheDocument();
     expect(still.getByText("2 of 12")).toBeInTheDocument();
+    // Past its due date but not closed on the record: still open, and said to be late.
+    expect(
+      still.getByText(/1 is past its due date and has not been confirmed/)
+    ).toBeInTheDocument();
     // Workshops are all delivered, so they are not listed as still to deliver.
     expect(still.queryByText("workshops")).not.toBeInTheDocument();
 
@@ -121,7 +125,9 @@ describe("a garden's public passport", () => {
     ).toBeInTheDocument();
     expect(within(line("Bought")).getByText("No vouchers bought.")).toBeInTheDocument();
     const used = within(line("Used for services"));
-    expect(used.getByText("3 bookings: 2 accepted, 1 declined")).toBeInTheDocument();
+    expect(
+      used.getByText("3 bookings: 2 accepted, 1 ended before the service started")
+    ).toBeInTheDocument();
     // Delivery is what the holder approved, not the vouchers that moved.
     expect(used.getByText("20 of 60")).toBeInTheDocument();
     expect(used.getByText("7 GGV")).toBeInTheDocument();
@@ -134,6 +140,9 @@ describe("a garden's public passport", () => {
     // 120 G$ declared for members, 60 confirmed: 60 is declared and not yet paid.
     const declared = members.getByText("Declared, not yet paid").closest("div");
     expect(declared).toHaveTextContent("60 G$");
+    // Recorded is not sent: the 25 G$ waiting to go out is never shown as on its way.
+    expect(members.getByText("Recorded, not yet sent").closest("div")).toHaveTextContent("25 G$");
+    expect(members.getByText("Sent, not yet confirmed").closest("div")).toHaveTextContent("0 G$");
     expect(
       members.getByText(/1 kept promise declares a G\$ payment that has no payment plan yet/)
     ).toBeInTheDocument();
@@ -143,21 +152,32 @@ describe("a garden's public passport", () => {
 
   it("holds back figures that would point at a person, and says a failed source failed", () => {
     const base = record();
-    if (base.promises.status !== "available" || base.settlement.status !== "available") return;
+    if (
+      base.promises.status !== "available" ||
+      base.vouchers.status !== "available" ||
+      base.settlement.status !== "available"
+    ) {
+      throw new Error("the fixture must be a readable record");
+    }
+    const small = {
+      ...base.promises,
+      value: {
+        ...base.promises.value,
+        breakdown: null,
+        units: base.promises.value.units.map((unit) => ({
+          ...unit,
+          stillToDeliver: null,
+          notDelivered: null,
+        })),
+      },
+    };
+    const members = base.settlement.value.memberPayments;
+    if (members.withheld || base.vouchers.value.bookings.withheld) {
+      throw new Error("the fixture must publish its groups");
+    }
     show({
       passport: record({
-        promises: {
-          ...base.promises,
-          value: {
-            ...base.promises.value,
-            breakdown: null,
-            units: base.promises.value.units.map((unit) => ({
-              ...unit,
-              stillToDeliver: null,
-              notDelivered: null,
-            })),
-          },
-        },
+        promises: small,
         vouchers: { status: "unavailable" },
         settlement: {
           ...base.settlement,
@@ -166,11 +186,13 @@ describe("a garden's public passport", () => {
       }),
     });
 
-    // A small record does not say which unresolved promise lapsed.
+    // A small record does not say which unresolved promise lapsed, in its lines or its sentence.
     const still = within(line("Still to deliver"));
     expect(still.getByText("4 promises not yet kept")).toBeInTheDocument();
     expect(still.getByText("9 of 12")).toBeInTheDocument();
     expect(still.queryByText(/Not kept:/)).not.toBeInTheDocument();
+    expect(screen.getByTestId("passport-sentence")).toHaveTextContent(/4 are not yet kept\./);
+    expect(screen.getByTestId("passport-sentence")).not.toHaveTextContent(/still to deliver/);
     expect(
       within(line("Paid to members")).getByText(/Too few members have been paid/)
     ).toBeInTheDocument();
@@ -183,6 +205,43 @@ describe("a garden's public passport", () => {
     expect(earned.queryByText("No vouchers issued yet.")).not.toBeInTheDocument();
     fireEvent.click(earned.getByRole("button", { name: "Try Again" }));
     expect(refetch).toHaveBeenCalledTimes(1);
+    cleanup();
+
+    // Enough people overall, but one amount covers fewer than three: counts stay, amounts wait.
+    show({
+      passport: record({
+        promises: {
+          ...base.promises,
+          value: {
+            ...base.promises.value,
+            breakdown: { ...base.promises.value.breakdown!, stillOpen: 0, notKept: 4 },
+          },
+        },
+        vouchers: {
+          ...base.vouchers,
+          value: {
+            ...base.vouchers.value,
+            bookings: { ...base.vouchers.value.bookings, amounts: null },
+          },
+        },
+        settlement: {
+          ...base.settlement,
+          value: { ...base.settlement.value, memberPayments: { ...members, lines: null } },
+        },
+      }),
+    });
+    const paid = within(line("Paid to members"));
+    expect(paid.getByText(/Amounts by outcome are held back/)).toBeInTheDocument();
+    expect(paid.getByText("Confirmed as arrived").closest("div")).toHaveTextContent("3 payments");
+    expect(paid.getByText("Declared in payment plans").closest("div")).toHaveTextContent("120 G$");
+    expect(paid.queryByText(/60 G\$/)).not.toBeInTheDocument();
+    const booked = within(line("Used for services"));
+    expect(booked.getByText(/Unit figures are held back/)).toBeInTheDocument();
+    expect(booked.queryByText("7 GGV")).not.toBeInTheDocument();
+    // Nothing open and four lapsed is not "0 promises still to deliver".
+    const lapsed = within(line("Still to deliver"));
+    expect(lapsed.getByText("Nothing is waiting to be delivered.")).toBeInTheDocument();
+    expect(lapsed.getByText(/Not kept: 4 promises/)).toBeInTheDocument();
   });
 
   it("says a garden has not published a passport, without reading or showing a figure", async () => {

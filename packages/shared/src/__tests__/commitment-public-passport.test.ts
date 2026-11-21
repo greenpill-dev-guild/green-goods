@@ -1,3 +1,4 @@
+import { type ObjectValueNode, parse, visit } from "graphql";
 import { describe, expect, it } from "vitest";
 
 import type { GraphQLReader } from "../modules/data/graphql-client";
@@ -47,23 +48,45 @@ const kept = (id: number, fields: Row = {}) =>
     ...fields,
   });
 
-/** Serves the rows a test names, paged by id as the indexer pages them. */
+/** A query the indexer would refuse is a failed read, as it is in production. */
+function refusal(document: string): Error | null {
+  try {
+    let duplicate: string | null = null;
+    visit(parse(document), {
+      ObjectValue(node: ObjectValueNode) {
+        const names = node.fields.map((field) => field.name.value);
+        duplicate ??= names.find((name, index) => names.indexOf(name) !== index) ?? null;
+      },
+    });
+    return duplicate ? new Error(`There can be only one input field named "${duplicate}"`) : null;
+  } catch (error) {
+    return error as Error;
+  }
+}
+
+/**
+ * Serves the rows a test names as the indexer would: scoped to a pool or to the ids asked for,
+ * paged by id, and refusing a document that is not valid GraphQL.
+ */
 function indexer(tables: Record<string, Row[] | Error>, poolId: string | null = "7") {
-  const calls: { entity: string; variables: Row }[] = [];
+  const calls: { entity: string; variables: Row; document: string }[] = [];
   const reader: GraphQLReader = {
     query: async (document, input, operationName = "") => {
       const variables: Row = input ?? {};
+      const refused = refusal(String(document));
+      if (refused) return { error: refused };
       if (operationName === "getPublicPassportPool") {
         const pools = poolId === null ? [] : [{ id: `${CHAIN}-${poolId}`, poolId }];
         return { data: { CommitmentPool: pools } as never };
       }
       const entity = operationName.replace("getPublicPassport", "");
-      calls.push({ entity, variables });
+      calls.push({ entity, variables, document: String(document) });
       const table = tables[entity] ?? [];
       if (table instanceof Error) return { error: table };
       const ids = variables.ids as string[] | undefined;
       const byCommitment = String(document).includes("[numeric!]!");
       const rows = table
+        .filter((row) => variables.poolId === undefined || row.poolId === variables.poolId)
         .filter((row) => !ids || ids.includes(String(byCommitment ? row.commitmentId : row.id)))
         .filter((row) => String(row.id) > String(variables.after))
         .sort((left, right) => String(left.id).localeCompare(String(right.id)))
@@ -84,6 +107,20 @@ function read(tables: Record<string, Row[] | Error>, poolId: string | null = "7"
 function value<T>(section: PassportSection<T>): T {
   if (section.status !== "available") throw new Error("section is unavailable");
   return section.value;
+}
+
+function payment(n: number, fields: Row = {}): Row {
+  return {
+    id: `${CHAIN}-pay-${String(n).padStart(3, "0")}`,
+    kind: "FUNDING",
+    state: "CONFIRMED",
+    token: GDOLLAR,
+    amount: "100",
+    recipient: GARDEN,
+    commitmentId: null,
+    updatedAt: 9600 + n,
+    ...fields,
+  };
 }
 
 describe("a garden's passport", () => {
@@ -129,7 +166,8 @@ describe("a garden's passport", () => {
         promise(4, { approvedUnits: "3" }),
         promise(5, { state: "READY_FOR_CONFIRMATION", approvedUnits: "9" }),
         promise(6, { state: "EXPIRED", approvedUnits: "1" }),
-        promise(7, { unitLabel: "workshops", targetUnits: "2" }),
+        // Past its due date, and nobody has closed it: still open, and said to be past due.
+        promise(7, { unitLabel: "workshops", targetUnits: "2", dueDate: String(NOW - 5) }),
       ],
     });
 
@@ -139,6 +177,7 @@ describe("a garden's passport", () => {
       awaitingConfirmation: 1,
       notKept: 1,
       partlyDelivered: 2,
+      pastDue: 1,
     });
     // Approved units never exceed the promise; units under another label stay on their own line.
     expect(promises.units).toEqual([
@@ -161,9 +200,27 @@ describe("a garden's passport", () => {
         onOffer: 0n,
       },
     ]);
+
+    // Five promises due from one person, with two other people's untaken offers beside them:
+    // offers add no cover, so that one person's lapsed promise is not split out.
+    const onePerson = await read({
+      Commitment: [
+        ...[1, 2, 3, 4].map((id) => kept(id, { leadProvider: person(1) })),
+        promise(5, { state: "EXPIRED", leadProvider: person(1) }),
+        ...[6, 7].map((id) =>
+          promise(id, {
+            direction: "OFFER",
+            state: "OFFERED",
+            acceptanceSeen: false,
+            leadProvider: null,
+          })
+        ),
+      ],
+    });
+    expect(value(onePerson.promises)).toMatchObject({ due: 5, breakdown: null });
   });
 
-  it("leaves a registered rehearsal, and the money that followed it, out of every figure", async () => {
+  it("leaves a registered rehearsal, and what followed it, out of every figure", async () => {
     // Pool 1, cycle 1 on Arbitrum is the registered rehearsal.
     const rehearsal = { poolId: "1", cycleId: "1" };
     const passport = await read(
@@ -173,14 +230,17 @@ describe("a garden's passport", () => {
           payment(1, { commitmentId: "1" }),
           payment(2, { commitmentId: "2", amount: "70" }),
         ],
+        // A booking against the rehearsal promise is not a booking on the record.
+        VoucherServiceSetup: [
+          { id: "setup-1", commitmentId: "1", holder: person(1), token: VOUCHER, updatedAt: 1 },
+        ],
       },
       "1"
     );
 
     expect(value(passport.promises)).toMatchObject({ made: 1, kept: 1 });
-    expect(value(passport.settlement).support.lines).toEqual([
-      { token: GDOLLAR, confirmed: 70n, awaiting: 0n, failed: 0n, cancelled: 0n },
-    ]);
+    expect(value(passport.settlement).support.lines).toMatchObject([{ confirmed: 70n }]);
+    expect(value(passport.vouchers).bookings).toMatchObject({ withheld: false, requested: 0 });
 
     // Pool 2's promise 85 was made outside any cycle and is registered by its own id.
     const single = await read(
@@ -310,6 +370,7 @@ describe("a garden's passport", () => {
       token: VOUCHER,
       voucherUnits: "10",
       serviceUnits: "30",
+      unitLabelHash: "0xseat",
       latestSetupResultId: `result-${n}`,
       latestFinalResultId: null,
       updatedAt: 9000 + n,
@@ -322,18 +383,38 @@ describe("a garden's passport", () => {
       setupRefundedUnits: refunded,
       timestamp: 9100,
     });
+    // This garden also provides a service offered in another pool.
+    const elsewhere = (n: number) =>
+      booking(n, { commitmentId: "50", serviceUnits: "45", unitLabelHash: "0xminutes" });
     const tables = {
-      Commitment: [promise(1, { unitLabel: "seat days", targetUnits: "90" })],
+      Commitment: [
+        promise(1, { unitLabel: "seat days", targetUnits: "90" }),
+        promise(50, { poolId: "3", unitLabel: "minutes" }),
+        // A promise in the registered rehearsal cycle of another pool.
+        promise(60, { poolId: "1", cycleId: "1" }),
+      ],
       VoucherServiceSetup: [
         // Delivered in part: the holder approved 20 of 30 seat days.
         booking(1, { latestFinalResultId: "final-1" }),
         booking(2),
-        // Declined after the deposit: the vouchers went back.
+        // Ended after the deposit: the vouchers went back.
         booking(3),
         // A booking with no result yet presented nothing.
         booking(4, { latestSetupResultId: null }),
+        elsewhere(5),
+        elsewhere(6),
+        elsewhere(7),
+        booking(8, { commitmentId: "60" }),
       ],
-      VoucherServiceSetupResult: [result(1, 3), result(2, 3), result(3, 5, "10")],
+      VoucherServiceSetupResult: [
+        result(1, 3),
+        result(2, 3),
+        result(3, 5, "10"),
+        result(5, 3),
+        result(6, 3),
+        result(7, 3),
+        result(8, 3),
+      ],
       VoucherServiceFinalResult: [
         {
           id: "final-1",
@@ -348,25 +429,44 @@ describe("a garden's passport", () => {
     };
     const passport = await read(tables);
 
+    // Seven bookings: the one against the rehearsal promise is not on the record.
     expect(value(passport.vouchers).bookings).toEqual({
       withheld: false,
-      requested: 4,
-      accepted: 2,
-      declined: 1,
+      requested: 7,
+      accepted: 5,
+      notStarted: 1,
       settled: 1,
       transfersFailed: 1,
-      services: [{ unitLabel: "seat days", booked: 90n, confirmedDelivered: 20n }],
-      vouchers: [
-        {
-          token: VOUCHER,
-          symbol: "GGV",
-          decimals: 6,
-          presented: 30n,
-          returnedToIssuer: 7n,
-          refundedToHolder: 10n,
-          awaitingTransfer: 3n,
-        },
-      ],
+      amounts: {
+        // Minutes and seat days are different services and never one figure.
+        services: [
+          { unitLabel: "minutes", booked: 135n, confirmedDelivered: 0n },
+          { unitLabel: "seat days", booked: 90n, confirmedDelivered: 20n },
+        ],
+        vouchers: [
+          {
+            token: VOUCHER,
+            symbol: "GGV",
+            decimals: 6,
+            presented: 60n,
+            returnedToIssuer: 7n,
+            refundedToHolder: 10n,
+            awaitingTransfer: 3n,
+          },
+        ],
+      },
+    });
+
+    // Five people booked, but one service has a single booking: its units would be that
+    // person's, so no unit figure is published while the counts stay.
+    const oneLineThin = await read({
+      ...tables,
+      VoucherServiceSetup: tables.VoucherServiceSetup.slice(0, 5),
+    });
+    expect(value(oneLineThin.vouchers).bookings).toMatchObject({
+      withheld: false,
+      requested: 5,
+      amounts: null,
     });
 
     const few = await read({
@@ -376,7 +476,7 @@ describe("a garden's passport", () => {
     expect(value(few.vouchers).bookings).toEqual({ withheld: true });
   });
 
-  it("reconciles declared payments against what was confirmed, awaited and failed", async () => {
+  it("reconciles declared payments against what was confirmed, sent, queued and failed", async () => {
     const member = (n: number, state: string, amount: string) =>
       payment(10 + n, {
         kind: "CONTRIBUTOR_CONSIDERATION",
@@ -406,39 +506,62 @@ describe("a garden's passport", () => {
       Disbursement: [
         payment(1, { amount: "500" }),
         payment(2, { kind: "GARDEN_BENEFICIARY", state: "DISPATCHED", amount: "40" }),
-        member(1, "CONFIRMED", "60"),
-        member(2, "QUEUED", "25"),
-        member(3, "FAILED", "15"),
-        member(4, "CANCELLED", "5"),
+        payment(3, { state: "QUEUED", amount: "9" }),
+        member(1, "CONFIRMED", "20"),
+        member(2, "CONFIRMED", "20"),
+        member(3, "CONFIRMED", "20"),
+        member(4, "QUEUED", "10"),
+        member(5, "QUEUED", "10"),
+        member(6, "QUEUED", "5"),
       ],
       CommitmentPayoutPlan: [
         // 100 declared: 10 stays with the garden, so 90 is declared for its members.
         plan(1, { gardenRetainedAmount: "10" }),
         plan(2, { finalized: false, latestEditReasonCID: "bafyreason", declaredAmount: "30" }),
-        // A plan that pays a beneficiary garden declares nothing for members.
-        plan(3, { beneficiaryAmount: "100" }),
       ],
     };
-    const settlement = value((await read(tables)).settlement);
+    const { reader, calls } = indexer(tables);
+    const settlement = value(
+      (await getPublicGardenPassport(CHAIN, GARDEN, { now: NOW, reader })).settlement
+    );
 
     expect(settlement.keptAwaitingPaymentPlan).toBe(1);
+    // Queued is not sent, and sent is not received.
     expect(settlement.support).toEqual({
-      payments: { confirmed: 1, awaiting: 1, failed: 0, cancelled: 0 },
-      lines: [{ token: GDOLLAR, confirmed: 500n, awaiting: 40n, failed: 0n, cancelled: 0n }],
+      payments: { confirmed: 1, sent: 1, queued: 1, failed: 0, cancelled: 0 },
+      lines: [
+        { token: GDOLLAR, confirmed: 500n, sent: 40n, queued: 9n, failed: 0n, cancelled: 0n },
+      ],
     });
-    // 120 declared for members, 60 paid: a declared or sent amount never counts as received.
+    // 120 declared for members, 60 paid: a declared, queued or sent amount is never received.
     expect(settlement.memberPayments).toEqual({
       withheld: false,
-      plans: 3,
-      plansFinalized: 2,
+      plans: 2,
+      plansFinalized: 1,
       plansRevised: 1,
       declared: [{ token: GDOLLAR, amount: 120n }],
-      payments: { confirmed: 1, awaiting: 1, failed: 1, cancelled: 1 },
-      lines: [{ token: GDOLLAR, confirmed: 60n, awaiting: 25n, failed: 15n, cancelled: 5n }],
+      payments: { confirmed: 3, sent: 0, queued: 3, failed: 0, cancelled: 0 },
+      lines: [{ token: GDOLLAR, confirmed: 60n, sent: 0n, queued: 25n, failed: 0n, cancelled: 0n }],
+    });
+    // Only plans that pay members are read as member plans.
+    expect(calls.find((call) => call.entity === "CommitmentPayoutPlan")?.document).toContain(
+      "payoutKind: { _eq: CONTRIBUTOR_CONSIDERATION }"
+    );
+
+    // One failed payment would publish one member's pay: the amounts wait, the counts stay.
+    const oneFailed = value(
+      (await read({ ...tables, Disbursement: [...tables.Disbursement, member(7, "FAILED", "15")] }))
+        .settlement
+    );
+    expect(oneFailed.memberPayments).toMatchObject({
+      withheld: false,
+      payments: { confirmed: 3, queued: 3, failed: 1 },
+      declared: [{ token: GDOLLAR, amount: 120n }],
+      lines: null,
     });
 
     // Two members paid, or a plan with nobody paid yet: figures that would point at a person wait.
-    for (const rows of [tables.Disbursement.slice(0, 4), tables.Disbursement.slice(0, 2)]) {
+    for (const rows of [tables.Disbursement.slice(0, 5), tables.Disbursement.slice(0, 3)]) {
       const few = value((await read({ ...tables, Disbursement: rows })).settlement);
       expect(few.memberPayments).toEqual({ withheld: true });
       expect(few.support.payments.confirmed).toBe(1);
@@ -487,7 +610,9 @@ describe("a garden's passport", () => {
     });
 
     expect(value(passport.promises)).toMatchObject({ made: 230, kept: 230 });
-    expect(calls.filter((call) => call.entity === "Commitment")).toHaveLength(3);
+    expect(
+      calls.filter((call) => call.entity === "Commitment" && call.variables.poolId)
+    ).toHaveLength(3);
     for (const entity of ["VoucherServiceSetup", "Disbursement", "CommitmentPayoutPlan"]) {
       expect(calls.find((call) => call.entity === entity)?.variables).toMatchObject({
         chainId: CHAIN,
@@ -496,17 +621,3 @@ describe("a garden's passport", () => {
     }
   });
 });
-
-function payment(n: number, fields: Row = {}): Row {
-  return {
-    id: `${CHAIN}-pay-${String(n).padStart(3, "0")}`,
-    kind: "FUNDING",
-    state: "CONFIRMED",
-    token: GDOLLAR,
-    amount: "100",
-    recipient: GARDEN,
-    commitmentId: null,
-    updatedAt: 9600 + n,
-    ...fields,
-  };
-}

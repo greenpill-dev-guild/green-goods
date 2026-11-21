@@ -3,13 +3,10 @@ import {
   publicRehearsalCycles,
 } from "../../config/public-record-visibility";
 import type { GraphQLReader } from "../data/graphql-client";
+import { readPassportRows } from "./data-public-passport-reads";
 import { integer, type RawRow } from "./data-core";
 import { selectPublicPromiseKeptRate } from "./disclosure";
 import type { PassportPromises, PassportUnitLine } from "./public-passport-types";
-
-const PAGE_SIZE = 100;
-/** A pool past this many promises needs a paged passport, not a longer wait. */
-const PROMISE_ROW_LIMIT = 2000;
 
 const PROMISE_FIELDS = /* GraphQL */ `
   id commitmentId poolId cycleId direction state acceptanceSeen countedLifecycleStates unitLabel
@@ -39,46 +36,6 @@ export interface PassportPromiseRow {
   updatedAt: number;
 }
 
-/**
- * Keyset pages over one indexed entity. A read that cannot finish inside its limit fails, because
- * a passport figure computed from part of a record would be published as the whole.
- */
-export async function readPassportRows(
-  reader: GraphQLReader,
-  entity: string,
-  fields: string,
-  where: string,
-  variables: Record<string, unknown>,
-  declarations: string,
-  limit = PROMISE_ROW_LIMIT
-): Promise<RawRow[]> {
-  const rows: RawRow[] = [];
-  const deadline = AbortSignal.timeout(30000);
-  let after = "";
-  while (true) {
-    deadline.throwIfAborted();
-    const result = await reader.query<Record<string, RawRow[]>>(
-      `query PublicPassport${entity}(${declarations}, $after: String!) {
-        ${entity}(where: { ${where}, id: { _gt: $after } }, order_by: { id: asc }, limit: ${PAGE_SIZE}) { ${fields} }
-      }`,
-      { ...variables, after },
-      `getPublicPassport${entity}`
-    );
-    if (result.error) throw result.error;
-    const page = result.data?.[entity];
-    if (!Array.isArray(page)) throw new Error(`Passport ${entity} records are unavailable`);
-    for (const row of page) {
-      if (typeof row.id !== "string" || row.id <= after) {
-        throw new Error(`Passport ${entity} records did not advance`);
-      }
-      after = row.id;
-      rows.push(row);
-    }
-    if (rows.length > limit) throw new Error(`Passport ${entity} history exceeds its read limit`);
-    if (page.length < PAGE_SIZE) return rows;
-  }
-}
-
 function mapPromiseRow(row: RawRow): PassportPromiseRow {
   const counted = Array.isArray(row.countedLifecycleStates) ? row.countedLifecycleStates : [];
   const provider = row.leadProvider ?? (row.direction === "OFFER" ? row.creator : null);
@@ -103,19 +60,32 @@ function mapPromiseRow(row: RawRow): PassportPromiseRow {
   };
 }
 
+/** Whether review registered this promise as a rehearsal, by its cycle or by its own id. */
+export function isRegisteredRehearsal(chainId: number, row: RawRow): boolean {
+  const poolId = integer(row.poolId);
+  if (
+    publicRehearsalCommitments(chainId, poolId).some(
+      (entry) => entry.commitmentId === integer(row.commitmentId)
+    )
+  ) {
+    return true;
+  }
+  return (
+    row.cycleId !== null &&
+    row.cycleId !== undefined &&
+    publicRehearsalCycles(chainId, poolId).some((cycle) => cycle.cycleId === integer(row.cycleId))
+  );
+}
+
 /**
  * Every promise in the garden's pool, with registered rehearsals set apart: their promises stay
- * out of every figure, and their ids let later reads leave out the money that followed them.
+ * out of every figure, and their ids let later reads leave out what followed them.
  */
 export async function readPassportPromiseRows(
   chainId: number,
   poolId: bigint,
   reader: GraphQLReader
 ): Promise<{ rows: PassportPromiseRow[]; rehearsalIds: Set<bigint> }> {
-  const rehearsals = publicRehearsalCycles(chainId, poolId);
-  const single = new Set<bigint>(
-    publicRehearsalCommitments(chainId, poolId).map((commitment) => commitment.commitmentId)
-  );
   const indexed = await readPassportRows(
     reader,
     "Commitment",
@@ -127,12 +97,7 @@ export async function readPassportPromiseRows(
   const rows: PassportPromiseRow[] = [];
   const rehearsalIds = new Set<bigint>();
   for (const row of indexed) {
-    const rehearsal =
-      single.has(integer(row.commitmentId)) ||
-      (row.cycleId !== null &&
-        row.cycleId !== undefined &&
-        rehearsals.some((cycle) => cycle.cycleId === integer(row.cycleId)));
-    if (rehearsal) rehearsalIds.add(integer(row.commitmentId));
+    if (isRegisteredRehearsal(chainId, row)) rehearsalIds.add(integer(row.commitmentId));
     else rows.push(mapPromiseRow(row));
   }
   return { rows, rehearsalIds };
@@ -164,9 +129,11 @@ export function summarizePassportPromises(
   const due = rows.filter(isDue);
   const kept = due.filter((row) => row.kept);
   const unresolved = due.filter((row) => !row.kept);
+  // Only people who stand behind a promise that is due count toward the floor. Someone with an
+  // offer nobody took up adds no cover to another person's lapsed promise.
   const providers = new Set<string>();
-  for (const row of rows) {
-    if ((row.takenUp || row.direction === "OFFER") && row.provider) providers.add(row.provider);
+  for (const row of due) {
+    if (row.provider) providers.add(row.provider);
   }
   // The garden page publishes a kept rate under this same floor.
   const detailed =
@@ -225,6 +192,9 @@ export function summarizePassportPromises(
             awaitingConfirmation: unresolved.filter((row) => row.state === "READY_FOR_CONFIRMATION")
               .length,
             notKept: unresolved.filter(isNotKept).length,
+            pastDue: unresolved.filter(
+              (row) => !isNotKept(row) && row.dueDate !== 0n && row.dueDate <= BigInt(now)
+            ).length,
             partlyDelivered: unresolved.filter((row) => {
               const delivered = deliveredUnits(row);
               return delivered > 0n && delivered < row.targetUnits;
