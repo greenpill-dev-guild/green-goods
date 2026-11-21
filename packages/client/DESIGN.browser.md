@@ -24,7 +24,7 @@ dialect: public-browser
 - **Browser `/`** renders the editorial homepage under `PublicShell`.
 - **Installed PWA entry** is `/home`; presentation-mode loaders redirect app-mode visits away from the public shell before the PWA runtime renders.
 - **`/landing`** is a legacy compatibility redirect that loads back to `/`.
-- Public route table: `/`, `/gardens`, `/gardens/:id`, `/impact`, `/fund`, `/vaults`, `/actions`, `/cookies`, `/glossary`. No new public route families beyond this list, with one recorded exception: the chat reporting ceremony pages under `/agent/reporting/*` (see below).
+- Public route table: `/`, `/gardens`, `/gardens/:id`, `/gardens/:id/passport`, `/impact`, `/fund`, `/vaults`, `/actions`, `/cookies`, `/glossary`. No new public route families beyond this list, with two recorded exceptions: the chat reporting ceremony pages under `/agent/reporting/*` (see below), and the garden passport at `/gardens/:id/passport` (Afo, 2026-11-21, DL-201; see below).
 - **Unknown URLs redirect to `/`.** Only a garden's page says "not found" (`/gardens/:id`); no other route renders a 404 (DL-083).
 - Garden identifiers in URLs accept both raw `id`/`address` and the deterministic slug from `publicGardenHelpers.deriveSlug`. Stale, missing, zero-match, or ambiguous slugs render the normal page with a localized non-blocking message, never a hard 404 on `/fund?garden=…`.
 
@@ -140,8 +140,24 @@ An ordinary editorial page, not a modal. It was briefly wired to a Radix dialog 
 - People (note authors, stewards) render through shared `AddressDisplay`, so an ENS name appears where one resolves.
 - **Every section always renders.** An absent thing says it is absent. Ordinals stay stable between gardens, and a garden with nothing published yet still reads as a record in progress. A garden with no certificates shows § 03 with its empty line, never a jump from § 02 to § 04.
 - **A failed read is not an empty one.** `usePublicGardenDetail` reports `partialData` / `unavailableSources`; a count whose source failed renders an em dash, never `0`, and its section says it could not load rather than claiming the garden is empty.
-- Closes with `Support this Garden` (links to `/fund?garden=<slug>`) and `View public evidence`, then `PublicInstallCta`, then `PublicFooter variant="soil"`.
+- Closes with `Support this Garden` (links to `/fund?garden=<slug>`), `Read the Passport` for a garden that publishes one (DL-201), and `View public evidence`, then `PublicInstallCta`, then `PublicFooter variant="soil"`.
 - No admin-only controls, role tools, or public-side conviction allocation.
+
+## `/gardens/:id/passport`
+
+A garden's passport for funders: what it promised, what support reached it, what it delivered and what is still to deliver (DL-201). Its own page, so a funder has one address to share. The garden page's closing actions and the garden's `/fund` row link to it with `Read the Passport`, and only for a garden that publishes one.
+
+- **Published by consent.** A passport exists only for a garden whose stewards agreed, recorded in a reviewed list in code (`isPublicPassportPublished`). Taking part in promises is not consent to public reporting. Any other garden's passport address renders the same page frame and one sentence, `This garden has not published a passport.`, reads nothing, and asks crawlers not to index it.
+- **Live records only.** Every figure comes from the indexed record. No simulated or rehearsal figure appears on the page; invented figures live in Storybook and tests. A source that is not read yet (the exchange pool's inventory, its holding limits, vouchers with holders) says so in words and shows no number.
+- `PublicEditorialHero variant="banner"` with the garden's banner, the title `Passport of {garden}` and a one-line lede. A quiet `← {garden}` link sits under the card, as `← All Gardens` does on the garden page.
+- **First view: one serif sentence, then a four-line ledger**: **Promised · Supported · Delivered · Still to deliver**. Each line is a row on the canvas under a hairline: its name, the window it covers and when its record last changed on the left; a serif figure, one row per exact unit label, and its supporting sentences on the right; stacked on a phone. `Where this comes from` under each line is a native disclosure holding the definition and the source, and it is the only place a chain is named.
+- **Wording follows § 02 of the garden page.** A promise is taken up, kept, still to deliver, or not kept. `Not kept` and `Partly delivered` are counts for the garden. Promises released by both sides stay out. Unit rows read `9 of 12` beside the garden's own label; units under different labels are never added.
+- **Numbered sections after the ledger: § 01 Vouchers → § 02 G$ payments → § 03 Reading this record.** § 01 keeps four facts on four lines: on offer, earned through work, bought, used for services, then what the exchange pool holds. A voucher going back to its issuer is not delivery; only the holder's approval is. § 02 sets what payment plans declare beside what was confirmed, awaited, failed or canceled.
+- **Money appears here and only in G$** (Afo, 2026-11-21). The `/impact` band still carries no money figure. Amounts are never converted to USD, never added across tokens, and a declared amount is labeled `Declared, not yet paid`.
+- **A small record is not split.** Below the kept-rate floor (five promises due, three people) the page says `not yet kept` and does not say how many lapsed. Figures about what individual members earned, booked or were paid wait for three distinct people and say they are held back. No person, account or address appears on the page.
+- **A failed read is not an empty one.** A line whose source failed says so with Try Again; the whole passport failing renders `PublicReadUnavailable`. Nothing-yet lines are a quiet italic sentence, never a zero dressed as a figure.
+- Closes with `Support This Garden` (a listed garden only) and `View the Garden`, then `PublicFooter variant="soil"`. No install call to action: the reader is a funder.
+- Not a dashboard: no stat tiles, charts, rankings or percentages.
 
 ## `/impact`
 
