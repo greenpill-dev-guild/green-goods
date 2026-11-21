@@ -195,6 +195,31 @@ jobs:
           KNIP_BASELINE_BASE_REF: ${{ github.event_name == 'pull_request' && (github.base_ref == 'main' && startsWith(github.head_ref, 'release/') && 'origin/develop' || format('origin/{0}', github.base_ref)) || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before || '') }}
         run: bun run check --only dead-code
 
+  regrowth:
+    name: Regrowth
+    needs: changes
+    # Judged on what one change adds, so never on a push to main, whose base is the last release.
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup JavaScript toolchain and dependencies
+        uses: ./.github/actions/setup-js
+
+      - name: Test the regrowth check
+        run: node --test scripts/quality/check-regrowth.test.mjs
+
+      # What the purge removed may not grow back: see scripts/quality/check-regrowth.mjs.
+      - name: Hold purged comments and report markdown off added lines
+        env:
+          REGROWTH_BASE_REF: ${{ github.event_name == 'pull_request' && (github.base_ref == 'main' && 'origin/develop' || format('origin/{0}', github.base_ref)) || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before || '') }}
+        run: bun run check --only regrowth
+
   audit:
     name: Supply-chain guardrails
     needs: changes
