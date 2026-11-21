@@ -324,7 +324,13 @@ export default function ReviewView() {
                   // A day's list is for reading and opening: batch review and older pages
                   // belong to the queue, which holds the works they act on.
                   reviewBatch={review.workDay ? undefined : review.reviewBatch}
-                  olderWork={review.workDay ? undefined : review.olderWork}
+                  // A day is read on its own, and a band whose oldest work is in needs no
+                  // older page, so neither offers one.
+                  olderWork={
+                    review.workDay || (review.waitingBand && !review.needsOlderWork)
+                      ? undefined
+                      : review.olderWork
+                  }
                   olderHypercerts={review.olderHypercerts}
                 />
               </div>
