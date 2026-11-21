@@ -53,11 +53,12 @@ type FundingAct =
 /**
  * What a proposal will change once it runs, against the read it was sent from: a
  * new funding transfer numbered above every transfer that read listed, or one
- * transfer leaving the state it stood in.
+ * transfer leaving the state it stood in. A resend leaves its transfer dispatched,
+ * so only the wallet, or a later state such as confirmed, can show that it ran.
  */
 type ProposedEffect =
   | { kind: "new-transfer"; garden: Address; amount: bigint; after: bigint }
-  | { kind: "transfer-moves"; disbursementId: bigint; from: string | null };
+  | { kind: "transfer-moves"; disbursementId: bigint; from: string | null; resend: boolean };
 
 /**
  * The state one transfer stands in; null when the read doesn't list it. Its Celo
@@ -82,14 +83,24 @@ function proposedEffect(act: FundingAct, read: FundingRead): ProposedEffect {
     kind: "transfer-moves",
     disbursementId: act.disbursementId,
     from: transferState(read, act.disbursementId),
+    resend: act.action === "retryCommand",
   };
 }
+
+/** How a proposal ended once it stopped holding sends: it reverted on chain, or it ran. */
+type ProposalSettlement = "reverted" | "ran";
 
 /** A proposal a Safe took, by the identifier its wallet returned, and what it will change. */
 interface Proposal {
   /** What the wallet is asked about; a passkey's operation past its receipt limit names none. */
   hash?: HexString;
   effect: ProposedEffect;
+  /**
+   * Set the first time it settles and kept until another act replaces it, so a
+   * transfer that later returns to the state it was proposed from, such as a
+   * requeued transfer failing again, doesn't hold every send a second time.
+   */
+  settled?: ProposalSettlement;
 }
 
 /** Whether the wallet has run a proposal, as `reconcileBroadcast` reads it. */
@@ -117,19 +128,30 @@ function effectShown(effect: ProposedEffect, read: FundingRead): boolean {
 }
 
 /**
- * Whether a proposal is done holding sends, so the same act can't be proposed twice:
- * the wallet says it reverted or ran, or its own change shows. A dispatch, resend,
- * requeue or cancel settles when the wallet says it ran or its transfer leaves the
- * state it stood in, after which the act is no longer offered. A new transfer like
- * the one queued could be another steward's, so it needs both.
+ * How a proposal has settled, so the same act can't be proposed twice; null while it
+ * still holds sends. It settles when the wallet says it reverted, or when its own
+ * change shows. A dispatch, requeue or cancel waits for the read to show its transfer
+ * in a new state even after the wallet says it ran: until then the read still offers
+ * the act, and a repeat would revert on chain. A resend changes no state, so the
+ * wallet saying it ran is enough. A new transfer like the one queued could be another
+ * steward's, so it needs both.
  */
-function proposalSettled(proposal: Proposal, outcome: ProposalOutcome, read: FundingRead) {
-  if (outcome === "reverted") return true;
+function proposalSettlement(
+  proposal: Proposal,
+  outcome: ProposalOutcome,
+  read: FundingRead
+): ProposalSettlement | null {
+  if (proposal.settled) return proposal.settled;
+  if (outcome === "reverted") return "reverted";
   const { effect } = proposal;
-  // With nothing to ask the wallet about, only the read can show it ran.
-  if (!proposal.hash) return effectShown(effect, read);
-  if (effect.kind === "transfer-moves") return outcome === "confirmed" || effectShown(effect, read);
-  return outcome === "confirmed" && effectShown(effect, read);
+  const shown = effectShown(effect, read);
+  // With nothing to ask the wallet about, or a repeat the read would still offer, only the
+  // read can settle it.
+  if (!proposal.hash || (effect.kind === "transfer-moves" && !effect.resend)) {
+    return shown ? "ran" : null;
+  }
+  if (effect.kind === "transfer-moves") return outcome === "confirmed" || shown ? "ran" : null;
+  return outcome === "confirmed" && shown ? "ran" : null;
 }
 
 function fundingView(query: ReturnType<typeof usePoolFunding>): PoolFundingControllerView {
@@ -177,7 +199,7 @@ export function useProtocolFundingOperationsController(input: {
   // can't be proposed twice. This lasts as long as the panel: reloading is how a
   // proposal the Safe never runs is sent again.
   const [proposed, setProposed] = useState<Proposal | null>(null);
-  const asksWallet = Boolean(proposed?.hash && sender?.reconcileBroadcast);
+  const asksWallet = Boolean(proposed?.hash && !proposed.settled && sender?.reconcileBroadcast);
   const outcomeQuery = useQuery({
     queryKey: commitmentPoolingKeys.settlementProposal(chainId, proposed?.hash ?? ""),
     queryFn: async (): Promise<ProposalOutcome> => {
@@ -198,8 +220,11 @@ export function useProtocolFundingOperationsController(input: {
     retry: false,
   });
   const outcome: ProposalOutcome = outcomeQuery.data ?? "unresolved";
-  const proposalPending =
-    proposed !== null && !proposalSettled(proposed, outcome, sourceQuery.snapshot);
+  const settlement = proposed ? proposalSettlement(proposed, outcome, sourceQuery.snapshot) : null;
+  // Kept the first time it settles; React renders again before committing this render.
+  if (proposed && settlement && !proposed.settled)
+    setProposed({ ...proposed, settled: settlement });
+  const proposalPending = proposed !== null && settlement === null;
   // From the first tap: a send reads the Safe again before the wallet is asked.
   const isActing = mutation.isPending || lastAct?.phase === "signing";
   const canAct = Boolean(viewer) && isOnline && !isActing && !capabilities.isLoading;
@@ -349,8 +374,8 @@ export function useProtocolFundingOperationsController(input: {
     rows,
     // Once a proposal settles, it either reverted on chain or ran, and the indexed rows say how.
     lastAct:
-      (lastAct?.phase === "proposed" || lastAct?.phase === "still-confirming") && !proposalPending
-        ? outcome === "reverted"
+      (lastAct?.phase === "proposed" || lastAct?.phase === "still-confirming") && settlement
+        ? settlement === "reverted"
           ? {
               kind: lastAct.kind,
               phase: "failed",

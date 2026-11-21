@@ -247,6 +247,10 @@ const SAFE_WIDE_UNREAD = [
  * down its duplicate-message branch, which skips the transfer preflight and debits
  * nothing, and sends again only an acknowledgment it still owes. A paused executor
  * is all that refuses that message, so nothing else holds it.
+ *
+ * A dispatched transfer's command goes to the executor it was recorded for. During a
+ * route change's grace window that can be the previous executor, so a resend is held
+ * on that executor's pause flag, read for its command, and not on the current one's.
  */
 export function selectQueuedTransferBlock(
   funding: Omit<TransferFundingRead, "snapshot"> & {
@@ -256,7 +260,7 @@ export function selectQueuedTransferBlock(
       | "limits"
       | "disbursements"
       | "executions"
-      | "executorPaused"
+      | "commandExecutors"
       | "feeQuotes"
       | "feePolicy"
       | "settlementUnavailableReasons"
@@ -270,19 +274,31 @@ export function selectQueuedTransferBlock(
   const row = snapshot.disbursements.find(
     (entry) => entry.disbursementId === transfer.disbursementId
   );
+  const commandPaused = row?.executionKey
+    ? recordedExecutorPaused(snapshot, row.executionKey)
+    : undefined;
   if (row && celoRecorded(snapshot, row)) {
-    if (snapshot.executorPaused === null) return "executor_unreadable";
-    return snapshot.executorPaused ? "executor_paused" : null;
+    if (typeof commandPaused !== "boolean") return "executor_unreadable";
+    return commandPaused ? "executor_paused" : null;
   }
+  const reasons: readonly SettlementUnavailableReason[] =
+    commandPaused === undefined
+      ? snapshot.settlementUnavailableReasons
+      : [
+          ...snapshot.settlementUnavailableReasons.filter(
+            (reason) => reason !== "executor_paused" && reason !== "executor_unreadable"
+          ),
+          ...(commandPaused === null
+            ? (["executor_unreadable"] as const)
+            : commandPaused
+              ? (["executor_paused"] as const)
+              : []),
+        ];
   // A refusal the current read shows outranks anything it couldn't read.
-  const refusal = SAFE_WIDE_REFUSALS.find((reason) =>
-    snapshot.settlementUnavailableReasons.includes(reason)
-  );
+  const refusal = SAFE_WIDE_REFUSALS.find((reason) => reasons.includes(reason));
   if (refusal) return refusal;
   if (!selectTransferLimitsRead(funding)) return "limits_unread";
-  const unread = SAFE_WIDE_UNREAD.find((reason) =>
-    snapshot.settlementUnavailableReasons.includes(reason)
-  );
+  const unread = SAFE_WIDE_UNREAD.find((reason) => reasons.includes(reason));
   if (unread) return unread;
   const quote = row && snapshot.feeQuotes.find((entry) => entry.id === row.id);
   if (!quote || quote.fee === null || quote.senderPays === null) return "limits_unread";
@@ -293,6 +309,21 @@ export function selectQueuedTransferBlock(
     return "fee_policy_breach";
   }
   return selectExceededTransferLimit(funding, transfer.amount, quote.fee);
+}
+
+/**
+ * Whether the executor a recorded command goes to is paused; null when the read
+ * couldn't show that executor or its pause flag, which holds the resend.
+ */
+function recordedExecutorPaused(
+  snapshot: Pick<PoolFundingSnapshot, "commandExecutors">,
+  executionKey: `0x${string}`
+): boolean | null {
+  const key = executionKey.toLowerCase();
+  return (
+    snapshot.commandExecutors.find((entry) => entry.executionKey.toLowerCase() === key)?.paused ??
+    null
+  );
 }
 
 /** Whether Celo has recorded an execution of the transfer's current command. */

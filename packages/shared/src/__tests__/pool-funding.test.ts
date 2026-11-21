@@ -50,6 +50,7 @@ function input(overrides: Partial<PoolFundingCalculationInput> = {}): PoolFundin
     fundings: [],
     disbursements: [],
     executions: [],
+    commandExecutors: [],
     readiness: {
       accountConfigured: true,
       accountActive: true,
@@ -651,6 +652,8 @@ describe("selectExceededTransferLimit", () => {
     feePolicy = { maxFeeBps: 10_000, maxFeeAmount: 2_000n },
     recordedOnCelo = false,
     executorPaused = false,
+    dispatched = recordedOnCelo,
+    commandExecutor = { paused: executorPaused },
   }: {
     quote?: { fee: bigint | null; senderPays: boolean | null } | null;
     limits?: Parameters<typeof fundingRead>[0];
@@ -659,6 +662,10 @@ describe("selectExceededTransferLimit", () => {
     /** Celo has stored a failed execution of the transfer's current command. */
     recordedOnCelo?: boolean;
     executorPaused?: boolean | null;
+    /** The transfer's command went out, so a send of it is a resend. */
+    dispatched?: boolean;
+    /** The executor that command was recorded for; null when the read couldn't show it. */
+    commandExecutor?: { paused: boolean | null } | null;
   }) {
     const read = fundingRead({
       cap: 2_000n,
@@ -673,12 +680,16 @@ describe("selectExceededTransferLimit", () => {
       snapshot: {
         ...read.snapshot!,
         disbursements: [
-          { id: "42161-8", disbursementId: 8n, executionKey: recordedOnCelo ? executionKey : null },
+          { id: "42161-8", disbursementId: 8n, executionKey: dispatched ? executionKey : null },
         ] as PoolFundingDisbursement[],
         executions: recordedOnCelo
           ? [{ executionKey, status: "FAILED", createdAt: 1, acknowledgmentSent: false }]
           : [],
         executorPaused,
+        commandExecutors:
+          dispatched && commandExecutor
+            ? [{ executionKey, executor: null, paused: commandExecutor.paused }]
+            : [],
         feeQuotes: quote ? [{ id: "42161-8", amount: 900n, recipient: null, ...quote }] : [],
         feePolicy,
         settlementUnavailableReasons: [...reasons],
@@ -834,6 +845,40 @@ describe("selectExceededTransferLimit", () => {
         amount: 900n,
       })
     ).toBe(expected);
+  });
+
+  // During a route change's grace window a resend goes to the executor its command was
+  // recorded for, which may not be the current one the Safe's readiness describes.
+  it.each([
+    [
+      "a paused previous executor, while the current one runs",
+      { commandExecutor: { paused: true } },
+      "executor_paused",
+    ],
+    [
+      "nothing for a paused current executor the command doesn't go to",
+      { reasons: ["executor_paused"], executorPaused: true, commandExecutor: { paused: false } },
+      null,
+    ],
+    [
+      "a recorded executor nobody could read",
+      { commandExecutor: { paused: null } },
+      "executor_unreadable",
+    ],
+    [
+      "a command whose executor the read couldn't show",
+      { commandExecutor: null },
+      "executor_unreadable",
+    ],
+  ] as const)("selectQueuedTransferBlock, for a resend, holds %s", (_name, read, expected) => {
+    for (const recordedOnCelo of [false, true]) {
+      expect(
+        selectQueuedTransferBlock(queuedRead({ ...read, dispatched: true, recordedOnCelo }), {
+          disbursementId: 8n,
+          amount: 900n,
+        })
+      ).toBe(expected);
+    }
   });
 
   it("selectQueuedTransferBlock: holds a transfer the read doesn't list", () => {
