@@ -39,6 +39,7 @@ CONTRACTS=(
   "TestimonyResolver:src/resolvers/Testimony.sol"
   "YieldResolver:src/resolvers/Yield.sol"
   "Deployment:src/registries/Deployment.sol"
+  "GreenGoodsENSRegistrar:src/registries/ENSRegistrar.sol"
 )
 
 # Colors for output
