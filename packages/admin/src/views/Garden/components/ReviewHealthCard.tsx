@@ -54,21 +54,41 @@ export function ReviewHealthCard({
   const { formatMessage } = intl;
   const weekLabel = (week: ReviewHealthWeek) =>
     intl.formatDate(week.start, { month: "short", day: "numeric" });
+  // A phone's column is about 35px wide, so the chart's own labels are numeric.
+  const shortWeekLabel = (week: ReviewHealthWeek) =>
+    intl.formatDate(week.start, { month: "numeric", day: "numeric" });
+  // The week under way says so, so its low count does not read as review slowing down.
+  const namedWeek = (week: ReviewHealthWeek) =>
+    week.isCurrent
+      ? formatMessage({ id: "hub.garden.reviewHealth.soFar" }, { week: weekLabel(week) })
+      : weekLabel(week);
+  const countArgs = (week: ReviewHealthWeek) => ({
+    week: namedWeek(week),
+    submitted: week.submitted.length,
+    submittedPlus: week.submittedComplete ? "" : "+",
+    reviewed: week.reviewed.length,
+    reviewedPlus: week.reviewedComplete ? "" : "+",
+  });
   const countLabel = (week: ReviewHealthWeek, list: "submitted" | "reviewed") =>
+    list === "submitted"
+      ? formatMessage(
+          {
+            id: "hub.garden.reviewHealth.submittedCount",
+          },
+          countArgs(week)
+        )
+      : formatMessage(
+          {
+            id: "hub.garden.reviewHealth.reviewedCount",
+          },
+          countArgs(week)
+        );
+  const columnLabel = (week: ReviewHealthWeek) =>
     formatMessage(
       {
-        id: `hub.garden.reviewHealth.${list}Count`,
-        defaultMessage:
-          list === "submitted"
-            ? "Week of {week}: {count} submitted"
-            : "Week of {week}: {count} reviewed",
+        id: "hub.garden.reviewHealth.weekColumn",
       },
-      {
-        week: weekLabel(week),
-        count: `${(list === "submitted" ? week.submitted : week.reviewed).length}${
-          (list === "submitted" ? week.submittedComplete : week.reviewedComplete) ? "" : "+"
-        }`,
-      }
+      countArgs(week)
     );
   const oldestDays =
     waiting.oldestPendingAt === null
@@ -87,14 +107,11 @@ export function ReviewHealthCard({
           <AdminCardTitle>
             {formatMessage({
               id: "hub.garden.reviewHealth.title",
-              defaultMessage: "Review Health",
             })}
           </AdminCardTitle>
           <p className="mt-1 type-body text-text-sub">
             {formatMessage({
               id: "hub.garden.reviewHealth.description",
-              defaultMessage:
-                "What waits for review now, and what came in against what was reviewed each week.",
             })}
           </p>
         </div>
@@ -105,7 +122,6 @@ export function ReviewHealthCard({
             <StatTile
               label={formatMessage({
                 id: "hub.garden.reviewHealth.waitingNow",
-                defaultMessage: "Waiting now",
               })}
               value={`${intl.formatNumber(waiting.pendingCount)}${waiting.complete ? "" : "+"}`}
             />
@@ -117,22 +133,20 @@ export function ReviewHealthCard({
             <StatTile
               label={formatMessage({
                 id: "hub.garden.reviewHealth.oldestWaiting",
-                defaultMessage: "Oldest waiting",
               })}
               value={
                 oldestDays === null
                   ? formatMessage({
                       id: "hub.garden.reviewHealth.nothingWaiting",
-                      defaultMessage: "Nothing waiting",
                     })
                   : oldestDays < 1
                     ? formatMessage({ id: "app.garden.detail.metric.underADay" })
                     : formatMessage(
                         {
                           id: "hub.garden.reviewHealth.days",
-                          defaultMessage: "{count, plural, one {# day} other {# days}}",
                         },
-                        { count: oldestDays }
+                        // Past the queue read's limit the oldest known work is a minimum.
+                        { count: oldestDays, plus: waiting.complete ? "" : "+" }
                       )
               }
             />
@@ -144,7 +158,6 @@ export function ReviewHealthCard({
             role="status"
             aria-label={formatMessage({
               id: "hub.garden.reviewHealth.loading",
-              defaultMessage: "Reading the last eight weeks",
             })}
           >
             <SkeletonText lines={5} />
@@ -154,7 +167,6 @@ export function ReviewHealthCard({
             variant="error"
             title={formatMessage({
               id: "hub.garden.reviewHealth.error",
-              defaultMessage: "The weeks could not be read",
             })}
           >
             <Button
@@ -164,14 +176,13 @@ export function ReviewHealthCard({
               className="mt-2"
               onClick={() => void health.retry()}
             >
-              {formatMessage({ id: "app.common.tryAgain", defaultMessage: "Try Again" })}
+              {formatMessage({ id: "app.common.tryAgain" })}
             </Button>
           </Alert>
         ) : health.state === "offline" ? (
           <Alert variant="info" title={formatMessage({ id: "hub.garden.calendar.offline.title" })}>
             {formatMessage({
               id: "hub.garden.reviewHealth.offline",
-              defaultMessage: "The weeks are read when you are back online.",
             })}
           </Alert>
         ) : (
@@ -181,7 +192,6 @@ export function ReviewHealthCard({
                 <span className="type-label text-text-strong">
                   {formatMessage({
                     id: "hub.garden.reviewHealth.chartTitle",
-                    defaultMessage: "Last 8 weeks",
                   })}
                 </span>
                 <span className="flex flex-wrap items-center gap-3 type-meta text-text-sub">
@@ -192,7 +202,6 @@ export function ReviewHealthCard({
                     />
                     {formatMessage({
                       id: "hub.garden.reviewHealth.submitted",
-                      defaultMessage: "Submitted",
                     })}
                   </span>
                   <span className="inline-flex items-center gap-1">
@@ -202,46 +211,58 @@ export function ReviewHealthCard({
                     />
                     {formatMessage({
                       id: "hub.garden.reviewHealth.reviewed",
-                      defaultMessage: "Reviewed",
                     })}
                   </span>
                 </span>
               </figcaption>
-              <div className="grid h-36 grid-cols-8 items-end gap-1">
-                {health.weeks.map((week) => (
-                  <div
-                    key={week.start.getTime()}
-                    className="flex h-full items-end justify-center gap-0.5"
-                  >
-                    {(["submitted", "reviewed"] as const).map((list) => {
-                      const count = (list === "submitted" ? week.submitted : week.reviewed).length;
-                      const complete =
-                        list === "submitted" ? week.submittedComplete : week.reviewedComplete;
-                      return (
-                        <Link
-                          key={list}
-                          to={health.weekHref(week, list)}
-                          aria-label={countLabel(week, list)}
-                          title={countLabel(week, list)}
-                          className={cn(
-                            "w-1/2 rounded-t-(--admin-radius-xs) focus-visible:outline-2 focus-visible:outline-(--tone-focus-ring)",
-                            list === "submitted" ? "bg-text-soft" : "bg-information-base",
-                            !complete && "border border-dashed border-stroke-strong"
-                          )}
-                          style={{ height: `${Math.max(count > 0 ? 4 : 1, (count / max) * 100)}%` }}
-                        />
-                      );
-                    })}
-                  </div>
-                ))}
+              {/* One tall link per week, the week's two bars drawn inside it, so a phone's
+                  narrow column is still one easy target. The dialog switches between lists. */}
+              <div className="grid h-36 grid-cols-8 gap-1">
+                {health.weeks.map((week) => {
+                  const partial = !week.submittedComplete || !week.reviewedComplete;
+                  return (
+                    <Link
+                      key={week.start.getTime()}
+                      to={health.weekHref(week, "submitted")}
+                      aria-label={columnLabel(week)}
+                      title={columnLabel(week)}
+                      className={cn(
+                        "flex h-full items-end justify-center gap-0.5 rounded-(--admin-radius-xs) hover:bg-bg-weak focus-visible:outline-2 focus-visible:outline-(--tone-focus-ring)",
+                        partial && "border border-dashed border-stroke-strong",
+                        week.isCurrent && "bg-bg-weak"
+                      )}
+                    >
+                      {(["submitted", "reviewed"] as const).map((list) => {
+                        const count = (list === "submitted" ? week.submitted : week.reviewed)
+                          .length;
+                        return (
+                          <span
+                            key={list}
+                            aria-hidden
+                            className={cn(
+                              "w-2/5 rounded-t-(--admin-radius-xs)",
+                              list === "submitted" ? "bg-text-soft" : "bg-information-base"
+                            )}
+                            style={{
+                              height: `${count > 0 ? Math.max(4, (count / max) * 100) : 0}%`,
+                            }}
+                          />
+                        );
+                      })}
+                    </Link>
+                  );
+                })}
               </div>
               <div className="grid grid-cols-8 gap-1" aria-hidden>
                 {health.weeks.map((week) => (
                   <span
                     key={week.start.getTime()}
-                    className="truncate text-center type-meta-sm tabular-nums text-text-sub"
+                    className={cn(
+                      "truncate text-center type-meta-sm tabular-nums",
+                      week.isCurrent ? "font-medium text-text-strong" : "text-text-sub"
+                    )}
                   >
-                    {weekLabel(week)}
+                    {shortWeekLabel(week)}
                   </span>
                 ))}
               </div>
@@ -250,7 +271,6 @@ export function ReviewHealthCard({
               <summary className="cursor-pointer type-label text-text-strong">
                 {formatMessage({
                   id: "hub.garden.reviewHealth.showTable",
-                  defaultMessage: "Show as Table",
                 })}
               </summary>
               <div className="mt-2 overflow-x-auto">
@@ -263,7 +283,6 @@ export function ReviewHealthCard({
                       <th scope="col" className="py-1 pr-3 font-medium">
                         {formatMessage({
                           id: "hub.garden.reviewHealth.week",
-                          defaultMessage: "Week of",
                         })}
                       </th>
                       <th scope="col" className="py-1 pr-3 text-right font-medium">
@@ -281,7 +300,7 @@ export function ReviewHealthCard({
                         className="border-b border-stroke-soft last:border-0"
                       >
                         <th scope="row" className="py-1 pr-3 text-left font-normal text-text-sub">
-                          {weekLabel(week)}
+                          {namedWeek(week)}
                         </th>
                         {(["submitted", "reviewed"] as const).map((list) => (
                           <td key={list} className="py-1 pr-3 text-right tabular-nums last:pr-0">
@@ -312,14 +331,10 @@ export function ReviewHealthCard({
             <p className="type-meta text-text-soft">
               {formatMessage({
                 id: "hub.garden.reviewHealth.basis",
-                defaultMessage:
-                  "Weeks start on Monday, by your device's clock. Work counts in the week it was sent; a reviewed work counts once, in the week of its first decision.",
               })}
               {anyPartial
                 ? ` ${formatMessage({
                     id: "hub.garden.reviewHealth.partial",
-                    defaultMessage:
-                      "A count marked + could not be read in full, so it is a minimum.",
                   })}`
                 : null}
             </p>

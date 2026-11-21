@@ -17,6 +17,7 @@ import { RiCalendarLine, RiImageLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { AdminDialog } from "@/components/AdminDialog";
+import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { reviewWorkStatus } from "@/views/Review/components/ReviewWorkCard";
 
 function WeekWorkRow({ work, onOpen }: { work: Work; onOpen: () => void }) {
@@ -94,6 +95,35 @@ export function ReviewWeekDialog({
       size="md"
       tone="garden"
     >
+      {openWeek ? (
+        <div
+          className="flex flex-wrap gap-1.5"
+          role="group"
+          aria-label={intl.formatMessage({
+            id: "hub.garden.reviewHealth.dialog.lists",
+            defaultMessage: "Which work",
+          })}
+        >
+          {(["submitted", "reviewed"] as const).map((list) => (
+            <AdminFilterChip
+              key={list}
+              label={intl.formatMessage(
+                { id: "hub.garden.reviewHealth.listCount", defaultMessage: "{list} ({count})" },
+                {
+                  list: intl.formatMessage({ id: `hub.garden.reviewHealth.${list}` }),
+                  count: `${(list === "submitted" ? openWeek.submitted : openWeek.reviewed).length}${
+                    (list === "submitted" ? openWeek.submittedComplete : openWeek.reviewedComplete)
+                      ? ""
+                      : "+"
+                  }`,
+                }
+              )}
+              selected={openList === list}
+              onToggle={() => navigate(health.weekHref(openWeek, list), { replace: true })}
+            />
+          ))}
+        </div>
+      ) : null}
       {!complete ? (
         <Alert
           variant="warning"

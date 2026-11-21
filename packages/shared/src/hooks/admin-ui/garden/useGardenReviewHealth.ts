@@ -158,7 +158,11 @@ export function useGardenReviewHealth(gardenId: Address | undefined, active: boo
   const weekParam = active ? searchParams.get("week") : null;
   const openList: ReviewHealthList =
     searchParams.get("list") === "reviewed" ? "reviewed" : "submitted";
-  const openWeek = weeks.find((week) => toCalendarDateKey(week.start) === weekParam) ?? null;
+  // Not before the weeks are read: an unread week would read as a quiet one.
+  const openWeek =
+    state === "ready"
+      ? (weeks.find((week) => toCalendarDateKey(week.start) === weekParam) ?? null)
+      : null;
   const rangeParam = searchParams.get("range") ?? undefined;
   const weekHref = (week: ReviewHealthWeek, list: ReviewHealthList) =>
     adminRoutes.gardenHealth({

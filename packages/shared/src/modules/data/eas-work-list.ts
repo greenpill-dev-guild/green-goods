@@ -94,6 +94,8 @@ export interface GardenActivityPage {
   decisions: EASWorkApproval[];
   /** Either list ran past the limit, so earlier entries of the window are missing. */
   truncated: boolean;
+  /** The decisions list alone ran past the limit, so the window's earliest decisions are missing. */
+  decisionsTruncated: boolean;
 }
 
 /**
@@ -141,7 +143,9 @@ export const getGardenActivitySince = async (
     }
   `);
   const easConfig = getEASConfig(chainId);
-  if (isZeroBytes32(easConfig.WORK.uid)) return { works: [], decisions: [], truncated: false };
+  if (isZeroBytes32(easConfig.WORK.uid)) {
+    return { works: [], decisions: [], truncated: false, decisionsTruncated: false };
+  }
   const inWindow = {
     recipient: { equals: easStoredAddress(gardenAddress) },
     revoked: { equals: false },
@@ -190,6 +194,7 @@ export const getGardenActivitySince = async (
         )
     ),
     truncated: data.works.length > take || data.decisions.length > take,
+    decisionsTruncated: data.decisions.length > take,
   };
 };
 

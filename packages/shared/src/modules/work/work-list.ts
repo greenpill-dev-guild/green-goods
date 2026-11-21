@@ -294,15 +294,18 @@ export async function readGardenReviewFlow({
   const exclusions = visibility ?? (await readWorkVisibility(chainId));
   const range = await readGardenWorkRange({ garden, chainId, from, to, visibility: exclusions });
   return inTurn(async () => {
-    const { decisions, truncated } = await getGardenActivitySince(garden, {
+    // A second before the period, since the read lists decisions after its moment, not at it.
+    const { decisions, decisionsTruncated } = await getGardenActivitySince(garden, {
       ...exclusions,
       chainId,
-      since: from,
+      since: from - 1,
     });
     const decidedIds = [...new Set(decisions.map((decision) => decision.workUID.toLowerCase()))];
-    const reviewedReadFrom = truncated
-      ? Math.min(...decisions.map((decision) => decision.createdAt))
-      : null;
+    // Only a cut decisions list hides decisions; a long submissions list beside it does not.
+    const reviewedReadFrom =
+      decisionsTruncated && decisions.length > 0
+        ? Math.min(...decisions.map((decision) => decision.createdAt))
+        : null;
     if (decidedIds.length === 0) {
       return {
         submitted: range.rows,

@@ -414,6 +414,7 @@ describe("readGardenReviewFlow", () => {
       works: [],
       decisions: [at("d-1", "w-1", 190), at("d-2", "w-2", 140)],
       truncated: true,
+      decisionsTruncated: true,
     });
     seams.approvals.mockResolvedValue({ approvals: [], failedWorkUIDs: ["w-1", "w-2"] });
     seams.byUID.mockResolvedValue([]);
@@ -422,5 +423,15 @@ describe("readGardenReviewFlow", () => {
     expect(flow.reviewedReadFrom).toBe(140);
     expect(flow.reviewedComplete).toBe(false);
     expect(flow.reviewed).toEqual([]);
+
+    // A long submissions list beside a whole decisions list hides no decision.
+    seams.activity.mockResolvedValue({
+      works: [],
+      decisions: [],
+      truncated: true,
+      decisionsTruncated: false,
+    });
+    const whole = await readGardenReviewFlow({ garden, chainId: 42161, from: 100, to: 200 });
+    expect(whole.reviewedReadFrom).toBeNull();
   });
 });
