@@ -8,8 +8,9 @@ import type { TurnContext } from "./context";
 
 /**
  * The part of a conversation's history a model may read, taken from the inbox and the outbox:
- * the question the report has open and the few turns before this one. Both stores are cleared by
- * retention, STOP and DELETE, so nothing here outlives what they keep.
+ * the question the report has open and the few turns before this one. What retention, STOP and
+ * DELETE clear is gone from here too, and whatever they leave is behind the consent in force,
+ * where the context begins.
  */
 /**
  * The assistant's replies a model may read as context: the questions the report in hand asked.
@@ -79,7 +80,8 @@ function contextStart(core: ReportingCore, ctx: TurnContext): number {
  * The questions a turn asked of a report and the person was sent, read from the replies it
  * committed: one a newer question replaced before it went out was never seen. The question still
  * open is left out: the snapshot carries it on its own. A reply's key opens with the event that
- * caused it, so the lookup is a range over the key's own index.
+ * caused it, so the lookup is a range over the key's own index; the `+` keeps the planner from
+ * walking every sent reply by state instead.
  */
 function questionsAskedBy(
   core: ReportingCore,
@@ -91,7 +93,7 @@ function questionsAskedBy(
       `SELECT o.id, o.reply_kind, o.payload_ciphertext FROM delivery_outbox o
        JOIN conversation_prompts p ON p.id = o.prompt_id
        WHERE o.dedupe_key >= $from AND o.dedupe_key < $to AND p.subject_kind = 'draft'
-         AND o.state IN ('accepted','sent','delivered','read')
+         AND +o.state IN ('accepted','sent','delivered','read')
          AND ($open IS NULL OR o.prompt_id <> $open) ORDER BY o.dispatch_seq`
     )
     // ";" is the character after ":", so the range holds exactly the keys that open "<event>:".
@@ -112,7 +114,8 @@ function questionsAskedBy(
 /**
  * The turns before this one, oldest first, at most `maxTurns`. A person's turn is what they typed:
  * commands, codes and button taps are left out, since the state already holds what they did, and
- * so is anything said while a decision on someone's work was open in the chat.
+ * so is anything said while a decision on someone's work was open in the chat, or while one of
+ * its questions was, the list of work to review among them.
  */
 export function earlierTurns(core: ReportingCore, ctx: TurnContext): DialogueTurn[] {
   const events = core.db
@@ -125,6 +128,10 @@ export function earlierTurns(core: ReportingCore, ctx: TurnContext): DialogueTur
            WHERE r.conversation_id = inbox_events.conversation_id
              AND inbox_events.consumed_at >= r.created_at
              AND (r.lifecycle = 'open' OR inbox_events.received_at <= r.updated_at))
+         AND NOT EXISTS (SELECT 1 FROM conversation_prompts p
+           WHERE p.conversation_id = inbox_events.conversation_id AND p.subject_kind = 'review'
+             AND p.created_at <= inbox_events.consumed_at
+             AND (p.state = 'open' OR p.resolved_at >= inbox_events.received_at))
        ORDER BY arrival_seq DESC LIMIT $limit`
     )
     .all({
@@ -151,6 +158,8 @@ export function earlierTurns(core: ReportingCore, ctx: TurnContext): DialogueTur
   return turns.slice(0, MODEL_INPUT_POLICY.maxTurns).reverse();
 }
 
+const named = (text: string) => sanitizeModelText(text, MODEL_INPUT_POLICY.maxLabelChars);
+
 export function openQuestion(core: ReportingCore, ctx: TurnContext): DialogueQuestion | null {
   const prompt = ctx.prompt;
   if (!prompt || prompt.subjectKind !== "draft" || !QUESTION_KINDS.has(prompt.kind)) return null;
@@ -163,10 +172,9 @@ export function openQuestion(core: ReportingCore, ctx: TurnContext): DialogueQue
   const text = row ? (readReplyMessage(core, row)?.text ?? "") : "";
   return {
     kind: prompt.kind,
-    field: prompt.fieldKey,
+    // A field is named by its key; one the sanitizer would alter is not named.
+    field: prompt.fieldKey && named(prompt.fieldKey) === prompt.fieldKey ? prompt.fieldKey : null,
     text: sanitizeModelText(text, MODEL_INPUT_POLICY.maxTurnChars),
-    options: prompt.options.map((option) =>
-      sanitizeModelText(option.label, MODEL_INPUT_POLICY.maxLabelChars)
-    ),
+    options: prompt.options.map((option) => named(option.label)),
   };
 }

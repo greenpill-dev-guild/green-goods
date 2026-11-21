@@ -54,7 +54,7 @@ export function pendingGoal(
   return row?.goal ?? null;
 }
 
-/** Called once the goal is met, and whenever consent or the linked account changes. */
+/** Called once the goal is met, and whenever consent is withdrawn or declined. */
 export function forgetGoal(core: ReportingCore, conversationId: string): void {
   core.db
     .query("DELETE FROM dialogue_goals WHERE conversation_id = $conversation")

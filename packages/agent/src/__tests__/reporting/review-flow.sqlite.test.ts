@@ -338,19 +338,48 @@ describe("steward review", () => {
   });
 
   it("keeps what a steward said about someone's work out of what a model later reads", async () => {
+    const unclear = {
+      intent: "unclear" as const,
+      gardenKey: null,
+      actionUID: null,
+      facts: [],
+      models: ["fixture-model"],
+    };
+    const step = () => harness.clock.advance(60_000);
     await publishedWork();
     await linkedSteward();
-    await decide("Approve", "The counts look inflated to me");
+    step();
+    await harness.say(BOLA, "REVIEW");
+    step();
+    // Typed at the list of work, before any decision exists.
+    await harness.say(BOLA, "the second one, she always inflates her counts");
+    step();
+    await harness.say(BOLA, "1");
+    step();
+    await harness.press(BOLA, "Approve");
+    await harness.press(BOLA, "High");
+    step();
+    await harness.say(BOLA, "The counts look padded to me");
+    step();
     await harness.say(BOLA, "CANCEL");
+    step();
     setControl(harness.core, "model_processing", true, { actor: "test", reason: "review turns" });
-    harness.interpreter.responses = [
-      { intent: "unclear", gardenKey: null, actionUID: null, facts: [], models: ["fixture-model"] },
-    ];
+    harness.interpreter.responses = [unclear, unclear];
     await harness.say(BOLA, "I also weeded the north beds today");
+    step();
+    await harness.say(BOLA, "which garden do you mean?");
 
-    const request = harness.interpreter.requests.at(-1);
-    expect(request?.message.text).toBe("I also weeded the north beds today");
-    expect(JSON.stringify(request)).not.toMatch(/inflated|approve or reject|How confident/i);
+    const [story, question] = harness.interpreter.requests.slice(-2);
+    // The story starts a report with no earlier report to bound its context: nothing from the
+    // review may be in it. The report's own first turn is then kept for its next message.
+    expect(story?.message.text).toBe("I also weeded the north beds today");
+    expect(question?.turns.map((turn) => turn.text)).toContain(
+      "I also weeded the north beds today"
+    );
+    for (const request of [story, question])
+      expect(JSON.stringify(request)).not.toMatch(
+        /inflates|padded|approve or reject|How confident/i
+      );
   });
 
   it("tells a linked account without an operator role that it cannot review", async () => {

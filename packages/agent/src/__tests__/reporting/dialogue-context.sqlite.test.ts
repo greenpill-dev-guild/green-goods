@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { pendingGoal } from "../../services/reporting/dialogue-goal";
+import { loadDraft } from "../../services/reporting/drafts";
 import { MODEL_INPUT_POLICY } from "../../services/reporting/model-policy";
 import type { InterpretationResult } from "../../services/reporting/interpretation";
 import { TestBrowser } from "./support/browser";
@@ -206,6 +207,28 @@ describe("what a model is given", () => {
     const asked = harness.interpreter.requests.length;
     expect((await harness.say(ADA, "and now?")).length).toBeGreaterThan(0);
     expect(harness.interpreter.requests).toHaveLength(asked);
+  });
+
+  it("drops a value a model read from where an identifier was taken out", async () => {
+    await consented(ADA, "Today I planted twelve baobab seedlings by the fence");
+    await harness.press(ADA, "TAS");
+    await harness.press(ADA, "Tree planting");
+    await harness.say(ADA, "12");
+    harness.interpreter.responses = [
+      {
+        ...read("report_content"),
+        facts: [
+          { field: "details.notes", value: "call [Phone] about the fence", kind: "reported" },
+          { field: "timeSpentMinutes", value: 90, kind: "reported" },
+        ],
+      },
+    ];
+    await harness.say(ADA, "it took ninety minutes, call 08000000001 about the fence");
+
+    const row = harness.core.db.query("SELECT id FROM work_drafts").get() as { id: string };
+    const content = loadDraft(harness.core, row.id)?.content;
+    expect(content?.timeSpentMinutes).toBe(90);
+    expect(content?.details.notes).toBeUndefined();
   });
 
   it("names a disputed garden by its identifier, never by its address", async () => {

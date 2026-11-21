@@ -48,7 +48,10 @@ const namable = (values: readonly string[]) => values.filter((value) => label(va
  * value proposed for it, so a key the sanitizer would change is left out with everything said
  * about it: the model cannot fill the field, and the gardener is still asked for it.
  */
-const namedField = (field: string) => label(field) === field;
+const namedField = (field: string) => {
+  const key = field.replace(/^details\./u, "");
+  return label(key) === key;
+};
 
 function labels(
   map: Record<string, string> | undefined,
@@ -186,7 +189,9 @@ function dialogueView(
     requirements: (content
       ? outstandingRequirements(content, ctx.draft?.snapshot ?? null)
       : []
-    ).filter((need) => !("key" in need) || namedField(need.key)),
+    ).filter((need) =>
+      "key" in need ? namedField(need.key) : !("field" in need) || namedField(need.field)
+    ),
     gardens: [...gardenKeys.keys()].map((key, index) => ({
       key,
       label: label(offered[index]?.label ?? ""),
