@@ -87,7 +87,15 @@ function renderReview(total: number, initial: Props, hypercertPages = OLDER_HYPE
           pages.loadOlder();
         },
       };
-      return useReviewOlderRecords({ garden: "0xgarden", ...props, workPages, hypercertPages });
+      const { sortDirection, ...rest } = props;
+      return useReviewOlderRecords({
+        garden: "0xgarden",
+        ...rest,
+        // Review reads the whole history for oldest first, as for a waiting-time band.
+        readsAllWork: sortDirection === "oldest",
+        workPages,
+        hypercertPages,
+      });
     },
     { initialProps: initial }
   );

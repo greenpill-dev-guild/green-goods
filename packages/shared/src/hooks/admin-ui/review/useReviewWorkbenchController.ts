@@ -25,7 +25,6 @@ import {
   getSearchPlaceholder,
   getStageTitle,
   type ReviewPipelineStage,
-  type ReviewWorkScope,
   isRouteSheetContentId,
   resolveOpenSectionRoute,
 } from "./review.utils";
@@ -43,6 +42,7 @@ import { useReviewConfirmStage } from "./useReviewConfirmStage";
 import { useReviewOlderRecords } from "./useReviewOlderRecords";
 import { useReviewStageQueues } from "./useReviewStageQueues";
 import { useReviewStageRefresh } from "./useReviewStageRefresh";
+import { useReviewWaitingBands } from "./useReviewWaitingBands";
 import { useReviewWorkDay } from "./useReviewWorkDay";
 
 export function useReviewWorkbenchController() {
@@ -82,11 +82,13 @@ export function useReviewWorkbenchController() {
     sortDirection,
     workDay,
     workScope,
+    waitingBand,
   } = resolveReviewRouteState({
     pathname: location.pathname,
     sortParam: searchParams.get("sort"),
     scopeParam: searchParams.get("scope"),
     dayParam: searchParams.get("day"),
+    waitingParam: searchParams.get("waiting"),
     routedWorkIdParam,
     routedAssessmentIdParam,
     activeContentId,
@@ -101,8 +103,9 @@ export function useReviewWorkbenchController() {
       // writes a scope only where it is not the default.
       scope: workScope,
       day: workDay ?? undefined,
+      waiting: waitingBand ?? undefined,
     }),
-    [selectedGardenId, sortDirection, workDay, workScope]
+    [selectedGardenId, sortDirection, waitingBand, workDay, workScope]
   );
   const dayView = useReviewWorkDay({
     gardenId: selectedGardenId as Address | undefined,
@@ -186,7 +189,8 @@ export function useReviewWorkbenchController() {
   const older = useReviewOlderRecords({
     garden: selectedGardenId,
     stage,
-    sortDirection,
+    // A waiting-time band lists every pending work of its age, so it reads the whole history.
+    readsAllWork: sortDirection === "oldest" || waitingBand !== null,
     workPages,
     hypercertPages,
     // A day's list is read on its own, so its sort never pages the garden's whole history.
@@ -219,6 +223,15 @@ export function useReviewWorkbenchController() {
     openSection,
   });
 
+  const waitingView = useReviewWaitingBands({
+    works,
+    workScope,
+    workDay,
+    waitingBand,
+    reviewQueue: derived.reviewQueue,
+    updateSearch,
+  });
+
   const { data: actions = [] } = useActions();
   const actionsMap = useMemo(() => buildActionTitleMap(actions), [actions]);
   // Up here, not on the Work tab, so a send in flight outlives a change of tab.
@@ -241,7 +254,7 @@ export function useReviewWorkbenchController() {
 
   const { scopedWorks, assessmentList, hypercertList, selectedWork, selectedCertification } =
     useReviewStageQueues({
-      works: workDay ? dayView.workDayWorks : works,
+      works: workDay ? dayView.workDayWorks : waitingView.bandWorks,
       workScope,
       actionsMap,
       normalizedSearch,
@@ -337,17 +350,6 @@ export function useReviewWorkbenchController() {
     [navigate, selectedGardenId]
   );
 
-  const handleWorkScopeChange = useCallback(
-    (nextScope: ReviewWorkScope) => {
-      // On a day, a chip narrows the day's list and pressing it again shows every status.
-      const dayScope = nextScope === workScope ? undefined : nextScope;
-      updateSearch({
-        scope: workDay ? dayScope : nextScope === "approved" ? nextScope : undefined,
-      });
-    },
-    [updateSearch, workDay, workScope]
-  );
-
   const viewActions = useMemo(
     () =>
       selectedGardenId
@@ -435,6 +437,7 @@ export function useReviewWorkbenchController() {
   return {
     ...older,
     ...dayView,
+    ...waitingView,
     actionsMap,
     activeWorkDetailId,
     allocationsLoading,
@@ -458,7 +461,6 @@ export function useReviewWorkbenchController() {
     handleRefresh,
     handleSelectGarden,
     handleStageChange,
-    handleWorkScopeChange,
     hasDataError,
     reviewContext,
     hypercertList,
