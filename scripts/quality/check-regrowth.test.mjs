@@ -106,6 +106,17 @@ test("the check judges a change against its merge base, uncommitted and untracke
     "if (true) {\n  // ===== Old banner =====\n}\nexport const a = 1;\n// Submit batch transaction\nconst b = 2;\nexport { b };\n",
   );
   assert.deepEqual(judge(root, changed).problems, []);
+
+  // Moving markdown into a place it may not be is an addition there; moving it within one is not.
+  git("mv", "packages/indexer/legacy-notes.md", "packages/indexer/kept-notes.md");
+  assert.deepEqual(judge(root, changed).problems, []);
+  mkdirSync(path.join(root, ".plans/active/hub"), { recursive: true });
+  write(".plans/active/hub/findings.md", "plan\n");
+  git("add", ".");
+  git("commit", "-q", "-m", "plan note");
+  const planned = git("rev-parse", "HEAD").trim();
+  git("mv", ".plans/active/hub/findings.md", "packages/shared/findings.md");
+  assert.equal(judge(root, planned).problems.length, 1);
   assert.ok(problems.some((problem) => problem.startsWith("packages/shared/src/old.ts:3: new label comment")));
   assert.ok(problems.some((problem) => problem.startsWith("packages/shared/src/new.ts:1: new banner comment")));
   assert.ok(problems.some((problem) => problem.startsWith("packages/shared/REVIEW_FINDINGS.md: reads as a report")));

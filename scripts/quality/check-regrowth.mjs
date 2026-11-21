@@ -103,7 +103,8 @@ export function judge(root, ref) {
   let sourceFiles = 0;
   for (const [file, { how, from }] of changedPaths(root, ref)) {
     if (how === "D") continue;
-    if (how === "A") {
+    // A move lands markdown somewhere new, unless the file was already where it may not be.
+    if (how === "A" || (from && !markdownProblem(from))) {
       const problem = markdownProblem(file);
       if (problem) problems.push(`${file}: ${problem}.`);
     }
