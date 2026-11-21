@@ -106,6 +106,13 @@ function indexer(tables: Record<string, Row[] | Error>, poolId: string | null = 
       const idField = /(\w+): \{ _in: \$ids/.exec(String(document))?.[1] ?? "id";
       const rows = table
         .filter((row) => variables.poolId === undefined || row.poolId === variables.poolId)
+        // Promises are also read by the garden that provides them, in any pool.
+        .filter(
+          (row) =>
+            entity !== "Commitment" ||
+            variables.garden === undefined ||
+            row.providerGarden === variables.garden
+        )
         .filter((row) => variables.module === undefined || row.moduleAddress === variables.module)
         .filter((row) => variables.core === undefined || row.coreModule === variables.core)
         .filter((row) => !ids || ids.includes(String(row[idField])))
@@ -176,6 +183,32 @@ describe("a garden's passport", () => {
     ]);
     expect(passport.promises).toMatchObject({ status: "available", asOf: 5005 });
     expect(passport.partialData).toBe(false);
+  });
+
+  it("reads a promise as the garden's when the garden provides it, in whichever pool", async () => {
+    const elsewhere = { poolId: "1", providerGarden: GARDEN };
+    const { reader, calls } = indexer({
+      VoucherCoreConfiguration: PINS,
+      Commitment: [
+        kept(1),
+        // Taken up in this garden's pool by another garden: that garden's promise to keep.
+        promise(2, { providerGarden: `0x${"2".repeat(40)}` }),
+        // Taken up by this garden in the protocol pool.
+        kept(3, { ...elsewhere, cycleId: "5" }),
+        // The same, in the registered rehearsal: pool 1, cycle 1.
+        kept(4, { ...elsewhere, cycleId: "1" }),
+      ],
+      Disbursement: [payment(1, { commitmentId: "4" }), payment(2, { amount: "70" })],
+    });
+    const passport = await getPublicGardenPassport(CHAIN, GARDEN, { now: NOW, reader });
+
+    expect(value(passport.promises)).toMatchObject({ made: 2, due: 2, kept: 2 });
+    expect(value(passport.settlement).support.lines).toMatchObject([{ confirmed: 70n }]);
+    // The rehearsal was found with the garden's own promises: no further read was needed for it.
+    expect(calls.filter((call) => call.entity === "Commitment" && call.variables.ids)).toEqual([]);
+    // A garden with no pool of its own still has the promises it took up elsewhere.
+    const noPool = await read({ Commitment: [kept(3, { ...elsewhere, cycleId: "5" })] }, null);
+    expect(value(noPool.promises)).toMatchObject({ made: 1, kept: 1 });
   });
 
   it("splits the unresolved promises once enough people stand behind the record", async () => {

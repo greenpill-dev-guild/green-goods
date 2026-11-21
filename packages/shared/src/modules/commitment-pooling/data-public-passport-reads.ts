@@ -28,12 +28,14 @@ export async function readPassportRows(
   let after = "";
   while (true) {
     deadline.throwIfAborted();
+    // The request itself carries the deadline, so a slow page cannot outlast the read's limit.
     const result = await reader.query<Record<string, RawRow[]>>(
       `query PublicPassport${entity}(${declarations}, $after: String!) {
         ${entity}(where: { ${scope}id: { ${idFilter}_gt: $after } }, order_by: { id: asc }, limit: ${PAGE_SIZE}) { ${fields} }
       }`,
       { ...variables, after },
-      `getPublicPassport${entity}`
+      `getPublicPassport${entity}`,
+      deadline
     );
     if (result.error) throw result.error;
     const page = result.data?.[entity];

@@ -46,7 +46,8 @@ async function section<T>(
 /**
  * One garden's passport, read from the indexer alone. Promises come first: vouchers and payments
  * are joined to them, so a failed promise read leaves both unavailable instead of unjoined.
- * A failed pool lookup throws: it is not the same as a garden with no pool.
+ * A failed pool lookup throws: it is not the same as a garden with no pool, which can still have
+ * taken up promises in another pool.
  */
 export async function getPublicGardenPassport(
   chainId: number,
@@ -68,10 +69,7 @@ export async function getPublicGardenPassport(
   const poolId = poolRow ? integer(poolRow.poolId) : null;
 
   const promiseRead = await section("promises", garden, async () => {
-    const { rows, rehearsalIds } =
-      poolId === null
-        ? { rows: [], rehearsalIds: new Set<bigint>() }
-        : await readPassportPromiseRows(chainId, poolId, reader);
+    const { rows, rehearsalIds } = await readPassportPromiseRows(chainId, garden, poolId, reader);
     const { promises, asOf } = summarizePassportPromises(rows, now);
     return { value: { promises, rows, rehearsalIds }, asOf };
   });

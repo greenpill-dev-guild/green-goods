@@ -2,6 +2,7 @@ import {
   publicRehearsalCommitments,
   publicRehearsalCycles,
 } from "../../config/public-record-visibility";
+import type { Address } from "../../types/domain";
 import type { GraphQLReader } from "../data/graphql-client";
 import { readPassportRows, readPassportRowsIn } from "./data-public-passport-reads";
 import { integer, type RawRow } from "./data-core";
@@ -13,8 +14,8 @@ import type { PassportPromises, PassportUnitLine } from "./public-passport-types
 
 const PROMISE_FIELDS = /* GraphQL */ `
   id commitmentId poolId cycleId direction state acceptanceSeen countedLifecycleStates unitLabel
-  targetUnits approvedUnits leadProvider creator dueDate confirmationPath considerationRail
-  payoutPlanId createdAt updatedAt
+  targetUnits approvedUnits leadProvider creator providerGarden dueDate confirmationPath
+  considerationRail payoutPlanId createdAt updatedAt
 `;
 
 /** One promise as the passport reads it. Identities stay inside this module's counts. */
@@ -81,25 +82,49 @@ function isRegisteredRehearsal(chainId: number, row: RawRow): boolean {
 }
 
 /**
- * Every promise in the garden's pool, with registered rehearsals set apart: their promises stay
+ * Every promise on the garden's record, with registered rehearsals set apart: their promises stay
  * out of every figure, and their ids let later reads leave out what followed them.
+ *
+ * A promise is the garden's when the garden provides it, in whichever pool it was taken up:
+ * gardens take up requests in the protocol pool as well as their own. A promise nobody has taken
+ * up has no provider yet, so the garden's own pool is read for those, and what another garden
+ * took up there is that garden's promise to keep, not this one's.
  */
 export async function readPassportPromiseRows(
   chainId: number,
-  poolId: bigint,
+  garden: Address,
+  poolId: bigint | null,
   reader: GraphQLReader
 ): Promise<{ rows: PassportPromiseRow[]; rehearsalIds: Set<bigint> }> {
-  const indexed = await readPassportRows(
-    reader,
-    "Commitment",
-    PROMISE_FIELDS,
-    "chainId: { _eq: $chainId }, poolId: { _eq: $poolId }, creationSeen: { _eq: true }",
-    { chainId, poolId: poolId.toString() },
-    "$chainId: Int!, $poolId: numeric!"
-  );
+  const home = garden.toLowerCase();
+  const [provided, pooled] = await Promise.all([
+    readPassportRows(
+      reader,
+      "Commitment",
+      PROMISE_FIELDS,
+      "chainId: { _eq: $chainId }, providerGarden: { _eq: $garden }, creationSeen: { _eq: true }",
+      { chainId, garden: home },
+      "$chainId: Int!, $garden: String!"
+    ),
+    poolId === null
+      ? []
+      : readPassportRows(
+          reader,
+          "Commitment",
+          PROMISE_FIELDS,
+          "chainId: { _eq: $chainId }, poolId: { _eq: $poolId }, creationSeen: { _eq: true }",
+          { chainId, poolId: poolId.toString() },
+          "$chainId: Int!, $poolId: numeric!"
+        ),
+  ]);
+  const indexed = new Map(provided.map((row) => [String(row.id), row]));
+  for (const row of pooled) {
+    const provider = typeof row.providerGarden === "string" ? row.providerGarden.toLowerCase() : "";
+    if (provider === "" || provider === home) indexed.set(String(row.id), row);
+  }
   const rows: PassportPromiseRow[] = [];
   const rehearsalIds = new Set<bigint>();
-  for (const row of indexed) {
+  for (const row of indexed.values()) {
     if (isRegisteredRehearsal(chainId, row)) rehearsalIds.add(integer(row.commitmentId));
     else rows.push(mapPromiseRow(row));
   }
