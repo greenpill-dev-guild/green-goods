@@ -1,0 +1,330 @@
+import type {
+  PassportMoneyLine,
+  PassportPaymentCounts,
+  PassportSection,
+  PassportSettlement,
+} from "@green-goods/shared/commitment-pooling/public";
+import { type IntlShape, useIntl } from "react-intl";
+import {
+  PassportFigure,
+  PassportFreshness,
+  PassportLine,
+  PassportNote,
+  PassportNothingYet,
+  PassportSource,
+  PassportUnavailable,
+  PassportUnitRows,
+} from "./GardenPassportAtoms";
+import { passportAmount, passportMoneyToken } from "./gardenPassportFormat";
+import { Section } from "./GardenDetailSections";
+
+/**
+ * `§ 02 G$ payments` on the passport: what was declared beside what was recorded, sent,
+ * confirmed, failed or canceled. A declared amount is intent, a recorded payment has not been
+ * sent, and a sent one has not arrived. Only a confirmed arrival is money received, and none of
+ * these is ever shown as another. Amounts stay in G$ and are not converted.
+ */
+
+type Outcome = Exclude<keyof PassportPaymentCounts, "token">;
+
+/**
+ * Payment counts in the tokens the page can name, added up by outcome. A payment in any other
+ * token is not a G$ payment, so it joins no count here, as its amount joins no amount.
+ */
+function namedCounts(payments: readonly PassportPaymentCounts[]): Record<Outcome, number> {
+  const total = { confirmed: 0, sent: 0, queued: 0, failed: 0, cancelled: 0 };
+  for (const count of payments) {
+    if (!passportMoneyToken(count.token)) continue;
+    for (const result of OUTCOMES) total[result] += count[result];
+  }
+  return total;
+}
+
+function outcomeLabels(intl: IntlShape): Record<Outcome, string> {
+  const { formatMessage } = intl;
+  return {
+    confirmed: formatMessage({
+      id: "public.passport.money.confirmed",
+      defaultMessage: "Confirmed as arrived",
+    }),
+    sent: formatMessage({
+      id: "public.passport.money.awaiting",
+      defaultMessage: "Sent, not yet confirmed",
+    }),
+    queued: formatMessage({
+      id: "public.passport.money.queued",
+      defaultMessage: "Recorded, not yet sent",
+    }),
+    failed: formatMessage({
+      id: "public.passport.money.failed",
+      defaultMessage: "Sent and did not arrive",
+    }),
+    cancelled: formatMessage({
+      id: "public.passport.money.cancelled",
+      defaultMessage: "Canceled",
+    }),
+  };
+}
+
+const OUTCOMES: readonly Outcome[] = ["confirmed", "sent", "queued", "failed", "cancelled"];
+
+/** One token's payments by outcome, each as its own row. An unnamed token keeps no figure. */
+function amountRows(intl: IntlShape, line: PassportMoneyLine) {
+  const token = passportMoneyToken(line.token);
+  if (!token) return [];
+  const labels = outcomeLabels(intl);
+  return OUTCOMES.map((result) => ({
+    unitLabel: labels[result],
+    value: `${passportAmount(intl, line[result], token.decimals)} ${token.symbol}`,
+  }));
+}
+
+/** How many payments ended in each state, where the amounts themselves are held back. */
+function countRows(intl: IntlShape, payments: Record<Outcome, number>) {
+  const labels = outcomeLabels(intl);
+  return OUTCOMES.map((result) => ({
+    unitLabel: labels[result],
+    value: intl.formatMessage(
+      { id: "public.passport.money.paymentCount" },
+      { count: payments[result] }
+    ),
+  }));
+}
+
+export function PassportMoneySection({
+  settlement,
+  onRetry,
+}: {
+  settlement: PassportSection<PassportSettlement>;
+  onRetry: () => void;
+}) {
+  const intl = useIntl();
+  const { formatMessage } = intl;
+  const meta =
+    settlement.status === "available" ? <PassportFreshness asOf={settlement.asOf} /> : null;
+  const value = settlement.status === "available" ? settlement.value : null;
+  const byOutcome = formatMessage({
+    id: "public.passport.money.byOutcome",
+    defaultMessage: "By outcome",
+  });
+  return (
+    <Section
+      id="public-passport-money"
+      kicker={formatMessage({
+        id: "public.passport.money.kicker",
+        defaultMessage: "§ 02: G$ payments",
+      })}
+      heading={formatMessage({
+        id: "public.passport.money.heading",
+        defaultMessage: "G$ sent and received",
+      })}
+      helper={formatMessage({ id: "public.passport.money.helper" })}
+    >
+      <div className="border-b border-stroke-soft-200">
+        <PassportLine
+          id="passport-money-support"
+          label={formatMessage({
+            id: "public.passport.money.support.label",
+            defaultMessage: "Support received",
+          })}
+          meta={meta}
+        >
+          {!value ? (
+            <PassportUnavailable onRetry={onRetry} />
+          ) : value.support.lines.length === 0 ? (
+            <PassportNothingYet>
+              {formatMessage({
+                id: "public.passport.money.support.none",
+                defaultMessage: "No G$ has been sent to this garden yet.",
+              })}
+            </PassportNothingYet>
+          ) : (
+            <>
+              <PassportFigure>
+                {formatMessage(
+                  { id: "public.passport.money.support.figure" },
+                  { count: namedCounts(value.support.payments).confirmed }
+                )}
+              </PassportFigure>
+              {value.support.lines.map((line) => (
+                <PassportUnitRows
+                  key={line.token}
+                  label={byOutcome}
+                  rows={amountRows(intl, line)}
+                />
+              ))}
+              {value.support.lines.some((line) => !passportMoneyToken(line.token)) ? (
+                <PassportNote>
+                  {formatMessage({ id: "public.passport.supported.unnamed" })}
+                </PassportNote>
+              ) : null}
+              <PassportSource>
+                <p>{formatMessage({ id: "public.passport.supported.source" })}</p>
+              </PassportSource>
+            </>
+          )}
+        </PassportLine>
+
+        <PassportLine
+          id="passport-money-members"
+          label={formatMessage({
+            id: "public.passport.money.members.label",
+            defaultMessage: "Paid to members",
+          })}
+          meta={meta}
+        >
+          {!value ? (
+            <PassportUnavailable onRetry={onRetry} />
+          ) : (
+            <MemberPayments settlement={value} />
+          )}
+        </PassportLine>
+      </div>
+      {/* A promise kept with its payment only declared is the gap a funder most needs to see.
+          The payment may be due to members or to a garden, so it sits under neither line. */}
+      {value && value.keptAwaitingPaymentPlan > 0 ? (
+        <div className="mt-8">
+          <PassportNote>
+            {formatMessage(
+              { id: "public.passport.money.noPlan" },
+              { count: value.keptAwaitingPaymentPlan }
+            )}
+          </PassportNote>
+        </div>
+      ) : null}
+    </Section>
+  );
+}
+
+function MemberPayments({ settlement }: { settlement: PassportSettlement }) {
+  const intl = useIntl();
+  const { formatMessage } = intl;
+  const group = settlement.memberPayments;
+  if (group.withheld) {
+    return (
+      <PassportNote>{formatMessage({ id: "public.passport.money.members.withheld" })}</PassportNote>
+    );
+  }
+  const counts = namedCounts(group.payments);
+  const paymentsOnRecord = group.payments.reduce(
+    (sum, count) => sum + OUTCOMES.reduce((inner, result) => inner + count[result], 0),
+    0
+  );
+  if (group.plans === 0 && paymentsOnRecord === 0) {
+    return (
+      <PassportNothingYet>
+        {formatMessage({
+          id: "public.passport.money.members.none",
+          defaultMessage: "No payment to members is on record yet.",
+        })}
+      </PassportNothingYet>
+    );
+  }
+  const byOutcome = formatMessage({
+    id: "public.passport.money.byOutcome",
+    defaultMessage: "By outcome",
+  });
+  // What the plans assign to members, in the tokens the page can name: the whole, and the part
+  // not yet confirmed as paid. Each is shown only while at least three members share it.
+  const declaredRows = (
+    lines: { token: PassportMoneyLine["token"]; amount: bigint }[],
+    label: string
+  ) =>
+    lines.flatMap((line) => {
+      const token = passportMoneyToken(line.token);
+      return token
+        ? [
+            {
+              unitLabel: label,
+              value: `${passportAmount(intl, line.amount, token.decimals)} ${token.symbol}`,
+            },
+          ]
+        : [];
+    });
+  return (
+    <>
+      <PassportFigure>
+        {formatMessage({ id: "public.passport.money.members.figure" }, { count: counts.confirmed })}
+      </PassportFigure>
+      <PassportUnitRows
+        label={formatMessage({
+          id: "public.passport.money.declaredLabel",
+          defaultMessage: "Declared",
+        })}
+        rows={[
+          ...declaredRows(
+            group.declared ?? [],
+            formatMessage({
+              id: "public.passport.money.declaredTotal",
+              defaultMessage: "Declared in payment plans",
+            })
+          ),
+          ...declaredRows(
+            group.declaredUnpaid ?? [],
+            formatMessage({
+              id: "public.passport.money.declared",
+              defaultMessage: "Declared, not yet paid",
+            })
+          ),
+        ]}
+      />
+      {group.declared === null ? (
+        <PassportNote>
+          {formatMessage({ id: "public.passport.money.members.declaredHeld" })}
+        </PassportNote>
+      ) : null}
+      {group.lines ? (
+        group.lines.map((line) => (
+          <PassportUnitRows key={line.token} label={byOutcome} rows={amountRows(intl, line)} />
+        ))
+      ) : (
+        <>
+          <PassportUnitRows label={byOutcome} rows={countRows(intl, counts)} />
+          <PassportNote>
+            {formatMessage({ id: "public.passport.money.members.amountsHeld" })}
+          </PassportNote>
+        </>
+      )}
+      <PassportNote>
+        {formatMessage(
+          { id: "public.passport.money.members.plans" },
+          { plans: group.plans, finalized: group.plansFinalized, revised: group.plansRevised }
+        )}
+      </PassportNote>
+      <PassportSource>
+        <p>{formatMessage({ id: "public.passport.money.members.source" })}</p>
+      </PassportSource>
+    </>
+  );
+}
+
+/** `§ 03`: how to read the record, said once so no line has to repeat it. */
+export function PassportReadingSection() {
+  const { formatMessage } = useIntl();
+  const notes = [
+    formatMessage({ id: "public.passport.reading.window" }),
+    formatMessage({ id: "public.passport.reading.privacy" }),
+    formatMessage({ id: "public.passport.reading.rehearsals" }),
+    formatMessage({ id: "public.passport.reading.consent" }),
+    formatMessage({ id: "public.passport.reading.sources" }),
+  ];
+  return (
+    <Section
+      id="public-passport-reading"
+      kicker={formatMessage({
+        id: "public.passport.reading.kicker",
+        defaultMessage: "§ 03: Reading this record",
+      })}
+      heading={formatMessage({
+        id: "public.passport.reading.heading",
+        defaultMessage: "What these figures mean",
+      })}
+    >
+      <ul className="mt-8 flex max-w-3xl flex-col gap-4 text-base leading-relaxed text-text-sub-600">
+        {notes.map((note) => (
+          <li key={note}>{note}</li>
+        ))}
+      </ul>
+    </Section>
+  );
+}

@@ -24,6 +24,7 @@ export const CLIENT_ROUTE_IDS = {
   publicLanding: "public-landing",
   publicGardens: "public-gardens",
   publicGardenDetail: "public-garden-detail",
+  publicGardenPassport: "public-garden-passport",
   publicCookies: "public-cookies",
   publicFund: "public-fund",
   publicVaults: "public-vaults",
@@ -124,6 +125,14 @@ const combinedAppRoutes = [
               path: "gardens/:id",
               lazy: async () => ({
                 Component: (await import("@/views/Public/GardenDetail")).default,
+              }),
+            },
+            // The garden's passport for funders (DL-201): its own page, so it has one address to share.
+            {
+              id: CLIENT_ROUTE_IDS.publicGardenPassport,
+              path: "gardens/:id/passport",
+              lazy: async () => ({
+                Component: (await import("@/views/Public/GardenPassport")).default,
               }),
             },
             {
