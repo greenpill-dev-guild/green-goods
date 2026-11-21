@@ -7,6 +7,7 @@ import {
   summarizePassportPromises,
 } from "./data-public-passport-promises";
 import { readPassportSettlement } from "./data-public-passport-settlement";
+import type { PassportVoucherChain } from "./data-public-passport-supply";
 import { readPassportVouchers } from "./data-public-passport-vouchers";
 import type { PassportSection, PublicGardenPassportRecord } from "./public-passport-types";
 
@@ -16,6 +17,8 @@ export interface PublicGardenPassportReadOptions {
   reader?: GraphQLReader;
   /** The promise module whose voucher records count. Defaults to the chain's deployed one. */
   coreModule?: Address;
+  /** Reads the voucher chain. Defaults to its public endpoint. */
+  voucherChain?: PassportVoucherChain;
 }
 
 /** Loaded on demand so pages that only import this module do not carry the deployment records. */
@@ -44,8 +47,10 @@ async function section<T>(
 }
 
 /**
- * One garden's passport, read from the indexer alone. Promises come first: vouchers and payments
- * are joined to them, so a failed promise read leaves both unavailable instead of unjoined.
+ * One garden's passport. Promises, vouchers and payments come from the indexer; promises come
+ * first, since vouchers and payments are joined to them, so a failed promise read leaves both
+ * unavailable instead of unjoined. What the exchange pools hold is on the voucher chain only and
+ * is read from it directly, apart from the rest, for a garden that issues a voucher.
  * A failed pool lookup throws: it is not the same as a garden with no pool, which can still have
  * taken up promises in another pool.
  */
@@ -67,6 +72,13 @@ export async function getPublicGardenPassport(
   if (!Array.isArray(pool.data?.CommitmentPool)) throw new Error("Passport pool is unavailable");
   const poolRow = pool.data.CommitmentPool[0];
   const poolId = poolRow ? integer(poolRow.poolId) : null;
+
+  // Loaded on demand: the chain reader carries the reviewed issuer records and an ABI codec.
+  const supplyRead = section("supply", garden, async () => {
+    const { readPassportVoucherSupply } = await import("./data-public-passport-supply");
+    const read = await readPassportVoucherSupply(chainId, garden, { chain: options.voucherChain });
+    return { value: read.supply, asOf: read.asOf };
+  });
 
   const promiseRead = await section("promises", garden, async () => {
     const { rows, rehearsalIds } = await readPassportPromiseRows(chainId, garden, poolId, reader);
@@ -99,10 +111,12 @@ export async function getPublicGardenPassport(
     ]);
   }
 
+  const supply = await supplyRead;
   const unavailableSources = {
     promises: promiseRead.status === "unavailable",
     vouchers: vouchers.status === "unavailable",
     settlement: settlement.status === "unavailable",
+    supply: supply.status === "unavailable",
   };
   return {
     chainId,
@@ -115,6 +129,7 @@ export async function getPublicGardenPassport(
         : UNAVAILABLE,
     vouchers,
     settlement,
+    supply,
     partialData: Object.values(unavailableSources).some(Boolean),
     unavailableSources,
   };

@@ -487,9 +487,15 @@ receiver takes the garden's name. The live Tech and Sun Safe is finalized throug
     the G$ reconciliation are read from indexed receipts; registered rehearsals stay out; the page
     shows live records only, and invented figures live in Storybook and tests. Published by
     consent from a reviewed list, starting with one garden. Design ruling: DL-201.
-  - [ ] Remaining: what the exchange pool holds, its holding limit for each voucher, and vouchers
-    with holders. These live in the Gnosis pool contracts and are not indexed, so the page says
-    they are not published yet. Reading them needs a Gnosis read the public page can carry.
+  - [x] Second slice, 21 November 2026: what each reviewed exchange pool holds of the vouchers a
+    garden issues, the pool's holding limit, and vouchers outstanding, read from the voucher
+    tokens and the pool's limiter and registry on Gnosis at one block
+    (`readPassportVoucherSupply`, plain JSON-RPC, no wallet kit on the public page). A garden
+    that issues no voucher reads nothing. Privacy ruling: DL-202.
+  - [ ] Remaining: how many vouchers are with holders. Outstanding minus the pools is what
+    holders have, and no source counts the holders behind it, so the outstanding total is
+    published only while every outstanding voucher sits in a pool. Publishing it beyond that
+    needs a holder count per voucher from the indexer.
 - [ ] **PRD-1197, 22 October:** record human go/no-go, explicitly addressing every original gate.
   Depends on PRD-1096 and COM-46. No default substitution or implied funds authority.
 - [ ] **PRD-1100, conditional:** perform only the specifically authorized live release after a go;

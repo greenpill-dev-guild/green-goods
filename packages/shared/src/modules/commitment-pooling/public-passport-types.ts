@@ -203,10 +203,40 @@ export interface PassportSettlement {
   }>;
 }
 
+/** One reviewed exchange pool's place for a voucher. */
+export interface PassportPoolHolding {
+  /** The pool's public name. */
+  name: string;
+  /** Whether the pool's registry admits the voucher today. */
+  listed: boolean;
+  holding: bigint;
+  /** The most the pool may hold of this voucher. Zero before a limit is set, and once delisted. */
+  holdingLimit: bigint;
+}
+
+/**
+ * One voucher a garden issues, as its token and its exchange pools hold it on the voucher chain.
+ * Pool inventory, the holding limit and what is outstanding are three different facts.
+ */
+export interface PassportVoucherSupply {
+  token: Address;
+  symbol: string;
+  decimals: number;
+  pools: PassportPoolHolding[];
+  /**
+   * Vouchers out of the issuer's reserve. Null while some of them are outside the pools: that
+   * remainder is what holders have, and the page cannot count the people behind it.
+   */
+  outstanding: bigint | null;
+  /** Some outstanding vouchers are outside the pools: with holders, or in a booking. */
+  outsidePools: boolean;
+}
+
 interface PassportUnavailableSources {
   promises: boolean;
   vouchers: boolean;
   settlement: boolean;
+  supply: boolean;
 }
 
 export interface PublicGardenPassportRecord {
@@ -219,6 +249,11 @@ export interface PublicGardenPassportRecord {
   promises: PassportSection<PassportPromises>;
   vouchers: PassportSection<PassportVouchers>;
   settlement: PassportSection<PassportSettlement>;
+  /**
+   * The vouchers this garden issues, read from the voucher chain itself. `asOf` is the time of
+   * the block the reading was taken at, not a last change. Empty when the garden issues none.
+   */
+  supply: PassportSection<PassportVoucherSupply[]>;
   partialData: boolean;
   unavailableSources: PassportUnavailableSources;
 }
