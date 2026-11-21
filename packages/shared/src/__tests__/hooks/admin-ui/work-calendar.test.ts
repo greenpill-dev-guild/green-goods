@@ -1,4 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { act, renderHook } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { useCalendarNow } from "../../../hooks/admin-ui/garden/useCalendarNow";
 import {
   buildWorkCalendar,
   parseWorkDay,
@@ -114,5 +116,23 @@ describe("Review's Work tab on one day", () => {
     expect(
       adminRoutes.gardenActivity({ gardenId: garden, month: "2026-10", day: "2026-10-03" })
     ).toBe(`/garden/activity?gardenId=${garden}&month=2026-10&day=2026-10-03`);
+  });
+});
+
+describe("the calendar's today on a Hub left open", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("holds through the day and moves on once the local day turns", () => {
+    vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
+    vi.setSystemTime(new Date(2026, 10, 30, 23, 59));
+    const { result } = renderHook(() => useCalendarNow());
+    const first = result.current;
+
+    act(() => vi.advanceTimersByTime(30_000));
+    expect(result.current).toBe(first);
+
+    act(() => vi.advanceTimersByTime(60_000));
+    expect(result.current.getMonth()).toBe(11);
+    expect(result.current.getDate()).toBe(1);
   });
 });

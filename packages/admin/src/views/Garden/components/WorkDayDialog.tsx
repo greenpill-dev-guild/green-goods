@@ -3,8 +3,10 @@
  * stays in Activity. Each row opens its record in Review, and View in Work opens Review's
  * list for the same garden and day, so the steward acts where review happens.
  */
+import { Alert } from "@green-goods/shared/components/Alert";
 import { ItemRow, type ItemRowTone } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import { SkeletonText } from "@green-goods/shared/components/Skeleton";
 import {
   dateOfDay,
   type GardenWorkCalendar,
@@ -108,7 +110,45 @@ export function WorkDayDialog({
           : undefined
       }
     >
-      {openDay && openDay.works.length > 0 ? (
+      {/* A day opened from a link can come before its month is read, or while it cannot be:
+          the dialog says so rather than reading as a quiet day. */}
+      {calendar.state === "loading" ? (
+        <div
+          role="status"
+          aria-label={intl.formatMessage({
+            id: "hub.garden.calendar.loading",
+            defaultMessage: "Reading this month's work",
+          })}
+        >
+          <SkeletonText lines={3} />
+        </div>
+      ) : calendar.state === "error" ? (
+        <Alert
+          variant="error"
+          title={intl.formatMessage({
+            id: "hub.garden.calendar.error.title",
+            defaultMessage: "This month could not be read",
+          })}
+        >
+          {intl.formatMessage({
+            id: "hub.garden.calendar.error.description",
+            defaultMessage: "Nothing is shown, so no day reads as empty by mistake.",
+          })}
+        </Alert>
+      ) : calendar.state === "offline" ? (
+        <Alert
+          variant="info"
+          title={intl.formatMessage({
+            id: "hub.garden.calendar.offline.title",
+            defaultMessage: "You are offline",
+          })}
+        >
+          {intl.formatMessage({
+            id: "hub.garden.calendar.offline.description",
+            defaultMessage: "The calendar reads this month when you are back online.",
+          })}
+        </Alert>
+      ) : openDay && openDay.works.length > 0 ? (
         <ul
           aria-label={intl.formatMessage({
             id: "hub.garden.calendar.dayList",

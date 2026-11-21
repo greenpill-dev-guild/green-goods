@@ -1,7 +1,8 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import type { Address } from "../../../types/domain";
 import { adminRoutes } from "../../../utils/navigation/admin-routes";
 import { useGardenWorkRange } from "../../work/useGardenWorkRange";
+import { useCalendarNow } from "../garden/useCalendarNow";
 import {
   dateOfDay,
   monthOfDate,
@@ -30,7 +31,7 @@ export function useReviewWorkDay({
 }) {
   const range = useMemo(() => (day ? workDayRange(day) : null), [day]);
   const read = useGardenWorkRange(day ? gardenId : undefined, range);
-  const [now] = useState(() => new Date());
+  const now = useCalendarNow();
 
   // Leaving the day lands on the tab's usual scopes, where "all" does not exist.
   const handleClearWorkDay = useCallback(
@@ -62,6 +63,9 @@ export function useReviewWorkDay({
     workDayUnread: day !== null && !read.hasRead && (read.isError || read.isPaused),
     /** False when the day holds more work than one read lists. */
     workDayComplete: read.complete,
+    /** Reads the day again, for Review's refresh while a day is open. */
+    refreshWorkDay: read.refetch,
+    workDayFetching: day !== null && read.isFetching,
     /** Garden › Activity on the day's month. */
     workDayCalendarHref,
     handleClearWorkDay,

@@ -1,3 +1,4 @@
+import { Alert } from "@green-goods/shared/components/Alert";
 import { MetaStrip } from "@green-goods/shared/components/Canvas/MetaStrip";
 import {
   buildReviewHeaderStats,
@@ -208,6 +209,22 @@ export default function ReviewView() {
                   the `stage` prop, so a keyed remount only tore down and
                   rebuilt the DOM mid route View-Transition (the tab-change
                   glitch). The route transition in PageTransition owns motion. */}
+              {/* Older paging is off on a day, so a day too busy for one read says so. */}
+              {review.stage === "work" && review.workDay && !review.workDayComplete ? (
+                <Alert
+                  variant="warning"
+                  title={formatMessage({
+                    id: "hub.review.work.dayPartial.title",
+                    defaultMessage: "This day is only partly read",
+                  })}
+                >
+                  {formatMessage({
+                    id: "hub.review.work.dayPartial.description",
+                    defaultMessage:
+                      "It holds more work than one read lists, so its latest submissions are missing.",
+                  })}
+                </Alert>
+              ) : null}
               <div className="review-results-pane">
                 <ReviewStageContent
                   stage={review.stage}

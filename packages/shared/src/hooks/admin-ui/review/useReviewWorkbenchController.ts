@@ -368,7 +368,10 @@ export function useReviewWorkbenchController() {
     stage,
     enabled: Boolean(selectedGardenId),
     reads: {
-      work: { refresh: refreshWorks, isFetching: worksFetching },
+      // A day's list is its own read, so refreshing the day reads that day again.
+      work: workDay
+        ? { refresh: dayView.refreshWorkDay, isFetching: dayView.workDayFetching }
+        : { refresh: refreshWorks, isFetching: worksFetching },
       assess: { refresh: refreshAssessments, isFetching: assessmentsFetching },
       certify: { refresh: refreshHypercerts, isFetching: hypercertsFetching },
       confirm: { refresh: toConfirm.refetch, isFetching: toConfirm.isFetching ?? false },

@@ -68,11 +68,12 @@ export function useGardenWorkspaceController() {
   // The seeding console is a route-backed dialog over the Pool tab (§6.3).
   const poolSeedOpen = location.pathname.startsWith("/garden/pool/seed");
   const range = parseGardenRange(searchParams.get("range"));
+  const section = searchParams.get("section") ?? undefined;
+  // Read only where the calendar shows: a section link on Activity shows that section alone.
   const workCalendar = useGardenWorkCalendar({
     gardenId: selectedGarden?.id as Address | undefined,
-    active: view === "activity",
+    active: view === "activity" && section === undefined,
   });
-  const section = searchParams.get("section") ?? undefined;
   const selectedItem = searchParams.get("item") ?? undefined;
   const settingsOpen = selectedItem === EDIT_GARDEN_ROUTE_ITEM;
   const handleSettingsClose = useRouteItemClose(settingsOpen);

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Address, Work } from "../../../types/domain";
 import { adminRoutes } from "../../../utils/navigation/admin-routes";
@@ -8,6 +8,7 @@ import {
   useRouteItemClose,
 } from "../../navigation/useCanvasSearchParams";
 import { useGardenWorkRange } from "../../work/useGardenWorkRange";
+import { useCalendarNow } from "./useCalendarNow";
 import {
   addMonths,
   buildWorkCalendar,
@@ -44,8 +45,8 @@ export function useGardenWorkCalendar({
 }) {
   const navigate = useNavigate();
   const { searchParams, updateSearch } = useCanvasSearchParams();
-  // One "today" for the life of the screen, so a count cannot shift mid-read at midnight.
-  const [now] = useState(() => new Date());
+  // One "today" per local day: steady while a month is read, moving on once the day turns.
+  const now = useCalendarNow();
   const month = parseWorkMonth(searchParams.get("month"), now);
   const currentMonth = monthOfDate(now);
   const requestedDay = active ? parseWorkDay(searchParams.get("day"), now) : null;
@@ -63,6 +64,7 @@ export function useGardenWorkCalendar({
     [calendar, openDayKey]
   );
 
+  // A month read before going offline keeps its grid, but says it is the last read, not today's.
   const state: WorkCalendarReadState = read.hasRead
     ? "ready"
     : read.isError
@@ -70,6 +72,7 @@ export function useGardenWorkCalendar({
       : read.isPaused
         ? "offline"
         : "loading";
+  const stale = read.hasRead && read.isPaused;
 
   const showMonth = useCallback(
     (next: string) =>
@@ -102,6 +105,8 @@ export function useGardenWorkCalendar({
     counts: calendar.counts,
     daysWithWork: calendar.daysWithWork,
     state,
+    /** A month read earlier, shown while offline: its statuses may have moved on since. */
+    stale,
     /** False when the month holds more work than one read lists: its counts are a minimum. */
     complete: read.complete,
     isFetching: read.isFetching,

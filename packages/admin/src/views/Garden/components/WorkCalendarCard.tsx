@@ -140,6 +140,21 @@ export function WorkCalendarCard({ calendar }: { calendar: GardenWorkCalendar })
           </Alert>
         ) : (
           <>
+            {/* A month read before going offline keeps its grid and says it is the last read. */}
+            {calendar.stale ? (
+              <Alert
+                variant="info"
+                title={formatMessage({
+                  id: "hub.garden.calendar.offline.title",
+                  defaultMessage: "You are offline",
+                })}
+              >
+                {formatMessage({
+                  id: "hub.garden.calendar.offline.description",
+                  defaultMessage: "The calendar reads this month when you are back online.",
+                })}
+              </Alert>
+            ) : null}
             {calendar.complete ? null : (
               <Alert
                 variant="warning"
@@ -157,14 +172,23 @@ export function WorkCalendarCard({ calendar }: { calendar: GardenWorkCalendar })
             )}
             <WorkCalendarGrid calendar={calendar} monthLabel={monthLabel} />
             <p className="type-meta text-text-soft">
-              {formatMessage(
-                {
-                  id: "hub.garden.calendar.basis",
-                  defaultMessage:
-                    "Work counts on the day it was sent, by your device's clock ({zone}). Statuses are as they stand today.",
-                },
-                { zone }
-              )}
+              {calendar.stale
+                ? formatMessage(
+                    {
+                      id: "hub.garden.calendar.basisStale",
+                      defaultMessage:
+                        "Work counts on the day it was sent, by your device's clock ({zone}). Statuses are as last read, before you went offline.",
+                    },
+                    { zone }
+                  )
+                : formatMessage(
+                    {
+                      id: "hub.garden.calendar.basis",
+                      defaultMessage:
+                        "Work counts on the day it was sent, by your device's clock ({zone}). Statuses are as they stand today.",
+                    },
+                    { zone }
+                  )}
             </p>
           </>
         )}
