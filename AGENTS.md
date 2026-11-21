@@ -199,13 +199,15 @@ here instead of restating them.
    queue and offline uploads, profile identity, and the QA app catalog.
    `scripts/data/validation-policy.json` selects the manual `browser-proof` check for exactly these
    paths. Every other surface accepts labeled mock-auth localhost, Storybook, or CI Playwright
-   rendered proof; do not report that evidence as authenticated.
+   rendered proof; do not report that evidence as authenticated. A change to rendered UI (`.tsx`
+   or `.css` in Client, Admin, or Shared's components and styles) selects the manual
+   `rendered-proof` check: captures at 375 and 1280 wide, labeled per rule 1.
 3. **Brave specifically is required only for WebMCP, the browser-extension path, and installed-PWA
    behavior.** For rendered DOM and CSS proof any Chromium engine is equivalent when labeled.
 
-The `browser-proof` check is advisory in every local intent: it never blocks a push, review,
+The `browser-proof` and `rendered-proof` checks are advisory in every local intent: it never blocks a push, review,
 ship, or readiness run. Record the proof, or that it is pending and why, in the PR body. Only the
-release gate requires attestation:
+release gate requires attestation, and only for `browser-proof`:
 `node scripts/dev/ci-local.js --intent release --attest browser-proof="<engine, session, date, what was observed>"`.
 The release gate rejects a placeholder: the text must name an engine the check accepts
 (`attestation.engines` in `scripts/data/validation-policy.json`), carry the date as `YYYY-MM-DD`,

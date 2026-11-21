@@ -509,6 +509,22 @@
       ]
     },
     {
+      "check": "rendered-proof",
+      "intents": ["diagnose", "qa", "review", "checkpoint", "readiness", "push", "ship", "merge"],
+      "note": "Rendered UI: labeled captures at 375 and 1280 wide. Advisory in every intent and left out of release, whose attested proof is browser-proof.",
+      "prefixes": [
+        "packages/client/src/",
+        "packages/admin/src/",
+        "packages/shared/src/components/",
+        "packages/shared/src/styles/"
+      ],
+      "extensions": [".tsx", ".css"],
+      "match": "all",
+      "excludeTests": true,
+      "excludeSuffixes": [".stories.tsx"],
+      "runInQa": true
+    },
+    {
       "check": "browser-proof",
       "exact": ["packages/qa/index.html", "scripts/data/qa-test-catalog.json"],
       "prefixes": ["packages/qa/locales/"]
@@ -1386,6 +1402,17 @@
       "attestation": {
         "engines": ["authenticated Brave"]
       }
+    },
+    {
+      "id": "rendered-proof",
+      "command": null,
+      "risk": "a UI change renders wrongly at phone or desktop width although its unit and story tests pass",
+      "expectedSignal": "labeled captures at 375 and 1280 wide in the PR body (mock-auth localhost, Storybook or CI Playwright, per AGENTS.md Browser Evidence), or the reason they are pending",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 60,
+      "stopRule": "advisory",
+      "capabilities": [],
+      "manual": true
     },
     {
       "id": "story-quality",

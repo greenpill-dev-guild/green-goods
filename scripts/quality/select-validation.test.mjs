@@ -485,6 +485,7 @@ test("work inspection adds qualified browser proof without forcing a package bui
     "client-test",
     "staged-modules",
     "ontology",
+    "rendered-proof",
     "browser-work-exploration",
   ]);
   assert.equal(
@@ -514,6 +515,24 @@ test("QA app UI changes require rendered browser proof for readiness", () => {
   assert.ok(browserProof.selectedBy.includes("conditional:browser-proof"));
   assert.equal(browserProof.manual, true);
   assert.equal(plan.budget.manualSeconds, 90);
+});
+
+test("a rendered UI change asks for labeled captures, advisory, and never at release", () => {
+  const view = "packages/client/src/views/Home/Garden/GardenPage.tsx";
+  for (const intent of ["qa", "push", "merge"]) {
+    const plan = selectValidation({ intent, changedPaths: [view] });
+    const proof = plan.checks.find((check) => check.id === "rendered-proof");
+    assert.equal(proof?.state, "advisory", intent);
+    assert.equal(proof?.blockedBy?.length ?? 0, 0, intent);
+  }
+  assert.ok(!ids(selectValidation({ intent: "release", changedPaths: [view] })).includes("rendered-proof"));
+  for (const path of [
+    "packages/client/src/views/Home/Garden/__tests__/GardenPage.test.tsx",
+    "packages/shared/src/components/Button/Button.stories.tsx",
+    "packages/shared/src/hooks/auth/useAuthContext.ts",
+  ]) {
+    assert.ok(!ids(selectValidation({ intent: "push", changedPaths: [path] })).includes("rendered-proof"), path);
+  }
 });
 
 test("browser proof is advisory in every intent and never blocks a plan", () => {
@@ -1312,6 +1331,7 @@ test("push requires focused client proof while ship retains the full local surfa
     "docs-authority",
     "staged-modules",
     "source-structure",
+    "rendered-proof",
     "react-patterns",
   ]);
 
@@ -1328,6 +1348,7 @@ test("push requires focused client proof while ship retains the full local surfa
     "docs-authority",
     "staged-modules",
     "source-structure",
+    "rendered-proof",
     "react-patterns",
   ]);
 
@@ -1345,6 +1366,7 @@ test("push requires focused client proof while ship retains the full local surfa
     "staged-modules",
     "source-structure",
     "design-guardrails",
+    "rendered-proof",
   ];
   assert.deepEqual(ids(ship), shipExpected);
   assert.equal(
@@ -1401,7 +1423,7 @@ test("push keeps test-only proof focused while strict intents preserve owning ga
   }
 });
 
-test("scoped admin ship selects exactly the accepted eight checks", () => {
+test("scoped admin ship selects exactly the accepted nine checks", () => {
   const plan = selectValidation({
     intent: "ship",
     changedPaths: ["packages/admin/src/views/Garden/SubmitWork.tsx"],
@@ -1416,6 +1438,7 @@ test("scoped admin ship selects exactly the accepted eight checks", () => {
     "admin-build",
     "source-structure",
     "design-guardrails",
+    "rendered-proof",
     "story-quality",
   ]);
   assert.ok(plan.checks.every((check) => check.mandatory));
@@ -1541,6 +1564,7 @@ test("local merge and merge --ci select identical checks while preserving CI pac
     "admin-build",
     "source-structure",
     "design-guardrails",
+    "rendered-proof",
     "story-quality",
   ];
 
