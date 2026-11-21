@@ -1,6 +1,10 @@
 import { isAddress } from "viem";
 import type { Address, GardenMemberHistory } from "../../types/domain";
-import { GARDEN_ROLE_IDS, type GardenRole } from "../../utils/blockchain/garden-roles";
+import {
+  GARDEN_ROLE_IDS,
+  GARDEN_ROLE_ORDER,
+  type GardenRole,
+} from "../../utils/blockchain/garden-roles";
 import { greenGoodsIndexer, type GraphQLReader } from "./graphql-client";
 
 interface GardenMemberHistoryScope {
@@ -115,6 +119,7 @@ export async function getGardenMemberHistory(
         : a.logIndex - b.logIndex || a.id.localeCompare(b.id)
   );
   const members = new Map<string, GardenMemberHistory>();
+  const lastActions = new Map<string, Map<GardenRole, RoleEvent["action"]>>();
   for (const event of ordered) {
     const key = `${event.garden}:${event.account}`;
     let member = members.get(key);
@@ -127,7 +132,9 @@ export async function getGardenMemberHistory(
         roleSince: {},
       };
       members.set(key, member);
+      lastActions.set(key, new Map());
     }
+    lastActions.get(key)?.set(event.role, event.action);
     if (event.action === "GRANTED") {
       if (Object.keys(member.roleSince).length === 0) member.memberSince = event.timestamp;
       member.joinedAt ??= event.timestamp;
@@ -136,6 +143,10 @@ export async function getGardenMemberHistory(
       delete member.roleSince[event.role];
       if (Object.keys(member.roleSince).length === 0) member.memberSince = null;
     }
+  }
+  for (const [key, member] of members) {
+    const last = lastActions.get(key);
+    member.revokedRoles = GARDEN_ROLE_ORDER.filter((role) => last?.get(role) === "REVOKED");
   }
   return [...members.values()];
 }

@@ -3,8 +3,10 @@ import {
   resolveCommunityMode,
 } from "@green-goods/shared/hooks/admin-ui/community/community.utils";
 import type { useAddMembersBatch } from "@green-goods/shared/hooks/garden/useGardenOperations";
+import type { Address, GardenMemberHistory } from "@green-goods/shared/types/domain";
+import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
 import { createMemoryRouter, RouterProvider, useLocation, useNavigate } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   act,
   fireEvent,
@@ -22,6 +24,7 @@ const addGardener = vi.hoisted(() => vi.fn());
 const addSteward = vi.hoisted(() => vi.fn());
 const addEvaluator = vi.hoisted(() => vi.fn());
 const checkSubRoles = vi.hoisted(() => vi.fn());
+const memberHistory = vi.hoisted(() => ({ members: [] as GardenMemberHistory[] }));
 const removeOwner = vi.hoisted(() => vi.fn());
 const scheduleBackgroundRefetch = vi.hoisted(() => vi.fn());
 type AddMembersBatch = ReturnType<typeof useAddMembersBatch>;
@@ -56,7 +59,11 @@ vi.mock("@green-goods/shared/hooks/garden/useGardenMemberContributions", () => (
   useGardenMemberContributions: () => ({ canView: false, byAccount: {} }),
 }));
 vi.mock("@green-goods/shared/hooks/garden/useGardenMemberHistory", () => ({
-  useGardenMemberHistory: () => ({ members: [], isLoading: false, isError: false }),
+  useGardenMemberHistory: () => ({
+    members: memberHistory.members,
+    isLoading: false,
+    isError: false,
+  }),
 }));
 vi.mock("@green-goods/shared/hooks/blockchain/useEnsAddress", () => ({
   useEnsAddress: () => ({ data: null, isFetching: false }),
@@ -473,15 +480,28 @@ describe("CommunityMembersDialogs: Add Member (DL-140)", () => {
 });
 
 describe("CommunityMembersDialogs: restoring a missing sub-role (PRD-979)", () => {
+  const steward = storyRoleMembers.steward[0];
+  const stewardHistory = (revokedRoles: GardenRole[]): GardenMemberHistory => ({
+    garden: storyGarden.id as Address,
+    account: steward,
+    joinedAt: Date.UTC(2026, 3, 4, 12),
+    memberSince: Date.UTC(2026, 3, 4, 12),
+    roleSince: { steward: Date.UTC(2026, 3, 4, 12) },
+    revokedRoles,
+  });
+
   beforeEach(() => {
     addEvaluator.mockReset().mockResolvedValue({ success: true });
     addGardener.mockReset();
     checkSubRoles.mockReset();
     scheduleBackgroundRefetch.mockClear();
+    memberHistory.members = [stewardHistory([])];
+  });
+  afterEach(() => {
+    memberHistory.members = [];
   });
 
   it("grants only what the chain lacks, through the add path, from the person's Manage Roles row", async () => {
-    const steward = storyRoleMembers.steward[0];
     // The indexed list shows the steward with neither sub-role; the chain already has Gardener.
     checkSubRoles.mockResolvedValue(["evaluator"]);
     renderAt(`/community/members?gardenId=${storyGarden.id}&item=manage-members&member=${steward}`);
@@ -494,5 +514,17 @@ describe("CommunityMembersDialogs: restoring a missing sub-role (PRD-979)", () =
     expect(checkSubRoles).toHaveBeenCalledWith(steward, ["evaluator", "gardener"]);
     expect(addGardener).not.toHaveBeenCalled();
     expect(scheduleBackgroundRefetch).toHaveBeenCalled();
+  });
+
+  it("leaves an Evaluator someone revoked on purpose, and offers only the cascade gap", async () => {
+    memberHistory.members = [stewardHistory(["evaluator"])];
+    checkSubRoles.mockResolvedValue(["gardener"]);
+    renderAt(`/community/members?gardenId=${storyGarden.id}&item=manage-members&member=${steward}`);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Restore Gardener" }));
+
+    await waitFor(() => expect(checkSubRoles).toHaveBeenCalledWith(steward, ["gardener"]));
+    expect(screen.queryByRole("button", { name: /Evaluator/ })).not.toBeInTheDocument();
+    expect(addEvaluator).not.toHaveBeenCalled();
   });
 });

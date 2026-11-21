@@ -19,6 +19,7 @@ const meta: Meta<typeof RestoreRolesNotice> = {
   args: {
     address: MEMBER,
     roles: ["steward", "gardener"],
+    revokedRoles: [],
     check: fn(async () => ["evaluator" as const]),
     restore: fn(async () => true),
   },
@@ -43,6 +44,16 @@ export const NothingMissingOnChain: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "Restore Evaluator" }));
     await expect(await canvas.findByRole("status")).toHaveTextContent("Nothing is missing.");
     await expect(args.restore).not.toHaveBeenCalled();
+  },
+};
+
+/** Someone revoked this steward's Evaluator on purpose, so nothing is offered. */
+export const DeliberateRemovalNotOffered: Story = {
+  args: { revokedRoles: ["evaluator"] },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.queryByRole("button")).toBeNull();
+    await expect(canvas.queryByText(/Missing/)).toBeNull();
   },
 };
 

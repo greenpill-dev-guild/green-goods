@@ -3,7 +3,7 @@ import {
   type GardenRole,
   type GardenRoleRemovalInput,
   gardenRoleRemovalBlock,
-  missingSubRoles,
+  restorableSubRoles,
 } from "../../../utils/blockchain/garden-roles";
 
 const OWNER = "0x1111111111111111111111111111111111111111";
@@ -64,20 +64,32 @@ describe("utils/blockchain/garden-roles gardenRoleRemovalBlock", () => {
   });
 });
 
-describe("utils/blockchain/garden-roles missingSubRoles", () => {
+describe("utils/blockchain/garden-roles restorableSubRoles", () => {
+  const nothingRevoked: GardenRole[] = [];
+
   it("never asks an owner for Evaluator: their Steward hat comes from the Owner grant", () => {
-    expect(missingSubRoles(["owner", "steward", "gardener"])).toEqual([]);
-    expect(missingSubRoles(["owner", "steward"])).toEqual(["gardener"]);
-    expect(missingSubRoles(["owner", "funder"])).toEqual(["steward", "gardener"]);
+    expect(restorableSubRoles(["owner", "steward", "gardener"], nothingRevoked)).toEqual([]);
+    expect(restorableSubRoles(["owner", "steward"], nothingRevoked)).toEqual(["gardener"]);
+    expect(restorableSubRoles(["owner", "funder"], nothingRevoked)).toEqual([
+      "steward",
+      "gardener",
+    ]);
   });
 
   it("names the Evaluator and Gardener a steward's own grant gives", () => {
-    expect(missingSubRoles(["steward", "gardener"])).toEqual(["evaluator"]);
-    expect(missingSubRoles(["steward"])).toEqual(["evaluator", "gardener"]);
+    expect(restorableSubRoles(["steward", "gardener"], nothingRevoked)).toEqual(["evaluator"]);
+    expect(restorableSubRoles(["steward"], nothingRevoked)).toEqual(["evaluator", "gardener"]);
+  });
+
+  it("leaves a sub-role someone revoked on purpose (the 18 Nov audit's two cases)", () => {
+    // A steward whose Evaluator was revoked by itself.
+    expect(restorableSubRoles(["steward", "gardener"], ["evaluator"])).toEqual([]);
+    // An owner whose Evaluator and Gardener were revoked before the Owner grant.
+    expect(restorableSubRoles(["owner", "steward"], ["evaluator", "gardener"])).toEqual([]);
   });
 
   it("finds nothing missing for roles with no sub-roles", () => {
-    expect(missingSubRoles(["steward", "evaluator", "gardener"])).toEqual([]);
-    expect(missingSubRoles(["evaluator", "funder", "community"])).toEqual([]);
+    expect(restorableSubRoles(["steward", "evaluator", "gardener"], nothingRevoked)).toEqual([]);
+    expect(restorableSubRoles(["evaluator", "funder", "community"], nothingRevoked)).toEqual([]);
   });
 });

@@ -84,13 +84,24 @@ const GARDEN_SUB_ROLES = {
  * The roles a person's roles include but they do not hold, in role order. An owner's Steward hat
  * comes from the Owner grant, so it implies no Evaluator.
  */
-export function missingSubRoles(roles: readonly GardenRole[]): GardenRole[] {
+function missingSubRoles(roles: readonly GardenRole[]): GardenRole[] {
   const implied: readonly GardenRole[] = roles.includes("owner")
     ? GARDEN_SUB_ROLES.owner
     : roles.includes("steward")
       ? GARDEN_SUB_ROLES.steward
       : [];
   return GARDEN_ROLE_ORDER.filter((role) => implied.includes(role) && !roles.includes(role));
+}
+
+/**
+ * The missing sub-roles a repair may restore: only cascade gaps, never a sub-role whose last
+ * recorded event is a revocation, because someone removed it on purpose.
+ */
+export function restorableSubRoles(
+  roles: readonly GardenRole[],
+  revokedRoles: readonly GardenRole[]
+): GardenRole[] {
+  return missingSubRoles(roles).filter((role) => !revokedRoles.includes(role));
 }
 
 /**

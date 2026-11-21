@@ -142,6 +142,11 @@ export interface GardenMemberHistory {
   /** Start of the current uninterrupted membership; null after the last role is removed. */
   memberSince: number | null;
   roleSince: Partial<Record<import("../utils/blockchain/garden-roles").GardenRole, number>>;
+  /**
+   * Roles whose last recorded event is a revocation: taken away on purpose, not a grant that never
+   * minted. Set only when every role event was read; absent means the history is unknown.
+   */
+  revokedRoles?: import("../utils/blockchain/garden-roles").GardenRole[];
 }
 
 // ============================================

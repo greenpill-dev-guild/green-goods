@@ -13,7 +13,13 @@ describe("RestoreRolesNotice", () => {
     const check = vi.fn().mockResolvedValue(["evaluator"]);
     const restore = vi.fn().mockResolvedValue(true);
     render(
-      <RestoreRolesNotice address={MEMBER} roles={["steward"]} check={check} restore={restore} />
+      <RestoreRolesNotice
+        address={MEMBER}
+        roles={["steward"]}
+        revokedRoles={[]}
+        check={check}
+        restore={restore}
+      />
     );
 
     expect(
@@ -33,6 +39,7 @@ describe("RestoreRolesNotice", () => {
       <RestoreRolesNotice
         address={MEMBER}
         roles={["owner", "steward"]}
+        revokedRoles={[]}
         check={vi.fn().mockResolvedValue([])}
         restore={restore}
         onRosterStale={onRosterStale}
@@ -54,6 +61,7 @@ describe("RestoreRolesNotice", () => {
       <RestoreRolesNotice
         address={MEMBER}
         roles={["steward", "evaluator"]}
+        revokedRoles={[]}
         check={vi.fn().mockResolvedValue(null)}
         restore={restore}
       />
@@ -72,6 +80,7 @@ describe("RestoreRolesNotice", () => {
       <RestoreRolesNotice
         address={MEMBER}
         roles={["owner", "steward", "gardener"]}
+        revokedRoles={[]}
         check={vi.fn()}
         restore={vi.fn()}
       />
@@ -86,6 +95,7 @@ describe("RestoreRolesNotice", () => {
       <RestoreRolesNotice
         address={MEMBER}
         roles={["owner"]}
+        revokedRoles={[]}
         allowedRoles={["steward"]}
         check={vi.fn()}
         restore={vi.fn()}
@@ -94,5 +104,29 @@ describe("RestoreRolesNotice", () => {
 
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
     expect(screen.getByText(messages["admin.manageRoles.restore.ownerOnly"])).toBeInTheDocument();
+  });
+
+  it("offers nothing for a sub-role revoked on purpose, or while the history is unread", () => {
+    const { rerender } = render(
+      <RestoreRolesNotice
+        address={MEMBER}
+        roles={["steward", "gardener"]}
+        revokedRoles={["evaluator"]}
+        check={vi.fn()}
+        restore={vi.fn()}
+      />
+    );
+    expect(screen.queryByText(/Missing/)).not.toBeInTheDocument();
+
+    rerender(
+      <RestoreRolesNotice
+        address={MEMBER}
+        roles={["steward", "gardener"]}
+        check={vi.fn()}
+        restore={vi.fn()}
+      />
+    );
+    expect(screen.queryByText(/Missing/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 });

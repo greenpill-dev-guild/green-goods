@@ -2,7 +2,7 @@ import { Button } from "@green-goods/shared/components/Button";
 import type { Address } from "@green-goods/shared/types/domain";
 import {
   type GardenRole,
-  missingSubRoles,
+  restorableSubRoles,
 } from "@green-goods/shared/utils/blockchain/garden-roles";
 import { useState } from "react";
 import { useIntl } from "react-intl";
@@ -13,6 +13,11 @@ type RestoreStatus = "idle" | "working" | "nothing" | "unread" | "failed";
 export interface RestoreRolesNoticeProps {
   address: Address;
   roles: readonly GardenRole[];
+  /**
+   * Roles the person's history shows were revoked last, so removed on purpose. Absent while the
+   * history is unread or failed: then nothing is offered.
+   */
+  revokedRoles?: readonly GardenRole[];
   /** The roles this viewer may grant; absent when every role is open to them. */
   allowedRoles?: readonly GardenRole[];
   disabled?: boolean;
@@ -25,13 +30,15 @@ export interface RestoreRolesNoticeProps {
 }
 
 /**
- * Says which roles a person's Owner or Steward role gives but they do not hold, and restores
- * them in one action that names them. The chain is read first, so the wallet is asked only for
- * roles it still lacks, and the steward is told when nothing is missing.
+ * Says which roles a person's Owner or Steward role gives but its grant never minted, and restores
+ * them in one action that names them. A sub-role someone revoked is left alone. The chain is read
+ * first, so the wallet is asked only for roles it still lacks, and the steward is told when
+ * nothing is missing.
  */
 export function RestoreRolesNotice({
   address,
   roles,
+  revokedRoles,
   allowedRoles,
   disabled = false,
   check,
@@ -41,7 +48,7 @@ export function RestoreRolesNotice({
   const intl = useIntl();
   const { formatMessage } = intl;
   const [status, setStatus] = useState<RestoreStatus>("idle");
-  const missing = missingSubRoles(roles);
+  const missing = revokedRoles ? restorableSubRoles(roles, revokedRoles) : [];
   if (missing.length === 0) return null;
 
   const list = (names: readonly GardenRole[]) =>
