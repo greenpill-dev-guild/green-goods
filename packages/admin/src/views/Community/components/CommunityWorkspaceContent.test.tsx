@@ -2,7 +2,7 @@ import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/comm
 import { useGardenYieldWiringState } from "@green-goods/shared/hooks/yield/useGardenYieldWiringState";
 import messages from "@green-goods/shared/i18n/en.json";
 import type { ReactNode } from "react";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
@@ -198,5 +198,28 @@ describe("Coordination funding status with governance disabled", () => {
       enabled: true,
     });
     expect(screen.getByText(messages["app.community.yield.notConnected"])).toBeInTheDocument();
+  });
+  it("offers a retry outside the governance tab when the pool list and the wiring check both fail", () => {
+    const rereadPools = vi.fn();
+    const refetch = vi.fn();
+    vi.mocked(useGardenYieldWiringState).mockReturnValue({
+      wiringStatus: undefined,
+      refetch,
+    } as unknown as ReturnType<typeof useGardenYieldWiringState>);
+    renderWorkspace({
+      mode: "coordination",
+      pools: [],
+      poolsRead: false,
+      poolsUnread: true,
+      rereadPools,
+    });
+
+    expect(screen.queryByTestId("coordination")).not.toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      messages["hub.community.yield.readError.title"]
+    );
+    fireEvent.click(screen.getByRole("button", { name: messages["app.common.retry"] }));
+    expect(rereadPools).toHaveBeenCalledTimes(1);
+    expect(refetch).toHaveBeenCalledTimes(1);
   });
 });

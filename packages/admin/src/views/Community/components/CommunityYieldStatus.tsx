@@ -1,4 +1,5 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
 import { useGardenYieldWiringState } from "@green-goods/shared/hooks/yield/useGardenYieldWiringState";
 import type { Address } from "@green-goods/shared/types/domain";
 import { RiCheckLine } from "@remixicon/react";
@@ -8,19 +9,46 @@ import { Link } from "react-router-dom";
 export function CommunityYieldStatus({
   gardenId,
   enabled,
+  onRereadPools,
 }: {
   gardenId: Address;
   enabled: boolean;
+  /** Set when the pool list is unread and no other surface offers to read it again. */
+  onRereadPools?: () => void;
 }) {
   const { formatMessage } = useIntl();
-  const { wiringState, wiringStatus, repairHref } = useGardenYieldWiringState(gardenId, {
+  const { wiringState, wiringStatus, repairHref, refetch } = useGardenYieldWiringState(gardenId, {
     enabled,
   });
   const canShowReconnectLink =
     Boolean(wiringState?.expectedHypercertPoolAddress) && Boolean(repairHref);
-  if (!enabled) return null;
+  const poolReadError = onRereadPools ? (
+    <Alert
+      variant="error"
+      className="p-3"
+      title={formatMessage({ id: "hub.community.yield.readError.title" })}
+      action={
+        <Button
+          type="button"
+          emphasis="secondary"
+          size="compact"
+          onClick={() => {
+            onRereadPools();
+            // The wiring check reads separately and keeps a failed answer until asked again.
+            void refetch();
+          }}
+        >
+          {formatMessage({ id: "app.common.retry" })}
+        </Button>
+      }
+    >
+      {formatMessage({ id: "hub.community.yield.readError.description" })}
+    </Alert>
+  ) : null;
+  if (!enabled) return poolReadError;
   return (
     <>
+      {poolReadError}
       {wiringStatus === "missing-resolver-wiring" || wiringStatus === "mismatch" ? (
         <Alert
           variant="warning"
