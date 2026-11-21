@@ -4,6 +4,7 @@
 
 import { describe, expect, it, vi } from "vitest";
 
+import { roleKeys } from "../../../config/query-keys/identity";
 import type { Address } from "../../../types/domain";
 import { createTestQueryClient } from "../../test-utils/query-client";
 import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
@@ -42,5 +43,31 @@ describe("useSubRoleCheck", () => {
     });
 
     await expect(result.current(OWNER, ["evaluator"])).resolves.toBeNull();
+  });
+
+  it("reads nothing without a garden, and answers null so nothing is sent", async () => {
+    mocks.readGardenRoleHat.mockClear();
+    const { result } = renderHookWithQueryClient(() => useSubRoleCheck(undefined, 42161), {
+      queryClient: createTestQueryClient(),
+    });
+
+    await expect(result.current(OWNER, ["gardener"])).resolves.toBeNull();
+    expect(mocks.readGardenRoleHat).not.toHaveBeenCalled();
+  });
+
+  it("leaves the fresh answer where the row's own role-hat reads find it", async () => {
+    const queryClient = createTestQueryClient();
+    mocks.readGardenRoleHat.mockResolvedValue(false);
+    const { result } = renderHookWithQueryClient(() => useSubRoleCheck(GARDEN, 42161), {
+      queryClient,
+    });
+
+    await result.current(OWNER, ["evaluator"]);
+
+    expect(
+      queryClient.getQueryData(
+        roleKeys.roleHat(GARDEN.toLowerCase(), OWNER.toLowerCase(), "evaluator", 42161)
+      )
+    ).toBe(false);
   });
 });
