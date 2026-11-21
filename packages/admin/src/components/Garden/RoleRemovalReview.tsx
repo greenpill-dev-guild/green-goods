@@ -28,6 +28,7 @@ const STILL_HELD: ReadonlySet<ReviewPairStatus> = new Set([
   "declined",
   "failed",
   "notSent",
+  "proposed",
   "unknown",
 ]);
 
@@ -53,6 +54,7 @@ const STATUS_LABEL_IDS: Partial<Record<ReviewPairStatus, string>> = {
   declined: "admin.manageRoles.state.notSent",
   notSent: "admin.manageRoles.state.notSent",
   failed: "admin.manageRoles.state.failed",
+  proposed: "admin.manageRoles.state.proposed",
   unknown: "admin.manageRoles.state.unknown",
 };
 

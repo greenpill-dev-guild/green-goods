@@ -14,6 +14,8 @@ export interface ReviewState {
   people: ReviewPerson[];
   /** The pairs the current or last run sent, by `rolePairKey`. */
   run: string[];
+  /** Pairs whose send left a proposal that has not run, by `rolePairKey`. Check Again keeps them. */
+  proposals: string[];
 }
 
 /** Pairs a steward can send again as they are. */
@@ -45,8 +47,11 @@ export function withPairsStatus(
   reason?: string
 ): ReviewState {
   const keys = new Set(rows.map(rolePairKey));
+  const proposals =
+    status === "proposed" ? [...new Set([...review.proposals, ...keys])] : review.proposals;
   return {
     ...review,
+    proposals,
     people: review.people.map((entry) => ({
       ...entry,
       pairs: entry.pairs.map((pair) =>
@@ -76,6 +81,7 @@ export function reviewFromPicks(picks: readonly RolePair[], people: readonly Mem
   const review: ReviewState = {
     phase: "checking",
     run: [],
+    proposals: [],
     people: [...byPerson.entries()]
       .sort(([a], [b]) => (order.get(a) ?? 0) - (order.get(b) ?? 0))
       .map(([, entry]) => ({
@@ -114,21 +120,22 @@ export const withUnsettledUnknown = (review: ReviewState, pairs: readonly RolePa
     "unknown"
   );
 
-/** Check Again's answers: a pair found gone was removed, one still held can be sent again. */
+/**
+ * Check Again's answers: a pair found gone was removed. One still held can be sent again, unless
+ * its send left a proposal that has not run: a second send would open a second proposal, so it
+ * keeps waiting until a read finds it gone.
+ */
 export function withCheckAgainAnswers(
   review: ReviewState,
   rows: readonly RolePair[],
   held: readonly (boolean | null)[]
 ): ReviewState {
-  return rows.reduce(
-    (next, row, index) =>
-      withPairsStatus(
-        next,
-        [row],
-        held[index] === false ? "removed" : held[index] === true ? "failed" : "unknown"
-      ),
-    review
-  );
+  const proposals = new Set(review.proposals);
+  return rows.reduce((next, row, index) => {
+    if (held[index] === false) return withPairsStatus(next, [row], "removed");
+    if (proposals.has(rolePairKey(row))) return withPairsStatus(next, [row], "proposed");
+    return withPairsStatus(next, [row], held[index] === true ? "failed" : "unknown");
+  }, review);
 }
 
 /** The pairs a run settled for good; a declined or unsent one stays picked for Back. */
@@ -245,21 +252,28 @@ export function reviewMoment(
   }
 
   const unknown = pairsOf(review, new Set(["unknown"]));
+  const proposed = pairsOf(review, new Set(["proposed"]));
   const checkingAgain = count("checking") > 0;
-  if (unknown.length > 0 || checkingAgain) {
+  if (unknown.length > 0 || proposed.length > 0 || checkingAgain) {
     return {
       status: checkingAgain
         ? checking
-        : {
-            tone: "warning",
-            title: say("admin.manageRoles.unknown.title", { count: unknown.length }),
-            description: say("admin.manageRoles.unknown.body"),
-          },
+        : unknown.length > 0
+          ? {
+              tone: "warning",
+              title: say("admin.manageRoles.unknown.title", { count: unknown.length }),
+              description: say("admin.manageRoles.unknown.body"),
+            }
+          : {
+              tone: "info",
+              title: say("admin.manageRoles.proposed.title", { count: proposed.length }),
+              description: say("admin.manageRoles.proposed.body"),
+            },
       note: null,
       secondary: done,
       primary: {
         act: "checkAgain",
-        pairs: unknown,
+        pairs: [...unknown, ...proposed],
         label: say("admin.manageRoles.checkAgain"),
         loading: checkingAgain,
       },

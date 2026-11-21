@@ -217,13 +217,14 @@ describe("modules/garden/members-removal", () => {
     expect(statuses(unread)).toEqual(["unknown", "notSent"]);
   });
 
-  it("counts a proposal that has not run as unconfirmed, and signs nothing after it", async () => {
+  it("names a proposal that has not run, apart from an unclear send, and signs nothing after it", async () => {
     const proposal = { success: true, hash, confirmation: "pending" } as const;
     const waiting = await removeGardenRolesOneByOne(
       [evaluatorOf(ADA), evaluatorOf(BEN)],
       fakeChain({ sends: { [ADA.toLowerCase()]: proposal } })
     );
-    expect(statuses(waiting)).toEqual(["unknown", "notSent"]);
+    // A second send would open a second proposal, so the review must know it is one.
+    expect(statuses(waiting)).toEqual(["proposed", "notSent"]);
 
     // A proposal that already ran shows on chain, so it counts.
     const ran = await removeGardenRolesOneByOne(

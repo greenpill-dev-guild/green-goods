@@ -21,8 +21,10 @@ import { createGardenMembersChain, type GardenMemberRow } from "./members-batch"
  * - `declined`: the wallet's prompt was declined. Nothing was sent.
  * - `failed`: the send proved it cannot land (nothing went out, or the chain reverted or
  *   replaced it), and a read shows they still hold the role.
- * - `unknown`: a proposal (a Safe's) has not run yet, a send that went out may still land, or
- *   the read that would say whether it landed failed.
+ * - `proposed`: the wallet answered with a proposal (a Safe's) that has not run, and a read still
+ *   finds the role held. Sending again would open a second proposal for the same removal.
+ * - `unknown`: a send that went out may still land, or the read that would say whether it landed
+ *   failed.
  * - `notSent`: the run stopped before this pair's signature.
  */
 export type RoleRemovalOutcome =
@@ -31,6 +33,7 @@ export type RoleRemovalOutcome =
   | { status: "refused"; reason: string }
   | { status: "declined" }
   | { status: "failed"; reason?: string }
+  | { status: "proposed" }
   | { status: "unknown" }
   | { status: "notSent" };
 
@@ -204,9 +207,14 @@ export async function removeGardenRolesOneByOne(
     // A role still held is failed only after a send that proved it cannot land. Any other send
     // may already be on its way, so the pair is unconfirmed and nothing offers to send it again.
     const failed = held === true && !result.success && result.error?.cannotLand === true;
+    const proposed = result.success && result.confirmation === "pending" && held === true;
     settle(
       row,
-      failed ? { status: "failed", reason: result.error?.message } : { status: "unknown" }
+      failed
+        ? { status: "failed", reason: result.error?.message }
+        : proposed
+          ? { status: "proposed" }
+          : { status: "unknown" }
     );
   }
 
