@@ -411,7 +411,6 @@
       "packages/admin/src/views/Garden/Pool/Group/AddToGroupDialog.tsx": ["AddToGroupCounts"],
       "packages/admin/src/views/Garden/Pool/Seed/SeedStepReview.tsx": ["SeedReviewCapacity"],
       "packages/admin/src/views/Garden/Pool/Seed/seedStatus.ts": ["SeedPhase"],
-      "packages/admin/src/views/Review/components/ReviewWorkCard.tsx": ["ReviewWorkCardStatusTone"],
       "packages/agent/src/api/http/server.types.ts": ["UploadSigningConfig"],
       "packages/agent/src/api/server.ts": [
         "ThirdwebCheckoutClientConfig",
