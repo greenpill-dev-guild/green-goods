@@ -18,7 +18,8 @@ queue's offline uploads need authenticated Brave, and this skill never stands in
 ## Launch
 
 Preconditions: dependencies installed (`bun install` done; the pre-push hook and CI assume the
-same), and Playwright's Chromium installed once with `bun x playwright install chromium`. No `.env` value is needed: the server runs on Sepolia in Vite's `test` mode with telemetry
+same), and Playwright's Chromium installed once with `bun x playwright install chromium`. The helper also
+needs `ps` and `lsof`, which macOS has; minimal Linux images may need `lsof` installed. No `.env` value is needed: the server runs on Sepolia in Vite's `test` mode with telemetry
 off, and the browser answers indexer, EAS and RPC reads from fixtures. The server listens on
 127.0.0.1 only, and the browser blocks requests to a local Agent (3005) or indexer (3006), so a run
 never reads or writes a developer's running services.
@@ -118,6 +119,6 @@ the evidence is still in `.cache/verify/<run-id>/`.
   name contains one; everything after that is the value.
 - `expect-hidden` also passes when the element never existed, so a misspelled name passes too. Copy
   the name from a `snapshot` of the page before the navigation.
-- Two console 403s and a blocked `localhost:3005` request appear on client runs: avatar and Agent
-  requests the fixtures do not answer. They do not change the journeys mapped today.
+- Client runs log console 403s (avatars), a 400, and `net::ERR_BLOCKED_BY_CLIENT` for the Agent and
+  other requests blocked on purpose. They do not change the journeys mapped today.
 - `bun test` is never the command; the helper runs with `bun scripts/dev/verify-control.ts`.

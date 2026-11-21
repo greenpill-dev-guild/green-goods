@@ -42,4 +42,5 @@ Preconditions:
 - The card heading and the page heading share the name, so `expect:heading:Test Community Garden`
   alone cannot tell the two pages apart.
 - The list's `Filters` button is disabled until the gardens load; it says nothing about the journey.
-- Two 403s (avatars) and a blocked `localhost:3005` request appear in the console on every run.
+- Avatar 403s and `net::ERR_BLOCKED_BY_CLIENT` lines for blocked Agent requests appear in the console
+  on every run.

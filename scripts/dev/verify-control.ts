@@ -34,6 +34,9 @@ const APPS = {
 type App = keyof typeof APPS;
 const ROLES = ["user", "steward", "deployer", "disconnected"] as const;
 type Role = (typeof ROLES)[number];
+// How long an expect step waits: a route's first visit waits on Vite compiling it, which can
+// take most of the 30 s that goto already allows.
+const WAIT_MS = 30_000;
 // Run ids, feature ids and evidence file names: no leading dot, so never `.` or `..`.
 const NAME = /^[\w-][\w.-]*$/;
 
@@ -97,14 +100,17 @@ function writeState(dir: string, state: ServerState) {
  * pid, lsof for a free port); any other failure throws, so a broken ps or lsof never reads as a
  * process that is gone.
  */
-function output(command: string[], emptyExit?: number): string {
-  let result: ReturnType<typeof Bun.spawnSync>;
+function run(command: string[]) {
   try {
     // A fixed zone and locale, so ps prints a start time that reads the same in every shell.
-    result = Bun.spawnSync(command, { stderr: "pipe", env: { ...process.env, TZ: "UTC", LC_ALL: "C" } });
+    return Bun.spawnSync(command, { stdout: "pipe", stderr: "pipe", env: { ...process.env, TZ: "UTC", LC_ALL: "C" } });
   } catch (error) {
     throw new Error(`${command[0]} is required and could not run: ${(error as Error).message}`);
   }
+}
+
+function output(command: string[], emptyExit?: number): string {
+  const result = run(command);
   if (result.exitCode === 0) return result.stdout.toString().trim();
   if (result.exitCode === emptyExit && !result.stderr.toString().trim()) return "";
   throw new Error(`${command.join(" ")} failed (${result.exitCode}): ${result.stderr.toString().trim()}`);
@@ -145,6 +151,14 @@ function owned(state: ServerState): boolean {
   return groupMembers(state.pid).some(({ command }) => command.includes("vite") && command.includes(`--port ${state.port}`));
 }
 
+/** Whether the recorded group still serves the port or still runs a Vite on it, owned or not. */
+function heldByRecordedGroup(state: ServerState): boolean {
+  return (
+    listenerGroups(state.port).includes(state.pid) ||
+    groupMembers(state.pid).some(({ command }) => command.includes("vite") && command.includes(`--port ${state.port}`))
+  );
+}
+
 /** Stop this run's group, waiting for it to go; true once nothing this run can prove its own is left. */
 async function stopGroup(state: ServerState): Promise<boolean> {
   for (const [signal, waitMs] of [["SIGTERM", 10_000], ["SIGKILL", 5_000]] as const) {
@@ -175,13 +189,23 @@ async function probe(port: number): Promise<string | null> {
 }
 
 /**
- * Every PostHog and Sentry key env.schema names, set empty. Vite copies a root .env value only
- * where the key is undefined, so removing a key would let the developer's real one back in.
+ * Every PostHog and Sentry key, set empty: those env.schema names, those either Vite config reads
+ * (including its NEXT_PUBLIC_ and PUBLIC_ fallbacks), and any already in the environment. Vite
+ * copies a root .env value only where a key is undefined, and the configs treat an empty value as
+ * unset and try the next name, so every name in a fallback chain has to be blank.
  */
 function telemetryBlanks(): Record<string, string> {
+  const telemetry = /^[A-Z0-9_]*(?:POSTHOG|SENTRY)[A-Z0-9_]*$/;
   const schema = readFileSync(path.join(repoRoot, "env.schema"), "utf8");
-  const keys = [...schema.matchAll(/^([A-Z][A-Z0-9_]*(?:POSTHOG|SENTRY)[A-Z0-9_]*)=/gm)].map((match) => match[1]);
-  return Object.fromEntries(keys.map((key) => [key, ""]));
+  const configs = Object.values(APPS)
+    .map(({ cwd }) => readFileSync(path.join(repoRoot, cwd, "vite.config.ts"), "utf8"))
+    .join("\n");
+  const keys = new Set([
+    ...[...schema.matchAll(/^([A-Z0-9_]+)=/gm)].map((match) => match[1]),
+    ...[...configs.matchAll(/["'`]([A-Z0-9_]+)["'`]/g)].map((match) => match[1]),
+    ...Object.keys(process.env),
+  ]);
+  return Object.fromEntries([...keys].filter((key) => telemetry.test(key)).map((key) => [key, ""]));
 }
 
 async function launch(argv: string[]) {
@@ -190,7 +214,7 @@ async function launch(argv: string[]) {
   const { run, dir } = runDir(argv);
   const existing = readState(dir, app);
   if (existing && owned(existing)) fail(`${app} is already running for run ${run}${existing.url ? ` at ${existing.url}` : ""}; run cleanup first`);
-  if (existing && listenerGroups(existing.port).includes(existing.pid)) {
+  if (existing && heldByRecordedGroup(existing)) {
     fail(`${app}'s recorded group ${existing.pid} still serves port ${existing.port} but cannot be proven this run's; stop it by hand`);
   }
   if (existing) rmSync(statePath(dir, app));
@@ -329,13 +353,13 @@ async function drive(argv: string[]) {
   const failureShot = path.join(evidence, `failure-${width}.png`);
   // A retry must not leave an earlier attempt's captures beside this attempt's transcript.
   const captures = steps.flatMap((step) => (/^(snapshot|screenshot):/.test(step) ? [step.slice(step.indexOf(":") + 1)] : []));
-  for (const name of captures) {
-    try {
-      rmSync(evidenceFile(evidence, name), { force: true });
-    } catch (error) {
-      fail((error as Error).message);
-    }
+  let captureFiles: string[] = [];
+  try {
+    captureFiles = captures.map((name) => evidenceFile(evidence, name));
+  } catch (error) {
+    fail((error as Error).message);
   }
+  for (const file of captureFiles) rmSync(file, { force: true });
   for (const file of [failureShot, path.join(evidence, `transcript-${width}.txt`)]) rmSync(file, { force: true });
 
   const transcript: string[] = [`feature ${feature}, app ${app}, role ${role}, width ${width}, server ${url} at ${state.commit}`];
@@ -397,12 +421,12 @@ async function drive(argv: string[]) {
         } else if (kind === "fill") {
           await page.getByRole(rest[0] as never, { name: rest[1], exact: true }).first().fill(rest.slice(2).join(":"));
         } else if (kind === "expect") {
-          await page.getByRole(rest[0] as never, { name: rest.slice(1).join(":"), exact: true }).first().waitFor({ state: "visible", timeout: 15_000 });
+          await page.getByRole(rest[0] as never, { name: rest.slice(1).join(":"), exact: true }).first().waitFor({ state: "visible", timeout: WAIT_MS });
         } else if (kind === "expect-hidden") {
-          await page.getByRole(rest[0] as never, { name: rest.slice(1).join(":"), exact: true }).first().waitFor({ state: "hidden", timeout: 15_000 });
+          await page.getByRole(rest[0] as never, { name: rest.slice(1).join(":"), exact: true }).first().waitFor({ state: "hidden", timeout: WAIT_MS });
         } else if (kind === "expect-url") {
           const fragment = rest.join(":");
-          await page.waitForURL((current) => current.href.includes(fragment), { timeout: 15_000 });
+          await page.waitForURL((current) => current.href.includes(fragment), { timeout: WAIT_MS });
         } else if (kind === "snapshot") {
           writeFileSync(evidenceFile(evidence, rest.join(":")), await page.locator("body").ariaSnapshot());
         } else if (kind === "screenshot") {
@@ -451,7 +475,7 @@ async function cleanup(argv: string[]) {
     // group; never anything found by name or port. Any doubt keeps the state file.
     try {
       const running = owned(state);
-      if (!running && listenerGroups(state.port).includes(state.pid)) {
+      if (!running && heldByRecordedGroup(state)) {
         stuck = true;
         console.error(`verify-control: ${app} group ${state.pid} still serves port ${state.port} but cannot be proven this run's; stop it by hand, then remove ${path.relative(repoRoot, statePath(dir, app))}`);
       } else if (await stopGroup(state)) {
