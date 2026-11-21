@@ -1,4 +1,5 @@
 import type { Domain } from "../../../types/domain";
+import { parseWorkDay } from "../garden/workCalendar";
 import type { AdminSheetSide } from "../navigation/sheetRegistry";
 import {
   type ReviewPipelineStage,
@@ -54,6 +55,8 @@ export interface ReviewRouteStateInput {
   pathname: string;
   sortParam: string | null;
   scopeParam?: string | null;
+  /** The calendar day the Work tab is narrowed to, as the URL has it. */
+  dayParam?: string | null;
   routedWorkIdParam?: string;
   routedAssessmentIdParam?: string;
   activeContentId: string | null;
@@ -130,6 +133,7 @@ export function resolveReviewRouteState({
   pathname,
   sortParam,
   scopeParam,
+  dayParam,
   routedWorkIdParam,
   routedAssessmentIdParam,
   activeContentId,
@@ -139,6 +143,9 @@ export function resolveReviewRouteState({
   const routeCertificationId = routedAssessmentIdParam;
   const activeWorkDetailId = parseWorkDetailContentId(activeContentId);
   const activeCertificationId = parseCertificationContentId(activeContentId);
+  const requestedStage = resolvePipelineStageFromPath(pathname);
+  // A day narrows only the Work tab; the other stages ignore one left in the URL.
+  const workDay = requestedStage === "work" ? parseWorkDay(dayParam, new Date()) : null;
   const { routeSheetContentId, routeSheetSide } = resolveReviewRouteSheet({
     isSubmitRoute,
     routeWorkId,
@@ -149,13 +156,14 @@ export function resolveReviewRouteState({
     activeCertificationId,
     activeWorkDetailId,
     isSubmitRoute,
-    requestedStage: resolvePipelineStageFromPath(pathname),
+    requestedStage,
     routeCertificationId,
     routeSheetContentId,
     routeSheetSide,
     routeWorkId,
     sortDirection: parseSortDirection(sortParam),
-    workScope: parseWorkScope(scopeParam),
+    workDay,
+    workScope: parseWorkScope(scopeParam, workDay !== null),
   };
 }
 
