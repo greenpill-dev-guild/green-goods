@@ -258,8 +258,9 @@ export function getWagmiConfig(): Config {
   return activeWagmiConfig(config as unknown as Config);
 }
 
+// The window check comes first, so a non-browser consumer (the Agent) never reads import.meta.env.
 function mockAuthSeamActive(): boolean {
-  return import.meta.env.DEV === true && typeof window !== "undefined" && hasMockAuthOverride();
+  return typeof window !== "undefined" && Boolean(import.meta.env.DEV) && hasMockAuthOverride();
 }
 
 let mockAuthConfig: Config | null = null;
