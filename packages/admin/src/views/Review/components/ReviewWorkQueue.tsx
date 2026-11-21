@@ -93,6 +93,8 @@ interface ReviewWorkQueueProps {
   reviewBatch?: ReviewBatch;
   /** The garden's next page of older work, while it has more than the list holds. */
   older?: ReviewOlderRecords;
+  /** Clears the chosen waiting-time band, when one narrows the list. */
+  onClearWaitingBand?: () => void;
 }
 
 /** What a decision waiting on this work says in place of its status. Always a word and a color. */
@@ -235,6 +237,7 @@ function ReviewWorkQueueList({
   onClearSearch,
   reviewBatch,
   older,
+  onClearWaitingBand,
 }: ReviewWorkQueueProps) {
   const { formatMessage } = useIntl();
   const isPhone = useMediaQuery(PHONE_QUERY);
@@ -315,6 +318,34 @@ function ReviewWorkQueueList({
                 })}
               </Button>
             </div>
+          }
+        />
+      </EmptyStateShell>
+    );
+  }
+
+  // A chosen waiting-time band with nothing in it says so, rather than "All caught up" while
+  // other bands still wait.
+  if (items.length === 0 && onClearWaitingBand && !older) {
+    return (
+      <EmptyStateShell>
+        <EmptyState
+          icon={<RiCheckboxCircleLine className="h-6 w-6" />}
+          title={formatMessage({
+            id: "hub.review.work.waiting.empty.title",
+            defaultMessage: "Nothing has waited this long",
+          })}
+          description={formatMessage({
+            id: "hub.review.work.waiting.empty.description",
+            defaultMessage: "Choose another waiting time, or clear it to see all pending work.",
+          })}
+          action={
+            <Button type="button" size="sm" emphasis="secondary" onClick={onClearWaitingBand}>
+              {formatMessage({
+                id: "hub.review.work.waiting.clear",
+                defaultMessage: "Clear Waiting Time",
+              })}
+            </Button>
           }
         />
       </EmptyStateShell>

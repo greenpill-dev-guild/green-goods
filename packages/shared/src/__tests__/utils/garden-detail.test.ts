@@ -176,4 +176,37 @@ describe("summarizeReviewQueue with the garden's whole queue", () => {
       stalled,
     });
   });
+
+  // PRD-1577: Review's waiting chips count the same pending work as the header.
+  it("splits waiting work into bands that add up to the pending total and the week's count", () => {
+    const summary = summarizeReviewQueue([pending(1)], NOW, {
+      garden: listed(
+        3,
+        waiting(nextId(), 0.5),
+        waiting(nextId(), 2),
+        waiting(nextId(), 6.9),
+        waiting(nextId(), 7),
+        waiting(nextId(), 20)
+      ),
+    });
+    expect(summary.waitingByBand).toEqual({ under2d: 1, days2to7: 2, weeks1to2: 1, over2w: 1 });
+    expect(Object.values(summary.waitingByBand).reduce((a, b) => a + b, 0)).toBe(
+      summary.pendingCount
+    );
+    expect(summary.waitingByBand.weeks1to2 + summary.waitingByBand.over2w).toBe(
+      summary.waitingOverWeekCount
+    );
+    expect(summary.waitingByBandComplete).toBe(true);
+  });
+
+  it("calls the bands a minimum when the queue is longer than one read lists", () => {
+    const summary = summarizeReviewQueue([pending(1), pending(9)], NOW, {
+      garden: counted(3, 40, 12),
+    });
+    expect(summary.waitingByBand).toMatchObject({ under2d: 1, weeks1to2: 1 });
+    expect(summary.waitingByBandComplete).toBe(false);
+    expect(summarizeReviewQueue([pending(1)], NOW, { complete: false }).waitingByBandComplete).toBe(
+      false
+    );
+  });
 });
