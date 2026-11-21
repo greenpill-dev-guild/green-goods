@@ -20,7 +20,7 @@ const prismDark = {
 // The brand voice descriptor (docs/docs/reference/brand-voice.mdx, section 1). The
 // tagline and the footer carry the same sentence.
 const descriptor =
-  'Green Goods helps communities name their needs, make promises, document regenerative work, review it together, and turn the record into support.';
+  'Green Goods helps communities name their needs, make promises, document and review regenerative work, and turn the record into support.';
 
 const config: Config = {
   title: 'Green Goods Documentation',

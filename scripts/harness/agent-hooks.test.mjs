@@ -85,6 +85,11 @@ const harmless = [
   "# deploy mainnet\nbun run test # bun test",
   // Lookups name a command without running it.
   "command -v bun test", "command -V bun test", "command -pv bun test",
+  // Bun's global options before a subcommand that is not `test`, and wrappers around safe commands.
+  // Bun reads a separate word after an option as the subcommand: these run package scripts.
+  "bun --cwd packages/shared test", "bun --port 3000 test", "bun --cwd packages/shared run test",
+  "bun --bun run test", "env -S 'bun run test'", "xargs -n 1 bun run test", "xargs -I{} echo {}",
+  "fly status", "fly releases -a green-goods",
   // A broadcast whose last network is a test network, and a release rehearsal, stay unprompted.
   "bun run contracts -- deploy core --network sepolia --mode broadcast",
   "bun run contracts -- deploy core --network=localhost --mode=broadcast",
@@ -121,6 +126,10 @@ for (const command of [
   // Path-qualified wrappers and package-runner call strings: the floor reads them, the guards do not yet.
   "/usr/bin/env bun test", "/usr/bin/timeout 5 bun test", "npm exec --call 'bun test'", "npx --call='bun test'",
   "npx -c cat <.env",
+  // Bun's global options before the subcommand, env's split string and xargs: the floor reads them.
+  "bun --bun test", "bun --cwd=packages/shared test", "bun --smol test src", "bun -- test", "env -S 'bun test'",
+  "env -S'bun test'", "env -iS 'bun test'", "env -uDISPLAY bun test", "env -uSSH_AUTH_SOCK bun test", "env --split-string='bun test --watch'", "printf a | xargs bun test",
+  "xargs -n 1 bun test < files.txt", "xargs -J % bun test", "xargs -R 1 bun test",
 ]) {
   test(`restricted command: ${command.split("\n")[0]}`, () => {
     for (const harness of ["claude", "codex"]) {
@@ -137,9 +146,12 @@ test("deployment and direct Forge enforcement retain the harness differences", (
     assert.ok(warning.some((result) => /PRODUCTION DEPLOYMENT/.test(result.output)));
     assert.ok(commandHooks("codex", command).some((result) => result.code === 2));
   }
-  for (const command of ["forge build", "forge test", "fly deploy"]) {
-    assert.ok(commandHooks("claude", command).every((result) => result.code === 0));
-    assert.ok(commandHooks("codex", command).some((result) => result.code === 2));
+  // Claude's floor warns where the shared guards ask, as for the deployments above.
+  for (const command of ["forge build", "forge test", "fly deploy", "flyctl deploy"]) {
+    const warning = commandHooks("claude", command);
+    assert.ok(warning.every((result) => result.code === 0), command);
+    assert.ok(warning.some((result) => /forge build\/test|PRODUCTION DEPLOYMENT/.test(result.output)), command);
+    assert.ok(commandHooks("codex", command).some((result) => result.code === 2), command);
   }
 });
 
@@ -185,9 +197,9 @@ const commandFloor = {
     claude: "block",
     codex: "block",
   },
-  "forge-direct": { samples: ["forge build", "forge test"], codex: "block" },
+  "forge-direct": { samples: ["forge build", "forge test"], claude: "warn", codex: "block" },
   "vercel-prod": { samples: ["vercel --prod", "npx vercel@62.1.0 --prod"], ...production },
-  "fly-deploy": { samples: ["fly deploy"], codex: "block" },
+  "fly-deploy": { samples: ["fly deploy"], ...production },
   "mainnet-deploy": {
     samples: ["bun script/deploy.ts core --network mainnet --broadcast", "bash scripts/deploy-mainnet.sh", "bun script/deploy-mainnet.ts --broadcast"],
     ...production,
@@ -228,8 +240,8 @@ const critical = { claude: "notice", codex: "notice" };
 const pathFloor = {
   // .env.example, not .env.local: the secret-file rule would block a .env.local by itself.
   "package-env": { file: "packages/client/.env.example", claude: "block", codex: "block" },
-  "client-hooks": { file: "packages/client/src/hooks/useThing.ts", claude: "block" },
-  "admin-hooks": { file: "packages/admin/src/hooks/useThing.ts", claude: "block" },
+  "client-hooks": { file: "packages/client/src/hooks/useThing.ts", claude: "block", codex: "block" },
+  "admin-hooks": { file: "packages/admin/src/hooks/useThing.ts", claude: "block", codex: "block" },
   "critical-contracts": { file: "packages/contracts/src/Garden.sol", ...critical },
   "critical-auth-provider": { file: "packages/shared/src/providers/Auth.tsx", ...critical },
   "critical-job-queue-provider": { file: "packages/shared/src/providers/JobQueue.tsx", ...critical },

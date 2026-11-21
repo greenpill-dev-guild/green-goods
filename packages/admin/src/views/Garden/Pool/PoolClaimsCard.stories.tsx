@@ -217,7 +217,7 @@ export const Paused: Story = {
 /**
  * Tech and Sun's voucher bookings (PRD-1297 surface 6): Lina's hub day waits on
  * the Safe's approval (Approve…), and Kwesi's deposit is confirmed, so the steward
- * can accept it (Accept…). Neither is a one-tap Approve.
+ * can accept it (Accept and Start…). Neither is a one-tap Approve.
  */
 export const VoucherAsks: Story = {
   args: {
@@ -245,11 +245,13 @@ export const VoucherApproveBooking: Story = {
   },
 };
 
-/** Accept… opens the acceptance with its four checks, all holding. */
+/** Accept and Start… opens the acceptance with its four checks, all holding. */
 export const VoucherAccept: Story = {
   ...VoucherAsks,
   play: async ({ canvasElement }) => {
-    await userEvent.click(await within(canvasElement).findByRole("button", { name: "Accept…" }));
+    await userEvent.click(
+      await within(canvasElement).findByRole("button", { name: "Accept and Start…" })
+    );
     await expect(await screen.findByText("Accept Kwesi?")).toBeVisible();
   },
 };
@@ -286,7 +288,7 @@ export const VoucherAskGreenGoods: Story = {
 
 /**
  * A member's lesson beside the hub days (PRD-1299 slice 2): Teo approved Maya's
- * booking from his own account, so her row says he did, and Accept… opens his
+ * booking from his own account, so her row says he did, and Accept and Start… opens his
  * checks, never the Safe's.
  */
 export const VoucherMemberAsk: Story = {
@@ -304,7 +306,7 @@ export const VoucherMemberAsk: Story = {
       /^1 Teo Alves voucher in escrow · Teo Alves approved · accept by /
     );
     const row = within(line.closest("li")!);
-    await userEvent.click(row.getByRole("button", { name: "Accept…" }));
+    await userEvent.click(row.getByRole("button", { name: "Accept and Start…" }));
     // The dialog fades in, so its words are read once it has.
     await waitFor(async () => expect(await screen.findByText("Accept Maya?")).toBeVisible());
     await expect(
@@ -324,11 +326,11 @@ export const VoucherAskWaitingForIssuer: Story = {
     const card = within(canvasElement);
     await expect(await card.findByText("Waiting for Tech and Sun")).toBeVisible();
     await expect(card.queryByRole("button", { name: "Approve…" })).toBeNull();
-    await expect(card.getByRole("button", { name: "Accept…" })).toBeEnabled();
+    await expect(card.getByRole("button", { name: "Accept and Start…" })).toBeEnabled();
   },
 };
 
-/** Kwesi's deposit landed, but his ask names no agreement the acceptance can name: no Accept…. */
+/** Kwesi's deposit landed, but his ask names no agreement the acceptance can name: no Accept and Start…. */
 export const VoucherAgreementMissing: Story = {
   args: {
     ...VoucherAsks.args,
@@ -342,7 +344,7 @@ export const VoucherAgreementMissing: Story = {
     const card = within(canvasElement);
     await expect(await card.findByText("Agreement missing")).toBeVisible();
     await expect(card.getByText("No agreement to accept · they book again")).toBeVisible();
-    await expect(card.queryByRole("button", { name: "Accept…" })).toBeNull();
+    await expect(card.queryByRole("button", { name: "Accept and Start…" })).toBeNull();
   },
 };
 
@@ -402,7 +404,7 @@ export const VoucherEveryAct: Story = {
   play: async ({ canvasElement }) => {
     const card = within(canvasElement);
     await expect(await card.findByRole("button", { name: "Approve…" })).toBeEnabled();
-    await expect(card.getByRole("button", { name: "Accept…" })).toBeEnabled();
+    await expect(card.getByRole("button", { name: "Accept and Start…" })).toBeEnabled();
     await expect(card.getByRole("button", { name: "Report Visit…" })).toBeEnabled();
     await expect(card.getByText("Visit to report")).toBeVisible();
     await expect(

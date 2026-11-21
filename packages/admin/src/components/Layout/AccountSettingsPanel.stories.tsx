@@ -105,6 +105,20 @@ export const Default: Story = {
       "https://discord.gg/greenpill"
     );
     await expect(canvas.queryByText("Disconnect")).not.toBeInTheDocument();
+    // A browser tab has its own reload, so Refresh shows only in the installed Hub.
+    await expect(canvas.queryByRole("button", { name: "Refresh the Hub" })).toBeNull();
+  },
+};
+
+/**
+ * The installed Hub: About adds Refresh, a plain reload that keeps the session and drafts,
+ * for installed apps the platform gives no pull to refresh (PRD-1534).
+ */
+export const Installed: Story = {
+  args: { installed: true },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByRole("button", { name: "Refresh the Hub" })).toBeVisible();
   },
 };
 

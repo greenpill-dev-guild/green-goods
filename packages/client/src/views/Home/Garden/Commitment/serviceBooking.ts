@@ -1,4 +1,5 @@
 import {
+  type CommitmentReadModel,
   liveVoucherIssuerName,
   type ServiceAccessSnapshot,
   type VoucherIssuer,
@@ -6,12 +7,12 @@ import {
 import type { Address } from "@green-goods/shared/types/domain";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import type { IntlShape } from "react-intl";
-import { bookingFacts, bookingSentence } from "./serviceBookingCopy";
+import { bookingFacts, bookingHowItWorks, bookingSentence } from "./serviceBookingCopy";
 import {
   ACTS,
-  CHIP,
+  bookingNeedsYou,
+  bookingPill,
   currentVoucherSetup,
-  NEEDS_YOU,
   POSITION,
   recoveryAct,
   same,
@@ -23,6 +24,7 @@ import {
   bookingDelivery,
   bookingDetails,
   bookingPhases,
+  bookingTracker,
   bookingTransfers,
 } from "./serviceBookingSteps";
 import type {
@@ -137,6 +139,23 @@ export function bookingVoucherPair(
           : null;
 }
 
+/**
+ * A promise that may be the reader's booking of a service: an approval-gated offer one person
+ * takes up, made by someone else. Only these are read as bookings, and only these hold their
+ * team and History back until the read answers.
+ */
+export function mayBeBooking(
+  commitment: Pick<CommitmentReadModel, "direction" | "claimMode" | "claimType" | "creator">,
+  viewer: Address | null | undefined
+): boolean {
+  return (
+    commitment.direction === "OFFER" &&
+    commitment.claimMode === "APPROVAL_GATED" &&
+    commitment.claimType === "INDIVIDUAL" &&
+    (!viewer || commitment.creator?.toLowerCase() !== viewer.toLowerCase())
+  );
+}
+
 /** A promise its service's own acts govern: the generic take-up and claims step aside. */
 export function isServiceAccessPromise(s: ServiceAccessSnapshot | null | undefined): boolean {
   return s?.knownService === true || s?.acceptancePolicy.blockGenericMemberAcceptance === true;
@@ -182,6 +201,21 @@ export function ownServiceOfferView(
   };
 }
 
+/**
+ * Whether a booking needs its reader, as a list row reads it: the booking's own stage, worked out
+ * from the same read the promise page uses, so a row and the page's band never disagree. A row
+ * the read hasn't answered for, or an offer with no voucher route, says nothing.
+ */
+export function bookingNeedsYouOf(
+  snapshot: ServiceAccessSnapshot | null | undefined,
+  coreState: ServiceBookingInput["coreState"] | null | undefined,
+  acceptedAt?: number | null
+): boolean {
+  if (!snapshot || !coreState) return false;
+  const stage = serviceBookingStage({ snapshot, coreState, held: null, acceptedAt });
+  return stage !== null && bookingNeedsYou(stage, currentVoucherSetup(snapshot));
+}
+
 /** Everything the promise page draws for one voucher offer or booking. */
 export function serviceBookingView(
   input: ServiceBookingInput,
@@ -206,10 +240,11 @@ export function serviceBookingView(
   const final = d?.finalAllocation ?? null;
   const deadline = setup?.authorization.acceptanceDeadline ?? null;
   // The split the holder can approve: the issuer's return limit comes back, the rest is released.
+  // A problem raised on a proposed return keeps that limit, since it says what was delivered.
   const ceiling = d?.issuerReturnCeiling ?? 0n;
   const refund = final
     ? final.allocation.refundVoucherUnits
-    : stage === "returnProposed"
+    : stage === "returnProposed" || stage === "problemReported"
       ? ceiling < units
         ? ceiling
         : units
@@ -224,7 +259,11 @@ export function serviceBookingView(
       ? 1n
       : proportional;
   const reported =
-    final !== null || stage === "returnProposed" || stage === "readyToClose" || stage === "closed";
+    final !== null ||
+    stage === "returnProposed" ||
+    stage === "readyToClose" ||
+    stage === "closed" ||
+    (stage === "problemReported" && input.proofRecorded === true);
   const accessDays = profile === "access" ? Number(serviceUnits) : 0;
   const daysDone = reported ? Number(delivered) : (input.schedule?.accessDay ?? null);
   const kept = stage === "closed" && (coreState === "FULFILLED" || coreState === "RECONCILED");
@@ -271,7 +310,7 @@ export function serviceBookingView(
   };
   // A stage that waits on others still needs the reader when an act of theirs stopped partway.
   const recovery = recoveryAct(stage, setup);
-  const needsYou = stage === "requestNotSent" || NEEDS_YOU.has(stage) || recovery !== null;
+  const needsYou = bookingNeedsYou(stage, setup);
   const tone: ServiceBandTone = needsYou
     ? "attention"
     : kept
@@ -288,7 +327,7 @@ export function serviceBookingView(
               ? "wait.sendRequest"
               : stage === "notEnough"
                 ? "of.cta.reviewTerms"
-                : "of.cta.redeem"
+                : "of.cta.book"
           )
         : kind === "deposit"
           ? ctx.one
@@ -296,7 +335,10 @@ export function serviceBookingView(
             : t("rd.a.deposit", { n })
           : kind === "exchange"
             ? t("of.a.exchange")
-            : t(`rd.a.${kind}`),
+            : // A visit delivered in full and one cut short close the same way (DL-192).
+              kind === "close" || kind === "review"
+              ? t("rd.a.confirmVisit")
+              : t(`rd.a.${kind}`),
   });
   const held = input.held ?? 0n;
   // Approved, but the reader holds less than the deposit takes: the deposit would be refused, so
@@ -312,12 +354,6 @@ export function serviceBookingView(
     (stage === "open" || stage === "notEnough") && input.issuer?.standing.bookings === "paused";
   // A paused offer the reader can't afford has no act: nothing to exchange into, nothing to book.
   const actsPaused = issuerPaused && stage === "notEnough";
-  const pillId = endedEarly
-    ? "app.voucher.pp.st.endedEarly"
-    : stage === "requestInTransit" || stage === "activationInTransit"
-      ? "app.voucher.wait.messagePending"
-      : null;
-  const chipTone = CHIP[stage];
   const shortDoor = () => ({
     title: t("of.r.shortV.t", { have: count(held), unit: unit(held) }),
     body: t(
@@ -339,11 +375,11 @@ export function serviceBookingView(
       tone,
       sentence: bookingSentence(ctx),
       needsYou,
-      pillId,
-      chip:
-        chipTone && !pillId ? { labelId: `app.voucher.pp.chip.${stage}`, tone: chipTone } : null,
+      pill: bookingPill(stage, profile, { kept, endedEarly }),
     },
+    tracker: bookingTracker(ctx),
     facts: bookingFacts(ctx),
+    howItWorks: bookingHowItWorks(ctx),
     termsVersion: revision !== null ? t("pp.version", { v: revision.toString() }) : null,
     phases,
     transfers: bookingTransfers(ctx),
@@ -364,11 +400,6 @@ export function serviceBookingView(
           ? shortDoor()
           : null,
     issuerPaused,
-    // History keeps what happened; the step under way shows in the booking's steps.
-    events: phases
-      .flatMap((p) => p.steps)
-      .filter((entry) => entry.state !== "todo" && entry.state !== "now")
-      .reverse(),
     split:
       stage === "readyToClose" || stage === "returnProposed"
         ? { delivered, release, refund }

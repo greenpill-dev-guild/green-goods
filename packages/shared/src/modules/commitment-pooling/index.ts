@@ -29,6 +29,8 @@ export { liveVoucherIssuerName } from "./service-access-live-config";
 export * from "./service-access-pilot-types";
 export * from "./service-access-types";
 export * from "./service-access-voucher-types";
+// The member's Start the Booking is a fallback for the steward's (DL-193).
+export { voucherStartFallbackDue } from "./voucher-start";
 export type { ServiceOfferLine } from "./service-offer-line";
 export {
   hasVoucherWalletRoute,

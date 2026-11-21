@@ -50,6 +50,7 @@
         "packages/shared/src/hooks/admin-ui/pool/useReviewConfirmQueueController.ts",
         "packages/shared/src/hooks/admin-ui/pool/useSeedTray.ts",
         "packages/shared/src/hooks/admin-ui/pool/useSettlementOperationsController.ts",
+        "packages/shared/src/hooks/admin-ui/pool/useVoucherStart.ts",
         "packages/shared/src/hooks/admin-ui/review/useCreateAssessmentController.ts",
         "packages/shared/src/hooks/admin-ui/review/useReviewWorkbenchController.ts",
         "packages/shared/src/hooks/admin-ui/useAdminAccessState.ts",

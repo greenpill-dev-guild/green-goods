@@ -20,9 +20,12 @@ violated half of these. Validators check structure; this contract is what "desig
   A left-aligned action cluster anywhere is a defect. (Jakob's Law; Refactoring UI alignment.)
 - **A view declares ONE stable action set, identical across its tabs.** The set never changes
   with the active tab; availability is expressed by disabling, not by removing. Proof:
-  [garden.utils.ts:103](../../../packages/shared/src/hooks/admin-ui/garden/garden.utils.ts),
-  where `buildGardenViewActions` accepts the active view and ignores it; `AdminViewActions.tsx:15`:
-  "ONE fixed primary action … stable across tabs." (NN/g consistency; recognition over recall.)
+  [garden.utils.ts](../../../packages/shared/src/hooks/admin-ui/garden/garden.utils.ts),
+  where `buildGardenViewActions` reads the active view only for the exception below;
+  `AdminViewActions.tsx:15`: "ONE fixed primary action … stable across tabs." (NN/g consistency;
+  recognition over recall.) One exception (DL-200): on the Garden workspace's Promises tab, Seed
+  Promises joins the set as its filled primary and Edit Garden steps back to secondary, so the
+  speed dial below 1024px reaches it first.
 - **The primary is rightmost; secondaries sit left of it in declaration order.** Destructive acts
   never share a cluster with routine acts: they get their own row, region, or the confirm
   dialog's danger slot. (Brief: destructive separation; Fitts's Law.)
@@ -33,7 +36,7 @@ violated half of these. Validators check structure; this contract is what "desig
   where `buildReviewViewActions` declares every action `secondary` and keeps Submit Work `primary`.
 - **Tab-specific actions live in the tab's content**, end-aligned in the section they act on:
   a section-header trailing act, a right-rail quick-actions card, or a row's one trailing act.
-  Never in the view header.
+  Never in the view header, except Seed Promises on the Promises tab (DL-200).
 - **Below 1024px the same view action set rides the FabButton speed dial**, primary nearest the
   trigger ([useViewActions.ts](../../../packages/shared/src/components/Canvas/useViewActions.ts):
   "mirroring the desktop row's primary-rightmost emphasis"). One action set, two presentations.

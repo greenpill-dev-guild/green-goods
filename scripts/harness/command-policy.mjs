@@ -115,9 +115,11 @@ function scanCommands(source) {
 }
 
 // Words that run the rest of the command without a shell string, with the options that take a
-// value: the same set the machine-wide guards strip, so .agents/policy.json rules match alike.
+// value: the set the machine-wide guards strip, so .agents/policy.json rules match alike, plus xargs.
 const WRAPPERS = new Map([
   ["env", ["-u", "--unset", "-C", "--chdir"]],
+  // xargs is the floor's own addition; GNU's -e, -i and -l take only attached values.
+  ["xargs", ["-a", "--arg-file", "-d", "--delimiter", "-E", "-I", "-J", "-L", "-n", "--max-args", "-P", "--max-procs", "-R", "-S", "-s", "--max-chars"]],
   ["command", []],
   ["builtin", []],
   ["exec", ["-a"]],
@@ -153,6 +155,18 @@ function executableWords(words) {
       if (option.value === "--") break;
       // `command -v` and `command -V` look the name up and run nothing.
       if (wrapper === "command" && /^-[A-Za-z]*[vV]/.test(option.value)) return [];
+      // `env -S` splits its string into the command it runs, so it is a command of its own too.
+      // Short flags combine, so `-iS 'cmd'` and `-iS'cmd'` split too; `-u` and `-C` take the rest
+      // of their group as a value (`-uDISPLAY`), so a group stops at them.
+      const shortSplit = /^-[A-BD-Za-tv-z]*S/.exec(option.value);
+      if (wrapper === "env" && (/^--split-string(=|$)/.test(option.value) || shortSplit)) {
+        const attached = option.value.startsWith("--")
+          ? option.value.slice("--split-string=".length)
+          : option.value.slice(shortSplit[0].length);
+        const split = option.value.includes("=") || attached ? { value: attached } : args.shift();
+        const rest = args.filter((word) => !word.dynamic).map((word) => word.value).join(" ");
+        return Object.assign([], { call: split && !split.dynamic ? `${split.value} ${rest}`.trim() : "" });
+      }
       // A package runner's call string is a command of its own, evaluated by evaluateCommand.
       if (PACKAGE_RUNNERS.has(wrapper) && /^(-c|--call)(=|$)/.test(option.value)) {
         const call = option.value.includes("=") ? { value: option.value.slice(option.value.indexOf("=") + 1) } : args.shift();
@@ -164,6 +178,15 @@ function executableWords(words) {
     // A package runner names a package, maybe with a version: `vercel@62.1.0` runs `vercel`.
     if (PACKAGE_RUNNERS.has(wrapper) && args[0]) args[0] = { ...args[0], value: args[0].value.replace(/^(@?[^@]+)@.*$/, "$1") };
   }
+}
+
+/**
+ * The subcommand Bun runs: its first word that is not an option. A global option's separate value
+ * still applies but is not the subcommand, so `bun --cwd dir test` runs `dir`'s `test` script,
+ * while `bun --cwd=dir test` and `bun --bun test` run the test runner.
+ */
+function bunSubcommand(values) {
+  return values.slice(1).find((value) => !value.startsWith("-"));
 }
 
 function isSecretFile(value) {
@@ -199,11 +222,14 @@ function commandDecision(words, harness) {
   const values = args.map((word) => word.dynamic ? "" : word.value);
   const executable = basename(values[0] ?? "");
   const deny = (message) => ({ action: "block", message });
-  if (executable === "bun" && values[1] === "test") {
+  if (executable === "bun" && bunSubcommand(values) === "test") {
     return deny("Use `bun run test` instead of `bun test`; Green Goods relies on the Vitest wrapper.");
   }
-  if (harness === "codex" && executable === "forge" && ["build", "test"].includes(values[1])) {
-    return deny("Use Green Goods bun wrappers instead of direct forge build/test commands.");
+  if (executable === "forge" && ["build", "test"].includes(values[1])) {
+    return {
+      action: harness === "claude" ? "warn" : "block",
+      message: "Use Green Goods bun wrappers instead of direct forge build/test commands.",
+    };
   }
   if (executable === "git") {
     const gitArgs = values.slice(1);
@@ -262,7 +288,7 @@ function commandDecision(words, harness) {
     (broadcasting && (liveNetwork || (contractsCommand && (networkOverride || !testNetwork)))));
   const production = ((operation || contractsOperation) && mainnet) || productionBroadcast ||
     (executable === "vercel" && values.includes("--prod")) ||
-    (harness === "codex" && executable === "fly" && values[1] === "deploy");
+    (["fly", "flyctl"].includes(executable) && values[1] === "deploy");
   if (production) return {
     action: harness === "claude" ? "warn" : "block",
     message: "PRODUCTION DEPLOYMENT: requires explicit out-of-band confirmation before proceeding.",

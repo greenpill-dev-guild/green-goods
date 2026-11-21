@@ -214,6 +214,12 @@ test("markers that repository tools read are directives", () => {
   assert.deepEqual(kinds(code), ["directive", "directive", "directive", "directive"]);
 });
 
+test("an embedded-language tag before a template literal is a directive", () => {
+  const code = "const QUERY = gql(/* GraphQL */ `query Q { a }`);\nconst FIELDS = /* GraphQL */ `\n  id\n`;\n";
+  assert.deepEqual(kinds(code), ["directive", "directive"]);
+  assert.equal(purgeSource(code, "example.ts").code, code);
+});
+
 test("documentation stays on declarations exported later by name or as the default", () => {
   const code = "/** Counts unread items. */\nfunction CountBadge() {}\n/** The badge. */\nconst Badge = () => null;\n/** The helper. */\nfunction helper() {}\nexport { CountBadge };\nexport default Badge;\n";
   assert.deepEqual(kinds(code), ["documentation", "documentation", "restatement"]);

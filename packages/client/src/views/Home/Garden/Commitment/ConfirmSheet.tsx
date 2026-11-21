@@ -23,6 +23,7 @@ import {
 } from "@remixicon/react";
 import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
+import { FormProgress } from "@/components/Communication";
 
 import { EvidencePreview } from "./EvidencePreview";
 
@@ -30,7 +31,6 @@ import { ConfirmNotYet } from "./ConfirmNotYet";
 import { Meter, Provenance } from "./ConfirmOutcome";
 import { selectConfirmCast } from "./confirmCast";
 import type { ServiceConfirmExtras } from "./serviceBookingTypes";
-import { ServiceStepStrip } from "./ServiceStepStrip";
 
 export { Provenance } from "./ConfirmOutcome";
 export { type ConfirmCast, selectConfirmCast } from "./confirmCast";
@@ -72,7 +72,7 @@ export interface ConfirmSheetProps {
   onNotYet: (reason: string) => void;
   onDone: () => void;
   /**
-   * A voucher booking's Promise kept?: the booking's step strip, the split the reader already
+   * A voucher booking's Promise kept?: the booking's tracker, the split the reader already
    * approved, and the note that confirming is separate from the vouchers.
    */
   service?: ServiceConfirmExtras | null;
@@ -253,7 +253,13 @@ export function ConfirmSheet({
         />
       ) : (
         <div className="space-y-4" data-component="ConfirmSheetAsk">
-          {service ? <ServiceStepStrip steps={service.steps} label={service.stepsLabel} /> : null}
+          {service ? (
+            <FormProgress
+              currentStep={service.tracker.at}
+              steps={service.tracker.markers}
+              waiting={service.tracker.waiting ?? undefined}
+            />
+          ) : null}
           <div className="text-sm text-text-sub-600" data-component="ConfirmSummary">
             {provider ? (
               <span className="flex flex-wrap items-center gap-1">

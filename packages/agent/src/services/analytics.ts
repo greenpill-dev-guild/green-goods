@@ -28,7 +28,10 @@ export type AgentAnalyticsEvent =
   | "join_request_status_checked"
   | "join_request_resolved"
   | "join_request_withdrawn"
-  | "join_request_expired";
+  | "join_request_expired"
+  | "funding_intent_started"
+  | "funding_intent_ended"
+  | "upload_sign_ended";
 
 type AgentAnalyticsProperties = Record<string, boolean | number | string | null | undefined>;
 
@@ -205,6 +208,58 @@ export function trackGardenJoinRequestEvent(
   subject?: AgentEventSubject
 ): Promise<void> {
   return trackAgentEvent(event, RUNTIME_DISTINCT_ID, properties, subject);
+}
+
+/** How an Agent attempt settled, in the same words the App's send acts use (PRD-1561). */
+export type FundingAttemptOutcome = "confirmed" | "failed" | "cancelled";
+
+/** The attempt record's version, so a question can tell this shape from a later one. */
+const AGENT_ATTEMPT_SCHEMA_VERSION = 1;
+
+type FundingIntentAnalyticsProperties = {
+  attempt_id: string;
+  chain_id: number;
+  destination_type: string;
+  funding_intent: string;
+  payment_method: string;
+  source_route?: string;
+  outcome?: FundingAttemptOutcome;
+  funding_status?: string;
+  failure_code?: string;
+};
+
+export function trackFundingIntentEvent(
+  event: "funding_intent_started" | "funding_intent_ended",
+  properties: FundingIntentAnalyticsProperties,
+  garden: string
+): Promise<void> {
+  return trackAgentEvent(
+    event,
+    RUNTIME_DISTINCT_ID,
+    { ...properties, schema_version: AGENT_ATTEMPT_SCHEMA_VERSION },
+    { garden }
+  );
+}
+
+type UploadSignAnalyticsProperties = {
+  outcome: "confirmed" | "failed";
+  /** Why a request got no signed URL; absent when it got one. */
+  reason?: "invalid_request" | "provider_unavailable";
+  category?: string;
+  mime_type?: string;
+};
+
+/** One upload signing request's outcome. */
+export function trackUploadSignEnded(
+  properties: UploadSignAnalyticsProperties,
+  garden?: string
+): Promise<void> {
+  return trackAgentEvent(
+    "upload_sign_ended",
+    RUNTIME_DISTINCT_ID,
+    { ...properties, schema_version: AGENT_ATTEMPT_SCHEMA_VERSION },
+    { garden }
+  );
 }
 
 export async function trackAgentMessageReceived(message: InboundMessage): Promise<void> {

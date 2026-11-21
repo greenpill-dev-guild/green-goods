@@ -53,11 +53,12 @@ describe("a voucher booking's unfinished acts", () => {
       label: "Send the Transfers",
     });
     expect(serviceActOffered("send", unsent, null)).toBe(true);
-    // It waits on the reader now, so the band says so.
+    // It waits on the reader now, so the band says so and the tracker shows no clock.
     expect(view(unsent, "transfersPending").band).toMatchObject({
       needsYou: true,
       tone: "attention",
     });
+    expect(view(unsent, "transfersPending").tracker).toMatchObject({ at: 4, waiting: null });
     // Once sent, the transfer shows as pending until it arrives, with nothing left to do.
     const sent = bookingStorySnapshot("hubDay", "transfersPending");
     expect(view(sent, "transfersPending").primary).toBeNull();
@@ -70,6 +71,7 @@ describe("a voucher booking's unfinished acts", () => {
     expect(booking.stage).toBe("canceling");
     expect(booking.primary?.label).toBe("Cancel Booking");
     expect(booking.band.needsYou).toBe(true);
+    expect(booking.tracker?.waiting).toBeNull();
     expect(serviceActOffered("cancel", recorded, null)).toBe(true);
     expect(cancelStep(recorded)).toMatchObject({
       action: "dispatchVoucherSetupCommand",
@@ -100,8 +102,27 @@ describe("a voucher booking's unfinished acts", () => {
     const booking = view(stuck, "confirmingDeposit");
     expect(booking.primary).toEqual({ kind: "retryConfirm", label: "Retry Confirmation" });
     expect(booking.band.needsYou).toBe(true);
+    expect(booking.tracker).toMatchObject({ at: 3, waiting: null });
+    // The sentence says what stopped and what the act does, not the acceptance wait.
+    expect(booking.band.sentence).toBe(
+      "Your voucher is held for this booking, but the confirmation that it arrived didn't reach Green Goods. Retry Confirmation sends it again."
+    );
     expect(booking.secondary?.label).toBe("Cancel Booking");
     expect(serviceActOffered("retryConfirm", stuck, null)).toBe(true);
+    // Ten vouchers are counted as ten.
+    const many = serviceBookingView(
+      {
+        snapshot: bookingStorySnapshot("access", "confirmingDeposit", { ackStuck: true }),
+        coreState: "OFFERED",
+        issuer: VOUCHER_STORY_ISSUERS.greenGoods,
+        approval: VOUCHER_STORY_APPROVALS.greenGoods,
+        held: vouchers(10),
+      },
+      intl
+    )!;
+    expect(many.band.sentence).toMatch(
+      /^Your 10 vouchers are held for this booking, but the confirmation that they arrived/
+    );
     const confirming = bookingStorySnapshot("hubDay", "confirmingDeposit");
     expect(view(confirming, "confirmingDeposit").primary).toBeNull();
     expect(serviceActOffered("retryConfirm", confirming, null)).toBe(false);

@@ -46,6 +46,10 @@ while IFS= read -r file; do
     block 'Package-level .env files are not allowed in Green Goods; use the root env schema/example pattern.'
   fi
 
+  if printf '%s' "$file" | grep -qE '(^|/)packages/(client|admin)/src/hooks/'; then
+    block 'All hooks must be in packages/shared/src/hooks/.'
+  fi
+
   if printf '%s' "$file" | grep -qE '^packages/contracts/src/'; then
     CONTEXT="${CONTEXT}- Critical contract surface touched (${file}); require line-by-line review, access-control/storage-layout reasoning, and explicit validation notes.\n"
   fi

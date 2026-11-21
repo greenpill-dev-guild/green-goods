@@ -4,6 +4,7 @@ import { Button } from "@green-goods/shared/components/Button";
 import { WorkUploadConsentDialog } from "@green-goods/shared/components/Dialog/WorkUploadConsentDialog";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useProofComposerController } from "@green-goods/shared/hooks/client-ui/commitment/useProofComposerController";
 import {
   type SubmissionStage,
@@ -16,6 +17,7 @@ import {
   isVideoFile,
   isWorkDocument,
 } from "@green-goods/shared/modules/work/media-processing";
+import { compareAddresses } from "@green-goods/shared/utils/blockchain/address";
 import { RiCheckboxCircleFill, RiFileFill, RiImageFill } from "@remixicon/react";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
@@ -25,6 +27,7 @@ import { FormInfo } from "@/components/Cards";
 import { ImagePreviewDialog } from "@/components/Display";
 import { describeProofContents } from "@/components/Features/Commitments";
 import { MediaRulePill, SubmissionFlow } from "@/components/Features/Work";
+import { SubmissionGardenLine } from "@/views/Garden/SubmissionGardenLine";
 import { confirmerOf } from "../Commitment/CommitmentPeople";
 import { type NoteHint, ProofDetails } from "./ProofDetails";
 import { ProofForSheet } from "./ProofForSheet";
@@ -99,6 +102,11 @@ export function ProofComposer() {
           controller.commitment.unitLabel
         )
       : formatMessage({ id: "app.commitments.row.untitled" }));
+  // The garden the proof is sent to: the promise's provider garden, as the controller sends it,
+  // or this page's own garden. A provider can open a promise from the payer's garden page.
+  const { data: gardens = [] } = useGardens(DEFAULT_CHAIN_ID);
+  const proofGarden = controller.commitment?.providerGarden ?? gardenAddress;
+  const garden = gardens.find((candidate) => compareAddresses(candidate.id, proofGarden));
   const flow = useSubmissionFlowController({
     kind: "evidence",
     controller,
@@ -211,12 +219,16 @@ export function ProofComposer() {
           };
 
   // Every stage leads with its heading card, then the promise it is for (DL-058), then a
-  // save that failed, then the stage itself.
+  // save that failed, then the stage itself. Media, the first step, names the garden under its
+  // heading, and no later step repeats it (PRD-1522).
   const renderStage = (stage: SubmissionStage, pinned: ReactNode) => {
     const heading = headingFor(stage);
     return (
       <>
         <FormInfo title={heading.title} info={heading.info} Icon={heading.Icon} />
+        {garden && stage === "media" ? (
+          <SubmissionGardenLine garden={garden} kind="evidence" />
+        ) : null}
         {pinned}
         {controller.draftPersistence === "failed" ? (
           <Alert

@@ -1,7 +1,9 @@
 # Grove prototype: four parts, one loop
 
-**Status:** prototype scope agreed on 24 October 2026; G0 authorized as a disposable spike; nothing built yet. **Updated:** 24 October 2026.
-**Relation to the plan:** this narrows the [MVP architecture](spec.md) and the [implementation sequence](plan.todo.md) to the smallest build that shows Grove's four core parts working together. Where it departs from the architecture, the [decisions](#decisions) say so. The product gates in [eval.md](eval.md) stay as they are; the prototype has its own [demo checks](#demo-checks). The [architecture companion](prototype-architecture.md) owns the packages, dependencies, module layers, types, components and data flows; the [design brief](prototype-design.md) owns how Grove looks and behaves as the cockpit's dialect on a graph.
+> **13 November scope update:** this is the earlier graph/runtime prototype baseline. [Community sharing](community-sharing.md) now owns local identity, E2EE and the capture → review → share pilot. The [G0 report](reports/2026-10-24-g0-feasibility.md) records a completed disposable experiment with partial results, not a completed product or private-sharing gate. Its dated decisions remain historical; they do not override the current sharing contract. **14 November:** the investigation slice (G2) is the MVP's laptop workspace lane. The Hub connection (G1), the exchange (G3) and the agent tools (G4) are next lanes; see the [decision log](spec.md#decision-log).
+
+**Status:** prototype scope agreed on 24 October 2026; G0 disposable experiment reported; product integration unbuilt. **Updated:** 24 October 2026.
+**Relation to the plan:** this narrows the [MVP architecture](spec.md) and the [implementation sequence](plan.todo.md) to the smallest build that shows Grove's four core parts working together. Where it departs from the architecture, the [decisions](#decisions) say so. The product gates in [eval.md](eval.md) stay as they are; the prototype has its own [demo checks](#demo-checks). The [architecture companion](prototype-architecture.md) owns the packages, dependencies, module layers, types, components and data flows; the [design brief](prototype-design.md) owns how Grove looks and behaves as the Hub's dialect on a graph.
 
 Grove is a browser extension that keeps a garden's living knowledge graph on the steward's own device. The prototype proves one loop: connect a garden, save a source, let a local model propose how it relates to the garden's work, resume that work after an interruption, review it, share one accepted piece with another garden, and let any browser agent ask the graph questions.
 
@@ -20,14 +22,14 @@ The four core parts and their one job each:
 | AI help arrives without provenance and without a person in charge | Every proposal carries a quote, a source revision and a model version. The steward accepts, rejects or corrects it. Acceptance never becomes protocol approval | Gemma plus validation in code |
 | Long-running work in a browser is brittle. A closed tab loses progress or repeats it | Close the Grove tab during an investigation, reopen it, and the task continues from its last checkpoint with no duplicate edge | Pi Durable |
 | Each garden learns alone. Sharing means sending files or giving up control | Vida Verde's node publishes one accepted connection. TAS's node receives it signed and labeled with its origin, and reviews it locally | KOI |
-| Agents reach Green Goods by scraping screens or through one-off bridges | The Admin Hub exposes a read-only snapshot tool for the selected garden. Grove exposes graph tools. One standard interface serves Grove, DevTools and any browser agent | WebMCP |
+| Agents reach Green Goods by scraping screens or through one-off bridges | The Green Goods Hub exposes a read-only snapshot tool for the selected garden. Grove exposes graph tools. One standard interface serves Grove, DevTools and any browser agent | WebMCP |
 
 ## The shape
 
 ```mermaid
 flowchart LR
   subgraph Pages["Web pages"]
-    GG["Green Goods Admin Hub, selected garden<br/>WebMCP tool: garden snapshot, read-only"]
+    GG["Green Goods Hub, selected garden<br/>WebMCP tool: garden snapshot, read-only"]
     SRC["Any research page<br/>Save to Grove"]
   end
   subgraph Ext["Grove extension, one browser profile"]
@@ -58,7 +60,7 @@ flowchart LR
 
 | Part | What we use | What we build |
 |---|---|---|
-| WebMCP | `document.modelContext`: Brave Beta 156 with the WebMCP runtime flag; Chrome 149 and later behind the origin trial or the same flag; the client's existing `packages/client/src/webmcp.ts` | One read-only garden snapshot tool on the Admin Hub, scoped to the selected garden and gated by a Hub setting; a bridge content script on the Hub origin; four `grove_*` tools on the graph tab. WebMCP is an adapter at both ends: the same snapshot also arrives through a direct adapter, and agents without WebMCP reach the graph through an `externally_connectable` messaging API |
+| WebMCP | `document.modelContext`: Brave Beta 156 with the WebMCP runtime flag; Chrome 149 and later behind the origin trial or the same flag; the client's existing `packages/client/src/webmcp.ts` | One read-only garden snapshot tool on the Green Goods Hub, scoped to the selected garden and gated by a Hub setting; a bridge content script on the Hub origin; four `grove_*` tools on the graph tab. WebMCP is an adapter at both ends: the same snapshot also arrives through a direct adapter, and agents without WebMCP reach the graph through an `externally_connectable` messaging API |
 | Gemma | Gemma 4 E2B instruction-tuned ONNX at q4f16; `@huggingface/transformers` (already pinned in `packages/agent`); WebGPU | A worker that loads once, takes a bounded packet and returns JSON; validation that drops anything that is not an exact quote or a known ID |
 | Pi Durable | `@earendil-works/pi-durable` 1.4.0 with its `IndexedDbStorage` | One `grove.investigation` task with five phases; a Web Lock so one tab owns the harness; idempotent apply with receipts |
 | KOI | koi-net 2.1.2 and rid-lib 3.3.0 (Python, MIT) as the community node; the KOI-net wire contracts | A TypeScript partial node: a P-256 key pair, RID forms (the node is `orn:koi-net.node:<name>+<hash>`), envelope signing, `/events/poll` and `/events/broadcast`, an inbox and an outbox |
@@ -68,7 +70,7 @@ Grove memory is not one of the four parts. It is the floor they stand on: what t
 
 ## The loop, step by step
 
-1. **Connect.** The steward opens Vida Verde in the Admin Hub and, once, turns on **Allow browser extensions to read this garden** in its settings. The Hub registers its read-only snapshot tool for the selected garden; Grove's bridge sees it through `document.modelContext.getTools()` and offers **Connect this garden**. One click runs the tool. Garden, Actions, Work with its approval state and the WorkApproval records land in Grove memory with their chain, IDs and coverage. The graph tab opens on the garden overview. With WebMCP off, **Connect this garden** in the graph tab reads the same records through the direct adapter.
+1. **Connect.** The steward opens Vida Verde in the Green Goods Hub and, once, turns on **Allow browser extensions to read this garden** in its settings. The Hub registers its read-only snapshot tool for the selected garden; Grove's bridge sees it through `document.modelContext.getTools()` and offers **Connect this garden**. One click runs the tool. Garden, Actions, Work with its approval state and the WorkApproval records land in Grove memory with their chain, IDs and coverage. The graph tab opens on the garden overview. With WebMCP off, **Connect this garden** in the graph tab reads the same records through the direct adapter.
 2. **Save.** On the agroforestry guide, the steward clicks **Save to Grove**. The readable text is extracted on the page, hashed and stored as a source revision. The source node appears at once, labeled **Saved**.
 3. **Investigate.** Saving admits a `grove.investigation` task in Pi, keyed by source hash and garden. Its phases are `prepare` (pick source chunks and the garden neighborhood), `infer` (Gemma, in the worker), `validate` (IDs, predicates, exact quotes), `apply` (one idempotent graph command, one receipt) and `ready`. The graph shows **Finding connections**, then at most three **Suggested** edges, each with its quote.
 4. **Interrupt and resume.** Close the Grove tab during `infer`. Reopen it. The harness reopens its IndexedDB storage, finds the task mid-phase and reruns that phase from its checkpoint. If the tab died after `apply`, the stored receipt comes back and no second edge is written.
@@ -83,7 +85,7 @@ Step 1 needs the Hub open on the garden, and step 2 the page being saved. Steps 
 
 Keep each piece small enough to replace.
 
-### Green Goods Admin Hub and Shared
+### Green Goods Hub and Shared
 
 | File | Change |
 |---|---|
@@ -132,7 +134,7 @@ Rules: Shared never imports the extension. The extension consumes Shared through
 
 | # | Check | Passes when |
 |---|---|---|
-| D1 | Connect | In Brave Beta with the WebMCP flag, the Admin Hub's tool returns a snapshot for the selected garden and the graph shows its Actions and Work with approval state, chain and coverage. With the setting off, no garden selected or the steward signed out, no tool is registered. With the flag off, the direct adapter produces the same graph |
+| D1 | Connect | In Brave Beta with the WebMCP flag, the Green Goods Hub's tool returns a snapshot for the selected garden and the graph shows its Actions and Work with approval state, chain and coverage. With the setting off, no garden selected or the steward signed out, no tool is registered. With the flag off, the direct adapter produces the same graph |
 | D2 | Propose | On ten labeled Vida Verde packets, the real local model yields the labeled connection or a correct abstention on at least eight. No stored edge has an unknown ID, an unknown predicate or an inexact quote |
 | D3 | Resume | Kill the tab during `infer`, during `validate`, after `apply` and before `ready`. After each reopen there is one task, one edge set and one receipt |
 | D4 | Review | Accept, reject, correct and plan; reload offline; all four survive. The planned item never counts as work. The WorkApproval shown is the imported one |
@@ -145,7 +147,7 @@ Record with every run: browser build and flags, model artifact revision, Pi and 
 
 | # | Decision | Why | Departs from the plan? |
 |---|---|---|---|
-| 1 | Superseded by 18. Connect through the public garden page's WebMCP tool, not an Admin Hub bridge | Public records are what the MVP imports anyway. The page already registers tools. No nonce, origin-locked relay or credential boundary to build | Yes: D5 and S7 move to the MVP |
+| 1 | Superseded by 18. Connect through the public garden page's WebMCP tool, not an Green Goods Hub bridge | Public records are what the MVP imports anyway. The page already registers tools. No nonce, origin-locked relay or credential boundary to build | Yes: D5 and S7 move to the MVP |
 | 2 | Use Pi Durable's own `IndexedDbStorage` | Shipped in 1.4.0 on 21 October 2026. Removes the P0 adapter and its conformance suite | Yes: P0 shrinks to a bundle and lifecycle check |
 | 3 | The graph tab owns the harness; Gemma runs in a dedicated worker of that tab | Pi wants one owner. WebGPU runs in workers. Closing the tab pauses, reopening resumes. No service worker keepalive | No |
 | 4 | Custom task phases, not a model tool loop | A 2B model is dependable at one bounded JSON step and not at planning. Validation in code keeps the trust story | No |
@@ -154,20 +156,20 @@ Record with every run: browser build and flags, model artifact revision, Pi and 
 | 7 | Freshness is "new since your last visit"; no time scrubber | A seen cursor over the change log is cheap and shows learning. As-of reconstruction waits for the MVP | Yes: S4 deferred |
 | 8 | Two gardens are two browser profiles on one machine | Proves workspace isolation and a real exchange without multi-user sync | No |
 | 9 | A short fixed vocabulary | Garden, Action, Work, Source, Question, Planned activity, Concept; predicates `informedBy`, `relevantTo`, `addresses`, `aboutConcept`; labels from the Shared ontology API | Narrows S2 |
-| 10 | No Admin Hub digest | Agent access through the `grove_*` tools is the return path to show | Yes: S9 deferred |
-| 11 | Superseded by 18. The public garden page is the first connection surface | Decided 24 October 2026. Public data, the existing WebMCP rule, no auth or relay to build; the Admin Hub waits for the MVP | Confirms 1 |
+| 10 | No Green Goods Hub digest | Agent access through the `grove_*` tools is the return path to show | Yes: S9 deferred |
+| 11 | Superseded by 18. The public garden page is the first connection surface | Decided 24 October 2026. Public data, the existing WebMCP rule, no auth or relay to build; the Green Goods Hub waits for the MVP | Confirms 1 |
 | 12 | Brave first: Brave Beta 156 with the WebMCP runtime flag carries the demo; Chrome is installed only if a Brave build cannot run it | Decided 24 October 2026. A headless probe of the installed Beta showed `document.modelContext` with the flag on and nothing without it. Brave's Leo side is Nightly-only and pending security review; it does not gate Grove, which is the consumer | New |
 | 13 | Grove works without WebMCP: a `GardenSource` with a WebMCP adapter and a direct adapter on the Shared public hooks, one build, a toggle in connection settings | Decided 24 October 2026. WebMCP is an origin trial; neither the demo nor the product may depend on it | New |
 | 14 | Agents without WebMCP use an `externally_connectable` messaging API with the same operations as the `grove_*` tools | Decided 24 October 2026. A second, allowlisted interface rather than none; specified, permissioned and tested like the tools | New |
 | 15 | TAS is the second garden | Decided 24 October 2026. Two gardens and two sources; reuses the spike's TAS fixture | Confirms 8 |
 | 16 | The prototype counts toward the A0 to A4 milestones; each slice records receipts against the checkpoints it names; no new milestone | Decided 24 October 2026 | No |
 | 17 | G0 is authorized as a disposable feasibility spike in its own session and worktree. It may install wxt, pi-durable with its chord and pi-ai companions, transformers.js, sigma and graphology in `packages/extension` only, under the release-age gate | Decided 24 October 2026. The hub is not promoted; G1 onward waits for G0's results | No |
-| 18 | The Admin Hub is the connection surface: a read-only `green_goods_get_garden_snapshot` tool registered while a steward is signed in, a garden is selected and the garden's setting allows it; the WebMCP rule gains a v2 scope for it in G1 | Decided 24 October 2026, correcting the first-round answer that chose the public page. Stewards connect from their cockpit; the Hub resolves approval state the public page cannot | Supersedes 1 and 11; returns to the hub's S7 surface with WebMCP as the transport |
+| 18 | The Green Goods Hub is the connection surface: a read-only `green_goods_get_garden_snapshot` tool registered while a steward is signed in, a garden is selected and the garden's setting allows it; the WebMCP rule gains a v2 scope for it in G1 | Decided 24 October 2026, correcting the first-round answer that chose the public page. Stewards connect from their Hub; the Hub resolves approval state the public page cannot | Supersedes 1 and 11; returns to the hub's S7 surface with WebMCP as the transport |
 | 19 | The snapshot carries protocol records with approval state: Garden, Actions, Work with pending, approved or rejected status, and WorkApproval records. No notes, assessments, gardener addresses or session data | Decided 24 October 2026. Richer than the public page, still protocol-only, no private data before the encryption and retention contract | Narrows S7 |
 | 20 | The no-WebMCP path is the direct adapter on Shared's garden readers; protocol records need no session, so the Hub is not involved in direct mode | Decided 24 October 2026; amends 13 | No |
 | 21 | The client's dead `navigator.modelContext` registration is fixed in its own pull request, outside Grove's slices | Decided 24 October 2026 | No |
-| 22 | Grove is a third dialect of Warm Earth set to the cockpit's dials: 14px density on the cockpit type roles, pill buttons, 12px cards, elevation steps, the steward's voice; shared controls carry `data-surface="admin"`; the shared core is taken as is | Decided 24 October 2026. Stewards use the Hub and Grove in one sitting; a desktop graph tool wants the denser setting; no new dials to drift | New; see the design brief |
-| 23 | The accent is the cockpit's garden tone on its five-use budget: active chip or tab, one filled action, the new-since count badge, the focus ring, the canvas's new-item halo | Decided 24 October 2026. Grove is garden knowledge; the Hub's Garden workspace and Grove match. The tone roles move to Shared in G1 | New |
+| 22 | Grove is a third dialect of Warm Earth set to the Hub's dials: 14px density on the Hub type roles, pill buttons, 12px cards, elevation steps, the steward's voice; shared controls carry `data-surface="admin"`; the shared core is taken as is | Decided 24 October 2026. Stewards use the Hub and Grove in one sitting; a desktop graph tool wants the denser setting; no new dials to drift | New; see the design brief |
+| 23 | The accent is the Hub's garden tone on its five-use budget: active chip or tab, one filled action, the new-since count badge, the focus ring, the canvas's new-item halo | Decided 24 October 2026. Grove is garden knowledge; the Hub's Garden workspace and Grove match. The tone roles move to Shared in G1 | New |
 | 24 | The canvas encodes meaning by shape, dash, weight and label in ink and stone; the accent marks only what is new and the selection; colors are read from the live tokens | Decided 24 October 2026. Never meaning by color alone; the 1 to 3 percent accent rule holds on the canvas | New |
 | 25 | The dialect is proven on Storybook Design System pages beside App, Website and Admin, plus co-located component stories on the synthetic fixture | Decided 24 October 2026. Reviewed where the unification was reviewed, before the extension exists | New |
 
@@ -219,7 +221,7 @@ Passive capture, the Hub digest (S9), public garden page tools, the time scrubbe
 
 ## Decided on 24 October 2026
 
-The four open questions were settled in discussion and recorded as decisions 11 to 17, and decision 11 was corrected the same day: the Admin Hub, not the public garden page, is the connection surface (18 to 21). Brave Beta with the WebMCP flag carries the demo, Chrome only as a fallback, and Grove works without WebMCP at both ends (12 to 14, 20); TAS is the second garden (15); the prototype counts toward the A0 to A4 milestones (16); G0 is authorized as a disposable spike (17).
+The four open questions were settled in discussion and recorded as decisions 11 to 17, and decision 11 was corrected the same day: the Green Goods Hub, not the public garden page, is the connection surface (18 to 21). Brave Beta with the WebMCP flag carries the demo, Chrome only as a fallback, and Grove works without WebMCP at both ends (12 to 14, 20); TAS is the second garden (15); the prototype counts toward the A0 to A4 milestones (16); G0 is authorized as a disposable spike (17).
 
 ## Sources
 

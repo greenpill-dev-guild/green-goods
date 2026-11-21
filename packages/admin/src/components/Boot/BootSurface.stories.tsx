@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { BootRecovery, BootShell } from "./BootSurface";
+import { BootConnect, BootRecovery, BootShell } from "./BootSurface";
 
 const noop = () => undefined;
 
@@ -12,7 +12,7 @@ const meta: Meta<typeof BootRecovery> = {
     docs: {
       description: {
         component:
-          "The two frames the admin can show before any provider exists: the boot shell that mounts synchronously on startup, and the recovery card a startup failure renders in place of an empty root.",
+          "The frames the admin can show before any provider exists: the boot shell that mounts synchronously on startup, the connect screen a first visit sees, and the recovery card a startup failure renders in place of an empty root.",
       },
     },
   },
@@ -24,6 +24,11 @@ type Story = StoryObj<typeof BootRecovery>;
 
 export const Loading: Story = {
   render: () => <BootShell />,
+};
+
+/** A first visit, before any provider loads: the same screen and slots as the Hub's sign-in. */
+export const Connect: Story = {
+  render: () => <BootConnect onConnect={noop} onPasskey={noop} />,
 };
 
 export const StartupFailed: Story = {

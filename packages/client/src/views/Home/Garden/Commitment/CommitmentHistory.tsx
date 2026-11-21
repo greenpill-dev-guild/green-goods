@@ -9,8 +9,6 @@ import type { Address } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { type ReactNode, useId } from "react";
 import { type IntlShape, useIntl } from "react-intl";
-import { orderHistory } from "./historyOrder";
-import type { BookingHistoryAnchor } from "./serviceBookingTypes";
 
 /** How many lines the page reads: a promise's life is short, and older lines stay on the record. */
 const HISTORY_LIMIT = 20;
@@ -75,18 +73,6 @@ interface CommitmentHistoryProps {
    * record yet. `at` is when this phone last touched it, in milliseconds.
    */
   localLine?: { text: string; at: number } | null;
-  /**
-   * A voucher booking's own events, newest first: its approvals, deposit, transfers and
-   * close, placed among the promise's events by time. A step still on its way keeps a dashed
-   * node and says so in place of a time.
-   */
-  bookingLines?: readonly {
-    id: string;
-    text: string;
-    state: string;
-    stateLabel: string;
-    anchor?: BookingHistoryAnchor;
-  }[];
 }
 
 /**
@@ -99,7 +85,6 @@ export function CommitmentHistory({
   commitment,
   viewer,
   localLine,
-  bookingLines = [],
 }: CommitmentHistoryProps) {
   const intl = useIntl();
   const headingId = useId();
@@ -114,9 +99,6 @@ export function CommitmentHistory({
     events
       .filter((event) => event.eventType === "CONFIRMATION_RECORDED")
       .map((event) => event.txHash)
-  );
-  const keptTx = new Set(
-    events.filter((event) => event.eventType === "FULFILLED").map((event) => event.txHash)
   );
   // Whoever withdrew it gave a reason, the creator or a steward; it reads under that line.
   const withdrawn = events.some((event) => event.eventType === "CANCELLED");
@@ -135,11 +117,6 @@ export function CommitmentHistory({
     return [
       {
         key: event.id,
-        // The confirmation that kept the promise is its kept line too, for a booking's steps.
-        eventTypes:
-          event.eventType === "CONFIRMATION_RECORDED" && keptTx.has(event.txHash)
-            ? [event.eventType, "FULFILLED"]
-            : [event.eventType],
         text: intl.formatMessage(
           { id },
           { who: you ? "you" : event.actor ? "other" : "someone", actor }
@@ -149,9 +126,7 @@ export function CommitmentHistory({
       },
     ];
   });
-  const ordered = orderHistory(lines, bookingLines);
-
-  if (!localLine && lines.length === 0 && bookingLines.length === 0 && !isError) return null;
+  if (!localLine && lines.length === 0 && !isError) return null;
 
   return (
     <section
@@ -175,25 +150,15 @@ export function CommitmentHistory({
             latest={false}
           />
         ) : null}
-        {ordered.map((entry, index) =>
-          "booking" in entry ? (
-            <HistoryLine
-              key={`booking-${entry.booking.id}`}
-              text={entry.booking.text}
-              when={entry.booking.stateLabel}
-              local={entry.booking.state !== "done"}
-              latest={!localLine && index === 0 && entry.booking.state === "done"}
-            />
-          ) : (
-            <HistoryLine
-              key={entry.core.key}
-              text={entry.core.text}
-              detail={entry.core.detail}
-              when={entry.core.when}
-              latest={!localLine && index === 0}
-            />
-          )
-        )}
+        {lines.map((line, index) => (
+          <HistoryLine
+            key={line.key}
+            text={line.text}
+            detail={line.detail}
+            when={line.when}
+            latest={!localLine && index === 0}
+          />
+        ))}
       </ol>
     </section>
   );

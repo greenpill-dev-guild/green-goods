@@ -15,6 +15,7 @@ import {
 import type { Address } from "@green-goods/shared/types/domain";
 import { createIntl } from "react-intl";
 import { describe, expect, it, vi } from "vitest";
+import { VOUCHER_START_IDLE } from "@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController";
 import { VoucherAcceptDialog } from "@/views/Garden/Pool/VoucherAskDialogs";
 import { voucherAskDetail } from "@/views/Garden/Pool/voucherPresentation";
 import { fireEvent, renderWithProviders, screen, waitFor, within } from "../test-utils";
@@ -91,6 +92,8 @@ function acceptDialog(
       target={{ gardenName: "Tech and Sun", isProtocol: false }}
       now={NOW}
       phase={{ status: "idle" }}
+      start={VOUCHER_START_IDLE}
+      chainId={42161}
       disabled={false}
       onClose={onClose}
       onAccept={onAccept}
@@ -116,7 +119,7 @@ describe("a member's booking in the Promises console", () => {
       )
     ).toBeInTheDocument();
     expect(dialog.queryByText("Your Safe approved the booking")).not.toBeInTheDocument();
-    expect(dialog.getByRole("button", { name: "Accept Maya" })).toBeEnabled();
+    expect(dialog.getByRole("button", { name: "Accept and Start" })).toBeEnabled();
   });
 
   it("keeps a collective's booking on its Safe's approval", () => {
@@ -125,7 +128,7 @@ describe("a member's booking in the Promises console", () => {
     expect(dialog.getByText("1 voucher deposited in escrow")).toBeInTheDocument();
     expect(
       dialog.getByText(
-        "Starting follows on the voucher network. It doesn’t mean the service was delivered."
+        "If the start doesn’t go, the booking stays accepted, and Maya can start it from the app 15 minutes after you accept."
       )
     ).toBeInTheDocument();
   });
@@ -151,7 +154,7 @@ describe("accepting a booking", () => {
     const dialog = acceptDialog(ask(TEO), {
       onAccept: vi.fn().mockRejectedValue(failing("ContractFunctionRevertedError")),
     });
-    fireEvent.click(dialog.getByRole("button", { name: "Accept Maya" }));
+    fireEvent.click(dialog.getByRole("button", { name: "Accept and Start" }));
     expect(await dialog.findByRole("button", { name: "Try Again" })).toBeEnabled();
   });
 
@@ -165,7 +168,7 @@ describe("accepting a booking", () => {
       onAccept: vi.fn().mockRejectedValue(failing(name)),
       onClose,
     });
-    fireEvent.click(dialog.getByRole("button", { name: "Accept Maya" }));
+    fireEvent.click(dialog.getByRole("button", { name: "Accept and Start" }));
     await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
     expect(dialog.queryByRole("button", { name: "Try Again" })).not.toBeInTheDocument();
   });

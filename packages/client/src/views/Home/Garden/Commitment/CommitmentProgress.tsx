@@ -18,10 +18,10 @@ export interface CommitmentProgressProps {
    */
   onPhone?: { kind: "sending"; summary: string } | { kind: "local" } | null;
   /**
-   * A voucher booking's delivery, counted once the issuer reports it, or the one sentence
-   * that says who reports it. It takes the proof-only line's place.
+   * A voucher booking's delivery, counted once the issuer reports it, in the proof-only line's
+   * place. Until then it is pending, and a booking has no progress or proof to show yet.
    */
-  delivery?: { label: string; done: number; of: number } | { none: string } | null;
+  delivery?: { label: string; done: number; of: number } | "pending" | null;
   /**
    * When the reader can add proof. Only a reader who can now is told proof moves this forward;
    * the chain takes none before take-up, so an offer's creator hears when they can (DL-151).
@@ -94,6 +94,8 @@ export function CommitmentProgress({
       { index: requirement.requirementIndex + 1 }
     );
 
+  if (delivery === "pending") return null;
+
   if (requirements.length === 0) {
     // A service commitment names no garden actions, so proof is what moves it —
     // but a settled record has stopped moving, so its copy just counts.
@@ -107,9 +109,7 @@ export function CommitmentProgress({
         data-component="CommitmentProgress"
       >
         {heading}
-        {delivery && "none" in delivery ? (
-          <p className="mt-2 text-sm text-text-sub-600">{delivery.none}</p>
-        ) : delivery ? (
+        {delivery ? (
           <div className="mt-3" data-component="ServiceDeliveryProgress">
             <div className="flex items-baseline justify-between gap-3 text-sm">
               <span className="min-w-0 truncate text-text-sub-600" title={delivery.label}>

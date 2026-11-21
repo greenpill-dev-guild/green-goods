@@ -56,6 +56,7 @@ import { useChainClockReader, useExpiryClock } from "../../commitment-pooling/us
 import { useTxActPhase } from "../../blockchain/useTxActPhase";
 import { useClaimDecisions, useClaimDecisionVisit } from "./useClaimDecisions";
 import { useFinishCreating } from "./useFinishCreating";
+import { useVoucherStart } from "./useVoucherStart";
 
 // The voucher console sits beside this one on the same public leaf (PRD-1297 surface 6), and so
 // do a promise's voucher outcomes, for its inspector (PRD-1323).
@@ -64,6 +65,13 @@ export { useVoucherConsole } from "./useVoucherConsole";
 // Edit Confirmers, from a group's inspector or a single promise's, sits here too; its rules
 // are the pool console module's (`confirmerRuleError`).
 export { type ConfirmerEditProgress, useEditConfirmers } from "./useEditConfirmers";
+// Accept and Start's two start sends, for the accept dialog's list (DL-193).
+export {
+  useVoucherStart,
+  VOUCHER_START_IDLE,
+  type VoucherStartProgress,
+  type VoucherStartStepStatus,
+} from "./useVoucherStart";
 
 /** Queue acts are not mutations, so their failures go through the same handler by hand. */
 const reportQueuedSendError = createMutationErrorHandler({
@@ -217,6 +225,54 @@ export function usePoolConsoleController(input: {
       )?.claim.requestedAt,
     [pendingAsks]
   );
+  const voucherStart = useVoucherStart({ chainId, garden });
+  const startVoucherBooking = voucherStart.start;
+  const resetVoucherStart = voucherStart.reset;
+  // A voucher booking is the ask's decision on the same line, so its row
+  // follows the act and keeps the outcome. The checks gate the wallet too,
+  // not only the dialog's button, on the chain's latest block read as the act
+  // starts: a tab left open across the deadline holds the time it last drew,
+  // and while the chain's time can't be read the act refuses.
+  const acceptVoucherBooking = useCallback(
+    async (ask: VoucherAsk, now: number) => {
+      let chainNow: bigint;
+      try {
+        chainNow = await readChainClock();
+      } catch (error) {
+        logger.warn("[usePoolConsoleController] the chain's time could not be read to accept", {
+          error,
+          commitmentId: ask.commitmentId.toString(),
+        });
+        throw new Error("The chain's time can't be read right now, so nothing was accepted");
+      }
+      if (!selectVoucherAcceptanceChecks(ask, Math.max(now, Number(chainNow))).ready) {
+        throw new Error("This booking isn't ready to accept");
+      }
+      const { commitmentId, buyer, claimHash } = ask;
+      let awaitingSigners = false;
+      const hash = await approveClaim(
+        commitmentId,
+        buyer,
+        (send) =>
+          commitmentMutation.mutateAsync({
+            action: "acceptServiceClaim",
+            commitmentId,
+            buyer,
+            expectedClaimHash: claimHash,
+            send: {
+              ...send,
+              onAwaiting: (awaiting) => {
+                awaitingSigners = awaiting === "safe-signers";
+                send.onAwaiting?.(awaiting);
+              },
+            },
+          }),
+        askedAt(commitmentId, buyer)
+      );
+      return { hash, awaitingSigners };
+    },
+    [approveClaim, askedAt, commitmentMutation, readChainClock]
+  );
   const acts = useMemo(
     () => ({
       pause: (reason: string) =>
@@ -252,39 +308,19 @@ export function usePoolConsoleController(input: {
             commitmentMutation.mutateAsync({ action: "acceptClaim", commitmentId, claimant, send }),
           askedAt(commitmentId, claimant)
         ),
-      // A voucher booking is the ask's decision on the same line, so its row
-      // follows the act and keeps the outcome. The checks gate the wallet too,
-      // not only the dialog's button, on the chain's latest block read as the act
-      // starts: a tab left open across the deadline holds the time it last drew,
-      // and while the chain's time can't be read the act refuses.
-      acceptServiceClaim: async (ask: VoucherAsk, now: number) => {
-        let chainNow: bigint;
-        try {
-          chainNow = await readChainClock();
-        } catch (error) {
-          logger.warn("[usePoolConsoleController] the chain's time could not be read to accept", {
-            error,
-            commitmentId: ask.commitmentId.toString(),
-          });
-          throw new Error("The chain's time can't be read right now, so nothing was accepted");
-        }
-        if (!selectVoucherAcceptanceChecks(ask, Math.max(now, Number(chainNow))).ready) {
-          throw new Error("This booking isn't ready to accept");
-        }
-        const { commitmentId, buyer, claimHash } = ask;
-        return approveClaim(
-          commitmentId,
-          buyer,
-          (send) =>
-            commitmentMutation.mutateAsync({
-              action: "acceptServiceClaim",
-              commitmentId,
-              buyer,
-              expectedClaimHash: claimHash,
-              send,
-            }),
-          askedAt(commitmentId, buyer)
-        );
+      acceptServiceClaim: (ask: VoucherAsk, now: number) =>
+        acceptVoucherBooking(ask, now).then(({ hash }) => hash),
+      // Accept and Start (DL-193): the start follows from the steward's own wallet once the
+      // acceptance has landed. One the Safe's signers still have to approve hasn't, so its start
+      // waits for the member's fallback; a start that fails never undoes the acceptance.
+      acceptAndStartBooking: async (ask: VoucherAsk, now: number) => {
+        // A new acceptance opens with nothing sent, whatever an earlier start left.
+        resetVoucherStart();
+        const { awaitingSigners } = await acceptVoucherBooking(ask, now);
+        if (awaitingSigners) return "acceptanceWaiting" as const;
+        const setupId = ask.setup?.setupId;
+        if (!setupId) return "notSent" as const;
+        return startVoucherBooking({ commitmentId: ask.commitmentId, buyer: ask.buyer, setupId });
       },
       declineClaim: (commitmentId: bigint, claimant: Address, reason: string) =>
         declineClaim(
@@ -347,7 +383,9 @@ export function usePoolConsoleController(input: {
       approveClaim,
       declineClaim,
       askedAt,
-      readChainClock,
+      acceptVoucherBooking,
+      startVoucherBooking,
+      resetVoucherStart,
       trackPool,
       trackQueued,
       finishGroup,
@@ -405,6 +443,7 @@ export function usePoolConsoleController(input: {
     claimDecisions: claimDecisions.decisions,
     claimInFlight:
       claimDecisions.phase.status === "signing" || claimDecisions.phase.status === "confirming",
+    voucherStartFor: voucherStart.progressFor,
     resumePhase: actPhaseFor(poolAct.phase, RESUME_POOL_ACT_KEY),
     queuedPhase: (jobId: string) => actPhaseFor(queuedAct.phase, jobId),
     isActing: poolMutation.isPending || commitmentMutation.isPending,

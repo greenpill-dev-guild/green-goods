@@ -118,7 +118,13 @@
       "check": "comment-policy-test",
       "runInQa": true,
       "runInEvidence": true,
-      "exact": ["scripts/quality/comment-policy.mjs", "bun.lock", "package.json"]
+      "exact": [
+        "scripts/quality/comment-policy.mjs",
+        "bun.lock",
+        "package.json",
+        "scripts/quality/check-regrowth.mjs",
+        "scripts/quality/check-regrowth.test.mjs"
+      ]
     },
     {
       "check": "dependabot-sync-test",
@@ -507,6 +513,22 @@
         "scripts/quality/check-direct-tested-seams.mjs",
         "scripts/quality/check-direct-tested-seams.test.mjs"
       ]
+    },
+    {
+      "check": "rendered-proof",
+      "intents": ["qa", "checkpoint", "readiness", "push", "ship", "merge"],
+      "note": "Rendered UI: labeled captures at 375 and 1280 wide. Advisory wherever it is listed; left out of diagnose and review (evidence-only intents) and of release, whose attested proof is browser-proof.",
+      "prefixes": [
+        "packages/client/src/",
+        "packages/admin/src/",
+        "packages/shared/src/components/",
+        "packages/shared/src/styles/"
+      ],
+      "extensions": [".tsx", ".css"],
+      "match": "all",
+      "excludeTests": true,
+      "excludeSuffixes": [".stories.tsx"],
+      "runInQa": true
     },
     {
       "check": "browser-proof",
@@ -983,7 +1005,7 @@
     },
     {
       "id": "comment-policy-test",
-      "command": "node scripts/dev/node-cli.js node --test scripts/quality/comment-policy.test.mjs",
+      "command": "node scripts/dev/node-cli.js node --test scripts/quality/comment-policy.test.mjs scripts/quality/check-regrowth.test.mjs",
       "risk": "the comment codemod removes a comment it must keep, or misreads code as a comment",
       "expectedSignal": "the comment codemod's fixtures pass for TypeScript, JavaScript and Solidity",
       "freshness": "exact-inputs-and-toolchain",
@@ -1388,6 +1410,20 @@
       }
     },
     {
+      "id": "rendered-proof",
+      "command": null,
+      "risk": "a UI change renders wrongly at phone or desktop width although its unit and story tests pass",
+      "expectedSignal": "labeled captures at 375 and 1280 wide in the PR body (mock-auth localhost, Storybook or CI Playwright, per AGENTS.md Browser Evidence), or the reason they are pending",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 60,
+      "stopRule": "advisory",
+      "capabilities": [],
+      "manual": true,
+      "attestation": {
+        "engines": ["mock-auth localhost", "Storybook", "CI Playwright", "authenticated Brave"]
+      }
+    },
+    {
       "id": "story-quality",
       "command": "bun run --filter @green-goods/shared check:stories && bun run --filter @green-goods/shared check:story-quality",
       "risk": "Storybook coverage or agent-readable story contracts regress",
@@ -1557,6 +1593,16 @@
       "expectedSignal": "solidity-test-names completes successfully",
       "freshness": "exact-inputs-and-toolchain",
       "budgetSeconds": 60,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "regrowth",
+      "command": "node scripts/quality/check-regrowth.mjs",
+      "risk": "Text the purge removed grows back: banners, commented-out code, labels or restating notes on added lines of package source, or new report-style markdown outside .plans/ and docs/.",
+      "expectedSignal": "regrowth: nothing regrown since <base>",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 30,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -1783,6 +1829,7 @@
         "packages/shared/src/hooks/admin-ui/pool/useProtocolFundingOperationsController.ts",
         "packages/shared/src/hooks/admin-ui/pool/useSeedTray.ts",
         "packages/shared/src/hooks/admin-ui/pool/useSettlementOperationsController.ts",
+        "packages/shared/src/hooks/admin-ui/pool/useVoucherStart.ts",
         "packages/shared/src/hooks/admin-ui/useAdminAccessState.ts",
         "packages/shared/src/hooks/agent-reporting/useAgentReportingCeremony.ts",
         "packages/shared/src/hooks/agent-reporting/useAgentReportingPermissions.ts",
@@ -2083,6 +2130,16 @@
       ],
       "prefixes": ["packages/agent/", "packages/shared/"],
       "excludeValidationOnlyFrom": ["shared"]
+    },
+    "Agents Doctor": {
+      "exact": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".github/CODEOWNERS",
+        ".github/pull_request_template.md",
+        ".github/workflows/agents-doctor.yml"
+      ],
+      "prefixes": [".agents/", ".claude/", ".codex/"]
     },
     "Client": {
       "exact": [

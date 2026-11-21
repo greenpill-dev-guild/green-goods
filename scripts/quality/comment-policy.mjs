@@ -53,6 +53,8 @@ const DIRECTIVES = [
   // A governed test skip, which check-test-quality.sh reads in the lines above `.skip(` or `.only(`.
   /^\s*SKIP:.*#\d+/,
   /^\s*Owner:.*Expiry:/i,
+  // An embedded-language tag before a template literal, which editors and GraphQL tooling read.
+  /^\s*(GraphQL|graphql|gql|GQL|sql|SQL|html|HTML|css|CSS|glsl|md)\s*$/,
 ];
 const SOLIDITY_DIRECTIVES = [/^\s*(solhint|slither)-(disable|enable)/, /^\s*(forge-lint|forge-fmt|forgefmt):/];
 // A comment that claims the code around it must stay as it is, for a reason the code cannot show.

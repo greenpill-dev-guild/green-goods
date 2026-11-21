@@ -100,9 +100,10 @@ Run before the user starts walking. Print the checklist results compactly; stop 
    passes** — verified 2026-08-28 to render real garden data (work queues, submissions, media).
    `?mockAuth=steward` currently resolves to an address with **no garden assignment in the
    production indexer** and lands on the "no garden access" empty state, so it proves the gate,
-   not the journey. Mock auth changes the app's role context but does not disable transaction
-   hooks. Disconnect any wallet session before a mock-auth pass; cancel an unexpected wallet
-   prompt and treat the setup as invalid. Both roles are **loopback-only**: use them solely on
+   not the journey. Mock auth changes the app's role context and gives wagmi no wallet connector,
+   so writes, sends and signatures fail before they reach a wallet. Still disconnect any wallet
+   session before a mock-auth pass; a wallet prompt during one means the setup is invalid: cancel
+   it and report it. Both roles are **loopback-only**: use them solely on
    `localhost`/`127.0.0.1` sessions, never over `dev:tunnel` or any non-loopback URL
    (a tunneled dev server would hand production-backed steward views to anyone with the link) —
    those checks go through authenticated Brave instead. The mock role persists in **per-tab**

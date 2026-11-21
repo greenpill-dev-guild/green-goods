@@ -1,7 +1,8 @@
 import { voucherBookingEscrow } from "@green-goods/shared/commitment-pooling";
+import { bookingDeposited, recoveryAct } from "./serviceBookingStage";
 import type {
   BookingContext,
-  BookingHistoryAnchor,
+  BookingTracker,
   ServiceBookingView,
   ServiceConfirmExtras,
   ServicePhase,
@@ -41,23 +42,15 @@ export function bookingPhases(ctx: BookingContext): ServicePhase[] {
     state: ServiceStepState,
     stateLabel = t(`pu.s.${state}`)
   ): ServiceStep => ({ id, text, state, stateLabel });
-  // The steps that are the promise's own events take their time from them in History.
-  const dated = (entry: ServiceStep, anchor: BookingHistoryAnchor): ServiceStep => ({
-    ...entry,
-    anchor,
-  });
   const canceled = stage === "canceling" || stage === "canceled";
   // Decision 3 sets the deadline seven days from agreeing, so the agreement's day reads from it.
   const agreedAt = ctx.deadline !== null ? ctx.deadline - 7n * 86_400n : null;
   const phases = [
     phase("booked", t("rd.p.booked"), t("rd.who.booked"), [
-      dated(
-        step(
-          "agreed",
-          agreedAt !== null ? t("rd.sub.agreed", { date: date(agreedAt) }) : t("pay.j.agree"),
-          "done"
-        ),
-        "CLAIM_REQUESTED"
+      step(
+        "agreed",
+        agreedAt !== null ? t("rd.sub.agreed", { date: date(agreedAt) }) : t("pay.j.agree"),
+        "done"
       ),
       step(
         "requestSent",
@@ -116,13 +109,10 @@ export function bookingPhases(ctx: BookingContext): ServicePhase[] {
     ...phases,
     // A member approves their own bookings; the garden's stewards accept them.
     phase("accepted", t("rd.p.accepted"), t(member ? "rd.who.stewards" : "rd.who.sun"), [
-      dated(
-        step(
-          "accepted",
-          t(member ? "rd.sub.acceptedM" : "rd.sub.accepted"),
-          stage === "termsChanged" ? "warn" : at(3)
-        ),
-        "ACCEPTED"
+      step(
+        "accepted",
+        t(member ? "rd.sub.acceptedM" : "rd.sub.accepted"),
+        stage === "termsChanged" ? "warn" : at(3)
       ),
       step("started", t("rd.sub.started"), at(4)),
     ]),
@@ -137,18 +127,15 @@ export function bookingPhases(ctx: BookingContext): ServicePhase[] {
       ),
       t("rd.who.sunReports"),
       [
-        dated(
-          step(
-            "delivered",
-            deliveredText,
-            flagged ? "warn" : at(5),
-            stage === "problemReported"
-              ? t("pu.s.disputed")
-              : stage === "returnProposed"
-                ? t("pu.s.review")
-                : undefined
-          ),
-          "READY_FOR_CONFIRMATION"
+        step(
+          "delivered",
+          deliveredText,
+          flagged ? "warn" : at(5),
+          stage === "problemReported"
+            ? t("pu.s.disputed")
+            : stage === "returnProposed"
+              ? t("pu.s.review")
+              : undefined
         ),
       ]
     ),
@@ -171,14 +158,8 @@ export function bookingPhases(ctx: BookingContext): ServicePhase[] {
               : "todo"
       ),
       ctx.refund === 0n
-        ? dated(
-            step("kept", t("rd.sub.kept"), ctx.kept ? "done" : final ? "now" : "todo"),
-            "FULFILLED"
-          )
-        : dated(
-            step("closedEarly", t("rd.sub.closedEarly"), ctx.endedEarly ? "done" : "todo"),
-            "CANCELLED"
-          ),
+        ? step("kept", t("rd.sub.kept"), ctx.kept ? "done" : final ? "now" : "todo")
+        : step("closedEarly", t("rd.sub.closedEarly"), ctx.endedEarly ? "done" : "todo"),
     ]),
   ];
 }
@@ -238,11 +219,10 @@ export function bookingDetails(ctx: BookingContext): string[] {
   ];
 }
 
-/** Progress and proof: the delivered count once someone reported it, else who reports it. */
+/** Progress and proof: the delivered count once someone reported it, else pending, booked or not. */
 export function bookingDelivery(ctx: BookingContext): ServiceBookingView["delivery"] {
-  if (!ctx.setup) return null;
   const counted = ctx.reported || (ctx.profile === "access" && ctx.daysDone !== null);
-  if (ctx.pos < 5 || !counted) return { none: ctx.t("rd.prog.none") };
+  if (ctx.pos < 5 || !counted) return "pending";
   if (ctx.profile === "access")
     return { label: ctx.t("rd.prog.lessons"), done: ctx.daysDone ?? 0, of: ctx.accessDays };
   return {
@@ -252,7 +232,78 @@ export function bookingDelivery(ctx: BookingContext): ServiceBookingView["delive
   };
 }
 
-/** Promise kept? once the split is final: the strip at its last step and the approved split. */
+/** Book, Deposit, Service and Done: the same four markers on every service (DL-191). */
+function trackerMarkers(ctx: BookingContext): string[] {
+  return [ctx.t("tr.book"), ctx.t("tr.deposit"), ctx.t("tr.service"), ctx.t("tr.done")];
+}
+
+/**
+ * Where the booking sits on the PWA's own tracker, and who the current marker waits on when the
+ * step isn't the reader's: the issuer approves, the issuer or the garden's stewards accept, the
+ * network carries a request, a start, a cancellation or a transfer, and the stewards review a
+ * reported problem. An act of the reader's that stopped partway makes the step theirs again. A
+ * canceled booking has left the way, so it has no tracker.
+ */
+export function bookingTracker(ctx: BookingContext): BookingTracker | null {
+  const { t, stage, member, setup } = ctx;
+  if (stage === "canceled") return null;
+  const markers = trackerMarkers(ctx);
+  const resumable = recoveryAct(stage, setup) !== null;
+  const yours = (at: BookingTracker["at"]): BookingTracker => ({ markers, at, waiting: null });
+  const waits = (at: BookingTracker["at"], waiting: string): BookingTracker => ({
+    markers,
+    at,
+    waiting: resumable ? null : waiting,
+  });
+  const approver = t("tr.waiting");
+  const stewards = t("tr.waitingStewards");
+  const accepter = member ? stewards : approver;
+  const confirming = t("tr.confirming");
+  const deposited = bookingDeposited(setup);
+  // The promise's own Confirm It Was Kept waits on the reader once the split is final.
+  const confirmDue = ctx.input.coreState === "READY_FOR_CONFIRMATION";
+  switch (stage) {
+    case "open":
+    case "notEnough":
+    case "requestNotSent":
+      return yours(1);
+    case "requestInTransit":
+    case "waitingApproval":
+      return waits(2, approver);
+    case "readyToDeposit":
+      return yours(2);
+    // The deposit's confirmation and the acceptance are one wait to the reader.
+    case "confirmingDeposit":
+    case "waitingAcceptance":
+      return waits(3, accepter);
+    case "termsChanged":
+      return yours(deposited ? 3 : 2);
+    case "canceling":
+      return waits(deposited ? 3 : 2, confirming);
+    // The steward who accepted is sending the start (DL-193).
+    case "stewardStarting":
+      return waits(3, accepter);
+    case "starting":
+    case "inProgress":
+    case "acceptedFirst":
+      return yours(3);
+    case "activationInTransit":
+      return waits(3, confirming);
+    case "problemReported":
+      return { markers, at: ctx.reported ? 4 : 3, waiting: stewards };
+    case "readyToClose":
+    case "returnProposed":
+    case "returnFailed":
+      return yours(4);
+    case "transfersPending":
+      return confirmDue ? yours(4) : waits(4, confirming);
+    case "closed":
+      if (ctx.kept || ctx.endedEarly) return { markers, at: 5, waiting: null };
+      return confirmDue ? yours(4) : waits(4, stewards);
+  }
+}
+
+/** Promise kept? once the split is final: the tracker at its last marker and the approved split. */
 export function bookingConfirm(ctx: BookingContext): ServiceConfirmExtras | null {
   const final = ctx.setup?.destination?.finalAllocation;
   if (!final) return null;
@@ -262,11 +313,7 @@ export function bookingConfirm(ctx: BookingContext): ServiceConfirmExtras | null
     (state) => state === "succeeded" || state === "not-required"
   );
   return {
-    stepsLabel: t("pay.journey"),
-    steps: [
-      { id: "split", label: t("rd.sh.split"), state: "done" },
-      { id: "kept", label: t("rd.sh.kept"), state: "now" },
-    ],
+    tracker: { markers: trackerMarkers(ctx), at: 4, waiting: null },
     split: {
       label: t("rd.sh.splitDone"),
       value: t("rd.sh.splitDoneV", { rel: ctx.values.rel }),

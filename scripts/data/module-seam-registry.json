@@ -43,7 +43,7 @@
         ]
       },
       "reviewedAt": "2026-11-18",
-      "evidenceFingerprint": "sha256:dcf04c1a5afb41007ce881ff4adfa1cdf2ee885f11d581c054d32a1f1410871c"
+      "evidenceFingerprint": "sha256:3c7e8e949884df7bca874acbcb97435e546eebfdc94932ab8f9b6b39b93af6ac"
     },
     {
       "id": "shared-work-provider-command",
@@ -63,8 +63,8 @@
         ],
         "integration": ["packages/shared/src/__tests__/providers/WorkProvider.test.tsx"]
       },
-      "reviewedAt": "2026-11-18",
-      "evidenceFingerprint": "sha256:85f2aa38b79b884162cbb4d45b24ab8a8ae2572e0a475a16958ef4f9aae6528f"
+      "reviewedAt": "2026-11-20",
+      "evidenceFingerprint": "sha256:feec83069fdddb86dcb1172e465a6d52b22127e351a72c45e31c75355bcc0b38"
     },
     {
       "id": "shared-commitment-pooling-public",

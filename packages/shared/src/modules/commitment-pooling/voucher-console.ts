@@ -74,6 +74,11 @@ export interface VoucherAskSetup {
   depositConfirmed: boolean;
   /** The last second the pool's steward can accept, in source time: 7 days from agreeing by default. */
   acceptBy: number;
+  /**
+   * About what sending the booking's start to the escrow costs the steward who accepts it, in the
+   * source chain's native units; null while unquoted. The send itself pays its own fresh quote.
+   */
+  startFee?: bigint | null;
 }
 
 /** One voucher booking asked on a service offer in the pool: a pending service claim. */

@@ -3,6 +3,7 @@ import {
   type ServiceAccessSnapshot,
   type ServiceVoucherSetup,
   selectServiceAccessAction,
+  type VoucherLegProgress,
 } from "@green-goods/shared/commitment-pooling";
 import type { Hex } from "viem";
 import { SERVICE_ACCEPTANCE_WINDOW_SECONDS } from "./serviceBooking";
@@ -178,11 +179,7 @@ export const cancelStep: ServiceActStep = (s) => {
 };
 
 /** Approve the final split, then run each transfer it fixed: the return first. */
-export function splitStep(split: {
-  delivered: bigint;
-  release: bigint;
-  refund: bigint;
-}): ServiceActStep {
+function splitStep(split: { delivered: bigint; release: bigint; refund: bigint }): ServiceActStep {
   return (s) => {
     const row = currentVoucherSetup(s);
     const d = row?.destination;
@@ -277,6 +274,39 @@ export async function runServiceAct(
     if (!DECLINED.test(message)) return "noResult";
     return landed ? "stopped" : "nothingSent";
   }
+}
+
+/**
+ * Confirm Your Visit (DL-192): approve the split, send its transfer, then confirm the promise was
+ * kept, in that order, each its own approval. Kept runs only once the split's act is done and no
+ * transfer it fixed failed: a prompt declined after the split was fixed stops there, and a failed
+ * transfer waits for its Retry Transfer, while the page says where the close stopped. A transfer
+ * still on its way doesn't hold kept back. Kept's own failure is its act's to report.
+ */
+export async function runConfirmVisit(
+  snapshot: ServiceAccessSnapshot,
+  split: { delivered: bigint; release: bigint; refund: bigint },
+  send: (action: ServiceAccessAction) => Promise<{ snapshot: ServiceAccessSnapshot }>,
+  confirmKept: (() => Promise<unknown>) | null
+): Promise<ServiceActEnd> {
+  let latest = snapshot;
+  const end = await runServiceAct(snapshot, splitStep(split), async (action) => {
+    const result = await send(action);
+    latest = result.snapshot;
+    return result;
+  });
+  const final = currentVoucherSetup(latest)?.destination?.finalAllocation;
+  // Kept follows only transfers that went or are on their way: sent, with no failure. One never
+  // sent (the runner stops at a transfer still arriving, or a read trails) waits with a failed one.
+  const went = (leg: VoucherLegProgress) =>
+    leg.state === "succeeded" ||
+    leg.state === "not-required" ||
+    (leg.state === "pending" && leg.attempts > 0n);
+  const transfersWent =
+    final !== undefined && final !== null && went(final.release) && went(final.refund);
+  // Kept's own mutation says when it fails; the promise's Confirm It Was Kept then stays offered.
+  if (end === "done" && transfersWent && confirmKept) await confirmKept().catch(() => undefined);
+  return end;
 }
 
 /**

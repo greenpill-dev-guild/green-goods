@@ -11,7 +11,7 @@ const meta: Meta<typeof VoucherRowAct> = {
     docs: {
       description: {
         component:
-          "A booking's one act in its Review Promises row (PRD-1297 surface 6, `SIssuer`), where Approve… and Accept… sit on an ask's row: Report Visit… and Propose Return… open their dialogs; Retry Transfer sends the same transfer again in one tap, since anyone may and it can't be sent twice.",
+          "A booking's one act in its Review Promises row (PRD-1297 surface 6, `SIssuer`), where Approve… and Accept and Start… sit on an ask's row: Report Visit… and Propose Return… open their dialogs; Retry Transfer sends the same transfer again in one tap, since anyone may and it can't be sent twice.",
       },
     },
   },

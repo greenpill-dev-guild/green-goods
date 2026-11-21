@@ -23,3 +23,45 @@ export const Rejoined: Story = {};
 export const Compact: Story = { args: { compact: true } };
 export const Unavailable: Story = { args: { history: undefined, isError: true } };
 export const Loading: Story = { args: { history: undefined, isLoading: true } };
+
+const day = (month: number, date: number) => Date.UTC(2026, month, date, 12);
+
+/** A steward who joined holding both hats: one row names both roles and the date once. */
+export const SameDayRoles: Story = {
+  args: {
+    history: {
+      garden: "0x1111111111111111111111111111111111111111",
+      account: "0x2222222222222222222222222222222222222222",
+      joinedAt: day(5, 12),
+      memberSince: day(5, 12),
+      roleSince: { gardener: day(5, 12), steward: day(5, 12) },
+    },
+  },
+};
+
+/** A gardener who became a steward later: the later role keeps its own dated row. */
+export const LaterRole: Story = {
+  args: {
+    history: {
+      garden: "0x1111111111111111111111111111111111111111",
+      account: "0x2222222222222222222222222222222222222222",
+      joinedAt: day(5, 12),
+      memberSince: day(5, 12),
+      roleSince: { gardener: day(5, 12), steward: day(8, 1) },
+    },
+  },
+};
+
+/** A current role with no recorded start stays named, dated unknown. */
+export const MissingRoleDate: Story = {
+  args: {
+    roles: ["owner", "steward", "gardener"],
+    history: {
+      garden: "0x1111111111111111111111111111111111111111",
+      account: "0x2222222222222222222222222222222222222222",
+      joinedAt: day(5, 12),
+      memberSince: day(5, 12),
+      roleSince: { gardener: day(5, 12), steward: day(5, 12) },
+    },
+  },
+};

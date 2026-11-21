@@ -180,7 +180,7 @@ export const TechAndSunVouchers: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(await canvas.findByText("Your Reserve")).toBeVisible();
-    await expect(await canvas.findByRole("button", { name: "Accept…" })).toBeVisible();
+    await expect(await canvas.findByRole("button", { name: "Accept and Start…" })).toBeVisible();
     await expect(await canvas.findByRole("button", { name: "Report Visit…" })).toBeVisible();
   },
 };

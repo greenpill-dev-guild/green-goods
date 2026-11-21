@@ -20,6 +20,7 @@ import type {
   PoolConsoleController,
   VoucherConsoleView,
 } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { claimRowKey } from "@green-goods/shared/hooks/admin-ui/pool/useWaitingForApproval";
 import type {
   IssuerSafeThreshold,
@@ -264,16 +265,20 @@ describe("PoolClaimsCard (Review Promises)", () => {
       ["bafy-42", { version: 1, title: "Hub day, up to 4 hours" }],
     ]);
 
-    it("never approves a booking in one tap: the Safe approves it first, then the steward accepts it through acceptServiceClaim", async () => {
+    it("never approves a booking in one tap: the Safe approves it first, then the steward accepts and starts it", async () => {
       const acceptClaim = vi.fn().mockResolvedValue("0x1");
-      const acceptServiceClaim = vi.fn().mockResolvedValue("0x2");
+      const acceptAndStartBooking = vi.fn().mockResolvedValue("started");
+      const info = vi.spyOn(toastService, "info");
       card(
         {
           claims: [linaRow, kwesiRow],
           titles: bookingTitles,
-          acts: { ...poolConsoleControllerFixture().acts, acceptClaim, acceptServiceClaim },
+          acts: { ...poolConsoleControllerFixture().acts, acceptClaim, acceptAndStartBooking },
         },
-        vouchersFor([linaAsk, kwesiAsk]),
+        vouchersFor([
+          linaAsk,
+          { ...kwesiAsk, setup: { ...kwesiAsk.setup!, startFee: 41_000_000_000_000n } },
+        ]),
         safeOwnedBy(VIEWER)
       );
       const [lina, kwesi] = screen.getAllByRole("listitem");
@@ -282,7 +287,7 @@ describe("PoolClaimsCard (Review Promises)", () => {
       expect(within(kwesi!).getByText("Deposit confirmed")).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: /^approve$/i })).not.toBeInTheDocument();
 
-      fireEvent.click(within(kwesi!).getByRole("button", { name: "Accept…" }));
+      fireEvent.click(within(kwesi!).getByRole("button", { name: "Accept and Start…" }));
       const dialog = await screen.findByRole("dialog");
       expect(within(dialog).getByText("Accept Kwesi?")).toBeInTheDocument();
       expect(
@@ -290,21 +295,63 @@ describe("PoolClaimsCard (Review Promises)", () => {
           .getByTestId("voucher-acceptance-checks")
           .querySelectorAll('[data-holds="true"]')
       ).toHaveLength(4);
-      fireEvent.click(within(dialog).getByRole("button", { name: "Accept Kwesi" }));
-      await waitFor(() => expect(acceptServiceClaim).toHaveBeenCalledWith(kwesiAsk, NOW));
+      // Three approvals, said up front, with the start's network fee before the confirm (DL-193).
+      expect(
+        within(dialog).getByText("Your wallet will ask you to approve up to three times.")
+      ).toBeInTheDocument();
+      const sends = within(dialog).getByTestId("voucher-accept-start");
+      expect(
+        within(sends)
+          .getAllByRole("listitem")
+          .map((row) => row.dataset.status)
+      ).toEqual(["waiting", "waiting", "waiting"]);
+      expect(within(sends).getByText(/Network fee: about 0\.000041 ETH/)).toBeInTheDocument();
+      fireEvent.click(within(dialog).getByRole("button", { name: "Accept and Start" }));
+      await waitFor(() =>
+        expect(acceptAndStartBooking).toHaveBeenCalledWith(
+          expect.objectContaining({ commitmentId: kwesiAsk.commitmentId }),
+          NOW
+        )
+      );
       expect(acceptClaim).not.toHaveBeenCalled();
+      expect(info).not.toHaveBeenCalled();
+      info.mockRestore();
+    });
+
+    it("says when the start didn't go, and that the booking stays accepted", async () => {
+      const acceptAndStartBooking = vi.fn().mockResolvedValue("notSent");
+      const info = vi.spyOn(toastService, "info");
+      card(
+        {
+          claims: [kwesiRow],
+          titles: bookingTitles,
+          acts: { ...poolConsoleControllerFixture().acts, acceptAndStartBooking },
+        },
+        vouchersFor([kwesiAsk])
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Accept and Start…" }));
+      const dialog = await screen.findByRole("dialog");
+      fireEvent.click(within(dialog).getByRole("button", { name: "Accept and Start" }));
+      await waitFor(() =>
+        expect(info).toHaveBeenCalledWith({
+          title: "Accepted. The start wasn’t sent",
+          message:
+            "The booking stays accepted. The member can start it from the app 15 minutes after you accepted.",
+        })
+      );
+      info.mockRestore();
     });
 
     // The row read "Deposit confirmed" with Accept… although its dialog refused (Codex on #1320).
     it("reads an ask with no consent to name as missing its agreement, with no Accept", () => {
-      const acceptServiceClaim = vi.fn().mockResolvedValue("0x2");
+      const acceptAndStartBooking = vi.fn().mockResolvedValue("started");
       // The deposit landed, but the consent the acceptance must name can't be read.
       const unnamed = { ...kwesiAsk, claimHash: `0x${"00".repeat(32)}` } satisfies VoucherAsk;
       card(
         {
           claims: [kwesiRow],
           titles: bookingTitles,
-          acts: { ...poolConsoleControllerFixture().acts, acceptServiceClaim },
+          acts: { ...poolConsoleControllerFixture().acts, acceptAndStartBooking },
         },
         vouchersFor([unnamed])
       );
@@ -312,8 +359,10 @@ describe("PoolClaimsCard (Review Promises)", () => {
       expect(within(row).getByText("Agreement missing")).toBeInTheDocument();
       expect(within(row).getByText("No agreement to accept · they book again")).toBeInTheDocument();
       expect(within(row).queryByText("Deposit confirmed")).not.toBeInTheDocument();
-      expect(within(row).queryByRole("button", { name: "Accept…" })).not.toBeInTheDocument();
-      expect(acceptServiceClaim).not.toHaveBeenCalled();
+      expect(
+        within(row).queryByRole("button", { name: "Accept and Start…" })
+      ).not.toBeInTheDocument();
+      expect(acceptAndStartBooking).not.toHaveBeenCalled();
     });
 
     // Approving is the issuer Safe's act; the card offered it to any steward (Codex on #1320).
@@ -590,7 +639,7 @@ describe("PoolClaimsCard (Review Promises)", () => {
         expect(within(row).getByText("Waiting for the deposit")).toBeInTheDocument();
         // Her deposit lands: accepting is a new act.
         view.rerender({}, bookingsFor([], {}, [{ ...kwesiAsk, commitmentId: 41n, buyer: LINA }]));
-        expect(within(row).getByRole("button", { name: "Accept…" })).toBeEnabled();
+        expect(within(row).getByRole("button", { name: "Accept and Start…" })).toBeEnabled();
       });
 
       // While the pool is paused, only the acts that write to the pool wait (PR #1740 review).
@@ -604,7 +653,7 @@ describe("PoolClaimsCard (Review Promises)", () => {
         expect(screen.getByRole("button", { name: "Approve…" })).toBeEnabled();
         expect(screen.getByRole("button", { name: "Propose Return…" })).toBeEnabled();
         expect(screen.getByRole("button", { name: "Retry Transfer" })).toBeEnabled();
-        expect(screen.queryByRole("button", { name: "Accept…" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Accept and Start…" })).not.toBeInTheDocument();
         expect(screen.queryByRole("button", { name: "Report Visit…" })).not.toBeInTheDocument();
         expect(screen.queryByRole("button", { name: "Decline…" })).not.toBeInTheDocument();
       });
