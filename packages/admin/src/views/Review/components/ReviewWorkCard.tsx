@@ -7,7 +7,7 @@ import { formatDateTime, normalizeTimestamp } from "@green-goods/shared/utils/ti
 import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
 import { getRelativeTimeParts } from "@green-goods/shared/utils/relativeTime";
 import { useState, type CSSProperties, type ReactNode } from "react";
-import { useIntl } from "react-intl";
+import { type IntlShape, useIntl } from "react-intl";
 import { localizeCanonicalActionTitle } from "@/components/Action/actionDisplay";
 import { reviewWorkTitle } from "./reviewWorkTitle";
 
@@ -16,6 +16,33 @@ import { reviewWorkTitle } from "./reviewWorkTitle";
 // ---------------------------------------------------------------------------
 
 export type ReviewWorkCardStatusTone = "neutral" | "success" | "warning" | "error";
+
+/**
+ * What a work's own status reads as in Review. A waiting work is a neutral Pending, since its
+ * age is metadata and never an alarm (DL-044). A day's list shows every status, so a rejected
+ * work says Rejected rather than passing for one still waiting.
+ */
+export function reviewWorkStatus(
+  status: Work["status"],
+  formatMessage: IntlShape["formatMessage"]
+): { label: string; tone: ReviewWorkCardStatusTone } {
+  if (status === "approved") {
+    return {
+      label: formatMessage({ id: "app.admin.work.filter.approved", defaultMessage: "Approved" }),
+      tone: "success",
+    };
+  }
+  if (status === "rejected") {
+    return {
+      label: formatMessage({ id: "app.work.status.rejected", defaultMessage: "Rejected" }),
+      tone: "error",
+    };
+  }
+  return {
+    label: formatMessage({ id: "app.admin.work.filter.pending", defaultMessage: "Pending" }),
+    tone: "neutral",
+  };
+}
 
 export interface ReviewWorkCardProps {
   work: Work;
@@ -209,13 +236,9 @@ export function ReviewWorkCard({
     dateStyle: "medium",
     timeStyle: "short",
   });
-  const resolvedStatusLabel =
-    statusLabel ??
-    (work.status === "approved"
-      ? formatMessage({ id: "app.admin.work.filter.approved", defaultMessage: "Approved" })
-      : formatMessage({ id: "app.admin.work.filter.pending", defaultMessage: "Pending" }));
-  const resolvedStatusTone: ReviewWorkCardStatusTone =
-    statusTone ?? (work.status === "approved" ? "success" : "neutral");
+  const ownStatus = reviewWorkStatus(work.status, formatMessage);
+  const resolvedStatusLabel = statusLabel ?? ownStatus.label;
+  const resolvedStatusTone: ReviewWorkCardStatusTone = statusTone ?? ownStatus.tone;
   const domainConfig = actionDomain !== undefined ? DOMAIN_CONFIG[actionDomain] : undefined;
   // Action titles can carry generated stamps too, so both go through the display title.
   const actionDisplayTitle = toWorkDisplayTitle(actionTitle, "");

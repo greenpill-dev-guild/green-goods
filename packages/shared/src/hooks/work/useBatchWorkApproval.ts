@@ -87,6 +87,7 @@ export function useBatchWorkApproval(
   const refreshWorks = () => {
     void queryClient.invalidateQueries({ queryKey: worksKeys.online(gardenAddress, chainId) });
     void queryClient.invalidateQueries({ queryKey: worksKeys.merged(gardenAddress, chainId) });
+    void queryClient.invalidateQueries({ queryKey: worksKeys.ranges(gardenAddress, chainId) });
     void queryClient.invalidateQueries({ queryKey: workApprovalsKeys.all });
     void queryClient.invalidateQueries({ queryKey: approvalsKeys.all });
   };

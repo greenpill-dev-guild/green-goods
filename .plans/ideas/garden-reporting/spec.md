@@ -82,6 +82,17 @@ Placement was decided in review on 2026-11-13: each report goes into the tab it 
   - What funders see.
   - Who records later observations.
   - The PRD-1485 name, still undecided.
+- Decided on 2026-11-19, for the first three production slices:
+  - Order: the Activity calendar on a complete date-range read, then waiting-time chips in
+    Review's Work tab, then Review Health under Garden Health. The other five reports wait.
+  - Days and weeks follow the reader's own device clock. No garden stores a time zone, so garden
+    time would need a new setting; that stays open for a later slice.
+  - The calendar counts every submission on the day it was sent. Past months show each work at
+    today's status and say so; a month-end view waits.
+  - A reviewed work counts once, in the week of its first decision.
+  - The calendar leads the Activity tab, above the feed. A day opens its work in a dialog, and
+    View in Work opens Review's Work tab on that day with every status, rejected included.
+  - Review Health's weekly chart always covers the last eight weeks, whatever the tab's range.
 - Protected or high-risk surfaces: none in the prototype. A production slice touches the work read
   (shared) and the Review workspace.
 - Tradeoffs to keep visible during review: placing reports in existing tabs keeps one place per
