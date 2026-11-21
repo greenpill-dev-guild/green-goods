@@ -140,6 +140,11 @@ export interface PassportMoneyLine {
 }
 
 export interface PassportSettlement {
+  /**
+   * Kept promises that declare a payment to members and have no payment plan on record yet.
+   * A declared payment is intent: until a plan and its payments exist, nothing was paid.
+   */
+  keptAwaitingPaymentPlan: number;
   /** Money sent to the garden itself. */
   support: {
     payments: { confirmed: number; awaiting: number; failed: number; cancelled: number };

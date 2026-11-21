@@ -78,7 +78,7 @@ export async function getPublicGardenPassport(
         return { value: read.vouchers, asOf: read.asOf };
       }),
       section("settlement", garden, async () => {
-        const read = await readPassportSettlement(chainId, garden, rehearsalIds, reader);
+        const read = await readPassportSettlement(chainId, garden, rows, rehearsalIds, reader);
         return { value: read.settlement, asOf: read.asOf };
       }),
     ]);

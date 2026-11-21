@@ -1,7 +1,7 @@
 import type { Address } from "../../types/domain";
 import type { GraphQLReader } from "../data/graphql-client";
 import { integer, type RawRow } from "./data-core";
-import { readPassportRows } from "./data-public-passport-promises";
+import { type PassportPromiseRow, readPassportRows } from "./data-public-passport-promises";
 import {
   type PassportMoneyLine,
   type PassportSettlement,
@@ -67,6 +67,7 @@ function tally(rows: readonly RawRow[]) {
 export async function readPassportSettlement(
   chainId: number,
   garden: Address,
+  promises: readonly PassportPromiseRow[],
   rehearsalIds: ReadonlySet<bigint>,
   reader: GraphQLReader
 ): Promise<{ settlement: PassportSettlement; asOf: number | null }> {
@@ -116,6 +117,9 @@ export async function readPassportSettlement(
   return {
     asOf: changed.length === 0 ? null : Math.max(...changed),
     settlement: {
+      keptAwaitingPaymentPlan: promises.filter(
+        (row) => row.kept && row.declaresPayment && !row.hasPaymentPlan
+      ).length,
       support: tally(toGarden),
       memberPayments: withheld
         ? { withheld: true }

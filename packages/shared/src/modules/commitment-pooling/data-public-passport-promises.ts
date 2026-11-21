@@ -10,7 +10,8 @@ const PROMISE_ROW_LIMIT = 2000;
 
 const PROMISE_FIELDS = /* GraphQL */ `
   id commitmentId poolId cycleId direction state acceptanceSeen countedLifecycleStates unitLabel
-  targetUnits approvedUnits leadProvider creator dueDate confirmationPath createdAt updatedAt
+  targetUnits approvedUnits leadProvider creator dueDate confirmationPath considerationRail
+  payoutPlanId createdAt updatedAt
 `;
 
 /** One promise as the passport reads it. Identities stay inside this module's counts. */
@@ -28,6 +29,9 @@ export interface PassportPromiseRow {
   provider: string | null;
   dueDate: bigint;
   confirmationPath: string | null;
+  /** The promise declares a G$ payment to its members, settled on Celo. */
+  declaresPayment: boolean;
+  hasPaymentPlan: boolean;
   createdAt: number | null;
   updatedAt: number;
 }
@@ -89,6 +93,8 @@ function mapPromiseRow(row: RawRow): PassportPromiseRow {
     provider: typeof provider === "string" ? provider.toLowerCase() : null,
     dueDate: integer(row.dueDate),
     confirmationPath: typeof row.confirmationPath === "string" ? row.confirmationPath : null,
+    declaresPayment: row.considerationRail === "CELO_SETTLEMENT",
+    hasPaymentPlan: integer(row.payoutPlanId) > 0n,
     createdAt: typeof row.createdAt === "number" ? row.createdAt : null,
     updatedAt: row.updatedAt,
   };

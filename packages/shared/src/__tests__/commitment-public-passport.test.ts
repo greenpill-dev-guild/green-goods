@@ -377,7 +377,13 @@ describe("a garden's passport", () => {
       ...fields,
     });
     const tables = {
-      Commitment: [kept(1)],
+      Commitment: [
+        kept(1, { considerationRail: "CELO_SETTLEMENT", payoutPlanId: "1" }),
+        // Kept, with a payment declared and no plan: nothing says it was paid.
+        kept(2, { considerationRail: "CELO_SETTLEMENT", payoutPlanId: null }),
+        kept(3, { considerationRail: "NONE" }),
+        promise(4, { considerationRail: "CELO_SETTLEMENT" }),
+      ],
       Disbursement: [
         payment(1, { amount: "500" }),
         payment(2, { kind: "GARDEN_BENEFICIARY", state: "DISPATCHED", amount: "40" }),
@@ -393,6 +399,7 @@ describe("a garden's passport", () => {
     };
     const settlement = value((await read(tables)).settlement);
 
+    expect(settlement.keptAwaitingPaymentPlan).toBe(1);
     expect(settlement.support).toEqual({
       payments: { confirmed: 1, awaiting: 1, failed: 0, cancelled: 0 },
       lines: [{ token: GDOLLAR, confirmed: 500n, awaiting: 40n, failed: 0n, cancelled: 0n }],
