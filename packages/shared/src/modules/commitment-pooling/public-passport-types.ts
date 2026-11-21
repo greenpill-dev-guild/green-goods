@@ -143,8 +143,9 @@ export interface PassportVouchers {
   }>;
 }
 
-/** How many payments ended in each state. */
+/** How many payments in one token ended in each state. */
 export interface PassportPaymentCounts {
+  token: Address;
   /** Arrival acknowledged by the paying chain. Only this is money received. */
   confirmed: number;
   /** Sent to the paying chain, arrival not yet acknowledged. */
@@ -173,7 +174,8 @@ export interface PassportSettlement {
   keptAwaitingPaymentPlan: number;
   /** Money sent to the garden itself. */
   support: {
-    payments: PassportPaymentCounts;
+    /** One entry per token: a count never mixes tokens, any more than an amount does. */
+    payments: PassportPaymentCounts[];
     lines: PassportMoneyLine[];
   };
   /** Money sent to members for kept promises, against what each payment plan declared. */
@@ -183,7 +185,7 @@ export interface PassportSettlement {
     plansFinalized: number;
     /** Plans changed after their first snapshot, each change with its recorded reason. */
     plansRevised: number;
-    payments: PassportPaymentCounts;
+    payments: PassportPaymentCounts[];
     /**
      * What the plans assign to members, by token. A declared amount is intent, not a payment.
      * Null while fewer than three members share it, or while a plan has not assigned its

@@ -10,7 +10,7 @@ import {
   PUBLIC_PASSPORT_MIN_PEOPLE,
 } from "./public-passport-types";
 
-type Outcome = keyof PassportPaymentCounts;
+type Outcome = Exclude<keyof PassportPaymentCounts, "token">;
 
 const OUTCOMES: readonly Outcome[] = ["confirmed", "sent", "queued", "failed", "cancelled"];
 
@@ -44,18 +44,21 @@ function tokenOf(row: RawRow): Address {
 }
 
 function tally(rows: readonly RawRow[]) {
-  const payments: PassportPaymentCounts = {
-    confirmed: 0,
-    sent: 0,
-    queued: 0,
-    failed: 0,
-    cancelled: 0,
-  };
+  const counts = new Map<Address, PassportPaymentCounts>();
   const lines = new Map<Address, PassportMoneyLine>();
   // Distinct recipients behind each amount, read to apply the people floor and never published.
   const recipients = new Map<string, Set<string>>();
   for (const row of rows) {
     const token = tokenOf(row);
+    const count = counts.get(token) ?? {
+      token,
+      confirmed: 0,
+      sent: 0,
+      queued: 0,
+      failed: 0,
+      cancelled: 0,
+    };
+    counts.set(token, count);
     const line = lines.get(token) ?? {
       token,
       confirmed: 0n,
@@ -66,16 +69,18 @@ function tally(rows: readonly RawRow[]) {
     };
     lines.set(token, line);
     const result = outcome(row.state);
-    payments[result] += 1;
+    count[result] += 1;
     line[result] += integer(row.amount);
     const cell = `${token}:${result}`;
     const people = recipients.get(cell) ?? new Set<string>();
     recipients.set(cell, people);
     if (typeof row.recipient === "string") people.add(row.recipient.toLowerCase());
   }
-  const sorted = [...lines.values()].sort((left, right) => left.token.localeCompare(right.token));
+  const byToken = <T extends { token: Address }>(entries: Map<Address, T>) =>
+    [...entries.values()].sort((left, right) => left.token.localeCompare(right.token));
+  const sorted = byToken(lines);
   return {
-    payments,
+    payments: byToken(counts),
     lines: sorted,
     /** The fewest people behind any one amount. No amounts at all clears every floor. */
     fewestPeopleBehindAnAmount: Math.min(

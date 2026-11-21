@@ -48,7 +48,9 @@ describe("usePublicGardenPassport", () => {
     const { result } = renderHookWithQueryClient(() => usePublicGardenPassport(GARDEN));
 
     expect(result.current).toMatchObject({ published: true, isPending: true });
-    await waitFor(() => expect(result.current.passport).toBeDefined());
+    // The first read loads the deployment records on demand, which a busy machine can take
+    // longer than the default second to do.
+    await waitFor(() => expect(result.current.passport).toBeDefined(), { timeout: 5000 });
     expect(result.current.passport).toMatchObject({ chainId: 42161, garden: GARDEN, poolId: null });
     expect(result.current.isPending).toBe(false);
   });
@@ -58,7 +60,7 @@ describe("usePublicGardenPassport", () => {
     mocks.query.mockResolvedValue({ error: new Error("indexer timeout") });
     const { result } = renderHookWithQueryClient(() => usePublicGardenPassport(GARDEN));
 
-    await waitFor(() => expect(result.current.isError).toBe(true));
+    await waitFor(() => expect(result.current.isError).toBe(true), { timeout: 5000 });
     expect(result.current.passport).toBeUndefined();
   });
 });

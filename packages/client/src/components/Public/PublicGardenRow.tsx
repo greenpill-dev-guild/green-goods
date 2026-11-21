@@ -155,7 +155,7 @@ export function PublicGardenRow({
         {/* A funder choosing a garden can read its record first, where one is published. */}
         {isPublicPassportPublished(DEFAULT_CHAIN_ID, garden.address) ? (
           <div className="flex min-h-11 basis-full items-center">
-            <EditorialLinkArrow to={`/gardens/${encodeURIComponent(garden.slug)}/passport`}>
+            <EditorialLinkArrow to={`/gardens/${garden.address}/passport`}>
               {formatMessage({ id: "public.passport.read", defaultMessage: "Read the Passport" })}
             </EditorialLinkArrow>
           </div>

@@ -1,7 +1,6 @@
 import { usePublicGardenPassport } from "@green-goods/shared/commitment-pooling/public";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { usePublicGardenDetail } from "@green-goods/shared/hooks/public/usePublicGardenDetail";
-import { publicGardenHelpers } from "@green-goods/shared/hooks/public/usePublicGardens";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { ReactNode } from "react";
 import { Helmet } from "react-helmet-async";
@@ -72,8 +71,10 @@ export default function GardenPassport() {
   }
 
   const name = garden?.name ?? "";
-  const slug = garden ? publicGardenHelpers.deriveSlug(name, garden.id) : (id ?? "");
-  const gardenHref = `/gardens/${encodeURIComponent(slug)}`;
+  // Back to the garden by the same reference that opened this page, and on to funding by the
+  // garden's own address: a slug can be shared by two gardens, and a passport must not lead a
+  // funder to the wrong one.
+  const gardenHref = `/gardens/${encodeURIComponent(id ?? "")}`;
   const listed = detail.data ? !detail.data.unlisted : false;
 
   return (
@@ -152,7 +153,9 @@ export default function GardenPassport() {
               passport={state.passport}
               onRetry={state.refetch}
               gardenHref={gardenHref}
-              fundHref={listed ? `/fund?garden=${encodeURIComponent(slug)}` : undefined}
+              fundHref={
+                listed && garden ? `/fund?garden=${encodeURIComponent(garden.id)}` : undefined
+              }
             />
           )}
         </div>

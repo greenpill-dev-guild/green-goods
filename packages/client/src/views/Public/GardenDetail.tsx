@@ -271,9 +271,10 @@ export default function GardenDetail() {
                   })}
                 </EditorialPrimaryLink>
               ) : null}
-              {/* Only a garden whose stewards agreed to publish has a passport to read. */}
-              {garden && identity && isPublicPassportPublished(chainId, garden.id as Address) ? (
-                <EditorialGhostLink to={`/gardens/${encodeURIComponent(identity.slug)}/passport`}>
+              {/* Only a garden whose stewards agreed to publish has a passport to read. The link
+                  names the garden by address: a slug can be shared with another garden. */}
+              {garden && isPublicPassportPublished(chainId, garden.id as Address) ? (
+                <EditorialGhostLink to={`/gardens/${garden.id}/passport`}>
                   {formatMessage({
                     id: "public.passport.read",
                     defaultMessage: "Read the Passport",

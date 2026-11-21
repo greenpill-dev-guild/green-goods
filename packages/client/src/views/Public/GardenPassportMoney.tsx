@@ -25,7 +25,20 @@ import { Section } from "./GardenDetailSections";
  * these is ever shown as another. Amounts stay in G$ and are not converted.
  */
 
-type Outcome = keyof PassportPaymentCounts;
+type Outcome = Exclude<keyof PassportPaymentCounts, "token">;
+
+/**
+ * Payment counts in the tokens the page can name, added up by outcome. A payment in any other
+ * token is not a G$ payment, so it joins no count here, as its amount joins no amount.
+ */
+function namedCounts(payments: readonly PassportPaymentCounts[]): Record<Outcome, number> {
+  const total = { confirmed: 0, sent: 0, queued: 0, failed: 0, cancelled: 0 };
+  for (const count of payments) {
+    if (!passportMoneyToken(count.token)) continue;
+    for (const result of OUTCOMES) total[result] += count[result];
+  }
+  return total;
+}
 
 function outcomeLabels(intl: IntlShape): Record<Outcome, string> {
   const { formatMessage } = intl;
@@ -67,7 +80,7 @@ function amountRows(intl: IntlShape, line: PassportMoneyLine) {
 }
 
 /** How many payments ended in each state, where the amounts themselves are held back. */
-function countRows(intl: IntlShape, payments: PassportPaymentCounts) {
+function countRows(intl: IntlShape, payments: Record<Outcome, number>) {
   const labels = outcomeLabels(intl);
   return OUTCOMES.map((result) => ({
     unitLabel: labels[result],
@@ -130,7 +143,7 @@ export function PassportMoneySection({
               <PassportFigure>
                 {formatMessage(
                   { id: "public.passport.money.support.figure" },
-                  { count: value.support.payments.confirmed }
+                  { count: namedCounts(value.support.payments).confirmed }
                 )}
               </PassportFigure>
               {value.support.lines.map((line) => (
@@ -140,6 +153,11 @@ export function PassportMoneySection({
                   rows={amountRows(intl, line)}
                 />
               ))}
+              {value.support.lines.some((line) => !passportMoneyToken(line.token)) ? (
+                <PassportNote>
+                  {formatMessage({ id: "public.passport.supported.unnamed" })}
+                </PassportNote>
+              ) : null}
               <PassportSource>
                 <p>{formatMessage({ id: "public.passport.supported.source" })}</p>
               </PassportSource>
@@ -187,7 +205,11 @@ function MemberPayments({ settlement }: { settlement: PassportSettlement }) {
       <PassportNote>{formatMessage({ id: "public.passport.money.members.withheld" })}</PassportNote>
     );
   }
-  const paymentsOnRecord = OUTCOMES.reduce((sum, result) => sum + group.payments[result], 0);
+  const counts = namedCounts(group.payments);
+  const paymentsOnRecord = group.payments.reduce(
+    (sum, count) => sum + OUTCOMES.reduce((inner, result) => inner + count[result], 0),
+    0
+  );
   if (group.plans === 0 && paymentsOnRecord === 0) {
     return (
       <PassportNothingYet>
@@ -222,10 +244,7 @@ function MemberPayments({ settlement }: { settlement: PassportSettlement }) {
   return (
     <>
       <PassportFigure>
-        {formatMessage(
-          { id: "public.passport.money.members.figure" },
-          { count: group.payments.confirmed }
-        )}
+        {formatMessage({ id: "public.passport.money.members.figure" }, { count: counts.confirmed })}
       </PassportFigure>
       <PassportUnitRows
         label={formatMessage({
@@ -260,7 +279,7 @@ function MemberPayments({ settlement }: { settlement: PassportSettlement }) {
         ))
       ) : (
         <>
-          <PassportUnitRows label={byOutcome} rows={countRows(intl, group.payments)} />
+          <PassportUnitRows label={byOutcome} rows={countRows(intl, counts)} />
           <PassportNote>
             {formatMessage({ id: "public.passport.money.members.amountsHeld" })}
           </PassportNote>

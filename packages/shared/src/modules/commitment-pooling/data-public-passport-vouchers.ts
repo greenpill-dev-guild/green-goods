@@ -92,15 +92,19 @@ async function readEarned(
         ]);
   const byId = new Map(taken.map((row) => [row.commitmentId, row]));
   const awarded = awards.flatMap((award) => byId.get(integer(award.commitmentId)) ?? []);
-  const people = new Set(awarded.flatMap((promise) => promise.provider ?? []));
+  // Approved terms come before any award, and they too are about named people's promises.
+  const withTerms = terms.flatMap((row) =>
+    row.approvedSeen === true ? (byId.get(integer(row.commitmentId)) ?? []) : []
+  );
+  const people = new Set([...awarded, ...withTerms].flatMap((promise) => promise.provider ?? []));
   // The promises behind the awards decide what is traced, so their changes date the figures too.
   const changed = [
     ...passportRowTimes(terms),
     ...passportRowTimes(awards),
     ...awarded.map((promise) => promise.updatedAt),
   ];
-  // No award is a publishable zero; one or two people's awards are not.
-  if (awards.length > 0 && people.size < PUBLIC_PASSPORT_MIN_PEOPLE) {
+  // Nothing at all is a publishable zero; one or two people's terms or awards are not.
+  if (awards.length + withTerms.length > 0 && people.size < PUBLIC_PASSPORT_MIN_PEOPLE) {
     return { earned: { withheld: true }, changed };
   }
   const issued = awards.filter((award) => award.delivered === true);

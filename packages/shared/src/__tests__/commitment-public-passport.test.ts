@@ -11,6 +11,8 @@ import { getNetworkContracts } from "../utils/blockchain/contracts";
 const CHAIN = 42161;
 const GARDEN = "0x1111111111111111111111111111111111111111" as Address;
 const GDOLLAR = "0x62b8b11039fcfe5ab0c56e502b1c372a3d2a9c7a";
+// Sorts before G$, so a mixed count would show first.
+const OTHER_TOKEN = "0x0000000000000000000000000000000000000099";
 // The reviewed pilot voucher, so the passport can name it.
 const VOUCHER = GREEN_GOODS_ISSUER_ROUTE.assets[0].token.address.toLowerCase();
 const NOW = 2_000_000;
@@ -394,9 +396,18 @@ describe("a garden's passport", () => {
 
     const few = await read({
       ...tables,
+      EarnedVoucherTerms: tables.EarnedVoucherTerms.slice(0, 2),
       EarnedVoucherDistribution: [award(1, true), award(2, false)],
     });
     expect(value(few.vouchers).earned).toEqual({ withheld: true });
+
+    // Terms are approved before any award exists: two people's approved terms wait as well.
+    const termsOnly = await read({
+      ...tables,
+      EarnedVoucherTerms: tables.EarnedVoucherTerms.slice(0, 2),
+      EarnedVoucherDistribution: [],
+    });
+    expect(value(termsOnly.vouchers).earned).toEqual({ withheld: true });
 
     // Until the promise module pins an earned-voucher module, no award can count.
     const unpinned = await read({ ...tables, VoucherCoreConfiguration: [] });
@@ -567,6 +578,7 @@ describe("a garden's passport", () => {
         member(4, "QUEUED", "10"),
         member(5, "QUEUED", "10"),
         member(6, "QUEUED", "5"),
+        payment(40, { token: OTHER_TOKEN, amount: "3" }),
       ],
       CommitmentPayoutPlan: [
         plan(1),
@@ -589,9 +601,14 @@ describe("a garden's passport", () => {
     // The promise kept without a plan dates this section, though no payment row changed.
     expect(passport.settlement).toMatchObject({ asOf: 9900 });
     // Queued is not sent, and sent is not received.
+    // A count never mixes tokens, any more than an amount does.
     expect(settlement.support).toEqual({
-      payments: { confirmed: 1, sent: 1, queued: 1, failed: 0, cancelled: 0 },
+      payments: [
+        { token: OTHER_TOKEN, confirmed: 1, sent: 0, queued: 0, failed: 0, cancelled: 0 },
+        { token: GDOLLAR, confirmed: 1, sent: 1, queued: 1, failed: 0, cancelled: 0 },
+      ],
       lines: [
+        { token: OTHER_TOKEN, confirmed: 3n, sent: 0n, queued: 0n, failed: 0n, cancelled: 0n },
         { token: GDOLLAR, confirmed: 500n, sent: 40n, queued: 9n, failed: 0n, cancelled: 0n },
       ],
     });
@@ -603,7 +620,7 @@ describe("a garden's passport", () => {
       plansRevised: 1,
       declared: [{ token: GDOLLAR, amount: 85n }],
       declaredUnpaid: [{ token: GDOLLAR, amount: 25n }],
-      payments: { confirmed: 3, sent: 0, queued: 3, failed: 0, cancelled: 0 },
+      payments: [{ token: GDOLLAR, confirmed: 3, sent: 0, queued: 3, failed: 0, cancelled: 0 }],
       lines: [{ token: GDOLLAR, confirmed: 60n, sent: 0n, queued: 25n, failed: 0n, cancelled: 0n }],
     });
     // Only plans that pay members are read as member plans.
@@ -623,7 +640,7 @@ describe("a garden's passport", () => {
       })
     ).toMatchObject({
       withheld: false,
-      payments: { confirmed: 3, queued: 3, failed: 1 },
+      payments: [{ confirmed: 3, queued: 3, failed: 1 }],
       declared: [{ token: GDOLLAR, amount: 100n }],
       declaredUnpaid: null,
       lines: null,
@@ -663,7 +680,7 @@ describe("a garden's passport", () => {
     ]) {
       const few = value((await read({ ...tables, ...changes })).settlement);
       expect(few.memberPayments).toEqual({ withheld: true });
-      expect(few.support.payments.confirmed).toBe(1);
+      expect(few.support.payments.find((count) => count.token === GDOLLAR)?.confirmed).toBe(1);
     }
   });
 

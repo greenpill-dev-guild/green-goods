@@ -278,7 +278,7 @@ describe("a garden's public passport", () => {
     expect(screen.queryByRole("heading", { name: "Promised" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "View the Garden" })).toHaveAttribute(
       "href",
-      "/gardens/riverside-garden"
+      `/gardens/${GARDEN}`
     );
     await waitFor(() => {
       expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute(
@@ -331,7 +331,7 @@ describe("a garden's public passport", () => {
     render(row("0xf7b892886998dae960d64a9db488336684f137a0", "published-garden"));
     expect(screen.getByRole("link", { name: /Read the Passport/ })).toHaveAttribute(
       "href",
-      "/gardens/published-garden/passport"
+      "/gardens/0xf7b892886998dae960d64a9db488336684f137a0/passport"
     );
     cleanup();
 

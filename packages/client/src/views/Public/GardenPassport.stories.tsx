@@ -149,7 +149,7 @@ export const NothingYet: Story = {
         value: {
           keptAwaitingPaymentPlan: 0,
           support: {
-            payments: { confirmed: 0, sent: 0, queued: 0, failed: 0, cancelled: 0 },
+            payments: [],
             lines: [],
           },
           memberPayments: {
@@ -157,7 +157,7 @@ export const NothingYet: Story = {
             plans: 0,
             plansFinalized: 0,
             plansRevised: 0,
-            payments: { confirmed: 0, sent: 0, queued: 0, failed: 0, cancelled: 0 },
+            payments: [],
             declared: [],
             declaredUnpaid: [],
             lines: [],
