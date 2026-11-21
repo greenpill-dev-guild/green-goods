@@ -1,3 +1,4 @@
+import type { Address } from "../types/domain";
 import type { EASWork } from "../types/eas-responses";
 
 /** Reviewed production rehearsals. Operational history and settlement stay intact. */
@@ -11,6 +12,15 @@ export function publicRehearsalCycles(chainId: number, poolId?: bigint) {
   return REHEARSAL_CYCLES.filter(
     (cycle) => cycle.chainId === chainId && (poolId === undefined || cycle.poolId === poolId)
   );
+}
+
+// Gardens whose stewards agreed to publish a passport. Taking part in a pool is not consent to
+// public reporting, so a garden joins this list only on its stewards' recorded yes, and leaves it
+// on their no. Nothing is inferred from an open pool, a listing or a kept promise.
+const PASSPORT_GARDENS: Readonly<Record<number, readonly string[]>> = {};
+
+export function isPublicPassportPublished(chainId: number, garden: Address): boolean {
+  return (PASSPORT_GARDENS[chainId] ?? []).includes(garden.toLowerCase());
 }
 
 // Explicitly reviewed records only, keyed by garden then work UID: never infer rehearsal status

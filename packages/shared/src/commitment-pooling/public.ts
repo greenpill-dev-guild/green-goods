@@ -10,3 +10,19 @@ export {
   type PublicGardenPoolData,
   usePublicGardenPool,
 } from "../hooks/public/usePublicGardenPool";
+export type {
+  PassportMoneyLine,
+  PassportPeopleGroup,
+  PassportPromises,
+  PassportSection,
+  PassportServiceLine,
+  PassportSettlement,
+  PassportUnitLine,
+  PassportVoucherLine,
+  PassportVouchers,
+  PublicGardenPassportRecord,
+} from "../modules/commitment-pooling/public-passport-types";
+export {
+  type PublicGardenPassportState,
+  usePublicGardenPassport,
+} from "../hooks/public/usePublicGardenPassport";
