@@ -84,7 +84,6 @@ describe("ActionRegistry.ActionRegistered", () => {
   it("uses chainId in action ID for cross-chain uniqueness", async () => {
     let mockDb = createTestIndexer();
 
-    // Same actionUID on different chains
     const event1 = ActionRegistry.ActionRegistered.createMockEvent({
       owner: addr(1),
       actionUID: 42n,
@@ -210,7 +209,7 @@ describe("ActionRegistry.ActionTitleUpdated", () => {
     assert.ok(action);
     assert.equal(action.title, "New Title");
     assert.equal(action.domain, "WASTE");
-    assert.equal(action.instructions, "Do the work"); // preserved
+    assert.equal(action.instructions, "Do the work");
   });
 
   it("does nothing when action not found", async () => {

@@ -2,8 +2,6 @@ import { indexer, type YieldAllocation } from "envio";
 
 import { getTxHash, getYieldAllocationId, normalizeAddress } from "./shared";
 
-// YIELD SPLITTER EVENT HANDLERS
-
 indexer.onEvent({ contract: "YieldSplitter", event: "YieldSplit" }, async ({ event, context }) => {
   const garden = normalizeAddress(event.params.garden);
   const asset = normalizeAddress(event.params.asset);

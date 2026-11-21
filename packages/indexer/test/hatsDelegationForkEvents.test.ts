@@ -39,7 +39,7 @@ const path = process.env.HATS_DELEGATION_LOGS;
       const params = Object.fromEntries(
         parsed.fragment.inputs.map((field, index) => [field.name, parsed.args[index]])
       );
-      // Normalize ABI addresses to the lower-case identity used by the existing roster fixtures.
+      // Ethers decodes checksummed addresses; the roster fixtures key by lower case.
       for (const field of parsed.fragment.inputs) {
         if (field.type === "address") params[field.name] = String(params[field.name]).toLowerCase();
       }
@@ -48,7 +48,7 @@ const path = process.env.HATS_DELEGATION_LOGS;
         gardens.add(params.garden.toLowerCase());
         db = seedGarden(db, params.garden as Address);
       }
-      // Vm.recordLogs has no mined tx/block envelope. Explicitly synthetic replay metadata.
+      // Vm.recordLogs carries no tx or block envelope, so this metadata is synthetic.
       const metadata = mockEvent(42161, 2_000_000_000, { logIndex });
       if (parsed.name === "ProtocolRoleHatsUpdated") {
         db = await HatsModule.ProtocolRoleHatsUpdated.processEvent({

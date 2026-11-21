@@ -62,8 +62,6 @@ const CONFIGURED_ADDRESSES: ReadonlyMap<string, Address> = (() => {
     const address = line.match(/^\s+(?:address:\s*|-\s*)"(0x[0-9a-fA-F]{40})"\s*$/)?.[1];
     if (address && chainId && contract) {
       const key = `${chainId}:${contract}`;
-      // The regex above proves the 0x-prefixed 40-hex shape, so this is a
-      // validated narrowing rather than a blind assertion.
       if (!byChainAndContract.has(key)) byChainAndContract.set(key, address as Address);
       contract = null;
     }

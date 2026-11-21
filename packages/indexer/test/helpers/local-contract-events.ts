@@ -71,8 +71,8 @@ const repoRoot = dirname(dirname(indexerRoot));
 const envioBin = join(indexerRoot, "node_modules/envio/bin.mjs");
 const ANVIL_START_TIMEOUT_MS = 60_000;
 const COMPOSE_START_TIMEOUT_MS = 90_000;
-// Envio configures the complete schema's permissions/relationships serially before
-// processing events. That setup is distinct from the unchanged 150s event deadline.
+// Envio sets up the whole schema's permissions and relationships serially before processing
+// events; this is separate from the 150s event deadline.
 const INDEXER_STORAGE_START_TIMEOUT_MS = 360_000;
 const INDEXER_POLL_TIMEOUT_MS = 150_000;
 

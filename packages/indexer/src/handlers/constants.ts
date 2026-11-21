@@ -52,7 +52,6 @@ export const GARDEN_ROLE = {
   Community: 5,
 } as const;
 
-// Zero address constant used for guards and defaults.
 export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 /**
