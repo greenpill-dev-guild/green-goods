@@ -75,7 +75,7 @@ const same = (left: string, right: string) => left.toLowerCase() === right.toLow
 const spellings = (address: Address): string[] => [...new Set([address.toLowerCase(), address])];
 
 /**
- * Whether the voucher has started to move: exchanged in a reviewed pool, presented for a booking,
+ * Whether the voucher has started to move: exchanged in any indexed pool, presented for a booking,
  * or awarded to someone. One row of any kind is enough, so one row of each is all that is asked
  * for. An award does not name its voucher in the index, so any award counts for every voucher: a
  * member who puts an awarded voucher into the pool would otherwise leave no trace here.
@@ -83,18 +83,17 @@ const spellings = (address: Address): string[] => [...new Set([address.toLowerCa
 async function voucherInUse(
   sourceChainId: number,
   token: Address,
-  pools: readonly Address[],
   reader: GraphQLReader,
   deadline: AbortSignal
 ): Promise<boolean> {
   const entities = ["VoucherPoolExchange", "VoucherServiceSetup", "EarnedVoucherDistribution"];
   const result = await reader.query<Record<string, RawRow[]>>(
-    `query PublicPassportVoucherUse($chainId: Int!, $tokens: [String!]!, $pools: [String!]!) {
-      VoucherPoolExchange(where: { moduleAddress: { _in: $pools }, _or: [{ tokenIn: { _in: $tokens } }, { tokenOut: { _in: $tokens } }] }, limit: 1) { id }
+    `query PublicPassportVoucherUse($chainId: Int!, $tokens: [String!]!) {
+      VoucherPoolExchange(where: { _or: [{ tokenIn: { _in: $tokens } }, { tokenOut: { _in: $tokens } }] }, limit: 1) { id }
       VoucherServiceSetup(where: { token: { _in: $tokens } }, limit: 1) { id }
       EarnedVoucherDistribution(where: { chainId: { _eq: $chainId }, preparedSeen: { _eq: true } }, limit: 1) { id }
     }`,
-    { chainId: sourceChainId, tokens: spellings(token), pools: pools.flatMap(spellings) },
+    { chainId: sourceChainId, tokens: spellings(token) },
     "getPublicPassportVoucherUse",
     deadline
   );
@@ -123,8 +122,10 @@ export async function readPassportVoucherSupply(
   options: { chain?: PassportVoucherChain; reader?: GraphQLReader; route?: ServiceIssuerRoute } = {}
 ): Promise<{ supply: PassportVoucherSupply[]; asOf: number | null }> {
   const route = options.route ?? GREEN_GOODS_ISSUER_ROUTE;
+  // A voucher with no reviewed issuer record stays in: the read then fails, where leaving it out
+  // would say the garden issues none.
   const collective = (token: string) =>
-    route.assets.some((asset) => same(asset.token.address, token) && asset.kind === "collective");
+    !route.assets.some((asset) => same(asset.token.address, token) && asset.kind === "individual");
   const issued =
     chainId === route.service.sourceChainId
       ? route.service.assets.filter(
@@ -184,13 +185,7 @@ export async function readPassportVoucherSupply(
       const [total, reserve, used, pools] = await Promise.all([
         totalSupply(voucher.token),
         balanceOf(voucher.token, asset.ownerReserve),
-        voucherInUse(
-          route.service.sourceChainId,
-          voucher.token,
-          listedIn.map((pool) => pool.deployment.address),
-          reader,
-          deadline
-        ),
+        voucherInUse(route.service.sourceChainId, voucher.token, reader, deadline),
         Promise.all(
           listedIn.map(async (pool) => {
             const [holding, holdingLimit, listed] = await Promise.all([

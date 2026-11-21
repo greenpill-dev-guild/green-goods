@@ -4,7 +4,10 @@ import { describe, expect, it } from "vitest";
 
 import type { GraphQLReader } from "../modules/data/graphql-client";
 import { getPublicGardenPassport } from "../modules/commitment-pooling/data-public-passport";
-import type { PassportVoucherChain } from "../modules/commitment-pooling/data-public-passport-supply";
+import {
+  type PassportVoucherChain,
+  readPassportVoucherSupply,
+} from "../modules/commitment-pooling/data-public-passport-supply";
 import { GREEN_GOODS_ISSUER_ROUTE } from "../modules/commitment-pooling/service-issuer-live-config";
 import type { PassportSection } from "../modules/commitment-pooling/public-passport-types";
 import type { Address } from "../types/domain";
@@ -114,7 +117,6 @@ function indexer(tables: Record<string, Row[] | Error>, poolId: string | null = 
         return {
           data: {
             VoucherPoolExchange: exchanges
-              .filter((row) => (variables.pools as string[]).includes(String(row.moduleAddress)))
               .filter((row) => names(row.tokenIn) || names(row.tokenOut))
               .slice(0, 1),
             VoucherServiceSetup: bookings.filter((row) => names(row.token)).slice(0, 1),
@@ -1011,15 +1013,18 @@ describe("a garden's passport", () => {
     for (const used of inUse) {
       expect(value((await supplyOf(untouched, used)).supply)).toMatchObject(held);
     }
-    // Another voucher's exchange, or one in a pool outside the reviewed list, is not this one's.
-    for (const unrelated of [
-      { VoucherPoolExchange: [{ ...exchange, tokenIn: OTHER_TOKEN, tokenOut: VOUCHER }] },
-      { VoucherPoolExchange: [{ id: "x-2", moduleAddress: OTHER_MODULE, tokenIn: token }] },
-    ]) {
-      expect(value((await supplyOf(untouched, unrelated)).supply)).toMatchObject([
-        { heldBack: false, outstanding: 10n * VOUCHERS },
-      ]);
-    }
+    // An exchange in a pool outside the reviewed list still moved this voucher.
+    const elsewhere = {
+      VoucherPoolExchange: [{ id: "x-2", moduleAddress: OTHER_MODULE, tokenIn: token }],
+    };
+    expect(value((await supplyOf(untouched, elsewhere)).supply)).toMatchObject(held);
+    // Another voucher's exchange is not this one's.
+    const unrelated = {
+      VoucherPoolExchange: [{ ...exchange, tokenIn: OTHER_TOKEN, tokenOut: VOUCHER }],
+    };
+    expect(value((await supplyOf(untouched, unrelated)).supply)).toMatchObject([
+      { heldBack: false, outstanding: 10n * VOUCHERS },
+    ]);
 
     // Not knowing whether anyone used the voucher is not the same as knowing nobody did.
     const unknown = await supplyOf(untouched, {
@@ -1032,6 +1037,22 @@ describe("a garden's passport", () => {
     expect(broken.supply).toEqual({ status: "unavailable" });
     expect(broken.unavailableSources).toMatchObject({ supply: true, promises: false });
     expect(broken.partialData).toBe(true);
+
+    // A voucher with no reviewed issuer record fails the read: it is not "issues no voucher".
+    // One that a single person issues is left out, since its supply is that person's own.
+    const reviewed = GREEN_GOODS_ISSUER_ROUTE;
+    const others = reviewed.assets.filter((asset) => asset.id !== tsv.id);
+    const reads = (assets: typeof reviewed.assets) =>
+      readPassportVoucherSupply(CHAIN, issuer, {
+        chain: untouched,
+        reader: indexer({}).reader,
+        route: { ...reviewed, assets },
+      });
+    await expect(reads(others)).rejects.toThrow("no reviewed issuer record");
+    await expect(reads([...others, { ...tsv, kind: "individual" }])).resolves.toEqual({
+      supply: [],
+      asOf: null,
+    });
 
     // A garden that issues no voucher asks the chain nothing.
     const silent: PassportVoucherChain = {
