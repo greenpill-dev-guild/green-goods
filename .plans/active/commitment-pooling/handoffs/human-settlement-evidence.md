@@ -71,13 +71,14 @@ the smallest exact read-only evidence-reproduction command before dispatch.
 What the indexed record can and cannot say for the operating pilot. Read on 21 November 2026 with
 the passport reader (`getPublicGardenPassport` in Shared, PRD-1097) against the hosted indexer.
 Garden-level counts only: no account, recipient or contributor appears. The registered rehearsal
-cycle (pool 1, cycle 1) is excluded, with the payments that followed it. This section does not
-unblock the lane; the human assignments above are still required.
+cycle (pool 1, cycle 1) is excluded, with the payments that followed it, and so is the one
+promise in pool 2 that review registered as a QA check. This section does not unblock the lane;
+the human assignments above are still required.
 
 | Pool | Promises taken up | Kept | Kept with a declared G$ payment and no payment plan | Payment plans | Member payments confirmed, awaited, failed | G$ confirmed to the garden |
 |---|---|---|---|---|---|---|
 | 1 (protocol) | 0 | 0 | 0 | 0 | 0, 0, 0 | none |
-| 2 | 10 | 2 | 0 | 0 | 0, 0, 0 | 1 payment, 1 G$ |
+| 2 | 9 | 1 | 0 | 0 | 0, 0, 0 | 1 payment, 1 G$ |
 | 3 | 24 | 1 | 1 | 0 | 0, 0, 0 | 2 payments, 7,200,000 G$ |
 
 Recognition policy as each open season froze it: 20% equal participation and 80% verified

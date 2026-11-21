@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 import type { Address } from "../../types/domain";
 import {
+  publicRehearsalCommitments,
   publicRehearsalCycles,
   publicReviewedWorkExclusionIds,
   publicWorkReviewStatus,
@@ -16,6 +17,10 @@ describe("reviewed public record policy", () => {
     expect(publicRehearsalCycles(42161, 1n)).toEqual([{ chainId: 42161, poolId: 1n, cycleId: 1n }]);
     expect(publicRehearsalCycles(42161, 2n)).toEqual([]);
     expect(publicRehearsalCycles(11155111, 1n)).toEqual([]);
+    // A single reviewed promise is scoped the same way, and never widens to its whole pool.
+    expect(publicRehearsalCommitments(42161, 2n).map((entry) => entry.commitmentId)).toEqual([85n]);
+    expect(publicRehearsalCommitments(42161, 1n)).toEqual([]);
+    expect(publicRehearsalCommitments(11155111, 2n)).toEqual([]);
   });
 
   it("keeps uncertainty distinct from test activity and scopes work by chain and garden", () => {

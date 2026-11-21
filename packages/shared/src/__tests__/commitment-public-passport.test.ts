@@ -180,6 +180,20 @@ describe("a garden's passport", () => {
     expect(value(passport.settlement).support.lines).toEqual([
       { token: GDOLLAR, confirmed: 70n, awaiting: 0n, failed: 0n, cancelled: 0n },
     ]);
+
+    // Pool 2's promise 85 was made outside any cycle and is registered by its own id.
+    const single = await read(
+      {
+        Commitment: [
+          kept(85, { poolId: "2", cycleId: null }),
+          kept(86, { poolId: "2", cycleId: null }),
+        ],
+        Disbursement: [payment(3, { commitmentId: "85" })],
+      },
+      "2"
+    );
+    expect(value(single.promises)).toMatchObject({ made: 1, kept: 1 });
+    expect(value(single.settlement).support.lines).toEqual([]);
   });
 
   it("reads open offers as capacity, and only voucher-priced ones as bookable with a voucher", async () => {

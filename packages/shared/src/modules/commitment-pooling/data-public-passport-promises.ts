@@ -1,4 +1,7 @@
-import { publicRehearsalCycles } from "../../config/public-record-visibility";
+import {
+  publicRehearsalCommitments,
+  publicRehearsalCycles,
+} from "../../config/public-record-visibility";
 import type { GraphQLReader } from "../data/graphql-client";
 import { integer, type RawRow } from "./data-core";
 import { selectPublicPromiseKeptRate } from "./disclosure";
@@ -110,6 +113,9 @@ export async function readPassportPromiseRows(
   reader: GraphQLReader
 ): Promise<{ rows: PassportPromiseRow[]; rehearsalIds: Set<bigint> }> {
   const rehearsals = publicRehearsalCycles(chainId, poolId);
+  const single = new Set<bigint>(
+    publicRehearsalCommitments(chainId, poolId).map((commitment) => commitment.commitmentId)
+  );
   const indexed = await readPassportRows(
     reader,
     "Commitment",
@@ -122,9 +128,10 @@ export async function readPassportPromiseRows(
   const rehearsalIds = new Set<bigint>();
   for (const row of indexed) {
     const rehearsal =
-      row.cycleId !== null &&
-      row.cycleId !== undefined &&
-      rehearsals.some((cycle) => cycle.cycleId === integer(row.cycleId));
+      single.has(integer(row.commitmentId)) ||
+      (row.cycleId !== null &&
+        row.cycleId !== undefined &&
+        rehearsals.some((cycle) => cycle.cycleId === integer(row.cycleId)));
     if (rehearsal) rehearsalIds.add(integer(row.commitmentId));
     else rows.push(mapPromiseRow(row));
   }

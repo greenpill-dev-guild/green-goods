@@ -4,7 +4,10 @@ import { greenGoodsIndexer } from "../data/graphql-client";
 import { hypercertExclusionClauses } from "../data/hypercerts-exclusions";
 import { resolveCycleMetadataName } from "./cycle-metadata";
 import { integer, mapUnitSummary, number, optionalInteger, type RawRow, string } from "./data-core";
-import { publicRehearsalCycles } from "../../config/public-record-visibility";
+import {
+  publicRehearsalCommitments,
+  publicRehearsalCycles,
+} from "../../config/public-record-visibility";
 import {
   countedMilestone,
   excludedUnitTotals,
@@ -298,7 +301,7 @@ export async function getPublicGardenPool(
   const rehearsalCycles = publicRehearsalCycles(chainId, pool.poolId);
   const reporting = createPublicReportingRead(chainId);
   const excluded =
-    rehearsalCycles.length === 0
+    rehearsalCycles.length === 0 && publicRehearsalCommitments(chainId, pool.poolId).length === 0
       ? []
       : (await reporting.commitments()).filter((row) => integer(row.poolId) === pool.poolId);
 
