@@ -21,7 +21,7 @@ import { type IntlShape, useIntl } from "react-intl";
 import { ReviewBatchBar } from "./ReviewBatchBar";
 import { ReviewShowOlder, ReviewShowOlderButton } from "./ReviewShowOlder";
 import { ReviewWorkbenchSkeletonRows } from "./ReviewWorkbenchSkeletonRows";
-import { ReviewWorkCard } from "./ReviewWorkCard";
+import { ReviewWorkCard, reviewWorkStatus } from "./ReviewWorkCard";
 import { reviewWorkTitle } from "./reviewWorkTitle";
 
 /**
@@ -55,6 +55,14 @@ const EMPTY_SCOPE_COPY: Record<
       defaultMessage: "Work you approve moves here from Pending.",
     },
   },
+  // Every status of one day, opened from the Activity calendar.
+  all: {
+    title: { id: "hub.work.dayEmpty", defaultMessage: "Nothing submitted this day" },
+    description: {
+      id: "hub.work.dayEmptyDescription",
+      defaultMessage: "Work a gardener sends on this day appears here.",
+    },
+  },
 };
 
 // While older work is not loaded, a scope that finds nothing in the newest page
@@ -65,6 +73,7 @@ const EMPTY_RECENT_SCOPE_TITLE: Record<ReviewWorkScope, { id: string; defaultMes
     id: "hub.work.noRecentApproved",
     defaultMessage: "Nothing approved in recent work",
   },
+  all: { id: "hub.work.dayEmpty", defaultMessage: "Nothing submitted this day" },
 };
 
 interface ReviewWorkQueueProps {
@@ -148,7 +157,7 @@ function ReviewWorkQueueItem({
   });
 
   if (asRow) {
-    const approved = work.status === "approved";
+    const ownStatus = reviewWorkStatus(work.status, formatMessage);
     const media = work.media ?? [];
     return (
       <WorkCard
@@ -162,15 +171,9 @@ function ReviewWorkQueueItem({
           imageCount: media.length,
         }}
         showGardener
-        // As on the card: a waiting work is a neutral Pending, since its age is
-        // metadata and never an alarm (DL-044); an approved one says Approved.
-        statusLabel={
-          reviewChip?.label ??
-          (approved
-            ? formatMessage({ id: "app.admin.work.filter.approved", defaultMessage: "Approved" })
-            : formatMessage({ id: "app.admin.work.filter.pending", defaultMessage: "Pending" }))
-        }
-        statusTone={reviewChip?.tone ?? (approved ? "success" : "neutral")}
+        // As on the card: the work's own status, unless a decision waiting on it says more.
+        statusLabel={reviewChip?.label ?? ownStatus.label}
+        statusTone={reviewChip?.tone ?? ownStatus.tone}
         selected={selected}
         onClick={() => onOpenWorkDetail(work.id)}
       />

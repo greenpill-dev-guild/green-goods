@@ -65,7 +65,7 @@ const ROUTE_ITEM_CLOSE_SETTLE_MS = 500;
  * click goes back once. The check lives in a ref because a send's success closes
  * the dialog with a callback from the moment it was sent.
  */
-export function useRouteItemClose(itemInUrl: boolean): () => void {
+export function useRouteItemClose(itemInUrl: boolean, param = "item"): () => void {
   const navigate = useNavigate();
   const navigationType = useNavigationType();
   const { updateSearch } = useCanvasSearchParams();
@@ -83,6 +83,6 @@ export function useRouteItemClose(itemInUrl: boolean): () => void {
     }
     lastCloseAt.current = now;
     if (entry.current === "pushed") navigate(-1);
-    else if (entry.current === "direct") updateSearch({ item: undefined });
-  }, [navigate, updateSearch]);
+    else if (entry.current === "direct") updateSearch({ [param]: undefined });
+  }, [navigate, param, updateSearch]);
 }

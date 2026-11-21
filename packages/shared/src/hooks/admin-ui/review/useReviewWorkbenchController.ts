@@ -21,13 +21,13 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useLocalizedRelativeTime } from "../../app/useLocalizedRelativeTime";
 import {
   buildReviewViewActions,
+  buildSortOptions,
   getSearchPlaceholder,
   getStageTitle,
   type ReviewPipelineStage,
   type ReviewWorkScope,
   isRouteSheetContentId,
   resolveOpenSectionRoute,
-  type SortDirection,
 } from "./review.utils";
 import {
   buildActionTitleMap,
@@ -43,12 +43,7 @@ import { useReviewConfirmStage } from "./useReviewConfirmStage";
 import { useReviewOlderRecords } from "./useReviewOlderRecords";
 import { useReviewStageQueues } from "./useReviewStageQueues";
 import { useReviewStageRefresh } from "./useReviewStageRefresh";
-
-/** One choice in Review's sort control. */
-interface SortOption {
-  value: SortDirection;
-  label: string;
-}
+import { useReviewWorkDay } from "./useReviewWorkDay";
 
 export function useReviewWorkbenchController() {
   const { formatMessage } = useIntl();
@@ -85,11 +80,13 @@ export function useReviewWorkbenchController() {
     routeSheetSide,
     routeWorkId,
     sortDirection,
+    workDay,
     workScope,
   } = resolveReviewRouteState({
     pathname: location.pathname,
     sortParam: searchParams.get("sort"),
     scopeParam: searchParams.get("scope"),
+    dayParam: searchParams.get("day"),
     routedWorkIdParam,
     routedAssessmentIdParam,
     activeContentId,
@@ -100,11 +97,19 @@ export function useReviewWorkbenchController() {
     () => ({
       gardenId: selectedGardenId,
       sort: sortDirection,
-      // Carried so a work opened from the Approved scope closes back onto it.
-      scope: workScope === "approved" ? workScope : undefined,
+      // Carried so a work opened from a scope or a day's list closes back onto it. The route
+      // writes a scope only where it is not the default.
+      scope: workScope,
+      day: workDay ?? undefined,
     }),
-    [selectedGardenId, sortDirection, workScope]
+    [selectedGardenId, sortDirection, workDay, workScope]
   );
+  const dayView = useReviewWorkDay({
+    gardenId: selectedGardenId as Address | undefined,
+    day: workDay,
+    workScope,
+    updateSearch,
+  });
 
   useEffect(() => {
     if (lastHydratedGardenStateKeyRef.current === gardenStateKey) return;
@@ -184,7 +189,8 @@ export function useReviewWorkbenchController() {
     sortDirection,
     workPages,
     hypercertPages,
-    workReadable: !worksError && !isWorksPaused,
+    // A day's list is read on its own, so its sort never pages the garden's whole history.
+    workReadable: !worksError && !isWorksPaused && !workDay,
   });
 
   const openSection = useCallback(
@@ -235,7 +241,7 @@ export function useReviewWorkbenchController() {
 
   const { scopedWorks, assessmentList, hypercertList, selectedWork, selectedCertification } =
     useReviewStageQueues({
-      works,
+      works: workDay ? dayView.workDayWorks : works,
       workScope,
       actionsMap,
       normalizedSearch,
@@ -333,9 +339,13 @@ export function useReviewWorkbenchController() {
 
   const handleWorkScopeChange = useCallback(
     (nextScope: ReviewWorkScope) => {
-      updateSearch({ scope: nextScope === "approved" ? nextScope : undefined });
+      // On a day, a chip narrows the day's list and pressing it again shows every status.
+      const dayScope = nextScope === workScope ? undefined : nextScope;
+      updateSearch({
+        scope: workDay ? dayScope : nextScope === "approved" ? nextScope : undefined,
+      });
     },
-    [updateSearch]
+    [updateSearch, workDay, workScope]
   );
 
   const viewActions = useMemo(
@@ -358,7 +368,10 @@ export function useReviewWorkbenchController() {
     stage,
     enabled: Boolean(selectedGardenId),
     reads: {
-      work: { refresh: refreshWorks, isFetching: worksFetching },
+      // A day's list is its own read, so refreshing the day reads that day again.
+      work: workDay
+        ? { refresh: dayView.refreshWorkDay, isFetching: dayView.workDayFetching }
+        : { refresh: refreshWorks, isFetching: worksFetching },
       assess: { refresh: refreshAssessments, isFetching: assessmentsFetching },
       certify: { refresh: refreshHypercerts, isFetching: hypercertsFetching },
       confirm: { refresh: toConfirm.refetch, isFetching: toConfirm.isFetching ?? false },
@@ -388,19 +401,7 @@ export function useReviewWorkbenchController() {
     hypercertCount: hypercerts.length,
   });
 
-  const sortOptions = useMemo<SortOption[]>(
-    () => [
-      {
-        value: "newest",
-        label: formatMessage({ id: "hub.review.sort.newest", defaultMessage: "Newest" }),
-      },
-      {
-        value: "oldest",
-        label: formatMessage({ id: "hub.review.sort.oldest", defaultMessage: "Oldest" }),
-      },
-    ],
-    [formatMessage]
-  );
+  const sortOptions = useMemo(() => buildSortOptions(formatMessage), [formatMessage]);
 
   const stageTitle = getStageTitle(stage, formatMessage);
   const searchPlaceholder = getSearchPlaceholder(stage, formatMessage);
@@ -433,6 +434,7 @@ export function useReviewWorkbenchController() {
 
   return {
     ...older,
+    ...dayView,
     actionsMap,
     activeWorkDetailId,
     allocationsLoading,

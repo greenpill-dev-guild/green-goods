@@ -8,6 +8,7 @@ const seams = vi.hoisted(() => ({
   byUID: vi.fn(),
   approvalsForWork: vi.fn(),
   activity: vi.fn(),
+  range: vi.fn(),
   visibility: vi.fn(async () => ({
     chainId: 42161,
     excludedWorkUIDs: [] as string[],
@@ -27,6 +28,7 @@ vi.mock("../../../modules/data/eas", () => ({
   getWorkApprovalsForWork: seams.approvalsForWork,
   readWorkApprovalsForWorks: seams.approvals,
   getGardenActivitySince: seams.activity,
+  getWorksInRange: seams.range,
 }));
 
 const CONFIGURED_UID = `0x${"1".repeat(64)}`;
@@ -36,9 +38,8 @@ vi.mock("../../../config/blockchain", async (importOriginal) => ({
   getEASConfig: () => ({ WORK_APPROVAL: { uid: chain.workApprovalUID } }),
 }));
 
-const { readApprovedWorks, readGardenActivity, readWorkByUID, readWorkList } = await import(
-  "../../../modules/work/work-list"
-);
+const { readApprovedWorks, readGardenActivity, readGardenWorkRange, readWorkByUID, readWorkList } =
+  await import("../../../modules/work/work-list");
 
 function work(id: string): EASWork {
   return {
@@ -220,6 +221,50 @@ describe("readGardenActivity", () => {
     seams.activity.mockResolvedValue({ works: [work("work-new")], decisions: [], truncated: true });
     const cut = await readGardenActivity({ garden: "garden", chainId: 42161, since: 5 });
     expect(cut.complete).toBe(false);
+  });
+});
+
+describe("readGardenWorkRange", () => {
+  beforeEach(() => vi.clearAllMocks());
+  const GARDEN = "0x2222222222222222222222222222222222222222" as const;
+  const period = { garden: GARDEN, chainId: 42161, from: 100, to: 200 };
+
+  it("gives a period's works their latest decision and leaves an unread status unknown", async () => {
+    seams.range.mockResolvedValue({
+      works: [work("approved"), work("waiting"), work("unread")],
+      truncated: false,
+    });
+    seams.approvals.mockResolvedValue({
+      approvals: [approval("approval", "approved", true)],
+      failedWorkUIDs: ["unread"],
+    });
+
+    const range = await readGardenWorkRange(period);
+
+    expect(seams.range).toHaveBeenCalledWith(GARDEN, {
+      chainId: 42161,
+      from: 100,
+      to: 200,
+      excludedWorkUIDs: [],
+      excludedApprovalUIDs: [],
+    });
+    expect(range.complete).toBe(true);
+    // null is read and undecided; a missing approval is a status nobody could read.
+    expect(range.rows.map(({ id, approval }) => [id, approval?.id ?? approval])).toEqual([
+      ["approved", "approval"],
+      ["waiting", null],
+      ["unread", undefined],
+    ]);
+  });
+
+  it("keeps the works when no decision can be read, and says when the period was cut", async () => {
+    seams.range.mockResolvedValue({ works: [work("work")], truncated: true });
+    seams.approvals.mockRejectedValue(new Error("EAS timed out"));
+
+    const range = await readGardenWorkRange(period);
+
+    expect(range.complete).toBe(false);
+    expect(range.rows).toEqual([work("work")]);
   });
 });
 

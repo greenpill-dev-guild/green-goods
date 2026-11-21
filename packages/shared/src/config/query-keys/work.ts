@@ -35,6 +35,12 @@ export const worksKeys = {
   /** The garden's works and decisions of the last week, for the bell (`readGardenActivity`). */
   activity: (gardenId: string, chainId: number) =>
     ["greengoods", "works", "activity", gardenSegment(gardenId), chainId] as const,
+  /** Every work the garden received between two moments, in seconds (`readGardenWorkRange`). */
+  range: (gardenId: string, chainId: number, from: number, to: number) =>
+    ["greengoods", "works", "range", gardenSegment(gardenId), chainId, from, to] as const,
+  /** Every period read of a garden (`range`), for refreshing them all after a decision. */
+  ranges: (gardenId: string, chainId: number) =>
+    ["greengoods", "works", "range", gardenSegment(gardenId), chainId] as const,
   byUID: (uid: string, chainId: number) =>
     ["greengoods", "works", "byUID", uid.toLowerCase(), chainId] as const,
   offline: (gardenId: string, chainId?: number, account?: string) =>

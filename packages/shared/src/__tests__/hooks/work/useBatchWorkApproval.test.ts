@@ -498,6 +498,8 @@ describe("useBatchWorkApproval", () => {
     expect(workOf(decision)).toMatchObject({ status: "pending", _isPending: false });
     expect(queryClient.getQueryData(worksKeys.merged(other, chainId))).toEqual([otherRow]);
     expect(invalidate).toHaveBeenCalledWith({ queryKey: worksKeys.merged(garden, chainId) });
+    // The calendar's months and Review's days hold statuses from before the decision.
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: worksKeys.ranges(garden, chainId) });
     expect(invalidate).not.toHaveBeenCalledWith({ queryKey: worksKeys.merged(other, chainId) });
   });
 

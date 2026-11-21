@@ -16,6 +16,7 @@ import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
 import { http } from "viem";
 import { type Config, createConfig } from "wagmi";
 import { ENV } from "../lib/env";
+import { boundConnectorRestores } from "../modules/auth/connector-restore-deadline";
 import { hasMockAuthOverride } from "../modules/auth/mock-auth-seam";
 import { logger } from "../modules/app/logger";
 import { getRpcUrl } from "../utils/blockchain/chain-registry";
@@ -167,6 +168,9 @@ export function ensureAppKit(options?: AppKitInitOptions) {
     projectId,
     transports,
   });
+  // Before AppKit's launch restore: one wallet that never answers must not hold every
+  // later restore of the visit (PRD-1575). Lives as long as the singleton config.
+  boundConnectorRestores(wagmiAdapterInstance.wagmiConfig);
 
   // Get initial theme from system/localStorage
   const initialTheme = getResolvedTheme();
