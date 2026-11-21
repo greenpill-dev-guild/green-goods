@@ -1,0 +1,166 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "eoa-passkey-recovery",
+    "title": "Recover a Kernel passkey account with a wallet",
+    "kind": "feature",
+    "stage": "backlog"
+  },
+  "workflow": {
+    "overall_status": "backlog",
+    "priority": "p2",
+    "created_at": "2026-11-08T09:24:03.920Z",
+    "updated_at": "2026-11-21T20:57:10.849Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md",
+    "fork_report": "reports/2026-11-08-arbitrum-fork.md",
+    "fork_report_2026_11_21": "reports/2026-11-21-arbitrum-fork.md"
+  },
+  "linear": {
+    "parentIssue": "PRD-1447",
+    "project": "P-RESR-37",
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": null,
+    "lanes": {},
+    "laneSyncMode": "parent_only",
+    "stateSyncMode": "stage_derived"
+  },
+  "taxonomy": {
+    "initiative": "identity-wallet",
+    "tracks": ["contracts", "shared", "agent", "client"],
+    "work_types": ["implementation"],
+    "surfaces": ["contracts", "shared", "agent", "client"],
+    "depends_on_features": []
+  },
+  "notes": [
+    "RESR-21 owns the research result. PRD-1447 tracks deferred Product delivery.",
+    "Fork proof is historical research evidence; implementation lanes require their own receipts.",
+    "Confirm eligible cohorts, guardian delay, and Arbitrum finality before production enrollment.",
+    "2026-11-21: Afo chose design, fork proofs and PRs for this plan. The contracts lane has a recovery executor with unit and fork proof on a PR; no merge, deployment or broadcast is authorized. The hub stays in backlog until the delay, cohort and confirmation policies are set.",
+    "2026-11-21: Afo decided the recovered-account record (chain is the authority, directory keeps a re-checked pointer) and the delay (any delay at enrollment, 48 hours by default in the app, cancellable by the current passkey). The eligible cohort and the Arbitrum confirmation rule stay open."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["state_api"],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": ""
+      },
+      "skill_tags": ["ui", "frontend-design", "react"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["contracts"],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": ""
+      },
+      "skill_tags": ["react", "tanstack-query", "data-layer"]
+    },
+    "contracts": {
+      "owner": "claude",
+      "status": "in_progress",
+      "branch": "feature/passkey-wallet-recovery",
+      "depends_on": [],
+      "handoff": "handoffs/claude-contracts.md",
+      "tdd": {
+        "mode": "proof_limit",
+        "status": "green_recorded",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "ARBITRUM_FORK_RPC_URL=<Arbitrum RPC> ARBITRUM_FORK_BLOCK_NUMBER=526331210 bun run test --suite solidity --profile match -- test/fork/ArbitrumPasskeyRecovery.t.sol && bun run test --suite solidity --profile match -- test/unit/PasskeyRecoveryExecutor.t.sol",
+          "evidence": "Fork 8 passed, 0 failed, 0 skipped; unit 23 passed, 0 failed, at 0763777bbbb2f63d2e8a1c2a60e3725ada7e685a on 2026-11-21."
+        },
+        "note": "The executor was written before its tests, so no failing-first run was recorded. Fallback proof: the unit suite and the Arbitrum fork suite at the tested commit. An independent review then added behaviour (request expiry, empty-key recovery, enrollment needing the Kernel install, stored-key check), each with its own test."
+      },
+      "skill_tags": ["contracts"],
+      "manual_blocked": false
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-11-08T09:24:03.938Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in backlog"
+    },
+    {
+      "timestamp": "2026-11-08T09:26:03.135Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "planned",
+      "note": "Recorded the Arbitrum Kernel 0.3.3 recovery and targeted revocation spike and sequenced the implementation."
+    },
+    {
+      "timestamp": "2026-11-09T01:00:39.646Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-11-21T20:57:10.850Z",
+      "actor": "claude",
+      "lane": "contracts",
+      "status": "in_progress",
+      "branch": "feature/passkey-wallet-recovery",
+      "note": "Recovery executor, unit tests and Arbitrum fork proof on PR for review (plan steps 1 and 2). Step 3, the pinned deployment and its verifier, is not started; nothing is deployed."
+    }
+  ]
+}
