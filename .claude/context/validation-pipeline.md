@@ -172,8 +172,9 @@ Agent or Docs; the conditional commands above close those scopes.
 
 Visible UI additionally needs rendered proof labeled per `AGENTS.md § Browser Evidence`. Surfaces
 in the authenticated class need proof through the authenticated Brave profile; every other surface
-accepts labeled mock-auth localhost, Storybook, or CI Playwright proof. The `browser-proof` check
-is advisory: record the proof, or that it is pending and why, in the review, and never present
+accepts labeled mock-auth localhost, Storybook, or CI Playwright proof, as captures at 375 and 1280
+wide (the selector's `rendered-proof` check). The `browser-proof` and `rendered-proof` checks are
+advisory: record the proof, or that it is pending and why, in the review, and never present
 clean-room evidence as authenticated proof.
 
 ## Ready-for-CI Push Gate
@@ -235,8 +236,8 @@ Pre-commit runs `lint-staged` only. Pre-push runs this ready-for-CI gate. Per-fi
 critical-surface warnings may run during editing, but package-wide validation is owned by the
 coordinating agent rather than edit or task-completion hooks.
 
-In every local intent the plan lists the manual `browser-proof` check as advisory pending
-evidence. The pre-push hook succeeds when every selected automated check passes; an unavailable
+Where a plan selects them, it lists the manual `browser-proof` and `rendered-proof` checks as
+advisory pending evidence. The pre-push hook succeeds when every selected automated check passes; an unavailable
 automated capability, failed check, or missing focused proof still stops it. The hook runs the gate
 through `scripts/dev/node-cli.js`, so a shell whose Node differs from the pinned toolchain no longer
 blocks every check. Only the release gate requires the manual proof, through
