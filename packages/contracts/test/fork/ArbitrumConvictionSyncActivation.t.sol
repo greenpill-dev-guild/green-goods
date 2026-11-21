@@ -264,14 +264,7 @@ contract ArbitrumConvictionSyncActivationForkTest is HatsModuleUpgradeForkHarnes
         }
     }
 
-    function _assertSyncedBothPools(
-        Vm.Log[] memory logs,
-        address garden,
-        address member,
-        address[2] memory pools
-    )
-        private
-    {
+    function _assertSyncedBothPools(Vm.Log[] memory logs, address garden, address member, address[2] memory pools) private {
         for (uint256 i = 0; i < 2; i++) {
             (uint256 triggered, uint256 failed) = _syncOutcomes(logs, garden, member, pools[i]);
             assertEq(failed, 0, "no failed sync once upgraded and authorized");
