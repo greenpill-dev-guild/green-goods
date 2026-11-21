@@ -32,5 +32,5 @@ jobs:
     # runs come from the same guild commit.
     uses: greenpill-dev-guild/.github/.github/workflows/agents-doctor.yml@d5bab15ee152be8fe289257826b28655090e4d05
     with:
-      mode: advisory
+      mode: ci
       doctor-ref: d5bab15ee152be8fe289257826b28655090e4d05
