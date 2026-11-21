@@ -118,7 +118,13 @@
       "check": "comment-policy-test",
       "runInQa": true,
       "runInEvidence": true,
-      "exact": ["scripts/quality/comment-policy.mjs", "bun.lock", "package.json"]
+      "exact": [
+        "scripts/quality/comment-policy.mjs",
+        "bun.lock",
+        "package.json",
+        "scripts/quality/check-regrowth.mjs",
+        "scripts/quality/check-regrowth.test.mjs"
+      ]
     },
     {
       "check": "dependabot-sync-test",
@@ -983,7 +989,7 @@
     },
     {
       "id": "comment-policy-test",
-      "command": "node scripts/dev/node-cli.js node --test scripts/quality/comment-policy.test.mjs",
+      "command": "node scripts/dev/node-cli.js node --test scripts/quality/comment-policy.test.mjs scripts/quality/check-regrowth.test.mjs",
       "risk": "the comment codemod removes a comment it must keep, or misreads code as a comment",
       "expectedSignal": "the comment codemod's fixtures pass for TypeScript, JavaScript and Solidity",
       "freshness": "exact-inputs-and-toolchain",
@@ -1557,6 +1563,16 @@
       "expectedSignal": "solidity-test-names completes successfully",
       "freshness": "exact-inputs-and-toolchain",
       "budgetSeconds": 60,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "regrowth",
+      "command": "node scripts/quality/check-regrowth.mjs",
+      "risk": "Text the purge removed grows back: banners, commented-out code, labels or restating notes on added lines of package source, or new report-style markdown outside .plans/ and docs/.",
+      "expectedSignal": "regrowth: nothing regrown since <base>",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 30,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },

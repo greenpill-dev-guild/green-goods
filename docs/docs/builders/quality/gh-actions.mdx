@@ -31,7 +31,7 @@ generated_from:
   - package.json
   - scripts/data/validation-policy.json
   - scripts/data/workflow-catalog.json
-source_digest: "sha256:c1452ed7f0ff51a2f9738ae0f244f620821193bcb13340bd0547d5e81a2ab793"
+source_digest: "sha256:c172738169a45bbc20c0372643ed7667118ffeab22176f2c3c8e7c24450ea2b3"
 source_of_truth:
   - .github/workflows/admin.yml
   - .github/workflows/agent.yml
@@ -298,7 +298,7 @@ Five lanes over the repository's own safety surfaces: formatting on every run; d
 
 - **Use it when:** Dependency, lockfile, toolchain, or workflow changes; agent guidance, skills, plan hubs, and the QA catalog; the validation policy, selector, and git hooks. Each lane after formatting runs only when its own paths change.
 - **Runs on:** pull requests that touch its paths (44 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch.
-- **Jobs:** `audit`, `changes`, `dead-code`, `format`, `guidance`, `parity`.
+- **Jobs:** `audit`, `changes`, `dead-code`, `format`, `guidance`, `parity`, `regrowth`.
 - **Required status:** no, but the CI Gate waits for it on a pull request that touches its paths.
 - **File:** [.github/workflows/supply-chain-guardrails.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/supply-chain-guardrails.yml)
 
