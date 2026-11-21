@@ -529,6 +529,7 @@ test("a rendered UI change asks for labeled captures, advisory, and never at rel
   for (const path of [
     "packages/client/src/views/Home/Garden/__tests__/GardenPage.test.tsx",
     "packages/shared/src/components/Button/Button.stories.tsx",
+    "packages/admin/src/views/storybookCanvasHarness.tsx",
     "packages/shared/src/hooks/auth/useAuthContext.ts",
   ]) {
     assert.ok(!ids(selectValidation({ intent: "push", changedPaths: [path] })).includes("rendered-proof"), path);

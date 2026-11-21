@@ -53,7 +53,7 @@ A format or lint fix outside any gate: `bun format && bun lint`.
 GitHub. Every required workflow selected for the changed paths must pass at the PR's current head SHA before PR approval; green CI is the broad regression authority. PR CI owns production builds, the Storybook build, the browser presets, whole package suites, and consumer fanout: an ordinary Shared implementation change never runs the full Client, Admin, and Agent suites locally.
 
 ### Rendered proof
-`AGENTS.md` § Browser Evidence owns the rules. Label every rendered proof by engine and session. Authenticated-class surfaces need authenticated Brave proof or are recorded as pending; clean-room proof is never presented as authenticated. The `browser-proof` check is advisory: record it as pending, never blocked.
+`AGENTS.md` § Browser Evidence owns the rules. Label every rendered proof by engine and session. Authenticated-class surfaces need authenticated Brave proof or are recorded as pending; clean-room proof is never presented as authenticated. The `browser-proof` check, and `rendered-proof` for a UI change (captures at 375 and 1280 wide), are advisory: record them, or record them as pending, never blocked.
 
 ## review
 

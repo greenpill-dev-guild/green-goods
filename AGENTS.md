@@ -205,8 +205,8 @@ here instead of restating them.
 3. **Brave specifically is required only for WebMCP, the browser-extension path, and installed-PWA
    behavior.** For rendered DOM and CSS proof any Chromium engine is equivalent when labeled.
 
-The `browser-proof` and `rendered-proof` checks are advisory in every local intent: it never blocks a push, review,
-ship, or readiness run. Record the proof, or that it is pending and why, in the PR body. Only the
+The `browser-proof` and `rendered-proof` checks are advisory wherever a plan lists them: they never
+block a push, review, ship, or readiness run. Record the proof, or that it is pending and why, in the PR body. Only the
 release gate requires attestation, and only for `browser-proof`:
 `node scripts/dev/ci-local.js --intent release --attest browser-proof="<engine, session, date, what was observed>"`.
 The release gate rejects a placeholder: the text must name an engine the check accepts

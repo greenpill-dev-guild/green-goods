@@ -510,8 +510,8 @@
     },
     {
       "check": "rendered-proof",
-      "intents": ["diagnose", "qa", "review", "checkpoint", "readiness", "push", "ship", "merge"],
-      "note": "Rendered UI: labeled captures at 375 and 1280 wide. Advisory in every intent and left out of release, whose attested proof is browser-proof.",
+      "intents": ["qa", "checkpoint", "readiness", "push", "ship", "merge"],
+      "note": "Rendered UI: labeled captures at 375 and 1280 wide. Advisory wherever it is listed; left out of diagnose and review (evidence-only intents) and of release, whose attested proof is browser-proof.",
       "prefixes": [
         "packages/client/src/",
         "packages/admin/src/",
@@ -1412,7 +1412,10 @@
       "budgetSeconds": 60,
       "stopRule": "advisory",
       "capabilities": [],
-      "manual": true
+      "manual": true,
+      "attestation": {
+        "engines": ["mock-auth localhost", "Storybook", "CI Playwright", "authenticated Brave"]
+      }
     },
     {
       "id": "story-quality",
