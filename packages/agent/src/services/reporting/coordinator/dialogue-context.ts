@@ -6,50 +6,33 @@ import {
 import type { WorkInput } from "@green-goods/shared/types/domain";
 import { pendingGoal } from "../dialogue-goal";
 import type { ReportingGarden } from "../gardens";
-import { type InboxEventRow, readInboxPayload } from "../inbox";
-import type {
-  DialogueGoal,
-  DialogueQuestion,
-  DialogueSnapshot,
-  DialogueTurn,
-  InterpretationRequest,
-  InterpretationResult,
+import {
+  type DialogueGoal,
+  type DialogueSnapshot,
+  type InterpretationRequest,
+  type InterpretationResult,
+  interpretWithDeadline,
+  type ReportInterpreter,
 } from "../interpretation";
+import { createLogger } from "../../logger";
+import { modelMeter } from "../model-spend";
 import { MODEL_INPUT_POLICY, REDACTION_MARK, sanitizeModelText } from "../model-policy";
-import { readReplyMessage } from "../outbox";
 import type { ReportingCore } from "../runtime";
-import { parseCommand } from "./commands";
 import type { TurnContext } from "./context";
+import { earlierTurns, openQuestion } from "./dialogue-turns";
 
 /**
  * The privacy gateway. A model reads a conversation only as the snapshot built here: free text is
  * sanitized, lists are bounded, gardens are named by identifiers made up for the turn, and earlier
  * turns come only from this chat, this identity and this consent.
  */
-export interface DialogueView {
+interface DialogueView {
   request: InterpretationRequest;
   /** A model's answer with its garden named as the directory names it. */
   resolve(result: InterpretationResult): InterpretationResult;
 }
 
-/**
- * The assistant's replies a model may read as context: the questions the report in hand asked.
- * Summaries, links, account replies and outcomes are left out, so no confirmation code, address or
- * result reaches a provider through history. A decision's questions are left out too: what a
- * steward says about someone's work is not context for a report.
- */
-const QUESTION_KINDS = new Set([
-  "select_garden",
-  "select_action",
-  "field",
-  "time",
-  "time_unit",
-  "title",
-  "feedback",
-  "evidence",
-  "conflict",
-  "edit_field",
-]);
+const log = createLogger("reporting");
 
 const label = (text: string) => sanitizeModelText(text, MODEL_INPUT_POLICY.maxLabelChars);
 
@@ -103,143 +86,6 @@ function publicValue(value: unknown): unknown {
   return typeof value === "number" ? value : null;
 }
 
-/**
- * When the context a model may read begins: at the consent in force, at the last time an account
- * was linked or unlinked, at the chat's own link to its person, and at the start of the open
- * report or the end of the last one, whichever is latest. A turn handled before then belongs to another consent, another account or
- * another report.
- */
-function contextStart(core: ReportingCore, ctx: TurnContext): number {
-  const params = { subject: ctx.subjectId, conversation: ctx.conversationId };
-  const consent = core.db
-    .query(
-      `SELECT MAX(granted_at) AS at FROM consent_records
-       WHERE channel_subject_id = $subject AND purpose = 'processing' AND withdrawn_at IS NULL`
-    )
-    .get({ subject: ctx.subjectId }) as { at: number | null };
-  const participant = ctx.binding?.participantId ?? null;
-  const account = participant
-    ? (core.db
-        .query(
-          `SELECT MAX(MAX(created_at, COALESCE(revoked_at, 0))) AS at FROM account_bindings
-           WHERE participant_id = $participant`
-        )
-        .get({ participant }) as { at: number | null })
-    : { at: null };
-  // A chat that joined a person known from another channel keeps nothing from before it joined.
-  const channel = core.db
-    .query(
-      `SELECT MAX(MAX(created_at, COALESCE(verified_at, 0))) AS at FROM channel_bindings
-       WHERE channel_subject_id = $subject AND status IN ('provisional','active','suspended')`
-    )
-    .get({ subject: ctx.subjectId }) as { at: number | null };
-  const report = ctx.draft
-    ? (core.db
-        .query(
-          "SELECT created_at AS at FROM draft_revisions WHERE draft_id = $draft AND revision = 1"
-        )
-        .get({ draft: ctx.draft.id }) as { at: number | null } | null)
-    : (core.db
-        .query(
-          `SELECT MAX(updated_at) AS at FROM work_drafts
-           WHERE conversation_id = $conversation AND lifecycle <> 'open'`
-        )
-        .get({ conversation: params.conversation }) as { at: number | null });
-  return Math.max(consent.at ?? 0, account.at ?? 0, channel.at ?? 0, report?.at ?? 0);
-}
-
-/**
- * The questions a turn asked of a report, read from the replies it committed. The question still
- * open is left out: the snapshot carries it on its own. A reply's key opens with the event that
- * caused it, so the lookup is a range over the key's own index.
- */
-function questionsAskedBy(
-  core: ReportingCore,
-  eventId: string,
-  openPromptId: string | null
-): DialogueTurn[] {
-  const rows = core.db
-    .query(
-      `SELECT o.id, o.reply_kind, o.payload_ciphertext FROM delivery_outbox o
-       JOIN conversation_prompts p ON p.id = o.prompt_id
-       WHERE o.dedupe_key >= $from AND o.dedupe_key < $to AND p.subject_kind = 'draft'
-         AND ($open IS NULL OR o.prompt_id <> $open) ORDER BY o.dispatch_seq`
-    )
-    // ";" is the character after ":", so the range holds exactly the keys that open "<event>:".
-    .all({ from: `${eventId}:`, to: `${eventId};`, open: openPromptId }) as Array<{
-    id: string;
-    reply_kind: string;
-    payload_ciphertext: string | null;
-  }>;
-  return rows.flatMap((row): DialogueTurn[] => {
-    if (!QUESTION_KINDS.has(row.reply_kind.replace(/^prompt:/u, ""))) return [];
-    const text = readReplyMessage(core, row)?.text;
-    return text
-      ? [{ role: "assistant", text: sanitizeModelText(text, MODEL_INPUT_POLICY.maxTurnChars) }]
-      : [];
-  });
-}
-
-/**
- * The turns before this one, oldest first, at most `maxTurns`. A person's turn is what they typed:
- * commands, codes and button taps are left out, since the state already holds what they did, and
- * so is anything said while a decision on someone's work was open in the chat.
- */
-function earlierTurns(core: ReportingCore, ctx: TurnContext): DialogueTurn[] {
-  const events = core.db
-    .query(
-      `SELECT id, payload_ciphertext FROM inbox_events
-       WHERE conversation_id = $conversation AND channel_subject_id = $subject AND kind = 'message'
-         AND state = 'consumed' AND consumed_at >= $since AND arrival_seq < $before
-         AND payload_ciphertext IS NOT NULL
-         AND NOT EXISTS (SELECT 1 FROM review_intents r
-           WHERE r.conversation_id = inbox_events.conversation_id
-             AND inbox_events.consumed_at >= r.created_at
-             AND (r.lifecycle = 'open' OR inbox_events.consumed_at <= r.updated_at))
-       ORDER BY arrival_seq DESC LIMIT $limit`
-    )
-    .all({
-      conversation: ctx.conversationId,
-      subject: ctx.subjectId,
-      since: contextStart(core, ctx),
-      before: ctx.event.arrival_seq,
-      limit: MODEL_INPUT_POLICY.maxTurns * 2,
-    }) as Array<Pick<InboxEventRow, "id" | "payload_ciphertext">>;
-  const turns: DialogueTurn[] = [];
-  for (const event of events) {
-    if (turns.length >= MODEL_INPUT_POLICY.maxTurns) break;
-    const said = readInboxPayload(core, event);
-    const text = said?.replyId ? "" : (said?.text?.trim() ?? "");
-    const typed = text && !parseCommand(text) && !/^\d{4,8}$/u.test(text);
-    // Newest first here: a turn's questions follow what the person said, so they go in before it.
-    turns.push(...questionsAskedBy(core, event.id, ctx.prompt?.id ?? null).reverse());
-    if (typed)
-      turns.push({
-        role: "person",
-        text: sanitizeModelText(text, MODEL_INPUT_POLICY.maxTurnChars),
-      });
-  }
-  return turns.slice(0, MODEL_INPUT_POLICY.maxTurns).reverse();
-}
-
-function openQuestion(core: ReportingCore, ctx: TurnContext): DialogueQuestion | null {
-  const prompt = ctx.prompt;
-  if (!prompt || prompt.subjectKind !== "draft" || !QUESTION_KINDS.has(prompt.kind)) return null;
-  const row = core.db
-    .query(
-      `SELECT id, payload_ciphertext FROM delivery_outbox WHERE prompt_id = $prompt
-       ORDER BY dispatch_seq DESC LIMIT 1`
-    )
-    .get({ prompt: prompt.id }) as { id: string; payload_ciphertext: string | null } | null;
-  const text = row ? (readReplyMessage(core, row)?.text ?? "") : "";
-  return {
-    kind: prompt.kind,
-    field: prompt.fieldKey,
-    text: sanitizeModelText(text, MODEL_INPUT_POLICY.maxTurnChars),
-    options: prompt.options.map((option) => label(option.label)),
-  };
-}
-
 function goalOf(core: ReportingCore, ctx: TurnContext): DialogueGoal {
   if (ctx.review) return "review";
   if (ctx.draft) return "report";
@@ -270,7 +116,7 @@ function bounded(snapshot: DialogueSnapshot): DialogueSnapshot {
 }
 
 /** Builds the view of this turn a model may read. `gardens` and `activities` are what the chat is offered. */
-export function dialogueView(
+function dialogueView(
   core: ReportingCore,
   ctx: TurnContext,
   input: {
@@ -347,4 +193,31 @@ export function dialogueView(
       facts: result.facts.filter((fact) => !REDACTION_MARK.test(JSON.stringify(fact.value))),
     }),
   };
+}
+
+/**
+ * What a model reads in the turn, or null when it could not be asked. Building its view reads
+ * earlier messages back; one that cannot be read, or a view too large to send, is no reason to
+ * leave the person without an answer, so the turn goes on without the model, as it does when the
+ * model itself fails.
+ */
+export async function interpretTurn(
+  core: ReportingCore,
+  interpreter: ReportInterpreter,
+  timeoutMs: number,
+  ctx: TurnContext,
+  input: Parameters<typeof dialogueView>[2]
+): Promise<InterpretationResult | null> {
+  let view: DialogueView;
+  try {
+    view = dialogueView(core, ctx, input);
+  } catch (error) {
+    log.warn(
+      { cause: error instanceof Error ? error.name : "unknown" },
+      "A conversation's context could not be built; the turn continues without the model"
+    );
+    return null;
+  }
+  const read = await interpretWithDeadline(interpreter, view.request, timeoutMs, modelMeter(core));
+  return read && view.resolve(read);
 }
