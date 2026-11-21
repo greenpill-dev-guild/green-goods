@@ -157,6 +157,13 @@ describe("AppProvider page language", () => {
     );
   });
 
+  // A choice stored before the cookie existed is shared on the next visit.
+  it("shares a choice stored before the shared cookie existed", () => {
+    localStorage.setItem("gg-language", "pt");
+    renderApp();
+    expect(document.cookie).toContain("gg-language=pt");
+  });
+
   it("keeps the old language until the new copy is on screen", async () => {
     renderApp();
     expect(await screen.findByText("Close")).toBeInTheDocument();

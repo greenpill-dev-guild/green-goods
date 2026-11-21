@@ -78,6 +78,9 @@ export function readStoredLanguage(): string | null {
   } catch {
     // Storage can be blocked; the shared choice still applies.
   }
+  // A choice made before the cookie existed lives in this site's storage only: share it.
+  const ownLocale = supportedLanguages.find((locale) => locale === own);
+  if (!shared && ownLocale) writeLanguageCookie(ownLocale);
   return shared ?? own;
 }
 
@@ -88,6 +91,10 @@ export function storeLanguage(locale: Locale): void {
   } catch {
     // Storage can be blocked; the choice holds for this visit.
   }
+  writeLanguageCookie(locale);
+}
+
+function writeLanguageCookie(locale: Locale): void {
   try {
     const domain = sharedCookieDomain(window.location.hostname);
     const attributes = [
