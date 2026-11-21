@@ -186,17 +186,6 @@ export function useReviewWorkbenchController() {
     });
   }, [reviewContext, navigate, requestedStage, routeItem, selectedGarden, stage]);
 
-  const older = useReviewOlderRecords({
-    garden: selectedGardenId,
-    stage,
-    // A waiting-time band lists every pending work of its age, so it reads the whole history.
-    readsAllWork: sortDirection === "oldest" || waitingBand !== null,
-    workPages,
-    hypercertPages,
-    // A day's list is read on its own, so its sort never pages the garden's whole history.
-    workReadable: !worksError && !isWorksPaused && !workDay,
-  });
-
   const openSection = useCallback(
     (tab: "overview" | "impact" | "work" | "community", section: string, itemId?: string) => {
       if (!selectedGarden) return;
@@ -231,6 +220,16 @@ export function useReviewWorkbenchController() {
     reviewQueue: derived.reviewQueue,
     updateSearch,
   });
+  const older = useReviewOlderRecords({
+    garden: selectedGardenId,
+    stage,
+    // A waiting-time band reads older pages until its oldest work is in.
+    readsAllWork: sortDirection === "oldest" || waitingView.needsOlderWork,
+    workPages,
+    hypercertPages,
+    // A day's list is read on its own, so its sort never pages the garden's whole history.
+    workReadable: !worksError && !isWorksPaused && !workDay,
+  });
 
   const { data: actions = [] } = useActions();
   const actionsMap = useMemo(() => buildActionTitleMap(actions), [actions]);
@@ -255,6 +254,7 @@ export function useReviewWorkbenchController() {
   const { scopedWorks, assessmentList, hypercertList, selectedWork, selectedCertification } =
     useReviewStageQueues({
       works: workDay ? dayView.workDayWorks : waitingView.bandWorks,
+      selectableWorks: workDay ? dayView.workDayWorks : works,
       workScope,
       actionsMap,
       normalizedSearch,

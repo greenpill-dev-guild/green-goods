@@ -47,6 +47,16 @@ describe("Review's waiting-time chips", () => {
     expect(renderBands(null, "pending").result.current.bandWorks).toBe(works);
   });
 
+  it("reads older pages only until the band's oldest work is in", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(NOW);
+    // The loaded pages reach back 30 days: every band but the oldest is complete.
+    expect(renderBands("days2to7", "pending").result.current.needsOlderWork).toBe(false);
+    expect(renderBands("weeks1to2", "pending").result.current.needsOlderWork).toBe(false);
+    expect(renderBands("over2w", "pending").result.current.needsOlderWork).toBe(true);
+    expect(renderBands(null, "pending").result.current.needsOlderWork).toBe(false);
+  });
+
   it("lists every band in order with its count", () => {
     expect(renderBands(null, "pending").result.current.waitingBands).toEqual([
       { id: "under2d", count: 1 },

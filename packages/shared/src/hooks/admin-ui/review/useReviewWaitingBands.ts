@@ -5,6 +5,7 @@ import {
   type ReviewQueueSummary,
   type ReviewWaitingBand,
   reviewWaitingBandOf,
+  toMs,
 } from "../../../utils/garden-detail";
 import type { WorkDayKey } from "../garden/workCalendar";
 import type { ReviewWorkScope } from "./review.utils";
@@ -43,14 +44,24 @@ export function useReviewWaitingBands({
     [reviewQueue.waitingByBand]
   );
 
-  const bandWorks = useMemo(() => {
-    if (!waitingBand) return works;
-    const now = Date.now();
-    return works.filter(
-      (work) =>
-        work.status === "pending" && reviewWaitingBandOf(work.createdAt, now) === waitingBand
-    );
-  }, [waitingBand, works]);
+  // One clock per render for the list and its reads, as the counts take theirs each render, so a
+  // work crossing a band's edge leaves the list when it leaves the count.
+  const now = Date.now();
+  const bandWorks = waitingBand
+    ? works.filter(
+        (work) =>
+          work.status === "pending" && reviewWaitingBandOf(work.createdAt, now) === waitingBand
+      )
+    : works;
+  // Pages arrive newest first, so once the loaded work reaches past the band's far edge every
+  // work of the band is in. The oldest band has no far edge and reads the whole history.
+  const farEdge =
+    REVIEW_WAITING_BANDS[REVIEW_WAITING_BANDS.findIndex((band) => band.id === waitingBand) + 1];
+  const oldestLoaded = works.reduce(
+    (oldest, work) => Math.min(oldest, toMs(work.createdAt)),
+    Number.POSITIVE_INFINITY
+  );
+  const needsOlderWork = waitingBand !== null && (!farEdge || now - oldestLoaded < farEdge.fromMs);
 
   const handleWorkScopeChange = useCallback(
     (nextScope: ReviewWorkScope) => {
@@ -78,6 +89,8 @@ export function useReviewWaitingBands({
     waitingBandsComplete: reviewQueue.waitingByBandComplete,
     /** The works the Work tab lists: narrowed to the band when one is chosen. */
     bandWorks,
+    /** The chosen band may hold work older than the loaded pages, so read on. */
+    needsOlderWork,
     handleWorkScopeChange,
     handleWaitingBandChange,
   };

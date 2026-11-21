@@ -278,6 +278,11 @@ export default function ReviewView() {
                   stage={review.stage}
                   works={review.scopedWorks}
                   workScope={review.workScope}
+                  onClearWaitingBand={
+                    review.waitingBand
+                      ? () => review.handleWaitingBandChange(review.waitingBand!)
+                      : undefined
+                  }
                   assessments={review.assessmentList}
                   hypercerts={review.hypercertList}
                   // Oldest first lists nothing until the whole history is read. A day's
