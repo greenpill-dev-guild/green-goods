@@ -39,6 +39,34 @@ function getMedian(values: number[]): number {
 /** How long work may wait, and how long a queue may go without a review, before it stalls. */
 export const REVIEW_STALL_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** How long a pending submission has waited, in the bands Review's Work tab filters by. */
+export type ReviewWaitingBand = "under2d" | "days2to7" | "weeks1to2" | "over2w";
+
+/**
+ * The bands in order, each from its lower edge up to the next one's. A week is the stall
+ * window, so the last two bands together are the header's "waiting over a week".
+ */
+export const REVIEW_WAITING_BANDS: readonly { id: ReviewWaitingBand; fromMs: number }[] = [
+  { id: "under2d", fromMs: 0 },
+  { id: "days2to7", fromMs: 2 * DAY_MS },
+  { id: "weeks1to2", fromMs: REVIEW_STALL_WINDOW_MS },
+  { id: "over2w", fromMs: 2 * REVIEW_STALL_WINDOW_MS },
+];
+
+export function parseReviewWaitingBand(value: string | null | undefined): ReviewWaitingBand | null {
+  return REVIEW_WAITING_BANDS.find((band) => band.id === value)?.id ?? null;
+}
+
+/** The band of a submission sent at `submittedAt` (seconds or ms), as of `now` (ms). */
+export function reviewWaitingBandOf(submittedAt: number, now: number): ReviewWaitingBand {
+  const waited = now - toMs(submittedAt);
+  let band: ReviewWaitingBand = "under2d";
+  for (const candidate of REVIEW_WAITING_BANDS) if (waited >= candidate.fromMs) band = candidate.id;
+  return band;
+}
+
 export interface ReviewQueueWork {
   id: string;
   status: string;
@@ -52,6 +80,13 @@ export interface ReviewQueueSummary {
   pendingCount: number;
   /** Pending work submitted a week ago or earlier. */
   waitingOverWeekCount: number;
+  /** Pending work by how long it has waited. Its counts add up to `pendingCount` when complete. */
+  waitingByBand: Record<ReviewWaitingBand, number>;
+  /**
+   * False when the garden's queue is longer than one read lists: the bands count only the
+   * pending work the loaded rows hold, so each is a minimum.
+   */
+  waitingByBandComplete: boolean;
   /** When the oldest known pending work was submitted (ms); null when none is known. */
   oldestPendingAt: number | null;
   /** When the latest known review landed (ms); null when none is known. */
@@ -126,9 +161,19 @@ export function summarizeReviewQueue(
   const hasUnknownReviewTimes = timed.length < decided.length || (!garden && !complete);
   const reviewedThisWeek = lastReviewedAt !== null && now - lastReviewedAt < REVIEW_STALL_WINDOW_MS;
 
+  const waitingByBand: Record<ReviewWaitingBand, number> = {
+    under2d: 0,
+    days2to7: 0,
+    weeks1to2: 0,
+    over2w: 0,
+  };
+  for (const at of pendingAt) waitingByBand[reviewWaitingBandOf(at, now)] += 1;
+
   return {
     pendingCount: Math.max(pendingAt.length, floor?.waitingAtLeast ?? 0),
     waitingOverWeekCount,
+    waitingByBand,
+    waitingByBandComplete: garden ? !floor : complete,
     oldestPendingAt: pendingAt.length > 0 ? Math.min(...pendingAt) : null,
     lastReviewedAt,
     hasUnknownReviewTimes,
