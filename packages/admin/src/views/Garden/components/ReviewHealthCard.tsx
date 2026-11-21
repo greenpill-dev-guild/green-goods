@@ -65,9 +65,9 @@ export function ReviewHealthCard({
   const countArgs = (week: ReviewHealthWeek) => ({
     week: namedWeek(week),
     submitted: week.submitted.length,
-    submittedPlus: week.submittedComplete ? "" : "+",
+    submittedPlus: week.submittedComplete ? "no" : "yes",
     reviewed: week.reviewed.length,
-    reviewedPlus: week.reviewedComplete ? "" : "+",
+    reviewedPlus: week.reviewedComplete ? "no" : "yes",
   });
   const countLabel = (week: ReviewHealthWeek, list: "submitted" | "reviewed") =>
     list === "submitted"
@@ -146,7 +146,7 @@ export function ReviewHealthCard({
                           id: "hub.garden.reviewHealth.days",
                         },
                         // Past the queue read's limit the oldest known work is a minimum.
-                        { count: oldestDays, plus: waiting.complete ? "" : "+" }
+                        { count: oldestDays, plus: waiting.complete ? "no" : "yes" }
                       )
               }
             />

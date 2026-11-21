@@ -1,6 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
-import { MemoryRouter, useLocation } from "react-router-dom";
+import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { worksKeys } from "../../../config/query-keys/work";
 import { useCalendarNow } from "../../../hooks/admin-ui/garden/useCalendarNow";
@@ -188,6 +188,7 @@ describe("the calendar's URL", () => {
       () => ({
         calendar: useGardenWorkCalendar({ gardenId: "0xgarden", active: true }),
         location: useLocation(),
+        navigate: useNavigate(),
       }),
       { wrapper }
     );
@@ -204,6 +205,17 @@ describe("the calendar's URL", () => {
     act(() => result.current.calendar.handleOpenDay("2026-11-03"));
     expect(result.current.location.search).toContain("range=7d");
     expect(result.current.location.search).toContain("day=2026-11-03");
+  });
+
+  // A dialog that switches what it shows replaces its URL; closing it still goes back.
+  it("closes a pushed day back onto the page beneath, after a replace while it stays open", () => {
+    const { result } = renderCalendar("/garden/activity?range=7d");
+    act(() => result.current.calendar.handleOpenDay("2026-11-03"));
+    act(() =>
+      result.current.navigate("/garden/activity?range=7d&day=2026-11-03&list=x", { replace: true })
+    );
+    act(() => result.current.calendar.handleCloseDay());
+    expect(result.current.location.search).toBe("?range=7d");
   });
 
   it("keeps a month read before going offline and says it is the last read", () => {

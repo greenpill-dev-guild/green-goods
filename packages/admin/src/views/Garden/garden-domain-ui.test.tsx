@@ -95,6 +95,17 @@ vi.mock("@green-goods/shared/hooks/admin-ui/garden/useGardenWorkspaceController"
           navigate(nextView === "settings" ? "/garden/health?item=edit-garden" : "/garden/health"),
         hypercertId: undefined,
         hypercerts: [],
+        // Review Health reads its own weeks; none here, as a read that has not answered.
+        reviewHealth: {
+          weeks: [],
+          state: "loading",
+          isFetching: false,
+          retry: vi.fn(),
+          openWeek: null,
+          openList: "submitted",
+          weekHref: () => "/garden/health",
+          handleCloseWeek: vi.fn(),
+        },
         hypercertSheetCloseTo: "/garden",
         karmaIntegration: {
           status: {
