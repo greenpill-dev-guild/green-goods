@@ -52,7 +52,7 @@ row whose enforcer is only the shared guards has no floor.
 
 | Rule | Enforcer | Where |
 | --- | --- | --- |
-| `bun run test`, never `bun test` | `bun test` is blocked by the shared guards (with `test` right after `bun`) and by both harnesses' hooks, which also read Bun's global options, `env -S` and `xargs` | `.agents/policy.json` `bun-test`, `scripts/harness/command-policy.mjs` |
+| `bun run test`, never `bun test` | `bun test` is blocked by the shared guards (with `test` right after `bun`) and by both harnesses' hooks, which also find it after Bun's global options and inside `env -S` and `xargs` | `.agents/policy.json` `bun-test`, `scripts/harness/command-policy.mjs` |
 | Bun contract wrappers, not raw `forge build` or `forge test` | the shared guards ask; the Claude hook warns and the Codex hook blocks | `.agents/policy.json` `forge-direct` |
 | Mainnet deploys and live broadcasts need out-of-band confirmation | the shared guards ask, the Claude hook warns and the Codex hook blocks a broadcast or Safe signature whose last `--network` or `-n` is live, a contracts broadcast not pinned to a test network, and the release operator | `.agents/policy.json` `mainnet-*`, `production-broadcast`, `vercel-prod`, `fly-deploy` |
 | No env files under `packages/*` | file-tool edits to a `.env` or `.env.*` file in `packages/*` are blocked, and the shared guards also block them anywhere else except `.env.example`; shell writes such as `cp` or a `>` redirect pass | `.agents/policy.json` `package-env`, `~/.agents/guards` `secret-edit`, `.claude/settings.json`, `.codex/hooks/edit_policy.sh` |

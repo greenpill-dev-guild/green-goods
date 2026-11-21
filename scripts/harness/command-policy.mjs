@@ -115,10 +115,11 @@ function scanCommands(source) {
 }
 
 // Words that run the rest of the command without a shell string, with the options that take a
-// value: the same set the machine-wide guards strip, so .agents/policy.json rules match alike.
+// value: the set the machine-wide guards strip, so .agents/policy.json rules match alike, plus xargs.
 const WRAPPERS = new Map([
   ["env", ["-u", "--unset", "-C", "--chdir"]],
-  ["xargs", ["-a", "--arg-file", "-d", "--delimiter", "-E", "-e", "-I", "-i", "-L", "-l", "-n", "--max-args", "-P", "--max-procs", "-s", "--max-chars"]],
+  // xargs is the floor's own addition; GNU's -e, -i and -l take only attached values.
+  ["xargs", ["-a", "--arg-file", "-d", "--delimiter", "-E", "-I", "-J", "-L", "-n", "--max-args", "-P", "--max-procs", "-R", "-S", "-s", "--max-chars"]],
   ["command", []],
   ["builtin", []],
   ["exec", ["-a"]],
@@ -155,10 +156,13 @@ function executableWords(words) {
       // `command -v` and `command -V` look the name up and run nothing.
       if (wrapper === "command" && /^-[A-Za-z]*[vV]/.test(option.value)) return [];
       // `env -S` splits its string into the command it runs, so it is a command of its own too.
-      if (wrapper === "env" && /^(-S|--split-string)(=|$)|^-S./.test(option.value)) {
-        const split = /^--split-string=/.test(option.value)
-          ? { value: option.value.slice(option.value.indexOf("=") + 1) }
-          : /^-S./.test(option.value) ? { value: option.value.slice(2) } : args.shift();
+      // Short flags combine, so `-iS 'cmd'` and `-iS'cmd'` split too.
+      const shortSplit = /^-[A-Za-z]*S/.exec(option.value);
+      if (wrapper === "env" && (/^--split-string(=|$)/.test(option.value) || shortSplit)) {
+        const attached = option.value.startsWith("--")
+          ? option.value.slice("--split-string=".length)
+          : option.value.slice(shortSplit[0].length);
+        const split = option.value.includes("=") || attached ? { value: attached } : args.shift();
         const rest = args.filter((word) => !word.dynamic).map((word) => word.value).join(" ");
         return Object.assign([], { call: split && !split.dynamic ? `${split.value} ${rest}`.trim() : "" });
       }
@@ -175,17 +179,13 @@ function executableWords(words) {
   }
 }
 
-// Bun's global options that take a value, so `bun --cwd packages/shared test` still names `test`.
-const BUN_VALUE_OPTIONS = new Set(["--cwd", "-c", "--config", "--env-file", "-r", "--preload", "--require", "--import", "--tsconfig-override", "-d", "--define", "-l", "--loader", "--conditions", "--port", "--inspect-wait", "--main-fields", "--extension-order", "--jsx-factory", "--jsx-fragment", "--jsx-import-source", "--jsx-runtime"]);
-
-/** The subcommand after Bun's global options (`bun --bun test` runs `test`). */
+/**
+ * The subcommand Bun runs: its first word that is not an option. Bun reads a global option's
+ * value only when attached (`--cwd=dir`), so `bun --cwd dir test` runs the package's `dir`
+ * script and `bun --bun test` runs the test runner.
+ */
 function bunSubcommand(values) {
-  for (let index = 1; index < values.length; index++) {
-    const value = values[index];
-    if (!value.startsWith("-")) return value;
-    if (BUN_VALUE_OPTIONS.has(value)) index++;
-  }
-  return undefined;
+  return values.slice(1).find((value) => !value.startsWith("-"));
 }
 
 function isSecretFile(value) {

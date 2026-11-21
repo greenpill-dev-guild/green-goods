@@ -86,7 +86,9 @@ const harmless = [
   // Lookups name a command without running it.
   "command -v bun test", "command -V bun test", "command -pv bun test",
   // Bun's global options before a subcommand that is not `test`, and wrappers around safe commands.
-  "bun --cwd packages/shared run test", "bun --bun run test", "env -S 'bun run test'", "xargs -n 1 bun run test",
+  // Bun reads a separate word after an option as the subcommand: these run package scripts.
+  "bun --cwd packages/shared test", "bun --port 3000 test", "bun --cwd packages/shared run test",
+  "bun --bun run test", "env -S 'bun run test'", "xargs -n 1 bun run test", "xargs -I{} echo {}",
   "fly status", "fly releases -a green-goods",
   // A broadcast whose last network is a test network, and a release rehearsal, stay unprompted.
   "bun run contracts -- deploy core --network sepolia --mode broadcast",
@@ -125,8 +127,9 @@ for (const command of [
   "/usr/bin/env bun test", "/usr/bin/timeout 5 bun test", "npm exec --call 'bun test'", "npx --call='bun test'",
   "npx -c cat <.env",
   // Bun's global options before the subcommand, env's split string and xargs: the floor reads them.
-  "bun --bun test", "bun --cwd packages/shared test", "bun --smol test src", "env -S 'bun test'", "env -S'bun test'",
-  "env --split-string='bun test --watch'", "printf a | xargs bun test", "xargs -n 1 bun test < files.txt",
+  "bun --bun test", "bun --cwd=packages/shared test", "bun --smol test src", "bun -- test", "env -S 'bun test'",
+  "env -S'bun test'", "env -iS 'bun test'", "env --split-string='bun test --watch'", "printf a | xargs bun test",
+  "xargs -n 1 bun test < files.txt", "xargs -J % bun test", "xargs -R 1 bun test",
 ]) {
   test(`restricted command: ${command.split("\n")[0]}`, () => {
     for (const harness of ["claude", "codex"]) {
