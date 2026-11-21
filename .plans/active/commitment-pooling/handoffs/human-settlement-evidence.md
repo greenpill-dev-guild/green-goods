@@ -65,3 +65,47 @@ the smallest exact read-only evidence-reproduction command before dispatch.
 ## Out of scope
 
 - Product implementation, wallet/session identifiers or confidential safeguarding material in Linear, autonomous partner outreach, a release broadcast, settlement confirmation by a human, causal livelihood/community-wide impact claims, participant scoring/ranking, or any claim that unavailable evidence passed.
+
+## Machine reconciliation, 21 November 2026
+
+What the indexed record can and cannot say for the operating pilot. Read on 21 November 2026 with
+the passport reader (`getPublicGardenPassport` in Shared, PRD-1097) against the hosted indexer.
+Garden-level counts only: no account, recipient or contributor appears. The registered rehearsal
+cycle (pool 1, cycle 1) is excluded, with the payments that followed it. This section does not
+unblock the lane; the human assignments above are still required.
+
+| Pool | Promises taken up | Kept | Kept with a declared G$ payment and no payment plan | Payment plans | Member payments confirmed, awaited, failed | G$ confirmed to the garden |
+|---|---|---|---|---|---|---|
+| 1 (protocol) | 0 | 0 | 0 | 0 | 0, 0, 0 | none |
+| 2 | 10 | 2 | 0 | 0 | 0, 0, 0 | 1 payment, 1 G$ |
+| 3 | 24 | 1 | 1 | 0 | 0, 0, 0 | 2 payments, 7,200,000 G$ |
+
+Recognition policy as each open season froze it: 20% equal participation and 80% verified
+contribution in all three pools (`equalParticipationBps` 2000, `verifiedContributionBps` 8000 on
+the indexed cycle). The policy is read from the cycle, not assumed.
+
+What the record establishes:
+
+- Commitment state changed: the promise counts above are indexed contract events.
+- Settlement confirmed, for the garden-level funding only: each of the three G$ payments reached
+  `CONFIRMED`, which the indexer sets only on the authenticated Celo acknowledgment.
+
+What is missing, stated instead of inferred:
+
+- No payment plan exists in any pool. There is no hash-bound recognition or payment snapshot to
+  preserve, and no contributor attribution to trace to approved evidence.
+- No member payment was queued, sent, confirmed or failed. The zeros mean nothing was attempted,
+  not that every payment succeeded.
+- Pool 3 has one kept promise that declares a G$ payment and has no payment plan. It is declared,
+  not paid. Twenty-one more promises there wait for confirmation with the same declared payment.
+- No plan was revised, so no before-and-after repair record exists on the chain. A repair made
+  off-chain would need its own reasoned record from the lane owner.
+- Group attribution, eligibility and the qualitative, safeguarding and privacy reviews are not in
+  the indexer at all. They stay with the named owners this lane still needs.
+
+Proof limit: this is the machine half of the reconciliation. It cannot show that value reached a
+member, and it must not be cited as the September evidence packet.
+
+Reproduce: `getPublicGardenPassport(42161, <garden>)` returns `settlement.keptAwaitingPaymentPlan`,
+`settlement.support` and `settlement.memberPayments`; the reader's tests are in
+`packages/shared/src/__tests__/commitment-public-passport.test.ts`.
