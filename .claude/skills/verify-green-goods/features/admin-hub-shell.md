@@ -25,8 +25,9 @@ Preconditions:
 - **Proof of the shell.** `--step "snapshot:hub-<width>.aria.txt" --step "screenshot:hub-<width>.png"`.
   The snapshot shows a banner with `Green Goods Hub` and a `Profile` button.
 - **Garden access (blocked).** The main area shows the alert `Can't load garden access` with
-  `Try Again`, and the transcript lists `[getGardens] Failed to fetch gardens`. Report that as the
-  unmet precondition; it is not a pass.
+  `Try Again`, and the transcript lists `[getGardens] Failed to fetch gardens` with the blocked
+  indexer requests as `net::ERR_BLOCKED_BY_CLIENT`. Report that as the unmet precondition; it is
+  not a pass.
 
 ## Gotchas
 

@@ -16,7 +16,7 @@
 //   fill:<role>:<name>:<value>      fill a textbox (or other fillable role) by accessible name
 //   expect:<role>:<name>            fail unless that element is visible
 //   expect-hidden:<role>:<name>     wait until that element is gone (the previous page has left)
-//   expect-url:<regex>              fail unless the URL matches
+//   expect-url:<text>               fail unless the URL contains the text
 //   snapshot:<file>                 write the page's ARIA snapshot to <evidence>/<file>
 //   screenshot:<file>               write a full-page PNG to <evidence>/<file>
 import { spawn } from "node:child_process";
@@ -32,13 +32,21 @@ const APPS = {
   admin: { cwd: "packages/admin", port: 3102 },
 } as const;
 type App = keyof typeof APPS;
-type Role = "user" | "steward" | "deployer" | "disconnected";
+const ROLES = ["user", "steward", "deployer", "disconnected"] as const;
+type Role = (typeof ROLES)[number];
+// Run ids, feature ids and evidence file names: no leading dot, so never `.` or `..`.
+const NAME = /^[\w-][\w.-]*$/;
 
 interface ServerState {
   app: App;
+  status: "starting" | "ready";
   pid: number;
-  url: string;
+  // The leader's start time as ps prints it: a reused pid has a different one.
+  started: string;
+  port: number;
+  url: string | null;
   log: string;
+  repoRoot: string;
   startedAt: string;
   commit: string;
 }
@@ -59,10 +67,17 @@ function options(argv: string[], name: string): string[] {
 
 function runDir(argv: string[]): { run: string; dir: string } {
   const run = option(argv, "--run") ?? "default";
-  if (!/^[\w.-]+$/.test(run)) fail(`run id must be letters, digits, dot, dash or underscore: ${run}`);
+  if (!NAME.test(run)) fail(`run id must be letters, digits, dot, dash or underscore, not starting with a dot: ${run}`);
   const dir = path.join(verifyRoot, run);
   mkdirSync(dir, { recursive: true });
   return { run, dir };
+}
+
+/** A file inside `dir`, or a failure: step text never writes outside the evidence folder. */
+function evidenceFile(dir: string, name: string): string {
+  const file = path.resolve(dir, name);
+  if (!NAME.test(name) || !file.startsWith(`${dir}${path.sep}`)) throw new Error(`evidence file name not allowed: ${name}`);
+  return file;
 }
 
 const statePath = (dir: string, app: App) => path.join(dir, `${app}.server.json`);
@@ -72,18 +87,59 @@ function readState(dir: string, app: App): ServerState | null {
   return existsSync(file) ? (JSON.parse(readFileSync(file, "utf8")) as ServerState) : null;
 }
 
-function alive(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
+function writeState(dir: string, state: ServerState) {
+  writeFileSync(statePath(dir, state.app), `${JSON.stringify(state, null, 2)}\n`);
+}
+
+function output(command: string[]): string {
+  const result = Bun.spawnSync(command, { stderr: "ignore" });
+  return result.exitCode === 0 ? result.stdout.toString().trim() : "";
+}
+
+const startTime = (pid: number) => output(["ps", "-o", "lstart=", "-p", String(pid)]);
+
+/** Pids of every process whose group is `pgid`. */
+function groupMembers(pgid: number): number[] {
+  return output(["ps", "-A", "-o", "pid=,pgid="])
+    .split("\n")
+    .map((line) => line.trim().split(/\s+/).map(Number))
+    .filter(([, group]) => group === pgid)
+    .map(([pid]) => pid);
+}
+
+/** Process groups listening on `port`. */
+function listenerGroups(port: number): number[] {
+  const pids = output(["lsof", "-nP", "-t", `-iTCP:${port}`, "-sTCP:LISTEN"]).split("\n").filter(Boolean);
+  return [...new Set(pids.map((pid) => Number(output(["ps", "-o", "pgid=", "-p", pid]))).filter(Boolean))];
+}
+
+/**
+ * Whether the process group this run recorded still exists and is the one it started. While its
+ * leader lives, the leader's start time must match (a reused pid has another). Once the leader is
+ * gone, a group with that id can only be ours: a group id is not handed out while the group exists.
+ */
+function owned(state: ServerState): boolean {
+  if (state.repoRoot !== repoRoot) return false;
+  const leaderStart = startTime(state.pid);
+  if (leaderStart) return leaderStart === state.started;
+  return groupMembers(state.pid).length > 0;
+}
+
+/** Stop this run's group, waiting for it to go; true once nothing of it is left. */
+async function stopGroup(state: ServerState): Promise<boolean> {
+  for (const [signal, waitMs] of [["SIGTERM", 10_000], ["SIGKILL", 5_000]] as const) {
+    if (!owned(state)) return true;
+    try {
+      process.kill(-state.pid, signal);
+    } catch {}
+    const deadline = Date.now() + waitMs;
+    while (Date.now() < deadline && owned(state)) await Bun.sleep(250);
   }
+  return !owned(state);
 }
 
 function headCommit(): string {
-  const result = Bun.spawnSync(["git", "-C", repoRoot, "rev-parse", "--short", "HEAD"]);
-  return result.stdout.toString().trim();
+  return output(["git", "-C", repoRoot, "rev-parse", "--short", "HEAD"]);
 }
 
 /** The scheme the dev server chose (mkcert HTTPS locally, HTTP in CI), once it answers with the app. */
@@ -103,48 +159,77 @@ async function launch(argv: string[]) {
   if (!(app in APPS)) fail("launch needs client or admin");
   const { run, dir } = runDir(argv);
   const existing = readState(dir, app);
-  if (existing && alive(existing.pid)) fail(`${app} is already running for run ${run} at ${existing.url}`);
+  if (existing && owned(existing)) fail(`${app} is already running for run ${run}${existing.url ? ` at ${existing.url}` : ""}; run cleanup first`);
+  if (existing) rmSync(statePath(dir, app));
   const { cwd, port } = APPS[app];
-  if (await probe(port)) fail(`port ${port} already serves an app this run did not start; stop it first`);
+  if (listenerGroups(port).length || (await probe(port))) fail(`port ${port} is in use by a process this run did not start; stop it first`);
   const log = path.join(dir, `${app}.server.log`);
   const out = openSync(log, "a");
   // The same environment playwright.config.ts gives its test-mode servers: Sepolia, no telemetry,
-  // the dev mock-auth seam available, and no live backend required.
-  const child = spawn("bun", ["../../scripts/dev/node-cli.js", "vite", "--mode", "test", "--port", String(port), "--strictPort"], {
-    cwd: path.join(repoRoot, cwd),
-    detached: true,
-    stdio: ["ignore", out, out],
-    env: {
-      ...process.env,
-      APP_ENV: "test",
-      NODE_ENV: "test",
-      VITE_CHAIN_ID: "11155111",
-      VITE_ENVIO_INDEXER_URL: "http://localhost:3006/v1/graphql",
-      VITE_POSTHOG_KEY: "",
-      VITE_SENTRY_CLIENT_DSN: "",
-      SENTRY_AUTH_TOKEN: "",
-      GG_ENABLE_SOURCEMAPS: "false",
-      VITE_USE_HASH_ROUTER: "false",
-      VITE_API_BASE_URL: "http://localhost:3005",
-      VITE_PASSKEY_SERVER_ENABLED: "false",
-      REPORTING_AGENT_URL: "",
+  // the dev mock-auth seam available, and no live backend required. Loopback only.
+  const child = spawn(
+    "bun",
+    ["../../scripts/dev/node-cli.js", "vite", "--mode", "test", "--host", "127.0.0.1", "--port", String(port), "--strictPort"],
+    {
+      cwd: path.join(repoRoot, cwd),
+      detached: true,
+      stdio: ["ignore", out, out],
+      env: {
+        ...process.env,
+        APP_ENV: "test",
+        NODE_ENV: "test",
+        VITE_CHAIN_ID: "11155111",
+        VITE_ENVIO_INDEXER_URL: "http://localhost:3006/v1/graphql",
+        VITE_POSTHOG_KEY: "",
+        VITE_SENTRY_CLIENT_DSN: "",
+        SENTRY_AUTH_TOKEN: "",
+        GG_ENABLE_SOURCEMAPS: "false",
+        VITE_USE_HASH_ROUTER: "false",
+        VITE_API_BASE_URL: "http://localhost:3005",
+        VITE_PASSKEY_SERVER_ENABLED: "false",
+        REPORTING_AGENT_URL: "",
+      },
     },
-  });
+  );
   child.unref();
+  if (!child.pid) fail(`${app} dev server did not start; see ${log}`);
+  // Recorded before waiting, so cleanup can stop a launch that was interrupted.
+  const state: ServerState = {
+    app,
+    status: "starting",
+    pid: child.pid,
+    started: startTime(child.pid),
+    port,
+    url: null,
+    log,
+    repoRoot,
+    startedAt: new Date().toISOString(),
+    commit: headCommit(),
+  };
+  writeState(dir, state);
   const deadline = Date.now() + 180_000;
   let url: string | null = null;
   while (Date.now() < deadline && !url) {
-    if (child.pid && !alive(child.pid)) fail(`${app} dev server exited during startup; see ${log}`);
+    if (!owned(state)) fail(`${app} dev server exited during startup; see ${log}`);
     url = await probe(port);
     if (!url) await Bun.sleep(1000);
   }
-  if (!url || !child.pid) {
-    if (child.pid) process.kill(-child.pid, "SIGTERM");
+  if (!url || !listenerGroups(port).includes(state.pid)) {
+    if (await stopGroup(state)) rmSync(statePath(dir, app));
     fail(`${app} did not answer on port ${port} within 180 s; see ${log}`);
   }
-  const state: ServerState = { app, pid: child.pid, url, log, startedAt: new Date().toISOString(), commit: headCommit() };
-  writeFileSync(statePath(dir, app), `${JSON.stringify(state, null, 2)}\n`);
-  console.log(`verify-control: ${app} ready at ${url} (pid ${child.pid}, run ${run}, commit ${state.commit})`);
+  writeState(dir, { ...state, status: "ready", url });
+  console.log(`verify-control: ${app} ready at ${url} (pid ${state.pid}, run ${run}, commit ${state.commit})`);
+}
+
+/** Why this run's server cannot be driven, or null when it can. */
+async function unhealthy(state: ServerState): Promise<string | null> {
+  if (!owned(state)) return "the process group this run started is gone";
+  if (state.status !== "ready") return "the launch never finished; run cleanup, then launch again";
+  if (!listenerGroups(state.port).includes(state.pid)) return `port ${state.port} is not served by this run's process group`;
+  if ((await probe(state.port)) !== state.url) return `${state.url} does not answer with the app`;
+  if (state.commit !== headCommit()) return `launched at ${state.commit}, but HEAD is now ${headCommit()}; relaunch`;
+  return null;
 }
 
 async function doctor(argv: string[]) {
@@ -155,13 +240,11 @@ async function doctor(argv: string[]) {
     const state = readState(dir, app);
     if (!state) continue;
     found += 1;
-    const up = alive(state.pid);
-    const answering = up ? await probe(APPS[app].port) : null;
-    const ok = up && answering === state.url;
-    healthy &&= ok;
+    const problem = await unhealthy(state);
+    healthy &&= !problem;
     console.log(
-      `${ok ? "ok  " : "FAIL"} ${app}: pid ${state.pid} ${up ? "alive" : "gone"}, ${answering ? `serving ${answering}` : "not answering"}, ` +
-        `started ${state.startedAt} at ${state.commit} (HEAD ${headCommit()})`,
+      `${problem ? "FAIL" : "ok  "} ${app}: pid ${state.pid}, ${state.url ?? "no url"}, started ${state.startedAt} at ${state.commit}` +
+        (problem ? `: ${problem}` : ""),
     );
   }
   if (!found) fail(`no server launched for run ${run}; run launch first`);
@@ -173,107 +256,136 @@ async function drive(argv: string[]) {
   if (!(app in APPS)) fail("drive needs client or admin");
   const { dir } = runDir(argv);
   const state = readState(dir, app);
-  if (!state || !alive(state.pid)) fail(`${app} is not running for this run; launch it first`);
+  if (!state) fail(`${app} is not running for this run; launch it first`);
+  const problem = await unhealthy(state);
+  if (problem || !state.url) fail(`${app} cannot be driven: ${problem}`);
+  const url = state.url;
   const feature = option(argv, "--feature");
-  if (!feature || !/^[\w.-]+$/.test(feature)) fail("drive needs --feature <id> naming the feature map entry");
+  if (!feature || !NAME.test(feature)) fail("drive needs --feature <id> naming the feature map entry");
   const role = (option(argv, "--role") ?? (app === "admin" ? "steward" : "user")) as Role;
+  if (!ROLES.includes(role)) fail(`--role must be one of ${ROLES.join(", ")}`);
   const width = Number(option(argv, "--width") ?? 1280);
+  if (!Number.isInteger(width) || width < 320 || width > 2560) fail("--width must be a whole number of pixels from 320 to 2560");
   const steps = options(argv, "--step");
   if (!steps.length) fail("drive needs at least one --step");
   const evidence = path.join(dir, feature);
   mkdirSync(evidence, { recursive: true });
 
+  const transcript: string[] = [`feature ${feature}, app ${app}, role ${role}, width ${width}, server ${url} at ${state.commit}`];
+  const consoleErrors: string[] = [];
+  let failed = false;
+  // A fixture route that meets a request it does not mock throws outside any awaited call, so the
+  // page's request hangs; record it as a failure instead of letting it pass unseen.
+  process.on("unhandledRejection", (error) => {
+    failed = true;
+    transcript.push(`FAIL fixture: ${String((error as Error)?.message ?? error).split("\n")[0]}`);
+  });
+
   // The helpers read their base URLs when loaded, so point them at this run's server first.
-  process.env[app === "client" ? "TEST_CLIENT_URL" : "TEST_ADMIN_URL"] = state.url;
+  process.env[app === "client" ? "TEST_CLIENT_URL" : "TEST_ADMIN_URL"] = url;
   const { chromium } = await import("@playwright/test");
-  const { setupAuthenticatedClient, seedAcceptedUploadTerms, AdminTestHelper, ClientTestHelper } = await import(
-    "../../tests/helpers/test-utils"
-  );
+  const { setupAuthenticatedClient, seedAcceptedUploadTerms, AdminTestHelper } = await import("../../tests/helpers/test-utils");
   const { mockSepoliaRpc } = await import("../../tests/helpers/mock-backend");
 
   const browser = await chromium.launch();
-  const context = await browser.newContext({
-    baseURL: state.url,
-    ignoreHTTPSErrors: true,
-    viewport: { width, height: width <= 480 ? 812 : 900 },
-  });
-  const page = await context.newPage();
-  const transcript: string[] = [`feature ${feature}, app ${app}, role ${role}, width ${width}, server ${state.url} at ${state.commit}`];
-  const consoleErrors: string[] = [];
-  page.on("console", (message) => message.type() === "error" && consoleErrors.push(message.text()));
-  let helper: { waitForPageLoad(): Promise<void> };
-  if (app === "client") {
-    helper = await setupAuthenticatedClient(page, role);
-  } else {
-    // The Hub smoke spec's own route mocks are local to it; the shared RPC mock covers chain reads,
-    // and indexer reads not mocked here fail loudly in the page, which the transcript records.
-    await mockSepoliaRpc(page);
-    // A returning member, as the Hub smoke spec seeds it, so the first-upload terms stay closed.
-    if (role !== "disconnected") await seedAcceptedUploadTerms(context, state.url, [role]);
-    const admin = new AdminTestHelper(page, context);
-    await admin.enableMockAuth(role);
-    helper = new ClientTestHelper(page);
-  }
-
-  let failed = false;
-  for (const step of steps) {
-    const [kind, ...rest] = step.split(":");
-    const started = Date.now();
-    try {
-      if (kind === "goto") {
-        await page.goto(rest.join(":"), { waitUntil: "domcontentloaded" });
-        await helper.waitForPageLoad();
-      } else if (kind === "click") {
-        await page.getByRole(rest[0] as never, { name: rest.slice(1).join(":"), exact: true }).first().click();
-      } else if (kind === "fill") {
-        await page.getByRole(rest[0] as never, { name: rest[1], exact: true }).first().fill(rest.slice(2).join(":"));
-      } else if (kind === "expect") {
-        await page.getByRole(rest[0] as never, { name: rest.slice(1).join(":"), exact: true }).first().waitFor({ state: "visible", timeout: 15_000 });
-      } else if (kind === "expect-hidden") {
-        await page.getByRole(rest[0] as never, { name: rest.slice(1).join(":"), exact: true }).first().waitFor({ state: "hidden", timeout: 15_000 });
-      } else if (kind === "expect-url") {
-        const pattern = new RegExp(rest.join(":"));
-        await page.waitForURL(pattern, { timeout: 15_000 });
-      } else if (kind === "snapshot") {
-        writeFileSync(path.join(evidence, rest.join(":")), await page.locator("body").ariaSnapshot());
-      } else if (kind === "screenshot") {
-        await page.screenshot({ path: path.join(evidence, rest.join(":")), fullPage: true });
-      } else {
-        throw new Error(`unknown step kind ${kind}`);
-      }
-      transcript.push(`ok   ${step} (${Date.now() - started} ms) url=${page.url()}`);
-    } catch (error) {
-      failed = true;
-      transcript.push(`FAIL ${step}: ${(error as Error).message.split("\n")[0]} url=${page.url()}`);
-      await page.screenshot({ path: path.join(evidence, "failure.png"), fullPage: true }).catch(() => {});
-      break;
+  try {
+    const context = await browser.newContext({
+      baseURL: url,
+      ignoreHTTPSErrors: true,
+      viewport: { width, height: width <= 480 ? 812 : 900 },
+    });
+    // Never reach a developer's local Agent (3005) or indexer (3006, or the Hub's /api proxies to
+    // them). Page routes from the fixtures take precedence; anything they leave falls through here.
+    await context.route(/^https?:\/\/(localhost|127\.0\.0\.1):300[56]\//, (route) => route.abort("blockedbyclient"));
+    if (app === "admin") {
+      await context.route(/\/api\/(graphql|messaging)(\?|$)/, (route) => route.abort("blockedbyclient"));
     }
+    const page = await context.newPage();
+    page.on("console", (message) => message.type() === "error" && consoleErrors.push(message.text()));
+    let helper: { waitForPageLoad(): Promise<void>; backend?: { assertSatisfied(): void } };
+    if (app === "client") {
+      helper = await setupAuthenticatedClient(page, role);
+    } else {
+      // The Hub smoke spec's own route mocks are local to it; the shared RPC mock covers chain
+      // reads, and indexer reads are blocked above, so the page shows them failing.
+      await mockSepoliaRpc(page);
+      // A returning member, as the Hub smoke spec seeds it, so the first-upload terms stay closed.
+      if (role !== "disconnected") await seedAcceptedUploadTerms(context, url, [role]);
+      const admin = new AdminTestHelper(page, context);
+      await admin.enableMockAuth(role);
+      helper = admin;
+    }
+
+    for (const step of steps) {
+      if (failed) break;
+      const [kind, ...rest] = step.split(":");
+      const started = Date.now();
+      try {
+        if (kind === "goto") {
+          await page.goto(rest.join(":"), { waitUntil: "domcontentloaded" });
+          await helper.waitForPageLoad();
+        } else if (kind === "click") {
+          await page.getByRole(rest[0] as never, { name: rest.slice(1).join(":"), exact: true }).first().click();
+        } else if (kind === "fill") {
+          await page.getByRole(rest[0] as never, { name: rest[1], exact: true }).first().fill(rest.slice(2).join(":"));
+        } else if (kind === "expect") {
+          await page.getByRole(rest[0] as never, { name: rest.slice(1).join(":"), exact: true }).first().waitFor({ state: "visible", timeout: 15_000 });
+        } else if (kind === "expect-hidden") {
+          await page.getByRole(rest[0] as never, { name: rest.slice(1).join(":"), exact: true }).first().waitFor({ state: "hidden", timeout: 15_000 });
+        } else if (kind === "expect-url") {
+          const fragment = rest.join(":");
+          await page.waitForURL((current) => current.href.includes(fragment), { timeout: 15_000 });
+        } else if (kind === "snapshot") {
+          writeFileSync(evidenceFile(evidence, rest.join(":")), await page.locator("body").ariaSnapshot());
+        } else if (kind === "screenshot") {
+          await page.screenshot({ path: evidenceFile(evidence, rest.join(":")), fullPage: true });
+        } else {
+          throw new Error(`unknown step kind ${kind}`);
+        }
+        transcript.push(`ok   ${step} (${Date.now() - started} ms) url=${page.url()}`);
+      } catch (error) {
+        failed = true;
+        transcript.push(`FAIL ${step}: ${(error as Error).message.split("\n")[0]} url=${page.url()}`);
+        await page.screenshot({ path: path.join(evidence, "failure.png"), fullPage: true }).catch(() => {});
+      }
+    }
+    if (!failed && helper.backend) {
+      try {
+        helper.backend.assertSatisfied();
+      } catch (error) {
+        failed = true;
+        transcript.push(`FAIL fixture: ${(error as Error).message.split("\n")[0]}`);
+      }
+    }
+  } finally {
+    if (consoleErrors.length) transcript.push(`console errors (${consoleErrors.length}):`, ...consoleErrors.map((text) => `  ${text.slice(0, 300)}`));
+    writeFileSync(path.join(evidence, `transcript-${width}.txt`), `${transcript.join("\n")}\n`);
+    await browser.close();
+    console.log(transcript.join("\n"));
+    console.log(`verify-control: evidence in ${path.relative(repoRoot, evidence)}`);
   }
-  if (consoleErrors.length) transcript.push(`console errors (${consoleErrors.length}):`, ...consoleErrors.map((text) => `  ${text.slice(0, 300)}`));
-  writeFileSync(path.join(evidence, `transcript-${width}.txt`), `${transcript.join("\n")}\n`);
-  await browser.close();
-  console.log(transcript.join("\n"));
-  console.log(`verify-control: evidence in ${path.relative(repoRoot, evidence)}`);
   if (failed) process.exit(1);
 }
 
-function cleanup(argv: string[]) {
+async function cleanup(argv: string[]) {
   const { run, dir } = runDir(argv);
+  let stuck = false;
   for (const app of Object.keys(APPS) as App[]) {
     const state = readState(dir, app);
     if (!state) continue;
-    // Only the process group this run started; never anything found by name or port.
-    if (alive(state.pid)) {
-      try {
-        process.kill(-state.pid, "SIGTERM");
-      } catch {
-        process.kill(state.pid, "SIGTERM");
-      }
+    // Only the process group this run started, proven by its recorded start time or surviving
+    // group; never anything found by name or port.
+    const running = owned(state);
+    if (await stopGroup(state)) {
+      rmSync(statePath(dir, app));
+      console.log(`verify-control: ${running ? "stopped" : "found no running"} ${app} (group ${state.pid}) for run ${run}`);
+    } else {
+      stuck = true;
+      console.error(`verify-control: ${app} group ${state.pid} is still running; its state file is kept`);
     }
-    rmSync(statePath(dir, app));
-    console.log(`verify-control: stopped ${app} (pid ${state.pid}) for run ${run}`);
   }
   console.log(`verify-control: evidence kept in ${path.relative(repoRoot, dir)}`);
+  if (stuck) process.exit(1);
 }
 
 const argv = process.argv.slice(2);
