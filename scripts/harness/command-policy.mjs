@@ -156,8 +156,9 @@ function executableWords(words) {
       // `command -v` and `command -V` look the name up and run nothing.
       if (wrapper === "command" && /^-[A-Za-z]*[vV]/.test(option.value)) return [];
       // `env -S` splits its string into the command it runs, so it is a command of its own too.
-      // Short flags combine, so `-iS 'cmd'` and `-iS'cmd'` split too.
-      const shortSplit = /^-[A-Za-z]*S/.exec(option.value);
+      // Short flags combine, so `-iS 'cmd'` and `-iS'cmd'` split too; `-u` and `-C` take the rest
+      // of their group as a value (`-uDISPLAY`), so a group stops at them.
+      const shortSplit = /^-[A-BD-Za-tv-z]*S/.exec(option.value);
       if (wrapper === "env" && (/^--split-string(=|$)/.test(option.value) || shortSplit)) {
         const attached = option.value.startsWith("--")
           ? option.value.slice("--split-string=".length)
@@ -180,9 +181,9 @@ function executableWords(words) {
 }
 
 /**
- * The subcommand Bun runs: its first word that is not an option. Bun reads a global option's
- * value only when attached (`--cwd=dir`), so `bun --cwd dir test` runs the package's `dir`
- * script and `bun --bun test` runs the test runner.
+ * The subcommand Bun runs: its first word that is not an option. A global option's separate value
+ * still applies but is not the subcommand, so `bun --cwd dir test` runs `dir`'s `test` script,
+ * while `bun --cwd=dir test` and `bun --bun test` run the test runner.
  */
 function bunSubcommand(values) {
   return values.slice(1).find((value) => !value.startsWith("-"));

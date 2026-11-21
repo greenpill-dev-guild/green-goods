@@ -128,7 +128,7 @@ for (const command of [
   "npx -c cat <.env",
   // Bun's global options before the subcommand, env's split string and xargs: the floor reads them.
   "bun --bun test", "bun --cwd=packages/shared test", "bun --smol test src", "bun -- test", "env -S 'bun test'",
-  "env -S'bun test'", "env -iS 'bun test'", "env --split-string='bun test --watch'", "printf a | xargs bun test",
+  "env -S'bun test'", "env -iS 'bun test'", "env -uDISPLAY bun test", "env -uSSH_AUTH_SOCK bun test", "env --split-string='bun test --watch'", "printf a | xargs bun test",
   "xargs -n 1 bun test < files.txt", "xargs -J % bun test", "xargs -R 1 bun test",
 ]) {
   test(`restricted command: ${command.split("\n")[0]}`, () => {
