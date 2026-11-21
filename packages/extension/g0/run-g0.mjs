@@ -1,6 +1,8 @@
 /* oxlint-disable no-console -- a CLI rig prints its own progress */
 // The G0 rig: drives the built extension in Brave Beta over CDP and writes an observation sheet.
-//   node g0/run-g0.mjs [--fresh] [--only lifecycle,webmcp,model,pi] [--headed] [--passes N]
+//   node g0/run-g0.mjs [--fresh] [--only lifecycle,webmcp,model,pi,encoder] [--headed] [--passes N]
+// The default runs the first four; `encoder` runs only when named. `--encoder-phases constrained`
+// reruns one encoder phase on the cached profile and merges it into observations.json.
 // Build first: bun run build (output in .output/chrome-mv3). Never points at a real profile.
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -8,6 +10,7 @@ import { cpus, totalmem, release } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { BRAVE_BETA, launchBrowser, waitForTarget } from "./cdp.mjs";
+import { runEncoder } from "./encoder-rig.mjs";
 import { startMemorySampler } from "./memory-sampler.mjs";
 import { servePage } from "./serve-page.mjs";
 
@@ -332,8 +335,27 @@ if (only.has("model") || only.has("pi")) {
     await main.kill().catch(() => undefined);
   }
 }
+const encoderPhases = option("--encoder-phases", null);
+await step("encoder", () =>
+  runEncoder({ launch, outDir, log, fixturePath: join(packageDir, "src", "model", "encoder-fixture.json"), phases: encoderPhases ? new Set(encoderPhases.split(",")) : null }),
+);
 observations.finishedAt = new Date().toISOString();
 const stamped = join(outDir, `observations-${[...only].join("-")}-${observations.startedAt.replace(/[:.]/g, "-")}.json`);
 writeFileSync(stamped, JSON.stringify(observations, null, 2));
-writeFileSync(join(outDir, "observations.json"), JSON.stringify(observations, null, 2));
+// A partial encoder rerun (--encoder-phases) replaces only its phases in the sheet the last full run left.
+const sheet = join(outDir, "observations.json");
+if (encoderPhases && observations.results.encoder && existsSync(sheet)) {
+  const previous = JSON.parse(readFileSync(sheet, "utf8"));
+  const before = previous.results?.encoder;
+  if (before) {
+    for (const [device, runs] of Object.entries(observations.results.encoder.backends)) {
+      const kept = before.backends[device] ?? {};
+      for (const phase of Object.keys(runs)) if (kept[phase] && phase !== "environment") kept[`${phase}Superseded`] = kept[phase];
+      before.backends[device] = { ...kept, ...runs };
+    }
+    before.reruns = [...(before.reruns ?? []), { phases: encoderPhases, startedAt: observations.startedAt, sheet: stamped }];
+    previous.failures = [...(previous.failures ?? []), ...observations.failures];
+    writeFileSync(sheet, JSON.stringify(previous, null, 2));
+  } else writeFileSync(sheet, JSON.stringify(observations, null, 2));
+} else writeFileSync(sheet, JSON.stringify(observations, null, 2));
 log(`wrote ${stamped}; failures: ${observations.failures.length}`);
