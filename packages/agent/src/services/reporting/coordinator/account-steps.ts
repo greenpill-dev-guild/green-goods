@@ -5,6 +5,7 @@ import {
 import type { Address } from "@green-goods/shared/types/domain";
 import { pairFromChat } from "../channel-pairing";
 import { issueContinuation, revokeOpenRequests } from "../continuations";
+import { forgetGoal, pendingGoal } from "../dialogue-goal";
 import { commitDraft, type DraftRecord } from "../drafts";
 import { gardenScope, isUnlisted, type ReportingGarden } from "../gardens";
 import { retireUnusedGrants } from "../grants-store";
@@ -20,6 +21,7 @@ import { commitLifecycle, lifecycleState } from "./draft-commit";
 import { askGarden } from "./garden-step";
 import { askConfirmation } from "./prompting";
 import { recordDraftConfirmation } from "./report-commands";
+import { listWorkToReview } from "./review-steps";
 import {
   apply,
   finish,
@@ -213,6 +215,7 @@ export function disconnectAccount(writer: TurnWriter, thenConnect: boolean): voi
     .run({ participant: binding.participantId });
   revokeParticipantSessions(core, binding.participantId);
   endRecognition(core, binding.participantId);
+  forgetGoal(core, ctx.conversationId);
   const gardenQuestion = ctx.prompt?.kind === "select_garden";
   // A garden question listed this account's gardens. The account that is linked next gets its own
   // list when it pairs, so until then the question is closed and not left to be answered.
@@ -264,6 +267,24 @@ function resumeUnderAccount(writer: TurnWriter, draft: DraftRecord, external: Tu
 }
 
 /**
+ * What the chat was asked for before its account was linked carries on once it is: a steward who
+ * asked to review is shown the work waiting, without asking again. An open report keeps the
+ * conversation, so the goal is dropped and REVIEW asks for the list when the steward wants it.
+ */
+function resumeGoal(writer: TurnWriter): void {
+  const { core, ctx } = writer;
+  if (!ctx.binding || !ctx.account) return;
+  const goal = pendingGoal(core, {
+    conversationId: ctx.conversationId,
+    participantId: ctx.binding.participantId,
+    identityEpoch: ctx.binding.identityEpoch,
+  });
+  if (goal !== "review") return;
+  if (ctx.draft) return forgetGoal(core, ctx.conversationId);
+  listWorkToReview(writer, ctx.binding.participantId);
+}
+
+/**
  * Linking and publication consent in chat. Pairing completes only when the code shown in the
  * verifying browser arrives from this chat. A confirmation made before the account was linked is
  * replaced by a new one that names the account, recorded with publication consent for that digest.
@@ -290,6 +311,7 @@ export function handlePairing(writer: TurnWriter, code: string, external: TurnEx
   // summary is put again naming the account, so what is confirmed next is the publication as it
   // will be made.
   if (draft && ctx.account) resumeUnderAccount(writer, draft, external);
+  resumeGoal(writer);
   if (draft && lifecycleState(draft) === "authority") {
     enqueueJob(core, {
       kind: "resolve_authority",

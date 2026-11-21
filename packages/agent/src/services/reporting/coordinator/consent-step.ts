@@ -1,4 +1,5 @@
 import { grantConsent, withdrawConsent } from "../consent";
+import { forgetGoal } from "../dialogue-goal";
 import { enqueueJob } from "../jobs";
 import { releaseQuarantine } from "../inbox";
 import { settleFileBatch } from "../media-intake";
@@ -75,6 +76,7 @@ export function withdrawProcessing(writer: TurnWriter, mode: "stop" | "delete"):
   const { core, ctx } = writer;
   withdrawConsent(core, ctx.subjectId, ["processing", "voice"], `chat:${mode}`);
   closeConversationPrompt(core, ctx.conversationId);
+  forgetGoal(core, ctx.conversationId);
   const cancelled =
     ctx.draft && EDITABLE_STATES.has(lifecycleState(ctx.draft))
       ? commitLifecycle(core, ctx.draft, [{ type: "CANCEL" }], { participantAction: true }).refused

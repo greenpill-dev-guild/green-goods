@@ -52,17 +52,22 @@ async function publishedWork(): Promise<`0x${string}`> {
   return workUID;
 }
 
-/** Bola agrees to processing and links the steward account through the browser and chat. */
-async function linkedSteward(): Promise<void> {
+/**
+ * Bola agrees to processing and links the steward account through the browser and chat. Pairing
+ * carries on with the review Bola asked for, so its replies end with the work waiting.
+ */
+async function linkedSteward(): Promise<string[]> {
   harness.chain.grantRole(TAS.address, stewardAccount.address, { operator: true });
   await harness.say(BOLA, "REVIEW");
   await harness.press(BOLA, "I agree");
   const browser = new TestBrowser(harness.app);
   await browser.open(latestLink(harness));
   const proof = await browser.prove(stewardAccount);
-  expect(await harness.say(BOLA, `PAIR ${proof.body.pairingCode}`)).toEqual([
-    `Your account ${stewardAccount.address.toLowerCase()} is now linked.\nYour gardens: TAS.`,
-  ]);
+  const [linked, ...review] = await harness.say(BOLA, `PAIR ${proof.body.pairingCode}`);
+  expect(linked).toBe(
+    `Your account ${stewardAccount.address.toLowerCase()} is now linked.\nYour gardens: TAS.`
+  );
+  return review;
 }
 
 async function openDecisionPage(): Promise<{ browser: TestBrowser; view: ResourceView }> {
@@ -89,9 +94,8 @@ async function decide(decision: "Approve" | "Reject", feedback: string): Promise
 describe("steward review", () => {
   it("records an approval signed by the steward's own account", async () => {
     const workUID = await publishedWork();
-    await linkedSteward();
-
-    expect(await harness.say(BOLA, "REVIEW")).toEqual([
+    // Bola asked to review before linking, so linking shows the work without REVIEW being sent again.
+    expect(await linkedSteward()).toEqual([
       "Work waiting for your review in TAS. Choose one to start:\n1. Tree planting (TAS)",
     ]);
     // A decision's answers have nothing to do with a garden's activities, so none are read, even

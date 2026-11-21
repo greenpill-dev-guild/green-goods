@@ -51,6 +51,7 @@ import {
   withdrawProcessing,
 } from "./consent-step";
 import { loadTurnContext, planEventTurn, type TurnContext, type TurnPlan } from "./context";
+import { dialogueView } from "./dialogue-context";
 import { StaleDraftError } from "./draft-commit";
 import { answeredGarden, readGardensForTurn } from "./garden-step";
 import { handleReportAnswer, lapsedJoinReply } from "./report-answer";
@@ -234,37 +235,18 @@ async function gatherExternal(
   let result: CatalogResult | null = garden && needsCatalog ? await activitiesOf(garden) : null;
   let interpretation: InterpretationResult | null = null;
   if (forModel) {
-    const content = ctx.draft?.content;
-    interpretation = await interpretWithDeadline(
+    const view = dialogueView(core, ctx, {
+      text: forModel,
+      gardens: gardensIn(scope),
+      activities: result?.ok ? result.actions : [],
+    });
+    const read = await interpretWithDeadline(
       deps.interpreter,
-      {
-        locale: ctx.locale,
-        draftRevision: ctx.draft?.revision ?? 0,
-        message: { sourceEntryId: ctx.event.id, text: forModel },
-        content: {
-          actionUID: content?.actionUID ?? null,
-          title: content?.title ?? null,
-          timeSpentMinutes: content?.timeSpentMinutes ?? null,
-          feedback: content?.feedback ?? null,
-          details: content?.details ?? {},
-        },
-        requirements: content ? outstandingRequirements(content, ctx.draft?.snapshot ?? null) : [],
-        gardens: gardensIn(scope).map((candidate) => ({
-          key: candidate.key,
-          label: candidate.label,
-        })),
-        actions: result?.ok
-          ? result.actions.map((action) => ({
-              uid: action.definition.actionUID,
-              title: action.definition.title,
-              inputs: action.definition.inputs,
-            }))
-          : [],
-        observations: [],
-      },
+      view.request,
       deps.interpretationTimeoutMs,
       modelMeter(core)
     );
+    interpretation = read && view.resolve(read);
     // A garden the model read for a report that has none yet: its activities are read in this
     // turn too, so the reply can ask which activity instead of failing to list them.
     const named = gardensIn(scope).find((candidate) => candidate.key === interpretation?.gardenKey);

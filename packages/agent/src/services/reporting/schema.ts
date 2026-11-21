@@ -128,4 +128,20 @@ export const REPORTING_MIGRATIONS: readonly ReportingMigration[] = [
        AND state IN ('ready','needs_clarification','failed','unsupported','deleted')`,
     ],
   },
+  {
+    version: 8,
+    name: "a conversation's pending goal",
+    // What a person asked to do before it could start, such as a review asked for before an
+    // account was linked. One row per conversation, read only by the identity that set it.
+    statements: [
+      `CREATE TABLE IF NOT EXISTS dialogue_goals (
+        conversation_id TEXT PRIMARY KEY REFERENCES conversations(id) ON DELETE CASCADE,
+        participant_id TEXT NOT NULL REFERENCES participants(id),
+        identity_epoch INTEGER NOT NULL CHECK (identity_epoch >= 1),
+        goal TEXT NOT NULL CHECK (goal IN ('review')),
+        set_at INTEGER NOT NULL,
+        expires_at INTEGER NOT NULL
+      )`,
+    ],
+  },
 ];
