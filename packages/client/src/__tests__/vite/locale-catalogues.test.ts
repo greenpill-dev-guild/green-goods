@@ -1,11 +1,17 @@
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { runInNewContext } from "node:vm";
 import { gzipSync } from "node:zlib";
 import type { ResolvedConfig } from "vite";
 import { afterEach, describe, expect, it } from "vitest";
-import { createLocaleCataloguesPlugin } from "../../../vite/locale-catalogues";
+import {
+  createLocaleCataloguesPlugin,
+  WEBSITE_ONLY_MESSAGE_PREFIXES,
+} from "../../../vite/locale-catalogues";
+
+const websiteOnly = (key: string) =>
+  WEBSITE_ONLY_MESSAGE_PREFIXES.some((prefix) => key.startsWith(prefix));
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -61,7 +67,7 @@ async function emit(plugin: ReturnType<typeof createLocaleCataloguesPlugin>, pat
 }
 
 describe("locale catalogue bundles", () => {
-  it("preserves every canonical message and shares keys to reduce the complete payload", async () => {
+  it("preserves every message the installed app can show and shares keys to reduce the payload", async () => {
     const root = resolve(import.meta.dirname, "../../..");
     const plugin = await configure(root);
     const tables = new Map<string, string>();
@@ -69,7 +75,12 @@ describe("locale catalogue bundles", () => {
     let packedBytes = 0;
     for (const locale of ["en", "es", "pt"]) {
       const path = resolve(root, `../shared/src/i18n/${locale}.json`);
-      const messages = JSON.parse(await readFile(path, "utf8"));
+      const source: Record<string, string> = JSON.parse(await readFile(path, "utf8"));
+      // The website's own pages are not in the installed app, so their copy is left out.
+      const messages = Object.fromEntries(
+        Object.entries(source).filter(([key]) => !websiteOnly(key))
+      );
+      expect(Object.keys(messages).length).toBeLessThan(Object.keys(source).length);
       const output = await emit(plugin, path);
       expect(output.messages).toEqual(messages);
       expect(Object.keys(output.messages!)).toEqual(Object.keys(messages));
@@ -80,6 +91,29 @@ describe("locale catalogue bundles", () => {
     expect(tables.size).toBe(1);
     packedBytes += [...tables.values()].reduce((sum, code) => sum + gzipSync(code).length, 0);
     expect(packedBytes).toBeLessThan(originalBytes);
+  });
+
+  it("leaves out only copy that no code the installed app can reach refers to", async () => {
+    const root = resolve(import.meta.dirname, "../../..");
+    // The website's pages and pieces, which the installed app's routes and offline shell omit.
+    const websiteOnlyCode = /\/client\/src\/(views\/Public|components\/Public)\//;
+    const offenders: string[] = [];
+    const visit = async (directory: string) => {
+      for (const entry of await readdir(directory, { withFileTypes: true })) {
+        const path = join(directory, entry.name);
+        if (entry.isDirectory()) {
+          if (entry.name !== "node_modules" && entry.name !== "__tests__") await visit(path);
+        } else if (/\.tsx?$/.test(entry.name) && !/\.(test|stories)\.tsx?$/.test(entry.name)) {
+          const source = await readFile(path, "utf8");
+          const refers = WEBSITE_ONLY_MESSAGE_PREFIXES.some((prefix) => source.includes(prefix));
+          if (refers && !websiteOnlyCode.test(path)) offenders.push(path);
+        }
+      }
+    };
+    for (const sources of ["src", "../shared/src", "../admin/src"]) {
+      await visit(resolve(root, sources));
+    }
+    expect(offenders).toEqual([]);
   });
 
   it("keeps distinct keys, order, Unicode and ICU placeholders intact", async () => {
