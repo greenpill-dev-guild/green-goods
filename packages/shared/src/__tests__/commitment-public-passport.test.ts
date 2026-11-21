@@ -304,6 +304,19 @@ describe("a garden's passport", () => {
     );
     expect(value(single.promises)).toMatchObject({ made: 1, kept: 1 });
     expect(value(single.settlement).support.lines).toEqual([]);
+
+    // A garden with its own pool that provided for promise 85 in pool 2: still a rehearsal.
+    const provider = await read({
+      Commitment: [
+        kept(85, { poolId: "2", cycleId: null }),
+        kept(86, { poolId: "2", cycleId: null }),
+      ],
+      Disbursement: [
+        payment(3, { commitmentId: "85" }),
+        payment(4, { commitmentId: "86", amount: "30" }),
+      ],
+    });
+    expect(value(provider.settlement).support.lines).toMatchObject([{ confirmed: 30n }]);
   });
 
   it("reads open offers as capacity, and only voucher-priced ones as bookable with a voucher", async () => {
@@ -688,6 +701,20 @@ describe("a garden's passport", () => {
       declaredUnpaid: null,
       lines: null,
     });
+
+    // Three members in all is not three in each token. With the amounts held back, a plan that
+    // assigns one member another token would publish that member's amount as that token's total.
+    expect(
+      await members({
+        Disbursement: [...tables.Disbursement, member(7, "FAILED", "15")],
+        CommitmentPayoutPlan: [...tables.CommitmentPayoutPlan, plan(3, { token: OTHER_TOKEN })],
+        ContributorPayout: [
+          ...tables.ContributorPayout,
+          share(2, 7, "15"),
+          share(3, 1, "7", false),
+        ],
+      })
+    ).toMatchObject({ withheld: false, plans: 3, declared: null, lines: null });
 
     // A new plan with one member and no payment: declared minus paid would be that member's
     // amount, so the declared total is held while the paid amounts stay published.

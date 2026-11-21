@@ -1,7 +1,7 @@
 import type { Address } from "../../types/domain";
 import type { GraphQLReader } from "../data/graphql-client";
 import { integer, type RawRow } from "./data-core";
-import type { PassportPromiseRow } from "./data-public-passport-promises";
+import { type PassportPromiseRow, readPromisesElsewhere } from "./data-public-passport-promises";
 import { readPassportRows, readPassportRowsIn } from "./data-public-passport-reads";
 import {
   type PassportMoneyLine,
@@ -106,7 +106,8 @@ function tally(rows: readonly RawRow[]) {
 /**
  * The garden's settlement reconciliation: what its payment plans declare beside what was queued,
  * sent, acknowledged, failed or cancelled. Payments that followed a registered rehearsal stay
- * out. Money sent to the garden itself names no promise, so it cannot be tied to a rehearsal.
+ * out, in whichever pool the rehearsal was registered. Money sent to the garden itself names no
+ * promise, so it cannot be tied to a rehearsal.
  */
 export async function readPassportSettlement(
   chainId: number,
@@ -117,10 +118,8 @@ export async function readPassportSettlement(
 ): Promise<{ settlement: PassportSettlement; asOf: number | null }> {
   const scope = { chainId, garden: garden.toLowerCase() };
   const declarations = "$chainId: Int!, $garden: String!";
-  const counted = (row: RawRow) =>
-    row.commitmentId === null ||
-    row.commitmentId === undefined ||
-    !rehearsalIds.has(integer(row.commitmentId));
+  const promiseOf = (row: RawRow) =>
+    row.commitmentId === null || row.commitmentId === undefined ? [] : [integer(row.commitmentId)];
   const [payments, plans] = await Promise.all([
     readPassportRows(
       reader,
@@ -139,7 +138,18 @@ export async function readPassportSettlement(
       scope,
       declarations
     ),
-  ]).then((sets) => sets.map((rows) => rows.filter(counted)));
+  ]).then(async (sets) => {
+    const { rehearsals } = await readPromisesElsewhere(
+      chainId,
+      sets.flat().flatMap(promiseOf),
+      promises,
+      rehearsalIds,
+      reader
+    );
+    return sets.map((rows) =>
+      rows.filter((row) => !promiseOf(row).some((id) => rehearsals.has(id)))
+    );
+  });
 
   const toGarden = tally(payments.filter((row) => row.kind !== "CONTRIBUTOR_CONSIDERATION"));
   const toMemberRows = payments.filter((row) => row.kind === "CONTRIBUTOR_CONSIDERATION");
@@ -172,12 +182,27 @@ export async function readPassportSettlement(
         typeof payout.contributor === "string" ? [payout.contributor.toLowerCase()] : []
       )
     );
+  const tokenOfPayout = (payout: RawRow) => {
+    const plan = planOf.get(integer(payout.payoutPlanId));
+    if (!plan) throw new Error("Passport payout names no payment plan");
+    return tokenOf(plan);
+  };
+  // Tokens are published apart, so each token's amount needs its own three members: three people
+  // across two tokens would publish one member's amount in one of them.
+  const sharedInEveryToken = (payouts: readonly RawRow[]) => {
+    const members = new Map<Address, Set<string>>();
+    for (const payout of payouts) {
+      const token = tokenOfPayout(payout);
+      const people = members.get(token) ?? new Set<string>();
+      members.set(token, people);
+      if (typeof payout.contributor === "string") people.add(payout.contributor.toLowerCase());
+    }
+    return [...members.values()].every((people) => people.size >= PUBLIC_PASSPORT_MIN_PEOPLE);
+  };
   const byToken = (payouts: readonly RawRow[]) => {
     const totals = new Map<Address, bigint>();
     for (const payout of payouts) {
-      const plan = planOf.get(integer(payout.payoutPlanId));
-      if (!plan) throw new Error("Passport payout names no payment plan");
-      const token = tokenOf(plan);
+      const token = tokenOfPayout(payout);
       totals.set(token, (totals.get(token) ?? 0n) + integer(payout.amount));
     }
     return [...totals.entries()]
@@ -203,14 +228,12 @@ export async function readPassportSettlement(
   );
   // Declared minus the published amounts is what plans assign that no payment records yet. That
   // remainder is a figure too, so the declared total stands beside the amounts only when the
-  // remainder is nothing or is itself shared by three members.
+  // remainder is nothing or is itself shared by three members, token by token.
   const unrecorded = assigned.filter((payout) => !stateOf.has(String(payout.disbursementEntityId)));
-  const remainderShared =
-    unrecorded.length === 0 || membersOf(unrecorded).size >= PUBLIC_PASSPORT_MIN_PEOPLE;
   const declared =
     everyPlanAssigned &&
-    (assigned.length === 0 || membersOf(assigned).size >= PUBLIC_PASSPORT_MIN_PEOPLE) &&
-    (lines === null || remainderShared)
+    sharedInEveryToken(assigned) &&
+    (lines === null || sharedInEveryToken(unrecorded))
       ? byToken(assigned)
       : null;
   const declaredUnpaid = declared !== null && lines !== null ? byToken(unpaid) : null;

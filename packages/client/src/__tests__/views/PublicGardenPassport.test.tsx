@@ -113,6 +113,27 @@ describe("a garden's public passport", () => {
     // Every ledger line says how fresh it is and where it comes from.
     expect(within(line("Promised")).getByText(/Last change on record/)).toBeInTheDocument();
     expect(screen.getAllByText("Where this comes from").length).toBeGreaterThanOrEqual(4);
+    cleanup();
+
+    // Promises taken up and later released are off the record. They were still taken up, so
+    // the page does not say that nobody took one up.
+    const full = record();
+    if (full.promises.status !== "available") throw new Error("the fixture must be readable");
+    show({
+      passport: record({
+        promises: {
+          ...full.promises,
+          value: { ...full.promises.value, takenUp: 2, due: 0, kept: 0, unresolved: 0, units: [] },
+        },
+      }),
+    });
+    expect(screen.getByTestId("passport-sentence")).toHaveTextContent(
+      "This garden has no promises to keep right now."
+    );
+    expect(
+      within(line("Promised")).getByText("No promise is waiting to be kept right now.")
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/taken up a promise|has been taken up yet/)).not.toBeInTheDocument();
   });
 
   it("keeps vouchers and G$ apart, each in its own unit, and a declared amount unpaid", () => {

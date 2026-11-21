@@ -1,6 +1,6 @@
 import { mkdtemp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { runInNewContext } from "node:vm";
 import { gzipSync } from "node:zlib";
 import type { ResolvedConfig } from "vite";
@@ -95,25 +95,72 @@ describe("locale catalogue bundles", () => {
 
   it("leaves out only copy that no code the installed app can reach refers to", async () => {
     const root = resolve(import.meta.dirname, "../../..");
-    // The website's pages and pieces, which the installed app's routes and offline shell omit.
+    const client = resolve(root, "src");
+    // The website's pages and pieces. The installed app's routes omit the pages, but its code
+    // does import some of the pieces, so a folder alone does not keep copy out of the app.
     const websiteOnlyCode = /\/client\/src\/(views\/Public|components\/Public)\//;
-    const offenders: string[] = [];
+    const sources = new Map<string, string>();
     const visit = async (directory: string) => {
       for (const entry of await readdir(directory, { withFileTypes: true })) {
         const path = join(directory, entry.name);
         if (entry.isDirectory()) {
           if (entry.name !== "node_modules" && entry.name !== "__tests__") await visit(path);
         } else if (/\.tsx?$/.test(entry.name) && !/\.(test|stories)\.tsx?$/.test(entry.name)) {
-          const source = await readFile(path, "utf8");
-          const refers = WEBSITE_ONLY_MESSAGE_PREFIXES.some((prefix) => source.includes(prefix));
-          if (refers && !websiteOnlyCode.test(path)) offenders.push(path);
+          sources.set(path, await readFile(path, "utf8"));
         }
       }
     };
-    for (const sources of ["src", "../shared/src", "../admin/src"]) {
-      await visit(resolve(root, sources));
+    for (const folder of ["src", "../shared/src", "../admin/src"]) {
+      await visit(resolve(root, folder));
     }
-    expect(offenders).toEqual([]);
+    const refers = (path: string) =>
+      WEBSITE_ONLY_MESSAGE_PREFIXES.some((prefix) => sources.get(path)?.includes(prefix));
+    const paths = [...sources.keys()];
+    expect(paths.filter((path) => refers(path) && !websiteOnlyCode.test(path))).toEqual([]);
+
+    // The client files each file imports, static or lazy.
+    const imports = (path: string) =>
+      [...(sources.get(path) ?? "").matchAll(/(?:from|import)\s*\(?\s*["']([^"']+)["']/g)].flatMap(
+        ([, specifier]) => {
+          const base = specifier.startsWith("@/")
+            ? join(client, specifier.slice(2))
+            : specifier.startsWith(".")
+              ? resolve(dirname(path), specifier)
+              : null;
+          if (!base) return [];
+          const file = [base, `${base}.ts`, `${base}.tsx`, join(base, "index.ts")].find(
+            (candidate) => sources.has(candidate)
+          );
+          return file ? [file] : [];
+        }
+      );
+    // The website's files that show the copy, themselves or through one another.
+    const carrying = new Set(paths.filter(refers));
+    for (let grew = true; grew; ) {
+      grew = false;
+      for (const path of paths.filter((candidate) => websiteOnlyCode.test(candidate))) {
+        if (!carrying.has(path) && imports(path).some((imported) => carrying.has(imported))) {
+          carrying.add(path);
+          grew = true;
+        }
+      }
+    }
+    // Only the route table reaches them from the rest of the client, and only through the
+    // website's lazy routes.
+    const routeTable = resolve(client, "config/routes.tsx");
+    expect(
+      paths.filter(
+        (path) =>
+          path.startsWith(client) &&
+          !websiteOnlyCode.test(path) &&
+          imports(path).some((imported) => carrying.has(imported))
+      )
+    ).toEqual([routeTable]);
+    for (const page of imports(routeTable).filter((imported) => carrying.has(imported))) {
+      const name = page.slice(client.length + 1).replace(/\.tsx?$/, "");
+      expect(sources.get(routeTable)).toContain(`import("@/${name}")`);
+      expect(sources.get(routeTable)).not.toMatch(new RegExp(`from\\s+["']@/${name}["']`));
+    }
   });
 
   it("keeps distinct keys, order, Unicode and ICU placeholders intact", async () => {

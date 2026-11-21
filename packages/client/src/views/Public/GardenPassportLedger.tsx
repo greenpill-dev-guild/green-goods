@@ -61,10 +61,15 @@ export function PassportLedger({
           <>
             {record.due === 0 ? (
               <PassportNothingYet>
-                {formatMessage({
-                  id: "public.passport.promised.none",
-                  defaultMessage: "No promise has been taken up yet.",
-                })}
+                {record.takenUp > 0
+                  ? formatMessage({
+                      id: "public.passport.promised.noneDue",
+                      defaultMessage: "No promise is waiting to be kept right now.",
+                    })
+                  : formatMessage({
+                      id: "public.passport.promised.none",
+                      defaultMessage: "No promise has been taken up yet.",
+                    })}
               </PassportNothingYet>
             ) : (
               <PassportFigure>

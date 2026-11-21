@@ -48,10 +48,16 @@ export function PassportSentence({ passport }: { passport: PublicGardenPassportR
       className="max-w-3xl font-serif text-2xl leading-snug text-text-strong-950 md:text-3xl"
     >
       {record.due === 0
-        ? formatMessage({
-            id: "public.passport.sentence.none",
-            defaultMessage: "No one has taken up a promise in this garden yet.",
-          })
+        ? // Promises taken up and later released are off the record, and were still taken up.
+          record.takenUp > 0
+          ? formatMessage({
+              id: "public.passport.sentence.noneDue",
+              defaultMessage: "This garden has no promises to keep right now.",
+            })
+          : formatMessage({
+              id: "public.passport.sentence.none",
+              defaultMessage: "No one has taken up a promise in this garden yet.",
+            })
         : record.breakdown
           ? formatMessage(
               {

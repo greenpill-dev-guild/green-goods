@@ -3,7 +3,7 @@ import {
   publicRehearsalCycles,
 } from "../../config/public-record-visibility";
 import type { GraphQLReader } from "../data/graphql-client";
-import { readPassportRows } from "./data-public-passport-reads";
+import { readPassportRows, readPassportRowsIn } from "./data-public-passport-reads";
 import { integer, type RawRow } from "./data-core";
 import {
   PUBLIC_PROMISE_KEPT_MIN_DISTINCT_PROVIDERS,
@@ -104,6 +104,38 @@ export async function readPassportPromiseRows(
     else rows.push(mapPromiseRow(row));
   }
   return { rows, rehearsalIds };
+}
+
+/**
+ * The promises a garden's records name outside its own pool: a garden can provide for a promise
+ * made in another pool. A rehearsal registered there stays out as it does at home, so the ids are
+ * read and checked, and the rest come back for what else the caller needs of them.
+ */
+export async function readPromisesElsewhere(
+  chainId: number,
+  commitmentIds: readonly bigint[],
+  promises: readonly PassportPromiseRow[],
+  rehearsalIds: ReadonlySet<bigint>,
+  reader: GraphQLReader
+): Promise<{ rehearsals: Set<bigint>; elsewhere: RawRow[] }> {
+  const known = new Set(promises.map((row) => row.commitmentId));
+  const rehearsals = new Set(rehearsalIds);
+  const ids = [...new Set(commitmentIds)].filter((id) => !known.has(id) && !rehearsals.has(id));
+  const rows =
+    ids.length === 0
+      ? []
+      : await readPassportRowsIn(reader, "Commitment", "id commitmentId poolId cycleId unitLabel", {
+          chainId,
+          field: "commitmentId",
+          values: ids,
+          extra: "creationSeen: { _eq: true }",
+        });
+  const elsewhere: RawRow[] = [];
+  for (const row of rows) {
+    if (isRegisteredRehearsal(chainId, row)) rehearsals.add(integer(row.commitmentId));
+    else elsewhere.push(row);
+  }
+  return { rehearsals, elsewhere };
 }
 
 /** An offer nobody has taken up and whose term has not ended. */

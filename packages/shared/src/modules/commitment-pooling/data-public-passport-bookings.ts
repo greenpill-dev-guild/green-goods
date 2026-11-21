@@ -1,12 +1,11 @@
 import type { Address } from "../../types/domain";
 import type { GraphQLReader } from "../data/graphql-client";
 import { integer, number, type RawRow } from "./data-core";
-import { isRegisteredRehearsal, type PassportPromiseRow } from "./data-public-passport-promises";
+import { type PassportPromiseRow, readPromisesElsewhere } from "./data-public-passport-promises";
 import {
   passportRowTimes,
   readPassportRows,
   readPassportRowsByIds,
-  readPassportRowsIn,
 } from "./data-public-passport-reads";
 import type { PassportVoucherModules } from "./data-public-passport-vouchers";
 import {
@@ -50,33 +49,19 @@ async function promisesBehind(
   rehearsalIds: ReadonlySet<bigint>,
   reader: GraphQLReader
 ) {
+  const { rehearsals, elsewhere } = await readPromisesElsewhere(
+    chainId,
+    setups.map((setup) => integer(setup.commitmentId)),
+    promises,
+    rehearsalIds,
+    reader
+  );
   const labels = new Map(promises.map((row) => [row.commitmentId, row.unitLabel]));
-  const rehearsals = new Set(rehearsalIds);
-  const elsewhere = [
-    ...new Set(
-      setups
-        .map((setup) => integer(setup.commitmentId))
-        .filter((id) => !labels.has(id) && !rehearsals.has(id))
-    ),
-  ];
-  if (elsewhere.length > 0) {
-    const rows = await readPassportRowsIn(
-      reader,
-      "Commitment",
-      "id commitmentId poolId cycleId unitLabel",
-      {
-        chainId,
-        field: "commitmentId",
-        values: elsewhere,
-        extra: "creationSeen: { _eq: true }",
-      }
+  for (const row of elsewhere) {
+    labels.set(
+      integer(row.commitmentId),
+      typeof row.unitLabel === "string" && row.unitLabel ? row.unitLabel : null
     );
-    for (const row of rows) {
-      const id = integer(row.commitmentId);
-      if (isRegisteredRehearsal(chainId, row)) rehearsals.add(id);
-      else
-        labels.set(id, typeof row.unitLabel === "string" && row.unitLabel ? row.unitLabel : null);
-    }
   }
   return { labels, rehearsals };
 }
