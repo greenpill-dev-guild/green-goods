@@ -43,6 +43,15 @@ function tokenOf(row: RawRow): Address {
   return row.token.toLowerCase() as Address;
 }
 
+/**
+ * The member a payment is for. A plan can send a member's payment to another address, so the
+ * member is counted, not the address: two members must never count as four.
+ */
+function memberOf(row: RawRow): string | null {
+  const member = typeof row.contributor === "string" ? row.contributor : row.recipient;
+  return typeof member === "string" ? member.toLowerCase() : null;
+}
+
 function tally(rows: readonly RawRow[]) {
   const counts = new Map<Address, PassportPaymentCounts>();
   const lines = new Map<Address, PassportMoneyLine>();
@@ -74,7 +83,8 @@ function tally(rows: readonly RawRow[]) {
     const cell = `${token}:${result}`;
     const people = recipients.get(cell) ?? new Set<string>();
     recipients.set(cell, people);
-    if (typeof row.recipient === "string") people.add(row.recipient.toLowerCase());
+    const member = memberOf(row);
+    if (member) people.add(member);
   }
   const byToken = <T extends { token: Address }>(entries: Map<Address, T>) =>
     [...entries.values()].sort((left, right) => left.token.localeCompare(right.token));
@@ -115,7 +125,7 @@ export async function readPassportSettlement(
     readPassportRows(
       reader,
       "Disbursement",
-      "id kind state token amount recipient commitmentId updatedAt",
+      "id kind state token amount recipient contributor commitmentId updatedAt",
       "chainId: { _eq: $chainId }, garden: { _eq: $garden }, kind: { _in: [FUNDING, GARDEN_BENEFICIARY, CONTRIBUTOR_CONSIDERATION] }",
       scope,
       declarations
@@ -177,7 +187,8 @@ export async function readPassportSettlement(
 
   const people = membersOf(assigned);
   for (const row of toMemberRows) {
-    if (typeof row.recipient === "string") people.add(row.recipient.toLowerCase());
+    const member = memberOf(row);
+    if (member) people.add(member);
   }
   // A plan with no payment yet still declares what named members are due, so it waits too.
   const withheld =
@@ -190,13 +201,16 @@ export async function readPassportSettlement(
   const everyPlanAssigned = plans.every((plan) =>
     assigned.some((payout) => integer(payout.payoutPlanId) === integer(plan.payoutPlanId))
   );
-  // Declared minus confirmed is the unpaid part, so the declared total can stand beside the
-  // amounts only when that unpaid part is itself shared by three members, or is nothing.
-  const unpaidShared = unpaid.length === 0 || membersOf(unpaid).size >= PUBLIC_PASSPORT_MIN_PEOPLE;
+  // Declared minus the published amounts is what plans assign that no payment records yet. That
+  // remainder is a figure too, so the declared total stands beside the amounts only when the
+  // remainder is nothing or is itself shared by three members.
+  const unrecorded = assigned.filter((payout) => !stateOf.has(String(payout.disbursementEntityId)));
+  const remainderShared =
+    unrecorded.length === 0 || membersOf(unrecorded).size >= PUBLIC_PASSPORT_MIN_PEOPLE;
   const declared =
     everyPlanAssigned &&
     (assigned.length === 0 || membersOf(assigned).size >= PUBLIC_PASSPORT_MIN_PEOPLE) &&
-    (lines === null || unpaidShared)
+    (lines === null || remainderShared)
       ? byToken(assigned)
       : null;
   const declaredUnpaid = declared !== null && lines !== null ? byToken(unpaid) : null;

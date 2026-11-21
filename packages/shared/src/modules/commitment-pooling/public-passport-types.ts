@@ -32,12 +32,9 @@ export interface PassportUnitLine {
   delivered: bigint;
   /** `promised - delivered`, whatever the reason. */
   undelivered: bigint;
-  /**
-   * Undelivered units in promises still open. Null below the display floor, and for a unit that
-   * fewer than three people promise.
-   */
+  /** Undelivered units in promises still open. Null wherever the breakdown is. */
   stillToDeliver: bigint | null;
-  /** Undelivered units in promises whose term ended unkept. Null where `stillToDeliver` is. */
+  /** Undelivered units in promises whose term ended unkept. Null wherever the breakdown is. */
   notDelivered: bigint | null;
   /** Units in offers nobody has taken up yet: capacity on offer, not an obligation. */
   onOffer: bigint;
@@ -58,7 +55,8 @@ export interface PassportPromises {
   unresolved: number;
   /**
    * How the unresolved promises divide. Null below the display floor the garden page already
-   * uses for its kept rate, so a small record cannot single out one person's lapsed promise.
+   * uses for its kept rate, and while any unit with something unresolved is promised by fewer
+   * than three people, so no record can single out one person's lapsed promise.
    */
   breakdown: {
     stillOpen: number;

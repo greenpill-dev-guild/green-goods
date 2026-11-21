@@ -139,36 +139,42 @@ export function summarizePassportPromises(
     if (row.provider) providers.add(row.provider);
   }
   // The garden page publishes a kept rate under this same floor.
-  const detailed =
+  const floorMet =
     selectPublicPromiseKeptRate({
       commitmentsFulfilled: BigInt(kept.length),
       commitmentsDue: BigInt(due.length),
       distinctProviderCount: BigInt(providers.size),
     }).kind === "rate";
-
-  // A unit that only one or two people promise is those people's record, whatever the pool's
-  // size, so each unit's split waits for its own three people.
+  // The split says which promises lapsed, and units are listed apart, so what one unit's split
+  // leaves out can be read off the totals. It is published for every unit that has something
+  // unresolved, or for none: each of those units needs its own three people.
   const peopleByUnit = new Map<string, Set<string>>();
   for (const row of due) {
-    if (!row.unitLabel || !row.provider) continue;
-    const people = peopleByUnit.get(row.unitLabel) ?? new Set<string>();
-    peopleByUnit.set(row.unitLabel, people);
+    if (!row.provider) continue;
+    const unit = row.unitLabel ?? "";
+    const people = peopleByUnit.get(unit) ?? new Set<string>();
+    peopleByUnit.set(unit, people);
     people.add(row.provider);
   }
+  const detailed =
+    floorMet &&
+    unresolved.every(
+      (row) =>
+        BigInt(peopleByUnit.get(row.unitLabel ?? "")?.size ?? 0) >=
+        PUBLIC_PROMISE_KEPT_MIN_DISTINCT_PROVIDERS
+    );
+
   const units = new Map<string, PassportUnitLine>();
   const line = (label: string) => {
     let entry = units.get(label);
     if (!entry) {
-      const split =
-        detailed &&
-        BigInt(peopleByUnit.get(label)?.size ?? 0) >= PUBLIC_PROMISE_KEPT_MIN_DISTINCT_PROVIDERS;
       entry = {
         unitLabel: label,
         promised: 0n,
         delivered: 0n,
         undelivered: 0n,
-        stillToDeliver: split ? 0n : null,
-        notDelivered: split ? 0n : null,
+        stillToDeliver: detailed ? 0n : null,
+        notDelivered: detailed ? 0n : null,
         onOffer: 0n,
       };
       units.set(label, entry);

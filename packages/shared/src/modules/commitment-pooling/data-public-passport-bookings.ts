@@ -150,7 +150,7 @@ export async function readPassportBookings(
   // book a service while only one booking has settled.
   const holders = new Map<string, Set<string>>();
   const add = (setup: RawRow, cell: string, units: bigint) => {
-    if (units === 0n) return;
+    if (units <= 0n) return;
     const set = holders.get(cell) ?? new Set<string>();
     holders.set(cell, set);
     const holder = holderOf(setup);
@@ -210,6 +210,17 @@ export async function readPassportBookings(
     }
 
     const final = finalResultById.get(String(setup.latestFinalResultId));
+    // What the published figures leave over is a figure too: booked minus delivered, and
+    // presented minus what has moved, are read off the totals. Each remainder needs its own
+    // three holders, so it is counted here as an unpublished cell under the same floor.
+    const approved = final ? integer(final.approvedDeliveredServiceUnits) : 0n;
+    if (!ended) add(setup, `${lineKey}:undelivered`, integer(setup.serviceUnits) - approved);
+    const assignedByFinal = final
+      ? integer(final.releaseVoucherUnits) + integer(final.refundVoucherUnits)
+      : 0n;
+    if (phase >= PHASE.deposited && !ended) {
+      add(setup, `${token}:inEscrow`, deposited - assignedByFinal);
+    }
     if (!final) continue;
     settled += 1;
     countService("confirmedDelivered", integer(final.approvedDeliveredServiceUnits));

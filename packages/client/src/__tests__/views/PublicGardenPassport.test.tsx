@@ -220,12 +220,6 @@ describe("a garden's public passport", () => {
           value: {
             ...base.promises.value,
             breakdown: { ...base.promises.value.breakdown!, stillOpen: 0, notKept: 4 },
-            // Fewer than three people promised hub days, so that unit's split is held back.
-            units: base.promises.value.units.map((unit) =>
-              unit.unitLabel === "hub days"
-                ? { ...unit, stillToDeliver: null, notDelivered: null }
-                : unit
-            ),
           },
         },
         vouchers: {
@@ -263,9 +257,6 @@ describe("a garden's public passport", () => {
     const lapsed = within(line("Still to deliver"));
     expect(lapsed.getByText("Nothing is waiting to be delivered.")).toBeInTheDocument();
     expect(lapsed.getByText(/Not kept: 4 promises/)).toBeInTheDocument();
-    expect(lapsed.getByText(/Fewer than three people promised these units/)).toBeInTheDocument();
-    expect(lapsed.getByText("9 of 12")).toBeInTheDocument();
-    expect(lapsed.queryByText("2 of 12")).not.toBeInTheDocument();
     expect(
       within(line("Supported")).getByText("9,007,199,254,740,993 G$ received")
     ).toBeInTheDocument();

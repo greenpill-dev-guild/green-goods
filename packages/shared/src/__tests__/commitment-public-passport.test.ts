@@ -189,12 +189,14 @@ describe("a garden's passport", () => {
         promise(6, { state: "EXPIRED", approvedUnits: "1" }),
         // Past its due date, and nobody has closed it: still open, and said to be past due.
         promise(7, { unitLabel: "workshops", targetUnits: "2", dueDate: String(NOW - 5) }),
+        promise(8, { unitLabel: "workshops", targetUnits: "2" }),
+        promise(9, { unitLabel: "workshops", targetUnits: "2" }),
       ],
     });
 
     const promises = value(passport.promises);
     expect(promises.breakdown).toEqual({
-      stillOpen: 3,
+      stillOpen: 5,
       awaitingConfirmation: 1,
       notKept: 1,
       partlyDelivered: 2,
@@ -211,16 +213,33 @@ describe("a garden's passport", () => {
         notDelivered: 3n,
         onOffer: 0n,
       },
-      // One person promised every workshop, so that unit's split would be that person's record.
       {
         unitLabel: "workshops",
-        promised: 2n,
+        promised: 6n,
         delivered: 0n,
-        undelivered: 2n,
-        stillToDeliver: null,
-        notDelivered: null,
+        undelivered: 6n,
+        stillToDeliver: 6n,
+        notDelivered: 0n,
         onOffer: 0n,
       },
+    ]);
+
+    // Four hub days kept by three people, one workshop lapsed by a fourth. Units are listed
+    // apart, so any split would say by elimination that the one workshop promise lapsed. With
+    // a unit that one person alone promised still unresolved, the whole record stays unsplit.
+    const oneUnitThin = await read({
+      Commitment: [
+        kept(1),
+        kept(2),
+        kept(3),
+        kept(4, { leadProvider: person(1) }),
+        promise(5, { unitLabel: "workshops", targetUnits: "2", state: "EXPIRED" }),
+      ],
+    });
+    expect(value(oneUnitThin.promises)).toMatchObject({ due: 5, kept: 4, breakdown: null });
+    expect(value(oneUnitThin.promises).units.map((unit) => unit.notDelivered)).toEqual([
+      null,
+      null,
     ]);
 
     // Five promises due from one person, with two other people's untaken offers beside them:
@@ -525,6 +544,28 @@ describe("a garden's passport", () => {
       amounts: null,
     });
 
+    // Three bookings settled in full and a fourth still active: every published figure has
+    // three holders, but presented minus returned would be the fourth holder's units in escrow.
+    const settledInFull = (n: number) => ({
+      ...final(n),
+      approvedDeliveredServiceUnits: "30",
+      releaseVoucherUnits: "10",
+      refundVoucherUnits: "0",
+      refundState: 0,
+    });
+    const oneInEscrow = await read({
+      Commitment: tables.Commitment,
+      VoucherServiceSetup: [delivered(1), delivered(2), delivered(3), booking(4)],
+      VoucherServiceSetupResult: [1, 2, 3, 4].map((n) => result(n, 3)),
+      VoucherServiceFinalResult: [1, 2, 3].map(settledInFull),
+    });
+    expect(value(oneInEscrow.vouchers).bookings).toMatchObject({
+      withheld: false,
+      requested: 4,
+      settled: 3,
+      amounts: null,
+    });
+
     const few = await read({
       ...tables,
       VoucherServiceSetup: tables.VoucherServiceSetup.slice(0, 2),
@@ -538,7 +579,9 @@ describe("a garden's passport", () => {
         kind: "CONTRIBUTOR_CONSIDERATION",
         state,
         amount,
-        recipient: person(n),
+        // The payment goes to another address than the member's own: the member is who counts.
+        contributor: person(n),
+        recipient: person(500 + n),
         commitmentId: "1",
       });
     const plan = (n: number, fields: Row = {}) => ({
@@ -660,6 +703,31 @@ describe("a garden's passport", () => {
       declared: null,
       declaredUnpaid: null,
       lines: [{ confirmed: 60n }],
+    });
+
+    // One plan assigns four members. Three payments are queued and the fourth is not recorded
+    // yet: declared minus queued would be the fourth member's amount, so the total is held.
+    expect(
+      await members({
+        CommitmentPayoutPlan: [plan(1)],
+        Disbursement: [
+          ...tables.Disbursement.slice(0, 3),
+          member(1, "QUEUED", "10"),
+          member(2, "QUEUED", "10"),
+          member(3, "QUEUED", "10"),
+        ],
+        ContributorPayout: [
+          share(1, 1, "10"),
+          share(1, 2, "10"),
+          share(1, 3, "10"),
+          share(1, 8, "37", false),
+        ],
+      })
+    ).toMatchObject({
+      withheld: false,
+      declared: null,
+      declaredUnpaid: null,
+      lines: [{ queued: 30n }],
     });
 
     // A plan that has not assigned its members' amounts leaves the declared total unknown.
