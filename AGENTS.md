@@ -52,12 +52,12 @@ row whose enforcer is only the shared guards has no floor.
 
 | Rule | Enforcer | Where |
 | --- | --- | --- |
-| `bun run test`, never `bun test` | `bun test` (with `test` right after `bun`) is blocked by the shared guards and both harnesses' hooks | `.agents/policy.json` `bun-test`, `scripts/harness/command-policy.mjs` |
-| Bun contract wrappers, not raw `forge build` or `forge test` | the shared guards ask; the Codex hook blocks | `.agents/policy.json` `forge-direct` |
-| Mainnet deploys and live broadcasts need out-of-band confirmation | the shared guards ask and the Codex hook blocks a broadcast or Safe signature whose last `--network` or `-n` is live, a contracts broadcast not pinned to a test network, and the release operator | `.agents/policy.json` `mainnet-*`, `production-broadcast`, `vercel-prod`, `fly-deploy` |
+| `bun run test`, never `bun test` | `bun test` is blocked by the shared guards (with `test` right after `bun`) and by both harnesses' hooks, which also find it after Bun's global options and inside `env -S` and `xargs` | `.agents/policy.json` `bun-test`, `scripts/harness/command-policy.mjs` |
+| Bun contract wrappers, not raw `forge build` or `forge test` | the shared guards ask; the Claude hook warns and the Codex hook blocks | `.agents/policy.json` `forge-direct` |
+| Mainnet deploys and live broadcasts need out-of-band confirmation | the shared guards ask, the Claude hook warns and the Codex hook blocks a broadcast or Safe signature whose last `--network` or `-n` is live, a contracts broadcast not pinned to a test network, and the release operator | `.agents/policy.json` `mainnet-*`, `production-broadcast`, `vercel-prod`, `fly-deploy` |
 | No env files under `packages/*` | file-tool edits to a `.env` or `.env.*` file in `packages/*` are blocked, and the shared guards also block them anywhere else except `.env.example`; shell writes such as `cp` or a `>` redirect pass | `.agents/policy.json` `package-env`, `~/.agents/guards` `secret-edit`, `.claude/settings.json`, `.codex/hooks/edit_policy.sh` |
 | No secrets in Git | push protection for the secret patterns GitHub supports; the shared guards block reading a `.env` or `.env.*` file other than `.env.example` with Read, Grep or most shell programs, and the repository hooks block common readers such as `cat`, `grep` or `sed` | GitHub secret scanning, `~/.agents/guards` `secret-read`, `scripts/harness/command-policy.mjs` |
-| React hooks live in `packages/shared/src/hooks` | file-tool edits to app hook folders are blocked; exported hooks defined in Client or Admin fail lint | `.agents/policy.json` `client-hooks`, `admin-hooks`, `check-react-patterns.js` |
+| React hooks live in `packages/shared/src/hooks` | file-tool edits to app hook folders are blocked in both harnesses; exported hooks defined in Client or Admin fail lint | `.agents/policy.json` `client-hooks`, `admin-hooks`, `check-react-patterns.js` |
 | Admin, Client, Agent and Indexer consume Shared through its declared exports | lint | `check-react-patterns.js` rule 11 |
 | No new raw timers (in React modules), raw listeners or address strings in Shared, Client and Admin | shrink-only lint baseline | `check-react-patterns.js`, `scripts/quality/data/lint-rules-baseline.json` |
 | Shared imports `DEFAULT_CHAIN_ID` from `config/default-chain`, not `config/blockchain` | structure check | `check-source-structure.js` |
@@ -86,8 +86,8 @@ row whose enforcer is only the shared guards has no floor.
 | Linear is the backlog | GitHub Issues are off; issues saved through a `save_issue` MCP tool are shape-checked | repository settings, the `lint-linear-issue.sh` hook |
 
 Review alone holds the rest: reading the nearest `AGENTS.md`, inspecting `git status` before
-editing, Bun for package operations other than tests, `bun test` after Bun's global options,
-approval before installing dependencies, merge commits only (both rulesets still allow squash), live
+editing, Bun for package operations other than tests, approval before installing dependencies, merge
+commits only (both rulesets still allow squash), live
 writers with no broadcast flag (`cast send`, `open-minting.mjs`), `forge script`, private hooks
 outside hook folders, the other debt baselines, secrets GitHub has no pattern for, the release age
 of versions already in the lockfile, an `.env.example` in other package folders such as `docs/`,
