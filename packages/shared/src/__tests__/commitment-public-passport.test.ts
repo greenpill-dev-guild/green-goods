@@ -2,13 +2,15 @@ import { describe, expect, it } from "vitest";
 
 import type { GraphQLReader } from "../modules/data/graphql-client";
 import { getPublicGardenPassport } from "../modules/commitment-pooling/data-public-passport";
+import { GREEN_GOODS_ISSUER_ROUTE } from "../modules/commitment-pooling/service-issuer-live-config";
 import type { PassportSection } from "../modules/commitment-pooling/public-passport-types";
 import type { Address } from "../types/domain";
 
 const CHAIN = 42161;
 const GARDEN = "0x1111111111111111111111111111111111111111" as Address;
 const GDOLLAR = "0x62b8b11039fcfe5ab0c56e502b1c372a3d2a9c7a";
-const VOUCHER = "0x00000000000000000000000000000000000000aa";
+// The reviewed pilot voucher, so the passport can name it.
+const VOUCHER = GREEN_GOODS_ISSUER_ROUTE.assets[0].token.address.toLowerCase();
 const NOW = 2_000_000;
 type Row = Record<string, unknown>;
 
@@ -342,6 +344,8 @@ describe("a garden's passport", () => {
       vouchers: [
         {
           token: VOUCHER,
+          symbol: "GGV",
+          decimals: 6,
           presented: 30n,
           returnedToIssuer: 7n,
           refundedToHolder: 10n,
@@ -393,8 +397,11 @@ describe("a garden's passport", () => {
         member(4, "CANCELLED", "5"),
       ],
       CommitmentPayoutPlan: [
-        plan(1),
+        // 100 declared: 10 stays with the garden, so 90 is declared for its members.
+        plan(1, { gardenRetainedAmount: "10" }),
         plan(2, { finalized: false, latestEditReasonCID: "bafyreason", declaredAmount: "30" }),
+        // A plan that pays a beneficiary garden declares nothing for members.
+        plan(3, { beneficiaryAmount: "100" }),
       ],
     };
     const settlement = value((await read(tables)).settlement);
@@ -404,13 +411,13 @@ describe("a garden's passport", () => {
       payments: { confirmed: 1, awaiting: 1, failed: 0, cancelled: 0 },
       lines: [{ token: GDOLLAR, confirmed: 500n, awaiting: 40n, failed: 0n, cancelled: 0n }],
     });
-    // 130 declared, 60 paid: a declared or sent amount never counts as received.
+    // 120 declared for members, 60 paid: a declared or sent amount never counts as received.
     expect(settlement.memberPayments).toEqual({
       withheld: false,
-      plans: 2,
-      plansFinalized: 1,
+      plans: 3,
+      plansFinalized: 2,
       plansRevised: 1,
-      declared: [{ token: GDOLLAR, amount: 130n }],
+      declared: [{ token: GDOLLAR, amount: 120n }],
       payments: { confirmed: 1, awaiting: 1, failed: 1, cancelled: 1 },
       lines: [{ token: GDOLLAR, confirmed: 60n, awaiting: 25n, failed: 15n, cancelled: 5n }],
     });

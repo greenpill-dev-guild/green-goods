@@ -74,6 +74,9 @@ export interface PassportPromises {
 /** One voucher asset. Units of different vouchers are never added together. */
 export interface PassportVoucherLine {
   token: Address;
+  /** The voucher's symbol and decimals from the reviewed issuer list. Null for any other asset. */
+  symbol: string | null;
+  decimals: number | null;
   /** Voucher units a holder placed in escrow against a booking. */
   presented: bigint;
   /** Units that went back to the issuer's reserve for a delivery the holder approved. */
@@ -158,7 +161,7 @@ export interface PassportSettlement {
     /** Plans changed after their first snapshot, each change with its recorded reason. */
     plansRevised: number;
     payments: { confirmed: number; awaiting: number; failed: number; cancelled: number };
-    /** What the plans declare, by token. A declared amount is intent, not a payment. */
+    /** What the plans declare for members, by token. A declared amount is intent, not a payment. */
     declared: { token: Address; amount: bigint }[];
     lines: PassportMoneyLine[];
   }>;

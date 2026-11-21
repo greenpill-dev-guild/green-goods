@@ -17,7 +17,10 @@ export function publicRehearsalCycles(chainId: number, poolId?: bigint) {
 // Gardens whose stewards agreed to publish a passport. Taking part in a pool is not consent to
 // public reporting, so a garden joins this list only on its stewards' recorded yes, and leaves it
 // on their no. Nothing is inferred from an open pool, a listing or a kept promise.
-const PASSPORT_GARDENS: Readonly<Record<number, readonly string[]>> = {};
+const PASSPORT_GARDENS: Readonly<Record<number, readonly string[]>> = {
+  // The garden's owner agreed on 21 November 2026 (PRD-1097).
+  42161: [AIYELOJA_FAMILY_GARDEN],
+};
 
 export function isPublicPassportPublished(chainId: number, garden: Address): boolean {
   return (PASSPORT_GARDENS[chainId] ?? []).includes(garden.toLowerCase());

@@ -89,7 +89,7 @@ export async function readPassportSettlement(
     readPassportRows(
       reader,
       "CommitmentPayoutPlan",
-      "id commitmentId token declaredAmount finalized latestEditReasonCID updatedAt",
+      "id commitmentId token declaredAmount gardenRetainedAmount beneficiaryAmount finalized latestEditReasonCID updatedAt",
       "chainId: { _eq: $chainId }, providerGarden: { _eq: $garden }",
       scope,
       declarations
@@ -109,7 +109,11 @@ export async function readPassportSettlement(
   const declared = new Map<Address, bigint>();
   for (const plan of plans) {
     const token = tokenOf(plan);
-    declared.set(token, (declared.get(token) ?? 0n) + integer(plan.declaredAmount));
+    // A plan's declared amount is what the garden keeps, what a beneficiary garden gets and
+    // what its members get. Only the members' part is declared for them.
+    const others = integer(plan.gardenRetainedAmount) + integer(plan.beneficiaryAmount);
+    const forMembers = integer(plan.declaredAmount) - others;
+    declared.set(token, (declared.get(token) ?? 0n) + (forMembers > 0n ? forMembers : 0n));
   }
   const changed = [...payments, ...plans].flatMap((row) =>
     typeof row.updatedAt === "number" ? [row.updatedAt] : []

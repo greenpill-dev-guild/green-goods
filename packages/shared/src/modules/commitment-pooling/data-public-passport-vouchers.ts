@@ -157,6 +157,23 @@ async function readEarned(
   };
 }
 
+/**
+ * Names each voucher from the reviewed issuer list. The list is loaded only when a booking
+ * exists, so pages that read a passport with none do not carry the issuer configuration.
+ */
+async function nameVoucherAssets(lines: PassportVoucherLine[]): Promise<void> {
+  if (lines.length === 0) return;
+  const { GREEN_GOODS_ISSUER_ROUTE } = await import("./service-issuer-live-config");
+  for (const line of lines) {
+    const asset = GREEN_GOODS_ISSUER_ROUTE.assets.find(
+      (entry) => entry.token.address.toLowerCase() === line.token
+    );
+    if (!asset) continue;
+    line.symbol = asset.symbol;
+    line.decimals = asset.decimals;
+  }
+}
+
 async function readBookings(
   chainId: number,
   garden: Address,
@@ -210,6 +227,8 @@ async function readBookings(
     const token = setup.token.toLowerCase() as Address;
     const voucher = vouchers.get(token) ?? {
       token,
+      symbol: null,
+      decimals: null,
       presented: 0n,
       returnedToIssuer: 0n,
       refundedToHolder: 0n,
@@ -254,6 +273,7 @@ async function readBookings(
       }
     }
   }
+  await nameVoucherAssets([...vouchers.values()]);
   return {
     changed,
     bookings: {
