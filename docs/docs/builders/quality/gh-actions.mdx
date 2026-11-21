@@ -31,7 +31,7 @@ generated_from:
   - package.json
   - scripts/data/validation-policy.json
   - scripts/data/workflow-catalog.json
-source_digest: "sha256:50316527ee28b2710df18f1f969eeba150b1bcf097f428c6c9b173fbc7dabe19"
+source_digest: "sha256:b7a5a68a7e9a3d5cd3126000e6ef52978ecf656c90b5f2aeaeca16f722d62f94"
 source_of_truth:
   - .github/workflows/admin.yml
   - .github/workflows/agent.yml
@@ -72,7 +72,7 @@ import {CopyCommand} from "@site/src/components/docs";
 |---|---|---|---|
 | [Admin](#admin) | Builds and tests the Green Goods Hub when admin code, the shared code it imports, or the shared test support changes. | pull requests that touch its paths (29 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
 | [Agent](#agent) | Typechecks and tests the messaging agent and its public HTTP API when agent or shared code changes. | pull requests that touch its paths (16 path filters); pushes to `main` and `develop` that touch its paths | No |
-| [Agents Doctor](#agents-doctor) | Checks that the agent guidance and harness files follow the shared agent kit, through the guild reusable workflow pinned to one commit for both the workflow and its script. Its checks include AGENTS.md as the guide, the CLAUDE.md import, one skills folder, valid .agents policy files, hooks that read stdin, the PR template sections, CODEOWNERS and the skill adapter. Advisory: findings never fail the job, though a crash or a runner fault shows red, and CI Gate does not wait for it. | pull requests that touch its paths (8 path filters); pushes to `main` and `develop` that touch its paths | No |
+| [Agents Doctor](#agents-doctor) | Checks that the agent guidance and harness files follow the shared agent kit, through the guild reusable workflow pinned to one commit for both the workflow and its script. Its checks include AGENTS.md as the guide, the CLAUDE.md import, one skills folder, valid .agents policy files, hooks that read stdin, the PR template sections, CODEOWNERS and the skill adapter. A broken contract fails the job (the guild workflow's ci mode), and CI Gate waits for it on those paths; warnings only report. | pull requests that touch its paths (8 path filters); pushes to `main` and `develop` that touch its paths | No |
 | [CI Gate](#ci-gate) | The one required status. It derives the workflows a pull request's changed files should trigger, waits for each to register and report, and fails as soon as one fails or never shows up, so path-filtered workflows cannot silently weaken branch protection. | every pull request | Yes |
 | [Client](#client) | Builds, tests, and runs the client Playwright project for the Green Goods Website and App. | pull requests that touch its paths (37 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
 | [CodeQL Cache Prune](#codeql-cache-prune) | Deletes stale CodeQL overlay databases from the Actions cache so they cannot evict the Foundry caches the contracts jobs rely on. | pushes to `develop`; a schedule (`37 * * * *` UTC); manual dispatch | No |
@@ -114,12 +114,12 @@ Typechecks and tests the messaging agent and its public HTTP API when agent or s
 
 ### Agents Doctor {#agents-doctor}
 
-Checks that the agent guidance and harness files follow the shared agent kit, through the guild reusable workflow pinned to one commit for both the workflow and its script. Its checks include AGENTS.md as the guide, the CLAUDE.md import, one skills folder, valid .agents policy files, hooks that read stdin, the PR template sections, CODEOWNERS and the skill adapter. Advisory: findings never fail the job, though a crash or a runner fault shows red, and CI Gate does not wait for it.
+Checks that the agent guidance and harness files follow the shared agent kit, through the guild reusable workflow pinned to one commit for both the workflow and its script. Its checks include AGENTS.md as the guide, the CLAUDE.md import, one skills folder, valid .agents policy files, hooks that read stdin, the PR template sections, CODEOWNERS and the skill adapter. A broken contract fails the job (the guild workflow's ci mode), and CI Gate waits for it on those paths; warnings only report.
 
 - **Use it when:** Changes to AGENTS.md, CLAUDE.md, .agents, .claude, .codex, CODEOWNERS or the PR template.
 - **Runs on:** pull requests that touch its paths (8 path filters); pushes to `main` and `develop` that touch its paths.
 - **Jobs:** `agents-doctor`.
-- **Required status:** no, and the CI Gate never waits for it: it has no pull request path rule.
+- **Required status:** no, but the CI Gate waits for it on a pull request that touches its paths.
 - **File:** [.github/workflows/agents-doctor.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/agents-doctor.yml)
 
 ### CI Gate {#ci-gate}

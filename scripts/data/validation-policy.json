@@ -2112,6 +2112,16 @@
       "prefixes": ["packages/agent/", "packages/shared/"],
       "excludeValidationOnlyFrom": ["shared"]
     },
+    "Agents Doctor": {
+      "exact": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".github/CODEOWNERS",
+        ".github/pull_request_template.md",
+        ".github/workflows/agents-doctor.yml"
+      ],
+      "prefixes": [".agents/", ".claude/", ".codex/"]
+    },
     "Client": {
       "exact": [
         "package.json",
