@@ -104,24 +104,26 @@ export class Cdp {
   // spliced into source text. `fn` must be self-contained: it is sent as its source. With
   // `timeoutMs`, a call that has not answered by then rejects; the caller closes the target.
   async callFunction(sessionId, fn, args = [], { awaitPromise = true, timeoutMs = null } = {}) {
-    const { result: global } = await this.send("Runtime.evaluate", { expression: "globalThis" }, sessionId);
-    const sent = this.send(
-      "Runtime.callFunctionOn",
-      {
-        objectId: global.objectId,
-        functionDeclaration: String(fn),
-        arguments: args.map((value) => ({ value })),
-        awaitPromise,
-        returnByValue: true,
-      },
-      sessionId,
-    );
+    const sent = (async () => {
+      const { result: global } = await this.send("Runtime.evaluate", { expression: "globalThis" }, sessionId);
+      return this.send(
+        "Runtime.callFunctionOn",
+        {
+          objectId: global.objectId,
+          functionDeclaration: String(fn),
+          arguments: args.map((value) => ({ value })),
+          awaitPromise,
+          returnByValue: true,
+        },
+        sessionId,
+      );
+    })();
     // A call abandoned at its deadline may still reject later; that rejection is expected.
     sent.catch(() => undefined);
     let timer;
     const deadline = timeoutMs
       ? new Promise((_, reject) => {
-          timer = setTimeout(() => reject(new Error(`callFunctionOn did not answer within ${timeoutMs} ms`)), timeoutMs);
+          timer = setTimeout(() => reject(new Error(`page call did not answer within ${timeoutMs} ms`)), timeoutMs);
         })
       : null;
     const res = await (deadline ? Promise.race([sent, deadline]) : sent).finally(() => clearTimeout(timer));

@@ -10,7 +10,7 @@ import { cpus, totalmem, release } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { BRAVE_BETA, launchBrowser, waitForTarget } from "./cdp.mjs";
-import { runEncoder } from "./encoder-rig.mjs";
+import { browserAgreement, runEncoder } from "./encoder-rig.mjs";
 import { startMemorySampler } from "./memory-sampler.mjs";
 import { servePage } from "./serve-page.mjs";
 
@@ -348,24 +348,34 @@ await step("encoder", async () => {
 observations.finishedAt = new Date().toISOString();
 const stamped = join(outDir, `observations-${[...only].join("-")}-${observations.startedAt.replace(/[:.]/g, "-")}.json`);
 writeFileSync(stamped, JSON.stringify(observations, null, 2));
-// A partial encoder rerun (--encoder-phases) replaces only its phases in the sheet the last full run
-// left, and keeps every replaced phase in a list. A rerun that failed leaves that sheet as it was.
+// A partial encoder rerun (--encoder-phases) only ever merges into the sheet the last full run left:
+// it replaces its own phases, keeps every replaced value in a list, and recomputes the agreement over
+// the merged runs. A rerun that failed, or that has no full sheet to merge into, never writes it.
 const sheet = join(outDir, "observations.json");
+const keepSuperseded = (target, key) => {
+  if (target[key] === undefined || target[key] === null) return;
+  const earlier = target[`${key}Superseded`];
+  target[`${key}Superseded`] = [...(Array.isArray(earlier) ? earlier : earlier ? [earlier] : []), target[key]];
+};
+const rerun = observations.results.encoder;
 const previous = encoderPhases && existsSync(sheet) ? JSON.parse(readFileSync(sheet, "utf8")) : null;
 const before = previous?.results?.encoder;
 if (!encoderPhases) writeFileSync(sheet, JSON.stringify(observations, null, 2));
-else if (observations.failures.length > 0 && before) log(`partial rerun failed; ${sheet} left unchanged`);
-else if (before) {
-  for (const [device, runs] of Object.entries(observations.results.encoder.backends)) {
+else if (!rerun || observations.failures.length > 0) log(`partial rerun failed or did not run; ${sheet} left unchanged`);
+else if (!before) log(`no full encoder run in ${sheet} to merge into; the partial rerun is only in ${stamped}`);
+else {
+  for (const [device, runs] of Object.entries(rerun.backends)) {
     const kept = before.backends[device] ?? {};
-    for (const phase of Object.keys(runs)) {
-      if (!kept[phase] || phase === "environment") continue;
-      const earlier = kept[`${phase}Superseded`];
-      kept[`${phase}Superseded`] = [...(Array.isArray(earlier) ? earlier : earlier ? [earlier] : []), kept[phase]];
-    }
+    for (const phase of Object.keys(runs)) if (phase !== "environment") keepSuperseded(kept, phase);
     before.backends[device] = { ...kept, ...runs };
   }
+  for (const key of ["hub", "pinned", "node"]) {
+    if (rerun[key] === undefined) continue;
+    keepSuperseded(before, key);
+    before[key] = rerun[key];
+  }
+  before.agreement = browserAgreement(before.backends);
   before.reruns = [...(before.reruns ?? []), { phases: encoderPhases, startedAt: observations.startedAt, sheet: stamped }];
   writeFileSync(sheet, JSON.stringify(previous, null, 2));
-} else writeFileSync(sheet, JSON.stringify(observations, null, 2));
+}
 log(`wrote ${stamped}; failures: ${observations.failures.length}`);

@@ -4,7 +4,7 @@
 
 Every text embedded here is synthetic. No real garden, person, project or review appears in the fixture. No model weights are committed; they live in scratch browser profiles and in `g0/out/encoder-model/`.
 
-**Corrected before merge.** An independent review of the rig, before this report reached develop, changed one figure and three statements, all recomputed from the same raw sheets: the combined top-1 counts (rows 7 and 8, and the ranking table), the Node runtime's source, where the browser-to-browser cosines come from, and what the memory figure can see. No measurement was rerun and no gate result changed. Once on develop this report is immutable; later corrections go in a new dated report.
+**Corrected before merge.** Two independent reviews of the rig, before this report reached develop, corrected four statements from the same raw sheets: how far the combined top-1 counts depend on the tie rule (rows 7 and 8, and the ranking table), the Node runtime's source, where the browser-to-browser cosines come from, and what the memory figure can see. No measurement was rerun, no measured figure changed and no gate result changed. Once on develop this report is immutable; later corrections go in a new dated report.
 
 ## Results at a glance
 
@@ -17,7 +17,7 @@ Every text embedded here is synthetic. No real garden, person, project or review
 | 5 | Rank all 40 requirements against all 120 sections | 105.7 to 111.1 s warm; 106.9 s offline | 116.5 to 128.3 s warm; 149.6 s offline |
 | 6 | Correct section ranked first (top three), keyword alone | 28 of 40 (34) | 28 of 40 (34) |
 | 7 | The same, encoder alone | 29 of 40 (38) | 30 of 40 (38) |
-| 8 | The same, both combined | 30 of 40 (39) | 31 of 40 (39) |
+| 8 | The same, both combined | 29 of 40 (39), ties counted as misses; at least 30 under the tie rule the rig now uses | 30 of 40 (39); at least 31 under that rule |
 | 9 | Peak extension renderer memory, highest run | 1,580 MiB | 1,809 MiB |
 | 10 | Offline rerun: network requests attempted | 0 | 0 |
 | 11 | Constrained pass (2 threads, 4x CPU throttle): rank time | 529.9 s under a process throttle measured at 3.63x (170.0 s on 2 threads without an effective throttle) | not run (WebAssembly only, as asked) |
@@ -57,7 +57,7 @@ Ranges are across the warm passes (three per backend). Ranking figures were iden
 | Field | Value | Against "137 million parameters, Apache-2.0, about 137 MB quantized" |
 |---|---|---|
 | Repository | `nomic-ai/nomic-embed-text-v1.5` | |
-| Revision | `e9b6763023c676ca8431644204f50c2b100d9aab` (last modified 2026-04-07T14:17:02Z). Files were fetched through `resolve/main`; every cached file on both backends (six per profile, twelve in all) carried `x-repo-commit` with this hash, and the ONNX file's bytes match the hub's sha256 for it at this revision. The rig now pins this revision and fails a run whose cache shows another | |
+| Revision | `e9b6763023c676ca8431644204f50c2b100d9aab` (last modified 2026-04-07T14:17:02Z). Files were fetched through `resolve/main`; on both backends the three JSON files carried `x-repo-commit` with this hash, and the ONNX file, whose response carries no such header, matches the hub's sha256 for it at this revision. The rig now pins this revision and fails a run whose cached file URLs name another | |
 | File | `onnx/model_quantized.onnx` (Transformers.js `dtype: "q8"`), 137,296,292 bytes, sha256 `b4342336debaea79de872370664b0aaeb67dea4605513d00ee236ea871a81f27`. The hub's `onnx/model_int8.onnx` is the same file (same size and hash) | Matches: 137.3 MB (130.9 MiB) |
 | Other files fetched | `tokenizer.json` 711,396 bytes, `config.json` 2,538, `tokenizer_config.json` 1,191; 138,011,417 bytes in Cache Storage in all | |
 | Parameters | 136,731,648, from the hub's safetensors index (F32). The quantized ONNX file was not counted separately | Matches when rounded: 136.7 million |
@@ -72,7 +72,7 @@ Ranges are across the warm passes (three per backend). Ranking figures were iden
 
 `packages/extension/src/model/encoder-fixture.json`, labeled `"synthetic": true`. It has 40 invented requirements from a fictional funding call for community land projects: 20 on growing practice (rainwater storage, soil tests, composting, seed saving, frost dates, erosion and so on) and 20 on governance, money and reporting. It also has 120 invented application sections of 180 to 211 words (median 191; 23,102 words in all), shuffled with a fixed seed. Each requirement has exactly one section written to satisfy it, plus two sections on the same topic that share its vocabulary and do not satisfy it. That makes it a hard-negative test, not a topic-matching test. Requirements tokenize to 29 to 43 tokens with the prefix (median 34) and sections to 207 to 267 (median 231). Place names (Hollowmere, Ashcombe, Pennybrook) are invented. Two language-model subagents drafted the texts from a written brief. A script checked the word counts and ASCII, and the proper nouns were reviewed by hand.
 
-**Scoring.** Keyword scoring is BM25 (k1 1.2, b 0.75) over lowercase word tokens with a short English stopword list and no stemming. The encoder score is cosine similarity. Combined is reciprocal rank fusion (k 60) of the two. Fusion gives two sections exactly the same score when their ranks are swapped between the scorers (first and second against second and first), so an exact fusion tie goes to the section the encoder scores higher. Any other tie puts the correct section at the worse position, so a scorer gets no credit for a tie.
+**Scoring.** Keyword scoring is BM25 (k1 1.2, b 0.75) over lowercase word tokens with a short English stopword list and no stemming. The encoder score is cosine similarity. Combined is reciprocal rank fusion (k 60) of the two. Fusion gives two sections exactly the same score when their ranks are swapped between the scorers (first and second against second and first), so the rig now gives an exact fusion tie to the section the encoder scores higher. The measured run used the earlier rule, under which every tie put the correct section at the worse position, so a scorer got no credit for a tie; the figures below are from that run.
 
 ## Results
 
@@ -112,11 +112,11 @@ Each pass embeds 40 requirements and 120 sections and then scores. Scoring (BM25
 |---|---|---|---|---|
 | Keyword (BM25) alone | 28 of 40 (70%) | 34 of 40 (85%) | 28 of 40 (70%) | 34 of 40 (85%) |
 | Encoder alone | 29 of 40 (72.5%) | 38 of 40 (95%) | 30 of 40 (75%) | 38 of 40 (95%) |
-| Both, reciprocal rank fusion | 30 of 40 (75%) | 39 of 40 (97.5%) | 31 of 40 (77.5%) | 39 of 40 (97.5%) |
+| Both, reciprocal rank fusion | 29 of 40 (72.5%) | 39 of 40 (97.5%) | 30 of 40 (75%) | 39 of 40 (97.5%) |
 
 Each backend gave the same figures in every pass, and the constrained passes matched WebAssembly. The one-requirement difference between backends comes from their slightly different vectors (next section).
 
-**The combined row, corrected.** Two requirements, R13 and R24, end in an exact fusion tie in every pass on both backends: keyword ranks the correct section second and the encoder first for R13, and the reverse for R24, with one other section holding the swapped ranks each time. The rig as first run counted both ties as misses and reported 29 and 30. Settling each tie by the encoder's score wins R13 and loses R24, which gives 30 and 31: combined ranks the correct section first once more than the encoder alone on each backend. Breaking the ties by keyword score instead gives the same counts. Counting both ties as hits would give 31 and 32; that rule is not used here.
+**The combined row and ties.** Fusion ties are common on this fixture, and the measured run counted every one as a miss. The sheet stores only the correct section's position under each scorer, which proves some ties and cannot rule out others. R13 and R24 are proven ties in every pass on both backends: keyword ranks the correct section second and the encoder first for R13, and the reverse for R24, and the only section that can sit above it holds the swapped ranks, which scores exactly the same. Several other requirements that came second (R14, R16, R25, R27 and R29 on WebAssembly; R09, R16, R25, R27 and R31 on WebGPU) may also be ties, depending on where the section above them ranks, which the sheet does not record. Under the rig's new rule, which gives a fusion tie to the section the encoder scores higher, combined top-1 is therefore at least 30 of 40 on WebAssembly and 31 on WebGPU (R13 is won; R24 stays lost), and at most 34 on each. The exact counts need a rerun with the corrected rig, which has not been done. Top-3 is 39 of 40 either way.
 
 ### Memory
 
@@ -194,7 +194,7 @@ bun run --cwd packages/extension g0 -- --only encoder
 bun run --cwd packages/extension g0 -- --only encoder --encoder-phases constrained
 ```
 
-The full run takes about 45 minutes on this machine and downloads the model twice (once per fresh profile). On this branch the rig runs the versions develop now pins (Transformers.js 4.3.2), not the 4.2.0 measured here, so a rerun is a new measurement. The second command reruns only the constrained pass on the cached `encoder-wasm` profile and merges it into `g0/out/observations.json`, keeping every replaced phase in a list; a rerun that fails leaves that sheet unchanged. A failure inside any encoder phase, a page call that does not answer in time, an ineffective throttle or a cached revision other than the pinned one now counts as a failure of the run. The model files the Node check uses are exported to `g0/out/encoder-model/` and stay out of Git.
+The full run takes about 45 minutes on this machine and downloads the model twice (once per fresh profile). On this branch the rig runs the versions develop now pins (Transformers.js 4.3.2), not the 4.2.0 measured here, so a rerun is a new measurement. The second command reruns only the constrained pass on the cached `encoder-wasm` profile and merges it into `g0/out/observations.json`, keeping every replaced value in a list; a rerun that fails, or that finds no full encoder run to merge into, never writes that sheet. A failure inside any encoder phase, a page call that does not answer in time, an ineffective throttle, a phase that should load from the cache and downloads instead, or cached file URLs naming a revision other than the pinned one now counts as a failure of the run. A profile cached before the pin (under `resolve/main`) no longer counts as cached, so `--encoder-phases constrained` needs a full run with the current rig first. The model files the Node check uses are exported to `g0/out/encoder-model/` and stay out of Git.
 
 ## A sentence a grant application can quote
 

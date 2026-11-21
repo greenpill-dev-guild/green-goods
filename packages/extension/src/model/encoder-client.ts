@@ -15,6 +15,7 @@ interface Pending {
 export class EncoderClient {
   private readonly worker: Worker;
   private pending: Pending | null = null;
+  private failure: Error | null = null;
   readonly progress: EncoderProgress[] = [];
 
   constructor() {
@@ -27,10 +28,19 @@ export class EncoderClient {
       this.settle()?.resolve(event.data);
     };
     this.worker.onerror = (event: ErrorEvent) => {
-      event.preventDefault();
-      this.settle()?.reject(new Error(`encoder worker failed: ${event.message || "no message"}`));
+      this.fail(new Error(`encoder worker failed: ${event.message || "no message"}`), () => event.preventDefault());
     };
-    this.worker.onmessageerror = () => this.settle()?.reject(new Error("encoder worker sent a message that could not be read"));
+    this.worker.onmessageerror = () => this.fail(new Error("encoder worker sent a message that could not be read"));
+  }
+
+  // A failed worker takes no further requests, so a late reply can never answer a later request.
+  // The error is handled here only when a request was waiting for it; otherwise it reaches the console.
+  private fail(error: Error, handled?: () => void): void {
+    this.failure = error;
+    const pending = this.settle();
+    if (!pending) return;
+    handled?.();
+    pending.reject(error);
   }
 
   private settle(): Pending | null {
@@ -40,6 +50,7 @@ export class EncoderClient {
   }
 
   private async request<T extends EncoderResponse["type"]>(message: EncoderRequest, expected: T): Promise<Extract<EncoderResponse, { type: T }>> {
+    if (this.failure) throw this.failure;
     if (this.pending) throw new Error("encoder worker already has a request in flight");
     const response = await new Promise<EncoderResponse>((resolve, reject) => {
       this.pending = { resolve, reject };

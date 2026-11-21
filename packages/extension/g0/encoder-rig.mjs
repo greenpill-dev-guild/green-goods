@@ -191,7 +191,7 @@ async function navigateAndWait(browser, page) {
 
 const call = (browser, page, fn, args = [], timeoutMs = CALL_TIMEOUT_MS) => browser.cdp.callFunction(page.sessionId, fn, args, { timeoutMs });
 
-async function encoderRun(browser, label, options, { goOffline = false, cpuThrottleRate = 1, calibrate = false } = {}) {
+async function encoderRun(browser, label, options, { goOffline = false, cpuThrottleRate = 1, calibrate = false, expectCached = false } = {}) {
   const page = await openEncoderPage(browser, browser.extensionId);
   const meter = instrument(browser.cdp, page.sessionId);
   await meter.start({ goOffline });
@@ -264,6 +264,10 @@ async function encoderRun(browser, label, options, { goOffline = false, cpuThrot
   const wallMs = Date.now() - started;
   const memory = sampler.stop();
   const network = meter.report();
+  // A phase that should load from the cache and downloaded instead measured something else.
+  if (!error && expectCached && network.networkRequests.length > 0) {
+    error = `expected a cached load, but the phase made ${network.networkRequests.length} network requests`;
+  }
   meter.stop();
   if (interception) await interception.stop();
   const consoleTail = browser.cdp.logs(page.sessionId).slice(-20);
@@ -374,9 +378,30 @@ async function nodeSanity(modelDir, fixture, browserRuns) {
   };
 }
 
+// The revision segment of every cached model file's URL (`.../resolve/<revision>/<file>`), so the
+// check covers the weights, whose responses carry no x-repo-commit header.
+async function cachedRevisions(browser) {
+  const page = await openEncoderPage(browser, browser.extensionId);
+  try {
+    await navigateAndWait(browser, page);
+    const entries = (await call(browser, page, () => globalThis.__encoder.cacheEntries())).filter((entry) => entry.url.includes(`/${MODEL_ID}/resolve/`));
+    const revisions = [...new Set(entries.map((entry) => entry.url.split("/resolve/")[1].split("/")[0]))];
+    return { entries, bytes: entries.reduce((sum, entry) => sum + entry.bytes, 0), revisions };
+  } finally {
+    await browser.cdp.closeTarget(page.targetId).catch(() => undefined);
+  }
+}
+
+function revisionError(cache, pinned) {
+  const { revisions, entries } = cache;
+  if (entries.length === 0) return "no cached model files";
+  if (revisions.length === 1 && revisions[0] === pinned) return null;
+  return `cached revision ${revisions.join(", ")} is not the pinned ${pinned}`;
+}
+
 // Cosines between the browser's own sanity vectors: the two backends' warm runs, and each backend's
 // cold run against its warm run.
-function browserAgreement(backends) {
+export function browserAgreement(backends) {
   const vectors = (run) => (run?.sanity ? [...run.sanity.queries, ...run.sanity.documents] : null);
   const compare = (first, second) => {
     const a = vectors(first);
@@ -425,33 +450,29 @@ export async function runEncoder({ launch, outDir, log, fixturePath, phases = nu
       if (device === "wasm" && want("wasm")) result.hub = await call(browser, page, () => globalThis.__encoder.hubMetadata()).catch((error) => ({ error: String(error.message) }));
       await browser.cdp.closeTarget(page.targetId);
       if (!want(device)) {
-        log("encoder wasm: constrained only (2 threads, 4x CPU throttling)");
-        runs.constrained = await encoderRun(browser, "wasm constrained (2 threads, 4x throttle)", { device, numThreads: 2, passes: 1 }, { cpuThrottleRate: 4 });
+        // The reused profile must already hold the pinned revision, or the throttled phase downloads.
+        runs.cacheBefore = await cachedRevisions(browser);
+        runs.revisionError = revisionError(runs.cacheBefore, result.pinned?.revision);
+        if (!runs.revisionError) {
+          log("encoder wasm: constrained only (2 threads, 4x CPU throttling)");
+          runs.constrained = await encoderRun(browser, "wasm constrained (2 threads, 4x throttle)", { device, numThreads: 2, passes: 1 }, { cpuThrottleRate: 4, expectCached: true });
+        }
         result.backends[device] = runs;
         continue;
       }
       log(`encoder ${device}: cold`);
       runs.cold = await encoderRun(browser, `${device} cold (first download)`, { device, passes: 2 });
-      runs.cacheAfterCold = await (async () => {
-        const probe = await openEncoderPage(browser, browser.extensionId);
-        await navigateAndWait(browser, probe);
-        const entries = await call(browser, probe, () => globalThis.__encoder.cacheEntries());
-        await browser.cdp.closeTarget(probe.targetId);
-        const revisions = [...new Set(entries.map((entry) => entry.headers["x-repo-commit"]).filter(Boolean))];
-        return { entries, bytes: entries.reduce((sum, entry) => sum + entry.bytes, 0), revisions };
-      })();
-      // Both backends must have loaded the pinned revision, or their numbers are not comparable.
-      const { revisions } = runs.cacheAfterCold;
-      if (revisions.length !== 1 || revisions[0] !== result.pinned?.revision) {
-        runs.revisionError = `cached revision ${revisions.join(", ") || "none"} is not the pinned ${result.pinned?.revision}`;
-      }
+      runs.cacheAfterCold = await cachedRevisions(browser);
+      // Both backends must have loaded the pinned revision, or their numbers are not comparable. A
+      // cold phase that failed is already a failure; its empty cache is not a second one.
+      if (!runs.cold.error) runs.revisionError = revisionError(runs.cacheAfterCold, result.pinned?.revision);
       log(`encoder ${device}: warm`);
-      runs.warm = await encoderRun(browser, `${device} warm (browser cache)`, { device, passes: 3 });
+      runs.warm = await encoderRun(browser, `${device} warm (browser cache)`, { device, passes: 3 }, { expectCached: true });
       log(`encoder ${device}: offline`);
       runs.offline = await encoderRun(browser, `${device} offline (network blocked)`, { device, passes: 1 }, { goOffline: true });
       if (device === "wasm") {
         log("encoder wasm: constrained (2 threads, 4x CPU throttling)");
-        runs.constrained = await encoderRun(browser, "wasm constrained (2 threads, 4x throttle)", { device, numThreads: 2, passes: 1 }, { cpuThrottleRate: 4 });
+        runs.constrained = await encoderRun(browser, "wasm constrained (2 threads, 4x throttle)", { device, numThreads: 2, passes: 1 }, { cpuThrottleRate: 4, expectCached: true });
         runs.exported = await exportModelFiles(browser, modelDir);
       }
     } catch (error) {
@@ -469,6 +490,11 @@ export async function runEncoder({ launch, outDir, log, fixturePath, phases = nu
 }
 
 async function runNodeSanity(result, modelDir, fixture, log) {
+  if (!result.backends.wasm?.warm?.run && !result.backends.webgpu?.warm?.run) {
+    result.node = { error: "the Node check compares with warm browser runs made in the same invocation; include wasm or webgpu" };
+    log(`encoder node sanity FAILED: ${result.node.error}`);
+    return;
+  }
   try {
     result.node = await nodeSanity(modelDir, fixture, {
       wasm: result.backends.wasm?.warm?.run,
