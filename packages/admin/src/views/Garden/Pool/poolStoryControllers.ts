@@ -208,6 +208,7 @@ export function storyCommitmentDialog(
     viewer: STORY_STEWARD,
     isOnline: true,
     availability: { status: "available", capability: availableCapability },
+    editsTermsFromGroup: false,
     commitment,
     detail: commitment
       ? {

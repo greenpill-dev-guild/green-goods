@@ -350,6 +350,39 @@ export function groupCommitmentsForDisplay<T extends GroupableCommitment>(input:
 }
 
 /**
+ * Whether a promise's reward and confirmers change from its group's inspector rather than its
+ * own (PRD-1548). Words that name a group are not enough: a group shows only with two published
+ * copies, so a copy whose siblings were abandoned lists as an ordinary promise and is edited
+ * there. While the group still has copies queued to send it keeps both edits, as its group row
+ * does. Null while the pool's promises or their words are still being read.
+ */
+export function editsTermsFromGroup<T extends GroupableCommitment & { id: string }>(
+  record: T,
+  input: {
+    /** The group the promise's own words name, if any. */
+    groupId: string | null | undefined;
+    /** The pool's promises, or null while they are being read. */
+    commitments: readonly T[] | null;
+    metadataByCID: ReadonlyMap<string, CommitmentMetadataV1>;
+    /** Every word in the pool has been read, or failed for good. */
+    wordsSettled: boolean;
+    queuedCopies: number;
+  }
+): boolean | null {
+  if (!input.groupId) return false;
+  if (input.queuedCopies > 0) return true;
+  if (!input.commitments) return null;
+  // The record as this inspector read it, whether or not the pool's list has caught up.
+  const listed = [...input.commitments.filter((row) => row.id !== record.id), record];
+  const shownInGroup = groupCommitmentsForDisplay({
+    commitments: listed,
+    metadataByCID: input.metadataByCID,
+  }).some((entry) => entry.kind === "group" && entry.children.some((row) => row.id === record.id));
+  if (shownInGroup) return true;
+  return input.wordsSettled ? false : null;
+}
+
+/**
  * Edit Reward, for a group or a single commitment (D14): open until one copy is
  * kept, and it changes only the copies nobody has taken, because the contract
  * locks a reward at take-up. A copy still waiting to be created keeps the

@@ -48,6 +48,8 @@ const mocks = vi.hoisted(() => ({
   outcome: "sent" as AddToGroupOutcome,
   /** A name's lookup, left open until the test lands it. */
   lookup: null as Promise<string | null> | null,
+  /** The names looked up, in order. */
+  lookedUp: [] as string[],
   confirmerChanges: [] as Array<{
     copies: Array<[bigint, boolean]>;
     rule: { confirmers: string[]; threshold: number };
@@ -141,7 +143,10 @@ vi.mock("@green-goods/shared/hooks/blockchain/useEnsAddress", () => ({
 }));
 vi.mock("@green-goods/shared/utils/blockchain/ens", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@green-goods/shared/utils/blockchain/ens")>()),
-  resolveEnsAddress: () => mocks.lookup ?? Promise.resolve(null),
+  resolveEnsAddress: (name: string) => {
+    mocks.lookedUp.push(name);
+    return mocks.lookup ?? Promise.resolve(null);
+  },
 }));
 
 vi.mock("@green-goods/shared/hooks/blockchain/useGoodDollarPrice", () => ({
@@ -513,6 +518,7 @@ describe("Edit Confirmers", () => {
     mocks.unchanged.clear();
     mocks.declined.clear();
     mocks.lookup = null;
+    mocks.lookedUp = [];
   });
 
   function renderConfirmers() {
@@ -631,6 +637,32 @@ describe("Edit Confirmers", () => {
     fireEvent.click(change());
     await waitFor(() => expect(mocks.confirmerChanges).toHaveLength(1));
     expect(mocks.confirmerChanges[0]?.rule.confirmers).toEqual([LINA, NEW]);
+  });
+
+  // PRD-1548: a second name started while the first was in flight was cleared by the first's
+  // landing, so a save in between left it out. The field holds until the lookup lands.
+  it("holds the field and Add while a name is looked up, so a second can't start", async () => {
+    let land: (address: string) => void = () => undefined;
+    mocks.lookup = new Promise((resolve) => {
+      land = resolve;
+    });
+    renderConfirmers();
+    const field = () => confirmers().getByLabelText(/^add a confirmer/i);
+    fireEvent.change(field(), { target: { value: "first.eth" } });
+    fireEvent.click(confirmers().getByRole("button", { name: "Add" }));
+    await waitFor(() => expect(field()).toHaveAttribute("readonly"));
+
+    fireEvent.change(field(), { target: { value: "second.eth" } });
+    fireEvent.click(confirmers().getByRole("button", { name: "Add" }));
+    fireEvent.keyDown(field(), { key: "Enter" });
+    expect(field()).toHaveValue("first.eth");
+    expect(mocks.lookedUp).toEqual(["first.eth"]);
+    expect(change()).toBeDisabled();
+
+    land(NEW);
+    await waitFor(() => expect(field()).not.toHaveAttribute("readonly"));
+    expect(field()).toHaveValue("");
+    expect(change()).toBeEnabled();
   });
 
   it.each([
