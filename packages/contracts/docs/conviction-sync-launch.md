@@ -72,7 +72,7 @@ community has enabled. Some communities have not enabled their gardens' pools, a
 `activatePoints` then reverts `StrategyDisabled()`. Only the community council can call
 `addStrategy(pool)`, so each such pool needs its own reviewed Safe call. The rehearsal
 logs how many live pools are not enabled and enables the newest garden's pools on the
-fork only. Neither PRD-1377 batch enables a pool.
+fork only. Authorizing the Hats module as sync caller does not enable a pool.
 
 ## Before governance returns
 
