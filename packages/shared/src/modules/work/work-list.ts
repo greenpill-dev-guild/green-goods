@@ -330,10 +330,16 @@ export async function readGardenReviewFlow({
     if (olderIds.length > 0) {
       try {
         for (const work of await getWorksByUIDs(olderIds, chainId)) {
-          listed.set(work.id.toLowerCase(), withLatestApproval(work, byWork.get(work.id.toLowerCase()) ?? []));
+          listed.set(
+            work.id.toLowerCase(),
+            withLatestApproval(work, byWork.get(work.id.toLowerCase()) ?? [])
+          );
         }
       } catch (error) {
-        logger.warn("[readGardenReviewFlow] Older decided works could not be read", { error, garden });
+        logger.warn("[readGardenReviewFlow] Older decided works could not be read", {
+          error,
+          garden,
+        });
         reviewedComplete = false;
       }
     }

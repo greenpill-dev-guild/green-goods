@@ -38,8 +38,14 @@ vi.mock("../../../config/blockchain", async (importOriginal) => ({
   getEASConfig: () => ({ WORK_APPROVAL: { uid: chain.workApprovalUID } }),
 }));
 
-const { readApprovedWorks, readGardenActivity, readGardenWorkRange, readWorkByUID, readWorkList } =
-  await import("../../../modules/work/work-list");
+const {
+  readApprovedWorks,
+  readGardenActivity,
+  readGardenReviewFlow,
+  readGardenWorkRange,
+  readWorkByUID,
+  readWorkList,
+} = await import("../../../modules/work/work-list");
 
 function work(id: string): EASWork {
   return {
@@ -358,5 +364,63 @@ describe("readApprovedWorks", () => {
       works: [],
       partial: true,
     });
+  });
+});
+
+// PRD-1578: Review Health counts a reviewed work once, in the week of its first decision.
+describe("readGardenReviewFlow", () => {
+  beforeEach(() => vi.clearAllMocks());
+  const at = (id: string, workUID: string, createdAt: number) => ({
+    ...approval(id, workUID, true),
+    createdAt,
+  });
+  const garden = "0x2222222222222222222222222222222222222222" as const;
+
+  it("places each reviewed work at its first decision, sent in the period or before it", async () => {
+    seams.range.mockResolvedValue({
+      works: [{ ...work("new"), createdAt: 150 }],
+      truncated: false,
+    });
+    seams.activity.mockResolvedValue({
+      works: [],
+      decisions: [at("d-new", "new", 160), at("d-old", "old", 170), at("d-again", "again", 180)],
+      truncated: false,
+    });
+    seams.approvals.mockResolvedValue({
+      // "again" was first decided before the period, so its later decision does not count.
+      approvals: [
+        at("d-new", "new", 160),
+        at("d-old", "old", 170),
+        at("d-first", "again", 50),
+        at("d-again", "again", 180),
+      ],
+      failedWorkUIDs: [],
+    });
+    seams.byUID.mockResolvedValue([work("old"), work("again")]);
+
+    const flow = await readGardenReviewFlow({ garden, chainId: 42161, from: 100, to: 200 });
+    expect(flow.submitted.map((row) => row.id)).toEqual(["new"]);
+    expect(flow.reviewed.map(({ work, firstDecidedAt }) => [work.id, firstDecidedAt])).toEqual([
+      ["new", 160],
+      ["old", 170],
+    ]);
+    expect(flow.reviewedReadFrom).toBeNull();
+    expect(flow.reviewedComplete).toBe(true);
+  });
+
+  it("says where a cut decision read starts, and when decision histories could not be read", async () => {
+    seams.range.mockResolvedValue({ works: [], truncated: false });
+    seams.activity.mockResolvedValue({
+      works: [],
+      decisions: [at("d-1", "w-1", 190), at("d-2", "w-2", 140)],
+      truncated: true,
+    });
+    seams.approvals.mockResolvedValue({ approvals: [], failedWorkUIDs: ["w-1", "w-2"] });
+    seams.byUID.mockResolvedValue([]);
+
+    const flow = await readGardenReviewFlow({ garden, chainId: 42161, from: 100, to: 200 });
+    expect(flow.reviewedReadFrom).toBe(140);
+    expect(flow.reviewedComplete).toBe(false);
+    expect(flow.reviewed).toEqual([]);
   });
 });

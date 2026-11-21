@@ -3,7 +3,10 @@ import { useMemo } from "react";
 import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import { worksKeys } from "../../../config/query-keys/work";
 import { GC_TIMES, STALE_TIMES } from "../../../config/react-query";
-import { type OverlayWork, resolveGardenWorkRows } from "../../../modules/work/local-status-overlay";
+import {
+  type OverlayWork,
+  resolveGardenWorkRows,
+} from "../../../modules/work/local-status-overlay";
 import { readGardenReviewFlow } from "../../../modules/work/work-list";
 import type { Address, Work } from "../../../types/domain";
 import { toCalendarDateKey } from "../../../utils/calendar-date";
@@ -14,7 +17,7 @@ import { workVisibilityQuery } from "../../work/useWorkVisibility";
 import { useCalendarNow } from "./useCalendarNow";
 
 /** Review Health always charts the last eight weeks, whatever the tab's range (2026-11-19). */
-export const REVIEW_HEALTH_WEEKS = 8;
+const REVIEW_HEALTH_WEEKS = 8;
 
 export interface ReviewHealthWeek {
   /** The week's Monday at local midnight. */
@@ -118,7 +121,12 @@ export function useGardenReviewHealth(gardenId: Address | undefined, active: boo
       (flow?.reviewed ?? []).map((entry) => [entry.work.id, entry.firstDecidedAt])
     );
     // Past the read's limit the latest submissions are missing, from the last one read on.
-    const lastSubmitted = flow?.submitted.at(-1)?.createdAt ?? from;
+    // Past the decision read's limit, the period's decisions before this moment are missing.
+    const decisionsCutAt = flow?.reviewedReadFrom ?? null;
+    const lastSubmitted = (flow?.submitted ?? []).reduce(
+      (latest, row) => Math.max(latest, row.createdAt),
+      from
+    );
 
     return weekStartsNow.slice(0, REVIEW_HEALTH_WEEKS).map((start, index) => {
       const weekFrom = seconds(start);
@@ -131,7 +139,7 @@ export function useGardenReviewHealth(gardenId: Address | undefined, active: boo
         submittedComplete: (flow?.submittedComplete ?? true) || weekTo <= lastSubmitted,
         reviewedComplete:
           (flow?.reviewedComplete ?? true) &&
-          (flow?.reviewedReadFrom == null || flow.reviewedReadFrom <= weekFrom),
+          (decisionsCutAt === null || decisionsCutAt <= weekFrom),
         isCurrent: index === REVIEW_HEALTH_WEEKS - 1,
       };
     });
@@ -148,7 +156,8 @@ export function useGardenReviewHealth(gardenId: Address | undefined, active: boo
   // The open week lives in the URL, so a reload, a shared link and Back land on it.
   const { searchParams } = useCanvasSearchParams();
   const weekParam = active ? searchParams.get("week") : null;
-  const openList: ReviewHealthList = searchParams.get("list") === "reviewed" ? "reviewed" : "submitted";
+  const openList: ReviewHealthList =
+    searchParams.get("list") === "reviewed" ? "reviewed" : "submitted";
   const openWeek = weeks.find((week) => toCalendarDateKey(week.start) === weekParam) ?? null;
   const rangeParam = searchParams.get("range") ?? undefined;
   const weekHref = (week: ReviewHealthWeek, list: ReviewHealthList) =>
