@@ -11,7 +11,9 @@ import {
   type Locale,
   loadLocaleCatalogue,
   type LocaleCatalogue,
+  readStoredLanguage,
   resolveRequestedLocale,
+  storeLanguage,
   supportedLanguages,
 } from "../modules/app/locale-messages";
 import { track } from "../modules/app/posthog";
@@ -67,7 +69,7 @@ export interface AppDataProps {
 
 function readRequestedLocale(): Locale {
   const browserLanguages = navigator.languages?.length ? navigator.languages : [navigator.language];
-  return resolveRequestedLocale(localStorage.getItem("gg-language"), browserLanguages);
+  return resolveRequestedLocale(readStoredLanguage(), browserLanguages);
 }
 
 /** What the page shows until a catalogue lands, or when none can: each component's English copy. */
@@ -367,7 +369,7 @@ export const AppProvider = ({
 
   const switchLanguage = useCallback((lang: Locale) => {
     setLocale(lang);
-    localStorage.setItem("gg-language", lang);
+    storeLanguage(lang);
   }, []);
 
   const promptInstall = useCallback(() => {
