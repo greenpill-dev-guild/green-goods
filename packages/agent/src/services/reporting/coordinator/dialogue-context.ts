@@ -43,6 +43,13 @@ const label = (text: string) => sanitizeModelText(text, MODEL_INPUT_POLICY.maxLa
  */
 const namable = (values: readonly string[]) => values.filter((value) => label(value) === value);
 
+/**
+ * Whether a field may be named to a model. A field is named by its key, which comes back in every
+ * value proposed for it, so a key the sanitizer would change is left out with everything said
+ * about it: the model cannot fill the field, and the gardener is still asked for it.
+ */
+const namedField = (field: string) => label(field) === field;
+
 function labels(
   map: Record<string, string> | undefined,
   values: readonly string[]
@@ -141,7 +148,7 @@ function dialogueView(
   );
   const provenance: DialogueSnapshot["provenance"] = {};
   for (const [field, read] of Object.entries(content?.provenance ?? {})) {
-    if (read)
+    if (read && namedField(field))
       provenance[field as ReportField] = { origin: read.origin, stated: read.gardenerStated };
   }
   const snapshot = bounded({
@@ -161,18 +168,25 @@ function dialogueView(
       timeSpentMinutes: content?.timeSpentMinutes ?? null,
       feedback: fieldText(content?.feedback ?? null),
       details: Object.fromEntries(
-        Object.entries(content?.details ?? {}).map(([key, value]) => [key, publicValue(value)])
+        Object.entries(content?.details ?? {})
+          .filter(([key]) => namedField(key))
+          .map(([key, value]) => [key, publicValue(value)])
       ) as DialogueSnapshot["content"]["details"],
     },
     provenance,
-    conflicts: (content?.conflicts ?? []).map((conflict) => ({
-      field: conflict.field,
-      proposed:
-        conflict.field === "garden"
-          ? gardenId((conflict.proposed as { address?: string } | null)?.address)
-          : publicValue(conflict.proposed),
-    })),
-    requirements: content ? outstandingRequirements(content, ctx.draft?.snapshot ?? null) : [],
+    conflicts: (content?.conflicts ?? [])
+      .filter((conflict) => namedField(conflict.field))
+      .map((conflict) => ({
+        field: conflict.field,
+        proposed:
+          conflict.field === "garden"
+            ? gardenId((conflict.proposed as { address?: string } | null)?.address)
+            : publicValue(conflict.proposed),
+      })),
+    requirements: (content
+      ? outstandingRequirements(content, ctx.draft?.snapshot ?? null)
+      : []
+    ).filter((need) => !("key" in need) || namedField(need.key)),
     gardens: [...gardenKeys.keys()].map((key, index) => ({
       key,
       label: label(offered[index]?.label ?? ""),
@@ -180,7 +194,7 @@ function dialogueView(
     actions: activities.slice(0, MODEL_INPUT_POLICY.maxActivities).map((activity) => ({
       uid: activity.definition.actionUID,
       title: label(activity.definition.title),
-      inputs: activity.definition.inputs.map(publicInput),
+      inputs: activity.definition.inputs.filter((input) => namedField(input.key)).map(publicInput),
     })),
     observations: [],
   });

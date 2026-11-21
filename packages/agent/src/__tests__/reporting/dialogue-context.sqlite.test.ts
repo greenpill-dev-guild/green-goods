@@ -181,11 +181,22 @@ describe("what a model is given", () => {
       },
     ];
     const wallet = adaAccount.address;
-    harness.catalog.actions.set(TAS.key, species(["baobab", wallet, "neem"]));
+    const [named] = species(["baobab", wallet, "neem"]);
+    if (!named) throw new Error("fixture activity missing");
+    // A second field whose own key is shaped like an address.
+    const keyed = { ...named.definition.inputs[0], key: wallet, title: "Steward", required: false };
+    harness.catalog.actions.set(TAS.key, [
+      {
+        ...named,
+        definition: { ...named.definition, inputs: [...named.definition.inputs, keyed] },
+      },
+    ]);
     await consented(ADA, "Today I planted twelve baobab seedlings by the fence");
     await harness.press(ADA, "TAS");
     const request = await heard(ADA, "which species do you mean?");
+    expect(request.actions[0]?.inputs.map((input) => input.key)).toEqual(["species"]);
     expect(request.actions[0]?.inputs[0]?.options).toEqual(["baobab", "neem"]);
+    expect(JSON.stringify(request).toLowerCase()).not.toContain(wallet.toLowerCase());
 
     // One activity too large for the bound: the question is still answered, with no model.
     harness.catalog.actions.set(
