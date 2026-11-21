@@ -1,6 +1,8 @@
 # Grove prototype architecture: packages, dependencies, modules, types
 
-**Status:** architecture for the agreed prototype scope; nothing built. **Updated:** 24 October 2026.
+> **13 November scope update:** preserve this as the earlier graph/runtime package design. [spec.md](spec.md) and [community-sharing.md](community-sharing.md) now govern community identity, encrypted storage, phone pairing and optional adapters. The [G0 report](reports/2026-10-24-g0-feasibility.md) records the experiment actually built; proposed paths below are not all implemented. **14 November:** the capture, investigation and review parts describe the MVP's laptop workspace lane; the Hub connection, KOI exchange and agent tools are next lanes ([decision log](spec.md#decision-log)).
+
+**Status:** earlier prototype architecture; disposable G0 evidence exists, product integration unbuilt. **Updated:** 24 October 2026.
 **Companion to:** [prototype.md](prototype.md), which owns what we build and why. This document owns how: the packages, their dependencies, where code runs, the module layers, the types that cross module boundaries, the UI components and the data flows. Names below are proposals until G0 and G1 land them; every type is grounded in a source named next to it.
 
 ## 1. Packages
@@ -35,7 +37,7 @@ A browser extension is several programs that share storage. Grove keeps the numb
 | Graph tab (one full tab, React) | `entrypoints/graph/` | Grove memory writes, the Pi harness behind a Web Lock, the Gemma worker's lifetime, `grove_*` WebMCP tool registration, the KOI poll and broadcast loop while open | Run model code on its own thread; stay alive when closed |
 | Gemma worker (dedicated Web Worker of the tab) | `entrypoints/gemma.worker.ts` | Loading `onnx-community/gemma-4-E2B-it-ONNX` through Transformers.js on WebGPU, one request at a time, cancellation | Touch IndexedDB, the network beyond the model download, or the DOM |
 | Background service worker | `entrypoints/background.ts` | Opening or focusing the graph tab, relaying capture and bridge messages, the `externally_connectable` listener that forwards to the tab | Hold state, keep itself alive, run inference or Pi |
-| Hub bridge (content script on the Admin Hub origins) | `entrypoints/greengoods.content.ts` | `document.modelContext.getTools()` and `executeTool()` for tools named `green_goods_*`; the **Connect this garden** affordance | Read cookies, storage or anything but the tool results |
+| Hub bridge (content script on the Green Goods Hub origins) | `entrypoints/greengoods.content.ts` | `document.modelContext.getTools()` and `executeTool()` for tools named `green_goods_*`; the **Connect this garden** affordance | Read cookies, storage or anything but the tool results |
 | Capture (content script, on demand through `activeTab`) | `entrypoints/capture.content.ts` | Readable-text extraction of the current page on **Save to Grove**, hashed before it leaves the page | Run on pages the person did not act on |
 | Community node (separate process) | `peer/community_node.py` | Accepting the two Grove nodes' edges, relaying NEW, UPDATE and FORGET events, serving bundle fetches | Hold Grove memory; it is a relay with a cache |
 
@@ -70,13 +72,13 @@ flowchart TB
     CAP["capture content script"] --> BG
     EXTAPI["externally_connectable"] --> BG
   end
-  PAGE["Green Goods Admin Hub, selected garden"] -->|"WebMCP tool"| GGCS
+  PAGE["Green Goods Hub, selected garden"] -->|"WebMCP tool"| GGCS
   NET["indexer, EAS, RPC"] -->|"direct adapter"| Tab
   PEER["community node"] <-->|"poll, broadcast, fetch"| KO
   HF["model host"] -->|"one download"| W
 ```
 
-Permissions the manifest asks for: `storage`, `tabs`, `activeTab`, `scripting`; host permissions for the configured Admin Hub origins, the indexer, EAS and RPC endpoints the direct adapter reads, and an optional host permission for the community node the person enters; `externally_connectable` with an explicit extension-ID allowlist and no sites. No `<all_urls>`, no `history`, no `webRequest`.
+Permissions the manifest asks for: `storage`, `tabs`, `activeTab`, `scripting`; host permissions for the configured Green Goods Hub origins, the indexer, EAS and RPC endpoints the direct adapter reads, and an optional host permission for the community node the person enters; `externally_connectable` with an explicit extension-ID allowlist and no sites. No `<all_urls>`, no `history`, no `webRequest`.
 
 ## 3. Dependencies
 
@@ -286,7 +288,7 @@ The four `grove_*` tools and the `externally_connectable` handler both reduce to
 
 ## 6. UI components
 
-One React application in the graph tab, built from Shared's primitives (`Button`, `Alert`, `DialogShell`, `ConfirmDialog`, `EmptyStateShell`, `GardenChip`, `StatusBadge`) and the Warm Earth tokens from `@green-goods/shared/styles/theme.css`, with every string in the extension's own `react-intl` catalog (`en`, `es`, `pt`, following Shared's catalog layout). The [design brief](prototype-design.md) sets the dialect: the cockpit's density and shape, the garden tone, and the canvas legend.
+One React application in the graph tab, built from Shared's primitives (`Button`, `Alert`, `DialogShell`, `ConfirmDialog`, `EmptyStateShell`, `GardenChip`, `StatusBadge`) and the Warm Earth tokens from `@green-goods/shared/styles/theme.css`, with every string in the extension's own `react-intl` catalog (`en`, `es`, `pt`, following Shared's catalog layout). The [design brief](prototype-design.md) sets the dialect: the Hub's density and shape, the garden tone, and the canvas legend.
 
 ```text
 GraphApp                      providers: IntlProvider, QueryClientProvider, WorkspaceProvider, HarnessProvider
@@ -310,7 +312,7 @@ Connect, in both modes:
 
 ```mermaid
 sequenceDiagram
-  participant P as Admin Hub, selected garden
+  participant P as Green Goods Hub, selected garden
   participant CS as greengoods content script
   participant T as Graph tab
   participant K as knowledge
@@ -343,7 +345,7 @@ sequenceDiagram
   PI->>K: apply: applyKnowledgeCommand(addProposals) → receipt, seq n+1
   PI->>PI: ready, outcome proposed
   T->>K: review(accept | reject | correct, expectedRevision) → seq n+2
-  Note over T,PI: Closing the tab between any two steps and reopening resumes the phase from its checkpoint; apply replays to the same receipt
+  Note over T,PI: Closing the tab between any two steps and reopening resumes the phase from its checkpoint, and apply replays to the same receipt
 ```
 
 Share and receive:
@@ -361,7 +363,7 @@ sequenceDiagram
   TAS->>N: poll_events
   N-->>TAS: events_payload [NEW ...]
   TAS->>TAS: verify envelope, target, hash → inbox → applyKnowledgeCommand(ingestPeerObject)
-  TAS->>TAS: review like any suggestion; origin "peer", provenance peerNodeRid
+  TAS->>TAS: review like any suggestion, with origin "peer" and provenance peerNodeRid
 ```
 
 Ask: a browser agent calls `grove_query_graph` on the graph tab, or an allowlisted extension sends `{ op: "query_graph" }` to the background worker, which forwards to the tab; both return a `GraphAnswer` with `asOfSeq`.
@@ -382,5 +384,5 @@ Ask: a browser agent calls `grove_query_graph` on the graph tab, or an allowlist
 1. Content script world: whether an isolated-world script sees `document.modelContext` tools in Brave Beta, or the bridge must run with `world: "MAIN"`. G0 measures it.
 2. Sigma 4 API in a WXT build with WebGL in an extension page; fallback is Cytoscape per the hub's dependency note.
 3. The TypeBox cost pi-durable's root import adds to the tab bundle, and whether a leaf import avoids it.
-4. Which Admin Hub origins the bridge content script matches in development, staging and production, read from the root `.env`.
+4. Which Green Goods Hub origins the bridge content script matches in development, staging and production, read from the root `.env`.
 5. Where the `externally_connectable` allowlist comes from: settings UI, a build-time constant for the demo, or both.

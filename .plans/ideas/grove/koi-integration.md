@@ -1,5 +1,7 @@
 # KOI foundation for Grove
 
+> **13 November boundary:** KOI is an optional semantic exchange adapter under [community-sharing.md](community-sharing.md). It does not own community membership, encryption keys or device synchronization. The current pilot can complete without a KOI peer. Confidential projections must pass the same recipient/encryption gate before this adapter; the public-safe reference exchange below is not E2EE proof. **14 November:** KOI exchange is a next lane, not part of the MVP (D22 in the [decision log](spec.md#decision-log)).
+
 **Decision:** selected architecture direction, 16 October 2026; implementation and interoperability unproven. Grove is a local-first **partial KOI node**. An optional community-operated **full node** provides persistent exchange and later connectors. A gardener needs only the extension for local capture, inference, graph exploration and history.
 
 The [KOI project](https://github.com/DynamicalSystemsGroup/koi), [KOI Pond](https://metagov.org/projects/koi-pond/project-details) and [architectural article](https://blog.block.science/architecting-knowledge-organization-infrastructure/) establish the broader distributed knowledge approach. Wire decisions below come from the [v1 draft specification](https://dynamicalsystemsgroup.github.io/koi-net-spec/v1.0-draft-release.html) and pinned implementation sources. Package release numbers, protocol versions and ontology versions are separate. Do not promise interoperability from the name KOI alone.
