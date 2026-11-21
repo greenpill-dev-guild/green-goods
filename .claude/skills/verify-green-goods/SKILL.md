@@ -2,7 +2,7 @@
 name: verify-green-goods
 user-invocable: true
 description: Drive the Green Goods App (client PWA) or the Green Goods Hub (admin) the way a user does and capture labeled proof, from a checkout with dependencies installed and no live services. Launches Vite in test mode on its own ports, drives Chromium with the strict Playwright mock backend and the dev mock-auth seam, and keeps ARIA snapshots, screenshots at 375 and 1280 wide, and a transcript under .cache/verify/. Use to prove a UI change or a mapped feature works, or when asked to verify, demo, or show a flow in the app. Not for authenticated-class proof (wallet, passkey, installed PWA), which needs authenticated Brave.
-argument-hint: "[<feature-id>] [--app client|admin] [--run <id>]"
+argument-hint: "[client|admin] [<feature-id>] [--run <id>]"
 ---
 
 # verify-green-goods
@@ -50,8 +50,8 @@ server predates your change: clean up and launch again. `drive` refuses a server
 
 ## Drive
 
-One `drive` call is one browser page: it installs the fixtures, signs in through `?mockAuth`
-(`user` for the client, `steward` for the Hub, or `--role`), then runs each `--step` in order.
+One `drive` call is one browser page: it installs the fixtures, signs in through the dev mock-auth seam
+(a session flag set before the page loads; `user` for the client, `steward` for the Hub, or `--role`), then runs each `--step` in order.
 
 ```bash
 bun scripts/dev/verify-control.ts drive client --run <run-id> --feature <feature-id> --width 375 \
@@ -71,7 +71,8 @@ bun scripts/dev/verify-control.ts drive client --run <run-id> --feature <feature
 - Add `?presentation=pwa` to client paths to get the installed-app shell on a desktop browser.
 - The client fixtures (`tests/helpers/mock-backend.ts`) answer one garden, one action and the
   attestations a scenario names; any other indexer, EAS or RPC request fails the drive with a
-  `FAIL fixture:` line naming it, and a run whose scenario reads were never made fails the same way. A journey that needs other data needs a fixture change,
+  `FAIL unhandled:` line naming it. Nothing checks that a journey made the reads it should, so
+  prove the result on the page. A journey that needs other data needs a fixture change,
   not a weaker journey.
 - Run every journey at `--width 375` and `--width 1280`.
 
@@ -82,7 +83,7 @@ its traps. Drive the matching file's recipe; when a feature you are proving is m
 
 Everything a run produces stays in `.cache/verify/<run-id>/<feature-id>/` (ignored by Git):
 `transcript-<width>.txt` (each step, its time, the URL, console errors), the ARIA snapshots and
-screenshots the steps named, and `failure.png` when a step fails.
+screenshots the steps named, and `failure-<width>.png` when a step fails.
 
 - Capture the action and the state it produced: a snapshot before and after, not only the final
   screen.
@@ -112,6 +113,8 @@ the evidence is still in `.cache/verify/<run-id>/`.
   compiles the app; the failure screenshot then shows the page fully rendered. Drive once more
   before reporting a failure.
 - `expect-url` passes when the URL contains its text; it is not a pattern.
+- `fill:<role>:<name>:<value>` takes the name up to the next `:`, so it cannot fill a field whose
+  name contains one; everything after that is the value.
 - `expect-hidden` also passes when the element never existed, so a misspelled name passes too. Copy
   the name from a `snapshot` of the page before the navigation.
 - Two console 403s and a blocked `localhost:3005` request appear on client runs: avatar and Agent

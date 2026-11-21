@@ -41,8 +41,9 @@ interface ServerState {
   app: App;
   status: "starting" | "ready";
   pid: number;
-  // The leader's start time as ps prints it: a reused pid has a different one.
+  // The leader's start time as ps prints it, and the boot it belongs to: a reused pid has another.
   started: string;
+  boot: string;
   port: number;
   url: string | null;
   log: string;
@@ -91,38 +92,47 @@ function writeState(dir: string, state: ServerState) {
   writeFileSync(statePath(dir, state.app), `${JSON.stringify(state, null, 2)}\n`);
 }
 
-function output(command: string[]): string {
-  const result = Bun.spawnSync(command, { stderr: "ignore" });
-  return result.exitCode === 0 ? result.stdout.toString().trim() : "";
+/**
+ * A command's output. `emptyExit` is the exit code that means "nothing matched" (ps for a missing
+ * pid, lsof for a free port); any other failure throws, so a broken ps or lsof never reads as a
+ * process that is gone.
+ */
+function output(command: string[], emptyExit?: number): string {
+  const result = Bun.spawnSync(command, { stderr: "pipe" });
+  if (result.exitCode === 0) return result.stdout.toString().trim();
+  if (result.exitCode === emptyExit && !result.stderr.toString().trim()) return "";
+  throw new Error(`${command.join(" ")} failed (${result.exitCode}): ${result.stderr.toString().trim()}`);
 }
 
-const startTime = (pid: number) => output(["ps", "-o", "lstart=", "-p", String(pid)]);
+const startTime = (pid: number) => output(["ps", "-o", "lstart=", "-p", String(pid)], 1);
+const bootTime = () => output(["sysctl", "-n", "kern.boottime"]);
 
-/** Pids of every process whose group is `pgid`. */
-function groupMembers(pgid: number): number[] {
-  return output(["ps", "-A", "-o", "pid=,pgid="])
+/** Every process whose group is `pgid`, with its start time and command line. */
+function groupMembers(pgid: number): { pid: number; command: string }[] {
+  return output(["ps", "-A", "-o", "pgid=,pid=,command="])
     .split("\n")
-    .map((line) => line.trim().split(/\s+/).map(Number))
-    .filter(([, group]) => group === pgid)
-    .map(([pid]) => pid);
+    .map((line) => line.trim().match(/^(\d+)\s+(\d+)\s+(.*)$/))
+    .filter((match): match is RegExpMatchArray => match !== null && Number(match[1]) === pgid)
+    .map((match) => ({ pid: Number(match[2]), command: match[3] }));
 }
 
 /** Process groups listening on `port`. */
 function listenerGroups(port: number): number[] {
-  const pids = output(["lsof", "-nP", "-t", `-iTCP:${port}`, "-sTCP:LISTEN"]).split("\n").filter(Boolean);
-  return [...new Set(pids.map((pid) => Number(output(["ps", "-o", "pgid=", "-p", pid]))).filter(Boolean))];
+  const pids = output(["lsof", "-nP", "-t", `-iTCP:${port}`, "-sTCP:LISTEN"], 1).split("\n").filter(Boolean);
+  return [...new Set(pids.map((pid) => Number(output(["ps", "-o", "pgid=", "-p", pid], 1))).filter(Boolean))];
 }
 
 /**
  * Whether the process group this run recorded still exists and is the one it started. While its
  * leader lives, the leader's start time must match (a reused pid has another). Once the leader is
- * gone, a group with that id can only be ours: a group id is not handed out while the group exists.
+ * gone, the group counts only in the same boot and only if a member is this run's Vite (its
+ * command names the run's port), since a group id is free again once its group has exited.
  */
 function owned(state: ServerState): boolean {
-  if (state.repoRoot !== repoRoot) return false;
+  if (state.repoRoot !== repoRoot || state.boot !== bootTime()) return false;
   const leaderStart = startTime(state.pid);
   if (leaderStart) return leaderStart === state.started;
-  return groupMembers(state.pid).length > 0;
+  return groupMembers(state.pid).some(({ command }) => command.includes("vite") && command.includes(`--port ${state.port}`));
 }
 
 /** Stop this run's group, waiting for it to go; true once nothing of it is left. */
@@ -187,18 +197,27 @@ async function launch(argv: string[]) {
         VITE_USE_HASH_ROUTER: "false",
         VITE_API_BASE_URL: "http://localhost:3005",
         VITE_PASSKEY_SERVER_ENABLED: "false",
+        VITE_ENABLE_SW_DEV: "false",
         REPORTING_AGENT_URL: "",
+        // A closed port: the client's /api/messaging proxy must not reach a local reporting driver.
+        REPORTING_DRIVER_URL: "http://127.0.0.1:9",
       },
     },
   );
   child.unref();
   if (!child.pid) fail(`${app} dev server did not start; see ${log}`);
+  const started = startTime(child.pid);
+  if (!started) {
+    process.kill(-child.pid, "SIGTERM");
+    fail(`could not read the start time of the ${app} server it just started; stopped it`);
+  }
   // Recorded before waiting, so cleanup can stop a launch that was interrupted.
   const state: ServerState = {
     app,
     status: "starting",
     pid: child.pid,
-    started: startTime(child.pid),
+    started,
+    boot: bootTime(),
     port,
     url: null,
     log,
@@ -270,16 +289,19 @@ async function drive(argv: string[]) {
   if (!steps.length) fail("drive needs at least one --step");
   const evidence = path.join(dir, feature);
   mkdirSync(evidence, { recursive: true });
+  const failureShot = path.join(evidence, `failure-${width}.png`);
+  rmSync(failureShot, { force: true });
 
   const transcript: string[] = [`feature ${feature}, app ${app}, role ${role}, width ${width}, server ${url} at ${state.commit}`];
   const consoleErrors: string[] = [];
   let failed = false;
   // A fixture route that meets a request it does not mock throws outside any awaited call, so the
   // page's request hangs; record it as a failure instead of letting it pass unseen.
-  process.on("unhandledRejection", (error) => {
+  const onUnhandled = (error: unknown) => {
     failed = true;
-    transcript.push(`FAIL fixture: ${String((error as Error)?.message ?? error).split("\n")[0]}`);
-  });
+    transcript.push(`FAIL unhandled: ${String((error as Error)?.message ?? error).split("\n")[0]}`);
+  };
+  process.on("unhandledRejection", onUnhandled);
 
   // The helpers read their base URLs when loaded, so point them at this run's server first.
   process.env[app === "client" ? "TEST_CLIENT_URL" : "TEST_ADMIN_URL"] = url;
@@ -297,9 +319,9 @@ async function drive(argv: string[]) {
     // Never reach a developer's local Agent (3005) or indexer (3006, or the Hub's /api proxies to
     // them). Page routes from the fixtures take precedence; anything they leave falls through here.
     await context.route(/^https?:\/\/(localhost|127\.0\.0\.1):300[56]\//, (route) => route.abort("blockedbyclient"));
-    if (app === "admin") {
-      await context.route(/\/api\/(graphql|messaging)(\?|$)/, (route) => route.abort("blockedbyclient"));
-    }
+    await context.route(/\/api\/(graphql|messaging)(\/|\?|$)/, (route) => route.abort("blockedbyclient"));
+    // The client fixtures answer EAS; the Hub has none, so it never reaches the live service.
+    await context.route("https://sepolia.easscan.org/**", (route) => route.abort("blockedbyclient"));
     const page = await context.newPage();
     page.on("console", (message) => message.type() === "error" && consoleErrors.push(message.text()));
     let helper: { waitForPageLoad(): Promise<void>; backend?: { assertSatisfied(): void } };
@@ -346,7 +368,7 @@ async function drive(argv: string[]) {
       } catch (error) {
         failed = true;
         transcript.push(`FAIL ${step}: ${(error as Error).message.split("\n")[0]} url=${page.url()}`);
-        await page.screenshot({ path: path.join(evidence, "failure.png"), fullPage: true }).catch(() => {});
+        await page.screenshot({ path: failureShot, fullPage: true }).catch(() => {});
       }
     }
     if (!failed && helper.backend) {
@@ -358,9 +380,15 @@ async function drive(argv: string[]) {
       }
     }
   } finally {
+    // Requests still in flight at close would reject their route handlers; drop the routes first.
+    for (const context of browser.contexts()) {
+      for (const page of context.pages()) await page.unrouteAll({ behavior: "ignoreErrors" }).catch(() => {});
+      await context.unrouteAll({ behavior: "ignoreErrors" }).catch(() => {});
+    }
+    process.off("unhandledRejection", onUnhandled);
+    await browser.close();
     if (consoleErrors.length) transcript.push(`console errors (${consoleErrors.length}):`, ...consoleErrors.map((text) => `  ${text.slice(0, 300)}`));
     writeFileSync(path.join(evidence, `transcript-${width}.txt`), `${transcript.join("\n")}\n`);
-    await browser.close();
     console.log(transcript.join("\n"));
     console.log(`verify-control: evidence in ${path.relative(repoRoot, evidence)}`);
   }

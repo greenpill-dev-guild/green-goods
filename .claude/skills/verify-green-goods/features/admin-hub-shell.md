@@ -22,7 +22,8 @@ Preconditions:
   dialog stays closed.
 
 - **Open the Hub.** `--step "goto:/"`.
-- **Proof of the shell.** `--step "snapshot:hub-<width>.aria.txt" --step "screenshot:hub-<width>.png"`.
+- **Proof of the shell.** `--step "expect:button:Profile" --step "snapshot:hub-<width>.aria.txt"
+  --step "screenshot:hub-<width>.png"`.
   The snapshot shows a banner with `Green Goods Hub` and a `Profile` button.
 - **Garden access (blocked).** The main area shows the alert `Can't load garden access` with
   `Try Again`, and the transcript lists `[getGardens] Failed to fetch gardens` with the blocked
