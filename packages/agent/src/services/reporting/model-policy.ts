@@ -74,6 +74,10 @@ function looksLikePhone(run: string): boolean {
  * stands on either side of it is judged on its own: "2026-11-21 08000000001" loses the number. */
 function withoutPhone(run: string): string {
   const date = DATE.exec(run);
+  // Too many digits for one number: several written back to back are removed together when any
+  // of them is shaped like a phone number, and a row of plain quantities is left alone.
+  if (!date && (run.match(/\d/gu)?.length ?? 0) > 15)
+    return run.split(/ +/u).some(looksLikePhone) ? "[phone]" : run;
   if (!date) return looksLikePhone(run) ? "[phone]" : run;
   const beside = (part: string) => part.replace(/\+?\(?\d[\d ().-]*\d/u, withoutPhone);
   return `${beside(run.slice(0, date.index))}${date[0]}${beside(run.slice(date.index + date[0].length))}`;

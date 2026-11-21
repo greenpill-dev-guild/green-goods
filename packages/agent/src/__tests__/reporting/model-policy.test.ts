@@ -15,6 +15,7 @@ describe("model input sanitizer", () => {
     ["mi número es 06 12 34 56 78", "mi número es [phone]"],
     ["on 2026-11-21 call 08000000001", "on 2026-11-21 call [phone]"],
     ["2026-11-21 08000000001", "2026-11-21 [phone]"],
+    ["call 08000000001 09000000002 today", "call [phone] today"],
     ["photos.example.org?key=secret and my-garden.app", "[link] and [link]"],
     ["I am vitalik.eth and @ada_gardens on Telegram", "I am [account] and [handle] on Telegram"],
     [`token ${"a1B2".repeat(10)} was in the link`, "token [token] was in the link"],
@@ -31,6 +32,7 @@ describe("model input sanitizer", () => {
     "On 21.11.2026 3 hours of weeding, 8.30-12.30 with 15 people",
     "beds: 10 20 30 40 50\n120\n340\n5600",
     "Planted 1.000.000.000 seeds in rows 3@2.5m apart",
+    "Totals: 1.000.000.000 2.000.000.000 3.000.000.000",
     "three-hundred-and-forty-five-thousand-six-hundred seedlings",
     // A full stop with no space after it is not a link.
     "We cleared the garden.We planted 12 trees.Me and Ada",
