@@ -48,6 +48,9 @@ export interface AdminGardenRouteContext {
   /** The Activity calendar's month (`YYYY-MM`) and its open day (`YYYY-MM-DD`). */
   month?: string;
   day?: string;
+  /** Review Health's open week (its Monday, `YYYY-MM-DD`) and which of its lists is open. */
+  week?: string;
+  list?: "submitted" | "reviewed";
   section?: string;
   item?: string;
 }
@@ -133,6 +136,8 @@ function buildGardenContextSearch(
     range: context.range,
     month: context.month,
     day: context.day,
+    week: context.week,
+    list: context.list,
     section: context.section,
     item: context.item,
   };

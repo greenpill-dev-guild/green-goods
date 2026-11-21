@@ -252,6 +252,111 @@ export function readGardenWorkRange({
   });
 }
 
+/** A garden's submissions and first decisions over a period, for Review Health's weeks. */
+export interface GardenReviewFlow {
+  /** Every work submitted in the period, oldest first, each with its latest decision. */
+  submitted: EASWorkListRow[];
+  /**
+   * Every work whose first decision landed in the period, with that moment in seconds. A work
+   * decided again later counts once, in the week of its first decision.
+   */
+  reviewed: { work: EASWorkListRow; firstDecidedAt: number }[];
+  /** False when the period held more submissions than one read lists: its latest are missing. */
+  submittedComplete: boolean;
+  /**
+   * When the period's earliest decisions are missing, the moment (seconds) before which they
+   * are; null when every decision of the period was read.
+   */
+  reviewedReadFrom: number | null;
+  /** False when a decided work's earlier decisions could not be read, so none is placed. */
+  reviewedComplete: boolean;
+}
+
+/**
+ * What a garden received and what it reviewed since `from` (seconds): the submissions of the
+ * period, as a calendar month reads them, and each work whose first decision fell in it,
+ * however long before the period it was sent. A decision's own read lists the newest first,
+ * so past its limit the period's earliest decisions are the missing ones.
+ */
+export async function readGardenReviewFlow({
+  garden,
+  chainId,
+  from,
+  to,
+  visibility,
+}: {
+  garden: Address;
+  chainId: number;
+  from: number;
+  to: number;
+  visibility?: WorkVisibilitySnapshot;
+}): Promise<GardenReviewFlow> {
+  const exclusions = visibility ?? (await readWorkVisibility(chainId));
+  const range = await readGardenWorkRange({ garden, chainId, from, to, visibility: exclusions });
+  return inTurn(async () => {
+    const { decisions, truncated } = await getGardenActivitySince(garden, {
+      ...exclusions,
+      chainId,
+      since: from,
+    });
+    const decidedIds = [...new Set(decisions.map((decision) => decision.workUID.toLowerCase()))];
+    const reviewedReadFrom = truncated
+      ? Math.min(...decisions.map((decision) => decision.createdAt))
+      : null;
+    if (decidedIds.length === 0) {
+      return {
+        submitted: range.rows,
+        reviewed: [],
+        submittedComplete: range.complete,
+        reviewedReadFrom,
+        reviewedComplete: true,
+      };
+    }
+
+    // A work's first decision may predate the period, so each decided work's whole history counts.
+    let approvals: EASWorkApproval[] = [];
+    let reviewedComplete = true;
+    try {
+      const result = await readWorkApprovalsForWorks(decidedIds, chainId);
+      approvals = result.approvals;
+      reviewedComplete = result.failedWorkUIDs.length === 0;
+    } catch (error) {
+      logger.warn("[readGardenReviewFlow] Decision histories could not be read", { error, garden });
+      reviewedComplete = false;
+    }
+    const byWork = groupByWork(approvals);
+    const listed = new Map(range.rows.map((row) => [row.id.toLowerCase(), row]));
+    const olderIds = decidedIds.filter((id) => !listed.has(id) && byWork.has(id));
+    if (olderIds.length > 0) {
+      try {
+        for (const work of await getWorksByUIDs(olderIds, chainId)) {
+          listed.set(work.id.toLowerCase(), withLatestApproval(work, byWork.get(work.id.toLowerCase()) ?? []));
+        }
+      } catch (error) {
+        logger.warn("[readGardenReviewFlow] Older decided works could not be read", { error, garden });
+        reviewedComplete = false;
+      }
+    }
+
+    const reviewed: GardenReviewFlow["reviewed"] = [];
+    for (const id of decidedIds) {
+      const history = byWork.get(id);
+      const work = listed.get(id);
+      if (!history || !work) continue;
+      const firstDecidedAt = Math.min(...history.map((approval) => approval.createdAt));
+      if (firstDecidedAt >= from && firstDecidedAt < to) reviewed.push({ work, firstDecidedAt });
+    }
+    reviewed.sort((left, right) => left.firstDecidedAt - right.firstDecidedAt);
+    return {
+      submitted: range.rows,
+      reviewed,
+      submittedComplete: range.complete,
+      reviewedReadFrom,
+      reviewedComplete,
+    };
+  });
+}
+
 /** Approved works, and whether unread decisions may be hiding more. */
 export interface ApprovedWorks {
   works: EASWork[];
