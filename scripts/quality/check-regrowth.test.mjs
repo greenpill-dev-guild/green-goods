@@ -16,6 +16,7 @@ test("new markdown is allowed in its homes, guidance folders and conventional na
     "packages/client/DESIGN.md",
     ".claude/skills/review/SKILL.md",
     ".claude/context/testing.md",
+    ".claude/skills/qa-triage/references/unattended-report.md",
     "scripts/quality/check.mjs",
   ]) {
     assert.equal(markdownProblem(file), null, file);
@@ -93,7 +94,37 @@ test("the check judges a change against its merge base, uncommitted and untracke
   write("packages/indexer/legacy-notes.md", "edited, not added\n");
   const { problems } = judge(root, base);
   assert.equal(problems.length, 3, problems.join("\n"));
+
+  // A move and a re-indent add no comment: the moved file is judged against its source, and
+  // whitespace is ignored.
+  git("add", ".");
+  git("commit", "-q", "-m", "change");
+  const changed = git("rev-parse", "HEAD").trim();
+  git("mv", "packages/shared/src/old.ts", "packages/shared/src/moved.ts");
+  write(
+    "packages/shared/src/moved.ts",
+    "if (true) {\n  // ===== Old banner =====\n}\nexport const a = 1;\n// Submit batch transaction\nconst b = 2;\nexport { b };\n",
+  );
+  assert.deepEqual(judge(root, changed).problems, []);
   assert.ok(problems.some((problem) => problem.startsWith("packages/shared/src/old.ts:3: new label comment")));
   assert.ok(problems.some((problem) => problem.startsWith("packages/shared/src/new.ts:1: new banner comment")));
   assert.ok(problems.some((problem) => problem.startsWith("packages/shared/REVIEW_FINDINGS.md: reads as a report")));
+});
+
+test("re-indenting old comments, as wrapping code in a function does, adds none", (t) => {
+  const root = mkdtempSync(path.join(tmpdir(), "regrowth-indent-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const env = fixtureGitEnvironment();
+  const git = (...args) => execFileSync("git", ["-C", root, ...args], { env, encoding: "utf8" });
+  const file = path.join(root, "packages/shared/src/flow.ts");
+  mkdirSync(path.dirname(file), { recursive: true });
+  writeFileSync(file, "const a = 1;\n// Submit batch transaction\nconst b = a + 1;\nconsole.log(b);\n");
+  git("init", "-q", "-b", "develop");
+  git("add", ".");
+  git("commit", "-q", "-m", "base");
+  const base = git("rev-parse", "HEAD").trim();
+  writeFileSync(file, "function run() {\n  const a = 1;\n  // Submit batch transaction\n  const b = a + 1;\n  return b;\n}\nrun();\n");
+  assert.deepEqual(judge(root, base).problems, []);
+  writeFileSync(file, "function run() {\n  const a = 1;\n  // Submit batch transaction\n  const b = a + 1;\n  // Return the result\n  return b;\n}\nrun();\n");
+  assert.equal(judge(root, base).problems.length, 1);
 });

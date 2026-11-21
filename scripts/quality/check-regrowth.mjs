@@ -30,6 +30,8 @@ const GENERATED = /\.d\.[cm]?ts$|(^|\/)(generated|vendor|dist)\/|\.generated\./;
 const MARKDOWN = /\.(md|mdx)$/i;
 const MARKDOWN_HOMES = [".plans/", "docs/"];
 const GUIDANCE_FOLDERS = [".claude/", ".agents/", ".codex/", ".github/"];
+// A skill's references are its templates, a report template included.
+const SKILL_FOLDERS = [".claude/skills/", ".agents/skills/"];
 const CONVENTIONAL_NAMES =
   /^(README|AGENTS|CLAUDE|DESIGN[\w.-]*|SKILL|ARCHITECTURE|CHANGELOG|MODULES|CONTRIBUTING|SECURITY|CODE_OF_CONDUCT|LICENSES?)\.mdx?$/i;
 const REPORT_NAME =
@@ -42,7 +44,7 @@ export function isPackageSource(file) {
 /** Why a new markdown file may not be added where it is, or null when it may. */
 export function markdownProblem(file) {
   if (!MARKDOWN.test(file)) return null;
-  if (MARKDOWN_HOMES.some((home) => file.startsWith(home))) return null;
+  if ([...MARKDOWN_HOMES, ...SKILL_FOLDERS].some((home) => file.startsWith(home))) return null;
   const name = path.posix.basename(file);
   if (REPORT_NAME.test(name.replace(MARKDOWN, ""))) {
     return "reads as a report; reports belong in the plan's hub under .plans/, or in Linear";
@@ -74,20 +76,32 @@ export function regrownComments(code, file, added) {
     .filter((comment) => added === "all" || added.has(comment.line));
 }
 
-/** Paths the change adds or modifies, with how: committed and uncommitted work, untracked files too. */
+/**
+ * Paths the change adds or modifies, committed and uncommitted work and untracked files too, as
+ * `{ how, from }`: a rename or copy is judged against the file it came from, so a move adds nothing.
+ */
 export function changedPaths(root, ref) {
   const entries = new Map();
-  const status = runGit(root, ["diff", "--name-status", "--no-renames", "-z", ref]).stdout.split("\0").filter(Boolean);
-  for (let index = 0; index + 1 < status.length; index += 2) entries.set(status[index + 1], status[index]);
+  const status = runGit(root, ["diff", "--name-status", "-M", "-z", ref]).stdout.split("\0").filter(Boolean);
+  for (let index = 0; index < status.length; ) {
+    const how = status[index][0];
+    if (how === "R" || how === "C") {
+      entries.set(status[index + 2], { how, from: status[index + 1] });
+      index += 3;
+    } else {
+      entries.set(status[index + 1], { how, from: null });
+      index += 2;
+    }
+  }
   const untracked = runGit(root, ["ls-files", "--others", "--exclude-standard", "-z"]).stdout.split("\0").filter(Boolean);
-  for (const file of untracked) entries.set(file, "A");
+  for (const file of untracked) entries.set(file, { how: "A", from: null });
   return entries;
 }
 
 export function judge(root, ref) {
   const problems = [];
   let sourceFiles = 0;
-  for (const [file, how] of changedPaths(root, ref)) {
+  for (const [file, { how, from }] of changedPaths(root, ref)) {
     if (how === "D") continue;
     if (how === "A") {
       const problem = markdownProblem(file);
@@ -98,7 +112,10 @@ export function judge(root, ref) {
     if (!existsSync(absolute)) continue;
     sourceFiles += 1;
     const code = readFileSync(absolute, "utf8");
-    const added = how === "A" ? "all" : addedLines(runGit(root, ["diff", "-U0", "--no-color", ref, "--", file]).stdout);
+    // Whitespace is ignored, so re-indenting old comments (wrapping code in a block) adds none.
+    const paths = from ? [from, file] : [file];
+    const added =
+      how === "A" ? "all" : addedLines(runGit(root, ["diff", "-U0", "-w", "-M", "--no-color", ref, "--", ...paths]).stdout);
     let comments;
     try {
       comments = regrownComments(code, file, added);

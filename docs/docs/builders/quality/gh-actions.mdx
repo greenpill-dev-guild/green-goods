@@ -31,7 +31,7 @@ generated_from:
   - package.json
   - scripts/data/validation-policy.json
   - scripts/data/workflow-catalog.json
-source_digest: "sha256:c172738169a45bbc20c0372643ed7667118ffeab22176f2c3c8e7c24450ea2b3"
+source_digest: "sha256:75a6ab313bc241a3de09de5ffe8aa5ee30cf3e84c465441ab689fb4ad302a8d2"
 source_of_truth:
   - .github/workflows/admin.yml
   - .github/workflows/agent.yml
@@ -90,7 +90,7 @@ import {CopyCommand} from "@site/src/components/docs";
 | [Pull Request Edited](#pull-request-edited) | Marks an edit to a pull request's title, body or base so the Merge Gate, running from develop on its completion, decides again. It holds no permissions and runs nothing from the pull request. | edits to a pull request's title, body or base | No |
 | [Release](#release) | Builds and publishes a tagged release. | pushed tags matching `v*.*.*` | No |
 | [Shared](#shared) | Typechecks and tests the shared package: hooks, providers, protocol modules, and UI foundations. | pull requests that touch its paths (12 path filters); pushes to `main` and `develop` that touch its paths; a schedule (`19 7 * * 1` UTC) | No |
-| [Supply Chain Guardrails](#supply-chain-guardrails) | Five lanes over the repository's own safety surfaces: formatting on every run; dead code on every run, holding knip's findings to their shrink-only baseline, since knip reads workflows, hooks and tool configs as well as code; the supply-chain audit of manifests, lockfiles, and the release-age rule; guidance integrity (agent guidance, skill contracts, immutable plan reports, the QA test ID ledger, test quality, and plan hub validation); and workflow performance parity, which pins the validation selector, the git hooks, and the package test configurations. | pull requests that touch its paths (44 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
+| [Supply Chain Guardrails](#supply-chain-guardrails) | Six lanes over the repository's own safety surfaces: formatting on every run; dead code on every run, holding knip's findings to their shrink-only baseline, since knip reads workflows, hooks and tool configs as well as code; regrowth on every pull request and develop push, failing comments the purge removed and report-style markdown that a change adds; the supply-chain audit of manifests, lockfiles, and the release-age rule; guidance integrity (agent guidance, skill contracts, immutable plan reports, the QA test ID ledger, test quality, and plan hub validation); and workflow performance parity, which pins the validation selector, the git hooks, and the package test configurations. | pull requests that touch its paths (44 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
 
 ### Admin {#admin}
 
@@ -294,9 +294,9 @@ Typechecks and tests the shared package: hooks, providers, protocol modules, and
 
 ### Supply Chain Guardrails {#supply-chain-guardrails}
 
-Five lanes over the repository's own safety surfaces: formatting on every run; dead code on every run, holding knip's findings to their shrink-only baseline, since knip reads workflows, hooks and tool configs as well as code; the supply-chain audit of manifests, lockfiles, and the release-age rule; guidance integrity (agent guidance, skill contracts, immutable plan reports, the QA test ID ledger, test quality, and plan hub validation); and workflow performance parity, which pins the validation selector, the git hooks, and the package test configurations.
+Six lanes over the repository's own safety surfaces: formatting on every run; dead code on every run, holding knip's findings to their shrink-only baseline, since knip reads workflows, hooks and tool configs as well as code; regrowth on every pull request and develop push, failing comments the purge removed and report-style markdown that a change adds; the supply-chain audit of manifests, lockfiles, and the release-age rule; guidance integrity (agent guidance, skill contracts, immutable plan reports, the QA test ID ledger, test quality, and plan hub validation); and workflow performance parity, which pins the validation selector, the git hooks, and the package test configurations.
 
-- **Use it when:** Dependency, lockfile, toolchain, or workflow changes; agent guidance, skills, plan hubs, and the QA catalog; the validation policy, selector, and git hooks. Each lane after formatting runs only when its own paths change.
+- **Use it when:** Dependency, lockfile, toolchain, or workflow changes; agent guidance, skills, plan hubs, and the QA catalog; the validation policy, selector, and git hooks. Formatting, dead code and regrowth run every time; each other lane runs only when its own paths change.
 - **Runs on:** pull requests that touch its paths (44 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch.
 - **Jobs:** `audit`, `changes`, `dead-code`, `format`, `guidance`, `parity`, `regrowth`.
 - **Required status:** no, but the CI Gate waits for it on a pull request that touches its paths.
