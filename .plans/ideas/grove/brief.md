@@ -1,6 +1,6 @@
 # Green Goods, fully local, with Grove
 
-**Slug:** `grove` · **Stage:** ideas · **Updated:** 2026-11-14
+**Slug:** `grove` · **Stage:** ideas · **Updated:** 2026-11-20
 
 **Coordinate locally. Govern together. Share by context. Publish by choice.**
 
@@ -66,4 +66,4 @@ Repeat with the existing work screen in place of free-form words, and with a kno
 
 The [24 October G0 report](reports/2026-10-24-g0-feasibility.md) proves limited synthetic desktop feasibility. It does not show phone suitability, Pi recovery across a closed tab on persistent storage, or private sharing. Records are synthetic or non-sensitive until the loop's gates pass, a second controller exists and the owner has decided what limits code updates to the Green Goods app (O8).
 
-No dedicated hardware node or cloud inference is required. Direct sync between open devices is the next lane; hosted storage, the Green Goods Hub snapshot, KOI exchange, co-editing, sensors and publishing to the chain come after it. Still open: how local records map onto the onchain ones when published (O16), which side holds a garden's keys on a laptop (O17), whether local models transcribe and structure reports well enough (O18), and whether an open garden needs a way in when its signer's device cannot be reached (O19). This revision updates the plan only: it authorizes no product implementation, dependency installation, deployment or tracker change.
+No dedicated hardware node or cloud inference is required. Direct sync between open devices is the next lane; hosted storage, the Green Goods Hub snapshot, KOI exchange, co-editing, sensors and publishing to the chain come after it. Still open: how local records map onto the onchain ones when published (O16), which side holds a garden's keys on a laptop (O17), whether local models transcribe and structure reports well enough (O18), and whether an open garden needs a way in when its signer's device cannot be reached (O19). Proposed on 20 November and not decided: writing approved work as a claim on the device, for reviewers outside the garden (R20, R21). This revision updates the plan only: it authorizes no product implementation, dependency installation, deployment or tracker change.

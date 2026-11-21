@@ -66,6 +66,7 @@ The exact supported versions are a result of C0b and C0a, not a promise made her
 - The Green Goods Hub snapshot of a garden's published work history, WebMCP tools, the Hub digest and KOI exchange (D5, D22). The MVP reads only a garden's public roles, Actions and current assessment (D38).
 - Co-editing with Yjs and Bluetooth sensors.
 - EDV, Automerge + Keyhive and MLS, which stay research.
+- Writing approved work as a claim for reviewers outside the garden. It is proposed and not decided (R20, R21, O21, O22).
 - A model or passive capture on the phone, and any real sensitive record before the loop gates pass, a second controller exists and O8 is answered.
 
 **The MVP is done when all of these are observed** on a physical phone and a physical laptop:
@@ -198,6 +199,8 @@ The 25 [prototype decisions](prototype.md#decisions) stay as dated history. Wher
 | R17 | Keep nothing from a page the agent does not bring in: no text and no address. Show when the agent is reading, give a pause switch, and list what it brought in and from where | Access to all sites is the largest privacy exposure in the design, and D27 depends on people trusting it |
 | R18 | Ship a block list that covers banking, mail, health, government accounts and password managers, and skip any page with a password field | D27 leaves the block list as the only thing between a private page and local storage |
 | R19 | Run each assessment check as one bounded Pi phase, and store the result beside the item: what was checked, by which model version, what it found and what it could not check | The same pattern the connection proposals use (D7, D15), and it keeps the assessment inspectable |
+| R20 | Write an approved work report as a claim on the device, in the shape Regen Network's claims engine uses, and work out its identifier from its content. The steward's decision is attached as a separate record | A reviewer or a funder outside the garden can then check the same record without anyone entering it again. The identifier comes from the content alone, so a device and a service reach the same one, which may also help with O16. No model is involved and nothing local waits on the engine (D10, D31). Added 20 November at the owner's request. The engine is still being built, and Green Goods has no connection to it (O21) |
+| R21 | Treat a claim set sent to a reviewer outside the garden as a partner summary: a new projection under a steward's release approval (D17, D45). It carries community review, never verification, and the reviewer signs their own findings | It adds no new crossing and no new approver. A claim service that holds claims, and a public timestamp for a claim, would be later destinations with their own approvals (O22, C6) |
 
 ### Assumed
 
@@ -232,6 +235,8 @@ The 25 [prototype decisions](prototype.md#decisions) stay as dated history. Wher
 | O18 | Can local models transcribe a voice note and structure a free-form report or promise well enough for a reviewer to trust the proposal, in the languages Green Goods ships? Nothing has measured local speech-to-text yet | Experiment: E29 |
 | O19 | Today a person joins an open garden with nobody's action. Locally every member-list version is signed by the active signer's device (D18), so that device admits them. Does an open garden also need a way in when the signer's device cannot be reached, such as an invitation signed in advance? | The owner, with a design from F6 / E37 |
 | O20 | Resolved in part by D54 on 14 November. Work, approvals and promises now happen on local devices first, so when one is later brought onchain the attestation's time is when it was published, not when the work or promise was done or approved (the owner's observation). A time-based rule uses when the work happened, and a record shows its own times. Two things stay open. What makes a device's time believable, beyond the person's word, a photo's capture time and the reviewer's judgement? And what do the contracts need for publication: today the Work resolver accepts work only while its Action is active at the moment of attestation, and the WorkApproval resolver refuses an approval once the Action has ended, so work done inside an Action's window and brought onchain after it would be refused | Design: F2 to F5 locally, and the publication lane (C6) with O16 |
+| O21 | If claims are taken up (R20), is a claim a new record type in the garden or a projection built at release? Is it made when a steward approves a work report, or when a claim set is gathered? The Commons draft already has Claim and Evidence for knowledge, and the two meanings must stay apart | The owner, then design through the ontology change protocol |
+| O22 | Which audience is a claim service? It must read a claim to check it, so it is not a relay that holds only ciphertext, and it is not public. What would withdrawal mean for a claim it already holds? | Design in the sharing contract, only if a hosted claim service is scoped |
 
 Dependencies and a bounded implementation still need task-specific authorization before installation. Publishing this plan changes no application package, manifest, lockfile, license or runtime.
 

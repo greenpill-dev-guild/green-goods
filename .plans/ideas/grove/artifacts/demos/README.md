@@ -6,7 +6,7 @@ The [current architecture view](grove-architecture.html) was rebuilt on 14 Novem
 
 | Demo | Explore |
 |---|---|
-| [Current architecture](grove-architecture.html) | One capture stepped through the four audiences, with approvers, key ownership, and the MVP set apart from next lanes |
+| [Current architecture](grove-architecture.html) | One capture stepped through the four audiences, with approvers, key ownership, the MVP set apart from next lanes, and three proposed claim steps marked as not decided |
 | [Follow a connection](grove-follow-a-connection.html) | Garden overview → Soil care → new connection → source → Back |
 | [Garden scenarios](grove-real-gardens.html) | TAS and Vida Verde topic journeys, proposed work and source inspection |
 | [Garden timelines](grove-gardens-timeline.html) | Both gardens growing through illustrative steps, with projected work kept distinct |

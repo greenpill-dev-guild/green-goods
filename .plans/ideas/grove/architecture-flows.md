@@ -301,6 +301,16 @@ sequenceDiagram
 
 This sequence is why the release approval sits before the hand-over and not before the signature. The upload behavior is current code, read on 14 November; the local steps are proposed.
 
+### Proposed: from approved work to a claim
+
+Added on 20 November as a proposal (R20, R21). It is not decided and has no checkpoint.
+
+1. On the steward's device, an approved work report is written as a claim in the shape Regen Network's claims engine uses: who did what, where and when, with each piece of evidence listed by its fingerprint. The steward's decision is attached as a separate record, and the claim's identifier is worked out from its content. No model is involved, and a capture alone is not a claim.
+2. The garden can check the claim on the device against the rules it will be judged by, such as what an Action requires. A small model may point to evidence that is missing, and a person decides what to do about it. For a report or a certificate, a steward selects the approved claims for one period as a claim set.
+3. A steward releases a claim set to a named reviewer outside the garden, as a partner summary is sent: a new projection under a release approval. The reviewer signs their own findings. The garden's approval travels as community review, never as verification.
+
+A claim service that holds claims, and a public timestamp for a claim, would be later destinations with their own approvals (O22, C6). What a claim is among the garden's records is open (O21).
+
 ## Identity and processing ownership
 
 The [identity and role map](identity-role-mapping.md) separates a garden's onchain account, WebID and group accounts from each member's wallet, WebID and personal account. Associations are private by default and confer no role and no key.

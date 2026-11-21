@@ -89,6 +89,7 @@ button:disabled { color: var(--muted); border-color: var(--rule); }
 .lane-tag { display: inline-block; font-size: .8rem; font-weight: 600; border: 1px solid currentColor; border-radius: 999px; padding: 0 .55rem; margin-bottom: .45rem; }
 .lane-tag.mvp { color: var(--accent); }
 .lane-tag.later { color: var(--later); }
+.lane-tag.proposed { color: var(--later); border-style: dashed; }
 
 /* Map */
 .map { display: grid; gap: .35rem; }
@@ -136,7 +137,7 @@ footer { margin-top: 2.5rem; border-top: 1px solid var(--rule); padding-top: 1re
   <p><a href="index.html">← All Grove demos</a></p>
   <h1>Green Goods, from local to shared</h1>
   <p class="lede">How one record, a work report, a promise or a piece of knowledge, moves from a person's own device to their garden's community, to a partner community, and later to the public. The Green Goods app and the Green Goods Hub run as local builds, on the phone and in the browser. Grove is the extension that adds knowledge capture and the agent. Each crossing is a separate decision with its own approver.</p>
-  <p class="notice"><strong>Proposed architecture.</strong> Nothing on this page is running software, and no property shown has been tested. It reflects the decisions recorded on 14 November 2026. Examples are synthetic; the page holds no keys or accounts and stores nothing.</p>
+  <p class="notice"><strong>Proposed architecture.</strong> Nothing on this page is running software, and no property shown has been tested. It reflects the decisions recorded on 14 November 2026. The three claim steps were added on 20 November as a proposal and are not decided. Examples are synthetic; the page holds no keys or accounts and stores nothing.</p>
 </header>
 
 <main>
@@ -318,6 +319,15 @@ footer { margin-top: 2.5rem; border-top: 1px solid var(--rule); padding-top: 1re
       <li>Bluetooth sensors</li>
     </ul>
   </section>
+  <section aria-labelledby="s-proposed">
+    <h3 id="s-proposed">Proposed, not decided</h3>
+    <ul>
+      <li>Approved work written as a claim on the device, in the shape Regen Network's claims engine uses, with an identifier worked out from its content</li>
+      <li>A check against written rules on the device, with a small model's advice</li>
+      <li>A claim set released to a named reviewer, as a partner summary is</li>
+      <li>Later choices: a claim service the garden trusts, and a public timestamp</li>
+    </ul>
+  </section>
 </div>
 </main>
 
@@ -374,6 +384,21 @@ footer { margin-top: 2.5rem; border-top: 1px solid var(--rule); padding-top: 1re
       approver: "A steward. The author too, if a corrected version of their capture is leaving.",
       keys: "A fresh key, wrapped to the partner devices whose keys came from pairing the two communities.",
       sees: "The file's size, its timing and its recipient count." },
+    { title: "Write approved work as a claim", lane: "proposed", bands: ["community"], actors: ["steward"], gate: null,
+      text: "Proposed, for work that needs to be checked outside the garden. On the steward's device, an approved work report is written as a claim in the shape Regen Network's claims engine uses: who did what, where and when, with each piece of evidence listed by its fingerprint. The steward's decision is attached as a separate record. The claim's identifier is worked out from its content, so the same content gives the same identifier on any device. No model is involved, and a capture alone is not a claim.",
+      approver: "Nobody new. It restates what the gardener reported and a steward approved.",
+      keys: "The vault key. The claim is a new record on the device, encrypted like any other.",
+      sees: "Nothing. The claim has not left the garden." },
+    { title: "Check it, and gather a claim set", lane: "proposed", bands: ["community"], actors: ["steward"], gate: null,
+      text: "Before anyone outside sees it, the garden can check a claim against the rules it will be judged by, such as what an Action requires. A small model on the laptop may point to evidence that is missing, and a person decides what to do about it. For a report or a certificate, a steward selects the approved claims for one period as a claim set. A claim about an outcome, such as how many trees survived, belongs there and needs measurement.",
+      approver: "A steward. The check is advice, like the agent's assessment.",
+      keys: "The vault key.",
+      sees: "Nothing. The check runs on the device." },
+    { title: "Release a claim set to a reviewer", lane: "proposed", bands: ["community", "partner"], actors: ["steward", "partner"], gate: "partner",
+      text: "When the garden chooses, a steward releases a claim set to a named reviewer outside the garden, as a new encrypted file with only the evidence the approval names. The reviewer checks it on their own device and signs their own findings. An outside review is the reviewer's, and the garden's approval travels as community review, never as verification. Sending the same release to a claim service, or giving a claim a public timestamp, would be later choices with their own approvals.",
+      approver: "A steward, as for a partner summary. The author too, if a corrected version of their capture is leaving.",
+      keys: "A fresh key, wrapped to the reviewer's devices, whose keys came from pairing.",
+      sees: "The file's size, its timing and its recipient count." },
     { title: "Publish by choice", lane: "later", bands: ["public"], actors: ["steward", "release"], gate: "public",
       text: "Not in the MVP. Publishing a work report, an approval or a promise to the chain is a separate choice. A steward would approve the exact payload before it is handed to any upload queue, and so would the author of any capture it carries, because Green Goods uploads work to public storage during background preparation, before the transaction is signed.",
       approver: "A steward, before the first upload, and the author too when the payload carries their own capture.",
@@ -422,8 +447,8 @@ footer { margin-top: 2.5rem; border-top: 1px solid var(--rule); padding-top: 1re
     $("panel-keys").textContent = s.keys;
     $("panel-sees").textContent = s.sees;
     const lane = $("panel-lane");
-    lane.textContent = s.lane === "mvp" ? "MVP" : "Later lane";
-    lane.className = `lane-tag ${s.lane === "mvp" ? "mvp" : "later"}`;
+    lane.textContent = s.lane === "mvp" ? "MVP" : s.lane === "proposed" ? "Proposed, not decided" : "Later lane";
+    lane.className = `lane-tag ${s.lane}`;
     select.value = String(current);
     back.disabled = current === 0;
     next.disabled = current === steps.length - 1;

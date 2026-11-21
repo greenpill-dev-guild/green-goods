@@ -4,7 +4,7 @@
 
 ## Start here
 
-Read [spec.md](../spec.md) first. It holds the MVP contract with its nine function blocks, a table of each Green Goods function's local form, and the one decision log: decisions D1 to D55, recommendations R1 to R19, assumptions W1 to W4 and open questions O1 to O20. Then read the [sharing contract](../community-sharing.md), the [flows](../architecture-flows.md), the [MVP order](../plan.todo.md#mvp-order) and the [gates the MVP needs](../eval.md#which-gates-the-mvp-needs). The [architecture page](../artifacts/demos/grove-architecture.html) shows the same model as one page.
+Read [spec.md](../spec.md) first. It holds the MVP contract with its nine function blocks, a table of each Green Goods function's local form, and the one decision log: decisions D1 to D55, recommendations R1 to R21, assumptions W1 to W4 and open questions O1 to O22. Then read the [sharing contract](../community-sharing.md), the [flows](../architecture-flows.md), the [MVP order](../plan.todo.md#mvp-order) and the [gates the MVP needs](../eval.md#which-gates-the-mvp-needs). The [architecture page](../artifacts/demos/grove-architecture.html) shows the same model as one page.
 
 Remain on the current checkout and branch unless explicitly authorized otherwise. Inspect current instructions and status before editing. Do not create a second hub, install dependencies, change runtime code or publish externally from a planning request.
 
@@ -62,7 +62,7 @@ Each step needs its own authorization before anything is installed or built.
 5. Then C7, C1, C0, recovery, C11 with C8, and the function blocks F1 to F7 with C2, in the [MVP order](../plan.todo.md#mvp-order).
 6. The agent's checkpoints, S13 to S16, and the bridge, C9, belong to Grove's lane. S14 asks for access to all sites, a manifest change that needs its own review (O12).
 
-The recommendations R1 to R19 in the decision log are advice from the review. None is decided. R2 (no identifier scheme in the MVP) and R3 (the member list's shape) change what C0 builds and should be confirmed or rejected before C0 starts. O8, what limits code updates to the Green Goods app, must be answered before any sensitive record is admitted.
+The recommendations R1 to R19 in the decision log are advice from the review. R20 and R21, added on 20 November at the owner's request, propose a claim flow for reviewers outside the garden. None is decided. R2 (no identifier scheme in the MVP) and R3 (the member list's shape) change what C0 builds and should be confirmed or rejected before C0 starts. O8, what limits code updates to the Green Goods app, must be answered before any sensitive record is admitted.
 
 ## Validation and phase record, 14 November
 

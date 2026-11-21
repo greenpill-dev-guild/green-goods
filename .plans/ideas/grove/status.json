@@ -10,7 +10,7 @@
     "overall_status": "idea",
     "priority": "p2",
     "created_at": "2026-10-11T10:02:56.686Z",
-    "updated_at": "2026-11-15T01:07:55Z"
+    "updated_at": "2026-11-20T23:57:05Z"
   },
   "links": {
     "brief": "brief.md",
@@ -71,7 +71,8 @@
     "2026-11-14 owner decisions, late evening: from a voice note the agent also proposes knowledge, such as a lesson or the questions people asked (D50); an owner of the garden can replace an imported garden's onchain record, so a first importer who pairs nobody cannot lock the garden out (D51); and leaving a current function out of the first version takes the owner's recorded decision, without which its gate does not pass (D48). No lane, Linear, dependency or runtime change.",
     "Owner decisions, 14 November (15 November UTC): when an owner replaces an imported garden's onchain record the garden is carried over, with the owner's device as signer and its members, roles and records as they were (D52); and a device the steward adds for a member who has lost every device and their recovery code approves sharing only for records made after it was added (D53). No lane, Linear, dependency or runtime change.",
     "Owner's observation, 14 November (15 November UTC): work, approvals and promises now happen offline first, so an attestation's time would be when a record was brought onchain, not when the work or promise was done or approved. Recorded as open question O20, with what today's Work and WorkApproval resolvers do with that time. No decision, lane, Linear, dependency or runtime change.",
-    "Owner decisions, 14 November (15 November UTC): a time-based rule uses when the work happened, as the report says, so work done inside an Action's window counts even when it is reported, approved or brought onchain after it (D54); and the record of a local garden's identifier lives in one new attestation schema with no resolver, checked on devices (D55, C11). O20 is resolved in part. No lane, Linear, dependency or runtime change; registering the schema needs its own go-ahead."
+    "Owner decisions, 14 November (15 November UTC): a time-based rule uses when the work happened, as the report says, so work done inside an Action's window counts even when it is reported, approved or brought onchain after it (D54); and the record of a local garden's identifier lives in one new attestation schema with no resolver, checked on devices (D55, C11). O20 is resolved in part. No lane, Linear, dependency or runtime change; registering the schema needs its own go-ahead.",
+    "Owner request, 20 November: a proposed claim flow is recorded as recommendations R20 and R21 and open questions O21 and O22, with three proposed steps on the architecture page. Not decided; no checkpoint, gate, lane, Linear, dependency or runtime change."
   ],
   "lanes": {
     "ui": {
@@ -406,6 +407,14 @@
       "status": "idea",
       "branch": "research/grove-architecture-alignment",
       "note": "Two owner decisions: a time-based rule uses when the work happened, not when a record is saved, approved or brought onchain (D54), and the local garden's onchain record lives in one new attestation schema with no resolver, checked on devices (D55), with a new checkpoint C11 for registering it. Eleven points held from review went in with them: the record's lane and the corrected line on contract changes (C11, C8, E31); time cases in the work, report, promise and settlement gates (E34 to E36, E38) and in the publication lane (C6, E21); a removal retires a member's recovery key (C0, E15); disputed work decisions (F3, E34, E35); the promise limit across a provider's devices (F5, E36); a device clock set back (C0, E15); a retired succession key on first contact (C0, E15); withdrawn release approvals (C6, E21); the architecture page's approval table; E4's class balance; and E29's targets for each language. Gates remain unrun; no lane, Linear, dependency or runtime change."
+    },
+    {
+      "timestamp": "2026-11-20T23:57:05Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "idea",
+      "branch": "research/grove-architecture-alignment",
+      "note": "Owner request, 20 November: record a proposed claim flow. An approved work report would be written as a claim on the device in the shape Regen Network's claims engine uses, checked there, and released as a claim set to a named reviewer under a steward's release approval. Recorded as recommendations R20 and R21 and open questions O21 and O22, with three proposed steps on the architecture page and a section in the flows. Not decided; no checkpoint, gate, lane, Linear, dependency or runtime change. The eight points held from review were not folded in."
     }
   ]
 }

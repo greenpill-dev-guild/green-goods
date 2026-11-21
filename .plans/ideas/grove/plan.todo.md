@@ -39,6 +39,8 @@ Grove's lane can be built in parallel on synthetic records. It counts toward the
 
 **Research, outside the MVP's gates:** EDV, Automerge + Keyhive (E25), MLS, Bluetooth sensors.
 
+**Proposed, not decided:** writing approved work as a claim on the device and releasing claim sets to reviewers outside the garden (R20, R21; open questions O21 and O22). It has no checkpoint and no gate until the owner takes it up.
+
 ## Community-sharing delivery order
 
 [The contract](community-sharing.md) owns the design; [the research](sharing-research.md) records what is unproven. This plan authorizes no implementation, dependency installation, tracker change or deployment. The entries are listed in the MVP order above, then the later lanes.
