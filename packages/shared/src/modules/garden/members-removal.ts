@@ -21,8 +21,9 @@ import { createGardenMembersChain, type GardenMemberRow } from "./members-batch"
  * - `declined`: the wallet's prompt was declined. Nothing was sent.
  * - `failed`: the send proved it cannot land (nothing went out, or the chain reverted or
  *   replaced it), and a read shows they still hold the role.
- * - `proposed`: the wallet answered with a proposal (a Safe's) that has not run, and a read still
- *   finds the role held. Sending again would open a second proposal for the same removal.
+ * - `proposed`: the wallet answered with a proposal (a Safe's, say) that has not run, and no read
+ *   found the role gone (it is still held, or the read failed). Sending again would open a second
+ *   proposal for the same removal.
  * - `unknown`: a send that went out may still land, or the read that would say whether it landed
  *   failed.
  * - `notSent`: the run stopped before this pair's signature.
@@ -207,7 +208,8 @@ export async function removeGardenRolesOneByOne(
     // A role still held is failed only after a send that proved it cannot land. Any other send
     // may already be on its way, so the pair is unconfirmed and nothing offers to send it again.
     const failed = held === true && !result.success && result.error?.cannotLand === true;
-    const proposed = result.success && result.confirmation === "pending" && held === true;
+    // A read that failed proves nothing either way: the proposal still exists, so it still waits.
+    const proposed = result.success && result.confirmation === "pending";
     settle(
       row,
       failed

@@ -384,13 +384,11 @@ describe("components/Garden/ManageMembersDialog (Manage Roles)", () => {
     await user.click(screen.getByRole("button", { name: "Review Removal" }));
     await user.click(await screen.findByRole("button", { name: "Remove 1 Role" }));
 
-    expect(
-      await screen.findByText("A removal is waiting for the Safe's signers")
-    ).toBeInTheDocument();
-    expect(screen.getByText("Waiting for signers")).toBeInTheDocument();
+    expect(await screen.findByText("A removal is waiting to run")).toBeInTheDocument();
+    expect(screen.getByText("Waiting to run")).toBeInTheDocument();
     // Its signers have not approved yet, so the read still finds the role held.
     await user.click(screen.getByRole("button", { name: "Check Again" }));
-    expect(await screen.findByText("Waiting for signers")).toBeInTheDocument();
+    expect(await screen.findByText("Waiting to run")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Remove/ })).toBeNull();
     expect(removal.remove).toHaveBeenCalledTimes(1);
 

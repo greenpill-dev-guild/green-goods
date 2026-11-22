@@ -508,7 +508,7 @@
     {
       "page": "docs/docs/community/steward-guide/managing-members.mdx",
       "images": ["/img/screenshots/admin-manage-roles.webp"],
-      "capture_note": "Manage Roles as an owner sees it: locks with their reason on the owner's own Owner and Steward roles, check boxes on the rest, and Review Removal waiting for a check. No account or transaction proof.",
+      "capture_note": "Manage Roles as an owner sees it: locks with their reason on the owner's own Owner and Steward roles, check boxes on the rest, and Review Removal disabled until a role is checked. No account or transaction proof.",
       "recorded_at": "2026-11-21",
       "proof_class": "Storybook",
       "engine": "Headless Chromium 158 (Playwright), Storybook 10.6.6 dev server",

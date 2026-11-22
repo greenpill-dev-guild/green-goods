@@ -7,6 +7,7 @@ import {
   RiCloseCircleLine,
   RiErrorWarningLine,
   RiLoader4Line,
+  RiTimeLine,
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { getRoleLabel } from "./gardenUtils";
@@ -71,7 +72,9 @@ function PairState({ status }: { status: ReviewPairStatus }) {
         ? RiCloseCircleLine
         : status === "unknown"
           ? RiErrorWarningLine
-          : null;
+          : status === "proposed"
+            ? RiTimeLine
+            : null;
   return (
     <span
       className={cn(

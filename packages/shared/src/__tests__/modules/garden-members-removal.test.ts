@@ -226,6 +226,16 @@ describe("modules/garden/members-removal", () => {
     // A second send would open a second proposal, so the review must know it is one.
     expect(statuses(waiting)).toEqual(["proposed", "notSent"]);
 
+    // A read that fails right after the proposal proves nothing: it is still a waiting proposal.
+    const unread = await removeGardenRolesOneByOne(
+      [evaluatorOf(ADA)],
+      fakeChain({
+        sends: { [ADA.toLowerCase()]: proposal },
+        readsAfterError: { [ADA.toLowerCase()]: new Error("rpc down") },
+      })
+    );
+    expect(statuses(unread)).toEqual(["proposed"]);
+
     // A proposal that already ran shows on chain, so it counts.
     const ran = await removeGardenRolesOneByOne(
       [evaluatorOf(ADA)],
