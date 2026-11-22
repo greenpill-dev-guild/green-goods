@@ -13,7 +13,10 @@ flowchart TD
     Username -->|Back| Stored
     Username -->|Continue| Lookup{"Directory and legacy name lookup"}
     Lookup -->|Existing name or matching saved passkey| SignIn["Existing passkey prompt"]
-    Lookup -->|Available name| Register["New account passkey prompt"]
+    Lookup -->|Available name, nothing saved on this phone| Register["New account passkey prompt"]
+    Lookup -->|Available name, another account saved on this phone| Confirm["No account has that name<br/>Create New Account · Check the Name"]
+    Confirm -->|Create New Account| Register
+    Confirm -->|Check the Name| Username
     Lookup -->|Lookup failed| Error["Error on the same username form"]
     SignIn -->|Verified with original identity| App
     SignIn -->|Canceled or failed| Error
