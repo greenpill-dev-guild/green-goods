@@ -113,6 +113,7 @@ vi.mock("../hooks/assessment/useGardenAssessments", () => ({
 
 vi.mock("../hooks/commitment-pooling/useCommitmentMetadata", () => ({
   useCommitmentMetadataFor: () => null,
+  useCommitmentMetadata: () => ({ byCID: new Map(), isLoading: false, isError: false }),
 }));
 
 vi.mock("../hooks/commitment-pooling/useCommitmentJobs", () => ({

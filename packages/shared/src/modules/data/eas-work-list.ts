@@ -94,6 +94,10 @@ export interface GardenActivityPage {
   decisions: EASWorkApproval[];
   /** Either list ran past the limit, so earlier entries of the window are missing. */
   truncated: boolean;
+  /** The decisions list alone ran past the limit, so the window's earliest decisions are missing. */
+  decisionsTruncated: boolean;
+  /** A decision row could not be read and was left out, so the decisions list is not whole. */
+  decisionsDropped: boolean;
 }
 
 /**
@@ -141,7 +145,15 @@ export const getGardenActivitySince = async (
     }
   `);
   const easConfig = getEASConfig(chainId);
-  if (isZeroBytes32(easConfig.WORK.uid)) return { works: [], decisions: [], truncated: false };
+  if (isZeroBytes32(easConfig.WORK.uid)) {
+    return {
+      works: [],
+      decisions: [],
+      truncated: false,
+      decisionsTruncated: false,
+      decisionsDropped: false,
+    };
+  }
   const inWindow = {
     recipient: { equals: easStoredAddress(gardenAddress) },
     revoked: { equals: false },
@@ -176,20 +188,23 @@ export const getGardenActivitySince = async (
       error
     );
   }
+  const decisionRows = data.decisions.slice(0, take);
+  const readableDecisions = validatedAttestations(decisionRows, "getGardenActivitySince");
   return {
     works: validatedAttestations(data.works.slice(0, take), "getGardenActivitySince").map(
       ({ id, attester, recipient, timeCreated, decodedDataJson }) =>
         parseDataToWork(id, { attester, recipient, time: Number(timeCreated) }, decodedDataJson)
     ),
-    decisions: validatedAttestations(data.decisions.slice(0, take), "getGardenActivitySince").map(
-      ({ id, attester, recipient, timeCreated, decodedDataJson }) =>
-        parseDataToWorkApproval(
-          id,
-          { attester, recipient, time: Number(timeCreated) },
-          decodedDataJson
-        )
+    decisions: readableDecisions.map(({ id, attester, recipient, timeCreated, decodedDataJson }) =>
+      parseDataToWorkApproval(
+        id,
+        { attester, recipient, time: Number(timeCreated) },
+        decodedDataJson
+      )
     ),
     truncated: data.works.length > take || data.decisions.length > take,
+    decisionsTruncated: data.decisions.length > take,
+    decisionsDropped: readableDecisions.length < decisionRows.length,
   };
 };
 

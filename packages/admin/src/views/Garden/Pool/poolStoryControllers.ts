@@ -65,6 +65,7 @@ export function storyPoolFunding(
       feeQuotes: [],
       feePolicy: { maxFeeBps: 100, maxFeeAmount: 50n * G },
       executorPaused: false,
+      commandExecutors: [],
       available: 2_302n * G,
       shortfall: 0n,
       suggestedTopUp: 0n,
@@ -208,6 +209,7 @@ export function storyCommitmentDialog(
     viewer: STORY_STEWARD,
     isOnline: true,
     availability: { status: "available", capability: availableCapability },
+    editsTermsFromGroup: false,
     commitment,
     detail: commitment
       ? {

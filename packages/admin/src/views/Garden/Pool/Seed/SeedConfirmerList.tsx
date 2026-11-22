@@ -145,6 +145,18 @@ export function ConfirmerGroupEditor({
     };
   };
   const entry = useAddressInput(add, formatMessage);
+  // A typed name holds the field and Add until its lookup lands (PRD-1548): a second name started
+  // meanwhile was cleared when the first landed, so a save in between left it out.
+  const [lookingUp, setLookingUp] = useState(false);
+  const addTyped = async () => {
+    if (lookingUp) return;
+    setLookingUp(true);
+    try {
+      await entry.handleAdd();
+    } finally {
+      setLookingUp(false);
+    }
+  };
 
   const isChosen = (address: string) =>
     chosen.some((named) => named.toLowerCase() === address.toLowerCase());
@@ -211,6 +223,7 @@ export function ConfirmerGroupEditor({
         })}
         value={entry.input}
         onChange={(event) => {
+          if (lookingUp) return;
           entry.setInput(event.target.value);
           onPendingChange?.(event.target.value.trim().length > 0);
         }}
@@ -219,7 +232,7 @@ export function ConfirmerGroupEditor({
           defaultMessage: "A name.eth or an address",
         })}
         helperText={
-          entry.resolvingEns
+          lookingUp || entry.resolvingEns
             ? formatMessage({
                 id: "hub.garden.pool.seed.confirmerResolving",
                 defaultMessage: "Looking up that name…",
@@ -231,10 +244,11 @@ export function ConfirmerGroupEditor({
         }
         error={entry.error ?? draft.errors.confirmers}
         inputProps={{
+          readOnly: lookingUp,
           onKeyDown: (event) => {
             if (event.key === "Enter") {
               event.preventDefault();
-              void entry.handleAdd();
+              void addTyped();
             }
           },
         }}
@@ -244,7 +258,8 @@ export function ConfirmerGroupEditor({
             emphasis="secondary"
             size="compact"
             leadingIcon={<RiAddLine className="h-4 w-4" aria-hidden="true" />}
-            onClick={() => void entry.handleAdd()}
+            onClick={() => void addTyped()}
+            loading={lookingUp}
             disabled={busy || entry.trimmedInput.length === 0}
           >
             {formatMessage({
@@ -269,7 +284,7 @@ export function ConfirmerGroupEditor({
                   label={`${name} · ${getRoleLabel(member.role, formatMessage).singular}`}
                   selected={false}
                   leadingIcon={RiAddLine}
-                  disabled={busy}
+                  disabled={busy || lookingUp}
                   onToggle={() => add(member.address)}
                 />
               )}

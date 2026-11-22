@@ -223,9 +223,18 @@
         var supported = ["en", "es", "pt"];
         var stored = null;
         try {
-          stored = window.localStorage.getItem("gg-language");
+          // The choice made on any Green Goods site, shared as a cookie (PRD-1493), comes first.
+          var shared = document.cookie.match(/(?:^|;\s*)gg-language=([^;]*)/);
+          if (shared && shared[1]) stored = decodeURIComponent(shared[1]);
         } catch (error) {
-          // Storage can be blocked. The browser language still applies.
+          // Cookies can be blocked. This site's own choice still applies.
+        }
+        if (!stored) {
+          try {
+            stored = window.localStorage.getItem("gg-language");
+          } catch (error) {
+            // Storage can be blocked. The browser language still applies.
+          }
         }
         var browser =
           navigator.languages && navigator.languages.length
