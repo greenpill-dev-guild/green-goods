@@ -63,9 +63,15 @@ const CASES = [
 
 function requestFor(example: (typeof CASES)[number]): InterpretationRequest {
   return {
+    version: 1,
     locale: example.locale,
+    goal: "report",
     draftRevision: 1,
     message: { sourceEntryId: `eval-${example.id}`, text: example.text },
+    turns: [],
+    question: null,
+    provenance: {},
+    conflicts: [],
     content: {
       actionUID: example.action,
       title: null,
@@ -96,7 +102,8 @@ function requestFor(example: (typeof CASES)[number]): InterpretationRequest {
       },
     ],
     observations: [],
-  };
+    // Synthetic evaluation text written for this driver: it holds no gardener's words.
+  } as unknown as InterpretationRequest;
 }
 
 /** Calls the production adapters, retaining only metrics and expectations about synthetic data. */

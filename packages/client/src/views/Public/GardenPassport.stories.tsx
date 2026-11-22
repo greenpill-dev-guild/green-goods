@@ -100,6 +100,7 @@ export const NothingYet: Story = {
   args: {
     fundHref: undefined,
     passport: gardenPassportFixture({
+      supply: { status: "available", asOf: null, value: [] },
       promises: {
         status: "available",
         asOf: null,
@@ -174,8 +175,9 @@ export const SourcesUnavailable: Story = {
     passport: gardenPassportFixture({
       vouchers: { status: "unavailable" },
       settlement: { status: "unavailable" },
+      supply: { status: "unavailable" },
       partialData: true,
-      unavailableSources: { promises: false, vouchers: true, settlement: true },
+      unavailableSources: { promises: false, vouchers: true, settlement: true, supply: true },
     }),
   },
 };

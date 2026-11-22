@@ -1,8 +1,13 @@
 import { type ObjectValueNode, parse, visit } from "graphql";
+import { decodeFunctionData, encodeFunctionResult, parseAbi } from "viem";
 import { describe, expect, it } from "vitest";
 
 import type { GraphQLReader } from "../modules/data/graphql-client";
 import { getPublicGardenPassport } from "../modules/commitment-pooling/data-public-passport";
+import {
+  type PassportVoucherChain,
+  readPassportVoucherSupply,
+} from "../modules/commitment-pooling/data-public-passport-supply";
 import { GREEN_GOODS_ISSUER_ROUTE } from "../modules/commitment-pooling/service-issuer-live-config";
 import type { PassportSection } from "../modules/commitment-pooling/public-passport-types";
 import type { Address } from "../types/domain";
@@ -822,6 +827,8 @@ describe("a garden's passport", () => {
       promises: true,
       vouchers: true,
       settlement: true,
+      // The voucher chain is read apart from the indexer, so it stands when the indexer fails.
+      supply: false,
     });
 
     const noVouchers = await read({ ...base, VoucherServiceSetup: failed });
@@ -829,6 +836,7 @@ describe("a garden's passport", () => {
       promises: false,
       vouchers: true,
       settlement: false,
+      supply: false,
     });
     expect(noVouchers.partialData).toBe(true);
 
@@ -868,6 +876,227 @@ describe("a garden's passport", () => {
     expect(calls.find((call) => call.entity === "VoucherServiceSetup")?.variables).toMatchObject({
       module: BOOKINGS,
       core: CORE,
+    });
+  });
+
+  it("reads what the exchange pool holds from the voucher chain, until the voucher reaches a person", async () => {
+    const VOUCHERS = 1_000_000n;
+    const tsv = GREEN_GOODS_ISSUER_ROUTE.assets.find((asset) => asset.id === "tech-and-sun")!;
+    const token = tsv.token.address.toLowerCase();
+    const issuer = GREEN_GOODS_ISSUER_ROUTE.service.assets.find(
+      (asset) => asset.token.toLowerCase() === token
+    )!.garden!;
+    const pool = GREEN_GOODS_ISSUER_ROUTE.pools[0];
+    const abi = parseAbi([
+      "function totalSupply() view returns (uint256)",
+      "function balanceOf(address) view returns (uint256)",
+      "function limitOf(address,address) view returns (uint256)",
+      "function have(address) view returns (bool)",
+    ]);
+    const same = (left: unknown, right: string) =>
+      String(left).toLowerCase() === right.toLowerCase();
+    const BLOCK = { hash: `0x${"7".repeat(64)}`, number: 900n, timestamp: 1_800_000 } as const;
+    const ZERO = `0x${"0".repeat(40)}`;
+    type Transfer = { from: string; to: string; value?: bigint };
+    // How the pilot's vouchers were set up: issued to the reserve, part of them seeded to the pool.
+    const seeded: Transfer[] = [
+      { from: ZERO, to: tsv.ownerReserve },
+      { from: tsv.ownerReserve.toLowerCase(), to: pool.deployment.address },
+    ];
+    /** The token, and its pool's limiter and registry, each answering only the call meant for it. */
+    const chain = (
+      balances: { reserve: bigint; pool: bigint },
+      history: Transfer[] = seeded,
+      asked: unknown[] = []
+    ): PassportVoucherChain => ({
+      block: async () => BLOCK,
+      transfers: async (of, fromBlock, toBlock) => {
+        asked.push({ of: of.toLowerCase(), fromBlock, toBlock });
+        return history.map((transfer) => ({ ...transfer, value: transfer.value ?? VOUCHERS }));
+      },
+      call: async (to, data, block) => {
+        asked.push(block);
+        const { functionName, args = [] } = decodeFunctionData({ abi, data });
+        const answer = (): bigint | boolean => {
+          if (functionName === "have" && same(to, pool.registry.address) && same(args[0], token)) {
+            return true;
+          }
+          if (
+            functionName === "limitOf" &&
+            same(to, pool.limiter.address) &&
+            same(args[0], token) &&
+            same(args[1], pool.deployment.address)
+          ) {
+            return 20n * VOUCHERS;
+          }
+          if (!same(to, token)) throw new Error("unexpected call");
+          if (functionName === "totalSupply") return 20n * VOUCHERS;
+          if (functionName === "balanceOf" && same(args[0], tsv.ownerReserve)) {
+            return balances.reserve;
+          }
+          if (functionName === "balanceOf" && same(args[0], pool.deployment.address)) {
+            return balances.pool;
+          }
+          throw new Error("unexpected call");
+        };
+        return encodeFunctionResult({ abi, functionName, result: answer() } as never);
+      },
+    });
+    const supplyOf = async (voucherChain: PassportVoucherChain, garden: Address = issuer) =>
+      getPublicGardenPassport(CHAIN, garden, {
+        now: NOW,
+        reader: indexer({ VoucherCoreConfiguration: PINS }).reader,
+        voucherChain,
+      });
+    const ten = { reserve: 10n * VOUCHERS, pool: 10n * VOUCHERS };
+    const held = [
+      {
+        heldBack: true,
+        outstanding: null,
+        // The holding limit is the pool's policy, so it stays.
+        pools: [{ holding: null, holdingLimit: 20n * VOUCHERS, listed: true }],
+      },
+    ];
+
+    // Ten of twenty are out of the reserve, the pool holds all ten, and no person has had one.
+    const asked: unknown[] = [];
+    const inPool = await supplyOf(chain(ten, seeded, asked));
+    expect(inPool.supply).toEqual({
+      status: "available",
+      asOf: 1_800_000,
+      value: [
+        {
+          token,
+          symbol: "TSV",
+          decimals: 6,
+          pools: [
+            {
+              id: "green-goods",
+              name: "Green Goods",
+              listed: true,
+              holding: 10n * VOUCHERS,
+              holdingLimit: 20n * VOUCHERS,
+            },
+          ],
+          outstanding: 10n * VOUCHERS,
+          heldBack: false,
+        },
+      ],
+    });
+    // Every figure answers from the one block read, and the history runs from the voucher's
+    // first block to that same block.
+    expect(new Set(asked.filter((entry) => typeof entry === "string"))).toEqual(
+      new Set([BLOCK.hash])
+    );
+    expect(asked).toContainEqual({
+      of: token,
+      fromBlock: tsv.token.receipt.blockNumber,
+      toBlock: BLOCK.number,
+    });
+
+    // Two more left the reserve and are not in the pool: they are with someone.
+    expect(
+      value((await supplyOf(chain({ reserve: 8n * VOUCHERS, pool: 10n * VOUCHERS }))).supply)
+    ).toMatchObject(held);
+
+    // The balances add up with nothing outside the pool, but the history shows a person: a gift
+    // from the reserve put into the pool, an exchange out and back, a booking, a fee.
+    const person = `0x${"c".repeat(40)}`;
+    const gifted = { reserve: 8n * VOUCHERS, pool: 12n * VOUCHERS };
+    for (const [balances, extra] of [
+      [
+        gifted,
+        [
+          { from: tsv.ownerReserve, to: person },
+          { from: person, to: pool.deployment.address },
+        ],
+      ],
+      [
+        ten,
+        [
+          { from: pool.deployment.address, to: person },
+          { from: person, to: pool.deployment.address },
+        ],
+      ],
+      [ten, [{ from: person, to: person }]],
+    ] as const) {
+      const moved = await supplyOf(chain(balances, [...seeded, ...extra]));
+      expect(value(moved.supply)).toMatchObject(held);
+    }
+    // A transfer of nothing, which anyone may send, moves nothing and hides nothing.
+    const empty = await supplyOf(
+      chain(ten, [...seeded, { from: person, to: pool.deployment.address, value: 0n }])
+    );
+    expect(value(empty.supply)).toMatchObject([{ heldBack: false, outstanding: 10n * VOUCHERS }]);
+    // The issuer adding to the pool is its own act and leaves the figures published.
+    const topUp = await supplyOf(
+      chain({ reserve: 8n * VOUCHERS, pool: 12n * VOUCHERS }, [
+        ...seeded,
+        { from: tsv.ownerReserve, to: pool.deployment.address },
+      ])
+    );
+    expect(value(topUp.supply)).toMatchObject([{ heldBack: false, outstanding: 12n * VOUCHERS }]);
+
+    // A history that cannot be read is not an empty one.
+    const unread: PassportVoucherChain = {
+      ...chain(ten),
+      transfers: async () => {
+        throw new Error("too many results");
+      },
+    };
+    expect((await supplyOf(unread)).supply).toEqual({ status: "unavailable" });
+
+    // A reserve larger than the supply is a reading that does not add up, not a figure.
+    const broken = await supplyOf(chain({ reserve: 21n * VOUCHERS, pool: 10n * VOUCHERS }));
+    expect(broken.supply).toEqual({ status: "unavailable" });
+    expect(broken.unavailableSources).toMatchObject({ supply: true, promises: false });
+    expect(broken.partialData).toBe(true);
+
+    // A voucher with no reviewed issuer record fails the read: it is not "issues no voucher".
+    // One that a single person issues is left out, since its supply is that person's own.
+    const reviewed = GREEN_GOODS_ISSUER_ROUTE;
+    const others = reviewed.assets.filter((asset) => asset.id !== tsv.id);
+    const reads = (assets: typeof reviewed.assets) =>
+      readPassportVoucherSupply(CHAIN, issuer, {
+        chain: chain(ten),
+        route: { ...reviewed, assets },
+      });
+    await expect(reads(others)).rejects.toThrow("no reviewed issuer record");
+    await expect(reads([...others, { ...tsv, kind: "individual" }])).resolves.toEqual({
+      supply: [],
+      asOf: null,
+    });
+    // A voucher no reviewed pool lists is not on this line, and the chain is not asked about it.
+    const unlisted = await readPassportVoucherSupply(CHAIN, issuer, {
+      chain: {
+        block: async () => {
+          throw new Error("the chain must not be read");
+        },
+        call: async () => "0x",
+        transfers: async () => [],
+      },
+      route: {
+        ...reviewed,
+        pools: reviewed.pools.map((entry) => ({
+          ...entry,
+          listings: entry.listings.filter((listing) => listing.assetId !== tsv.id),
+        })),
+      },
+    });
+    expect(unlisted).toEqual({ supply: [], asOf: null });
+
+    // A garden that issues no voucher asks the chain nothing.
+    const silent: PassportVoucherChain = {
+      block: async () => {
+        throw new Error("the chain must not be read");
+      },
+      call: async () => "0x",
+      transfers: async () => [],
+    };
+    expect((await supplyOf(silent, GARDEN)).supply).toEqual({
+      status: "available",
+      asOf: null,
+      value: [],
     });
   });
 });
