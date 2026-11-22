@@ -7,7 +7,7 @@ import { ProfileHelp } from "./Help";
  * Profile › Help: guides and socials under Learn & Connect, the policies and support
  * requests under Privacy & Safety, then the questions by category. A question that a
  * gardener guide walks through ends with a link to it. Promises have their own
- * category, where How Promises Work in the Offer or Ask sheet leads. The Hub entry lives
+ * category, where How Promises Work in the Offer or Request sheet leads. The Hub entry lives
  * in Home's About This Garden rows (PRD-1492).
  */
 const meta: Meta<typeof ProfileHelp> = {

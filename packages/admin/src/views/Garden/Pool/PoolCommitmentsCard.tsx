@@ -163,7 +163,7 @@ export function PoolCommitmentsCard({
           <AdminCardTitle>
             {formatMessage({
               id: "hub.garden.pool.promises.title",
-              defaultMessage: "Offers and Asks",
+              defaultMessage: "Offers and Requests",
             })}
           </AdminCardTitle>
           <Button
@@ -273,7 +273,7 @@ export function PoolCommitmentsCard({
             description={formatMessage({
               id: "hub.garden.pool.commitments.emptyBody",
               defaultMessage:
-                "Offers and asks between neighbors show up here. Seed the first one to begin.",
+                "Offers and requests between neighbors show up here. Seed the first one to begin.",
             })}
           />
         ) : rows.length === 0 ? (

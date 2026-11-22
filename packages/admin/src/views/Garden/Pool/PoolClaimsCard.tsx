@@ -349,7 +349,7 @@ export function PoolClaimsCard({
     : model.isPaused
       ? formatMessage({
           id: "hub.garden.pool.claims.paused",
-          defaultMessage: "Requests wait while the pool is paused.",
+          defaultMessage: "Anyone asking to take a promise up waits while the pool is paused.",
         })
       : decidedCount === 0
         ? // DL-195: a pool with voucher bookings names every kind of row the queue holds.

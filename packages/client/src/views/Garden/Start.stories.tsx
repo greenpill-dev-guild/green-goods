@@ -208,7 +208,7 @@ export const OpenAsk: Story = {
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
     const [listed, gated, requested] = [...START_ASK_TITLES.values()];
-    await expect(canvas.getByRole("heading", { name: "Take Up an Ask" })).toBeVisible();
+    await expect(canvas.getByRole("heading", { name: "Take Up a Request" })).toBeVisible();
     await expect(
       canvas.getByText(
         "Taking one up opens 3 wallet or passkey prompts: the take-up, the work and its link."

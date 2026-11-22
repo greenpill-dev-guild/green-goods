@@ -130,8 +130,8 @@ export const Ask: Story = {
     const canvas = within(canvasElement);
     const rowElement = canvas.getByRole("button", { name: /3 rides/ });
     await expect(rowElement).toHaveAttribute("data-direction", "REQUEST");
-    await expect(within(rowElement).getByRole("img", { name: "Ask" })).toBeVisible();
-    await expect(within(rowElement).getByRole("status")).toHaveTextContent("Ask");
+    await expect(within(rowElement).getByRole("img", { name: "Request" })).toBeVisible();
+    await expect(within(rowElement).getByRole("status")).toHaveTextContent("Request");
     await expect(rowElement).toHaveAttribute("data-edge", "info");
   },
 };

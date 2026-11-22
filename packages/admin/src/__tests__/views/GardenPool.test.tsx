@@ -659,7 +659,7 @@ describe("GardenPoolTab (W7)", () => {
     );
     // A queued row leads with its direction before the index has it (DL-110).
     expect(within(rows[0]).getByRole("img", { name: "Offer" })).toBeInTheDocument();
-    expect(within(rows[1]).getByRole("img", { name: "Ask" })).toBeInTheDocument();
+    expect(within(rows[1]).getByRole("img", { name: "Request" })).toBeInTheDocument();
   });
 
   it("approves a claim directly and declines one with a reason, keyed to the stored claimant", async () => {
@@ -680,7 +680,7 @@ describe("GardenPoolTab (W7)", () => {
     fireEvent.change(within(dialog).getByLabelText(/^reason/i), {
       target: { value: "Crew is full" },
     });
-    fireEvent.click(within(dialog).getByRole("button", { name: /decline request/i }));
+    fireEvent.click(within(dialog).getByRole("button", { name: /^decline$/i }));
     await waitFor(() =>
       expect(mocks.controller!.acts.declineClaim).toHaveBeenCalledWith(2n, CLAIMANT, "Crew is full")
     );
@@ -1319,7 +1319,12 @@ describe("GardenPoolTab (W7)", () => {
         .getAllByRole("heading")
         .map((heading) => heading.textContent)
     ).toEqual(
-      expect.arrayContaining(["Review Promises", "Offers and Asks", "Pool Status", "Pool Funding"])
+      expect.arrayContaining([
+        "Review Promises",
+        "Offers and Requests",
+        "Pool Status",
+        "Pool Funding",
+      ])
     );
     expect(
       within(aside)
@@ -1330,7 +1335,7 @@ describe("GardenPoolTab (W7)", () => {
     expect(within(aside).queryByTestId("pool-commitments")).not.toBeInTheDocument();
     expect(
       within(screen.getByTestId("pool-commitments")).getByRole("heading", {
-        name: "Offers and Asks",
+        name: "Offers and Requests",
       })
     ).toBeVisible();
   });

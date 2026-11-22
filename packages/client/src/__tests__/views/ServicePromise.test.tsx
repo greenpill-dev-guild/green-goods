@@ -91,7 +91,7 @@ describe("checking a voucher promise's remote status", () => {
   it("provides a tracking link only inside Booking details, with checking feedback", () => {
     page({ checking: true });
     expect(screen.getByRole("button", { name: "Checking Status…" })).toBeDisabled();
-    const link = screen.getByText("Track Request in CCIP Explorer");
+    const link = screen.getByText("Track Booking in CCIP Explorer");
     expect(link.closest("details")).toHaveTextContent(/^Booking details/);
     expect(link).toHaveAttribute("href", expect.stringContaining("https://ccip.chain.link/msg/0x"));
   });

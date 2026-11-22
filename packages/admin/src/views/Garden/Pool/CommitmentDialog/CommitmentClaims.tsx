@@ -143,7 +143,7 @@ export function CommitmentClaims({
                 ? [
                     formatMessage({
                       id: "hub.garden.pool.asks.otherApproved",
-                      defaultMessage: "another ask was approved",
+                      defaultMessage: "someone else was approved",
                     }),
                   ]
                 : state.status === "closed"

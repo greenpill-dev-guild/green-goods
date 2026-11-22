@@ -106,7 +106,7 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
         kind: "sent",
         text: formatMessage({
           id: "app.garden.joinRequest.sent",
-          defaultMessage: "Your request was sent to the garden stewards.",
+          defaultMessage: "Sent to the garden’s stewards.",
         }),
       });
     } catch (caught) {
@@ -170,8 +170,7 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
         kind: "withdrawn",
         text: formatMessage({
           id: "app.garden.joinRequest.withdrawn",
-          defaultMessage:
-            "Your request was withdrawn. You can send a new one whenever you’re ready.",
+          defaultMessage: "Withdrawn. You can ask again whenever you’re ready.",
         }),
       });
     } catch {
@@ -187,15 +186,15 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
   const actionLabels = {
     send: formatMessage({
       id: "app.garden.joinRequest.send",
-      defaultMessage: "Send Request",
+      defaultMessage: "Ask to Join",
     }),
     check: formatMessage({
       id: "app.garden.joinRequest.checkStatus",
-      defaultMessage: "Check Request Status",
+      defaultMessage: "Check Status",
     }),
     withdraw: formatMessage({
       id: "app.garden.joinRequest.withdraw",
-      defaultMessage: "Withdraw Request",
+      defaultMessage: "Withdraw",
     }),
   };
   // Reserve the largest action label so changing request state cannot move the buttons.
@@ -293,7 +292,7 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
       >
         {formatMessage({
           id: "app.garden.joinRequest.action",
-          defaultMessage: "Request to Join",
+          defaultMessage: "Ask to Join",
         })}
       </Button>
       <DialogShell
@@ -301,11 +300,11 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
         onOpenChange={setOpen}
         title={formatMessage({
           id: "app.garden.joinRequest.title",
-          defaultMessage: "Request to Join This Garden",
+          defaultMessage: "Ask to Join This Garden",
         })}
         description={formatMessage({
           id: "app.garden.joinRequest.overview",
-          defaultMessage: "Follow your request to join this garden.",
+          defaultMessage: "Follow along after asking to join this garden.",
         })}
         size="lg"
         sheetSize="full"
@@ -337,7 +336,7 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
                   {formatMessage(
                     {
                       id: "app.garden.joinRequest.requestingAs",
-                      defaultMessage: "Requesting as {name}",
+                      defaultMessage: "Asking as {name}",
                     },
                     { name: <strong className="text-text-strong-950">{requestName}</strong> }
                   )}
@@ -381,7 +380,7 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
               {formatMessage({
                 id: "app.garden.joinRequest.signingExplanation",
                 defaultMessage:
-                  "Confirm with your wallet or passkey to send your request and check for updates. There’s no fee.",
+                  "Confirm with your wallet or passkey to ask to join and check for updates. There’s no fee.",
               })}
             </p>
           ) : null}

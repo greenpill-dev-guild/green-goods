@@ -138,12 +138,7 @@ export const EventsPortuguese: Story = {
   tags: ["storybook-ci"],
   decorators: [withLocale("pt")],
   play: async ({ args }) => {
-    await expectEvents(
-      "Notificações",
-      "Em TAS HUB",
-      args.markSeen,
-      "3 pessoas pediram para entrar"
-    );
+    await expectEvents("Notificações", "Em TAS HUB", args.markSeen, "3 pessoas solicitaram entrar");
   },
 };
 
