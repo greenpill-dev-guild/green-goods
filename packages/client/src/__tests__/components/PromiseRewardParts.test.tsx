@@ -96,4 +96,24 @@ describe("PromiseRewardParts", () => {
     );
     expect(screen.getByText(text)).toBeInTheDocument();
   });
+
+  // The reward's one line leaves where it stands to the part rows, so the G$ row says it too.
+  it.each([
+    { payout: "paid" as const, text: "160,000 G$ on Celo, paid" },
+    { payout: "notPaidYet" as const, text: "160,000 G$ on Celo, not paid yet" },
+  ])("says whether the G$ part is $payout", ({ payout, text }) => {
+    mocks.shares = [];
+    mocks.isReading = false;
+    renderWithProviders(
+      <PromiseRewardParts
+        reward={{ wei: 160_000n * 10n ** 18n, centsAsSet: null, others: [LEG] }}
+        chainId={42161}
+        commitmentId={19n}
+        viewer={null}
+        stewards={[STEWARD]}
+        payout={payout}
+      />
+    );
+    expect(screen.getByText(text)).toBeInTheDocument();
+  });
 });

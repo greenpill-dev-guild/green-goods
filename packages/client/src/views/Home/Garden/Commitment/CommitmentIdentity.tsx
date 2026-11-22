@@ -101,9 +101,8 @@ export function CommitmentIdentity({
   const intl = useIntl();
   const { formatMessage } = intl;
   const headingId = useId();
-  const rewards = rewardsBelow
-    ? []
-    : [promiseRewardOf(commitment, metadata)].filter((reward) => reward !== null);
+  const promised = promiseRewardOf(commitment, metadata);
+  const rewards = rewardsBelow ? [] : [promised].filter((reward) => reward !== null);
   // Today's G$ price is read only for a reward whose dollars can't be read from its record.
   const price = useGoodDollarPrice({ enabled: rewardsNeedPrice(rewards) });
   const payout = promisePayoutOf(commitment);
@@ -114,10 +113,16 @@ export function CommitmentIdentity({
     price: price.state,
     payout: rewardLinePayout(onlyReward, payout),
   });
-  // A reward paid in more than one token shows each part on its own row (PRD-1556).
-  const rewardParts = onlyReward?.others?.length ? (
+  // A reward paid in more than one token shows each part on its own row (PRD-1556). Where the
+  // service section below carries the G$ and voucher rewards, only the wallet-paid parts show here.
+  const partsReward = rewardsBelow
+    ? promised?.others?.length
+      ? { ...promised, wei: 0n, centsAsSet: null }
+      : undefined
+    : onlyReward;
+  const rewardParts = partsReward?.others?.length ? (
     <PromiseRewardParts
-      reward={onlyReward}
+      reward={partsReward}
       chainId={commitment.chainId}
       commitmentId={commitment.commitmentId}
       viewer={viewer}

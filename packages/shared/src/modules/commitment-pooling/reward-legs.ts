@@ -77,16 +77,14 @@ function goodDollarLegOf(commitment: RewardRecord, metadata: RewardMetadata): Re
 }
 
 /**
- * A token a steward may pay a part in: one the registry lists on that chain, and
- * not G$, whose transfer fee would leave the gardener short of the declared amount.
+ * The token a steward may pay a part in: USDC, as the registry lists it on that
+ * chain. The pilot pays only USDC. The registry's other payout assets include
+ * WETH, whose units aren't dollars, so a part declared in one could ask for an
+ * amount its dollars don't describe.
  */
 function stewardWalletRewardToken(chainId: number, token: string) {
-  const address = token.toLowerCase();
-  return (
-    getStablecoinSendableTokens(chainId).find(
-      (entry) => entry.supported && entry.symbol !== "G$" && entry.address.toLowerCase() === address
-    ) ?? null
-  );
+  const usdc = rewardUsdcToken(chainId);
+  return usdc && usdc.address.toLowerCase() === token.toLowerCase() ? usdc : null;
 }
 
 /**

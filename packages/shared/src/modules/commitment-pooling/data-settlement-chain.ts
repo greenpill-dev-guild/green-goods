@@ -31,6 +31,7 @@ import {
   mapRow,
   ordinal,
 } from "./data-settlement-chain-mappers";
+import { rewardShareRecipientsOf } from "./reward-payer";
 import { hashRecognitionSnapshot, type RecognitionEntryInput } from "./settlement";
 import type {
   SettlementChainDisbursement,
@@ -239,11 +240,5 @@ export async function readPayoutShareRecipients(input: {
       mapRow(contributor, await settle("contributorPayoutOf", [payoutPlanId, contributor]))
     )
   );
-  return {
-    finalized: plan.finalized,
-    recipients: rows.map((row) => ({
-      recipient: row.contributor,
-      weightBps: row.paymentWeightBps,
-    })),
-  };
+  return { finalized: plan.finalized, recipients: rewardShareRecipientsOf(plan, rows) };
 }

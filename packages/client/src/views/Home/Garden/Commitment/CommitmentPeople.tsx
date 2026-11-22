@@ -166,7 +166,7 @@ export function CommitmentPeople({
         ) : null}
 
         {reward ? <PromiseRewardRow text={reward} /> : null}
-        {reward ? rewardParts : null}
+        {rewardParts}
 
         {commitment.leadProvider ? (
           <FactRow

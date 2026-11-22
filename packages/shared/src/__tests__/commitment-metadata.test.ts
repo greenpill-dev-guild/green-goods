@@ -398,10 +398,16 @@ describe("commitment reward legs, declared at Create", () => {
       )?.incomplete
     ).toBe(true);
     // A part on another chain than the promise, or whose dollars aren't the G$ part's, can't be
-    // paid as declared, so a CID written outside the app can't put another amount on Pay.
+    // paid as declared, so a CID written outside the app can't put another amount on Pay. Nor
+    // can a part in another registry token: 5 WETH would pass as "$5.00" at its 18 decimals.
+    const weth = {
+      token: "0x82af49447d8a07e3bd95bd0d56f35241523fbab1",
+      amount: "5000000000000000000",
+    };
     for (const [promise, leg] of [
       [{ ...goodDollarPromise, chainId: 11155111 }, usdcLeg],
       [goodDollarPromise, { ...usdcLeg, usdCents: "600", amount: "6000000" }],
+      [goodDollarPromise, { ...usdcLeg, ...weth }],
     ] as const) {
       const metadata = buildCommitmentMetadata({ title: "Survey", reward, rewardLegs: [leg] });
       expect(promiseRewardLegsOf(promise, metadata)).toMatchObject({
@@ -425,8 +431,23 @@ describe("commitment reward legs, declared at Create", () => {
       [usdcLeg, usdcLeg],
       Array.from({ length: 5 }, (_, index) => ({ ...usdcLeg, chainId: index + 1 })),
       [{ ...usdcLeg, amount: "0" }],
+      // Past a uint256 the share id can't be encoded, so reading it would break the page.
+      [
+        {
+          ...usdcLeg,
+          amount: (2n ** 256n).toString(),
+          usdCents: (2n ** 256n / 10_000n).toString(),
+        },
+      ],
     ]) {
       expect(() => buildCommitmentMetadata({ title: "Survey", rewardLegs })).toThrow("reward legs");
     }
+    expect(
+      parseCommitmentMetadata({
+        version: 1,
+        title: "Survey",
+        rewardLegs: [{ ...usdcLeg, amount: (2n ** 256n).toString() }],
+      })
+    ).toMatchObject({ rewardLegsUnreadable: true });
   });
 });

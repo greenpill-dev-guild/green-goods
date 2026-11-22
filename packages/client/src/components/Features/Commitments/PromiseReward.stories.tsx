@@ -113,7 +113,7 @@ export const PartsOnThePromisePage: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText("160,000 G$ on Celo")).toBeVisible();
+    await expect(canvas.getByText("160,000 G$ on Celo, not paid yet")).toBeVisible();
     await expect(canvas.getByText("20 USDC on Arbitrum One, not paid yet")).toBeVisible();
   },
 };

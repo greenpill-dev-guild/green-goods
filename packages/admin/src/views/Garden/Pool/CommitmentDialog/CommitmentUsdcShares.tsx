@@ -6,6 +6,7 @@ import { toastService } from "@green-goods/shared/components/Toast/toast.service
 import {
   promiseRewardLegsOf,
   type RewardPayOutcome,
+  rewardShareRecipientsOf,
   rewardShareSettled,
   rewardSharesOwed,
   type RewardShareState,
@@ -231,12 +232,10 @@ export function CommitmentUsdcSharesSection({
     chainId: settlement.chainId,
     commitmentId: commitment.commitmentId,
     legs,
+    // Split as the G$ plan pays: a garden that took up a Request, or each contributor by weight.
     recipients:
-      splitFixed === true
-        ? settlement.rows.map((row) => ({
-            recipient: row.contributor,
-            weightBps: row.paymentWeightBps,
-          }))
+      splitFixed === true && settlement.plan
+        ? rewardShareRecipientsOf(settlement.plan, settlement.rows)
         : [],
   });
   const [leg] = legs;

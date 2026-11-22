@@ -423,7 +423,8 @@ export function PromiseRewardParts({
           icon={<RiCoinsLine />}
           label={formatMessage({ id: "app.commitment.reward.part.label" }, { symbol: "G$" })}
           value={formatMessage(
-            { id: "app.commitment.reward.part.goodDollars" },
+            // Settlement says whether the G$ part was paid, so its row says so too.
+            { id: PART_MESSAGE_ID[payout === "unstated" ? "unknown" : payout] },
             {
               amount: tokensAmountText(intl, { wei: reward.wei, centsAsSet: null }),
               network: network(42220),

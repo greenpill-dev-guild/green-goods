@@ -14,6 +14,7 @@ import {
   rewardLegShares,
   rewardPayerShareId,
   rewardShareSettled,
+  rewardShareRecipientsOf,
   rewardSharesOwed,
 } from "../modules/commitment-pooling/reward-payer";
 import type { Address } from "../types/domain";
@@ -94,6 +95,29 @@ describe("reward payer shares", () => {
     // C never pays their own share, and a share still being read is never offered.
     expect(rewardSharesOwed(parts, C)).toEqual([]);
     expect(rewardSharesOwed([{ ...parts[2]!, paidBy: undefined }], coSteward)).toEqual([]);
+  });
+
+  it("splits as the G$ plan pays: a garden that took up a Request whole, else each contributor", () => {
+    const rows = [
+      { contributor: A, paymentWeightBps: 6_000 },
+      { contributor: B, paymentWeightBps: 4_000 },
+    ];
+    expect(
+      rewardShareRecipientsOf(
+        { payoutKind: "CONTRIBUTOR_CONSIDERATION", beneficiaryGarden: null },
+        rows
+      )
+    ).toEqual([
+      { recipient: A, weightBps: 6_000 },
+      { recipient: B, weightBps: 4_000 },
+    ]);
+    // A garden's plan pays its Safe and has no contributor rows: the USDC part goes to that garden.
+    expect(
+      rewardShareRecipientsOf({ payoutKind: "GARDEN_BENEFICIARY", beneficiaryGarden: C }, [])
+    ).toEqual([{ recipient: C, weightBps: 10_000 }]);
+    expect(
+      rewardShareRecipientsOf({ payoutKind: "GARDEN_BENEFICIARY", beneficiaryGarden: null }, rows)
+    ).toEqual([]);
   });
 
   it("offers nothing to pay when the split can't be stated exactly", () => {

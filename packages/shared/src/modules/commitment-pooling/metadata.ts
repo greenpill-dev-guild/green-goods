@@ -205,6 +205,12 @@ function cleanDisplayGroup(value: unknown): CommitmentDisplayGroup | null {
 
 /** A positive whole number, as a decimal string without a sign or leading zeros. */
 const POSITIVE_WHOLE = /^[1-9]\d{0,77}$/;
+const MAX_UINT256 = 2n ** 256n - 1n;
+
+/** A positive whole number a contract can hold: a leg's amount is encoded as a uint256. */
+function isPositiveUint256(value: unknown): value is string {
+  return typeof value === "string" && POSITIVE_WHOLE.test(value) && BigInt(value) <= MAX_UINT256;
+}
 
 /** A reward record this reader understands, or null; a later version reads as none. */
 function cleanRewardRecord(value: unknown): CommitmentRewardRecord | null {
@@ -236,8 +242,7 @@ function cleanRewardLeg(value: unknown): CommitmentRewardLegRecord | null {
   const { chainId, token, amount, usdCents } = record;
   if (typeof chainId !== "number" || !Number.isSafeInteger(chainId) || chainId <= 0) return null;
   if (typeof token !== "string" || !TOKEN_ADDRESS.test(token)) return null;
-  if (typeof amount !== "string" || !POSITIVE_WHOLE.test(amount)) return null;
-  if (typeof usdCents !== "string" || !POSITIVE_WHOLE.test(usdCents)) return null;
+  if (!isPositiveUint256(amount) || !isPositiveUint256(usdCents)) return null;
   return {
     version: COMMITMENT_REWARD_LEG_VERSION,
     chainId,

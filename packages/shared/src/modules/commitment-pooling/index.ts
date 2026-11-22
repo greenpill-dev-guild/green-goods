@@ -25,6 +25,7 @@ export * from "./proof-draft-repository";
 export * from "./reasons";
 export * from "./reward-legs";
 export {
+  rewardShareRecipientsOf,
   rewardShareSettled,
   rewardSharesOwed,
   type RewardShareRecipient,

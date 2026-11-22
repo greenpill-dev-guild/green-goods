@@ -20,6 +20,7 @@
 import { encodeAbiParameters, getAddress, type Hex, keccak256, type PublicClient } from "viem";
 import type { Address } from "../../types/domain";
 import type { RewardLeg } from "./reward-legs";
+import type { SettlementChainPlan, SettlementChainRow } from "./settlement-workflow-types";
 
 export const REWARD_PAYER_ABI = [
   {
@@ -146,6 +147,22 @@ export function rewardLegShares(input: {
       amount: amounts[index] ?? 0n,
     }))
     .filter((share) => share.amount > 0n);
+}
+
+/**
+ * Who a reward's wallet-paid part is split among, as the G$ payout plan pays:
+ * the garden a Request pays when a garden took it up, whole, or else each
+ * contributor by the payment weight the plan fixed. The Hub and the app both
+ * read the split here, so they always compute the same shares.
+ */
+export function rewardShareRecipientsOf(
+  plan: Pick<SettlementChainPlan, "payoutKind" | "beneficiaryGarden">,
+  rows: readonly Pick<SettlementChainRow, "contributor" | "paymentWeightBps">[]
+): RewardShareRecipient[] {
+  if (plan.payoutKind === "GARDEN_BENEFICIARY") {
+    return plan.beneficiaryGarden ? [{ recipient: plan.beneficiaryGarden, weightBps: 10_000 }] : [];
+  }
+  return rows.map((row) => ({ recipient: row.contributor, weightBps: row.paymentWeightBps }));
 }
 
 /**
