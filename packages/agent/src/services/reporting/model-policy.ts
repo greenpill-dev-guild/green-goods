@@ -35,9 +35,13 @@ export const REDACTION_MARK = /\[(?:link|email|address|account|handle|token|phon
  *   the larger ("2345-67890"), which is how a range is written.
  * - Nine digits or more in one row are taken for a phone number whatever they are: a row of counts
  *   ("10 20 30 40 50"), a quantity in the hundreds of millions ("612.345.678") or a list of
- *   opening hours. A model then reads "[phone]" where the gardener wrote numbers.
+ *   opening hours. So are eight digits that open with 0, as a Brazilian postcode ("01310-100")
+ *   does, and the digits of a precise coordinate. A model then reads "[phone]" where the gardener
+ *   wrote numbers.
  * - A full stop with no space after it reads as a link when a slash follows later in the word
  *   ("rega.poda/colheita") or the next word is a common ending ("garden.Site visit").
+ * - A link with no scheme, an upper-case ending outside the common ones, a path and no query
+ *   ("T.ME/NAME") passes; a lower-case one, or one with a query value, does not.
  *
  * It removes what it can detect; it is not a promise that a model never sees personal data.
  */
@@ -70,17 +74,26 @@ const REDACTIONS: ReadonlyArray<readonly [RegExp, string]> = [
   [/\b0x[0-9a-f]{2,}(?:…|\.{2,3})[0-9a-f]{2,}\b/giu, "[address]"],
   [/\b0x[0-9a-f]{8,}\b/giu, "[address]"],
   [/(?<![\p{L}\p{N}])[\p{L}\p{N}_-]+(?:\.[\p{L}\p{N}_-]+)*\.eth(?![\p{L}\p{N}_])/giu, "[account]"],
-  [/(?<![\w@])@[a-z]\w{2,}/giu, "[handle]"],
+  [/(?<![\w@])@[a-z]\w{2,}(?:\.\w+)*/giu, "[handle]"],
   // Continuation tokens, keys and other long opaque strings: letters and digits mixed, unbroken.
   [/\b(?=[\w-]*\d)(?=[\w-]*[a-z])[\w-]{32,}\b/giu, "[token]"],
 ];
 
+/** A space between groups of digits: ordinary, tab, no-break or narrow no-break. */
+const GAP = "[ \\t\\u00a0\\u202f]";
+/** A hyphen or a dash between groups of digits. */
+const DASH = "[-\\u2010-\\u2015]";
+
 /**
- * Eight or more digits in a row, joined by at most one space, hyphen, bracket or (between digits)
- * dot: a candidate phone number. A full stop followed by a space ends the run, so the count that
- * opens the next sentence is not part of it.
+ * Eight or more digits in a row, joined by up to two spaces, a hyphen or dash, a bracket, or
+ * (between digits) a slash or a dot: a candidate phone number. A full stop followed by a space ends the
+ * run, so the count that opens the next sentence is not part of it. The characters are written as
+ * escapes so that no editor can turn a no-break space into an ordinary one.
  */
-const DIGIT_RUN = /(?<!\d)\+?\(?\d(?:(?: ?[-‐-―] ?| ?\(|\) ?|[  ]|\.(?=\d))?\d){7,}(?!\d)/gu;
+const DIGIT_RUN = new RegExp(
+  `(?<!\\d)\\+?\\(?\\d(?:(?:${GAP}{0,2}${DASH}${GAP}{0,2}|${GAP}{0,2}\\(|\\)${GAP}{0,2}(?:${DASH}${GAP}{0,2})?|${GAP}{1,2}|\\/|\\.(?=\\d))?\\d){7,}(?!\\d)`,
+  "gu"
+);
 /** Three numbers with the same separator, which may be a date. */
 const DATE_SHAPED = /(?<![\d.,/-])(\d{1,4})([-./])(\d{1,2})\2(\d{1,4})(?![\d/-]|\.\d)/gu;
 /**
@@ -88,9 +101,9 @@ const DATE_SHAPED = /(?<![\d.,/-])(\d{1,4})([-./])(\d{1,2})\2(\d{1,4})(?![\d/-]|
  * call. Anything longer, or joined to its neighbours by a dot, a hyphen or a bracket, is not one:
  * "612.345.678" and "900.123" are how phone numbers are written in Spanish and Portuguese.
  */
-const DECIMAL = /(?<![\d.()‐-―-])\d{1,3}\.\d{1,2}(?![\d.()‐-―-])/gu;
+const DECIMAL = /(?<![\d.()\u2010-\u2015-])\d{1,3}\.\d{1,2}(?![\d.()\u2010-\u2015-])/gu;
 /** Two numbers joined by a hyphen, as a range is written. */
-const RANGE = /^(\d+) ?[-‐-―] ?(\d+)$/u;
+const RANGE = /^(\d+) ?[-\u2010-\u2015] ?(\d+)$/u;
 
 const isYear = (digits: string) => /^(?:19|20)\d{2}$/u.test(digits);
 
@@ -172,7 +185,7 @@ function withoutPhones(text: string): string {
   return clean;
 }
 
-const NUMBER_PART = /[\d\s().‐-―+-]/u;
+const NUMBER_PART = /[\d\s().\u2010-\u2015+/-]/u;
 
 /**
  * Text without the number it ends on, when the cut may have split one: a phone number written in
@@ -193,7 +206,7 @@ export function sanitizeModelText(text: string, maxChars: number): string {
   // identifier is written in.
   const limit = maxChars * 2;
   const long = text.length > limit;
-  const head = long ? text.slice(0, limit) : text;
+  const head = long ? text.slice(0, limit).replace(/[\ud800-\udbff]$/u, "") : text;
   const cut = /\s\S+$/u.test(head) ? /\S+$/u : /[\w.@:/?#=&%+()-]+$/u;
   let clean = long ? withoutTrailingNumber(head.replace(cut, "")) : head;
   for (const [pattern, replacement] of REDACTIONS) clean = clean.replace(pattern, replacement);

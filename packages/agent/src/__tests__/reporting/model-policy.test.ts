@@ -41,6 +41,12 @@ describe("model input sanitizer", () => {
     ["mi cel es 55 12 34 56 78", "mi cel es [phone]"],
     ["55-12-34-56-78 o 55.12.34.56.78", "[phone] o [phone]"],
     ["81 12 34 56 78 y trabajamos 3 horas", "[phone] y trabajamos 3 horas"],
+    // No-break spaces, as contacts apps and French grouping write them, and other separators.
+    ["ligue 0803\u00a0123\u00a04567", "ligue [phone]"],
+    ["+33\u00a06\u00a012\u00a034\u00a056\u00a078 et 612\u202f345\u202f678", "[phone] et [phone]"],
+    ["(555)-123-4567, +1 (555)-123-4567, (020)-7946-0958", "[phone], [phone], [phone]"],
+    ["555/123-4567 or 0803  123  4567 or 0803\t123\t4567", "[phone] or [phone] or [phone]"],
+    ["IG: @joao.silva_horta", "IG: [handle]"],
     // What is written onto a number or around a date is not left behind.
     ["+234(0)8031234567", "[phone]"],
     ["(12/03/2026) 0803 123 4567", "(12/03/2026) [phone]"],
@@ -100,6 +106,10 @@ describe("model input sanitizer", () => {
     // A phone number written in groups across the cut goes whole, not only its last group.
     const grouped = `https://example.org/${"a".repeat(968)} +234 800 000 0001`;
     expect(sanitizeModelText(grouped, 500)).not.toMatch(/234|800/u);
+    // A first cut through an emoji leaves no half of it, even when redaction then shortens the text.
+    expect(sanitizeModelText(`0x${"a".repeat(79)}${"🌱".repeat(20)}`, 50)).not.toMatch(
+      /[\ud800-\udbff](?![\udc00-\udfff])/u
+    );
     // A redaction that shortens the text does not bring the cut word into the result.
     const shortened = `t.me/${"a".repeat(1979)} alice@example.com`;
     expect(sanitizeModelText(shortened, 500)).not.toMatch(/alice|example/u);

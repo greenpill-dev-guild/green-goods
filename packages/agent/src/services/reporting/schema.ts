@@ -150,6 +150,12 @@ export const REPORTING_MIGRATIONS: readonly ReportingMigration[] = [
         ON conversation_prompts(conversation_id, created_at) WHERE subject_kind = 'review'`,
       `CREATE INDEX IF NOT EXISTS delivery_outbox_prompt
         ON delivery_outbox(prompt_id, dispatch_seq) WHERE prompt_id IS NOT NULL`,
+      // Where a model's view of a conversation starts: the account's last link or unlink, and
+      // the chat's last closed report.
+      `CREATE INDEX IF NOT EXISTS account_bindings_participant
+        ON account_bindings(participant_id)`,
+      `CREATE INDEX IF NOT EXISTS work_drafts_conversation
+        ON work_drafts(conversation_id, updated_at)`,
     ],
   },
 ];
