@@ -357,6 +357,7 @@ afterEach(() => {
 const ACT_SEND = {
   onBroadcast: expect.any(Function),
   onAwaiting: expect.any(Function),
+  onUnconfirmed: expect.any(Function),
   signal: expect.any(AbortSignal),
 };
 
@@ -700,7 +701,7 @@ describe("usePoolConsoleController", () => {
         commitmentId: COMMITMENT.commitmentId,
         buyer: CLAIMANT,
         expectedClaimHash: ready.claimHash,
-        send: { ...ACT_SEND, onUnconfirmed: expect.any(Function) },
+        send: ACT_SEND,
       },
     ]);
     // It is the ask's decision, on the same line Approve uses, so its row keeps the outcome.
@@ -839,6 +840,10 @@ describe("usePoolConsoleController", () => {
       expect(outcome).toBe("acceptanceConfirming");
       expect(mocks.prepareStart).not.toHaveBeenCalled();
       expect(mocks.sender.sendContractCall).not.toHaveBeenCalled();
+      // Nor does the ask read as approved: its row holds the acceptance as still confirming.
+      expect(
+        result.current.claimDecisions[claimActKey(COMMITMENT.commitmentId, CLAIMANT)]
+      ).toBeUndefined();
     });
 
     it("keeps the acceptance when its start fails, and says the start wasn't sent", async () => {

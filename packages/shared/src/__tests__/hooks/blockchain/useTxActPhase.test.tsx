@@ -200,6 +200,16 @@ describe("useTxActPhase.track", () => {
       },
       { status: "safe-signers", key: "k" },
     ],
+    // PRD-1574: an opaque answer with no receipt and no Safe behind it hasn't landed yet.
+    [
+      "still confirming when the wallet answers with no receipt and no Safe",
+      async (send) => {
+        await send.onBroadcast?.(HASH);
+        send.onUnconfirmed?.();
+        return HASH;
+      },
+      { status: "still-confirming", key: "k" },
+    ],
   ])("ends %s, never failed", async (_case, run, expected) => {
     const { result } = renderHook(() => useTxActPhase());
 

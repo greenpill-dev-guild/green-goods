@@ -268,6 +268,7 @@ export function usePoolConsoleController(input: {
               },
               onUnconfirmed: () => {
                 unconfirmed = true;
+                send.onUnconfirmed?.();
               },
             },
           }),
