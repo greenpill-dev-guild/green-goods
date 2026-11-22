@@ -554,6 +554,7 @@
   "admin.manageRoles.lock.lastOwner": "A garden keeps at least one owner. Add another owner first.",
   "admin.manageRoles.restore.action": "Restore {roles}",
   "admin.manageRoles.restore.changed": "Their roles have changed, so nothing was sent.",
+  "admin.manageRoles.restore.done": "{count, plural, one {Role restored.} other {Roles restored.}} This list will catch up in a moment.",
   "admin.manageRoles.restore.failed": "Not every role was restored. Try again.",
   "admin.manageRoles.restore.missing": "Missing {roles}, which their {role} role includes.",
   "admin.manageRoles.restore.nothing": "Nothing is missing. The chain already shows these roles, and this list will catch up.",

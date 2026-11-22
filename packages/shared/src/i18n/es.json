@@ -554,6 +554,7 @@
   "admin.manageRoles.lock.lastOwner": "Un jardín conserva al menos un propietario. Agrega otro propietario primero.",
   "admin.manageRoles.restore.action": "Restaurar {roles}",
   "admin.manageRoles.restore.changed": "Sus roles cambiaron, así que no se envió nada.",
+  "admin.manageRoles.restore.done": "{count, plural, one {Rol restaurado.} other {Roles restaurados.}} Esta lista se pondrá al día en un momento.",
   "admin.manageRoles.restore.failed": "No se restauraron todos los roles. Inténtalo de nuevo.",
   "admin.manageRoles.restore.missing": "{count, plural, one {Le falta {roles}, que incluye su rol de {role}.} other {Le faltan {roles}, que incluye su rol de {role}.}}",
   "admin.manageRoles.restore.nothing": "No falta nada. La cadena ya muestra estos roles y esta lista se pondrá al día.",

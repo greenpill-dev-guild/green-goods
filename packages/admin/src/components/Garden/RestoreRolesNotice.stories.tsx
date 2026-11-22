@@ -12,7 +12,7 @@ const meta: Meta<typeof RestoreRolesNotice> = {
     docs: {
       description: {
         component:
-          "Names the roles a person's Owner or Steward role gives but they lack, and restores them in one action. The chain is read first, so the wallet is asked only for roles still missing (PRD-979).",
+          "Names the roles a person's Owner or Steward role gives but they lack, and restores them in one action. The chain and the person's history are read again first, so the wallet is asked only for roles still missing and never recorded (PRD-979).",
       },
     },
   },
@@ -20,7 +20,10 @@ const meta: Meta<typeof RestoreRolesNotice> = {
     address: MEMBER,
     roles: ["steward", "gardener"],
     recordedRoles: ["steward", "gardener"],
-    check: fn(async () => ["owner" as const, "evaluator" as const]),
+    check: fn(async () => ({
+      lacking: ["owner" as const, "evaluator" as const],
+      recordedRoles: ["steward" as const, "gardener" as const],
+    })),
     restore: fn(async () => true),
   },
 };
@@ -36,13 +39,21 @@ export const OwnerMissingGardener: Story = {
   args: {
     roles: ["owner", "steward"],
     recordedRoles: ["owner", "steward"],
-    check: fn(async () => ["gardener" as const]),
+    check: fn(async () => ({
+      lacking: ["gardener" as const],
+      recordedRoles: ["owner" as const, "steward" as const],
+    })),
   },
 };
 
 /** The indexed list lagged the chain: nothing is sent, and the row says so. */
 export const NothingMissingOnChain: Story = {
-  args: { check: fn(async () => ["owner" as const]) },
+  args: {
+    check: fn(async () => ({
+      lacking: ["owner" as const],
+      recordedRoles: ["steward" as const, "gardener" as const],
+    })),
+  },
   play: async ({ args, canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole("button", { name: "Restore Evaluator" }));
@@ -61,7 +72,7 @@ export const DeliberateRemovalNotOffered: Story = {
   },
 };
 
-/** A viewer who cannot grant a missing role is pointed to an owner instead. */
+/** A viewer who cannot grant a missing role is pointed to an owner or steward instead. */
 export const ViewerCannotRestore: Story = {
   args: { roles: ["owner"], recordedRoles: ["owner"], allowedRoles: ["steward"] },
 };

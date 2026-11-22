@@ -554,6 +554,7 @@
   "admin.manageRoles.lock.lastOwner": "Um jardim mantém pelo menos um proprietário. Adicione outro proprietário primeiro.",
   "admin.manageRoles.restore.action": "Restaurar {roles}",
   "admin.manageRoles.restore.changed": "As funções mudaram, então nada foi enviado.",
+  "admin.manageRoles.restore.done": "{count, plural, one {Função restaurada.} other {Funções restauradas.}} Esta lista vai se atualizar em instantes.",
   "admin.manageRoles.restore.failed": "Nem todas as funções foram restauradas. Tente novamente.",
   "admin.manageRoles.restore.missing": "{count, plural, one {Falta {roles}, que a função de {role} inclui.} other {Faltam {roles}, que a função de {role} inclui.}}",
   "admin.manageRoles.restore.nothing": "Não falta nada. A rede já mostra estas funções, e esta lista vai se atualizar.",

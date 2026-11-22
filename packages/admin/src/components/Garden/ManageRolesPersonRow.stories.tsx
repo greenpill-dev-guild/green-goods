@@ -105,7 +105,10 @@ export const MissingSubRole: Story = {
         address={KWAME}
         roles={["steward", "gardener"]}
         recordedRoles={["steward", "gardener"]}
-        check={async () => ["owner", "evaluator"]}
+        check={async () => ({
+          lacking: ["owner", "evaluator"],
+          recordedRoles: ["steward", "gardener"],
+        })}
         restore={async () => true}
       />
     ),

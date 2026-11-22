@@ -24,7 +24,7 @@ const addGardener = vi.hoisted(() => vi.fn());
 const addSteward = vi.hoisted(() => vi.fn());
 const addEvaluator = vi.hoisted(() => vi.fn());
 const checkSubRoles = vi.hoisted(() => vi.fn());
-const memberHistory = vi.hoisted(() => ({ members: [] as GardenMemberHistory[] }));
+const memberHistory = vi.hoisted(() => ({ members: [] as GardenMemberHistory[], isError: false }));
 const removeOwner = vi.hoisted(() => vi.fn());
 const scheduleBackgroundRefetch = vi.hoisted(() => vi.fn());
 type AddMembersBatch = ReturnType<typeof useAddMembersBatch>;
@@ -62,7 +62,8 @@ vi.mock("@green-goods/shared/hooks/garden/useGardenMemberHistory", () => ({
   useGardenMemberHistory: () => ({
     members: memberHistory.members,
     isLoading: false,
-    isError: false,
+    isError: memberHistory.isError,
+    refetch: vi.fn(),
   }),
 }));
 vi.mock("@green-goods/shared/hooks/blockchain/useEnsAddress", () => ({
@@ -499,11 +500,15 @@ describe("CommunityMembersDialogs: restoring a missing sub-role (PRD-979)", () =
   });
   afterEach(() => {
     memberHistory.members = [];
+    memberHistory.isError = false;
   });
 
   it("grants only what the chain lacks, through the add path, from the person's Manage Roles row", async () => {
     // The indexed list shows the steward with neither sub-role; the chain already has Gardener.
-    checkSubRoles.mockResolvedValue(["owner", "evaluator"]);
+    checkSubRoles.mockResolvedValue({
+      lacking: ["owner", "evaluator"],
+      recordedRoles: ["steward"],
+    });
     renderAt(`/community/members?gardenId=${storyGarden.id}&item=manage-members&member=${steward}`);
 
     await userEvent.click(
@@ -523,7 +528,10 @@ describe("CommunityMembersDialogs: restoring a missing sub-role (PRD-979)", () =
 
   it("leaves an Evaluator that was once granted, and offers only the cascade gap", async () => {
     memberHistory.members = [stewardHistory(["steward", "evaluator"])];
-    checkSubRoles.mockResolvedValue(["owner", "gardener"]);
+    checkSubRoles.mockResolvedValue({
+      lacking: ["owner", "gardener"],
+      recordedRoles: ["steward", "evaluator"],
+    });
     renderAt(`/community/members?gardenId=${storyGarden.id}&item=manage-members&member=${steward}`);
 
     await userEvent.click(await screen.findByRole("button", { name: "Restore Gardener" }));
@@ -533,5 +541,28 @@ describe("CommunityMembersDialogs: restoring a missing sub-role (PRD-979)", () =
     );
     expect(screen.queryByRole("button", { name: /Evaluator/ })).not.toBeInTheDocument();
     expect(addEvaluator).not.toHaveBeenCalled();
+  });
+
+  it("holds Manage Roles while a restore reads the chain", async () => {
+    let settle: (value: unknown) => void = () => undefined;
+    checkSubRoles.mockReturnValue(new Promise((resolve) => (settle = resolve)));
+    renderAt(`/community/members?gardenId=${storyGarden.id}&item=manage-members&member=${steward}`);
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Restore Evaluator and Gardener" })
+    );
+    expect(screen.getByRole("button", { name: "Add Members" })).toBeDisabled();
+
+    settle({ lacking: ["owner"], recordedRoles: ["steward"] });
+    await waitFor(() => expect(screen.getByRole("button", { name: "Add Members" })).toBeEnabled());
+    expect(addEvaluator).not.toHaveBeenCalled();
+  });
+
+  it("offers nothing while the member history could not be read", async () => {
+    memberHistory.isError = true;
+    renderAt(`/community/members?gardenId=${storyGarden.id}&item=manage-members&member=${steward}`);
+
+    await screen.findByRole("dialog", { name: "Manage Roles" });
+    expect(screen.queryByRole("button", { name: /^Restore/ })).not.toBeInTheDocument();
   });
 });

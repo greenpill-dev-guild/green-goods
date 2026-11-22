@@ -9,7 +9,7 @@ import { useState } from "react";
 import { useIntl } from "react-intl";
 import { getRoleLabel } from "./gardenUtils";
 
-type RestoreStatus = "idle" | "working" | "nothing" | "changed" | "unread" | "failed";
+type RestoreStatus = "idle" | "working" | "restored" | "nothing" | "changed" | "unread" | "failed";
 
 export interface RestoreRolesNoticeProps {
   address: Address;
@@ -23,19 +23,31 @@ export interface RestoreRolesNoticeProps {
   /** The roles this viewer may grant; absent when every role is open to them. */
   allowedRoles?: readonly GardenRole[];
   disabled?: boolean;
-  /** Reads which roles the chain still lacks; `null` when a read fails. */
-  check: (address: Address, roles: readonly GardenRole[]) => Promise<GardenRole[] | null>;
+  /**
+   * Reads, when the action is pressed, which of the roles the chain still lacks and every role the
+   * person's history records now; `null` when a read fails or the history is unknown.
+   */
+  check: (
+    address: Address,
+    roles: readonly GardenRole[]
+  ) => Promise<{ lacking: GardenRole[]; recordedRoles: GardenRole[] } | null>;
   /** Grants each role; resolves true when every one landed. */
   restore: (address: Address, roles: readonly GardenRole[]) => Promise<boolean>;
-  /** The chain answered that nothing is missing, so the indexed roster is behind it. */
+  /** The chain or the history answered differently from this row, so the roster is behind them. */
   onRosterStale?: () => void;
+  /**
+   * Holds the surrounding dialog from the chain read to the last signature. `live` says whether the
+   * dialog that started the run is still the one open; an answer after it closed sends nothing.
+   */
+  startRun?: () => { live: () => boolean; end: () => void };
 }
 
 /**
  * Says which roles a person's Owner or Steward role gives but no grant ever minted, and restores
  * them in one action that names them. A sub-role with any recorded event is left alone. The chain
- * is read first, the giving role and a steward's Owner hat included, so the wallet is asked only for
- * roles still missing, and the steward is told when nothing is.
+ * and the person's history are read again first, the giving role and a steward's Owner hat
+ * included, so the wallet is asked only for roles still missing and still never recorded, and the
+ * steward is told when nothing is.
  */
 export function RestoreRolesNotice({
   address,
@@ -46,6 +58,7 @@ export function RestoreRolesNotice({
   check,
   restore,
   onRosterStale,
+  startRun,
 }: RestoreRolesNoticeProps) {
   const intl = useIntl();
   const { formatMessage } = intl;
@@ -69,43 +82,65 @@ export function RestoreRolesNotice({
   const canRestore = !allowedRoles || missing.every((role) => allowedRoles.includes(role));
 
   const run = async () => {
+    const hold = startRun?.() ?? { live: () => true, end: () => undefined };
     setStatus("working");
-    // The giving role is read too, and for a steward the Owner hat: if the giving role is gone, or
-    // the steward became an owner since the list was read, an Evaluator could go to an owner.
-    const guards: GardenRole[] = giver === "steward" ? ["steward", "owner"] : ["owner"];
-    const answer = await check(address, [...guards, ...missing]);
-    if (answer === null) {
-      setStatus("unread");
-      return;
+    try {
+      // The giving role is read too, and for a steward the Owner hat: if the giving role is gone,
+      // or the steward became an owner since the list was read, an Evaluator could go to an owner.
+      const guards: GardenRole[] = giver === "steward" ? ["steward", "owner"] : ["owner"];
+      const answer = await check(address, [...guards, ...missing]).catch((error: unknown) => {
+        logger.warn("Checking missing sub-roles failed", { error, roles: missing });
+        return null;
+      });
+      if (!hold.live()) return;
+      if (answer === null) {
+        setStatus("unread");
+        return;
+      }
+      const { lacking, recordedRoles: recordedNow } = answer;
+      if (lacking.includes(giver) || (giver === "steward" && !lacking.includes("owner"))) {
+        setStatus("changed");
+        onRosterStale?.();
+        return;
+      }
+      // The history read just now decides, not the one this row was drawn from: a role granted and
+      // revoked since then, an Owner grant included, rules a sub-role out.
+      const restorableNow = restorableSubRoles(roles, recordedNow);
+      if (missing.some((role) => !restorableNow.includes(role))) {
+        setStatus("changed");
+        onRosterStale?.();
+        return;
+      }
+      const stillMissing = lacking.filter((role) => missing.includes(role));
+      if (stillMissing.length === 0) {
+        setStatus("nothing");
+        onRosterStale?.();
+        return;
+      }
+      const landed = await restore(address, stillMissing).catch((error: unknown) => {
+        logger.warn("Restoring missing sub-roles failed", { error, roles: stillMissing });
+        return false;
+      });
+      if (!hold.live()) return;
+      setStatus(landed ? "restored" : "failed");
+      if (landed) onRosterStale?.();
+    } finally {
+      hold.end();
     }
-    if (answer.includes(giver) || (giver === "steward" && !answer.includes("owner"))) {
-      setStatus("changed");
-      onRosterStale?.();
-      return;
-    }
-    const stillMissing = answer.filter((role) => missing.includes(role));
-    if (stillMissing.length === 0) {
-      setStatus("nothing");
-      onRosterStale?.();
-      return;
-    }
-    const landed = await restore(address, stillMissing).catch((error: unknown) => {
-      logger.warn("Restoring missing sub-roles failed", { error, roles: stillMissing });
-      return false;
-    });
-    setStatus(landed ? "idle" : "failed");
   };
 
   const outcome =
-    status === "nothing"
-      ? formatMessage({ id: "admin.manageRoles.restore.nothing" })
-      : status === "changed"
-        ? formatMessage({ id: "admin.manageRoles.restore.changed" })
-        : status === "unread"
-          ? formatMessage({ id: "admin.manageRoles.restore.unread" })
-          : status === "failed"
-            ? formatMessage({ id: "admin.manageRoles.restore.failed" })
-            : null;
+    status === "restored"
+      ? formatMessage({ id: "admin.manageRoles.restore.done" }, { count: missing.length })
+      : status === "nothing"
+        ? formatMessage({ id: "admin.manageRoles.restore.nothing" })
+        : status === "changed"
+          ? formatMessage({ id: "admin.manageRoles.restore.changed" })
+          : status === "unread"
+            ? formatMessage({ id: "admin.manageRoles.restore.unread" })
+            : status === "failed"
+              ? formatMessage({ id: "admin.manageRoles.restore.failed" })
+              : null;
 
   return (
     <div className="space-y-1.5" data-component="RestoreRolesNotice">
@@ -124,7 +159,9 @@ export function RestoreRolesNotice({
           type="button"
           emphasis="secondary"
           size="compact"
-          disabled={disabled || status === "nothing" || status === "changed"}
+          disabled={
+            disabled || status === "restored" || status === "nothing" || status === "changed"
+          }
           loading={status === "working"}
           onClick={() => void run()}
         >
