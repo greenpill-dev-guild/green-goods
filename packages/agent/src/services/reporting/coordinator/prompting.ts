@@ -3,10 +3,7 @@ import {
   buildReportSummary,
   findInput,
   GRANT_LIMITS,
-  outstandingFieldQuestions,
   outstandingRequirements,
-  reportQuestionPosition,
-  pageChoices,
   type ReportRequirement,
 } from "@green-goods/shared/modules/agent-reporting";
 import type { Address, WorkInput } from "@green-goods/shared/types/domain";
@@ -14,8 +11,16 @@ import { type CatalogResult, orderActions } from "../catalog";
 import type { DraftRecord } from "../drafts";
 import { findGarden, type GardenDirectory, isUnlisted, type ReportingGarden } from "../gardens";
 import { filesInProgress } from "../media-intake";
-import { closeConversationPrompt, type PromptOption, promptsAsked } from "../prompts";
-import { EDITABLE_STATES, lifecycleState } from "./draft-commit";
+import { closeConversationPrompt } from "../prompts";
+import { profiledInput, type QuestionProfile } from "../questions";
+import { EDITABLE_STATES, lifecycleState, questionProfileOf } from "./draft-commit";
+import {
+  askField,
+  askFieldGroup,
+  fieldQuestionText,
+  formatDetail,
+  option,
+} from "./field-questions";
 import { askGarden } from "./garden-step";
 import type { ConversationWriter, TurnWriter } from "./writer";
 
@@ -32,120 +37,6 @@ export function formatMinutes(minutes: number): string {
   const hours = Math.floor(minutes / 60);
   const rest = minutes % 60;
   return hours > 0 ? `${hours} h${rest ? ` ${rest} min` : ""}` : `${rest} min`;
-}
-
-function formatDetail(input: WorkInput, value: unknown): string {
-  const labels = input.type === "band" ? input.bandLabels : input.optionLabels;
-  if (Array.isArray(value)) return value.map((key) => labels?.[key] ?? key).join(", ");
-  if (typeof value === "number") return `${value}${input.unit ? ` ${input.unit}` : ""}`;
-  return labels?.[String(value)] ?? String(value);
-}
-
-const option = (id: string, label: string, value: string): PromptOption => ({ id, label, value });
-
-/** The field questions this report has already put to the gardener, from its own prompts. */
-function askedQuestions(writer: ConversationWriter, draft: DraftRecord): ReportRequirement[] {
-  return promptsAsked(writer.core, "draft", draft.id).flatMap(
-    ({ kind, fieldKey }): ReportRequirement[] => {
-      if (kind === "field") return fieldKey ? [{ kind: "detail", key: fieldKey }] : [];
-      if (kind === "time" || kind === "time_unit") return [{ kind: "time" }];
-      if (kind === "title" || kind === "feedback") return [{ kind }];
-      return kind === "evidence" ? [{ kind: "evidence", minimum: 0, have: 0 }] : [];
-    }
-  );
-}
-
-/**
- * A field question with its place among the ones this report asks, "2 of 3 · ", so the count the
- * conversation opened with is the count it is numbered against. Garden, activity and contradiction
- * questions stay unnumbered, and so does a field asked again to change it.
- */
-export function fieldQuestionText(
-  writer: ConversationWriter,
-  draft: DraftRecord,
-  requirement: ReportRequirement,
-  question: string
-): string {
-  const place = reportQuestionPosition(
-    draft.content,
-    draft.snapshot,
-    requirement,
-    askedQuestions(writer, draft)
-  );
-  if (!place) return question;
-  // Questions are put one at a time, so this one follows those already answered, whatever its
-  // place in the activity's own list.
-  const waiting = outstandingFieldQuestions(draft.content, draft.snapshot).length;
-  const position = place.total - waiting + 1;
-  return `${writer.text("report.questionPosition", { position, total: place.total })}${question}`;
-}
-
-/** What the activity's own definition says about a field, when that adds to its title. */
-export function fieldHint(input: WorkInput): string {
-  const hint = (input.placeholder ?? "").trim().replace(/[.:…]+$/u, "");
-  return hint && hint.toLowerCase() !== input.title.trim().toLowerCase() ? hint : "";
-}
-
-/** A field's name as its question opens: with the definition's hint when it has one. */
-function fieldLead(writer: ConversationWriter, input: WorkInput): string {
-  const hint = fieldHint(input);
-  return hint
-    ? writer.text("report.fieldLeadHint", { title: input.title, hint })
-    : writer.text("report.fieldLead", { title: input.title });
-}
-
-export function askField(
-  writer: ConversationWriter,
-  draft: DraftRecord,
-  input: WorkInput,
-  pageIndex = 0
-): void {
-  const base = {
-    subjectKind: "draft" as const,
-    resourceId: draft.id,
-    resourceRevision: draft.revision,
-    kind: "field",
-    fieldKey: input.key,
-  };
-  if (input.type === "number") {
-    writer.ask(base, () =>
-      fieldQuestionText(
-        writer,
-        draft,
-        { kind: "detail", key: input.key },
-        writer.text("report.askNumber", {
-          title: fieldLead(writer, input),
-          unit: input.unit ? ` (${input.unit})` : "",
-        })
-      )
-    );
-    return;
-  }
-  if (input.type === "text" || input.type === "textarea") {
-    writer.ask(base, () =>
-      fieldQuestionText(
-        writer,
-        draft,
-        { kind: "detail", key: input.key },
-        writer.text("report.askText", { title: fieldLead(writer, input) })
-      )
-    );
-    return;
-  }
-  const page = pageChoices(input, pageIndex, writer.core.settings.choicePageSize);
-  const options = page.keys.map((key, index) => option(`${index}`, page.labels[index] ?? key, key));
-  if (page.hasMore)
-    options.push(option("more", writer.text("report.moreChoices"), `page:${pageIndex + 1}`));
-  writer.ask({ ...base, options, page: pageIndex }, () =>
-    fieldQuestionText(
-      writer,
-      draft,
-      { kind: "detail", key: input.key },
-      writer.text(input.type === "multi-select" ? "report.askMulti" : "report.askChoice", {
-        title: fieldLead(writer, input),
-      })
-    )
-  );
 }
 
 export function askAction(
@@ -249,7 +140,16 @@ function askRequirement(
       return;
     case "detail": {
       const input = findInput(snapshot, requirement.key);
-      if (input) askField(writer, draft, input);
+      if (!input) return;
+      // Asked with its partner while both are still missing; otherwise on its own.
+      const missing = outstandingRequirements(draft.content, snapshot);
+      const group = questionProfileOf(writer.core, draft)?.groups?.find(
+        ({ fields }) =>
+          fields.includes(input.key) &&
+          fields.every((key) => missing.some((need) => need.kind === "detail" && need.key === key))
+      );
+      if (group) askFieldGroup(writer, draft, group);
+      else askField(writer, draft, input);
       return;
     }
     case "time":
@@ -328,9 +228,16 @@ export function askConfirmation(
     snapshot,
     account: account as `0x${string}` | null,
   });
+  const profile = questionProfileOf(writer.core, draft);
   const details = snapshot.definition.inputs
     .filter((input) => summary.details[input.key] !== undefined)
-    .map((input) => `\n• ${input.title}: ${formatDetail(input, summary.details[input.key])}`)
+    .map(
+      (input) =>
+        `\n• ${input.title}: ${formatDetail(
+          profiledInput(profile, input, summary.details),
+          summary.details[input.key]
+        )}`
+    )
     .join("");
   writer.ask(
     {
@@ -425,23 +332,31 @@ export function promptNextStepFor(
     askConfirmation(writer, draft, account);
     return;
   }
-  askRequirement(writer, draft, nextRequirement(requirements, draft), view, account);
+  const profile = questionProfileOf(writer.core, draft);
+  askRequirement(writer, draft, nextRequirement(requirements, draft, profile), view, account);
 }
 
 const CHOICE_INPUTS = new Set<WorkInput["type"]>(["select", "multi-select", "band"]);
 
 /**
- * The requirement to ask next. An amount with no unit ("Milestone Value") only means something
- * once the gardener has picked what it measures ("Solar kW installed"), so such a number waits
- * for the first of the activity's choices still to be made. A number that names its unit, and
- * everything else, keeps the place the activity gives it.
+ * The requirement to ask next. A field whose profile says another has to be known first waits
+ * for it. For a field no profile covers, an amount with no unit ("Milestone Value") only means something once
+ * the gardener has picked what it measures ("Solar kW installed"), so such a number waits for the
+ * first of the activity's choices still to be made. A number that names its unit, and everything
+ * else, keeps the place the activity gives it.
  */
 function nextRequirement(
   requirements: readonly ReportRequirement[],
-  draft: DraftRecord
+  draft: DraftRecord,
+  profile: QuestionProfile | null
 ): ReportRequirement {
   const first = requirements[0] as ReportRequirement;
   if (first.kind !== "detail") return first;
+  const before = profile?.fields[first.key]?.after;
+  const dependency = requirements.find((need) => need.kind === "detail" && need.key === before);
+  if (dependency) return dependency;
+  // A field its profile asks in reviewed words says what it counts, so it keeps its place.
+  if (profile?.fields[first.key]) return first;
   const amount = findInput(draft.snapshot, first.key);
   if (amount?.type !== "number" || amount.unit) return first;
   for (const requirement of requirements) {

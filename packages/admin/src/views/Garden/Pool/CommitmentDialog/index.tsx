@@ -311,6 +311,7 @@ function CommitmentRecord({
         blockedReason={blockedReason}
         target={target}
         untaken={untaken}
+        escrowed={commitment.direction === "OFFER" && Boolean(voucherOutcomes?.payment)}
       />
       <CommitmentExpireDialog
         isOpen={open === "expire"}

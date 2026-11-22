@@ -475,6 +475,36 @@ describe("voucher booking on the promise page", () => {
     expect(settled.confirm?.split.detail).toBe("Approved; the transfer arrived");
   });
 
+  // PRD-1462: a promise canceled or expired once its booking started leaves the vouchers in
+  // escrow, so the holder hears the issuer has been asked to return them, with nothing to do yet.
+  it.each([
+    "CANCELLED",
+    "EXPIRED",
+  ] as const)("tells the holder the issuer has been asked to return the vouchers once the promise is %s", (coreState) => {
+    const booking = view("hubDay", "inProgress", { coreState });
+    expect(booking.stage).toBe("returnDue");
+    expect(booking.band.needsYou).toBe(false);
+    expect(booking.band.pill).toEqual({
+      labelId: "app.voucher.pp.st.endedEarly",
+      tone: "neutral",
+    });
+    expect(booking.band.sentence).toBe(
+      "This promise ended without being kept, so Tech and Sun has been asked to propose returning your voucher. You review the return here before anything moves."
+    );
+    expect(booking.primary).toBeNull();
+    expect(booking.tracker?.waiting).toBe("waiting on Tech and Sun");
+  });
+
+  // Review of PRD-1462: an expired promise can't be kept, so its settled booking ended early.
+  it("closes a booking on an expired promise as ended early, as a canceled one", () => {
+    for (const coreState of ["CANCELLED", "EXPIRED"] as const) {
+      expect(view("access", "closed", { coreState }).band.pill).toEqual({
+        labelId: "app.voucher.pp.st.endedEarly",
+        tone: "neutral",
+      });
+    }
+  });
+
   it("counts a partial one-unit delivery as one, so its final split stays offered", () => {
     const proposed = bookingStorySnapshot("hubDay", "returnProposed");
     // Tech and Sun proposes half the voucher back for a hub day cut short.
