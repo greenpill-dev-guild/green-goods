@@ -17,6 +17,7 @@ import { frozenReply, handleReportCommand } from "./report-commands";
 import {
   apply,
   applyInterpretation,
+  applyStory,
   autoFill,
   finish,
   gardenerFact,
@@ -119,6 +120,11 @@ export function handleReportMessage(
   }
 
   const work: Working = { content: draft.content, snapshot: draft.snapshot, changed: false };
+  // What the words name outright is taken as the gardener's own, with or without a model: a
+  // model's different reading of the same message then becomes a question, never a silent edit.
+  // A caption is not read this way: its turn waits for the files and reads nothing back, so a
+  // value changed by it would go unseen until the summary.
+  if (text && ctx.draft && plan.media.length === 0) applyStory(writer, draft, work, text);
   if (external.interpretation) {
     const scope = gardenScope(core.gardens, ctx.account?.address ?? null);
     applyInterpretation(work, external.interpretation, external, sourceEntryId, scope);

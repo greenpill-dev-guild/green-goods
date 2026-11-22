@@ -120,6 +120,21 @@ export const EN_REPORTING_COPY = {
     "Got it: {action} at {garden}. 1 quick question, then a summary to check.",
   "report.actionAdoptedMany":
     "Got it: {action} at {garden}. {count} quick questions, then a summary to check.",
+  "question.milestoneType": "What did you install or finish?",
+  "question.milestoneSolar": "How much solar capacity did you install, in kW? For example, 5 kW.",
+  "question.milestoneBattery":
+    "How much battery capacity did you add, in kWh? For example, 10 kWh.",
+  "question.milestoneInternet": "What speed is the connection now, in Mbps? For example, 50 Mbps.",
+  "question.milestoneRetrofit": "How many retrofits did you finish?",
+  "question.milestoneCommissioning": "How many systems did you test and hand over?",
+  "question.seedlingsPlanted": "How many seedlings did you plant?",
+  "question.seedlingsAndSpecies": "How many seedlings did you plant, and which species?",
+  "question.participants": "How many people took part?",
+  "question.speciesTags": "Which species did you plant?",
+  "report.accepted": "I have:{facts}",
+  "report.factNew": "\n• {title}: {now}",
+  "report.factChanged": "\n• {title}: {now} (was {was})",
+  "report.factTime": "Time spent",
   "report.askAction": "Which activity in {garden} best matches your work?",
   "report.moreChoices": "More options",
   "report.noActions":
@@ -155,6 +170,7 @@ export const EN_REPORTING_COPY = {
   "report.invalid.ambiguous_number":
     "Did you mean a whole number or a decimal? Please write it without a thousands separator, for example 1200 or 1.2.",
   "report.invalid.negative": "Please reply with a number of zero or more.",
+  "report.invalid.whole_number": "Please reply with a whole number of one or more, for example 2.",
   "report.invalid.unit_mismatch":
     "This is counted in {unit}, but you wrote {stated}. Could you give it in {unit}?",
   "report.invalid.unit_required": "Please include the unit, for example 2 hours or 30 minutes.",

@@ -13,15 +13,27 @@ import type { TurnContext } from "./context";
  * where the context begins.
  */
 /**
- * The assistant's replies a model may read as context: the questions the report in hand asked.
- * Summaries, links, account replies and outcomes are left out, so no confirmation code, address or
- * result reaches a provider through history. A decision's questions are left out too: what a
- * steward says about someone's work is not context for a report.
+ * The assistant's replies a model may read as context: the questions the report in hand asked,
+ * with what the reply said before each (the activity it took, the facts it read back). Summaries,
+ * links, account replies and outcomes are left out, so no confirmation code, address or result
+ * reaches a provider through history. A decision's questions are left out too: what a steward
+ * says about someone's work is not context for a report.
  */
+/**
+ * A question reply as a model may read it. The question comes last, after what the reply opened
+ * with, so a long reply loses its opening and never its question.
+ */
+function questionText(text: string): string {
+  const clean = sanitizeModelText(text, MODEL_INPUT_POLICY.maxMessageChars);
+  const max = MODEL_INPUT_POLICY.maxTurnChars;
+  return clean.length <= max ? clean : `…${clean.slice(1 - max).replace(/^\S*\s+/u, "")}`;
+}
+
 const QUESTION_KINDS = new Set([
   "select_garden",
   "select_action",
   "field",
+  "fields",
   "time",
   "time_unit",
   "title",
@@ -137,9 +149,7 @@ function questionsAskedBy(
   return rows.flatMap((row): DialogueTurn[] => {
     if (!QUESTION_KINDS.has(row.reply_kind.replace(/^prompt:/u, ""))) return [];
     const text = readReplyMessage(core, row)?.text;
-    return text
-      ? [{ role: "assistant", text: sanitizeModelText(text, MODEL_INPUT_POLICY.maxTurnChars) }]
-      : [];
+    return text ? [{ role: "assistant", text: questionText(text) }] : [];
   });
 }
 
@@ -211,7 +221,7 @@ export function openQuestion(core: ReportingCore, ctx: TurnContext): DialogueQue
     kind: prompt.kind,
     // A field is named by its key; one the sanitizer would alter is not named.
     field: prompt.fieldKey && named(key) === key ? prompt.fieldKey : null,
-    text: sanitizeModelText(text, MODEL_INPUT_POLICY.maxTurnChars),
+    text: questionText(text),
     options: prompt.options.map((option) => named(option.label)),
   };
 }

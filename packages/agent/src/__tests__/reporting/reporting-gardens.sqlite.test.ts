@@ -96,8 +96,7 @@ describe("a linked account's reporting gardens", () => {
     await linked();
     expect(await harness.say(ADA, STORY)).toEqual([
       `Aiyeloja Family Garden ${ONLY_GARDEN}`,
-      "Got it: Tree planting at Aiyeloja Family Garden. 3 quick questions, then a summary to check.",
-      "1 of 3 · Seedlings planted? Send just the number (seedlings).",
+      "Got it: Tree planting at Aiyeloja Family Garden. 3 quick questions, then a summary to check.\n\n1 of 3 · Seedlings planted? Send just the number (seedlings).",
     ]);
 
     expect(await harness.say(ADA, "GARDEN")).toEqual([
