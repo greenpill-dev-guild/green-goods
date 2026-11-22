@@ -44,7 +44,6 @@ import { useGardenAssessments } from "../../assessment/useGardenAssessments";
 import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
 import { toActPhaseReport, useCommitmentJobs } from "../../commitment-pooling/useCommitmentJobs";
 import { useCommitmentMetadataFor } from "../../commitment-pooling/useCommitmentMetadata";
-import { isResolvableMetadataCID } from "../../../modules/commitment-pooling/metadata";
 import { useCommitmentMutation } from "../../commitment-pooling/useCommitmentMutations";
 import { useTxActPhase } from "../../blockchain/useTxActPhase";
 import {
@@ -52,6 +51,7 @@ import {
   pendingAskAt,
 } from "../../../modules/commitment-pooling/waiting-for-approval";
 import { useClaimDecisions } from "./useClaimDecisions";
+import { useEditsTermsFromGroup } from "./useEditsTermsFromGroup";
 import {
   actPhaseFor,
   claimActKey,
@@ -112,6 +112,7 @@ export function useCommitmentDialogController(input: {
     { chainId, poolId: pool?.poolId },
     { enabled: pool !== null }
   );
+  const termsFromGroup = useEditsTermsFromGroup(chainId, commitment, poolCommitments.data);
   const cycleQuery = useCommitmentCycle(
     { chainId, cycleId: commitment?.cycleId ?? 0n },
     { enabled: Boolean(commitment?.cycleId && commitment.cycleId !== 0n), refreshWhileOpen: true }
@@ -444,7 +445,7 @@ export function useCommitmentDialogController(input: {
     title: metadata?.title ?? null,
     note: metadata?.note ?? null,
     metadata: metadata ?? null,
-    metadataKnown: metadata !== null || !isResolvableMetadataCID(commitment?.metadataCID),
+    editsTermsFromGroup: termsFromGroup,
     cycle: cycleQuery.cycle,
     events: activity.events,
     disputeReason,

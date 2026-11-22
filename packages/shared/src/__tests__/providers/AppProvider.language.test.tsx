@@ -84,6 +84,7 @@ describe("AppProvider page language", () => {
 
   beforeEach(() => {
     localStorage.clear();
+    document.cookie = "gg-language=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT";
     renders.length = 0;
     // What the page says before the app runs where index.html has not declared the reader's
     // language already, as in the admin.
@@ -124,6 +125,43 @@ describe("AppProvider page language", () => {
 
     expect(document.documentElement.lang).toBe(language);
     await act(() => vi.dynamicImportSettled());
+  });
+
+  // PRD-1493: a choice made on another Green Goods site arrives through the shared cookie and
+  // wins over this site's older one; a choice made here goes into that cookie for the others.
+  it("opens in the language chosen on another Green Goods site and shares a choice made here", async () => {
+    localStorage.setItem("gg-language", "en");
+    document.cookie = "gg-language=es; Path=/";
+    renderApp();
+
+    expect(document.documentElement.lang).toBe("es");
+    expect(localStorage.getItem("gg-language")).toBe("es");
+    expect(await screen.findByText("Cerrar")).toBeInTheDocument();
+
+    document.cookie = "gg-language=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    localStorage.setItem("gg-language", "en");
+    fireEvent.click(screen.getByRole("button", { name: "switch to es" }));
+    expect(document.cookie).toContain("gg-language=es");
+    expect(localStorage.getItem("gg-language")).toBe("es");
+
+    // On the Hub's host the cookie goes on the parent domain the App also reads.
+    vi.spyOn(window, "location", "get").mockReturnValue({
+      ...window.location,
+      hostname: "admin.greengoods.app",
+      protocol: "https:",
+    });
+    const written = vi.spyOn(document, "cookie", "set");
+    fireEvent.click(screen.getByRole("button", { name: "switch to es" }));
+    expect(written).toHaveBeenLastCalledWith(
+      expect.stringMatching(/^gg-language=es; .*Domain=greengoods\.app; Secure$/)
+    );
+  });
+
+  // A choice stored before the cookie existed is shared on the next visit.
+  it("shares a choice stored before the shared cookie existed", () => {
+    localStorage.setItem("gg-language", "pt");
+    renderApp();
+    expect(document.cookie).toContain("gg-language=pt");
   });
 
   it("keeps the old language until the new copy is on screen", async () => {
