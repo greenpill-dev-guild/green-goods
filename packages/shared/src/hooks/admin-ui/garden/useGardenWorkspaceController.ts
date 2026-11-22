@@ -25,8 +25,14 @@ import {
   resolveAdminWorkspaceSectionRoute,
 } from "../navigation/workspaceNavigation";
 import { buildGardenViewActions, resolveGardenView } from "./garden.utils";
+import { useGardenReviewHealth } from "./useGardenReviewHealth";
 import { useGardenWorkCalendar } from "./useGardenWorkCalendar";
 
+export type {
+  GardenReviewHealth,
+  ReviewHealthReadState,
+  ReviewHealthWeek,
+} from "./useGardenReviewHealth";
 export type { GardenWorkCalendar, WorkCalendarReadState } from "./useGardenWorkCalendar";
 export {
   dateOfDay,
@@ -74,6 +80,11 @@ export function useGardenWorkspaceController() {
     gardenId: selectedGarden?.id as Address | undefined,
     active: view === "activity" && section === undefined,
   });
+  // Review Health shows on the Health root only, so a section link reads nothing for it.
+  const reviewHealth = useGardenReviewHealth(
+    selectedGarden?.id as Address | undefined,
+    view === "health" && section === undefined
+  );
   const selectedItem = searchParams.get("item") ?? undefined;
   const settingsOpen = selectedItem === EDIT_GARDEN_ROUTE_ITEM;
   const handleSettingsClose = useRouteItemClose(settingsOpen);
@@ -364,6 +375,7 @@ export function useGardenWorkspaceController() {
     updateOverviewQueryState,
     view,
     workCalendar,
+    reviewHealth,
     gardenAddress: garden?.id as Address | undefined,
   };
 }
