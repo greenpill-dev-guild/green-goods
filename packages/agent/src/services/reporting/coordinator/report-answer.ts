@@ -10,7 +10,7 @@ import { type PromptRecord, resolvePrompt, typedChoice } from "../prompts";
 import { requestConnection } from "./account-steps";
 import { isGreeting } from "./commands";
 import type { TurnContext, TurnPlan } from "./context";
-import { acceptsAmount, profiledInput } from "../questions";
+import { acceptsAmount, profiledInput, profiledWords } from "../questions";
 import { EDITABLE_STATES, lifecycleState, questionProfileOf } from "./draft-commit";
 import { askEditField, askEditMenu } from "./edit-menu";
 import {
@@ -249,7 +249,13 @@ export function handleReportAnswer(
         answer.ok &&
         Boolean(answer.statedUnit) &&
         input.type === "number" &&
-        (work.recognised || !namesTheCount(answer.statedUnit ?? "", input.title, ctx.locale));
+        (work.recognised ||
+          !namesTheCount(answer.statedUnit ?? "", [
+            input.title,
+            input.placeholder ?? "",
+            input.unit ?? "",
+            ...profiledWords(profile, input.key, ctx.locale, work.content.details),
+          ]));
       if (!answer.ok && answer.reason === "unknown_option") {
         return offChoice(writer, plan, external, () => askField(writer, draft, input, prompt.page));
       }
@@ -282,7 +288,8 @@ export function handleReportAnswer(
           provenance: gardenerFact(sourceEntryId, answer.original, input.unit),
         },
       ]);
-      work.answered = `details.${input.key}`;
+      // A number with a word after it is said back, so the gardener sees how it was taken.
+      if (input.type !== "number" || !answer.statedUnit) work.answered = `details.${input.key}`;
       break;
     }
     case "time": {

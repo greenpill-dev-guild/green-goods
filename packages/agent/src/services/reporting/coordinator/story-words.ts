@@ -24,6 +24,10 @@ const words = (list: string) => new Set(list.split(/\s+/u).filter(Boolean).map(w
 /** Who did the work. */
 export const PEOPLE = words(`i we me us it they them yo nosotros nosotras nos eu nós gente`);
 
+/** The speaker counted beside a number: "me and 5 people" is six. ("nós" would fold to "nos",
+ * which in Spanish is the "us" of "nos tomó 2 horas".) */
+export const SPEAKER = words(`me i us yo mí nosotros eu mim`);
+
 /** Words that say a number is work done, a total or a correction, whatever the activity. */
 export const REPORT_CUES = words(`
   did done made finished completed total actually sorry correction
@@ -39,7 +43,7 @@ export const REPORT_CUES = words(`
  */
 const ACTS: Record<string, string> = {
   plant: `planted sowed seeded planté plantamos sembré sembramos plantadas plantados plantei semeei
-    semeamos plantada plantado`,
+    semeamos plantada plantado colocamos`,
   install: "installed instalé instalamos instalados instaladas instalei instalado",
   add: "added añadí añadimos agregué agregamos adicionei adicionamos",
   remov: "removed quitamos sacamos removemos tiramos",
@@ -49,6 +53,7 @@ const ACTS: Record<string, string> = {
   harvest: "harvested cosechamos colhemos",
   serv: "served atendimos servimos atendemos",
   deliver: "delivered entregamos",
+  session: "taught trained enseñamos capacitamos ensinamos treinamos",
   open: "opened open abrimos",
   recycl: "recycled",
   compost: "composted",
@@ -90,7 +95,7 @@ export const FILLERS = words(`
 
 /** Words that may come before a number that answers the open question on its own: "about 12". */
 export const APPROXIMATE = words(`about around approximately roughly unos unas uns umas
-  aproximadamente alrededor cerca`);
+  aproximadamente alrededor cerca ok okay yes yeah yep sí si sim claro`);
 
 /** "esta mañana" is this morning; "mañana" alone is tomorrow. */
 export const MORNING_LEAD = words(`esta la por de`);
@@ -160,40 +165,22 @@ export const ONE = words(`a an one un una uma um`);
 /** "and a half", "y media", "e meia". */
 export const HALF = words(`half media meia`);
 
-/** Units of measure: a number in one of these is a measure, never a count of the words' things. */
-const UNITS =
-  words(`kg g mg lb lbs ton tons tonne tonnes t m km cm mm ha hectare hectares acre acres
-  l liter liters litre litres ml kw kwh mw mwh w wh gw gwh mbps gbps kbps usd usdc eth btc dollars
-  dólares reais naira percent hours hour minutes min mins horas minutos h`);
-
-/** Words that multiply the number before them: "4 thousand" is not 4. */
-const MULTIPLIERS = words(`hundred hundreds thousand thousands million millions dozen dozens k
-  cien ciento cientos mil miles millón millones docena docenas
-  cem cento centenas milhar milhares milhão milhões dúzia dúzias`);
-
 /**
- * Whether the words after a number in an answer may simply name what the asked field counts, as
- * "12 bags" does for "Amount Removed (kg or bags)" or "6 kids" for participants: one or two plain
- * words, none of them a negation, a sign the work is not done, or a unit the field's title does
- * not name. Words the reader knows as another field's are read by it before this is asked.
+ * Whether the word after a number in an answer names what the asked field counts, in the field's
+ * own words: its title, its hint, its unit or the words its question profile lists for it, as
+ * "bags" is named by "Amount Removed (kg or bags)". Any other word ("6 of us", "200 meters",
+ * "12 more") leaves the answer to a question.
  */
-export function namesTheCount(stated: string, fieldTitle: string, locale: string): boolean {
+export function namesTheCount(stated: string, fieldWords: readonly string[]): boolean {
   const said = stated.trim().split(/\s+/u);
-  if (said.length === 0 || said.length > 2 || said.some((word) => !/^[\p{L}'’]+$/u.test(word)))
-    return false;
-  const title = new Set(
-    fold(fieldTitle)
-      .split(/[^\p{L}\p{N}]+/u)
-      .map(singular)
+  if (said.length !== 1 || !/^[\p{L}'’]+$/u.test(said[0] ?? "")) return false;
+  const own = new Set(
+    fieldWords.flatMap((text) =>
+      fold(text)
+        .split(/[^\p{L}\p{N}]+/u)
+        .filter(Boolean)
+        .map(singular)
+    )
   );
-  const refused = negations(locale);
-  return said
-    .map(wordKey)
-    .every(
-      (word) =>
-        !refused.has(word) &&
-        !NOT_DONE.has(word) &&
-        !MULTIPLIERS.has(word) &&
-        (!UNITS.has(word) || title.has(word))
-    );
+  return own.has(wordKey(said[0] as string));
 }

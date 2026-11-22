@@ -293,11 +293,8 @@ export function readStory(text: string, context: StoryContext): StoryFact[] {
         continue;
       }
       // "me and 5 people" counts one more than it says.
-      if (
-        W.JOINERS.has(word) &&
-        (W.PEOPLE.has(tokens[i - 2]?.word ?? "") || W.PEOPLE.has(tokens[i]?.word ?? ""))
-      )
-        return false;
+      const speaker = [tokens[i - 2], tokens[i]].some((one) => W.SPEAKER.has(one?.word ?? ""));
+      if (W.JOINERS.has(word) && speaker && clause.some((one) => numeric(one))) return false;
       if (W.BEFORE_A_NUMBER.has(word) && (numeric(tokens[i]) || durationAt(i))) continue;
       if (placed && W.JOINERS.has(word)) continue;
       if (placed && afterAFact.has(word)) tail = true;

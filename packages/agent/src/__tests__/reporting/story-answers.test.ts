@@ -1,6 +1,7 @@
 import type { ActionDefinition } from "@green-goods/shared/modules/agent-reporting";
 import { describe, expect, it } from "vitest";
 import { readStory, type StoryContext } from "../../services/reporting/coordinator/story-answers";
+import { namesTheCount } from "../../services/reporting/coordinator/story-words";
 import { QUESTION_PROFILES, questionProfileFor } from "../../services/reporting/questions";
 import { planting, snapshot } from "./support/fixtures";
 
@@ -151,6 +152,14 @@ describe("reading several facts from one message", () => {
     ["plantamos 1,5 árboles", "es"],
   ])("takes nothing from %j", (text, locale) => {
     expect(reading(text, plantingEvent, { locale })).toEqual({});
+  });
+
+  it("lets a plain word answer a count only where the field's own words name it", () => {
+    const removed = ["Amount Removed (kg or bags)"];
+    expect(namesTheCount("bags", removed)).toBe(true);
+    expect(namesTheCount("kg", removed)).toBe(true);
+    for (const word of ["kids", "meters", "more", "people", "of us"])
+      expect(namesTheCount(word, removed)).toBe(false);
   });
 
   it("takes nothing an open question did not get", () => {

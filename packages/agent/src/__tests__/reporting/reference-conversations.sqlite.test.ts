@@ -216,12 +216,14 @@ describe.each(LOCALES)("reporting with models off, in %s", (locale) => {
     expect(reply).toMatch(/40[^]*6[^]*2/u);
   });
 
-  it("takes a count named in a word the activity does not know", async () => {
+  it("asks again when a count comes with a word the field does not name", async () => {
     await begin(locale, words.plain);
     await harness.say(person, "40 fruit trees");
     expect(report().question).toBe("field:participants");
+    // "6 kids" may count the children alone, so it is not taken as the participants.
     await harness.say(person, words.kids);
-    expect(report().details.participants).toBe(6);
+    expect(report()).toMatchObject({ question: "field:participants" });
+    expect(report().details.participants).toBeUndefined();
   });
 
   it("takes both halves of a paired question from one answer, or one and asks the other", async () => {
