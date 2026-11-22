@@ -80,8 +80,10 @@ const takesBack = (words: string) =>
   words !== "" &&
   words.split(" ").every((word) => TAKE_BACK_WORDS.has(word)) &&
   RETRACTS.test(words);
-/** Marks that undo what they sit beside: a thumbs down, a cross, WhatsApp's strikethrough. */
-const UNDONE = /[\u{1F44E}\u{1F914}\u{274C}\u{1F6AB}\u{26D4}~]/u;
+/** Marks that undo an approval or a level beside them: a thumbs down, a cross, a thinking face. */
+const UNDONE = /[\u{1F44E}\u{1F914}\u{274C}\u{1F6AB}\u{26D4}]/u;
+/** WhatsApp's strikethrough around the decision itself: "~Approve~". */
+const STRUCK = /~/u;
 
 const levelOf = (words: string): Confidence | undefined =>
   LEVELS.find(([, names]) => names.split("|").includes(words))?.[0];
@@ -95,13 +97,19 @@ const plainOf = (text: string) =>
 
 type Span = readonly [number, number];
 
-/** The decision words an answer names anywhere, whether or not it states one. */
-export function namedDecisions(text: string): Set<"approve" | "reject"> {
-  const plain = fold(text);
-  const named = new Set<"approve" | "reject">();
-  if (SAYS_APPROVE.test(plain)) named.add("approve");
-  if (SAYS_REJECT.test(plain)) named.add("reject");
-  return named;
+const OPENS_APPROVE = new RegExp(`^${LEAD_IN}(?:i |yo |eu )?(?:${APPROVE})(?= |$)`, "u");
+const OPENS_REJECT = new RegExp(`^${LEAD_IN}(?:i |yo |eu )?(?:${REJECT})(?= |$)`, "u");
+
+/**
+ * The decision an answer opens with, whether or not it could be read as one: "Reject? Not sure
+ * yet." opens with a rejection. A reason that only mentions one ("No puedo aprobar sin fotos")
+ * opens with none.
+ */
+export function openingDecision(text: string): "approve" | "reject" | null {
+  const opening = plainOf(partsOf(text)[0]?.raw ?? "");
+  if (OPENS_APPROVE.test(opening)) return "approve";
+  if (OPENS_REJECT.test(opening)) return "reject";
+  return null;
 }
 
 /**
@@ -152,6 +160,9 @@ export function readReviewAnswer(text: string, asked: Asked): ReviewReading {
   );
   const first = parts.findIndex((_, index) => stated[index] || bareAt[index] !== undefined);
   const readHere = (index: number) => stated[index] || bareAt[index] !== undefined;
+  const decisionsIn = new Set(
+    stated.flatMap((match) => (match?.[1] ? ["approve"] : match?.[2] ? ["reject"] : []))
+  );
   // What follows a decision or a level can take it back: a part made only of take-back words in any
   // later sentence ("Approve. Not yet."), a mark that undoes it, or, in its own sentence, a
   // condition, a doubt or a contrast with a "no" ("Approve, if the photos are fixed").
@@ -159,7 +170,9 @@ export function readReviewAnswer(text: string, asked: Asked): ReviewReading {
     first >= 0 &&
     parts.some((part, index) => {
       if (index < first) return false;
-      if (UNDONE.test(part.raw)) return true;
+      // A cross beside a rejection agrees with it; beside an approval or a level it undoes it.
+      if (UNDONE.test(part.raw) && !decisionsIn.has("reject")) return true;
+      if (index === first && STRUCK.test(part.raw)) return true;
       if (index === first) return false;
       const sameSentence = parts.some(
         (before, at) => at < index && readHere(at) && before.sentence === part.sentence

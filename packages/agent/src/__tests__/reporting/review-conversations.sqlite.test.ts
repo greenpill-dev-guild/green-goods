@@ -43,6 +43,7 @@ const WORDS = {
     refused: "Approve not yet, waiting for photos",
     approveOnly: "Approve. High confidence.",
     unsure: "Reject? Not sure yet.",
+    mentions: "I can't approve this without photos of the site",
   },
   es: {
     review: "REVIEW",
@@ -55,6 +56,7 @@ const WORDS = {
     refused: "Aprobar no, faltan fotos",
     approveOnly: "Apruebo. Confianza alta.",
     unsure: "¿Rechazo? No estoy seguro.",
+    mentions: "No puedo aprobar sin fotos del sitio",
   },
   pt: {
     review: "REVIEW",
@@ -67,6 +69,7 @@ const WORDS = {
     refused: "Aprovar não, faltam fotos",
     approveOnly: "Aprovo. Confiança alta.",
     unsure: "Rejeito? Não tenho certeza.",
+    mentions: "Não posso aprovar sem fotos do local",
   },
 } as const;
 
@@ -208,6 +211,17 @@ describe.each(Object.keys(WORDS) as Locale[])("a steward's review, in %s", (loca
       decision: "approve",
       feedback: null,
       question: "review_feedback",
+    });
+  });
+
+  it("takes a rejection's reason that only mentions approving", async () => {
+    await reviewing();
+    await harness.say(steward, words.reject);
+    await harness.say(steward, words.mentions);
+    expect(decision(steward)).toMatchObject({
+      decision: "reject",
+      feedback: words.mentions,
+      question: "confirm_review",
     });
   });
 
