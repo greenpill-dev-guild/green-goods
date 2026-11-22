@@ -365,7 +365,7 @@ describe.each(LOCALES)("interruptions and other people, in %s", (locale) => {
     expect(drafts()).toEqual({ n: 0 });
     // The first reply after agreeing invites the story; nothing asks for a garden yet.
     expect(replies.join("\n")).not.toContain(reportingText(locale, "report.askGarden"));
-    expect(openPrompt(harness.core, conversationOf(person))?.kind).not.toBe("select_garden");
+    expect(openPrompt(harness.core, conversationOf(person))?.kind).toBe("connect_offer");
   });
 
   it("sends the link when someone asks to log in at the garden question, and keeps the report", async () => {
@@ -376,10 +376,11 @@ describe.each(LOCALES)("interruptions and other people, in %s", (locale) => {
 
     const replies = await harness.say(person, asides.login);
     expect(harness.transport.sent.at(-replies.length)?.message.link?.url).toContain("https://");
-    expect(report()).toMatchObject({ revision: before.revision, details: {}, state: "collecting" });
+    expect(report()).toMatchObject({ revision: before.revision, state: "collecting" });
+    expect(report().details).toEqual({});
     // The report is still there to carry on with: the garden can be picked next.
     await harness.say(person, "1");
-    expect(report().question).not.toBe("select_garden");
+    expect(report().question).toBe("select_action");
   });
 
   it("explains the garden question when asked which garden is theirs, and asks it again", async () => {
@@ -402,13 +403,15 @@ describe.each(LOCALES)("interruptions and other people, in %s", (locale) => {
     });
     const replies = await harness.press(person, agree);
     expect(replies.join("\n")).toContain(reportingText(locale, "media.photoAdded"));
-    expect(report()).toMatchObject({ photos: 1, details: {}, question: "select_garden" });
+    expect(report()).toMatchObject({ photos: 1, minutes: null, question: "select_garden" });
+    expect(report().details).toEqual({});
 
     await harness.say(person, "1");
     await harness.say(person, plantingEvent.title);
     await harness.say(person, asides.caption);
     // The photo proves nothing by itself: the count came from the words, and the photo stays.
-    expect(report()).toMatchObject({ photos: 1, details: { seedlingsPlanted: 40 } });
+    expect(report()).toMatchObject({ photos: 1, details: { seedlingsPlanted: 40 }, minutes: null });
+    expect(report().stated).toContain("details.seedlingsPlanted");
   });
 
   it("keeps the report when the chat switches account, and unlinks the one it had", async () => {
@@ -431,7 +434,11 @@ describe.each(LOCALES)("interruptions and other people, in %s", (locale) => {
     expect(replies[0]).toContain(adaAccount.address.toLowerCase());
     expect(active()).toEqual({ n: 0 });
     // The unfinished report is saved as it was, for whichever account is linked next.
-    expect(report()).toMatchObject({ details: linked.details, state: "collecting" });
+    expect(report()).toMatchObject({
+      details: linked.details,
+      revision: linked.revision,
+      state: "collecting",
+    });
   });
 
   it("keeps two people's reports apart when they report at the same time", async () => {
@@ -451,10 +458,10 @@ describe.each(LOCALES)("interruptions and other people, in %s", (locale) => {
     });
     // The other chat's report holds none of it, and still waits at its own first question.
     expect(reportOf(other)).toMatchObject({
-      details: {},
       minutes: null,
       question: "fields:seedlingsPlanted,speciesTags",
     });
+    expect(reportOf(other).details).toEqual({});
   });
 });
 
