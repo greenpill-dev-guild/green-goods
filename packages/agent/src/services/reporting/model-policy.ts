@@ -40,8 +40,8 @@ export const REDACTION_MARK = /\[(?:link|email|address|account|handle|token|phon
  *   wrote numbers.
  * - A full stop with no space after it reads as a link when a slash follows later in the word
  *   ("rega.poda/colheita") or the next word is a common ending ("garden.Site visit").
- * - A link with no scheme, an upper-case ending outside the common ones, a path and no query
- *   ("T.ME/NAME") passes; a lower-case one, or one with a query value, does not.
+ * - A link of two names with no scheme, an upper-case ending outside the common ones, a path and
+ *   no query ("T.ME/NAME") passes, since "Sr.Silva/Sra.Souza" is written the same way.
  *
  * It removes what it can detect; it is not a promise that a model never sees personal data.
  */
@@ -60,6 +60,9 @@ const REDACTIONS: ReadonlyArray<readonly [RegExp, string]> = [
   // "Plantamos 20 mudas.Certo?" and "Sr.Silva/Sra.Souza" are sentences with a missing space.
   [new RegExp(`${HOST}[a-z]{2,}${AFTER_HOST}`, "gu"), "[link]"],
   [new RegExp(`${HOST}(?:${ENDINGS})${AFTER_HOST}`, "giu"), "[link]"],
+  // A host of three or more names, in any case, with a path: "PHOTOS.EXAMPLE.MX/private".
+  // Two names joined by a full stop ("Sr.Silva/Sra.Souza", "R.Augusta/SP") are prose.
+  [/(?<![\p{L}\p{N}])(?:[\p{L}\p{N}-]+\.){2,}\p{L}{2,}(?::\d+)?\/\S*/gu, "[link]"],
   // Any host, in any case, with a query that carries a value: "Photos.Example.Mx/x?token=1".
   [new RegExp(`${HOST}\\p{L}{2,}(?::\\d+)?(?:\\/[^\\s?]*)?\\?\\S*=\\S*`, "gu"), "[link]"],
   // A bare host under an ending that is rarely an everyday word.

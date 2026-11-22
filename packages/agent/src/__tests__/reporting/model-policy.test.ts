@@ -64,6 +64,7 @@ describe("model input sanitizer", () => {
     ["PHOTOS.EXAMPLE.ORG/private?token=secret", "[link]"],
     ["photos.example.org:8443/private?token=secret", "[link]"],
     ["Photos.Example.Mx/private?token=secret", "[link]"],
+    ["PHOTOS.EXAMPLE.MX/private/token or PHOTOS.EXAMPLE.CO.UK/private/token", "[link] or [link]"],
     ["I am vitalik.eth and @ada_gardens on Telegram", "I am [account] and [handle] on Telegram"],
     ["sou joão.eth, garden 0x7099…79C8", "sou [account], garden [address]"],
     [`token ${"a1B2".repeat(10)} was in the link`, "token [token] was in the link"],
