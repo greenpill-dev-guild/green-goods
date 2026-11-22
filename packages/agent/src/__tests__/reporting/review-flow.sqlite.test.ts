@@ -103,7 +103,7 @@ describe("steward review", () => {
     // for a steward whose account is in a single garden.
     const activityReads = harness.catalog.calls;
     expect(await harness.say(BOLA, "1")).toEqual([
-      `Do you approve or reject “Tree planting” by ${adaAccount.address.toLowerCase()}?\n1. Approve\n2. Reject`,
+      `Do you approve or reject “Tree planting” by ${adaAccount.address.toLowerCase()}? You can give your confidence and feedback in the same reply.\n1. Approve\n2. Reject`,
     ]);
     expect(await harness.press(BOLA, "Approve")).toEqual([
       "How confident are you in this work?\n1. Low\n2. Medium\n3. High",
@@ -190,7 +190,7 @@ describe("steward review", () => {
       "You have a review in progress. Send CANCEL to discard it or keep going with it.",
     ]);
     expect(await harness.say(BOLA, "STATUS")).toEqual([
-      `Do you approve or reject “Tree planting” by ${adaAccount.address.toLowerCase()}?\n1. Approve\n2. Reject`,
+      `Do you approve or reject “Tree planting” by ${adaAccount.address.toLowerCase()}? You can give your confidence and feedback in the same reply.\n1. Approve\n2. Reject`,
     ]);
     expect(await harness.press(BOLA, "Reject")).toEqual([
       "Tell the gardener why you're rejecting this work (it will be public).",
@@ -218,7 +218,7 @@ describe("steward review", () => {
     await linkedSteward();
     await harness.say(BOLA, "REVIEW");
     await harness.say(BOLA, "1");
-    const decision = `Do you approve or reject “Tree planting” by ${adaAccount.address.toLowerCase()}?\n1. Approve\n2. Reject`;
+    const decision = `Do you approve or reject “Tree planting” by ${adaAccount.address.toLowerCase()}? You can give your confidence and feedback in the same reply.\n1. Approve\n2. Reject`;
     // STOP closes the decision's question and leaves the decision open.
     expect((await harness.say(BOLA, "STOP"))[0]).toMatch(/^You've stopped the assistant\./);
     expect((await harness.say(BOLA, "START"))[0]).toContain("Do you agree?");

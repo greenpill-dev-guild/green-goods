@@ -1,12 +1,13 @@
 import { grantConsent, withdrawConsent } from "../consent";
 import { forgetGoal } from "../dialogue-goal";
 import { enqueueJob } from "../jobs";
-import { releaseQuarantine } from "../inbox";
+import { readInboxPayload, releaseQuarantine } from "../inbox";
 import { settleFileBatch } from "../media-intake";
 import { endRecognition } from "../recognition";
 import { forgetLastReports } from "../suggestions";
 import { audit, ensureParticipant } from "../participants";
 import { closeConversationPrompt, resolvePrompt } from "../prompts";
+import { parseCommand } from "./commands";
 import { commitLifecycle, EDITABLE_STATES, lifecycleState } from "./draft-commit";
 import type { TurnWriter } from "./writer";
 
@@ -55,6 +56,23 @@ function purgeQuarantined(writer: TurnWriter): void {
     .run({ subject: writer.ctx.subjectId, current: writer.ctx.event.id });
 }
 
+/** The commands among the messages held for this person until they answered the notice. */
+function heldCommands(writer: TurnWriter): string[] {
+  const rows = writer.core.db
+    .query(
+      `SELECT id, payload_ciphertext FROM inbox_events
+       WHERE channel_subject_id = $subject AND state = 'quarantined' AND id <> $current`
+    )
+    .all({ subject: writer.ctx.subjectId, current: writer.ctx.event.id }) as Array<{
+    id: string;
+    payload_ciphertext: string | null;
+  }>;
+  return rows.flatMap((row) => {
+    const command = parseCommand(readInboxPayload(writer.core, row)?.text);
+    return command ? [command.kind] : [];
+  });
+}
+
 export function answerConsent(writer: TurnWriter, answer: "agree" | "decline"): void {
   const { core, ctx } = writer;
   if (ctx.prompt?.kind === "processing_consent") resolvePrompt(core, ctx.prompt.id);
@@ -72,10 +90,12 @@ export function answerConsent(writer: TurnWriter, answer: "agree" | "decline"): 
     purpose: "processing",
     sourceEventId: ctx.event.id,
   });
+  // Someone who came to review is not asked about work they did: the held REVIEW answers next.
+  const cameToReview = heldCommands(writer).includes("review");
   releaseQuarantine(core, ctx.subjectId);
   // Later replies in this turn address the newly consented participant.
   writer.ctx.binding = binding;
-  writer.say("consent.granted");
+  writer.say(cameToReview ? "consent.grantedPlain" : "consent.granted");
   audit(core, "consent_granted", { kind: "participant", id: binding.participantId });
 }
 
