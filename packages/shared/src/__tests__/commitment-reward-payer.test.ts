@@ -143,7 +143,7 @@ describe("paying reward shares from the steward's wallet", () => {
     const chain = {
       allowance: vi.fn(async () => read.allowance ?? 0n),
       balance: vi.fn(async () => read.balance ?? 100_000_000n),
-      paidBy: vi.fn(async () => read.paidBy ?? ZERO),
+      paidBy: vi.fn(async (_payer: Address, _shareId: `0x${string}`) => read.paidBy ?? ZERO),
     };
     const sendContractCall = vi.fn(
       async (
@@ -161,7 +161,8 @@ describe("paying reward shares from the steward's wallet", () => {
         chainId: 42161,
         payer: PAYER,
         account: STEWARD,
-        shares,
+        partShares: shares,
+        shown: shares,
       });
     return { chain, sendContractCall, pay };
   }
@@ -210,10 +211,40 @@ describe("paying reward shares from the steward's wallet", () => {
         chainId: 42161,
         payer: PAYER,
         account: A,
-        shares,
+        partShares: shares,
+        shown: shares,
       })
     ).resolves.toEqual({ status: "refused-before-asking", refusal: "self-payment" });
     expect(own.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("asks for nothing when the list changed since it was read, or can't be read", async () => {
+    // The plan pays two stewards, A and B. A paid B's share and kept their own after B's Hub
+    // read the list, which still showed A's share as owed: B must not pay it.
+    const stale = setup();
+    stale.chain.paidBy.mockImplementation(async (_payer, shareId) =>
+      shareId === rewardPayerShareId(shares[1]!) ? A : ZERO
+    );
+    await expect(
+      sendRewardSharePayment({
+        sender: { sendContractCall: stale.sendContractCall } as unknown as TransactionSender,
+        chain: stale.chain,
+        chainId: 42161,
+        payer: PAYER,
+        account: B,
+        partShares: shares,
+        shown: [shares[0]!],
+      })
+    ).resolves.toEqual({ status: "refused-before-asking", refusal: "already-paid" });
+    expect(stale.sendContractCall).not.toHaveBeenCalled();
+
+    const down = setup();
+    down.chain.balance.mockRejectedValueOnce(new Error("rpc down"));
+    await expect(down.pay()).resolves.toEqual({
+      status: "refused-before-asking",
+      refusal: "unreadable",
+    });
+    expect(down.sendContractCall).not.toHaveBeenCalled();
   });
 
   it("stops at a declined approval, and says when a payment can't be confirmed yet", async () => {

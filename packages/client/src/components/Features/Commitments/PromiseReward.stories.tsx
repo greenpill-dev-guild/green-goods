@@ -44,8 +44,8 @@ function RewardLine({ metadata, goodDollars, derivedState, parts = false }: Rewa
   const intl = useIntl();
   const reward = promiseRewardOf(
     goodDollars
-      ? { considerationRail: "CELO_SETTLEMENT", considerationAmount: SET_WEI }
-      : { considerationRail: "NONE", considerationAmount: 0n },
+      ? { chainId: 42161, considerationRail: "CELO_SETTLEMENT", considerationAmount: SET_WEI }
+      : { chainId: 42161, considerationRail: "NONE", considerationAmount: 0n },
     metadata
   );
   const payout = promisePayoutOf({ derivedState, considerationPaid: false });
@@ -118,10 +118,15 @@ export const PartsOnThePromisePage: Story = {
   },
 };
 
-export const UsdcOnlyKept: Story = {
-  args: { metadata: { rewardLegs: [USDC_LEG] }, goodDollars: false, derivedState: "FULFILLED" },
+/** A USDC part whose G$ part an Edit Reward removed has no plan to split it, and says so. */
+export const UsdcLeftWithoutGoodDollars: Story = {
+  args: {
+    metadata: { reward: G_DOLLAR_REWARD, rewardLegs: [USDC_LEG] },
+    goodDollars: false,
+    derivedState: "FULFILLED",
+  },
   play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByText("$20.00, not yet paid in USDC")).toBeVisible();
+    await expect(within(canvasElement).getByText("This reward can't be shown here")).toBeVisible();
   },
 };
 

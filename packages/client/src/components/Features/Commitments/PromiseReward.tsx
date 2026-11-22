@@ -40,7 +40,10 @@ export interface PromiseReward {
  */
 type RewardPayout = "afterKept" | "notPaidYet" | "paid" | "unstated";
 
-type RewardRecord = Pick<CommitmentReadModel, "considerationRail" | "considerationAmount">;
+type RewardRecord = Pick<
+  CommitmentReadModel,
+  "chainId" | "considerationRail" | "considerationAmount"
+>;
 type RewardMetadata =
   | Pick<CommitmentMetadataV1, "reward" | "rewardLegs" | "rewardLegsUnreadable">
   | null

@@ -121,10 +121,7 @@ export function useRewardShares(input: RewardSharesInput) {
     if (!payer || !sender || !account) {
       return { status: "refused-before-asking", refusal: "no-shares" };
     }
-    const owed = rewardSharesOwed(
-      states.filter((share) => share.token.toLowerCase() === token.toLowerCase()),
-      account
-    );
+    const part = states.filter((share) => share.token.toLowerCase() === token.toLowerCase());
     setIsPaying(true);
     try {
       return await sendRewardSharePayment({
@@ -133,7 +130,8 @@ export function useRewardShares(input: RewardSharesInput) {
         chainId,
         payer,
         account,
-        shares: owed,
+        partShares: part,
+        shown: rewardSharesOwed(part, account),
         onStep: setStep,
       });
     } finally {
@@ -209,7 +207,8 @@ export function useRewardShareTransaction(input: {
       });
     },
     enabled: deployment !== null && input.shareId !== null,
-    staleTime: Number.POSITIVE_INFINITY,
+    // A found transaction never changes; a scan that found none may be behind the payer's read.
+    staleTime: (query) => (query.state.data ? Number.POSITIVE_INFINITY : 60_000),
     // The scan can run many log reads; a failed one isn't repeated whole.
     retry: false,
   });

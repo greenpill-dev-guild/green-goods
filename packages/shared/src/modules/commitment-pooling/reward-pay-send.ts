@@ -19,13 +19,19 @@
 import { readContract } from "@wagmi/core";
 import type { Abi, Hex } from "viem";
 import { getWagmiConfig } from "../../config/appkit";
+import { logger } from "../app/logger";
 import type { Address } from "../../types/domain";
 import { ERC20_ALLOWANCE_ABI, ERC20_BALANCE_ABI } from "../../utils/blockchain/abis/erc20";
 import { isZeroAddress } from "../../utils/blockchain/address";
 import type { ContractCall, TransactionSender } from "../transactions/types";
 import { mayStillLand } from "../../utils/errors/tx-error-classifier";
 import { missOfSend } from "./creation-send";
-import { REWARD_PAYER_ABI, type RewardPayerShare, rewardPayerShareId } from "./reward-payer";
+import {
+  REWARD_PAYER_ABI,
+  type RewardPayerShare,
+  rewardPayerShareId,
+  rewardSharesOwed,
+} from "./reward-payer";
 import type { SeedCopyMiss } from "./seed-sets";
 
 /** How a payment reads the payout chain. */
@@ -74,8 +80,11 @@ type RewardPayRefusal =
   | "no-shares"
   | "mixed-tokens"
   | "self-payment"
+  /** A share was paid or kept since the steward read the list: what is owed has changed. */
   | "already-paid"
-  | "insufficient-balance";
+  | "insufficient-balance"
+  /** A read before asking failed, so nothing was asked for. */
+  | "unreadable";
 
 export type RewardPayStep = "approving" | "paying" | "confirming";
 
@@ -114,30 +123,41 @@ const payAllCall = (
   }) satisfies ContractCall;
 
 /**
- * Whether these shares can be paid from `account` now, read before asking; null when they can.
- * Every share must be in one token, unpaid and owed to someone other than the payer, and the
- * wallet must hold their total.
+ * Whether the shown shares can be paid from `account` now, read before asking; null when they
+ * can. They must be in the part's one token and owed to someone other than the payer. Read
+ * afresh, the part must still owe exactly them: none paid, and none kept by a steward who paid
+ * the rest since the list was read. The wallet must hold their total.
  */
 async function rewardPayRefusal(input: {
   chain: RewardPayChain;
   payer: Address;
   account: Address;
-  shares: readonly RewardPayerShare[];
+  partShares: readonly RewardPayerShare[];
+  shown: readonly RewardPayerShare[];
 }): Promise<RewardPayRefusal | null> {
-  const { chain, payer, account, shares } = input;
-  const [first] = shares;
+  const { chain, payer, account, partShares, shown } = input;
+  const [first] = shown;
   if (!first) return "no-shares";
   const token = first.token.toLowerCase();
-  if (shares.some((share) => share.token.toLowerCase() !== token)) return "mixed-tokens";
+  if (partShares.some((share) => share.token.toLowerCase() !== token)) return "mixed-tokens";
   // The payer refuses a payment to oneself, and payAll would take every other share down with it.
-  if (shares.some((share) => share.recipient.toLowerCase() === account.toLowerCase())) {
+  if (shown.some((share) => share.recipient.toLowerCase() === account.toLowerCase())) {
     return "self-payment";
   }
-  const paid = await Promise.all(
-    shares.map((share) => chain.paidBy(payer, rewardPayerShareId(share)))
+  const paidBy = await Promise.all(
+    partShares.map((share) => chain.paidBy(payer, rewardPayerShareId(share)))
   );
-  if (paid.some((who) => !isZeroAddress(who))) return "already-paid";
-  const total = shares.reduce((sum, share) => sum + share.amount, 0n);
+  const owed = rewardSharesOwed(
+    partShares.map((share, index) => {
+      const who = paidBy[index] as Address;
+      return { ...share, paidBy: isZeroAddress(who) ? null : who };
+    }),
+    account
+  );
+  const ids = (shares: readonly RewardPayerShare[]) =>
+    shares.map(rewardPayerShareId).sort().join(",");
+  if (ids(owed) !== ids(shown)) return "already-paid";
+  const total = shown.reduce((sum, share) => sum + share.amount, 0n);
   return (await chain.balance(first.token, account)) < total ? "insufficient-balance" : null;
 }
 
@@ -147,13 +167,23 @@ export async function sendRewardSharePayment(input: {
   chainId: number;
   payer: Address;
   account: Address;
-  shares: readonly RewardPayerShare[];
+  /** Every share of the part being paid, so a fresh read can tell which are still owed. */
+  partShares: readonly RewardPayerShare[];
+  /** The shares the steward was shown as owed and asked to pay. */
+  shown: readonly RewardPayerShare[];
   /** Told as the payment moves. Report-only. */
   onStep?: (step: RewardPayStep) => void;
 }): Promise<RewardPayOutcome> {
-  const { sender, chain, chainId, payer, account, shares } = input;
-  const refusal = await rewardPayRefusal({ chain, payer, account, shares });
-  if (refusal) return { status: "refused-before-asking", refusal };
+  const { sender, chain, chainId, payer, account, partShares, shown: shares } = input;
+  let allowance: bigint;
+  try {
+    const refusal = await rewardPayRefusal({ chain, payer, account, partShares, shown: shares });
+    if (refusal) return { status: "refused-before-asking", refusal };
+    allowance = await chain.allowance((shares[0] as RewardPayerShare).token, account, payer);
+  } catch (error) {
+    logger.warn("Reward share payment reads failed before asking", { error, chainId });
+    return { status: "refused-before-asking", refusal: "unreadable" };
+  }
   const token = (shares[0] as RewardPayerShare).token;
   const total = shares.reduce((sum, share) => sum + share.amount, 0n);
   const shareIds = shares.map(rewardPayerShareId);
@@ -168,7 +198,7 @@ export async function sendRewardSharePayment(input: {
   let approved = false;
   // The steward approves exactly what this payment moves, never more (the 2.1.0 waiver's
   // condition): an allowance left at any other amount is set to the total first.
-  if ((await chain.allowance(token, account, payer)) !== total) {
+  if (allowance !== total) {
     step("approving");
     let crossed = false;
     try {

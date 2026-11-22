@@ -284,6 +284,7 @@ describe("commitment reward legs, declared at Create", () => {
     usdCents: "500",
   };
   const goodDollarPromise = {
+    chainId: 42161,
     considerationRail: "CELO_SETTLEMENT" as const,
     considerationAmount: wei,
   };
@@ -359,7 +360,10 @@ describe("commitment reward legs, declared at Create", () => {
       legs: [expect.objectContaining({ symbol: "G$", amount: wei, usdCentsAsSet: 500n })],
     });
     expect(
-      promiseRewardLegsOf({ considerationRail: "NONE", considerationAmount: 0n }, null)
+      promiseRewardLegsOf(
+        { chainId: 42161, considerationRail: "NONE", considerationAmount: 0n },
+        null
+      )
     ).toBeNull();
   });
 

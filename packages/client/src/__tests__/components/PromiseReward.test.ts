@@ -28,7 +28,7 @@ const PRICE: GoodDollarPriceState = { status: "ready", price: 125_000_000_000_00
 const NO_PRICE: GoodDollarPriceState = { status: "unavailable", reason: "missing" };
 
 const onRail = (wei: bigint) =>
-  ({ considerationRail: "CELO_SETTLEMENT", considerationAmount: wei }) as const;
+  ({ chainId: 42161, considerationRail: "CELO_SETTLEMENT", considerationAmount: wei }) as const;
 
 describe("promise rewards", () => {
   it("reads only a G$ reward with an amount", () => {
@@ -37,12 +37,12 @@ describe("promise rewards", () => {
       centsAsSet: 2000n,
     });
     expect(
-      promiseRewardOf({ considerationRail: "NONE", considerationAmount: 0n }, null)
+      promiseRewardOf({ chainId: 42161, considerationRail: "NONE", considerationAmount: 0n }, null)
     ).toBeNull();
     expect(promiseRewardOf(onRail(0n), METADATA)).toBeNull();
     expect(
       promiseRewardOf(
-        { considerationRail: "ARBITRUM_EXTERNAL", considerationAmount: SET_WEI },
+        { chainId: 42161, considerationRail: "ARBITRUM_EXTERNAL", considerationAmount: SET_WEI },
         null
       )
     ).toBeNull();
@@ -166,16 +166,17 @@ describe("promise rewards", () => {
     expect(promiseRewardText({ intl, rewards: edited, price: NO_PRICE })).toBe(
       "200,000 G$ and 20 USDC, paid in G$ and USDC after it's kept"
     );
-    // A reward paid only in USDC needs no G$ price.
+    // A USDC part left without its G$ part, as after an Edit Reward removes it, has no payout
+    // plan to split it, so it can never be paid: the reward says it can't be shown.
     const usdcOnly = [
       promiseRewardOf(
-        { considerationRail: "NONE", considerationAmount: 0n },
-        { rewardLegs: [usdc] }
+        { chainId: 42161, considerationRail: "NONE", considerationAmount: 0n },
+        { ...METADATA, rewardLegs: [usdc] }
       ),
     ].filter((r) => r !== null);
     expect(
       promiseRewardText({ intl, rewards: usdcOnly, price: NO_PRICE, payout: "notPaidYet" })
-    ).toBe("$20.00, not yet paid in USDC");
+    ).toBe("This reward can't be shown here");
   });
 
   it("says part of a reward can't be shown instead of passing the rest off as all of it", () => {
@@ -187,7 +188,7 @@ describe("promise rewards", () => {
     );
     const nothing = [
       promiseRewardOf(
-        { considerationRail: "NONE", considerationAmount: 0n },
+        { chainId: 42161, considerationRail: "NONE", considerationAmount: 0n },
         { rewardLegsUnreadable: true }
       ),
     ].filter((reward) => reward !== null);
