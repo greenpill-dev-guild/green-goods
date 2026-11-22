@@ -4,7 +4,7 @@ import { StatTile } from "@green-goods/shared/components/Cards/StatTile";
 import { ItemRow } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
 import { useAddressDisplayName } from "@green-goods/shared/hooks/ens/useAddressDisplayName";
-import { Fragment, useState } from "react";
+import { Fragment, type ReactNode, useState } from "react";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useActionsByUID } from "@green-goods/shared/hooks/action/useAction";
 import type { AdminWorkspaceSectionTab } from "@green-goods/shared/hooks/admin-ui/navigation/workspaceNavigation";
@@ -71,6 +71,8 @@ export interface OverviewTabProps {
   gardenerCount: number;
   treasuryBalance: string;
   karmaIntegration: KarmaIntegrationController;
+  /** Review Health, under Garden Health on the Health root (PRD-1578). */
+  reviewHealth?: ReactNode;
 }
 
 export function OverviewTab({
@@ -98,6 +100,7 @@ export function OverviewTab({
   gardenerCount,
   treasuryBalance,
   karmaIntegration,
+  reviewHealth,
 }: OverviewTabProps) {
   const intl = useIntl();
   const navigate = useNavigate();
@@ -360,6 +363,7 @@ export function OverviewTab({
               </AdminCardBody>
             </AdminCard>
           )}
+          {isHealthMode && section === undefined ? reviewHealth : null}
           {isHealthMode ? (
             <AdminCard density="none">
               <AdminCardHeader>

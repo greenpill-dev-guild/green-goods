@@ -4,6 +4,7 @@ import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import messages from "@green-goods/shared/i18n/en.json";
+import spanish from "@green-goods/shared/i18n/es.json";
 import { ProfileHelp } from "../../views/Profile/Help";
 
 /** The account's gardens, and whether the App's steward check passes for each. */
@@ -62,6 +63,18 @@ describe("ProfileHelp", () => {
     access.manages = true;
     render(wrap(createElement(ProfileHelp)));
     expect(screen.queryByRole("link", { name: /Green Goods Hub/ })).toBeNull();
+  });
+
+  // PRD-1493: the docs are English only, so a Spanish or Portuguese reader is told so.
+  it("says the guides are in English to a reader in another language, and to no one else", () => {
+    render(
+      createElement(IntlProvider, { locale: "es", messages: spanish }, createElement(ProfileHelp))
+    );
+    expect(screen.getByText("Por ahora, las guías están en inglés.")).toBeInTheDocument();
+    cleanup();
+
+    render(wrap(createElement(ProfileHelp)));
+    expect(screen.queryByText("The guides are in English for now.")).toBeNull();
   });
 
   it("keeps guides and socials apart from policies and requests, above the questions", () => {

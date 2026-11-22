@@ -656,6 +656,23 @@ describe("presentation-specific boot fallback", () => {
     expect(fallback).toHaveAttribute("lang", language);
   });
 
+  // PRD-1493: a language chosen on the Hub reaches the App's first paint through the shared cookie.
+  it("declares the language chosen on another Green Goods site before this site's own", () => {
+    const localStorage = createStorage();
+    localStorage.setItem("gg-language", "en");
+    document.cookie = "gg-language=es; Path=/";
+    try {
+      const { pwaMessage } = runController("pwa", {
+        navigator: { language: "en-GB", languages: ["en-GB"], onLine: true },
+        window: { ...createBootWindow().windowLike, localStorage },
+      });
+      expect(document.documentElement).toHaveAttribute("lang", "es");
+      expect(pwaMessage).toHaveTextContent("Green Goods se está cargando.");
+    } finally {
+      document.cookie = "gg-language=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    }
+  });
+
   it("keeps to the browser language when storage cannot be read", () => {
     const { windowLike } = createBootWindow();
     Object.defineProperty(windowLike, "localStorage", {

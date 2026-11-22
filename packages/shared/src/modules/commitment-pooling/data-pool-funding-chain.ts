@@ -5,15 +5,21 @@ import { createPublicClientForChain } from "../../config/pimlico";
 import type { Address } from "../../types/domain";
 import {
   allowanceTuple,
+  commandRecordExecutor,
   EXECUTOR_ABI,
   type PoolFundingLiveRoute,
   periodSpendTuple,
   ROLES_ALLOWANCE_ABI,
   routeTuple,
+  SETTLEMENT_COMMAND_RECORD_ABI,
   settledRead,
 } from "./data-pool-funding-chain-support";
 import type { PoolFundingLedger } from "./data-pool-funding-indexed";
-import { type PoolFundingBalanceRead, type PoolFundingFeeQuote } from "./pool-funding";
+import type {
+  PoolFundingBalanceRead,
+  PoolFundingCommandExecutor,
+  PoolFundingFeeQuote,
+} from "./pool-funding";
 import { calculateEffectiveZodiacAllowance } from "./pool-funding-calculations";
 
 const FEE_QUOTE_CONCURRENCY = 8;
@@ -22,6 +28,7 @@ interface DirectReadResult {
   balance: PoolFundingBalanceRead | null;
   sourcePaused: boolean | null;
   executorPaused: boolean | null;
+  commandExecutors: PoolFundingCommandExecutor[];
   tokenPaused: boolean | null;
   liveRoute: PoolFundingLiveRoute | null;
   feePolicy: { maxFeeBps: number; maxFeeAmount: bigint } | null;
@@ -51,6 +58,7 @@ export async function readPoolFundingChain(
       balance: null,
       sourcePaused: null,
       executorPaused: null,
+      commandExecutors: [],
       tokenPaused: null,
       liveRoute: null,
       feePolicy: null,
@@ -199,6 +207,17 @@ export async function readPoolFundingChain(
     ),
   ]);
   const liveRoute = routeTuple(routeValue);
+  const commandExecutors = await readCommandExecutors({
+    ledger,
+    safe,
+    sourceModule: source.localContract,
+    sourceClient,
+    celoClient,
+    current: {
+      executor: executor.localContract,
+      paused: typeof executorPaused === "boolean" ? executorPaused : null,
+    },
+  });
   const allowanceValue = liveRoute
     ? await settledRead(
         celoClient.readContract({
@@ -298,6 +317,7 @@ export async function readPoolFundingChain(
         : null,
     sourcePaused: typeof sourcePaused === "boolean" ? sourcePaused : null,
     executorPaused: typeof executorPaused === "boolean" ? executorPaused : null,
+    commandExecutors,
     tokenPaused: typeof tokenPaused === "boolean" ? tokenPaused : null,
     liveRoute,
     feePolicy,
@@ -317,4 +337,71 @@ export async function readPoolFundingChain(
     acknowledgmentFeeReserveLow:
       typeof acknowledgmentFeeReserveLow === "boolean" ? acknowledgmentFeeReserveLow : null,
   };
+}
+
+/**
+ * The executor each transfer dispatched from this Safe was recorded for, and whether
+ * it is paused. A resend goes to the recorded executor, so during a route change's
+ * grace window it can be the previous one, whose pause flag the current executor's
+ * read doesn't show.
+ */
+async function readCommandExecutors(input: {
+  ledger: PoolFundingLedger;
+  safe: Address;
+  sourceModule: Address;
+  sourceClient: PublicClient;
+  celoClient: PublicClient;
+  current: { executor: Address; paused: boolean | null };
+}): Promise<PoolFundingCommandExecutor[]> {
+  const safe = input.safe.toLowerCase();
+  const executionKeys = [
+    ...new Set(
+      input.ledger.disbursements.flatMap((row) =>
+        row.source.toLowerCase() === safe && row.state === "DISPATCHED" && row.executionKey
+          ? [row.executionKey.toLowerCase() as `0x${string}`]
+          : []
+      )
+    ),
+  ];
+  if (executionKeys.length === 0) return [];
+  const executors = await Promise.all(
+    executionKeys.map(async (executionKey) =>
+      commandRecordExecutor(
+        await settledRead(
+          input.sourceClient.readContract({
+            address: input.sourceModule,
+            abi: SETTLEMENT_COMMAND_RECORD_ABI,
+            functionName: "commandRecord",
+            args: [executionKey],
+          })
+        )
+      )
+    )
+  );
+  const pauses = new Map<string, boolean | null>([
+    [input.current.executor.toLowerCase(), input.current.paused],
+  ]);
+  const others = [...new Set(executors.flatMap((executor) => (executor ? [executor] : [])))].filter(
+    (executor) => !pauses.has(executor.toLowerCase())
+  );
+  await Promise.all(
+    others.map(async (executor) => {
+      const paused = await settledRead(
+        input.celoClient.readContract({
+          address: executor,
+          abi: EXECUTOR_ABI,
+          functionName: "paused",
+        })
+      );
+      pauses.set(executor.toLowerCase(), typeof paused === "boolean" ? paused : null);
+    })
+  );
+  return executionKeys.map((executionKey, index) => {
+    const executor = executors[index] ?? null;
+    return {
+      executionKey,
+      executor,
+      paused: executor ? (pauses.get(executor.toLowerCase()) ?? null) : null,
+    };
+  });
 }
