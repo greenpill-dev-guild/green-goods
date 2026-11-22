@@ -1,6 +1,9 @@
 import { Confidence } from "@green-goods/shared/types/domain";
 import { describe, expect, it } from "vitest";
-import { readReviewAnswer } from "../../services/reporting/coordinator/review-answers";
+import {
+  openingDecision,
+  readReviewAnswer,
+} from "../../services/reporting/coordinator/review-answers";
 
 /** A steward's answer read without a model: what decides, and what never does. */
 describe("reading a review answer", () => {
@@ -158,6 +161,21 @@ describe("reading a review answer", () => {
     ["Approve. No issues.", { decision: "approve", feedback: "No issues." }],
   ] as const)("reads a reason that hedges in its own sentence: %j", (text, expected) => {
     expect(readReviewAnswer(text, "decision")).toEqual(expected);
+  });
+
+  it("reads a cross beside a rejection, and a tilde away from the decision", () => {
+    expect(readReviewAnswer("Reject ❌", "decision")).toEqual({ decision: "reject" });
+    expect(readReviewAnswer("Approve. ~50 trees planted.", "decision")).toEqual({
+      decision: "approve",
+      feedback: "~50 trees planted.",
+    });
+  });
+
+  it("tells an answer that opens with a decision from one that mentions it", () => {
+    expect(openingDecision("Reject? Not sure yet.")).toBe("reject");
+    expect(openingDecision("Actually approve, maybe")).toBe("approve");
+    expect(openingDecision("No puedo aprobar sin fotos del sitio")).toBeNull();
+    expect(openingDecision("Nothing to reject here, great work")).toBeNull();
   });
 
   it("reads an approval written with a yes, an emoji or the invited confidence", () => {
