@@ -8,6 +8,10 @@ import {
   rewardCentsAsSet,
 } from "../modules/commitment-pooling/metadata";
 import {
+  promiseRewardLegsOf,
+  rewardCentsAsSetTotal,
+} from "../modules/commitment-pooling/reward-legs";
+import {
   buildCommitmentCreationPayload,
   COMMITMENT_COMPOSER_DEFAULTS,
 } from "../hooks/commitment-pooling/useCommitmentComposerForm";
@@ -259,6 +263,117 @@ describe("commitment metadata reward, as the steward set it", () => {
         version: 1,
         title: "Survey",
       });
+    }
+  });
+});
+
+describe("commitment reward legs, declared at Create", () => {
+  const ARBITRUM_USDC = "0xaf88d065e77c8cc2239327c5edb3a432268e5831";
+  const wei = 38_865_763_105_965_141_239_068n;
+  const reward = {
+    version: 1 as const,
+    usdCents: "500",
+    goodDollarWei: wei.toString(),
+    goodDollarPrice: "128648000000000",
+  };
+  const usdcLeg = {
+    version: 1 as const,
+    chainId: 42161,
+    token: ARBITRUM_USDC,
+    amount: "5000000",
+    usdCents: "500",
+  };
+  const goodDollarPromise = {
+    considerationRail: "CELO_SETTLEMENT" as const,
+    considerationAmount: wei,
+  };
+
+  it("keeps the G$ price and the USDC part, and reads them back as one reward", () => {
+    const metadata = buildCommitmentMetadata({ title: "Survey", reward, rewardLegs: [usdcLeg] });
+    expect(parseCommitmentMetadata(metadata)).toEqual(metadata);
+    const read = promiseRewardLegsOf(goodDollarPromise, metadata);
+    expect(read?.incomplete).toBe(false);
+    expect(read?.legs.map((leg) => [leg.rail, leg.symbol, leg.chainId, leg.amount])).toEqual([
+      ["celo-settlement", "G$", 42220, wei],
+      ["steward-wallet", "USDC", 42161, 5_000_000n],
+    ]);
+    expect(rewardCentsAsSetTotal(read!)).toBe(1_000n);
+  });
+
+  it("records the G$ price and the declared parts when a promise is created", () => {
+    const built = buildCommitmentCreationPayload({
+      values: {
+        ...COMMITMENT_COMPOSER_DEFAULTS,
+        title: "Survey",
+        unitLabel: "survey",
+        considerationRail: "CELO_SETTLEMENT",
+        considerationUsd: "$5.00",
+        considerationAmount: wei.toString(),
+      },
+      clientCommitmentId: "copy-1",
+      poolId: 7n,
+      creator: "0x1111111111111111111111111111111111111111" as Address,
+      gardenAddress: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as Address,
+      nowSeconds: 1_700_000_000,
+      goodDollarPrice: 128_648_000_000_000n,
+      rewardLegs: [usdcLeg],
+    });
+    expect(built.metadata?.reward).toEqual(reward);
+    expect(built.metadata?.rewardLegs).toEqual([usdcLeg]);
+  });
+
+  it("reads a G$-only reward as one part, as before there were parts", () => {
+    const read = promiseRewardLegsOf(
+      goodDollarPromise,
+      buildCommitmentMetadata({ title: "Survey", reward })
+    );
+    expect(read).toEqual({
+      incomplete: false,
+      legs: [expect.objectContaining({ symbol: "G$", amount: wei, usdCentsAsSet: 500n })],
+    });
+    expect(
+      promiseRewardLegsOf({ considerationRail: "NONE", considerationAmount: 0n }, null)
+    ).toBeNull();
+  });
+
+  it("says part of a reward can't be shown rather than show part of it as the whole", () => {
+    // A leg this reader can't parse makes the list unreadable, never shorter.
+    const unreadable = parseCommitmentMetadata({
+      version: 1,
+      title: "Survey",
+      rewardLegs: [usdcLeg, { ...usdcLeg, token: "not-an-address" }],
+    });
+    expect(unreadable?.rewardLegs).toBeUndefined();
+    expect(promiseRewardLegsOf(goodDollarPromise, unreadable)?.incomplete).toBe(true);
+    // A token the registry doesn't list, and G$ itself, can't be a wallet-paid part.
+    for (const token of [
+      "0x1111111111111111111111111111111111111111",
+      "0x62b8b11039fcfe5ab0c56e502b1c372a3d2a9c7a",
+    ]) {
+      const metadata = buildCommitmentMetadata({
+        title: "Survey",
+        rewardLegs: [{ ...usdcLeg, chainId: token.startsWith("0x62") ? 42220 : 42161, token }],
+      });
+      expect(promiseRewardLegsOf(goodDollarPromise, metadata)?.incomplete).toBe(true);
+    }
+    // A total never mixes dollars as set with a part that reads only in G$.
+    expect(
+      rewardCentsAsSetTotal(
+        promiseRewardLegsOf(
+          goodDollarPromise,
+          buildCommitmentMetadata({ title: "Survey", rewardLegs: [usdcLeg] })
+        )!
+      )
+    ).toBeNull();
+  });
+
+  it("refuses legs no reader could use: a token twice, too many, or a bad amount", () => {
+    for (const rewardLegs of [
+      [usdcLeg, usdcLeg],
+      Array.from({ length: 5 }, (_, index) => ({ ...usdcLeg, chainId: index + 1 })),
+      [{ ...usdcLeg, amount: "0" }],
+    ]) {
+      expect(() => buildCommitmentMetadata({ title: "Survey", rewardLegs })).toThrow("reward legs");
     }
   });
 });

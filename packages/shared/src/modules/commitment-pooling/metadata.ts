@@ -53,7 +53,35 @@ export interface CommitmentRewardRecord {
   version: typeof COMMITMENT_REWARD_RECORD_VERSION;
   usdCents: string;
   goodDollarWei: string;
+  /**
+   * The G$ price the dollars became G$ at: cUSD per G$ with 18 decimals, as
+   * GoodDollar's reserve on Celo gave it at Create (`readGoodDollarPrice`).
+   * Absent on a reward written before it was kept.
+   */
+  goodDollarPrice?: string;
 }
+
+/**
+ * A part of the reward paid in another token from the steward's own wallet,
+ * declared at Create (PRD-1556): the token on its chain, what the whole reward
+ * carries in it, and the dollars that amount stands for. The chain never reads
+ * it, but the CID that holds it can't change after Create, so it is part of the
+ * promise a gardener takes up. The G$ part stays on chain as the consideration.
+ */
+export interface CommitmentRewardLegRecord {
+  version: typeof COMMITMENT_REWARD_LEG_VERSION;
+  chainId: number;
+  /** The token's address, lowercase. */
+  token: string;
+  /** Base units, as a decimal string. */
+  amount: string;
+  usdCents: string;
+}
+
+export const COMMITMENT_REWARD_LEG_VERSION = 1 as const;
+
+/** More legs than a steward can set: a document carrying more is read as carrying none. */
+export const MAX_COMMITMENT_REWARD_LEGS = 4;
 
 export const COMMITMENT_REWARD_RECORD_VERSION = 1 as const;
 
@@ -69,6 +97,13 @@ export interface CommitmentMetadataV1 {
   displayGroup?: CommitmentDisplayGroup;
   /** The reward in the dollars it was set in, when it was set in dollars. */
   reward?: CommitmentRewardRecord;
+  /** The reward's parts paid from the steward's wallet, beside any G$ part. */
+  rewardLegs?: CommitmentRewardLegRecord[];
+  /**
+   * Set by the reader when the document declares legs it can't read in full, so
+   * a screen says part of the reward can't be shown instead of understating it.
+   */
+  rewardLegsUnreadable?: true;
 }
 
 /**
@@ -176,10 +211,56 @@ function cleanRewardRecord(value: unknown): CommitmentRewardRecord | null {
   if (!value || typeof value !== "object") return null;
   const record = value as Record<string, unknown>;
   if (record.version !== COMMITMENT_REWARD_RECORD_VERSION) return null;
-  const { usdCents, goodDollarWei } = record;
+  const { usdCents, goodDollarWei, goodDollarPrice } = record;
   if (typeof usdCents !== "string" || !POSITIVE_WHOLE.test(usdCents)) return null;
   if (typeof goodDollarWei !== "string" || !POSITIVE_WHOLE.test(goodDollarWei)) return null;
-  return { version: COMMITMENT_REWARD_RECORD_VERSION, usdCents, goodDollarWei };
+  const price =
+    typeof goodDollarPrice === "string" && POSITIVE_WHOLE.test(goodDollarPrice)
+      ? goodDollarPrice
+      : null;
+  return {
+    version: COMMITMENT_REWARD_RECORD_VERSION,
+    usdCents,
+    goodDollarWei,
+    ...(price ? { goodDollarPrice: price } : {}),
+  };
+}
+
+const TOKEN_ADDRESS = /^0x[0-9a-fA-F]{40}$/;
+
+/** A reward leg this reader understands, or null; a later version reads as none. */
+function cleanRewardLeg(value: unknown): CommitmentRewardLegRecord | null {
+  if (!value || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  if (record.version !== COMMITMENT_REWARD_LEG_VERSION) return null;
+  const { chainId, token, amount, usdCents } = record;
+  if (typeof chainId !== "number" || !Number.isSafeInteger(chainId) || chainId <= 0) return null;
+  if (typeof token !== "string" || !TOKEN_ADDRESS.test(token)) return null;
+  if (typeof amount !== "string" || !POSITIVE_WHOLE.test(amount)) return null;
+  if (typeof usdCents !== "string" || !POSITIVE_WHOLE.test(usdCents)) return null;
+  return {
+    version: COMMITMENT_REWARD_LEG_VERSION,
+    chainId,
+    token: token.toLowerCase(),
+    amount,
+    usdCents,
+  };
+}
+
+/**
+ * The legs a document declares, or null when it declares none it can read in
+ * full. One unreadable leg, a token named twice or more legs than a steward can
+ * set makes the whole list unreadable, never a shorter list: the reader flags it
+ * rather than show part of a reward as the whole.
+ */
+function cleanRewardLegs(value: unknown): CommitmentRewardLegRecord[] | null {
+  if (!Array.isArray(value) || value.length === 0) return null;
+  if (value.length > MAX_COMMITMENT_REWARD_LEGS) return null;
+  const legs = value.map(cleanRewardLeg);
+  if (legs.some((leg) => leg === null)) return null;
+  const read = legs as CommitmentRewardLegRecord[];
+  const keys = new Set(read.map((leg) => `${leg.chainId}:${leg.token}`));
+  return keys.size === read.length ? read : null;
 }
 
 /**
@@ -203,6 +284,7 @@ export function buildCommitmentMetadata(input: {
   links?: CommitmentMetadataLink[];
   displayGroup?: CommitmentDisplayGroup;
   reward?: CommitmentRewardRecord;
+  rewardLegs?: CommitmentRewardLegRecord[];
 }): CommitmentMetadataV1 {
   const title = lineWithin(input.title, COMMITMENT_TITLE_MAX_LENGTH, "title");
   if (!title) throw new Error("A commitment needs a title");
@@ -214,6 +296,8 @@ export function buildCommitmentMetadata(input: {
   if (input.displayGroup && !displayGroup) throw new Error("That display group id is not valid");
   const reward = input.reward ? cleanRewardRecord(input.reward) : null;
   if (input.reward && !reward) throw new Error("That reward record is not valid");
+  const rewardLegs = input.rewardLegs?.length ? cleanRewardLegs(input.rewardLegs) : null;
+  if (input.rewardLegs?.length && !rewardLegs) throw new Error("Those reward legs are not valid");
   return {
     version: COMMITMENT_METADATA_VERSION,
     title,
@@ -221,6 +305,7 @@ export function buildCommitmentMetadata(input: {
     ...(links.length > 0 ? { links } : {}),
     ...(displayGroup ? { displayGroup } : {}),
     ...(reward ? { reward } : {}),
+    ...(rewardLegs ? { rewardLegs } : {}),
   };
 }
 
@@ -243,6 +328,11 @@ export function parseCommitmentMetadata(raw: unknown): CommitmentMetadataV1 | nu
   const links = cleanLinks(record.links);
   const displayGroup = cleanDisplayGroup(record.displayGroup);
   const reward = cleanRewardRecord(record.reward);
+  const rewardLegs = cleanRewardLegs(record.rewardLegs);
+  const rewardLegsUnreadable =
+    record.rewardLegs !== undefined &&
+    !(Array.isArray(record.rewardLegs) && record.rewardLegs.length === 0) &&
+    !rewardLegs;
   const version =
     typeof record.version === "number" && Number.isFinite(record.version)
       ? record.version
@@ -254,6 +344,8 @@ export function parseCommitmentMetadata(raw: unknown): CommitmentMetadataV1 | nu
     ...(links.length > 0 ? { links } : {}),
     ...(displayGroup ? { displayGroup } : {}),
     ...(reward ? { reward } : {}),
+    ...(rewardLegs ? { rewardLegs } : {}),
+    ...(rewardLegsUnreadable ? { rewardLegsUnreadable: true as const } : {}),
   };
 }
 

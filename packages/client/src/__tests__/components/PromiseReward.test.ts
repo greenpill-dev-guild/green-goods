@@ -141,4 +141,58 @@ describe("promise rewards", () => {
       "100,000 G$ to 160,000 G$, paid in G$ after it's kept"
     );
   });
+
+  it("reads a reward with a USDC part as one total, paid in both tokens", () => {
+    const usdc = {
+      version: 1 as const,
+      chainId: 42161,
+      token: "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+      amount: "20000000",
+      usdCents: "2000",
+    };
+    const withUsdc = { ...METADATA, rewardLegs: [usdc] };
+    const rewards = [promiseRewardOf(onRail(SET_WEI), withUsdc)].filter(
+      (reward) => reward !== null
+    );
+
+    expect(promiseRewardText({ intl, rewards, price: NO_PRICE })).toBe(
+      "$40.00, paid in G$ and USDC after it's kept"
+    );
+    // After an Edit Reward the G$ part reads at today's rate, and the total says so.
+    const edited = [promiseRewardOf(onRail(200_000n * G), withUsdc)].filter((r) => r !== null);
+    expect(promiseRewardText({ intl, rewards: edited, price: PRICE })).toBe(
+      "about $45.00, paid in G$ and USDC after it's kept"
+    );
+    expect(promiseRewardText({ intl, rewards: edited, price: NO_PRICE })).toBe(
+      "200,000 G$ and 20 USDC, paid in G$ and USDC after it's kept"
+    );
+    // A reward paid only in USDC needs no G$ price.
+    const usdcOnly = [
+      promiseRewardOf(
+        { considerationRail: "NONE", considerationAmount: 0n },
+        { rewardLegs: [usdc] }
+      ),
+    ].filter((r) => r !== null);
+    expect(
+      promiseRewardText({ intl, rewards: usdcOnly, price: NO_PRICE, payout: "notPaidYet" })
+    ).toBe("$20.00, not yet paid in USDC");
+  });
+
+  it("says part of a reward can't be shown instead of passing the rest off as all of it", () => {
+    const rewards = [
+      promiseRewardOf(onRail(SET_WEI), { ...METADATA, rewardLegsUnreadable: true }),
+    ].filter((reward) => reward !== null);
+    expect(promiseRewardText({ intl, rewards, price: NO_PRICE })).toBe(
+      "$20.00, paid in G$ after it's kept. Part of this reward can't be shown here"
+    );
+    const nothing = [
+      promiseRewardOf(
+        { considerationRail: "NONE", considerationAmount: 0n },
+        { rewardLegsUnreadable: true }
+      ),
+    ].filter((reward) => reward !== null);
+    expect(promiseRewardText({ intl, rewards: nothing, price: NO_PRICE })).toBe(
+      "This reward can't be shown here"
+    );
+  });
 });

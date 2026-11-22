@@ -23,6 +23,7 @@ export * from "./pool-lifecycle";
 export * from "./pool-setup";
 export * from "./proof-draft-repository";
 export * from "./reasons";
+export * from "./reward-legs";
 export * from "./selectors";
 export * from "./service-access";
 export { liveVoucherIssuerName } from "./service-access-live-config";

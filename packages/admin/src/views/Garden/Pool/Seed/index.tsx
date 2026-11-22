@@ -159,6 +159,7 @@ export function SeedCommitmentDialog({
       ...(copy.displayGroup ? { displayGroup: copy.displayGroup } : {}),
       allowGatedOffers: true,
       allowRequestReward: true,
+      ...(createPrice.current ? { goodDollarPrice: createPrice.current } : {}),
     });
   };
   const tray = useSeedTray({ form, chainId, owner: jobs.viewer, buildCopy });

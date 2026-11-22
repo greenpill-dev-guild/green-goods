@@ -20,6 +20,7 @@ import {
   buildCommitmentMetadata,
   COMMITMENT_REWARD_RECORD_VERSION,
   type CommitmentDisplayGroup,
+  type CommitmentRewardLegRecord,
   type CommitmentRewardRecord,
 } from "./metadata";
 
@@ -34,14 +35,16 @@ const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as Address;
 const ZERO_BYTES32 = `0x${"0".repeat(64)}` as `0x${string}`;
 
 /**
- * The dollars a G$ reward was typed in, beside the amount they became, for the
- * metadata to keep (D13). Only a reward entered in dollars has one.
+ * The dollars a G$ reward was typed in, beside the amount they became and the
+ * G$ price that made them so, for the metadata to keep (D13, PRD-1556). Only a
+ * reward entered in dollars has one.
  */
 function rewardRecordOf(
   values: Pick<
     CommitmentComposerValues,
     "considerationRail" | "considerationUsd" | "considerationAmount"
-  >
+  >,
+  goodDollarPrice: bigint | undefined
 ): CommitmentRewardRecord | undefined {
   if (values.considerationRail !== "CELO_SETTLEMENT" || values.considerationUsd === undefined) {
     return undefined;
@@ -53,6 +56,9 @@ function rewardRecordOf(
     version: COMMITMENT_REWARD_RECORD_VERSION,
     usdCents: cents.toString(),
     goodDollarWei: amount.toString(),
+    ...(goodDollarPrice && goodDollarPrice > 0n
+      ? { goodDollarPrice: goodDollarPrice.toString() }
+      : {}),
   };
 }
 
@@ -92,6 +98,13 @@ export function buildCommitmentCreationPayload(input: {
   /** Steward console only. The contract independently verifies the calling steward. */
   allowRequestReward?: boolean;
   /**
+   * The G$ price the dollars were converted at (cUSD per G$, 18 decimals), kept
+   * beside the reward so what each part was worth at Create stays on record.
+   */
+  goodDollarPrice?: bigint;
+  /** The reward's parts paid from the steward's wallet, declared now and fixed with the CID. */
+  rewardLegs?: CommitmentRewardLegRecord[];
+  /**
    * Delegated creation, and only for a `StewardCaptured` commitment: the member
    * whose contribution a steward is capturing. Every other type must send the
    * zero address — `CreationChecksLib.resolveCreator` reverts
@@ -125,7 +138,7 @@ export function buildCommitmentCreationPayload(input: {
     token: rail === "ARBITRUM_EXTERNAL" ? (values.considerationToken as Address) : ZERO_ADDRESS,
     amount: rail === "NONE" ? 0n : BigInt(values.considerationAmount || "0"),
   };
-  const reward = rewardRecordOf(values);
+  const reward = rewardRecordOf(values, input.goodDollarPrice);
 
   return {
     clientCommitmentId,
@@ -170,6 +183,7 @@ export function buildCommitmentCreationPayload(input: {
       links: values.links.map((url) => ({ url })),
       ...(input.displayGroup ? { displayGroup: input.displayGroup } : {}),
       ...(reward ? { reward } : {}),
+      ...(input.rewardLegs?.length ? { rewardLegs: input.rewardLegs } : {}),
     }),
     needUID: ZERO_BYTES32,
     counterCommitmentId: 0n,
