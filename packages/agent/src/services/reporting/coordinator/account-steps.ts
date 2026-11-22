@@ -165,6 +165,8 @@ const ACCOUNT_PROMPTS = new Set([
   "join_community",
   "grant_choice",
   "connect_offer",
+  // The last report it offers is this account's; another account must never take it.
+  "suggest_last",
 ]);
 
 /**
@@ -216,6 +218,9 @@ export function disconnectAccount(writer: TurnWriter, thenConnect: boolean): voi
   revokeParticipantSessions(core, binding.participantId);
   endRecognition(core, binding.participantId);
   const gardenQuestion = ctx.prompt?.kind === "select_garden";
+  // An offer of this account's last garden is closed below; a report still without a garden is
+  // asked for one again.
+  const offered = ctx.prompt?.kind === "suggest_last" && !ctx.draft?.content.garden;
   // A garden question listed this account's gardens. The account that is linked next gets its own
   // list when it pairs, so until then the question is closed and not left to be answered.
   if (ctx.prompt && (ACCOUNT_PROMPTS.has(ctx.prompt.kind) || (gardenQuestion && thenConnect)))
@@ -227,7 +232,7 @@ export function disconnectAccount(writer: TurnWriter, thenConnect: boolean): voi
   // be pressed for a publication from an account that summary never named.
   if (ctx.draft && ctx.prompt?.kind === "confirm_report") askConfirmation(writer, ctx.draft, null);
   // A chat that stays without an account chooses from every garden again.
-  if (ctx.draft && gardenQuestion && !thenConnect) askGarden(writer, ctx.draft, null);
+  if (ctx.draft && (gardenQuestion || offered) && !thenConnect) askGarden(writer, ctx.draft, null);
   if (thenConnect) requestConnection(writer, null);
 }
 

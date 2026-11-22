@@ -100,6 +100,13 @@ function stewardExtras(input: ComposeAgainInput): Partial<CommitmentComposerValu
     // next Create, rather than from its G$ at whatever today's rate makes them.
     const cents = rail === "CELO_SETTLEMENT" ? rewardCentsAsSet(input.metadata, amount) : null;
     if (cents !== null) extras.considerationUsd = usdCentsText(cents);
+    // A reward matched in USDC stays matched, at the same dollars (PRD-1556).
+    if (
+      cents !== null &&
+      input.metadata?.rewardLegs?.some((leg) => leg.usdCents === cents.toString())
+    ) {
+      extras.rewardMatchedUsdc = true;
+    }
     // A Celo settlement stores zero-address sentinels and the module supplies the
     // real Safe and token, so only an external rail carries its own.
     if (rail === "ARBITRUM_EXTERNAL") {

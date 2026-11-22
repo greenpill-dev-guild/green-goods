@@ -127,6 +127,8 @@ const allowedIdenticalProductValues = new Set([
   "ENS",
   "ETH",
   "Feedback",
+  // GoodDollar's token symbol, like USDC and WETH below.
+  "G$",
   "GitHub",
   "Green Goods",
   // The steward surface's name, kept as a name in every language (PRD-1485).

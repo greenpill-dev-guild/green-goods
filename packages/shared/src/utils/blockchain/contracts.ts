@@ -133,7 +133,24 @@ export function getNetworkContracts(chainId: number): NetworkContracts {
     commitmentRegistry: asAddress(deployment.commitmentRegistry),
     settlementModule: asAddress(deployment.settlementModule),
     celoSettlementExecutor: asAddress(deployment.celoSettlementExecutor),
+    rewardPayer: asAddress(deployment.rewardPayer),
   };
+}
+
+/**
+ * The reward payer on a chain and the block it was deployed at, from which its
+ * receipts are read (PRD-1556); null until it is deployed and verified there.
+ */
+export function getRewardPayerDeployment(
+  chainId: number
+): { address: Address; deployBlock: bigint } | null {
+  const deployment = getDeploymentConfig(chainId);
+  const address = asAddress(deployment.rewardPayer);
+  const block = deployment.rewardPayerDeployBlock;
+  if (isZeroAddress(address) || typeof block !== "number" || !Number.isSafeInteger(block)) {
+    return null;
+  }
+  return { address, deployBlock: BigInt(block) };
 }
 
 function getMarketplaceContractAddresses(

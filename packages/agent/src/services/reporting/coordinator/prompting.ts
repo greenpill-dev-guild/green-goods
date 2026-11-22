@@ -22,6 +22,7 @@ import {
   option,
 } from "./field-questions";
 import { askGarden } from "./garden-step";
+import { offerLastReport, type Suggestion } from "./last-report";
 import type { ConversationWriter, TurnWriter } from "./writer";
 
 export interface CatalogView {
@@ -315,8 +316,13 @@ export function askAnotherGarden(
 }
 
 /** Asks for whatever the draft needs next, or shows the summary when nothing is missing. */
-export function promptNextStep(writer: TurnWriter, draft: DraftRecord, view: CatalogView): void {
-  promptNextStepFor(writer, draft, view, writer.ctx.account?.address ?? null);
+export function promptNextStep(
+  writer: TurnWriter,
+  draft: DraftRecord,
+  view: CatalogView,
+  suggestion?: Suggestion
+): void {
+  promptNextStepFor(writer, draft, view, writer.ctx.account?.address ?? null, suggestion);
 }
 
 /** The same next step from background work, which names the linked account explicitly. */
@@ -324,7 +330,8 @@ export function promptNextStepFor(
   writer: ConversationWriter,
   draft: DraftRecord,
   view: CatalogView,
-  account: Address | null
+  account: Address | null,
+  suggestion?: Suggestion
 ): void {
   if (askAnotherGarden(writer, draft, account)) return;
   const requirements = outstandingRequirements(draft.content, draft.snapshot);
@@ -332,6 +339,10 @@ export function promptNextStepFor(
     askConfirmation(writer, draft, account);
     return;
   }
+  // Before the garden or the activity is asked, the last report's are offered, once.
+  const first = requirements[0]?.kind;
+  if ((first === "garden" || first === "action") && offerLastReport(writer, draft, suggestion))
+    return;
   const profile = questionProfileOf(writer.core, draft);
   askRequirement(writer, draft, nextRequirement(requirements, draft, profile), view, account);
 }

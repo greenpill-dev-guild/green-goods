@@ -91,8 +91,8 @@ describe("Community Garden invitation", () => {
       .run();
 
     const replies = (await harness.say(ADA, "Today I watered the baobab seedlings")).join("\n");
-    // A new report, offered its garden's activities as any story's would be.
-    expect(replies).toContain("Which activity in TAS best matches your work?");
+    // A new report, as any story's would be: its only garden taken, and the last activity offered.
+    expect(replies).toContain("Same activity as last time: Tree planting?");
     expect(
       harness.core.db.query("SELECT lifecycle FROM work_drafts ORDER BY created_at").all()
     ).toEqual([{ lifecycle: "published" }, { lifecycle: "open" }]);
