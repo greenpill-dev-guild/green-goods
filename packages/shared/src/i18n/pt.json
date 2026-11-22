@@ -4688,6 +4688,8 @@
   "hub.community.pools.stewardOnly": "O console do fundo comum é para os responsáveis deste jardim.",
   "hub.community.pools.unregistered.body": "Registrá-lo é uma operação de implantação da equipe Green Goods. Até lá, a equipe não pode atuar como confirmadora alternativa em lugar nenhum.",
   "hub.community.pools.unregistered.title": "Ainda não há um fundo comum do protocolo registrado",
+  "hub.community.yield.readError.description": "Nada mudou. Tente novamente para verificá-la.",
+  "hub.community.yield.readError.title": "Não foi possível verificar a conexão de rendimento deste jardim",
   "hub.community.protocolFunding.allowance": "Limite disponível do Safe",
   "hub.community.protocolFunding.amount": "Valor (G$)",
   "hub.community.protocolFunding.amount.invalid": "Insira um valor maior que zero.",
