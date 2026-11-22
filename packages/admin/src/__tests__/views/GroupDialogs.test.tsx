@@ -50,6 +50,8 @@ const mocks = vi.hoisted(() => ({
   lookup: null as Promise<string | null> | null,
   /** The names looked up, in order. */
   lookedUp: [] as string[],
+  /** The garden's gardeners, offered as confirmers in one tap. */
+  gardeners: [] as string[],
   confirmerChanges: [] as Array<{
     copies: Array<[bigint, boolean]>;
     rule: { confirmers: string[]; threshold: number };
@@ -154,7 +156,9 @@ vi.mock("@green-goods/shared/hooks/blockchain/useGoodDollarPrice", () => ({
 }));
 
 vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
-  useGardens: () => ({ data: [{ id: GARDEN, name: "Rocinha" }] }),
+  useGardens: () => ({
+    data: [{ id: GARDEN, name: "Rocinha", gardeners: mocks.gardeners }],
+  }),
 }));
 
 const { EditRewardDialog } = await import("@/views/Garden/Pool/Group/EditRewardDialog");
@@ -519,6 +523,7 @@ describe("Edit Confirmers", () => {
     mocks.declined.clear();
     mocks.lookup = null;
     mocks.lookedUp = [];
+    mocks.gardeners = [];
   });
 
   function renderConfirmers() {
@@ -646,8 +651,11 @@ describe("Edit Confirmers", () => {
     mocks.lookup = new Promise((resolve) => {
       land = resolve;
     });
+    mocks.gardeners = ["0x5555555555555555555555555555555555555555"];
     renderConfirmers();
     const field = () => confirmers().getByLabelText(/^add a confirmer/i);
+    const fromGarden = () =>
+      within(confirmers().getByTestId("seed-confirmer-suggestions")).getByRole("button");
     fireEvent.change(field(), { target: { value: "first.eth" } });
     fireEvent.click(confirmers().getByRole("button", { name: "Add" }));
     await waitFor(() => expect(field()).toHaveAttribute("readonly"));
@@ -658,6 +666,8 @@ describe("Edit Confirmers", () => {
     expect(field()).toHaveValue("first.eth");
     expect(mocks.lookedUp).toEqual(["first.eth"]);
     expect(change()).toBeDisabled();
+    // A garden member added in one tap would clear the wait too.
+    expect(fromGarden()).toBeDisabled();
 
     land(NEW);
     await waitFor(() => expect(field()).not.toHaveAttribute("readonly"));

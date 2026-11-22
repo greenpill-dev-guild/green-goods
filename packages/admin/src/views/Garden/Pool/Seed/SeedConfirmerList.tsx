@@ -284,7 +284,7 @@ export function ConfirmerGroupEditor({
                   label={`${name} · ${getRoleLabel(member.role, formatMessage).singular}`}
                   selected={false}
                   leadingIcon={RiAddLine}
-                  disabled={busy}
+                  disabled={busy || lookingUp}
                   onToggle={() => add(member.address)}
                 />
               )}

@@ -17,13 +17,13 @@ const WORDS: CommitmentMetadataV1 = {
   displayGroup: { version: 1, id: GROUP },
 };
 
-const mocks = vi.hoisted(() => ({ queued: [] as unknown[] }));
+const mocks = vi.hoisted(() => ({ queued: [] as unknown[], words: null as unknown }));
 
 vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({
   usePrimaryAddress: () => "0x3333333333333333333333333333333333333333",
 }));
 vi.mock("../../../hooks/commitment-pooling/useCommitmentMetadata", () => ({
-  useCommitmentMetadataFor: () => WORDS,
+  useCommitmentMetadataFor: () => mocks.words,
   useCommitmentMetadata: () => ({
     byCID: new Map([["cid-handles", WORDS]]),
     isLoading: false,
@@ -41,6 +41,7 @@ describe("useEditsTermsFromGroup", () => {
 
   beforeEach(() => {
     mocks.queued = [];
+    mocks.words = WORDS;
   });
 
   it("edits a group's lone surviving copy on its own", async () => {
@@ -65,6 +66,14 @@ describe("useEditsTermsFromGroup", () => {
       useEditsTermsFromGroup(CHAIN_ID, lone, [lone])
     );
     await waitFor(() => expect(result.current).toBe(true));
+  });
+
+  it("edits a promise whose words name no group on its own, before the pool is read", () => {
+    mocks.words = { version: 1, title: "Repair tool handles" };
+    const { result } = renderHookWithQueryClient(() =>
+      useEditsTermsFromGroup(CHAIN_ID, lone, undefined)
+    );
+    expect(result.current).toBe(false);
   });
 
   it("can't say while the pool's promises are being read", () => {

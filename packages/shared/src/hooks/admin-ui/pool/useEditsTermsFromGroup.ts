@@ -47,7 +47,7 @@ export function useEditsTermsFromGroup(
       groupId,
       commitments: poolCommitments ?? null,
       metadataByCID,
-      wordsSettled: !poolWords.isLoading && !poolWords.isError,
+      wordsSettled: !poolWords.isLoading,
       queuedCopies: queuedGroupCopies.get(groupId)?.length ?? 0,
     });
   }, [commitment, metadata, poolWords, poolCommitments, queuedGroupCopies]);
