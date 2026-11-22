@@ -89,8 +89,17 @@ function publicInput(input: WorkInput): WorkInput {
 const fieldText = (value: string | null) =>
   value === null ? null : sanitizeModelText(value, MODEL_INPUT_POLICY.maxFieldChars);
 
-/** A field's value as a model may read it; anything that is not plain text or a number stays out. */
-function publicValue(value: unknown): unknown {
+const CHOICES = new Set<WorkInput["type"]>(["select", "band", "multi-select"]);
+
+/**
+ * A field's value as a model may read it; anything that is not plain text or a number stays out.
+ * A chosen option is sent as it is or not at all, as the options themselves are.
+ */
+function publicValue(value: unknown, input: WorkInput | undefined): unknown {
+  if (input && CHOICES.has(input.type)) {
+    if (Array.isArray(value)) return namable(value.map(String));
+    return typeof value === "string" && namable([value]).length > 0 ? value : null;
+  }
   if (typeof value === "string") return fieldText(value);
   if (Array.isArray(value)) return value.map((item) => label(String(item)));
   return typeof value === "number" ? value : null;
@@ -149,6 +158,8 @@ function dialogueView(
       Number(other.definition.actionUID === content?.actionUID) -
       Number(one.definition.actionUID === content?.actionUID)
   );
+  const inputOf = (key: string) =>
+    ctx.draft?.snapshot?.definition.inputs.find((candidate) => candidate.key === key);
   const provenance: DialogueSnapshot["provenance"] = {};
   for (const [field, read] of Object.entries(content?.provenance ?? {})) {
     if (read && namedField(field))
@@ -173,7 +184,7 @@ function dialogueView(
       details: Object.fromEntries(
         Object.entries(content?.details ?? {})
           .filter(([key]) => namedField(key))
-          .map(([key, value]) => [key, publicValue(value)])
+          .map(([key, value]) => [key, publicValue(value, inputOf(key))])
       ) as DialogueSnapshot["content"]["details"],
     },
     provenance,
@@ -184,7 +195,7 @@ function dialogueView(
         proposed:
           conflict.field === "garden"
             ? gardenId((conflict.proposed as { address?: string } | null)?.address)
-            : publicValue(conflict.proposed),
+            : publicValue(conflict.proposed, inputOf(conflict.field.replace(/^details\./u, ""))),
       })),
     requirements: (content
       ? outstandingRequirements(content, ctx.draft?.snapshot ?? null)

@@ -142,6 +142,14 @@ export const REPORTING_MIGRATIONS: readonly ReportingMigration[] = [
         set_at INTEGER NOT NULL,
         expires_at INTEGER NOT NULL
       )`,
+      // What a model's view of a conversation looks up on every turn it is built: the reviews and
+      // review questions a chat has had, and the last reply that put a question.
+      `CREATE INDEX IF NOT EXISTS review_intents_conversation
+        ON review_intents(conversation_id, created_at)`,
+      `CREATE INDEX IF NOT EXISTS conversation_prompts_reviews
+        ON conversation_prompts(conversation_id, created_at) WHERE subject_kind = 'review'`,
+      `CREATE INDEX IF NOT EXISTS delivery_outbox_prompt
+        ON delivery_outbox(prompt_id, dispatch_seq) WHERE prompt_id IS NOT NULL`,
     ],
   },
 ];

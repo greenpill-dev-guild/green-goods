@@ -28,28 +28,48 @@ export const REDACTION_MARK = /\[(?:link|email|address|account|handle|token|phon
 
 /**
  * What the sanitizer takes out, most specific first. It matches shapes, so it has limits it does
- * not hide. A name or a street written in words passes. So does a phone number of eight digits or
- * fewer with nothing to mark it as one. In the other direction, a row of counts separated only by
- * spaces ("1200 1500 1800") and a plain number of nine digits or more are taken for phone numbers,
- * and a full stop with no space before "com" reads as a link. It removes what it can detect; it is
- * not a promise that a model never sees personal data.
+ * not hide, and where a shape could be either it removes it:
+ *
+ * - A name or a street written in words passes. So does a phone number of eight digits or fewer
+ *   with nothing to mark it as one, and one written as two numbers joined by a hyphen, the second
+ *   the larger ("2345-67890"), which is how a range is written.
+ * - Nine digits or more in one row are taken for a phone number whatever they are: a row of counts
+ *   ("10 20 30 40 50"), a quantity in the hundreds of millions ("612.345.678") or a list of
+ *   opening hours. A model then reads "[phone]" where the gardener wrote numbers.
+ * - A full stop with no space after it reads as a link when a slash follows later in the word
+ *   ("rega.poda/colheita") or the next word is a common ending ("garden.Site visit").
+ *
+ * It removes what it can detect; it is not a promise that a model never sees personal data.
  */
+const ENDINGS = "com|org|net|app|xyz|dev|info|link|page|site|io";
+const HOST = "(?<![\\p{L}\\p{N}])(?:[\\p{L}\\p{N}-]+\\.)+";
+const AFTER_HOST = "(?::\\d+)?(?:\\/\\S*|\\?\\S*=\\S*|#\\S+)";
 const REDACTIONS: ReadonlyArray<readonly [RegExp, string]> = [
   [/(?<![\p{L}\p{N}])https?:\/\/\S+/giu, "[link]"],
   [/(?<![\p{L}\p{N}])www\.\S+/giu, "[link]"],
+  // A link that carries a name and a password: "user:secret@example.org/x".
+  [/(?<![\p{L}\p{N}])[^\s@/:]+:[^\s@/]+@\S+/gu, "[link]"],
   [/[\p{L}\p{N}._%+-]+@[\p{L}\p{N}-]+(?:\.[\p{L}\p{N}-]+)*\.\p{L}{2,}/gu, "[email]"],
-  // A link written without its scheme: a host under a lower-case ending, followed by a path, a
-  // query with a value or a fragment, as in "t.me/joinchat/abc" and "photos.example.org?key=1".
-  // "Plantamos 20 mudas.Certo?" is a sentence with a missing space, and stays one.
-  [/(?<![\p{L}\p{N}])(?:[\p{L}\p{N}-]+\.)+[a-z]{2,}(?:\/\S*|\?\S*=\S*|#\S+)/gu, "[link]"],
+  // A link written without its scheme: a host followed by a path, a query with a value or a
+  // fragment, as in "t.me/joinchat/abc" and "photos.example.org?key=1". The host's ending is in
+  // lower case, or is one of the common endings in any case ("GREENGOODS.APP/PAIR?CODE=1").
+  // "Plantamos 20 mudas.Certo?" and "Sr.Silva/Sra.Souza" are sentences with a missing space.
+  [new RegExp(`${HOST}[a-z]{2,}${AFTER_HOST}`, "gu"), "[link]"],
+  [new RegExp(`${HOST}(?:${ENDINGS})${AFTER_HOST}`, "giu"), "[link]"],
+  // Any host, in any case, with a query that carries a value: "Photos.Example.Mx/x?token=1".
+  [new RegExp(`${HOST}\\p{L}{2,}(?::\\d+)?(?:\\/[^\\s?]*)?\\?\\S*=\\S*`, "gu"), "[link]"],
   // A bare host under an ending that is rarely an everyday word.
   [
-    /(?<![\p{L}\p{N}])(?:[\p{L}\p{N}-]+\.)+(?:com|org|net|app|xyz|dev|info|link|page|site|io)(?:\.[a-z]{2})?(?![\p{L}\p{N}]|\.\p{L})/gu,
+    new RegExp(
+      `${HOST}(?:${ENDINGS})(?:\\.[a-z]{2})?(?::\\d+)?(?![\\p{L}\\p{N}]|\\.\\p{L})`,
+      "giu"
+    ),
     "[link]",
   ],
-  // Account addresses, transaction hashes and signatures.
+  // Account addresses, transaction hashes and signatures, whole or shortened ("0x7099…79C8").
+  [/\b0x[0-9a-f]{2,}(?:…|\.{2,3})[0-9a-f]{2,}\b/giu, "[address]"],
   [/\b0x[0-9a-f]{8,}\b/giu, "[address]"],
-  [/(?<![\p{L}\p{N}])[\w-]+(?:\.[\w-]+)*\.eth\b/giu, "[account]"],
+  [/(?<![\p{L}\p{N}])[\p{L}\p{N}_-]+(?:\.[\p{L}\p{N}_-]+)*\.eth(?![\p{L}\p{N}_])/giu, "[account]"],
   [/(?<![\w@])@[a-z]\w{2,}/giu, "[handle]"],
   // Continuation tokens, keys and other long opaque strings: letters and digits mixed, unbroken.
   [/\b(?=[\w-]*\d)(?=[\w-]*[a-z])[\w-]{32,}\b/giu, "[token]"],
@@ -60,12 +80,17 @@ const REDACTIONS: ReadonlyArray<readonly [RegExp, string]> = [
  * dot: a candidate phone number. A full stop followed by a space ends the run, so the count that
  * opens the next sentence is not part of it.
  */
-const DIGIT_RUN = /(?<!\d)\+?\(?\d(?:(?: ?[-‐-―] ?| ?\(|\) ?|[  ]|\.(?=\d))?\d){7,}(?!\d)/gu;
+const DIGIT_RUN = /(?<!\d)\+?\(?\d(?:(?: ?[-‐-―] ?| ?\(|\) ?|[  ]|\.(?=\d))?\d){7,}(?!\d)/gu;
 /** Three numbers with the same separator, which may be a date. */
 const DATE_SHAPED = /(?<![\d.,/-])(\d{1,4})([-./])(\d{1,2})\2(\d{1,4})(?![\d/-]|\.\d)/gu;
-/** A grouped quantity ("1.000.000") or a decimal ("12,5", "8.30"): a measure, not a number to call. */
-const QUANTITY =
-  /(?<![\d.,])(?:\d{1,3}(?:[.,]\d{3})+(?:[.,]\d{1,3})?|\d{1,6}[.,]\d{1,3})(?!\d|[.,]\d)/gu;
+/**
+ * A small decimal standing between spaces ("0.25", "8.30"): a measure, not part of a number to
+ * call. Anything longer, or joined to its neighbours by a dot, a hyphen or a bracket, is not one:
+ * "612.345.678" and "900.123" are how phone numbers are written in Spanish and Portuguese.
+ */
+const DECIMAL = /(?<![\d.()‐-―-])\d{1,3}\.\d{1,2}(?![\d.()‐-―-])/gu;
+/** Two numbers joined by a hyphen, as a range is written. */
+const RANGE = /^(\d+) ?[-‐-―] ?(\d+)$/u;
 
 const isYear = (digits: string) => /^(?:19|20)\d{2}$/u.test(digits);
 
@@ -82,14 +107,14 @@ interface Span {
   end: number;
 }
 
-/** The dates and quantities in a text: digits that are kept whatever stands beside them. */
+/** The dates and small decimals in a text: digits that are kept whatever stands beside them. */
 function keptSpans(text: string): Span[] {
   const spans: Span[] = [];
   for (const match of text.matchAll(DATE_SHAPED)) {
     if (isDate(match[1] as string, match[3] as string, match[4] as string))
       spans.push({ start: match.index, end: match.index + match[0].length });
   }
-  for (const match of text.matchAll(QUANTITY)) {
+  for (const match of text.matchAll(DECIMAL)) {
     const span = { start: match.index, end: match.index + match[0].length };
     if (!spans.some((kept) => kept.start < span.end && span.start < kept.end)) spans.push(span);
   }
@@ -97,12 +122,13 @@ function keptSpans(text: string): Span[] {
 }
 
 /**
- * The parts of one run of digits that are phone numbers. Any nine digits unbroken are one. What
- * is left is one when it holds nine digits or more, or eight after a +, a bracket or a leading 0
- * of an area code, unless it is a row of years or of one- and two-digit counts with no such mark.
+ * The parts of one run of digits that are phone numbers. Any nine digits unbroken are one, with
+ * whatever is written onto their front ("+234(0)8031234567"). What is left is one when it holds
+ * nine digits or more, or eight after a +, a bracket or a leading 0 of an area code. Two things
+ * that long are not: a row of years, and a range of nine digits with nothing to mark it.
  */
 function phoneSpans(run: string, offset: number): Span[] {
-  const long = /\+?\(?\d{9,}/u.exec(run);
+  const long = /\S*?\d{9,}/u.exec(run);
   if (long) {
     const end = long.index + long[0].length;
     return [
@@ -111,22 +137,25 @@ function phoneSpans(run: string, offset: number): Span[] {
       ...phoneSpans(run.slice(end), offset + end),
     ];
   }
-  const groups = run.match(/\d+/gu) ?? [];
+  // The number itself: from its first digit, + or bracket to its last digit.
+  const body = /[+(]?\d(?:.*\d)?/u.exec(run);
+  if (!body) return [];
+  const groups = body[0].match(/\d+/gu) ?? [];
   const digits = groups.join("").length;
-  const marked = /^\s*(?:\+|\(|0\d)/u.test(run);
+  const marked = /^(?:\+|\(|0\d)/u.test(body[0]);
   if (digits < (marked ? 8 : 9)) return [];
   if (groups.every(isYear)) return [];
-  if (!marked && groups.every((group) => group.length <= 2)) return [];
-  const lead = run.length - run.trimStart().length;
-  return [{ start: offset + lead, end: offset + run.trimEnd().length }];
+  const range = marked ? null : RANGE.exec(body[0]);
+  if (range && digits === 9 && Number(range[1]) < Number(range[2])) return [];
+  return [{ start: offset + body.index, end: offset + body.index + body[0].length }];
 }
 
-/** Text with its phone numbers taken out. Dates and quantities are kept where they stand. */
+/** Text with its phone numbers taken out. Dates and small decimals are kept where they stand. */
 function withoutPhones(text: string): string {
   const kept = keptSpans(text);
   const phones: Span[] = [];
   for (const run of text.matchAll(DIGIT_RUN)) {
-    // What a date or a quantity leaves of the run on either side is judged on its own.
+    // What a date or a decimal leaves of the run on either side is judged on its own.
     let from = run.index;
     const end = run.index + run[0].length;
     const inside = kept
@@ -146,17 +175,23 @@ function withoutPhones(text: string): string {
 /** Text as a model may read it: identifiers removed, then cut to `maxChars`. */
 export function sanitizeModelText(text: string, maxChars: number): string {
   // Nothing past twice the bound can survive the cut, so it is not worth matching against. A word
-  // the first cut leaves in half is dropped, so half an identifier is never left at the end.
+  // the first cut leaves in half is dropped, so half an identifier is never left at the end. Text
+  // with no space to cut at, as Thai is written, loses only the letters, digits and marks an
+  // identifier is written in.
   const limit = maxChars * 2;
   const long = text.length > limit;
-  let clean = long ? text.slice(0, limit).replace(/\S+$/u, "") : text;
+  const head = long ? text.slice(0, limit) : text;
+  const cut = /\s\S+$/u.test(head) ? /\S+$/u : /[\w.@:/?#=&%+()-]+$/u;
+  let clean = long ? head.replace(cut, "") : head;
   for (const [pattern, replacement] of REDACTIONS) clean = clean.replace(pattern, replacement);
   clean = withoutPhones(clean).trim();
   if (clean.length < maxChars) return long ? `${clean}…` : clean;
   if (clean.length === maxChars && !long) return clean;
-  // The cut never leaves half of a mark standing for something removed.
+  // The cut never leaves half of a mark standing for something removed, or half of a character
+  // written as a pair, as an emoji is.
   return `${clean
     .slice(0, maxChars - 1)
+    .replace(/[\ud800-\udbff]$/u, "")
     .replace(/\[[a-z]*$/u, "")
     .trimEnd()}…`;
 }

@@ -170,10 +170,11 @@ export function openQuestion(core: ReportingCore, ctx: TurnContext): DialogueQue
     )
     .get({ prompt: prompt.id }) as { id: string; payload_ciphertext: string | null } | null;
   const text = row ? (readReplyMessage(core, row)?.text ?? "") : "";
+  const key = prompt.fieldKey?.replace(/^details\./u, "") ?? "";
   return {
     kind: prompt.kind,
     // A field is named by its key; one the sanitizer would alter is not named.
-    field: prompt.fieldKey && named(prompt.fieldKey) === prompt.fieldKey ? prompt.fieldKey : null,
+    field: prompt.fieldKey && named(key) === key ? prompt.fieldKey : null,
     text: sanitizeModelText(text, MODEL_INPUT_POLICY.maxTurnChars),
     options: prompt.options.map((option) => named(option.label)),
   };

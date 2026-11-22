@@ -1,3 +1,4 @@
+import { snapshotActionDefinition } from "@green-goods/shared/modules/agent-reporting";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { pendingGoal } from "../../services/reporting/dialogue-goal";
 import { loadDraft } from "../../services/reporting/drafts";
@@ -163,42 +164,33 @@ describe("what a model is given", () => {
   it("leaves out a choice whose value it would have to alter, and sends nothing past the bound", async () => {
     const planting = harness.catalog.actions.get(AIYELOJA.key)?.[0];
     if (!planting) throw new Error("fixture activity missing");
-    const species = (options: string[]) => [
-      {
-        ...planting,
-        definition: {
-          ...planting.definition,
-          inputs: [
-            {
-              key: "species",
-              title: "Species",
-              placeholder: "",
-              type: "select" as const,
-              required: true,
-              options,
-            },
-          ],
-        },
-      },
-    ];
+    // A definition changed here is snapshotted again, so its digest matches what it holds.
+    const withInputs = (inputs: (typeof planting.definition.inputs)[number][]) =>
+      snapshotActionDefinition(
+        { ...planting.definition, inputs },
+        planting.source,
+        BigInt(planting.observedBlock)
+      );
+    const select = (options: string[]) => ({
+      key: "species",
+      title: "Species",
+      placeholder: "",
+      type: "select" as const,
+      required: true,
+      options,
+    });
+    const species = (options: string[]) => [withInputs([select(options)])];
     const wallet = adaAccount.address;
-    const [named] = species(["baobab", wallet, "neem"]);
-    if (!named) throw new Error("fixture activity missing");
+    const named = select(["baobab", wallet, "neem"]);
     // A second field whose own key is shaped like an address.
-    const keyed = { ...named.definition.inputs[0], key: wallet, title: "Steward", required: false };
-    harness.catalog.actions.set(TAS.key, [
-      {
-        ...named,
-        definition: { ...named.definition, inputs: [...named.definition.inputs, keyed] },
-      },
-    ]);
+    const keyed = { ...named, key: wallet, title: "Steward", required: false };
+    harness.catalog.actions.set(TAS.key, [withInputs([named, keyed])]);
     await consented(ADA, "Today I planted twelve baobab seedlings by the fence");
     await harness.press(ADA, "TAS");
     const request = await heard(ADA, "which species do you mean?");
     expect(request.actions[0]?.inputs.map((input) => input.key)).toEqual(["species"]);
     expect(request.actions[0]?.inputs[0]?.options).toEqual(["baobab", "neem"]);
     expect(JSON.stringify(request).toLowerCase()).not.toContain(wallet.toLowerCase());
-
     // One activity too large for the bound: the question is still answered, with no model.
     harness.catalog.actions.set(
       TAS.key,
@@ -207,6 +199,40 @@ describe("what a model is given", () => {
     const asked = harness.interpreter.requests.length;
     expect((await harness.say(ADA, "and now?")).length).toBeGreaterThan(0);
     expect(harness.interpreter.requests).toHaveLength(asked);
+  });
+
+  it("sends a value chosen from the list as it is, or not at all", async () => {
+    const planting = harness.catalog.actions.get(AIYELOJA.key)?.[0];
+    if (!planting) throw new Error("fixture activity missing");
+    const wallet = adaAccount.address;
+    harness.catalog.actions.set(TAS.key, [
+      snapshotActionDefinition(
+        {
+          ...planting.definition,
+          inputs: [
+            {
+              key: "species",
+              title: "Species",
+              placeholder: "",
+              type: "select",
+              required: true,
+              options: ["baobab", wallet, "neem"],
+            },
+          ],
+        },
+        planting.source,
+        BigInt(planting.observedBlock)
+      ),
+    ]);
+    await consented(ADA, "Today I planted twelve baobab seedlings by the fence");
+    await harness.press(ADA, "TAS");
+    await harness.say(ADA, "1");
+    // The gardener can still pick it; a model is not told what it was.
+    await harness.say(ADA, "2");
+    await harness.say(ADA, "2 hours");
+    const request = await heard(ADA, "and it was by the east fence");
+    expect(request.content.details).toEqual({ species: null });
+    expect(JSON.stringify(request).toLowerCase()).not.toContain(wallet.toLowerCase());
   });
 
   it("drops a value a model read from where an identifier was taken out", async () => {

@@ -25,8 +25,41 @@ describe("model input sanitizer", () => {
     ["555 123 4567 555 987 6543", "[phone]"],
     ["20 5551234567 and 98765 43210", "20 [phone] and [phone]"],
     ["tel.5551234567 ou +55 11 91234\u20115678", "tel.[phone] ou [phone]"],
+    // Dotted groups and pairs are how Spanish, Portuguese and Mexican numbers are written.
+    [
+      "Sembramos 30 árboles hoy. Mi número es +34 612.345.678",
+      "Sembramos 30 árboles hoy. Mi número es [phone]",
+    ],
+    [
+      "Plantámos 20 árvores, o meu número é 912.345.678",
+      "Plantámos 20 árvores, o meu número é [phone]",
+    ],
+    ["0034 612.345.678 / +34.612.345.678 / 612 345.678", "[phone] / [phone] / [phone]"],
+    ["11 912.345.678, 8031 234.567, +44 (7700) 900.123", "[phone], [phone], [phone]"],
+    ["ligar 11 91234-5678,20 mudas plantadas", "ligar [phone],20 mudas plantadas"],
+    ["0803 123 4567.20 trees", "[phone] trees"],
+    ["mi cel es 55 12 34 56 78", "mi cel es [phone]"],
+    ["55-12-34-56-78 o 55.12.34.56.78", "[phone] o [phone]"],
+    ["81 12 34 56 78 y trabajamos 3 horas", "[phone] y trabajamos 3 horas"],
+    // What is written onto a number or around a date is not left behind.
+    ["+234(0)8031234567", "[phone]"],
+    ["(12/03/2026) 0803 123 4567", "(12/03/2026) [phone]"],
+    ["0803 123 4567 (12/03/2026)", "[phone] (12/03/2026)"],
+    // Where a row of digits could be either, it is removed: the limits the policy states.
+    ["beds: 10 20 30 40 50", "beds: [phone]"],
+    ["Planted 1.000.000.000 seeds", "Planted [phone] seeds"],
     ["photos.example.org?key=secret and my-garden.app", "[link] and [link]"],
+    ["GREENGOODS.APP/PAIR?CODE=ABC123 or Greengoods.App/pair?code=abc123", "[link] or [link]"],
+    [
+      "see Example.Com or greengoods.app:443/agent/reporting/abc123?t=secret",
+      "see [link] or [link]",
+    ],
+    ["user:secret@example.org/x", "[link]"],
+    ["PHOTOS.EXAMPLE.ORG/private?token=secret", "[link]"],
+    ["photos.example.org:8443/private?token=secret", "[link]"],
+    ["Photos.Example.Mx/private?token=secret", "[link]"],
     ["I am vitalik.eth and @ada_gardens on Telegram", "I am [account] and [handle] on Telegram"],
+    ["sou joão.eth, garden 0x7099…79C8", "sou [account], garden [address]"],
     [`token ${"a1B2".repeat(10)} was in the link`, "token [token] was in the link"],
   ])("removes the identifier in %j", (text, expected) => {
     expect(sanitizeModelText(text, 500)).toBe(expected);
@@ -39,9 +72,8 @@ describe("model input sanitizer", () => {
     // A date beside a count, a list of counts and a large quantity are not phone numbers.
     "2026-11-21 120 seedlings planted",
     "On 21.11.2026 3 hours of weeding, 8.30-12.30 with 15 people",
-    "beds: 10 20 30 40 50\n120\n340\n5600",
-    "Planted 1.000.000.000 seeds in rows 3@2.5m apart",
-    "Totals: 1.000.000.000 2.000.000.000 3.000.000.000",
+    "beds: 10 20 30 40\n120\n340\n5600",
+    "Planted 1.250.000 seeds in rows 3@2.5m apart, area 2000-10000 m²",
     "Years 2024 2025 2026, shares 0.25 0.50 0.75 1.00, rows 0 1 2 3 4 5 6 7",
     // A full stop with no space after it, in Portuguese and Spanish, is not a link.
     "Plantamos 20 mudas.Certo? Sembramos 30 árboles.Bien? Pronto.Ok?",
@@ -65,5 +97,15 @@ describe("model input sanitizer", () => {
     // A text cut before it is matched loses the word the cut left in half.
     const long = `${"https://example.org/a ".repeat(40)}joao.silva@example.org`;
     expect(sanitizeModelText(long.slice(0, 890), 440)).not.toMatch(/joao|silva/u);
+    // A redaction that shortens the text does not bring the cut word into the result.
+    const shortened = `t.me/${"a".repeat(1979)} alice@example.com`;
+    expect(sanitizeModelText(shortened, 500)).not.toMatch(/alice|example/u);
+    expect(sanitizeModelText(`${"ก".repeat(990)}alice@example.com`, 500)).not.toMatch(/alice/u);
+  });
+
+  it("cuts text with no spaces, and never through a character written as a pair", () => {
+    expect(sanitizeModelText("ต้นกล้า".repeat(60), 160)).toHaveLength(160);
+    const cut = sanitizeModelText(`${"a".repeat(38)}🌱🌱🌱 and more`, 40);
+    expect(cut).toBe(`${"a".repeat(38)}…`);
   });
 });
