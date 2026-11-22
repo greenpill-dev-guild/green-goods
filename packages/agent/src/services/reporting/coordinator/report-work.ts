@@ -4,7 +4,6 @@ import {
   type FieldChange,
   type FieldProvenance,
   outstandingFieldQuestions,
-  outstandingRequirements,
   reconcileDetailsWithAction,
   type ReportContent,
   type ReportField,
@@ -23,12 +22,12 @@ import {
   type ReportingGarden,
   soleGarden,
 } from "../gardens";
-import { acceptsAmount, profiledInput } from "../questions";
-import type { ReportingCore } from "../runtime";
+import { profiledInput } from "../questions";
 import { commitContentChange, lifecycleState, questionProfileOf } from "./draft-commit";
 import { announceGarden } from "./garden-step";
-import { formatDetail } from "./field-questions";
-import { type CatalogView, formatMinutes, gardenLabel, promptNextStep } from "./prompting";
+import { keepProfileRules } from "./profile-rules";
+import { type CatalogView, gardenLabel, promptNextStep } from "./prompting";
+import { acknowledgement, alignDescription } from "./read-back";
 import { readStory } from "./story-answers";
 import type { TurnWriter } from "./writer";
 
@@ -39,6 +38,11 @@ import type { TurnWriter } from "./writer";
 export interface TurnExternal {
   catalog: CatalogView;
   interpretation: InterpretationResult | null;
+  /**
+   * A model's reading of the report's own story against the activity this turn's answer chooses,
+   * so what the story said is not asked again. Null when the turn chooses none, or none was read.
+   */
+  reread?: InterpretationResult | null;
 }
 
 export const gardenerFact = (
@@ -162,93 +166,6 @@ function rereadStory(writer: TurnWriter, draft: DraftRecord, work: Working): voi
       },
     }))
   );
-}
-
-/**
- * What this turn took in, read back from the committed report: the details and time that changed,
- * each as the summary will show it, and a replaced value beside the one it replaced. Nothing is
- * said for the single field the open question asked for, since the answer was plain.
- */
-function acknowledgement(
-  writer: TurnWriter,
-  before: DraftRecord,
-  after: DraftRecord,
-  answered: ReportField | undefined
-): string | null {
-  const profile = questionProfileOf(writer.core, after);
-  const lines: Array<{ field: ReportField; title: string; now: string; was: string | null }> = [];
-  for (const input of after.snapshot?.definition.inputs ?? []) {
-    const now = after.content.details[input.key];
-    const was = before.content.details[input.key];
-    if (now === undefined || JSON.stringify(now) === JSON.stringify(was)) continue;
-    const shown = (value: unknown, details: ReportContent["details"]) =>
-      formatDetail(profiledInput(profile, input, details), value);
-    lines.push({
-      field: `details.${input.key}`,
-      title: input.title,
-      now: shown(now, after.content.details),
-      was: was === undefined ? null : shown(was, before.content.details),
-    });
-  }
-  const time = after.content.timeSpentMinutes;
-  if (time !== null && time !== before.content.timeSpentMinutes) {
-    const was = before.content.timeSpentMinutes;
-    lines.push({
-      field: "timeSpentMinutes",
-      title: writer.text("report.factTime"),
-      now: formatMinutes(time),
-      was: was === null ? null : formatMinutes(was),
-    });
-  }
-  // A summary follows a complete report and shows every field, so only replaced values are worth
-  // saying first.
-  const complete = outstandingRequirements(after.content, after.snapshot).length === 0;
-  const said = complete ? lines.filter((line) => line.was !== null) : lines;
-  if (said.length === 0 || (said.length === 1 && said[0]?.field === answered)) return null;
-  const facts = said
-    .map(({ title, now, was }) =>
-      writer.text(was === null ? "report.factNew" : "report.factChanged", {
-        title,
-        now,
-        was: was ?? "",
-      })
-    )
-    .join("");
-  return writer.text("report.accepted", { facts });
-}
-
-/**
- * The rules a report's question profile puts on its numbers, kept whatever set them: a gardener's
- * answer, a model's reading, a disagreement settled, or a file. A count is a whole number of one or
- * more; a number whose meaning follows another field's choice is taken out when that choice
- * changes without it, so it is asked again in its new unit and never shown in the wrong one.
- */
-export function keepProfileRules(core: ReportingCore, draft: DraftRecord, work: Working): void {
-  const profile = questionProfileOf(core, draft, work.snapshot);
-  if (!profile) return;
-  const before = draft.content.details;
-  const now = work.content.details;
-  for (const [key, question] of Object.entries(profile.fields)) {
-    const value = now[key];
-    if (value === undefined) continue;
-    const chooser = question.by?.field;
-    // A number held before its type was chosen, or under another type, has no meaning in the new
-    // unit: it goes, and is asked again. One given with its type in this turn stays.
-    const rechosen =
-      chooser !== undefined &&
-      before[chooser] !== now[chooser] &&
-      JSON.stringify(before[key]) === JSON.stringify(value);
-    if (!rechosen && acceptsAmount(profile, key, now, value)) continue;
-    const { [key]: _dropped, ...details } = work.content.details;
-    const { [`details.${key}` as const]: _read, ...provenance } = work.content.provenance;
-    work.content = {
-      ...work.content,
-      details,
-      provenance,
-      conflicts: work.content.conflicts.filter((conflict) => conflict.field !== `details.${key}`),
-    };
-    work.changed = true;
-  }
 }
 
 /** Adopts an Action and its frozen definition, keeping only details that definition accepts. */
@@ -379,45 +296,103 @@ export function autoFill(
   }
 }
 
-/** `scope` is what the chat may choose from: a garden the model reads outside it is not taken. */
+const modelFact = (
+  result: InterpretationResult,
+  sources: FieldProvenance["sources"],
+  kind: FieldProvenance["kind"],
+  original?: string,
+  unit?: string
+): FieldProvenance => ({
+  kind,
+  origin: "model",
+  sources,
+  ...(original ? { original } : {}),
+  ...(unit ? { originalUnit: unit } : {}),
+  model: result.models.join(","),
+  gardenerStated: false,
+});
+
+const sameUnit = (one: string, other: string) =>
+  one.trim().toLowerCase().replace(/s$/u, "") === other.trim().toLowerCase().replace(/s$/u, "");
+
+/**
+ * Applies the values a model read. An amount stated in a unit other than its field's is left out:
+ * the core does not convert, and the field is asked instead. `only` keeps a reading to the fields
+ * the report does not have yet.
+ */
+function applyModelFacts(
+  writer: TurnWriter,
+  draft: DraftRecord,
+  work: Working,
+  result: InterpretationResult,
+  sources: FieldProvenance["sources"],
+  only: "empty" | "any" = "any"
+): void {
+  // What a model reads is a proposal: one that disagrees with what the gardener stated becomes a
+  // question, never the value.
+  const profile = questionProfileOf(writer.core, draft, work.snapshot);
+  const facts = result.facts.filter((fact) => {
+    const key = fact.field.startsWith("details.") ? fact.field.slice("details.".length) : null;
+    const definition = key
+      ? work.snapshot?.definition.inputs.find((input) => input.key === key)
+      : null;
+    const input = definition ? profiledInput(profile, definition, work.content.details) : null;
+    if (input?.unit && fact.unit && !sameUnit(input.unit, fact.unit)) return false;
+    if (only === "any") return true;
+    return key
+      ? work.content.details[key] === undefined
+      : fact.field === "timeSpentMinutes" && work.content.timeSpentMinutes === null;
+  });
+  apply(
+    work,
+    facts.map((fact) => ({
+      field: fact.field,
+      value: fact.value,
+      provenance: modelFact(result, sources, fact.kind, fact.original, fact.unit),
+    }))
+  );
+}
+
+/**
+ * Takes what a model read in this turn's message: the garden and the activity it named, then the
+ * activity the chat's gardens leave no doubt about, then the values, so a detail is applied once
+ * its activity is the report's. `scope` is what the chat may choose from: a garden the model
+ * reads outside it is not taken.
+ */
 export function applyInterpretation(
+  writer: TurnWriter,
+  draft: DraftRecord,
   work: Working,
   result: InterpretationResult,
   external: TurnExternal,
   sourceEntryId: string,
-  scope: GardenScope
+  scope: GardenScope,
+  fill: () => void,
+  /** The gardener's words in this turn, unless they are a caption. */
+  said: string | null = null
 ): void {
-  const provenance = (
-    kind: FieldProvenance["kind"],
-    original?: string,
-    unit?: string
-  ): FieldProvenance => ({
-    kind,
-    origin: "model",
-    sources: [{ sourceEntryId }],
-    ...(original ? { original } : {}),
-    ...(unit ? { originalUnit: unit } : {}),
-    model: result.models.join(","),
-    gardenerStated: false,
-  });
+  const sources = [{ sourceEntryId }];
   const garden = gardensIn(scope).find((candidate) => candidate.key === result.gardenKey);
   if (garden)
     apply(work, [
-      { field: "garden", value: gardenRef(garden), provenance: provenance("reported") },
+      {
+        field: "garden",
+        value: gardenRef(garden),
+        provenance: modelFact(result, sources, "reported"),
+      },
     ]);
   const candidates = external.catalog.result?.ok ? external.catalog.result.actions : [];
   const action = candidates.find(
     (candidate) => candidate.definition.actionUID === result.actionUID
   );
-  if (action && work.content.actionUID === null) adoptAction(work, action, provenance("reported"));
-  apply(
-    work,
-    result.facts.map((fact) => ({
-      field: fact.field,
-      value: fact.value,
-      provenance: provenance(fact.kind, fact.original, fact.unit),
-    }))
-  );
+  if (action && work.content.actionUID === null)
+    adoptAction(work, action, modelFact(result, sources, "reported"));
+  fill();
+  // An activity taken in this turn: the gardener's own words are read against it first, so what
+  // they state is theirs and a model's different reading becomes a question, never the value.
+  if (said && work.snapshot && work.snapshot.digest !== draft.snapshot?.digest)
+    applyStory(writer, draft, work, said);
+  applyModelFacts(writer, draft, work, result, sources);
 }
 
 /**
@@ -435,8 +410,19 @@ export function finish(
   const account = writer.ctx.account?.address ?? null;
   takeSoleGarden(work, gardenScope(writer.core.gardens, account), () => writer.sourceEntryId());
   // A turn that waits for files reads nothing back, so it reads nothing the gardener was not shown.
-  if (ask) rereadStory(writer, draft, work);
+  if (ask) {
+    rereadStory(writer, draft, work);
+    // What a model read in the story for the activity just taken fills what is still empty.
+    const story = work.content.provenance.feedback;
+    if (external.reread && story && work.content.actionUID !== draft.content.actionUID)
+      applyModelFacts(writer, draft, work, external.reread, story.sources, "empty");
+  }
   keepProfileRules(writer.core, draft, work);
+  // A value this turn replaced may still stand in the description: the two are kept in step.
+  const aligned = alignDescription(writer, draft, draft.content, work.content, work.snapshot);
+  const described = work.content.provenance.feedback;
+  if (aligned.feedback && described)
+    apply(work, [{ field: "feedback", value: aligned.feedback, provenance: described }]);
   // An activity chosen after the photos may accept fewer of them than were sent.
   const photoLimit = keepAcceptedPhotos(work);
   const next = work.changed
@@ -464,7 +450,9 @@ export function finish(
     }
   }
   // Files are answered once they are processed, in one reply; nothing is read back before that.
-  const understood = ask ? acknowledgement(writer, draft, next, work.answered) : null;
+  const understood = ask
+    ? acknowledgement(writer, draft, next, work.answered, aligned.notes)
+    : null;
   if (understood) writer.preface(understood);
   if (ask) promptNextStep(writer, next, external.catalog);
   writer.flushPreface();

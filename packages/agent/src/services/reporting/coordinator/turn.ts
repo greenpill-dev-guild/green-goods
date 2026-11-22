@@ -16,11 +16,10 @@ import {
   findGarden,
   type GardenScope,
   gardenScope,
-  gardensIn,
   type ReportingGarden,
   soleGarden,
 } from "../gardens";
-import type { InterpretationResult, ReportInterpreter } from "../interpretation";
+import type { ReportInterpreter } from "../interpretation";
 import {
   acquireConversationLease,
   type ConversationLease,
@@ -46,7 +45,6 @@ import {
   withdrawProcessing,
 } from "./consent-step";
 import { loadTurnContext, planEventTurn, type TurnContext, type TurnPlan } from "./context";
-import { interpretTurn } from "./dialogue-context";
 import { StaleDraftError } from "./draft-commit";
 import { answeredGarden, readGardensForTurn } from "./garden-step";
 import { handleReportAnswer, lapsedJoinReply } from "./report-answer";
@@ -54,6 +52,7 @@ import { confirmDraft, handleReportCommand } from "./report-commands";
 import { handleReportMessage } from "./report-message";
 import { gardenToDrop, type TurnExternal } from "./report-work";
 import { isReviewPrompt, nextReviewStep } from "./review-prompts";
+import { readTurn } from "./turn-reading";
 import {
   answerReviewPrompt,
   answerReviewSelection,
@@ -214,7 +213,7 @@ async function gatherExternal(
     (plan.kind === "command" && REPORT_COMMANDS.has(plan.command.kind)) ||
     reasks;
   const scope = gardenScope(core.gardens, account);
-  let garden = reportGarden(core, ctx, plan, scope, account);
+  const garden = reportGarden(core, ctx, plan, scope, account);
   // The activities are read whenever the reply may have to offer them: while the report has
   // still to choose one, which a changed garden asks of it again, and for any answer but one to
   // the garden question. That one needs them only for a garden it names, which is a change; its
@@ -227,29 +226,26 @@ async function gatherExternal(
   const changing = garden?.address !== draft?.content.garden?.address;
   const answersOther = plan.kind === "answer" && !outside && plan.prompt.kind !== "select_garden";
   const needsCatalog = garden !== null && reportPlan && (choosing || answersOther || changing);
-  let result: CatalogResult | null = garden && needsCatalog ? await activitiesOf(garden) : null;
-  let interpretation: InterpretationResult | null = null;
-  if (forModel && deps.interpreter) {
-    interpretation = await interpretTurn(
-      core,
-      deps.interpreter,
-      deps.interpretationTimeoutMs,
-      ctx,
-      {
-        text: forModel,
-        gardens: gardensIn(scope),
-        activities: result?.ok ? result.actions : [],
-      }
-    );
-    // A garden the model read for a report that has none yet: its activities are read in this
-    // turn too, so the reply can ask which activity instead of failing to list them.
-    const named = gardensIn(scope).find((candidate) => candidate.key === interpretation?.gardenKey);
-    if (named && !garden && !ctx.draft?.content.garden) {
-      garden = named;
-      result = await activitiesOf(named);
-    }
-  }
-  return { catalog: { garden, result }, interpretation };
+  const result: CatalogResult | null = garden && needsCatalog ? await activitiesOf(garden) : null;
+  if (!deps.interpreter || !ctx.modelEnabled || !ctx.binding || reviewText)
+    return { catalog: { garden, result }, interpretation: null };
+  const read = await readTurn({
+    core,
+    interpreter: deps.interpreter,
+    timeoutMs: deps.interpretationTimeoutMs,
+    ctx,
+    plan,
+    scope,
+    garden,
+    result,
+    said: forModel,
+    activitiesOf,
+  });
+  return {
+    catalog: { garden: read.garden, result: read.result },
+    interpretation: read.interpretation,
+    reread: read.reread,
+  };
 }
 
 type TurnOutcome = "consume" | "hold" | "pause";

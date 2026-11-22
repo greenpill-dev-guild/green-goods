@@ -133,6 +133,8 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "question.seedlingsAndSpecies": "¿Cuántas plántulas plantaste, y de qué especies?",
   "question.participants": "¿Cuántas personas participaron?",
   "question.speciesTags": "¿Qué especies plantaste?",
+  "report.descriptionStale":
+    "\nTu descripción todavía dice {was}. Envía EDIT para cambiar el texto.",
   "report.accepted": "Tengo:{facts}",
   "report.factNew": "\n• {title}: {now}",
   "report.factChanged": "\n• {title}: {now} (antes: {was})",

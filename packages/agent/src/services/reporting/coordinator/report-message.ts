@@ -125,20 +125,34 @@ export function handleReportMessage(
   // A caption is not read this way: its turn waits for the files and reads nothing back, so a
   // value changed by it would go unseen until the summary.
   if (text && ctx.draft && plan.media.length === 0) applyStory(writer, draft, work, text);
-  if (external.interpretation) {
-    const scope = gardenScope(core.gardens, ctx.account?.address ?? null);
-    applyInterpretation(work, external.interpretation, external, sourceEntryId, scope);
-  } else if (text && ctx.draft && !work.content.feedback) {
-    apply(work, [
-      { field: "feedback", value: text, provenance: gardenerFact(sourceEntryId, text) },
-    ]);
-  }
   // Files are answered by the media job once they are processed, whether or not they could be
   // used: one reply for all of them, then the next question. That job takes the chat's only
   // garden itself, so the garden is said and the next question asked once, not twice. A caption
   // is applied now, and its question waits for the files.
   const fileOnly = !text && plan.media.length > 0;
-  if (!fileOnly) autoFill(writer, work, external, sourceEntryId);
+  const fill = () => {
+    if (!fileOnly) autoFill(writer, work, external, sourceEntryId);
+  };
+  if (external.interpretation) {
+    const scope = gardenScope(core.gardens, ctx.account?.address ?? null);
+    applyInterpretation(
+      writer,
+      draft,
+      work,
+      external.interpretation,
+      external,
+      sourceEntryId,
+      scope,
+      fill,
+      plan.media.length === 0 ? text : null
+    );
+  } else {
+    if (text && ctx.draft && !work.content.feedback)
+      apply(work, [
+        { field: "feedback", value: text, provenance: gardenerFact(sourceEntryId, text) },
+      ]);
+    fill();
+  }
 
   if (
     !work.changed &&

@@ -7958,6 +7958,7 @@
   "app.pool.group.onItsOwn": "Cada una es una promesa aparte. Terminar la tuya nunca depende de nadie más.",
   "app.pool.group.cap": "Puedes tener hasta {cap} promesas de este fondo común a la vez.",
   "app.pool.group.yours": "Las tuyas",
+  "app.pool.group.act.bookOne": "Reservar una",
   "app.pool.group.act.takeUpOne": "Aceptar una",
   "app.pool.group.act.takeUpAnother": "Aceptar otra",
   "app.pool.group.act.askToTakeUpOne": "Solicitar aceptar una",
