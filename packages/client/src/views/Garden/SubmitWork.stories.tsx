@@ -194,7 +194,7 @@ export const ReviewForAnOpenAsk: Story = {
   beforeEach: onStep("review", { takesUp: true }),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const note = canvas.getByText(/^Uploading takes up the ask first\./);
+    const note = canvas.getByText(/^Uploading takes up the request first\./);
     await expect(note).toHaveTextContent("It opens 3 wallet or passkey prompts");
     await expect(canvas.getByRole("button", { name: "Upload Work" })).toHaveAccessibleDescription(
       note.textContent ?? ""

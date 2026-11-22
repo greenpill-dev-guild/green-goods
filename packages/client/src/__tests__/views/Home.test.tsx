@@ -443,7 +443,7 @@ describe("the first-login page", () => {
     state.awaiting = new Set([VIDA.id.toLowerCase()]);
     renderHome();
 
-    const requests = screen.getByRole("region", { name: "Your Requests" });
+    const requests = screen.getByRole("region", { name: "Waiting to Join" });
     expect(requests).toHaveTextContent("Waiting for approval");
     fireEvent.click(within(requests).getByRole("button", { name: /Vida Verde/ }));
 

@@ -25,6 +25,7 @@ import {
 import { profiledInput } from "../questions";
 import { commitContentChange, lifecycleState, questionProfileOf } from "./draft-commit";
 import { announceGarden } from "./garden-step";
+import type { Suggestion } from "./last-report";
 import { keepProfileRules } from "./profile-rules";
 import { type CatalogView, gardenLabel, promptNextStep } from "./prompting";
 import { acknowledgement, alignDescription } from "./read-back";
@@ -43,6 +44,8 @@ export interface TurnExternal {
    * so what the story said is not asked again. Null when the turn chooses none, or none was read.
    */
   reread?: InterpretationResult | null;
+  /** The linked account's last garden and activity, when this turn may offer them. */
+  suggestion?: Suggestion;
 }
 
 export const gardenerFact = (
@@ -454,7 +457,7 @@ export function finish(
     ? acknowledgement(writer, draft, next, work.answered, aligned.notes)
     : null;
   if (understood) writer.preface(understood);
-  if (ask) promptNextStep(writer, next, external.catalog);
+  if (ask) promptNextStep(writer, next, external.catalog, external.suggestion);
   writer.flushPreface();
   return next;
 }

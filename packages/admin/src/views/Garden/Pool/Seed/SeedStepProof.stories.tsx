@@ -48,6 +48,7 @@ const meta: Meta<typeof SeedStepProof> = {
     members: MEMBERS,
     protocolRegistered: true,
     settlementActive: true,
+    usdcMatchAvailable: false,
     price: STORY_PRICE_STATE,
   },
   render: (args) => <SeedStepProofWithForm {...args} />,

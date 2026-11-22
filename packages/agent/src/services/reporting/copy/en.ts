@@ -30,7 +30,7 @@ export const EN_REPORTING_COPY = {
   "report.fieldLead": "{title}?",
   "report.fieldLeadHint": "{title}: {hint}.",
   "consent.notice":
-    "Hi! I'm the Green Goods reporting assistant. To help you report garden work, I store and read the messages and files you send here{processors}. Nothing becomes public until you confirm a report.\n\nBy agreeing, you accept the sharing rules, version {version}: https://www.greengoods.app/terms. Share only your own material or material you have permission to publish, with permission from every identifiable adult shown. Do not send identifiable children, sensitive personal information, abuse, hate, threats, sexual or unlawful content, fraud or spam. Confirmed reports become public on Arbitrum and IPFS; independent copies may remain permanently.\n\nSend STOP at any time to stop, DELETE to remove your unpublished data, or HELP for support ({support}).\n\nDo you agree?",
+    "Hi! I'm the Green Goods reporting assistant. To help you report garden work, I store and read the messages and files you send here{processors}. Nothing becomes public until you confirm a report. What you send before you answer is held unread: I delete it at once if you say no, and after {hours} hours if you don't answer.\n\nBy agreeing, you accept the sharing rules, version {version}: https://www.greengoods.app/terms. Share only your own material or material you have permission to publish, with permission from every identifiable adult shown. Do not send identifiable children, sensitive personal information, abuse, hate, threats, sexual or unlawful content, fraud or spam. Confirmed reports become public on Arbitrum and IPFS; independent copies may remain permanently.\n\nSend STOP at any time to stop, DELETE to remove your unpublished data, or HELP for support ({support}).\n\nDo you agree?",
   "consent.processors": " and may use AI to understand them",
   "consent.agree": "I agree",
   "consent.decline": "No thanks",
@@ -133,6 +133,13 @@ export const EN_REPORTING_COPY = {
   "question.speciesTags": "Which species did you plant?",
   "report.descriptionStale":
     "\nYour description still says {was}. Send EDIT to change its wording.",
+  "suggest.last": "Same as last time: {action} at {garden}?",
+  "suggest.lastGarden": "Same garden as last time: {garden}?",
+  "suggest.lastAction": "Same activity as last time: {action}?",
+  "suggest.use": "Yes",
+  "suggest.change": "Something else",
+  "suggest.never": "Don't suggest this",
+  "suggest.off": "Okay, I won't suggest it again.",
   "report.accepted": "I have:{facts}",
   "report.factNew": "\n• {title}: {now}",
   "report.factChanged": "\n• {title}: {now} (was {was})",
