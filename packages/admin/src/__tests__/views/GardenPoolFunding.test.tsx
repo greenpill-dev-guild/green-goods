@@ -42,6 +42,7 @@ function snapshot(overrides: Partial<PoolFundingSnapshot> = {}): PoolFundingSnap
     feeQuotes: [],
     feePolicy: { maxFeeBps: 100, maxFeeAmount: 50n * G },
     executorPaused: false,
+    commandExecutors: [],
     available: 697n * G,
     shortfall: 0n,
     suggestedTopUp: 0n,
