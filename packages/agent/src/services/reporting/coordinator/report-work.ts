@@ -399,7 +399,9 @@ export function applyInterpretation(
   external: TurnExternal,
   sourceEntryId: string,
   scope: GardenScope,
-  fill: () => void
+  fill: () => void,
+  /** The gardener's words in this turn, unless they are a caption. */
+  said: string | null = null
 ): void {
   const sources = [{ sourceEntryId }];
   const garden = gardensIn(scope).find((candidate) => candidate.key === result.gardenKey);
@@ -418,6 +420,10 @@ export function applyInterpretation(
   if (action && work.content.actionUID === null)
     adoptAction(work, action, modelFact(result, sources, "reported"));
   fill();
+  // An activity taken in this turn: the gardener's own words are read against it first, so what
+  // they state is theirs and a model's different reading becomes a question, never the value.
+  if (said && work.snapshot && work.snapshot.digest !== draft.snapshot?.digest)
+    applyStory(writer, draft, work, said);
   applyModelFacts(writer, draft, work, result, sources);
 }
 
