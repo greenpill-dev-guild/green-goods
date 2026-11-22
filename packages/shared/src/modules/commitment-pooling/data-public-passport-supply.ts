@@ -27,12 +27,12 @@ const SUPPLY_ABI = parseAbi([
 export interface PassportVoucherChain {
   block(): Promise<{ hash: Hex; number: bigint; timestamp: number }>;
   call(to: Address, data: Hex, blockHash: Hex): Promise<Hex>;
-  /** Both ends of every transfer of the token, from its first block to the block read. */
+  /** Every transfer of the token, from its first block to the block read: both ends and amount. */
   transfers(
     token: Address,
     fromBlock: bigint,
     toBlock: bigint
-  ): Promise<{ from: string; to: string }[]>;
+  ): Promise<{ from: string; to: string; value: bigint }[]>;
 }
 
 /**
@@ -94,18 +94,20 @@ function publicVoucherChain(deadline: AbortSignal): PassportVoucherChain {
         },
       ]);
       if (!Array.isArray(logs)) throw new Error("Voucher transfer history is unreadable");
-      return logs.map((log: { topics?: unknown }) => {
+      return logs.map((log: { topics?: unknown; data?: unknown }) => {
         const topics = Array.isArray(log.topics) ? log.topics : [];
         const [, from, to] = topics;
         if (
           typeof from !== "string" ||
           typeof to !== "string" ||
           from.length !== 66 ||
-          to.length !== 66
+          to.length !== 66 ||
+          typeof log.data !== "string" ||
+          !/^0x[0-9a-f]{64}$/i.test(log.data)
         ) {
           throw new Error("Voucher transfer is unreadable");
         }
-        return { from: `0x${from.slice(26)}`, to: `0x${to.slice(26)}` };
+        return { from: `0x${from.slice(26)}`, to: `0x${to.slice(26)}`, value: BigInt(log.data) };
       });
     },
   };
@@ -222,8 +224,11 @@ export async function readPassportVoucherSupply(
       if (outstanding < 0n || outsidePools < 0n) {
         throw new Error("Voucher balances do not add up to the supply");
       }
-      const moved = history.some((transfer) =>
-        [transfer.from, transfer.to].some((end) => !untouched.some((place) => same(place, end)))
+      // A transfer of nothing moves nothing, and anyone can send one: it must not hide the figures.
+      const moved = history.some(
+        (transfer) =>
+          transfer.value > 0n &&
+          [transfer.from, transfer.to].some((end) => !untouched.some((place) => same(place, end)))
       );
       const heldBack = moved || outsidePools > 0n;
       return {

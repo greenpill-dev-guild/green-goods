@@ -897,7 +897,7 @@ describe("a garden's passport", () => {
       String(left).toLowerCase() === right.toLowerCase();
     const BLOCK = { hash: `0x${"7".repeat(64)}`, number: 900n, timestamp: 1_800_000 } as const;
     const ZERO = `0x${"0".repeat(40)}`;
-    type Transfer = { from: string; to: string };
+    type Transfer = { from: string; to: string; value?: bigint };
     // How the pilot's vouchers were set up: issued to the reserve, part of them seeded to the pool.
     const seeded: Transfer[] = [
       { from: ZERO, to: tsv.ownerReserve },
@@ -912,7 +912,7 @@ describe("a garden's passport", () => {
       block: async () => BLOCK,
       transfers: async (of, fromBlock, toBlock) => {
         asked.push({ of: of.toLowerCase(), fromBlock, toBlock });
-        return history;
+        return history.map((transfer) => ({ ...transfer, value: transfer.value ?? VOUCHERS }));
       },
       call: async (to, data, block) => {
         asked.push(block);
@@ -1023,6 +1023,11 @@ describe("a garden's passport", () => {
       const moved = await supplyOf(chain(balances, [...seeded, ...extra]));
       expect(value(moved.supply)).toMatchObject(held);
     }
+    // A transfer of nothing, which anyone may send, moves nothing and hides nothing.
+    const empty = await supplyOf(
+      chain(ten, [...seeded, { from: person, to: pool.deployment.address, value: 0n }])
+    );
+    expect(value(empty.supply)).toMatchObject([{ heldBack: false, outstanding: 10n * VOUCHERS }]);
     // The issuer adding to the pool is its own act and leaves the figures published.
     const topUp = await supplyOf(
       chain({ reserve: 8n * VOUCHERS, pool: 12n * VOUCHERS }, [

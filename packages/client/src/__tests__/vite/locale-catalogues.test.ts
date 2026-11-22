@@ -130,7 +130,14 @@ describe("locale catalogue bundles", () => {
           new RegExp(`(?:from|import)${gap}(\\()?${gap}["']([^"']+)["']`, "g")
         ),
       ].flatMap((match) => {
-        const specifier = match[2];
+        // The path as the runtime reads it: escapes decoded, a `.js` suffix naming its source.
+        const specifier = match[2]
+          .replace(/\\(x[0-9a-f]{2}|u\{[0-9a-f]+\}|u[0-9a-f]{4}|[\s\S])/gi, (_, escape: string) =>
+            /^[xu]/i.test(escape) && escape.length > 1
+              ? String.fromCodePoint(Number.parseInt(escape.replace(/[xu{}]/gi, ""), 16))
+              : escape
+          )
+          .replace(/\.js$/, "");
         const base = specifier.startsWith("@/")
           ? join(client, specifier.slice(2))
           : specifier.startsWith(".")
