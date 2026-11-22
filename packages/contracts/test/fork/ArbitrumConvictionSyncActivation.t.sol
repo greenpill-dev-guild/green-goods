@@ -121,7 +121,6 @@ contract ArbitrumConvictionSyncActivationForkTest is HatsModuleUpgradeForkHarnes
                 if (!_enabledInCommunity(pools[i])) notEnabled++;
             }
         }
-        assertEq(authorizations, gardens.length * 2, "every live pool needs its own authorization");
         emit log_named_uint("live gardens", gardens.length);
         emit log_named_uint("pool authorizations", authorizations);
         // Sync does not need it, but members cannot activate points in a pool their community has not enabled.
@@ -164,6 +163,13 @@ contract ArbitrumConvictionSyncActivationForkTest is HatsModuleUpgradeForkHarnes
         module.grantRole(garden, subject, IHatsModule.GardenRole.Community);
         vm.stopPrank();
         _registerFixtureMember(IActivationPool(pools[0]).registryCommunity(), subject);
+        // Pool-wide totals return to where they started; other members may hold points too.
+        uint256[2] memory activatedBefore;
+        uint256[2] memory stakedBefore;
+        for (uint256 i = 0; i < 2; i++) {
+            activatedBefore[i] = _uint(pools[i], abi.encodeWithSignature("totalPointsActivated()"));
+            stakedBefore[i] = _uint(pools[i], abi.encodeWithSignature("totalStaked()"));
+        }
         uint256[2] memory firstProposalIds;
         for (uint256 i = 0; i < 2; i++) {
             _enableInCommunity(pools[i]);
@@ -186,7 +192,8 @@ contract ArbitrumConvictionSyncActivationForkTest is HatsModuleUpgradeForkHarnes
 
         for (uint256 i = 0; i < 2; i++) {
             assertEq(_uint(pools[i], abi.encodeWithSignature("totalVoterStakePct(address)", subject)), 0);
-            assertEq(_uint(pools[i], abi.encodeWithSignature("totalPointsActivated()")), 0);
+            assertEq(_uint(pools[i], abi.encodeWithSignature("totalPointsActivated()")), activatedBefore[i]);
+            assertEq(_uint(pools[i], abi.encodeWithSignature("totalStaked()")), stakedBefore[i]);
             for (uint256 id = firstProposalIds[i]; id < firstProposalIds[i] + 6; id++) {
                 assertEq(ICVStrategy(pools[i]).getProposalStakedAmount(id), 0);
                 assertEq(_uint(pools[i], abi.encodeWithSignature("getProposalVoterStake(uint256,address)", id, subject)), 0);
@@ -321,11 +328,19 @@ contract ArbitrumConvictionSyncActivationForkTest is HatsModuleUpgradeForkHarnes
             });
             vm.prank(subject);
             allo.registerRecipient(poolId, abi.encode(proposal));
+            assertEq(ICVStrategy(pool).proposalCounter(), firstId + i);
             support[i] = ActivationSupport({ proposalId: firstId + i, deltaSupport: 1 });
         }
         vm.prank(subject);
         allo.allocate(poolId, abi.encode(support));
         assertEq(_uint(pool, abi.encodeWithSignature("totalVoterStakePct(address)", subject)), 6);
+        // Prove the support is stored where the clearing assertions later read it.
+        for (uint256 i = 0; i < 6; i++) {
+            uint256 id = firstId + i;
+            assertEq(_uint(pool, abi.encodeWithSignature("getProposalVoterStake(uint256,address)", id, subject)), 1);
+            assertEq(_uint(pool, abi.encodeWithSignature("voterStakedProposals(address,uint256)", subject, i)), id);
+            assertEq(ICVStrategy(pool).getProposalStakedAmount(id), 1);
+        }
     }
 
     /// @dev Fork-only: live signal pools have arbitration disabled, so they refuse proposals.

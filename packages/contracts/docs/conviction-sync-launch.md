@@ -48,18 +48,23 @@ authorization; this check does not authorize changing anyone's roles.
 
 Before the upgrade broadcast, the upgrade wrapper runs the `hats-module-upgrade-arbitrum`
 fork shard. It discovers every garden from the garden token, including gardens minted
-through the upgradeable account proxy, and rehearses this whole sequence against the
-deployed pools: role grants fail to sync before the upgrade and authorization, the upgrade
-alone does not fix that, authorization alone does not fix that, and after both, every
-garden's role grants and revocations sync both pools. It also clears six stale support
-positions on the newest garden's pools when its member loses their last role. Run it with
-a fresh block, the live garden count and the live implementation:
+through the upgradeable account proxy, and takes the account the Hats module configured.
+
+The activation sequence has its own shard, `conviction-sync-activation-arbitrum`, which
+you run by hand before the upgrade and before any pool is authorized. It asserts that
+pre-activation state, so once either step has happened on chain it no longer applies. On
+the first garden it shows that a role grant fails to sync today, that authorizing without
+the upgrade still fails, and that the upgrade without authorizing still fails. On every
+live garden it authorizes both pools after the upgrade and checks that a grant and a
+revocation sync both of them. On the newest garden it clears six stale support positions
+from both pools when the member loses their last role. Run it with a fresh block, the live
+garden count and the live implementation:
 
 ```sh
 HATS_MODULE_UPGRADE_FORK_BLOCK_NUMBER="$PROOF_BLOCK" ARBITRUM_FORK_BLOCK_NUMBER="$PROOF_BLOCK" \
 HATS_MODULE_UPGRADE_GARDEN_COUNT="$LIVE_GARDEN_COUNT" \
 HATS_MODULE_UPGRADE_EXPECTED_IMPLEMENTATION="$LIVE_HATS_IMPLEMENTATION" \
-  bun run test:shard run hats-module-upgrade-arbitrum
+  bun run test:shard run conviction-sync-activation-arbitrum
 ```
 
 The rehearsal pranks each pool's council instead of signing, so it complements the

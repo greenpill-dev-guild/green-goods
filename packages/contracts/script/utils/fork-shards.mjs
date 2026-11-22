@@ -77,9 +77,16 @@ export const SHARDS = {
   },
   "hats-module-upgrade-arbitrum": {
     chain: "ARBITRUM",
+    description: "Reviewed current-state Arbitrum rehearsal of the live HatsModule UUPS upgrade",
+    glob: "test/fork/ArbitrumHatsModuleUpgrade.t.sol",
+    requiredPositiveIntegerEnv: HATS_MODULE_REHEARSAL_INPUTS,
+    requiredAddressEnv: HATS_MODULE_REHEARSAL_ADDRESS_INPUTS,
+  },
+  "conviction-sync-activation-arbitrum": {
+    chain: "ARBITRUM",
     description:
-      "Reviewed current-state Arbitrum rehearsal of the live HatsModule UUPS upgrade and conviction sync activation",
-    glob: "test/fork/{ArbitrumHatsModuleUpgrade,ArbitrumConvictionSyncActivation}.t.sol",
+      "PRD-1377 conviction sync activation rehearsal; passes only before the Hats upgrade and pool authorizations",
+    glob: "test/fork/ArbitrumConvictionSyncActivation.t.sol",
     requiredPositiveIntegerEnv: HATS_MODULE_REHEARSAL_INPUTS,
     requiredAddressEnv: HATS_MODULE_REHEARSAL_ADDRESS_INPUTS,
   },
@@ -172,11 +179,11 @@ export const SHARDS = {
 
 export const SHARD_ORDER = ["arbitrum", "settlement-lane", "sepolia", "ethereum", "gardens", "octant", "garden-account-release", "garden-roles", "gnosis-vouchers"];
 
-// Fork files deliberately outside every shard. Each needs a reason; anything else must join a shard.
+// Fork files deliberately outside every CI shard. Each needs a reason; anything else must join one.
 export const MANUAL_FORK_FILES = {
   "test/fork/ArbitrumAuditHardening.t.sol": "Audit-hardening release proof requires the pinned Arbitrum block and private exact predecessor, candidate Safe packet and garden inventory files; run explicitly before packet approval, including the cold six-proposal role-revocation case.",
   "test/fork/CeloHats.t.sol": "Legacy unpinned probe of Celo Hats tree 31; it reads the latest block and skips without CELO_RPC_URL.",
-  "test/fork/ArbitrumConvictionSyncActivation.t.sol": "PRD-1377 conviction sync rehearsal against current Arbitrum state; it needs a fresh reviewed block, the live garden count and the live Hats implementation, so it runs in the hats-module-upgrade-arbitrum shard before the Hats upgrade broadcast and before pools are authorized.",
+  "test/fork/ArbitrumConvictionSyncActivation.t.sol": "PRD-1377 conviction sync rehearsal against current Arbitrum state; it needs a fresh reviewed block, the live garden count and the live Hats implementation. It asserts the pre-activation state, so it passes only before the Hats upgrade and pool authorizations: run the conviction-sync-activation-arbitrum shard by hand before them.",
   "test/fork/ArbitrumHatsProtocolDelegation.t.sol": "PRD-615 release proof requires a reviewed current-state block and private exact Safe packet/prerequisite files; run explicitly before packet approval, with the seven-call rehearsal recorded in private release evidence.",
 };
 

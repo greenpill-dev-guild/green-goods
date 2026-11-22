@@ -77,7 +77,7 @@ abstract contract HatsModuleUpgradeForkHarness is Test {
         hatsModule = abi.decode(vm.parseJson(deployment, ".hatsModule"), (address));
         gardenToken = abi.decode(vm.parseJson(deployment, ".gardenToken"), (address));
         gardenAccountImpl = abi.decode(vm.parseJson(deployment, ".gardenAccountImpl"), (address));
-        // Networks that never minted through the upgradeable account record it as null.
+        // Networks that never minted through the upgradeable account record it as null or omit it.
         try IHatsUpgradeForkVm(address(vm)).parseJsonAddress(deployment, ".gardenAccountProxy") returns (address proxy) {
             gardenAccountProxy = proxy;
         } catch { }
@@ -210,19 +210,28 @@ abstract contract HatsModuleUpgradeForkHarness is Test {
     }
 
     /// @dev Older gardens use the fixed account implementation; newer mints use the upgradeable account proxy.
+    ///      Anyone can deploy the other kind of account for a token, so the garden is the one the module configured.
     function _gardenAccount(uint256 tokenId) private returns (address garden) {
         IERC6551Registry registry = IERC6551Registry(TOKENBOUND_REGISTRY);
         address legacy = registry.account(gardenAccountImpl, TOKENBOUND_SALT, chainIdUnderTest, gardenToken, tokenId);
         address upgradeable = gardenAccountProxy == address(0)
             ? address(0)
             : registry.account(gardenAccountProxy, TOKENBOUND_SALT, chainIdUnderTest, gardenToken, tokenId);
-        bool upgradeableDeployed = upgradeable.code.length > 0;
-        bool legacyDeployed = legacy.code.length > 0;
+        bool upgradeableConfigured = upgradeable != address(0) && _configuredInModule(upgradeable);
+        bool legacyConfigured = _configuredInModule(legacy);
         assertTrue(
-            upgradeableDeployed != legacyDeployed,
-            string.concat("garden account must exist exactly once: ", vm.toString(tokenId))
+            upgradeableConfigured != legacyConfigured,
+            string.concat("exactly one garden account must be configured: ", vm.toString(tokenId))
         );
-        garden = upgradeableDeployed ? upgradeable : legacy;
+        garden = upgradeableConfigured ? upgradeable : legacy;
+        assertGt(garden.code.length, 0, string.concat("garden account has no code: ", vm.toString(tokenId)));
+    }
+
+    function _configuredInModule(address garden) private view returns (bool) {
+        (bool ok, bytes memory data) = hatsModule.staticcall(abi.encodeCall(HatsModule.getGardenHatIds, (garden)));
+        if (!ok || data.length != 32 * 8) return false;
+        (,,,,,,, bool configured) = abi.decode(data, (uint256, uint256, uint256, uint256, uint256, uint256, uint256, bool));
+        return configured;
     }
 
     function _assertReviewedGardenCountIsExact() private {
