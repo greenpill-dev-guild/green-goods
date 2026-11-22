@@ -1,5 +1,6 @@
 import { envelopeIssues, type ResourceView } from "@green-goods/shared/modules/agent-reporting";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { setControl } from "../../services/reporting/controls";
 import { TestBrowser } from "./support/browser";
 import {
   adaAccount,
@@ -52,17 +53,22 @@ async function publishedWork(): Promise<`0x${string}`> {
   return workUID;
 }
 
-/** Bola agrees to processing and links the steward account through the browser and chat. */
-async function linkedSteward(): Promise<void> {
+/**
+ * Bola agrees to processing and links the steward account through the browser and chat. Pairing
+ * carries on with the review Bola asked for, so its replies end with the work waiting.
+ */
+async function linkedSteward(): Promise<string[]> {
   harness.chain.grantRole(TAS.address, stewardAccount.address, { operator: true });
   await harness.say(BOLA, "REVIEW");
   await harness.press(BOLA, "I agree");
   const browser = new TestBrowser(harness.app);
   await browser.open(latestLink(harness));
   const proof = await browser.prove(stewardAccount);
-  expect(await harness.say(BOLA, `PAIR ${proof.body.pairingCode}`)).toEqual([
-    `Your account ${stewardAccount.address.toLowerCase()} is now linked.\nYour gardens: TAS.`,
-  ]);
+  const [linked, ...review] = await harness.say(BOLA, `PAIR ${proof.body.pairingCode}`);
+  expect(linked).toBe(
+    `Your account ${stewardAccount.address.toLowerCase()} is now linked.\nYour gardens: TAS.`
+  );
+  return review;
 }
 
 async function openDecisionPage(): Promise<{ browser: TestBrowser; view: ResourceView }> {
@@ -89,9 +95,8 @@ async function decide(decision: "Approve" | "Reject", feedback: string): Promise
 describe("steward review", () => {
   it("records an approval signed by the steward's own account", async () => {
     const workUID = await publishedWork();
-    await linkedSteward();
-
-    expect(await harness.say(BOLA, "REVIEW")).toEqual([
+    // Bola asked to review before linking, so linking shows the work without REVIEW being sent again.
+    expect(await linkedSteward()).toEqual([
       "Work waiting for your review in TAS. Choose one to start:\n1. Tree planting (TAS)",
     ]);
     // A decision's answers have nothing to do with a garden's activities, so none are read, even
@@ -330,6 +335,51 @@ describe("steward review", () => {
     await publishedWork();
     harness.chain.grantRole(TAS.address, adaAccount.address, { gardener: true, operator: true });
     expect(await harness.say(ADA, "REVIEW")).toEqual(["There's no work waiting for your review."]);
+  });
+
+  it("keeps what a steward said about someone's work out of what a model later reads", async () => {
+    const unclear = {
+      intent: "unclear" as const,
+      gardenKey: null,
+      actionUID: null,
+      facts: [],
+      models: ["fixture-model"],
+    };
+    const step = () => harness.clock.advance(60_000);
+    await publishedWork();
+    await linkedSteward();
+    step();
+    await harness.say(BOLA, "REVIEW");
+    step();
+    // Typed at the list of work, before any decision exists.
+    await harness.say(BOLA, "the second one, she always inflates her counts");
+    step();
+    await harness.say(BOLA, "1");
+    step();
+    await harness.press(BOLA, "Approve");
+    await harness.press(BOLA, "High");
+    step();
+    await harness.say(BOLA, "The counts look padded to me");
+    step();
+    await harness.say(BOLA, "CANCEL");
+    step();
+    setControl(harness.core, "model_processing", true, { actor: "test", reason: "review turns" });
+    harness.interpreter.responses = [unclear, unclear];
+    await harness.say(BOLA, "I also weeded the north beds today");
+    step();
+    await harness.say(BOLA, "which garden do you mean?");
+
+    const [story, question] = harness.interpreter.requests.slice(-2);
+    // The story starts a report with no earlier report to bound its context: nothing from the
+    // review may be in it. The report's own first turn is then kept for its next message.
+    expect(story?.message.text).toBe("I also weeded the north beds today");
+    expect(question?.turns.map((turn) => turn.text)).toContain(
+      "I also weeded the north beds today"
+    );
+    for (const request of [story, question])
+      expect(JSON.stringify(request)).not.toMatch(
+        /inflates|padded|approve or reject|How confident/i
+      );
   });
 
   it("tells a linked account without an operator role that it cannot review", async () => {

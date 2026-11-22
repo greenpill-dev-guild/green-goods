@@ -17,13 +17,15 @@ import {
 } from "../../../modules/auth/pilot-account-enrollment";
 import { logger } from "../../../modules/app/logger";
 import { useApp } from "../../../providers/App";
+import { displayablePasskeyName } from "../../../public-contracts/passkey-directory";
 import { copyToClipboard } from "../../../utils/app/clipboard";
 import { debugError } from "../../../utils/debug";
+import { PasskeyNotFoundError } from "../../../workflows/auth-passkey-errors";
 import { useInstallGuidance } from "../../app/useInstallGuidance";
 import { useAuth } from "../../auth/useAuth";
 import { getBrowserGuidanceLabel, getFriendlyLoginErrorMessage } from "./login-screen-messages";
 
-export type LoginScreen = "entry" | "username";
+export type LoginScreen = "entry" | "username" | "confirmNewAccount";
 
 export function useLoginScreenController(routes: { login: string; home: string }) {
   const intl = useIntl();
@@ -128,12 +130,18 @@ export function useLoginScreenController(routes: { login: string; home: string }
     setPilotQuote(null);
   };
   const recoveryAttemptNameRef = useRef<string | null>(null);
+  // The name being tried as a sign-in only, because another account is saved on this phone.
+  const signInOnlyNameRef = useRef<string | null>(null);
+  // The not-found error the new-account question answers. The machine keeps holding it, so a
+  // re-run of the error effect (a language change) must leave the question, not show the error.
+  const askedAboutErrorRef = useRef<unknown>(null);
   // Whether the attempt in flight creates an account: a prompt that closes then made none.
   const creatingRef = useRef(false);
   const passkeyServerEnabled = isPasskeyServerEnabled();
 
   useEffect(() => {
     if (!auth.isAuthenticated) return;
+    signInOnlyNameRef.current = null;
     const attempted = recoveryAttemptNameRef.current;
     recoveryAttemptNameRef.current = null;
     if (
@@ -163,8 +171,26 @@ export function useLoginScreenController(routes: { login: string; home: string }
 
   useEffect(() => {
     if (auth.error && !auth.isAuthenticating) {
+      if (auth.error === askedAboutErrorRef.current) return;
       setLoadingState(null);
       setLoadingMessage(undefined);
+      const triedSignInOnly = signInOnlyNameRef.current !== null;
+      signInOnlyNameRef.current = null;
+      // Nobody holds the typed name. On a phone that already has an account, a typo must not
+      // quietly become a second account: ask first.
+      if (
+        triedSignInOnly &&
+        auth.error instanceof PasskeyNotFoundError &&
+        auth.error.scope === "name"
+      ) {
+        askedAboutErrorRef.current = auth.error;
+        setLoginError(null);
+        setScreen("confirmNewAccount");
+        return;
+      }
+      // A create the question confirmed failed or was cancelled: back to the form with the name,
+      // so trying again asks again rather than leaving the error over the question.
+      setScreen((current) => (current === "confirmNewAccount" ? "username" : current));
       setLoginError(
         getFriendlyLoginErrorMessage(auth.error, intl, { creating: creatingRef.current })
       );
@@ -233,6 +259,7 @@ export function useLoginScreenController(routes: { login: string; home: string }
 
   const begin = (message: string, { creating = false } = {}) => {
     creatingRef.current = creating;
+    signInOnlyNameRef.current = null;
     setLoginError(null);
     setLoadingMessage(message);
     setLoadingState("welcome");
@@ -264,20 +291,56 @@ export function useLoginScreenController(routes: { login: string; home: string }
       );
       return;
     }
+    if (anotherAccountIsSaved(name)) {
+      // Without the directory there is nothing to ask whether the name exists.
+      if (!passkeyServerEnabled) {
+        goTo("confirmNewAccount");
+        return;
+      }
+      recoveryAttemptNameRef.current = name;
+      begin(
+        intl.formatMessage({
+          id: "app.login.loading.continuing",
+          defaultMessage: "Continuing...",
+        })
+      );
+      signInOnlyNameRef.current = name;
+      try {
+        await auth.loginWithPasskey(name);
+      } catch (error) {
+        signInOnlyNameRef.current = null;
+        handleAuthError(error, "login");
+      }
+      return;
+    }
+    await signInOrCreate(name, !passkeyServerEnabled);
+  };
+  /** Whether this phone already holds an account under a name other than the one typed. */
+  const anotherAccountIsSaved = (name: string) => {
+    if (!auth.hasStoredCredential) return false;
+    const saved = getStoredUsername() ?? "";
+    return normalizePasskeyAccountIdentifier(saved) !== normalizePasskeyAccountIdentifier(name);
+  };
+  const signInOrCreate = async (name: string, creating: boolean) => {
     recoveryAttemptNameRef.current = passkeyServerEnabled ? name : null;
     begin(
       intl.formatMessage({
         id: "app.login.loading.continuing",
         defaultMessage: "Continuing...",
       }),
-      { creating: !passkeyServerEnabled }
+      { creating }
     );
     try {
       if (passkeyServerEnabled) await auth.loginWithPasskey(name, { createIfMissing: true });
       else await auth.createAccount(name);
     } catch (error) {
-      handleAuthError(error, passkeyServerEnabled ? "login" : "create");
+      handleAuthError(error, creating ? "create" : "login");
     }
+  };
+  /** The person confirmed that the typed name is a new account, not a misspelled one. */
+  const createNamedAccount = async () => {
+    if (blockUnsupportedPasskeyCeremony()) return;
+    await signInOrCreate(username.trim(), true);
   };
   const loginWithOriginalAccount = async () => {
     if (!originalAccountAddress || blockUnsupportedPasskeyCeremony()) return;
@@ -357,6 +420,7 @@ export function useLoginScreenController(routes: { login: string; home: string }
       ? { label: getBrowserGuidanceLabel(guidance, platform, intl), onClick: switchBrowser }
       : undefined,
     continueWithUsername,
+    createNamedAccount,
     goTo,
     intl,
     isNestedRoute: location.pathname !== routes.login,
@@ -378,6 +442,8 @@ export function useLoginScreenController(routes: { login: string; home: string }
           { name: storedName }
         )
       : undefined,
+    /** The account already saved on this phone, when it has a name a person chose. */
+    savedAccountName: displayablePasskeyName(storedName) ?? undefined,
     redirectTo: fromLogout
       ? routes.home
       : new URLSearchParams(location.search).get("redirectTo") || routes.home,

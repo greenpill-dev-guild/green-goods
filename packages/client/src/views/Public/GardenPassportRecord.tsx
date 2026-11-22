@@ -31,7 +31,11 @@ export function GardenPassportRecord({
         <PassportSentence passport={passport} />
         <PassportLedger passport={passport} onRetry={onRetry} />
       </div>
-      <PassportVouchersSection vouchers={passport.vouchers} onRetry={onRetry} />
+      <PassportVouchersSection
+        vouchers={passport.vouchers}
+        supply={passport.supply}
+        onRetry={onRetry}
+      />
       <PassportMoneySection settlement={passport.settlement} onRetry={onRetry} />
       <PassportReadingSection />
       <div className="flex flex-wrap items-center gap-3 border-t border-stroke-soft-200 pt-10">

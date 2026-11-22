@@ -19,10 +19,16 @@ import { extractFromMedia } from "../../services/reporting/media/extract";
  * construction and defensive parsing only; live Jev and OpenAI behavior is not exercised here.
  */
 const request: InterpretationRequest = {
+  version: 1,
   locale: "en",
+  goal: "report",
   draftRevision: 3,
   message: { sourceEntryId: "src-1", text: "Planted 12 baobabs at TAS, took about 3 hours" },
+  turns: [],
+  question: null,
   content: { actionUID: null, title: null, timeSpentMinutes: null, feedback: null, details: {} },
+  provenance: {},
+  conflicts: [],
   requirements: [{ kind: "garden" }],
   gardens: [
     { key: "tas", label: "TAS" },
@@ -117,6 +123,8 @@ describe("Jev routing", () => {
       draftRevision: 3,
       locale: "en",
       message: "Planted 12 baobabs at TAS, took about 3 hours",
+      openQuestion: null,
+      earlierTurns: [],
       confirmedFields: { title: null, timeSpentMinutes: null, details: {} },
       stillNeeded: ["garden"],
     });
