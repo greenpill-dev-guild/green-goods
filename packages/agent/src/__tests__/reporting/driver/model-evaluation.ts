@@ -1,7 +1,7 @@
 import { loadReportingProviders } from "../../../services/reporting/config";
 import {
   createModelInterpreter,
-  interpretWithDeadline,
+  proposeWithDeadline,
   type InterpretationRequest,
   InterpretationUnavailableError,
 } from "../../../services/reporting/interpretation";
@@ -181,7 +181,7 @@ export async function runModelEvaluation(
       route: routed ? async () => routed : unavailable,
       extract: extracted ? async () => extracted : unavailable,
     });
-    const combined = await interpretWithDeadline(interpreter, request, 100);
+    const combined = await proposeWithDeadline(interpreter, request, 100);
     if (!combined) fullFallbacks += 1;
     else if (combined.models.length < 2) partialFallbacks += 1;
   }

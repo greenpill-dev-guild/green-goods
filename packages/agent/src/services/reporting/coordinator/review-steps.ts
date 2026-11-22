@@ -19,6 +19,7 @@ import { decisionLinkIsLatest, reviewLinkLapsed, sendReviewSigningLink } from ".
 import { accountLink } from "./account-link";
 import type { ChatCommand } from "./commands";
 import type { TurnPlan } from "./context";
+import { openingDecision, readReviewAnswer } from "./review-answers";
 import { isReviewPrompt, nextReviewStep } from "./review-prompts";
 import type { TurnWriter } from "./writer";
 
@@ -110,6 +111,18 @@ function decisionFromText(text: string | null): "approve" | "reject" | null {
   return null;
 }
 
+/**
+ * A changed decision drops the feedback given for the other one, so a rejection is asked for its
+ * own reason and never shows the approval's praise as one.
+ */
+function decide(
+  content: ReviewRecord["content"],
+  decision: "approve" | "reject"
+): ReviewRecord["content"] {
+  const next = withDecision(content, decision);
+  return content.decision && content.decision !== decision ? { ...next, feedback: null } : next;
+}
+
 /** Applies an answer to the open review question; content changes become a new revision. */
 export function answerReviewPrompt(
   writer: TurnWriter,
@@ -125,22 +138,65 @@ export function answerReviewPrompt(
     if (value === "edit") return editReview(writer, review);
     return cancelReview(writer, review);
   }
+  const asked = prompt.kind.slice("review_".length) as "decision" | "confidence" | "feedback";
+  // Typed words may give more than was asked: a decision, its confidence and feedback together.
+  const read = plan.option || !plan.text ? {} : readReviewAnswer(plan.text, asked);
   let content = review.content;
   if (prompt.kind === "review_decision") {
     const decision =
-      (plan.option?.value as "approve" | "reject" | undefined) ?? decisionFromText(plan.text);
+      (plan.option?.value as "approve" | "reject" | undefined) ??
+      decisionFromText(plan.text) ??
+      read.decision;
     if (!decision) return nextReviewStep(writer, review, account.address);
-    content = withDecision(content, decision);
-  } else if (prompt.kind === "review_confidence") {
-    const level = Number(plan.option?.value ?? plan.text?.trim());
-    const next = Number.isInteger(level) ? withConfidence(content, level as Confidence) : null;
-    if (!next) return nextReviewStep(writer, review, account.address);
-    content = next;
-  } else if (prompt.kind === "review_feedback") {
-    const next = withFeedback(content, plan.text ?? "");
-    if (!next || next.feedback === "") return writer.say("review.feedbackInvalid");
-    content = next;
+    content = decide(content, decision);
+  } else if (read.decision) {
+    // A decision stated at a later question changes it: "Actually reject, the site is wrong."
+    content = decide(content, read.decision);
   }
+  if (prompt.kind === "review_confidence" || read.confidence !== undefined) {
+    const level = read.confidence ?? Number(plan.option?.value ?? plan.text?.trim());
+    const next = Number.isInteger(level) ? withConfidence(content, level as Confidence) : null;
+    // A level only answers the confidence question; beside a rejection it is left out.
+    if (next) content = next;
+    else if (prompt.kind === "review_confidence" && !read.decision)
+      return nextReviewStep(writer, review, account.address);
+  }
+  // Feedback that opens with the other decision without stating it is a change of mind not
+  // understood: the question is put again, and those words never become this decision's public
+  // feedback. A reason that only mentions it ("No puedo aprobar sin fotos") is the reason.
+  const other = content.decision === "approve" ? "reject" : "approve";
+  if (prompt.kind === "review_feedback" && !read.decision && plan.text)
+    if (content.decision && openingDecision(plan.text) === other)
+      return nextReviewStep(writer, review, account.address);
+  const feedback =
+    prompt.kind === "review_feedback" && !read.decision && read.confidence === undefined
+      ? (plan.text ?? "")
+      : read.feedback;
+  if (feedback !== undefined) {
+    const next = withFeedback(content, feedback);
+    if (prompt.kind === "review_feedback" && (!next || next.feedback === ""))
+      return writer.say("review.feedbackInvalid");
+    if (next) content = next;
+  }
+  applyReviewContent(writer, review, content, account.address);
+}
+
+/**
+ * Words sent while a decision's question or summary is showing, and not as its answer. A decision
+ * or a confidence they state is a correction, which makes a new revision and so a new summary to
+ * confirm. Anything else leaves the decision as it is and puts its question again.
+ */
+export function correctReview(writer: TurnWriter, review: ReviewRecord, text: string | null): void {
+  const account = writer.ctx.account;
+  if (!account) return writer.say("review.none");
+  const read = text ? readReviewAnswer(text, null) : {};
+  let content = review.content;
+  if (read.decision) content = decide(content, read.decision);
+  if (read.confidence !== undefined) content = withConfidence(content, read.confidence) ?? content;
+  if (read.feedback !== undefined) content = withFeedback(content, read.feedback) ?? content;
+  // Saying again what the summary shows makes no new revision: the summary is shown again.
+  if (JSON.stringify(content) === JSON.stringify(review.content))
+    return nextReviewStep(writer, review, account.address);
   applyReviewContent(writer, review, content, account.address);
 }
 

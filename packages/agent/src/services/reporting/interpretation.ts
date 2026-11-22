@@ -7,6 +7,11 @@ import type {
 } from "@green-goods/shared/modules/agent-reporting";
 import type { WorkInput } from "@green-goods/shared/types/domain";
 import { createLogger } from "../logger";
+import {
+  type DialogueProposal,
+  parseProposal,
+  proposalFromInterpretation,
+} from "./dialogue-proposal";
 import type { ModelMeter } from "./model-spend";
 
 const log = createLogger("reporting");
@@ -94,6 +99,8 @@ export interface InterpretationResult {
   facts: ProposedFact[];
   /** Model identifiers for provenance; never authority. */
   models: string[];
+  /** The report's own outstanding questions a model would put next, validated; a hint at most. */
+  ask?: string[];
 }
 
 export interface ReportInterpreter {
@@ -103,6 +110,15 @@ export interface ReportInterpreter {
     signal: AbortSignal,
     meter?: ModelMeter
   ): Promise<InterpretationResult>;
+  /**
+   * The same reading as a proposal of actions, from a provider that answers in them. Left out, the
+   * reading above is restated as the actions it amounts to. Either way the result is a proposal.
+   */
+  propose?(
+    request: InterpretationRequest,
+    signal: AbortSignal,
+    meter?: ModelMeter
+  ): Promise<DialogueProposal>;
 }
 
 export class InterpretationUnavailableError extends Error {
@@ -111,18 +127,29 @@ export class InterpretationUnavailableError extends Error {
   }
 }
 
-/** Runs an interpreter within a deadline; any failure yields null so the turn falls back. */
-export async function interpretWithDeadline(
+/**
+ * Asks a model what it proposes, within a deadline. A failure, a refusal, a timeout or a reply
+ * that is not a proposal all yield null, and the turn goes on as it does with no model.
+ */
+export async function proposeWithDeadline(
   interpreter: ReportInterpreter | null,
   request: InterpretationRequest,
   timeoutMs: number,
   meter?: ModelMeter
-): Promise<InterpretationResult | null> {
+): Promise<DialogueProposal | null> {
   if (!interpreter) return null;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await interpreter.interpret(request, controller.signal, meter);
+    const proposed = interpreter.propose
+      ? await interpreter.propose(request, controller.signal, meter)
+      : proposalFromInterpretation(
+          await interpreter.interpret(request, controller.signal, meter),
+          request
+        );
+    const proposal = parseProposal(proposed);
+    if (!proposal) throw new InterpretationUnavailableError("malformed");
+    return proposal;
   } catch (error) {
     // The turn goes on without the model; the operator's log says that it did, and why.
     log.warn(
@@ -148,6 +175,18 @@ export async function interpretWithDeadline(
  * extracted facts come only from OpenAI. One failing provider does not discard the other.
  */
 export function createModelInterpreter(providers: {
+  /**
+   * The dialogue planner, and whether it is switched on right now. On, it answers every reading
+   * alone, in actions; off or absent, routing and extraction answer as they always have.
+   */
+  plan?:
+    | ((
+        request: InterpretationRequest,
+        signal: AbortSignal,
+        meter?: ModelMeter
+      ) => Promise<DialogueProposal>)
+    | null;
+  planning?: () => boolean;
   route:
     | ((
         request: InterpretationRequest,
@@ -174,28 +213,31 @@ export function createModelInterpreter(providers: {
       }>)
     | null;
 }): ReportInterpreter | null {
-  const { route, extract } = providers;
-  if (!route && !extract) return null;
+  const { route, extract, plan } = providers;
+  if (!route && !extract && !plan) return null;
+  const interpret: ReportInterpreter["interpret"] = async (request, signal, meter) => {
+    const [routing, extraction] = await Promise.allSettled([
+      route ? route(request, signal, meter) : Promise.resolve(null),
+      extract ? extract(request, signal, meter) : Promise.resolve(null),
+    ]);
+    const routed = routing.status === "fulfilled" ? routing.value : null;
+    const extracted = extraction.status === "fulfilled" ? extraction.value : null;
+    if (!routed && !extracted) throw new InterpretationUnavailableError("provider_error");
+    const intent = routed?.intent ?? extracted?.intent ?? "unclear";
+    const contentIntent = intent === "report_content" || intent === "correction";
+    return {
+      intent,
+      gardenKey: routed ? routed.gardenKey : (extracted?.gardenKey ?? null),
+      actionUID: routed ? routed.actionUID : (extracted?.actionUID ?? null),
+      facts: contentIntent ? (extracted?.facts ?? []) : [],
+      models: [routed?.model, extracted?.model].filter((model): model is string => Boolean(model)),
+    };
+  };
   return {
-    async interpret(request, signal, meter) {
-      const [routing, extraction] = await Promise.allSettled([
-        route ? route(request, signal, meter) : Promise.resolve(null),
-        extract ? extract(request, signal, meter) : Promise.resolve(null),
-      ]);
-      const routed = routing.status === "fulfilled" ? routing.value : null;
-      const extracted = extraction.status === "fulfilled" ? extraction.value : null;
-      if (!routed && !extracted) throw new InterpretationUnavailableError("provider_error");
-      const intent = routed?.intent ?? extracted?.intent ?? "unclear";
-      const contentIntent = intent === "report_content" || intent === "correction";
-      return {
-        intent,
-        gardenKey: routed ? routed.gardenKey : (extracted?.gardenKey ?? null),
-        actionUID: routed ? routed.actionUID : (extracted?.actionUID ?? null),
-        facts: contentIntent ? (extracted?.facts ?? []) : [],
-        models: [routed?.model, extracted?.model].filter((model): model is string =>
-          Boolean(model)
-        ),
-      };
+    interpret,
+    async propose(request, signal, meter) {
+      if (plan && providers.planning?.()) return plan(request, signal, meter);
+      return proposalFromInterpretation(await interpret(request, signal, meter), request);
     },
   };
 }

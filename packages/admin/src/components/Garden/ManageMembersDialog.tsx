@@ -20,6 +20,7 @@ import { FlowStatusRow } from "../Layout/FlowStatusRow";
 import { ManageRolesSelectionSummary } from "./ManageRolesSelectionSummary";
 import { ManageRolesFilters } from "./ManageRolesFilters";
 import { ManageRolesPersonRow } from "./ManageRolesPersonRow";
+import { RestoreRolesNotice, type RestoreRolesNoticeProps } from "./RestoreRolesNotice";
 import { MemberNameReaders, withMemberName } from "./MemberNames";
 import {
   blockedRoles,
@@ -71,6 +72,8 @@ export interface ManageMembersDialogProps {
   onRosterStale?: () => void;
   /** Opens Add Members, with the person this dialog is showing when it shows one. */
   onAddMembers: (prefill?: Address) => void;
+  /** Restores the roles a person's role gives but they lack; absent where the viewer cannot. */
+  restoreRoles?: Pick<RestoreRolesNoticeProps, "check" | "restore" | "signaturesFor">;
   /** A route item opened it, so the router guards a selection: browser Back asks first. */
   closesByRoute?: boolean;
   tone?: AdminDialogProps["tone"];
@@ -101,6 +104,7 @@ export function ManageMembersDialog({
   removal,
   onRosterStale,
   onAddMembers,
+  restoreRoles,
   closesByRoute = false,
   tone,
 }: ManageMembersDialogProps) {
@@ -123,6 +127,7 @@ export function ManageMembersDialog({
   const [selected, setSelected] = useState<ReadonlyMap<string, RolePair>>(() => new Map());
   const [review, setReview] = useState<ReviewState | null>(null);
   const [names, setNames] = useState<ReadonlyMap<string, string>>(() => new Map());
+  const [restoring, setRestoring] = useState(false);
   // Who signs, with what rights: a review is never signed by an account that did not make it.
   const signer = `${viewerAddress?.toLowerCase() ?? ""}:${viewerIsOwner}:${canManage}:${viewerCanManageStewards}:${allowedRoles?.join(",")}`;
   const [shownFor, setShownFor] = useState({ open, initialMember, signer });
@@ -147,9 +152,14 @@ export function ManageMembersDialog({
       setReview(null);
     }
   }
-  useEffect(() => {
-    reviewToken.current += 1;
-  }, [open, initialMember, signer]);
+  // Each of those, and leaving, drops pending answers: a garden change remounts this dialog, so a
+  // restore checked for one garden never reaches the wallet once another garden, or none, is open.
+  useEffect(
+    () => () => {
+      reviewToken.current += 1;
+    },
+    [open, initialMember, signer]
+  );
 
   const onName = useCallback(
     (address: Address, name: string | null) =>
@@ -192,7 +202,7 @@ export function ManageMembersDialog({
   if (view.activeFilter !== filter) setFilter(view.activeFilter);
   const readOnly = !canManage;
   const running = review?.phase === "running";
-  const busy = isLoading || running;
+  const busy = isLoading || running || restoring;
 
   const toggle = (person: MemberPerson, role: GardenRole, checked: boolean) =>
     setSelected((current) => withPicks(current, [{ address: person.address, role }], checked));
@@ -285,6 +295,19 @@ export function ManageMembersDialog({
   useEffect(() => {
     if (phase === "checking" || phase === "done") reviewRegionRef.current?.focus();
   }, [phase]);
+
+  // A restore holds the dialog from its chain read to its last signature, so no removal, add or
+  // other restore can change the person under it; an answer after the dialog closed sends nothing.
+  const startRestore = () => {
+    const token = reviewToken.current;
+    setRestoring(true);
+    return { live: () => token === reviewToken.current, end: () => setRestoring(false) };
+  };
+  // A restore's answer can be newer than both lists, so both are read again.
+  const refreshAfterRestore = () => {
+    void history.refetch();
+    onRosterStale?.();
+  };
 
   const resetDraft = () => {
     reviewToken.current += 1;
@@ -440,6 +463,22 @@ export function ManageMembersDialog({
                       onAddRole={onAddRole ? () => onAddRole(person.address) : undefined}
                       addRoleDisabled={picks.length > 0}
                       disabled={busy}
+                      restoreNotice={
+                        restoreRoles ? (
+                          <RestoreRolesNotice
+                            address={person.address}
+                            roles={person.roles}
+                            recordedRoles={
+                              history.isError ? undefined : historyByAccount.get(key)?.recordedRoles
+                            }
+                            allowedRoles={allowedRoles}
+                            disabled={busy || picks.length > 0}
+                            onRosterStale={refreshAfterRestore}
+                            startRun={startRestore}
+                            {...restoreRoles}
+                          />
+                        ) : undefined
+                      }
                     />
                   );
                 })}

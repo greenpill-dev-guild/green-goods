@@ -3,6 +3,7 @@ import {
   type GardenRole,
   type GardenRoleRemovalInput,
   gardenRoleRemovalBlock,
+  restorableSubRoles,
 } from "../../../utils/blockchain/garden-roles";
 
 const OWNER = "0x1111111111111111111111111111111111111111";
@@ -60,5 +61,48 @@ describe("utils/blockchain/garden-roles gardenRoleRemovalBlock", () => {
         "gardener"
       )
     ).toBe("no-access");
+  });
+});
+
+describe("utils/blockchain/garden-roles restorableSubRoles", () => {
+  const neverGranted: GardenRole[] = [];
+
+  it("offers an owner only Gardener: never Evaluator, and never Steward, whose grant mints Evaluator", () => {
+    expect(restorableSubRoles(["owner", "steward", "gardener"], neverGranted)).toEqual([]);
+    expect(restorableSubRoles(["owner", "steward"], neverGranted)).toEqual(["gardener"]);
+    expect(restorableSubRoles(["owner", "funder"], neverGranted)).toEqual(["gardener"]);
+  });
+
+  it("offers a steward the Evaluator and Gardener their grant gives", () => {
+    expect(restorableSubRoles(["steward", "gardener"], neverGranted)).toEqual(["evaluator"]);
+    expect(restorableSubRoles(["steward"], neverGranted)).toEqual(["evaluator", "gardener"]);
+  });
+
+  it("never offers back a sub-role that was ever granted (the 18 Nov audit's two cases)", () => {
+    // A steward whose Evaluator was granted, then revoked by itself.
+    expect(
+      restorableSubRoles(["steward", "gardener"], ["steward", "evaluator", "gardener"])
+    ).toEqual([]);
+    // The Safe: Evaluator and Gardener granted, revoked, then Owner granted.
+    expect(
+      restorableSubRoles(["owner", "steward"], ["owner", "steward", "evaluator", "gardener"])
+    ).toEqual([]);
+  });
+
+  it("never offers Evaluator to a former owner whose Steward came from the Owner grant", () => {
+    // Owner revoked later; the Steward and Gardener the Owner grant gave remain.
+    expect(restorableSubRoles(["steward", "gardener"], ["owner", "steward", "gardener"])).toEqual(
+      []
+    );
+    // A former owner may still be given back a Gardener no grant minted.
+    expect(restorableSubRoles(["steward"], ["owner", "steward"])).toEqual(["gardener"]);
+  });
+
+  it("never offers back a sub-role with only a recorded revocation, such as a hat minted before indexing", () => {
+    expect(restorableSubRoles(["steward", "gardener"], ["steward", "evaluator"])).toEqual([]);
+  });
+
+  it("finds nothing for roles with no sub-roles", () => {
+    expect(restorableSubRoles(["evaluator", "funder", "community"], neverGranted)).toEqual([]);
   });
 });

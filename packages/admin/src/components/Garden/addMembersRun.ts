@@ -20,6 +20,8 @@ interface AddMembersRunInput {
   /** Present when a list can go under fewer signatures now. */
   addBatch?: (rows: readonly StagedMember[], onLanded: OnLanded) => Promise<AddMembersOutcome>;
   onLanded: OnLanded;
+  /** Read before each one-at-a-time signature: once false, the rows not yet tried stay listed. */
+  live?: () => boolean;
 }
 
 export interface AddMembersRun {
@@ -36,11 +38,13 @@ export interface AddMembersRun {
 async function addOneAtATime(
   rows: readonly StagedMember[],
   addOne: AddMembersRunInput["addOne"],
-  onLanded: OnLanded
+  onLanded: OnLanded,
+  live: () => boolean
 ): Promise<{ failed: StagedMember[]; thrown?: unknown }> {
   const failed: StagedMember[] = [];
   // Sequential on purpose: one signature at a time, and each row shows it has landed.
   for (const [index, row] of rows.entries()) {
+    if (!live()) return { failed: [...failed, ...rows.slice(index)] };
     try {
       const { success } = await addOne(row.role, row.address);
       if (success) onLanded([row]);
@@ -64,11 +68,12 @@ export async function runAddMembers({
   addOne,
   addBatch,
   onLanded,
+  live = () => true,
 }: AddMembersRunInput): Promise<AddMembersRun> {
   // Each attempt starts clean: a reason from the last one says nothing about this one.
   const rows = staged.map(({ address, role }): StagedMember => ({ address, role }));
   if (!addBatch) {
-    const { failed, thrown } = await addOneAtATime(rows, addOne, onLanded);
+    const { failed, thrown } = await addOneAtATime(rows, addOne, onLanded, live);
     return { remaining: failed, failedCount: failed.length, thrown, needsMoreSignatures: false };
   }
 

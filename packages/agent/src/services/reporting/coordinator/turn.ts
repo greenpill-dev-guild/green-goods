@@ -52,11 +52,12 @@ import { confirmDraft, handleReportCommand } from "./report-commands";
 import { handleReportMessage } from "./report-message";
 import { SUGGESTION_PROMPT, suggestedGarden, suggestionFor } from "./last-report";
 import { gardenToDrop, type TurnExternal } from "./report-work";
-import { isReviewPrompt, nextReviewStep } from "./review-prompts";
-import { readTurn } from "./turn-reading";
+import { isReviewPrompt } from "./review-prompts";
+import { readTurn, unansweredWords } from "./turn-reading";
 import {
   answerReviewPrompt,
   answerReviewSelection,
+  correctReview,
   handleReviewCommand,
   requestReview,
   reviewOwnsCommand,
@@ -159,33 +160,6 @@ function reasksReview(ctx: TurnContext, plan: TurnPlan): boolean {
   );
 }
 
-/** A report's questions that offer a list of choices. */
-const REPORT_CHOICES = new Set([
-  "select_garden",
-  "select_action",
-  "field",
-  "time_unit",
-  "conflict",
-  "edit_field",
-]);
-
-/**
- * Typed words sent to a report's list of choices that are neither numbers nor one of the choices'
- * own labels; null for anything else. A garden or activity named in other words still lands here,
- * and the answer handler tries its own matching before it turns to what the model read.
- */
-function offChoiceText(plan: TurnPlan): string | null {
-  if (plan.kind !== "answer" || plan.option !== null) return null;
-  const { prompt } = plan;
-  if (!REPORT_CHOICES.has(prompt.kind) || prompt.options.length === 0) return null;
-  const text = plan.text?.trim();
-  if (!text) return null;
-  const said = text.toLowerCase();
-  const numbers = said.split(/[\s,;]+/u).every((part) => /^\d+$/u.test(part));
-  const label = prompt.options.some((choice) => choice.label.toLowerCase() === said);
-  return numbers || label ? null : text;
-}
-
 async function gatherExternal(
   deps: CoordinatorDeps,
   ctx: TurnContext,
@@ -202,9 +176,9 @@ async function gatherExternal(
   const outside =
     plan.kind === "answer" &&
     (OUTSIDE_REPORT.has(plan.prompt.kind) || isReviewPrompt(plan.prompt.kind));
-  // A story or correction is read by the model, and so are words sent to a list of choices that
-  // pick none of them: they may be a question, a correction or the answer in other words.
-  const said = plan.kind === "message" ? plan.text : offChoiceText(plan);
+  // A story or correction is read by the model, and so are words sent to a question that do not
+  // answer it as it stands: they may be a question, a correction or the answer in other words.
+  const said = plan.kind === "message" ? plan.text : unansweredWords(core, ctx, plan);
   const forModel = said && !reviewText && ctx.modelEnabled && ctx.binding ? said : null;
   // CONNECT with an address says which gardens that account is in, whatever this chat is linked to.
   const namesAccount =
@@ -320,7 +294,7 @@ function applyTurn(
     case "message": {
       const { review, account } = writer.ctx;
       if (review && account && reasksReview(writer.ctx, plan)) {
-        nextReviewStep(writer, review, account.address);
+        correctReview(writer, review, plan.text);
         return "consume";
       }
       handleReportMessage(writer, plan, external);

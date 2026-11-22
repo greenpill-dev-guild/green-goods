@@ -1,4 +1,8 @@
-import type { ActionDefinitionSnapshot } from "@green-goods/shared/modules/agent-reporting";
+import {
+  type ActionDefinitionSnapshot,
+  parseDurationAnswer,
+  parseNumberAnswer,
+} from "@green-goods/shared/modules/agent-reporting";
 import type { CatalogResult } from "../catalog";
 import { type GardenScope, gardensIn, type ReportingGarden } from "../gardens";
 import type { InterpretationResult, ReportInterpreter } from "../interpretation";
@@ -45,6 +49,56 @@ export function answeredActivity(
       .find((action) => action.definition.title.toLowerCase() === typed)
       ?.definition.actionUID.toString();
   return actions.find((action) => action.definition.actionUID.toString() === uid) ?? null;
+}
+
+/** A report's questions that offer a list of choices. */
+const REPORT_CHOICES = new Set([
+  "select_garden",
+  "select_action",
+  "field",
+  "time_unit",
+  "conflict",
+  "edit_field",
+]);
+
+/**
+ * Typed words that do not answer the report's open question as it stands, and that the reader
+ * that needs no model cannot place either; null for anything else. For a list of choices: words
+ * that are neither numbers nor one of the choices' own labels. For a number or the time: words
+ * that are not that amount and name no fact outright. A garden or activity named in other words
+ * still lands here, and the answer handler tries its own matching before it turns to the model.
+ */
+export function unansweredWords(
+  core: ReportingCore,
+  ctx: TurnContext,
+  plan: TurnPlan
+): string | null {
+  if (plan.kind !== "answer" || plan.option !== null) return null;
+  const { prompt } = plan;
+  const text = plan.text?.trim();
+  if (!text) return null;
+  if (prompt.kind === "time" || (prompt.kind === "field" && prompt.options.length === 0)) {
+    const snapshot = ctx.draft?.snapshot ?? null;
+    const input = snapshot?.definition.inputs.find(({ key }) => key === prompt.fieldKey);
+    // A text field takes any words as its answer.
+    if (prompt.kind === "field" && input?.type !== "number") return null;
+    const amount = prompt.kind === "time" ? parseDurationAnswer(text) : parseNumberAnswer(text);
+    // A bare number at the time question is asked its unit; that needs no model either.
+    if (amount.ok || amount.reason === "unit_required") return null;
+    const named = readStory(text, {
+      snapshot,
+      profile: questionProfileFor(snapshot, core.questions ?? QUESTION_PROFILES),
+      details: ctx.draft?.content.details ?? {},
+      locale: ctx.locale,
+      asked: prompt.kind === "time" ? "timeSpentMinutes" : `details.${prompt.fieldKey}`,
+    });
+    return named.length > 0 ? null : text;
+  }
+  if (!REPORT_CHOICES.has(prompt.kind) || prompt.options.length === 0) return null;
+  const said = text.toLowerCase();
+  const numbers = said.split(/[\s,;]+/u).every((part) => /^\d+$/u.test(part));
+  const label = prompt.options.some((choice) => choice.label.toLowerCase() === said);
+  return numbers || label ? null : text;
 }
 
 /** Whether the words alone already give every required detail of the activity, and the time. */

@@ -75,6 +75,20 @@ function explainQuestion(writer: TurnWriter, prompt: PromptRecord): void {
   }
 }
 
+/** Whether a model read something in the words that a message's handling can act on. */
+function usableReading(read: TurnExternal["interpretation"]): boolean {
+  return (
+    read !== null &&
+    (read.intent === "status" ||
+      read.intent === "cancel" ||
+      read.intent === "connect" ||
+      read.intent === "disconnect" ||
+      read.gardenKey !== null ||
+      read.actionUID !== null ||
+      read.facts.length > 0)
+  );
+}
+
 /**
  * Typed words that pick none of the choices on offer. What the model could read in them (a status
  * or cancel request, a request to link an account, a correction, new facts) is handled as a
@@ -90,16 +104,7 @@ function offChoice(
   const read = external.interpretation;
   if (read?.intent === "connect") return requestConnection(writer, null);
   const hello = isGreeting(plan.text) || read?.intent === "greeting";
-  const usable =
-    !hello &&
-    read !== null &&
-    (read.intent === "status" ||
-      read.intent === "cancel" ||
-      read.intent === "disconnect" ||
-      read.gardenKey !== null ||
-      read.actionUID !== null ||
-      read.facts.length > 0);
-  if (usable) {
+  if (!hello && usableReading(read)) {
     return handleReportMessage(writer, { kind: "message", text: plan.text, media: [] }, external);
   }
   if (hello) writer.say("chat.hello");
@@ -296,6 +301,10 @@ export function handleReportAnswer(
           writer.say("chat.hello");
           return askField(writer, draft, definition);
         }
+        // What a model read in the words is handled as a message is: a detail of another field,
+        // a correction, a request for status.
+        if (usableReading(external.interpretation))
+          return handleReportMessage(writer, { kind: "message", text, media: [] }, external);
         // Words where a number was asked for are usually a question about the field itself.
         const hint = fieldHint(input);
         return writer.say(hint ? "report.explainNumber" : "report.explainNumberPlain", {
@@ -360,6 +369,8 @@ export function handleReportAnswer(
         );
         return;
       }
+      if (usableReading(external.interpretation))
+        return handleReportMessage(writer, { kind: "message", text, media: [] }, external);
       return invalid(writer, duration.reason, { unit: "hours", stated: duration.statedUnit ?? "" });
     }
     case "time_unit": {
