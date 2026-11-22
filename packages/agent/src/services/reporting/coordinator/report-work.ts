@@ -27,7 +27,7 @@ import type { ReportingCore } from "../runtime";
 import { commitContentChange, lifecycleState, questionProfileOf } from "./draft-commit";
 import { announceGarden } from "./garden-step";
 import { type CatalogView, gardenLabel, promptNextStep } from "./prompting";
-import { acknowledgement } from "./read-back";
+import { acknowledgement, alignDescription } from "./read-back";
 import { readStory } from "./story-answers";
 import type { TurnWriter } from "./writer";
 
@@ -360,8 +360,17 @@ function applyModelFacts(
   work: Working,
   result: InterpretationResult,
   sources: FieldProvenance["sources"],
-  only: "empty" | "any" = "any"
+  only: "empty" | "any" = "any",
+  message: string | null = null
 ): void {
+  // A correction the gardener wrote, whose words for the value are there in the message, is the
+  // gardener's own: it replaces an earlier value. Anything else a model reads is a proposal, and
+  // one that disagrees with what the gardener stated becomes a question.
+  const said = message?.toLowerCase().replace(/\s+/gu, " ") ?? "";
+  const corrects = (original: string | undefined) =>
+    result.intent === "correction" &&
+    Boolean(original?.trim()) &&
+    said.includes((original as string).trim().toLowerCase().replace(/\s+/gu, " "));
   const profile = questionProfileOf(writer.core, draft, work.snapshot);
   const facts = result.facts.filter((fact) => {
     const key = fact.field.startsWith("details.") ? fact.field.slice("details.".length) : null;
@@ -380,7 +389,10 @@ function applyModelFacts(
     facts.map((fact) => ({
       field: fact.field,
       value: fact.value,
-      provenance: modelFact(result, sources, fact.kind, fact.original, fact.unit),
+      provenance: {
+        ...modelFact(result, sources, fact.kind, fact.original, fact.unit),
+        ...(corrects(fact.original) ? { origin: "gardener" as const, gardenerStated: true } : {}),
+      },
     }))
   );
 }
@@ -418,7 +430,7 @@ export function applyInterpretation(
   if (action && work.content.actionUID === null)
     adoptAction(work, action, modelFact(result, sources, "reported"));
   fill();
-  applyModelFacts(writer, draft, work, result, sources);
+  applyModelFacts(writer, draft, work, result, sources, "any", writer.ctx.message.text ?? null);
 }
 
 /**
@@ -444,6 +456,11 @@ export function finish(
       applyModelFacts(writer, draft, work, external.reread, story.sources, "empty");
   }
   keepProfileRules(writer.core, draft, work);
+  // A value this turn replaced may still stand in the description: the two are kept in step.
+  const aligned = alignDescription(writer, draft, draft.content, work.content, work.snapshot);
+  const described = work.content.provenance.feedback;
+  if (aligned.feedback && described)
+    apply(work, [{ field: "feedback", value: aligned.feedback, provenance: described }]);
   // An activity chosen after the photos may accept fewer of them than were sent.
   const photoLimit = keepAcceptedPhotos(work);
   const next = work.changed
@@ -471,7 +488,9 @@ export function finish(
     }
   }
   // Files are answered once they are processed, in one reply; nothing is read back before that.
-  const understood = ask ? acknowledgement(writer, draft, next, work.answered) : null;
+  const understood = ask
+    ? acknowledgement(writer, draft, next, work.answered, aligned.notes)
+    : null;
   if (understood) writer.preface(understood);
   if (ask) promptNextStep(writer, next, external.catalog);
   writer.flushPreface();

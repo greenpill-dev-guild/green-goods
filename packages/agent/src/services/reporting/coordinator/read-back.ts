@@ -5,6 +5,7 @@ import {
 } from "@green-goods/shared/modules/agent-reporting";
 import type { DraftRecord } from "../drafts";
 import { profiledInput } from "../questions";
+import { type DescriptionChange, reviseDescription } from "./description";
 import { questionProfileOf } from "./draft-commit";
 import { formatDetail } from "./field-questions";
 import { formatMinutes } from "./prompting";
@@ -19,7 +20,8 @@ export function acknowledgement(
   writer: TurnWriter,
   before: DraftRecord,
   after: DraftRecord,
-  answered: ReportField | undefined
+  answered: ReportField | undefined,
+  notes: readonly string[] = []
 ): string | null {
   const profile = questionProfileOf(writer.core, after);
   const lines: Array<{ field: ReportField; title: string; now: string; was: string | null }> = [];
@@ -50,7 +52,9 @@ export function acknowledgement(
   // saying first.
   const complete = outstandingRequirements(after.content, after.snapshot).length === 0;
   const said = complete ? lines.filter((line) => line.was !== null) : lines;
-  if (said.length === 0 || (said.length === 1 && said[0]?.field === answered)) return null;
+  // What happened to the description is said even when the change itself needs no reading back.
+  if (said.length === 0 || (said.length === 1 && said[0]?.field === answered))
+    return notes.length > 0 ? notes.join("").trim() : null;
   const facts = said
     .map(({ title, now, was }) =>
       writer.text(was === null ? "report.factNew" : "report.factChanged", {
@@ -60,5 +64,72 @@ export function acknowledgement(
       })
     )
     .join("");
-  return writer.text("report.accepted", { facts });
+  return `${writer.text("report.accepted", { facts })}${notes.join("")}`;
+}
+
+/**
+ * Brings the description in step with the values this turn replaced. A count, a choice or a time
+ * the description states is changed where it stands; where it cannot be found for certain, the
+ * description is left and a note says it still states the old value. A description the turn itself
+ * rewrote is left alone. Returns the description to keep and what to tell the gardener.
+ */
+export function alignDescription(
+  writer: TurnWriter,
+  draft: Pick<DraftRecord, "id" | "snapshot">,
+  before: ReportContent,
+  content: ReportContent,
+  snapshot: DraftRecord["snapshot"]
+): { feedback: string | null; notes: string[] } {
+  const notes: string[] = [];
+  let description = content.feedback;
+  if (!description || description !== before.feedback) return { feedback: null, notes };
+  const profile = questionProfileOf(writer.core, draft, snapshot);
+  const changes: Array<{ change: DescriptionChange; was: string }> = [];
+  for (const definition of snapshot?.definition.inputs ?? []) {
+    const was = before.details[definition.key];
+    const now = content.details[definition.key];
+    if (was === undefined || now === undefined || JSON.stringify(was) === JSON.stringify(now))
+      continue;
+    const shown = (value: unknown, details: ReportContent["details"]) =>
+      formatDetail(profiledInput(profile, definition, details), value);
+    if (typeof was === "number" && typeof now === "number") {
+      const beforeWords = before.provenance[`details.${definition.key}`]?.original;
+      changes.push({
+        change: {
+          kind: "number",
+          before: was,
+          after: now,
+          ...(beforeWords ? { beforeWords } : {}),
+        },
+        was: shown(was, before.details),
+      });
+    } else if (typeof was === "string" && typeof now === "string") {
+      changes.push({
+        change: {
+          kind: "words",
+          before: shown(was, before.details),
+          after: shown(now, content.details),
+        },
+        was: shown(was, before.details),
+      });
+    }
+  }
+  const timeWas = before.provenance.timeSpentMinutes?.original;
+  const timeNow = content.provenance.timeSpentMinutes?.original;
+  if (
+    before.timeSpentMinutes !== null &&
+    content.timeSpentMinutes !== before.timeSpentMinutes &&
+    timeWas &&
+    timeNow
+  )
+    changes.push({ change: { kind: "words", before: timeWas, after: timeNow }, was: timeWas });
+  for (const { change, was } of changes) {
+    const { revised, stale } = reviseDescription(description, change);
+    if (revised) description = revised;
+    if (revised || stale)
+      notes.push(
+        writer.text(revised ? "report.descriptionRevised" : "report.descriptionStale", { was })
+      );
+  }
+  return { feedback: description === content.feedback ? null : description, notes };
 }
