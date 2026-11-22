@@ -4,8 +4,10 @@ import {
   type FieldChange,
   type FieldProvenance,
   outstandingFieldQuestions,
+  outstandingRequirements,
   reconcileDetailsWithAction,
   type ReportContent,
+  type ReportField,
   type SourceRef,
 } from "@green-goods/shared/modules/agent-reporting";
 import { resolveWorkSubmissionTitle } from "@green-goods/shared/utils/work/workTitles";
@@ -21,9 +23,13 @@ import {
   type ReportingGarden,
   soleGarden,
 } from "../gardens";
-import { commitContentChange, lifecycleState } from "./draft-commit";
+import { acceptsAmount, profiledInput } from "../questions";
+import type { ReportingCore } from "../runtime";
+import { commitContentChange, lifecycleState, questionProfileOf } from "./draft-commit";
 import { announceGarden } from "./garden-step";
-import { type CatalogView, gardenLabel, promptNextStep } from "./prompting";
+import { formatDetail } from "./field-questions";
+import { type CatalogView, formatMinutes, gardenLabel, promptNextStep } from "./prompting";
+import { readStory } from "./story-answers";
 import type { TurnWriter } from "./writer";
 
 /**
@@ -63,8 +69,12 @@ export interface Working {
   content: ReportContent;
   snapshot: ActionDefinitionSnapshot | null;
   changed: boolean;
+  /** The one field the open question asked for and got: an answer that needs no reading back. */
+  answered?: ReportField;
   /** The linked account's only garden, when this turn gave it to the report without asking. */
   taken?: ReportingGarden;
+  /** The reader that needs no model recognised a fact in this turn's words, held or new. */
+  recognised?: boolean;
 }
 
 export function apply(work: Working, changes: FieldChange[]): void {
@@ -72,6 +82,173 @@ export function apply(work: Working, changes: FieldChange[]): void {
   const outcome = applyReportChanges(work.content, changes, work.snapshot);
   work.changed ||= outcome.applied.length > 0 || outcome.conflicts.length > 0;
   work.content = outcome.content;
+}
+
+/**
+ * Reads the facts a message names outright and applies them as the gardener's own. `asked` is the
+ * field, or the fields, the open question asks for. A fact the report already holds is left out,
+ * so saying a value again changes nothing, and a confirmed report stays confirmed. Returns whether
+ * the report changed.
+ */
+export function applyStory(
+  writer: TurnWriter,
+  draft: DraftRecord,
+  work: Working,
+  text: string,
+  asked: ReportField | readonly ReportField[] | null = null
+): boolean {
+  const read = readStory(text, {
+    snapshot: work.snapshot,
+    profile: questionProfileOf(writer.core, draft, work.snapshot),
+    details: work.content.details,
+    locale: writer.ctx.locale,
+    asked,
+  });
+  work.recognised ||= read.length > 0;
+  const facts = read.filter(
+    (fact) => JSON.stringify(valueOf(work.content, fact.field)) !== JSON.stringify(fact.value)
+  );
+  if (facts.length === 0) return false;
+  const changedBefore = work.changed;
+  work.changed = false;
+  apply(
+    work,
+    facts.map((fact) => ({
+      field: fact.field,
+      value: fact.value,
+      provenance: gardenerFact(writer.sourceEntryId(), fact.original, fact.unit),
+    }))
+  );
+  const changed = work.changed;
+  work.changed ||= changedBefore;
+  return changed;
+}
+
+function valueOf(content: ReportContent, field: ReportField): unknown {
+  if (field === "timeSpentMinutes") return content.timeSpentMinutes;
+  return field.startsWith("details.") ? content.details[field.slice("details.".length)] : undefined;
+}
+
+/**
+ * A report that has just taken its activity reads the gardener's own story again, now that it
+ * knows which fields to look for, so what the story already said is not asked. Only fields still
+ * empty are filled, each pointing at the message the story came from.
+ */
+function rereadStory(writer: TurnWriter, draft: DraftRecord, work: Working): void {
+  const { content, snapshot } = work;
+  const story = content.provenance.feedback;
+  if (!snapshot || content.actionUID === null || content.actionUID === draft.content.actionUID)
+    return;
+  if (!content.feedback || !story?.gardenerStated) return;
+  const facts = readStory(content.feedback, {
+    snapshot,
+    profile: questionProfileOf(writer.core, draft, snapshot),
+    details: content.details,
+    locale: writer.ctx.locale,
+  }).filter((fact) =>
+    fact.field === "timeSpentMinutes"
+      ? content.timeSpentMinutes === null
+      : content.details[fact.field.slice("details.".length)] === undefined
+  );
+  apply(
+    work,
+    facts.map((fact) => ({
+      field: fact.field,
+      value: fact.value,
+      provenance: {
+        ...story,
+        original: fact.original,
+        ...(fact.unit ? { originalUnit: fact.unit } : {}),
+      },
+    }))
+  );
+}
+
+/**
+ * What this turn took in, read back from the committed report: the details and time that changed,
+ * each as the summary will show it, and a replaced value beside the one it replaced. Nothing is
+ * said for the single field the open question asked for, since the answer was plain.
+ */
+function acknowledgement(
+  writer: TurnWriter,
+  before: DraftRecord,
+  after: DraftRecord,
+  answered: ReportField | undefined
+): string | null {
+  const profile = questionProfileOf(writer.core, after);
+  const lines: Array<{ field: ReportField; title: string; now: string; was: string | null }> = [];
+  for (const input of after.snapshot?.definition.inputs ?? []) {
+    const now = after.content.details[input.key];
+    const was = before.content.details[input.key];
+    if (now === undefined || JSON.stringify(now) === JSON.stringify(was)) continue;
+    const shown = (value: unknown, details: ReportContent["details"]) =>
+      formatDetail(profiledInput(profile, input, details), value);
+    lines.push({
+      field: `details.${input.key}`,
+      title: input.title,
+      now: shown(now, after.content.details),
+      was: was === undefined ? null : shown(was, before.content.details),
+    });
+  }
+  const time = after.content.timeSpentMinutes;
+  if (time !== null && time !== before.content.timeSpentMinutes) {
+    const was = before.content.timeSpentMinutes;
+    lines.push({
+      field: "timeSpentMinutes",
+      title: writer.text("report.factTime"),
+      now: formatMinutes(time),
+      was: was === null ? null : formatMinutes(was),
+    });
+  }
+  // A summary follows a complete report and shows every field, so only replaced values are worth
+  // saying first.
+  const complete = outstandingRequirements(after.content, after.snapshot).length === 0;
+  const said = complete ? lines.filter((line) => line.was !== null) : lines;
+  if (said.length === 0 || (said.length === 1 && said[0]?.field === answered)) return null;
+  const facts = said
+    .map(({ title, now, was }) =>
+      writer.text(was === null ? "report.factNew" : "report.factChanged", {
+        title,
+        now,
+        was: was ?? "",
+      })
+    )
+    .join("");
+  return writer.text("report.accepted", { facts });
+}
+
+/**
+ * The rules a report's question profile puts on its numbers, kept whatever set them: a gardener's
+ * answer, a model's reading, a disagreement settled, or a file. A count is a whole number of one or
+ * more; a number whose meaning follows another field's choice is taken out when that choice
+ * changes without it, so it is asked again in its new unit and never shown in the wrong one.
+ */
+export function keepProfileRules(core: ReportingCore, draft: DraftRecord, work: Working): void {
+  const profile = questionProfileOf(core, draft, work.snapshot);
+  if (!profile) return;
+  const before = draft.content.details;
+  const now = work.content.details;
+  for (const [key, question] of Object.entries(profile.fields)) {
+    const value = now[key];
+    if (value === undefined) continue;
+    const chooser = question.by?.field;
+    // A number held before its type was chosen, or under another type, has no meaning in the new
+    // unit: it goes, and is asked again. One given with its type in this turn stays.
+    const rechosen =
+      chooser !== undefined &&
+      before[chooser] !== now[chooser] &&
+      JSON.stringify(before[key]) === JSON.stringify(value);
+    if (!rechosen && acceptsAmount(profile, key, now, value)) continue;
+    const { [key]: _dropped, ...details } = work.content.details;
+    const { [`details.${key}` as const]: _read, ...provenance } = work.content.provenance;
+    work.content = {
+      ...work.content,
+      details,
+      provenance,
+      conflicts: work.content.conflicts.filter((conflict) => conflict.field !== `details.${key}`),
+    };
+    work.changed = true;
+  }
 }
 
 /** Adopts an Action and its frozen definition, keeping only details that definition accepts. */
@@ -257,6 +434,9 @@ export function finish(
 ): DraftRecord {
   const account = writer.ctx.account?.address ?? null;
   takeSoleGarden(work, gardenScope(writer.core.gardens, account), () => writer.sourceEntryId());
+  // A turn that waits for files reads nothing back, so it reads nothing the gardener was not shown.
+  if (ask) rereadStory(writer, draft, work);
+  keepProfileRules(writer.core, draft, work);
   // An activity chosen after the photos may accept fewer of them than were sent.
   const photoLimit = keepAcceptedPhotos(work);
   const next = work.changed
@@ -268,18 +448,25 @@ export function finish(
       })
     : draft;
   if (work.taken) announceGarden(writer, work.taken);
+  if (photoLimit !== null) writer.say("report.photosKept", { maximum: photoLimit });
+  // What follows opens the next question, so one reply says what was understood and what is next.
   // An activity just adopted: say how many questions follow, the count each one is numbered against.
   if (draft.content.actionUID === null && next.content.actionUID !== null && next.snapshot) {
     const remaining = outstandingFieldQuestions(next.content, next.snapshot).length;
     if (remaining > 0) {
-      writer.say(remaining === 1 ? "report.actionAdoptedOne" : "report.actionAdoptedMany", {
-        action: next.snapshot.definition.title,
-        garden: gardenLabel(writer.core.gardens, next.content.garden?.address),
-        count: remaining,
-      });
+      writer.preface(
+        writer.text(remaining === 1 ? "report.actionAdoptedOne" : "report.actionAdoptedMany", {
+          action: next.snapshot.definition.title,
+          garden: gardenLabel(writer.core.gardens, next.content.garden?.address),
+          count: remaining,
+        })
+      );
     }
   }
-  if (photoLimit !== null) writer.say("report.photosKept", { maximum: photoLimit });
+  // Files are answered once they are processed, in one reply; nothing is read back before that.
+  const understood = ask ? acknowledgement(writer, draft, next, work.answered) : null;
+  if (understood) writer.preface(understood);
   if (ask) promptNextStep(writer, next, external.catalog);
+  writer.flushPreface();
   return next;
 }

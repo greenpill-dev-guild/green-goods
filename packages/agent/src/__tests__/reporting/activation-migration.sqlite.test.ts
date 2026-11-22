@@ -46,12 +46,18 @@ beforeEach(async () => {
       string,
       SQLQueryBindings
     >[]) {
-      const columns = Object.keys(row);
+      // The historical schema has only the columns it had: later ones are left out of the copy.
+      const known = new Set(
+        (old.query(`PRAGMA table_info("${name}")`).all() as Array<{ name: string }>).map(
+          (column) => column.name
+        )
+      );
+      const columns = Object.keys(row).filter((column) => known.has(column));
       old
         .query(
           `INSERT INTO "${name}" (${columns.map((column) => `"${column}"`).join(",")}) VALUES (${columns.map(() => "?").join(",")})`
         )
-        .run(...Object.values(row));
+        .run(...columns.map((column) => row[column] as SQLQueryBindings));
     }
   old.exec("PRAGMA user_version = 2");
   old.close();
