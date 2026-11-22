@@ -105,6 +105,32 @@ contain counts of expected, injected and superseded values, missing or unsupport
 and known parser warning categories. They withhold arbitrary model text. A later successful
 sample does not erase an earlier failure; retain both when assessing consistency.
 
+## Evaluate dialogue quality in three languages
+
+```bash
+bun --env-file=.env packages/agent/src/__tests__/reporting/driver/walkthrough.ts --dialogue results.json --cap 1
+bun packages/agent/src/__tests__/reporting/driver/walkthrough.ts --dialogue-summary results.json
+```
+
+`--dialogue` reads every message in `dialogue-corpus.ts` (34 labelled scenarios, each in English,
+Spanish and Portuguese and in two wordings) with three readers: the deterministic reader, the
+current pipeline (Jev routing with OpenAI extraction) and the dialogue planner. Model readings go
+through the same validation a turn applies. The corpus is synthetic text written for it; nothing a
+person said is sent. Spend has a hard cap (`--cap`, at most 2 USD): a request whose reservation
+would pass it is never sent, and the run stops and reports `stoppedAtCap`. The results file keeps
+each reading, its latency, tokens and cost, never a provider body.
+
+`--dialogue-summary` scores a results file again without calling a provider. The deterministic
+reader's part is read with the code as it is, so a change to that reader is measured against the
+same model replies. The summary gives, per reader and language: precision and recall on numbers,
+choices and time; values the labels forbid (`unsupported`, and `authorityViolations` for the
+adversarial scenarios, with `outOfListAttempts` that validation removed); facts the report would
+ask for again; garden, activity, aside and correction accuracy; quotes not found in the message;
+p50 and p95 latency; tokens and cost; and failures by reason. `pipeline+floor` and
+`planner+floor` are the readings as a turn applies them, the deterministic reader's facts first.
+`jevPrecedence` counts where Jev's intent and OpenAI's differed and whose was right. Scenarios
+marked `ambiguous` are left out of the figures and listed under `forReview` for a native speaker.
+
 Cost uses measured Responses token counts and the GPT-4.1 mini standard rates checked on
 2026-10-02; it is an estimate, not a billing receipt. Calls without usage have an unknown cost.
 Jev billing is not estimated. See the official [model catalog](https://developers.openai.com/api/docs/models/gpt-4.1-mini)
