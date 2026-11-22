@@ -119,7 +119,7 @@ export async function getGardenMemberHistory(
         : a.logIndex - b.logIndex || a.id.localeCompare(b.id)
   );
   const members = new Map<string, GardenMemberHistory>();
-  const lastActions = new Map<string, Map<GardenRole, RoleEvent["action"]>>();
+  const grantedRoles = new Map<string, Set<GardenRole>>();
   for (const event of ordered) {
     const key = `${event.garden}:${event.account}`;
     let member = members.get(key);
@@ -132,9 +132,9 @@ export async function getGardenMemberHistory(
         roleSince: {},
       };
       members.set(key, member);
-      lastActions.set(key, new Map());
+      grantedRoles.set(key, new Set());
     }
-    lastActions.get(key)?.set(event.role, event.action);
+    if (event.action === "GRANTED") grantedRoles.get(key)?.add(event.role);
     if (event.action === "GRANTED") {
       if (Object.keys(member.roleSince).length === 0) member.memberSince = event.timestamp;
       member.joinedAt ??= event.timestamp;
@@ -145,8 +145,8 @@ export async function getGardenMemberHistory(
     }
   }
   for (const [key, member] of members) {
-    const last = lastActions.get(key);
-    member.revokedRoles = GARDEN_ROLE_ORDER.filter((role) => last?.get(role) === "REVOKED");
+    const granted = grantedRoles.get(key);
+    member.grantedRoles = GARDEN_ROLE_ORDER.filter((role) => granted?.has(role));
   }
   return [...members.values()];
 }

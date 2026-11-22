@@ -65,31 +65,38 @@ describe("utils/blockchain/garden-roles gardenRoleRemovalBlock", () => {
 });
 
 describe("utils/blockchain/garden-roles restorableSubRoles", () => {
-  const nothingRevoked: GardenRole[] = [];
+  const neverGranted: GardenRole[] = [];
 
-  it("never asks an owner for Evaluator: their Steward hat comes from the Owner grant", () => {
-    expect(restorableSubRoles(["owner", "steward", "gardener"], nothingRevoked)).toEqual([]);
-    expect(restorableSubRoles(["owner", "steward"], nothingRevoked)).toEqual(["gardener"]);
-    expect(restorableSubRoles(["owner", "funder"], nothingRevoked)).toEqual([
-      "steward",
-      "gardener",
-    ]);
+  it("offers an owner only Gardener: never Evaluator, and never Steward, whose grant mints Evaluator", () => {
+    expect(restorableSubRoles(["owner", "steward", "gardener"], neverGranted)).toEqual([]);
+    expect(restorableSubRoles(["owner", "steward"], neverGranted)).toEqual(["gardener"]);
+    expect(restorableSubRoles(["owner", "funder"], neverGranted)).toEqual(["gardener"]);
   });
 
-  it("names the Evaluator and Gardener a steward's own grant gives", () => {
-    expect(restorableSubRoles(["steward", "gardener"], nothingRevoked)).toEqual(["evaluator"]);
-    expect(restorableSubRoles(["steward"], nothingRevoked)).toEqual(["evaluator", "gardener"]);
+  it("offers a steward the Evaluator and Gardener their grant gives", () => {
+    expect(restorableSubRoles(["steward", "gardener"], neverGranted)).toEqual(["evaluator"]);
+    expect(restorableSubRoles(["steward"], neverGranted)).toEqual(["evaluator", "gardener"]);
   });
 
-  it("leaves a sub-role someone revoked on purpose (the 18 Nov audit's two cases)", () => {
-    // A steward whose Evaluator was revoked by itself.
-    expect(restorableSubRoles(["steward", "gardener"], ["evaluator"])).toEqual([]);
-    // An owner whose Evaluator and Gardener were revoked before the Owner grant.
-    expect(restorableSubRoles(["owner", "steward"], ["evaluator", "gardener"])).toEqual([]);
+  it("never offers back a sub-role that was ever granted (the 18 Nov audit's two cases)", () => {
+    // A steward whose Evaluator was granted, then revoked by itself.
+    expect(
+      restorableSubRoles(["steward", "gardener"], ["steward", "evaluator", "gardener"])
+    ).toEqual([]);
+    // The Safe: Evaluator and Gardener granted, revoked, then Owner granted.
+    expect(
+      restorableSubRoles(["owner", "steward"], ["owner", "steward", "evaluator", "gardener"])
+    ).toEqual([]);
   });
 
-  it("finds nothing missing for roles with no sub-roles", () => {
-    expect(restorableSubRoles(["steward", "evaluator", "gardener"], nothingRevoked)).toEqual([]);
-    expect(restorableSubRoles(["evaluator", "funder", "community"], nothingRevoked)).toEqual([]);
+  it("never offers back a role removed moments ago, before its revocation is indexed", () => {
+    // The roster already dropped Evaluator; the history still shows only its grant.
+    expect(
+      restorableSubRoles(["steward", "gardener"], ["steward", "evaluator", "gardener"])
+    ).toEqual([]);
+  });
+
+  it("finds nothing for roles with no sub-roles", () => {
+    expect(restorableSubRoles(["evaluator", "funder", "community"], neverGranted)).toEqual([]);
   });
 });

@@ -19,7 +19,7 @@ const meta: Meta<typeof RestoreRolesNotice> = {
   args: {
     address: MEMBER,
     roles: ["steward", "gardener"],
-    revokedRoles: [],
+    grantedRoles: ["steward", "gardener"],
     check: fn(async () => ["evaluator" as const]),
     restore: fn(async () => true),
   },
@@ -33,7 +33,11 @@ export const MissingEvaluator: Story = {};
 
 /** An owner never misses Evaluator: the Owner grant gives Steward and Gardener only. */
 export const OwnerMissingGardener: Story = {
-  args: { roles: ["owner", "steward"], check: fn(async () => ["gardener" as const]) },
+  args: {
+    roles: ["owner", "steward"],
+    grantedRoles: ["owner", "steward"],
+    check: fn(async () => ["gardener" as const]),
+  },
 };
 
 /** The indexed list lagged the chain: nothing is sent, and the row says so. */
@@ -47,9 +51,9 @@ export const NothingMissingOnChain: Story = {
   },
 };
 
-/** Someone revoked this steward's Evaluator on purpose, so nothing is offered. */
+/** This steward's Evaluator was granted once and taken away, so it is never offered back. */
 export const DeliberateRemovalNotOffered: Story = {
-  args: { revokedRoles: ["evaluator"] },
+  args: { grantedRoles: ["steward", "evaluator", "gardener"] },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.queryByRole("button")).toBeNull();
@@ -59,5 +63,5 @@ export const DeliberateRemovalNotOffered: Story = {
 
 /** A viewer who cannot grant a missing role is pointed to an owner instead. */
 export const ViewerCannotRestore: Story = {
-  args: { roles: ["owner"], allowedRoles: ["steward"] },
+  args: { roles: ["owner"], grantedRoles: ["owner"], allowedRoles: ["steward"] },
 };

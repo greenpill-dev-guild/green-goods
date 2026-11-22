@@ -1,4 +1,5 @@
 import { Button } from "@green-goods/shared/components/Button";
+import { logger } from "@green-goods/shared/modules/app/logger";
 import type { Address } from "@green-goods/shared/types/domain";
 import {
   type GardenRole,
@@ -8,16 +9,16 @@ import { useState } from "react";
 import { useIntl } from "react-intl";
 import { getRoleLabel } from "./gardenUtils";
 
-type RestoreStatus = "idle" | "working" | "nothing" | "unread" | "failed";
+type RestoreStatus = "idle" | "working" | "nothing" | "changed" | "unread" | "failed";
 
 export interface RestoreRolesNoticeProps {
   address: Address;
   roles: readonly GardenRole[];
   /**
-   * Roles the person's history shows were revoked last, so removed on purpose. Absent while the
-   * history is unread or failed: then nothing is offered.
+   * Every role the person's history shows was ever granted. A sub-role in it was taken away, so it
+   * is never offered back. Absent while the history is unread or failed: then nothing is offered.
    */
-  revokedRoles?: readonly GardenRole[];
+  grantedRoles?: readonly GardenRole[];
   /** The roles this viewer may grant; absent when every role is open to them. */
   allowedRoles?: readonly GardenRole[];
   disabled?: boolean;
@@ -30,15 +31,15 @@ export interface RestoreRolesNoticeProps {
 }
 
 /**
- * Says which roles a person's Owner or Steward role gives but its grant never minted, and restores
- * them in one action that names them. A sub-role someone revoked is left alone. The chain is read
- * first, so the wallet is asked only for roles it still lacks, and the steward is told when
- * nothing is missing.
+ * Says which roles a person's Owner or Steward role gives but no grant ever minted, and restores
+ * them in one action that names them. A sub-role that was ever granted is left alone. The chain is
+ * read first, the giving role included, so the wallet is asked only for roles still missing, and
+ * the steward is told when nothing is.
  */
 export function RestoreRolesNotice({
   address,
   roles,
-  revokedRoles,
+  grantedRoles,
   allowedRoles,
   disabled = false,
   check,
@@ -47,8 +48,15 @@ export function RestoreRolesNotice({
 }: RestoreRolesNoticeProps) {
   const intl = useIntl();
   const { formatMessage } = intl;
-  const [status, setStatus] = useState<RestoreStatus>("idle");
-  const missing = revokedRoles ? restorableSubRoles(roles, revokedRoles) : [];
+  const missing = grantedRoles ? restorableSubRoles(roles, grantedRoles) : [];
+  const missingKey = missing.join(",");
+  // An answer belongs to the roles it was about; a different gap starts fresh.
+  const [answer, setAnswer] = useState<{ status: RestoreStatus; key: string }>({
+    status: "idle",
+    key: missingKey,
+  });
+  const status = answer.key === missingKey ? answer.status : "idle";
+  const setStatus = (next: RestoreStatus) => setAnswer({ status: next, key: missingKey });
   if (missing.length === 0) return null;
 
   const list = (names: readonly GardenRole[]) =>
@@ -61,9 +69,15 @@ export function RestoreRolesNotice({
 
   const run = async () => {
     setStatus("working");
-    const stillMissing = await check(address, missing);
+    // The role that gives these sub-roles is read too: if it is gone, nothing is owed.
+    const stillMissing = await check(address, [giver, ...missing]);
     if (stillMissing === null) {
       setStatus("unread");
+      return;
+    }
+    if (stillMissing.includes(giver)) {
+      setStatus("changed");
+      onRosterStale?.();
       return;
     }
     if (stillMissing.length === 0) {
@@ -71,18 +85,23 @@ export function RestoreRolesNotice({
       onRosterStale?.();
       return;
     }
-    const landed = await restore(address, stillMissing).catch(() => false);
+    const landed = await restore(address, stillMissing).catch((error: unknown) => {
+      logger.warn("Restoring missing sub-roles failed", { error, roles: stillMissing });
+      return false;
+    });
     setStatus(landed ? "idle" : "failed");
   };
 
   const outcome =
     status === "nothing"
       ? formatMessage({ id: "admin.manageRoles.restore.nothing" })
-      : status === "unread"
-        ? formatMessage({ id: "admin.manageRoles.restore.unread" })
-        : status === "failed"
-          ? formatMessage({ id: "admin.manageRoles.restore.failed" })
-          : null;
+      : status === "changed"
+        ? formatMessage({ id: "admin.manageRoles.restore.changed" })
+        : status === "unread"
+          ? formatMessage({ id: "admin.manageRoles.restore.unread" })
+          : status === "failed"
+            ? formatMessage({ id: "admin.manageRoles.restore.failed" })
+            : null;
 
   return (
     <div className="space-y-1.5" data-component="RestoreRolesNotice">
@@ -90,6 +109,7 @@ export function RestoreRolesNotice({
         {formatMessage(
           { id: "admin.manageRoles.restore.missing" },
           {
+            count: missing.length,
             roles: list(missing),
             role: getRoleLabel(giver, formatMessage).singular,
           }
@@ -100,7 +120,7 @@ export function RestoreRolesNotice({
           type="button"
           emphasis="secondary"
           size="compact"
-          disabled={disabled || status === "nothing"}
+          disabled={disabled || status === "nothing" || status === "changed"}
           loading={status === "working"}
           onClick={() => void run()}
         >

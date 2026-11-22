@@ -70,38 +70,30 @@ export const GARDEN_ROLE_ORDER: readonly GardenRole[] = [
 ] as const;
 
 /**
- * The roles each role's grant also gives, matching the HatsModule grant cascade. An owner's grant
- * gives Steward and Gardener but not Evaluator: an owner needs no Evaluator hat (the PRD-1554
- * ruling). A steward's own grant gives Evaluator and Gardener. Each is its own hat, so a sub-role
- * removed on its own, or one an older grant never minted, stays missing until restored.
+ * The sub-roles a repair may grant for a person, given their roles. An owner's grant gives Steward
+ * and Gardener but never Evaluator (the PRD-1554 ruling), and a Steward grant mints Evaluator too,
+ * so an owner may be given back only Gardener. A steward's own grant gives Evaluator and Gardener;
+ * granting either has no cascade.
  */
-const GARDEN_SUB_ROLES = {
-  owner: ["steward", "gardener"],
-  steward: ["evaluator", "gardener"],
-} as const satisfies Partial<Record<GardenRole, readonly GardenRole[]>>;
-
-/**
- * The roles a person's roles include but they do not hold, in role order. An owner's Steward hat
- * comes from the Owner grant, so it implies no Evaluator.
- */
-function missingSubRoles(roles: readonly GardenRole[]): GardenRole[] {
-  const implied: readonly GardenRole[] = roles.includes("owner")
-    ? GARDEN_SUB_ROLES.owner
-    : roles.includes("steward")
-      ? GARDEN_SUB_ROLES.steward
-      : [];
-  return GARDEN_ROLE_ORDER.filter((role) => implied.includes(role) && !roles.includes(role));
+function repairableSubRoles(roles: readonly GardenRole[]): readonly GardenRole[] {
+  if (roles.includes("owner")) return ["gardener"];
+  if (roles.includes("steward")) return ["evaluator", "gardener"];
+  return [];
 }
 
 /**
- * The missing sub-roles a repair may restore: only cascade gaps, never a sub-role whose last
- * recorded event is a revocation, because someone removed it on purpose.
+ * The missing sub-roles a repair may restore: only ones no grant ever minted. A sub-role with any
+ * recorded grant was taken away on purpose, or moments ago before its revocation was indexed, so
+ * it is never offered back.
  */
 export function restorableSubRoles(
   roles: readonly GardenRole[],
-  revokedRoles: readonly GardenRole[]
+  grantedRoles: readonly GardenRole[]
 ): GardenRole[] {
-  return missingSubRoles(roles).filter((role) => !revokedRoles.includes(role));
+  const repairable = repairableSubRoles(roles);
+  return GARDEN_ROLE_ORDER.filter(
+    (role) => repairable.includes(role) && !roles.includes(role) && !grantedRoles.includes(role)
+  );
 }
 
 /**

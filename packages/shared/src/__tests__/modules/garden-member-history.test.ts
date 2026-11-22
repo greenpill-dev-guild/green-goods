@@ -39,7 +39,7 @@ describe("getGardenMemberHistory", () => {
         joinedAt: 1_700_000_010_000,
         memberSince: 1_700_000_010_000,
         roleSince: { gardener: 1_700_000_010_000, steward: 1_700_000_020_000 },
-        revokedRoles: [],
+        grantedRoles: ["steward", "gardener"],
       },
     ]);
     expect(query).toHaveBeenCalledWith(
@@ -70,20 +70,16 @@ describe("getGardenMemberHistory", () => {
       joinedAt: 1_700_000_010_000,
       memberSince: 1_700_000_040_000,
       roleSince: { gardener: 1_700_000_040_000 },
-      revokedRoles: ["steward"],
+      grantedRoles: ["steward", "gardener"],
     });
   });
 
-  it("names a role revoked on its own until a later grant restores it (PRD-979)", async () => {
+  it("keeps every role ever granted, revoked or not, so a removal is never offered back (PRD-979)", async () => {
     // A Steward grant mints Steward, Evaluator and Gardener; Evaluator is then removed by itself.
-    const granted = [event(10, 2), event(10, 1), event(10, 0)];
-    const { reader: removed } = read([...granted, event(20, 1, "REVOKED")]);
-    const [afterRemoval] = await getGardenMemberHistory({ garden, chainId: 42161 }, removed);
-    expect(afterRemoval.revokedRoles).toEqual(["evaluator"]);
-
-    const { reader: restored } = read([...granted, event(20, 1, "REVOKED"), event(30, 1)]);
-    const [afterGrant] = await getGardenMemberHistory({ garden, chainId: 42161 }, restored);
-    expect(afterGrant.revokedRoles).toEqual([]);
+    const { reader } = read([event(10, 2), event(10, 1), event(10, 0), event(20, 1, "REVOKED")]);
+    const [history] = await getGardenMemberHistory({ garden, chainId: 42161 }, reader);
+    expect(history.roleSince).toEqual({ steward: 1_700_000_010_000, gardener: 1_700_000_010_000 });
+    expect(history.grantedRoles).toEqual(["steward", "evaluator", "gardener"]);
   });
 
   it("does not reset membership while another role remains or from repeated grants", async () => {
