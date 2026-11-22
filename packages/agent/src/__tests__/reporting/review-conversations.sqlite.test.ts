@@ -41,6 +41,8 @@ const WORDS = {
     why: "The photos show a different site",
     correction: "Actually reject, the photos show a different site",
     refused: "Approve not yet, waiting for photos",
+    approveOnly: "Approve. High confidence.",
+    unsure: "Reject? Not sure yet.",
   },
   es: {
     review: "REVIEW",
@@ -51,6 +53,8 @@ const WORDS = {
     why: "Las fotos son de otro lugar",
     correction: "En realidad rechazo, las fotos son de otro lugar",
     refused: "Aprobar no, faltan fotos",
+    approveOnly: "Apruebo. Confianza alta.",
+    unsure: "¿Rechazo? No estoy seguro.",
   },
   pt: {
     review: "REVIEW",
@@ -61,6 +65,8 @@ const WORDS = {
     why: "As fotos são de outro lugar",
     correction: "Na verdade rejeito, as fotos são de outro lugar",
     refused: "Aprovar não, faltam fotos",
+    approveOnly: "Aprovo. Confiança alta.",
+    unsure: "Rejeito? Não tenho certeza.",
   },
 } as const;
 
@@ -191,6 +197,18 @@ describe.each(Object.keys(WORDS) as Locale[])("a steward's review, in %s", (loca
     });
     await harness.say(steward, words.why);
     expect(decision(steward)).toMatchObject({ feedback: words.why, question: "confirm_review" });
+  });
+
+  it("never keeps the other decision's words as feedback it could not read", async () => {
+    await reviewing();
+    await harness.say(steward, words.approveOnly);
+    expect(decision(steward)).toMatchObject({ decision: "approve", question: "review_feedback" });
+    await harness.say(steward, words.unsure);
+    expect(decision(steward)).toMatchObject({
+      decision: "approve",
+      feedback: null,
+      question: "review_feedback",
+    });
   });
 
   it("cancels a decision in the middle and records nothing", async () => {

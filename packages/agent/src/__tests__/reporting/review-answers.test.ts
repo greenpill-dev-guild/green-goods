@@ -90,6 +90,19 @@ describe("reading a review answer", () => {
     "Maybe approve. Probably fine.",
     "Approve, I think",
     "Approve. Tal vez.",
+    "Approve. Actually no.",
+    "Approve. Never mind.",
+    "Approve. I changed my mind.",
+    "Approve. Hold on.",
+    "Aprobar. Mejor no.",
+    "Aprovar. Melhor não.",
+    "Approve, though not yet",
+    "Aprobar, aunque no",
+    "Aprovar, mas ainda não",
+    "Approve, assuming the counts are right",
+    "Approve... or not",
+    "Approve 👎",
+    "~Approve~",
   ])("takes no decision from %j", (text) => {
     expect(readReviewAnswer(text, "decision").decision).toBeUndefined();
   });
@@ -114,6 +127,37 @@ describe("reading a review answer", () => {
     expect(readReviewAnswer("High, thanks!", "confidence")).toEqual({
       confidence: Confidence.HIGH,
     });
+  });
+
+  it.each([
+    [
+      "Reject. The photos are probably from another garden.",
+      { decision: "reject", feedback: "The photos are probably from another garden." },
+    ],
+    [
+      "Rechazo. Tal vez son fotos de otro jardín.",
+      { decision: "reject", feedback: "Tal vez son fotos de otro jardín." },
+    ],
+    [
+      "Reject. If they resubmit with photos I'll look again.",
+      { decision: "reject", feedback: "If they resubmit with photos I'll look again." },
+    ],
+    [
+      "Approve. High confidence. Maybe add a receipt next time.",
+      {
+        decision: "approve",
+        confidence: Confidence.HIGH,
+        feedback: "Maybe add a receipt next time.",
+      },
+    ],
+    [
+      "Approve. Great work, but not all trees are visible.",
+      { decision: "approve", feedback: "Great work, but not all trees are visible." },
+    ],
+    ["Apruebo. No se ven problemas.", { decision: "approve", feedback: "No se ven problemas." }],
+    ["Approve. No issues.", { decision: "approve", feedback: "No issues." }],
+  ] as const)("reads a reason that hedges in its own sentence: %j", (text, expected) => {
+    expect(readReviewAnswer(text, "decision")).toEqual(expected);
   });
 
   it("reads an approval written with a yes, an emoji or the invited confidence", () => {
