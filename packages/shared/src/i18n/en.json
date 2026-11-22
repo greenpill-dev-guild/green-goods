@@ -4689,6 +4689,8 @@
   "hub.community.pools.stewardOnly": "The pool console is for this garden's stewards.",
   "hub.community.pools.unregistered.body": "Registering it is a deployment operation by the Green Goods team. Until then, the team cannot step in as a fallback confirmer anywhere.",
   "hub.community.pools.unregistered.title": "No protocol pool is registered yet",
+  "hub.community.yield.readError.description": "Nothing has changed. Try again to check it.",
+  "hub.community.yield.readError.title": "We couldn’t check this garden’s yield connection",
   "hub.community.protocolFunding.allowance": "Safe allowance remaining",
   "hub.community.protocolFunding.amount": "Amount (G$)",
   "hub.community.protocolFunding.amount.invalid": "Enter an amount greater than zero.",
