@@ -133,6 +133,39 @@ describe("a whole story, read with a model", () => {
     });
   });
 
+  it("keeps what the gardener's words state when a model reads them differently", async () => {
+    harness = new Harness({ controls: { model_processing: true } });
+    harness.catalog.actions.set(TAS.key, [snapshot(planting())]);
+    // The first reading names the garden; the second, against its activity, gets the count wrong.
+    const reading = (over: object) => ({
+      intent: "report_content" as const,
+      gardenKey: "g1",
+      actionUID: null,
+      facts: [],
+      models: ["fixture-model"],
+      ...over,
+    });
+    harness.interpreter.responses = [
+      reading({}),
+      reading({
+        actionUID: 7,
+        facts: [{ field: "details.seedlings", value: 3, kind: "reported", original: "3 hours" }],
+      }),
+    ];
+    await harness.say(
+      ADA,
+      "At TAS today I planted 12 baobab seedlings by the fence. It took 3 hours."
+    );
+    await harness.press(ADA, "I agree");
+    const { content } = report();
+    expect(content.details.seedlings).toBe(12);
+    expect(content.provenance["details.seedlings"]?.gardenerStated).toBe(true);
+    // The model's other reading is a question to settle, never the value.
+    expect(content.conflicts.map((conflict) => [conflict.field, conflict.proposed])).toEqual([
+      ["details.seedlings", 3],
+    ]);
+  });
+
   it("reads the story again when the gardener picks the activity, and asks only what is left", async () => {
     const model = recordedModel([
       // The story names neither garden nor activity clearly enough.
