@@ -77,13 +77,14 @@ const REDACTIONS: ReadonlyArray<readonly [RegExp, string]> = [
   [/\b0x[0-9a-f]{2,}(?:…|\.{2,3})[0-9a-f]{2,}\b/giu, "[address]"],
   [/\b0x[0-9a-f]{8,}\b/giu, "[address]"],
   [/(?<![\p{L}\p{N}])[\p{L}\p{N}_-]+(?:\.[\p{L}\p{N}_-]+)*\.eth(?![\p{L}\p{N}_])/giu, "[account]"],
-  [/(?<![\w@])@[a-z]\w{2,}(?:\.\w+)*/giu, "[handle]"],
+  // "@joao.silva_horta" is one handle; "@ada_gardens.Ela plantou" is a handle and a sentence.
+  [/(?<![\w@])@[A-Za-z]\w{2,}(?:\.(?=[a-z0-9_])\w+)*/gu, "[handle]"],
   // Continuation tokens, keys and other long opaque strings: letters and digits mixed, unbroken.
   [/\b(?=[\w-]*\d)(?=[\w-]*[a-z])[\w-]{32,}\b/giu, "[token]"],
 ];
 
-/** A space between groups of digits: ordinary, tab, no-break or narrow no-break. */
-const GAP = "[ \\t\\u00a0\\u202f]";
+/** A space between groups of digits: ordinary, tab, no-break, figure, thin or narrow no-break. */
+const GAP = "[ \\t\\u00a0\\u2007\\u2009\\u202f]";
 /** A hyphen or a dash between groups of digits. */
 const DASH = "[-\\u2010-\\u2015]";
 
@@ -99,6 +100,12 @@ const DIGIT_RUN = new RegExp(
 );
 /** Three numbers with the same separator, which may be a date. */
 const DATE_SHAPED = /(?<![\d.,/-])(\d{1,4})([-./])(\d{1,2})\2(\d{1,4})(?![\d/-]|\.\d)/gu;
+/** Two dates joined by a dash or a slash, a period of work: "21/11/2026-25/11/2026". */
+const DATE_RANGE =
+  /(?<![\d.,/-])(\d{1,4})([-./])(\d{1,2})\2(\d{1,4})[-/\u2010-\u2015](\d{1,4})([-./])(\d{1,2})\6(\d{1,4})(?![\d/-]|\.\d)/gu;
+/** Two months of a year joined by a dash: "11/2026-12/2026". */
+const MONTH_RANGE =
+  /(?<![\d.,/-])(\d{1,2})\/((?:19|20)\d{2})[-\u2010-\u2015](\d{1,2})\/((?:19|20)\d{2})(?![\d/-]|\.\d)/gu;
 /**
  * A small decimal standing between spaces ("0.25", "8.30"): a measure, not part of a number to
  * call. Anything longer, or joined to its neighbours by a dot, a hyphen or a bracket, is not one:
@@ -123,17 +130,28 @@ interface Span {
   end: number;
 }
 
-/** The dates and small decimals in a text: digits that are kept whatever stands beside them. */
+/** The dates, date ranges and small decimals in a text: digits kept whatever stands beside them. */
 function keptSpans(text: string): Span[] {
   const spans: Span[] = [];
-  for (const match of text.matchAll(DATE_SHAPED)) {
-    if (isDate(match[1] as string, match[3] as string, match[4] as string))
-      spans.push({ start: match.index, end: match.index + match[0].length });
-  }
-  for (const match of text.matchAll(DECIMAL)) {
-    const span = { start: match.index, end: match.index + match[0].length };
+  const keep = (match: RegExpMatchArray) => {
+    const span = { start: match.index ?? 0, end: (match.index ?? 0) + match[0].length };
     if (!spans.some((kept) => kept.start < span.end && span.start < kept.end)) spans.push(span);
+  };
+  const month = (value: string | undefined) => Number(value) >= 1 && Number(value) <= 12;
+  for (const match of text.matchAll(DATE_RANGE)) {
+    const [, a, , b, c, d, , e, f] = match as unknown as string[];
+    if (
+      isDate(a as string, b as string, c as string) &&
+      isDate(d as string, e as string, f as string)
+    )
+      keep(match);
   }
+  for (const match of text.matchAll(MONTH_RANGE))
+    if (month(match[1]) && month(match[3])) keep(match);
+  for (const match of text.matchAll(DATE_SHAPED)) {
+    if (isDate(match[1] as string, match[3] as string, match[4] as string)) keep(match);
+  }
+  for (const match of text.matchAll(DECIMAL)) keep(match);
   return spans;
 }
 

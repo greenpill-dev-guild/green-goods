@@ -46,7 +46,11 @@ describe("model input sanitizer", () => {
     ["+33\u00a06\u00a012\u00a034\u00a056\u00a078 et 612\u202f345\u202f678", "[phone] et [phone]"],
     ["(555)-123-4567, +1 (555)-123-4567, (020)-7946-0958", "[phone], [phone], [phone]"],
     ["555/123-4567 or 0803  123  4567 or 0803\t123\t4567", "[phone] or [phone] or [phone]"],
-    ["IG: @joao.silva_horta", "IG: [handle]"],
+    [
+      "IG: @joao.silva_horta, fala com @ada_gardens.Ela plantou",
+      "IG: [handle], fala com [handle].Ela plantou",
+    ],
+    ["ligue 0803\u2009123\u20094567", "ligue [phone]"],
     // What is written onto a number or around a date is not left behind.
     ["+234(0)8031234567", "[phone]"],
     ["(12/03/2026) 0803 123 4567", "(12/03/2026) [phone]"],
@@ -76,6 +80,8 @@ describe("model input sanitizer", () => {
     "At TAS today I planted 12 baobab seedlings by the fence. It took 3 hours.",
     "Instalamos 1,5 kW de paneles el 2026-11-21 a las 10:30",
     "Plantamos 1200 mudas em 45 minutos, e 14 no dia 21/11/2026",
+    // A period of work written with no spaces is two dates, not a phone number.
+    "de 21/11/2026-25/11/2026, 2026-11-21/2026-11-25, 21/11/26-25/11/26 e 11/2026-12/2026",
     // A date beside a count, a list of counts and a large quantity are not phone numbers.
     "2026-11-21 120 seedlings planted",
     "On 21.11.2026 3 hours of weeding, 8.30-12.30 with 15 people",
