@@ -10,7 +10,7 @@ describe("reading a review answer", () => {
       {
         decision: "approve",
         confidence: Confidence.HIGH,
-        feedback: "Clear photos and counts, thank you",
+        feedback: "Clear photos and counts, thank you.",
       },
     ],
     [
@@ -18,20 +18,24 @@ describe("reading a review answer", () => {
       { decision: "approve", confidence: Confidence.MEDIUM },
     ],
     [
-      "Approve high confidence good work",
-      { decision: "approve", confidence: Confidence.HIGH, feedback: "good work" },
+      "Approve high confidence. Good work",
+      { decision: "approve", confidence: Confidence.HIGH, feedback: "Good work" },
+    ],
+    [
+      "Approve. Great job! Did you water them?",
+      { decision: "approve", feedback: "Great job! Did you water them?" },
     ],
     [
       "Reject. The photos show a different site.",
-      { decision: "reject", feedback: "The photos show a different site" },
+      { decision: "reject", feedback: "The photos show a different site." },
     ],
     [
       "Apruebo. Confianza alta. Fotos claras, gracias.",
-      { decision: "approve", confidence: Confidence.HIGH, feedback: "Fotos claras, gracias" },
+      { decision: "approve", confidence: Confidence.HIGH, feedback: "Fotos claras, gracias." },
     ],
     [
       "Rejeito. As fotos são de outro lugar.",
-      { decision: "reject", feedback: "As fotos são de outro lugar" },
+      { decision: "reject", feedback: "As fotos são de outro lugar." },
     ],
     ["Aprovo. Alta.", { decision: "approve", confidence: Confidence.HIGH }],
     [
@@ -56,8 +60,54 @@ describe("reading a review answer", () => {
     "Approve? I'm not sure",
     "Approve. Actually reject.",
     "Should I approve or reject?",
+    // Said after the decision word, a "no", a condition or a question takes the decision back.
+    "Aprobar no, faltan fotos",
+    "Aprovar não",
+    "approve no",
+    "Approve not yet, waiting for photos",
+    "Approve, if the photos are fixed",
+    "Approve if the photos are fixed",
+    "Approve, or not?",
+    "Approve, not sure",
+    // A decision word inside a longer sentence is not a decision.
+    "Reject any future reports without photos though",
+    "Approve next time if you add photos",
+    // A run-on with more after the decision is asked again.
+    "Approve high confidence good work",
   ])("takes no decision from %j", (text) => {
     expect(readReviewAnswer(text, "decision").decision).toBeUndefined();
+  });
+
+  it("takes no decision from feedback that mentions one", () => {
+    expect(
+      readReviewAnswer("Great work. Reject any future reports without photos though.", "feedback")
+    ).toEqual({ feedback: "Great work. Reject any future reports without photos though." });
+    expect(readReviewAnswer("Approve next time if you add photos", "feedback")).toEqual({
+      feedback: "Approve next time if you add photos",
+    });
+  });
+
+  it("takes no confidence from a question, a doubt or two different levels", () => {
+    expect(readReviewAnswer("High? not sure", "confidence")).toEqual({});
+    expect(readReviewAnswer("High confidence?", "confidence")).toEqual({});
+    expect(readReviewAnswer("high, but I'm not sure", "confidence")).toEqual({});
+    expect(readReviewAnswer("Approve. Low confidence. High confidence.", "decision")).toEqual({
+      decision: "approve",
+    });
+    // Words beside a level at the confidence question are not feedback: that is asked next.
+    expect(readReviewAnswer("High, thanks!", "confidence")).toEqual({
+      confidence: Confidence.HIGH,
+    });
+  });
+
+  it("keeps the steward's feedback in their own words", () => {
+    expect(
+      readReviewAnswer("High confidence that these photos are from another garden", "feedback")
+    ).toEqual({ feedback: "High confidence that these photos are from another garden" });
+    expect(readReviewAnswer("Clear photos, approve.", "decision")).toEqual({
+      decision: "approve",
+      feedback: "Clear photos",
+    });
   });
 
   it("reads a bare level only where a confidence is expected", () => {

@@ -35,29 +35,32 @@ const WORDS = {
   en: {
     review: "REVIEW",
     all: "Approve. High confidence. Clear photos and counts, thank you.",
-    feedback: "Clear photos and counts, thank you",
+    feedback: "Clear photos and counts, thank you.",
     praise: "Looks good to me, thank you!",
     reject: "Reject.",
     why: "The photos show a different site",
     correction: "Actually reject, the photos show a different site",
+    refused: "Approve not yet, waiting for photos",
   },
   es: {
     review: "REVIEW",
     all: "Apruebo. Confianza alta. Fotos y conteos claros, gracias.",
-    feedback: "Fotos y conteos claros, gracias",
+    feedback: "Fotos y conteos claros, gracias.",
     praise: "Me parece bien, ¡gracias!",
     reject: "Rechazo.",
     why: "Las fotos son de otro lugar",
     correction: "En realidad rechazo, las fotos son de otro lugar",
+    refused: "Aprobar no, faltan fotos",
   },
   pt: {
     review: "REVIEW",
     all: "Aprovo. Confiança alta. Fotos e contagens claras, obrigado.",
-    feedback: "Fotos e contagens claras, obrigado",
+    feedback: "Fotos e contagens claras, obrigado.",
     praise: "Parece bom para mim, obrigado!",
     reject: "Rejeito.",
     why: "As fotos são de outro lugar",
     correction: "Na verdade rejeito, as fotos são de outro lugar",
+    refused: "Aprovar não, faltam fotos",
   },
 } as const;
 
@@ -166,11 +169,28 @@ describe.each(Object.keys(WORDS) as Locale[])("a steward's review, in %s", (loca
       confidence: Confidence.NONE,
       question: "confirm_review",
     });
-    expect(corrected.feedback).toBeTruthy();
+    expect(corrected.feedback).toBe(words.correction.slice(words.correction.indexOf(",") + 2));
     expect(corrected.revision).toBeGreaterThan(shown.revision ?? 0);
     await harness.say(steward, `CONFIRM ${shown.token}`);
     expect(decision(steward).state).toBe(corrected.state);
     expect(decision(steward).question).toBe("confirm_review");
+  });
+
+  it("asks a changed decision for its own feedback, and takes no decision from a refusal", async () => {
+    await reviewing();
+    await harness.say(steward, words.refused);
+    expect(decision(steward)).toMatchObject({ decision: null, question: "review_decision" });
+
+    await harness.say(steward, words.all);
+    // "Reject" at the summary: the approval's thanks is not the rejection's reason.
+    await harness.say(steward, words.reject);
+    expect(decision(steward)).toMatchObject({
+      decision: "reject",
+      feedback: null,
+      question: "review_feedback",
+    });
+    await harness.say(steward, words.why);
+    expect(decision(steward)).toMatchObject({ feedback: words.why, question: "confirm_review" });
   });
 
   it("cancels a decision in the middle and records nothing", async () => {
