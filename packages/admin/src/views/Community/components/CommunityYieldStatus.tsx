@@ -17,15 +17,16 @@ export function CommunityYieldStatus({
   onRereadPools?: () => void;
 }) {
   const { formatMessage } = useIntl();
-  const { wiringState, wiringStatus, repairHref, refetch, isFetching } = useGardenYieldWiringState(
+  const { wiringState, wiringStatus, repairHref, refetch, isPending } = useGardenYieldWiringState(
     gardenId,
     { enabled }
   );
   const canShowReconnectLink =
     Boolean(wiringState?.expectedHypercertPoolAddress) && Boolean(repairHref);
   // An unread pool list matters here only while the wiring check has no answer either: once it
-  // answers, the rail shows that answer, and an error above it would contradict it.
-  const wiringUnanswered = !enabled || (wiringStatus === undefined && !isFetching);
+  // answers, the rail shows that answer, and an error above it would contradict it. Only the first
+  // read hides the error; a Retry keeps it, and the focused button, in place while it reads.
+  const wiringUnanswered = !enabled || (wiringStatus === undefined && !isPending);
   const poolReadError =
     onRereadPools && wiringUnanswered ? (
       <Alert

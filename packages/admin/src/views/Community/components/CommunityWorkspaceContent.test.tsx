@@ -256,4 +256,15 @@ describe("Coordination funding status with governance disabled", () => {
     expect(rereadPools).toHaveBeenCalledTimes(1);
     expect(refetch).not.toHaveBeenCalled();
   });
+
+  it("waits for the first wiring read before showing the read error", () => {
+    vi.mocked(useGardenYieldWiringState).mockReturnValue({
+      wiringStatus: undefined,
+      isPending: true,
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof useGardenYieldWiringState>);
+    renderWorkspace({ mode: "coordination", pools: [], poolsRead: false, poolsUnread: true });
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
 });
