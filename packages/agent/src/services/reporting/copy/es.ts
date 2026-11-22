@@ -319,7 +319,7 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "review.resumeFirst":
     "Tienes una revisión en curso. Envía CANCEL para descartarla o continúa con ella.",
   "review.askDecision":
-    "¿Apruebas o rechazas «{title}» de {gardener}? Puedes dar tu confianza y tu comentario en la misma respuesta.",
+    "¿Apruebas o rechazas «{title}» de {gardener}? Puedes dar tu nivel de confianza y tu comentario en la misma respuesta.",
   "review.approve": "Aprobar",
   "review.reject": "Rechazar",
   "review.askConfidence": "¿Qué tanta confianza tienes en este trabajo?",
