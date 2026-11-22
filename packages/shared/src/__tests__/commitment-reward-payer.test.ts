@@ -1,5 +1,11 @@
+/** @vitest-environment happy-dom */
+
+import { onlineManager } from "@tanstack/react-query";
+import { waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import { usePromiseRewardShares } from "../hooks/commitment-pooling/useRewardShares";
+import type { RewardLeg } from "../modules/commitment-pooling/reward-legs";
 import { sendRewardSharePayment } from "../modules/commitment-pooling/reward-pay-send";
 import { ReceiptWaitLimitError, type TransactionSender } from "../modules/transactions/types";
 
@@ -11,6 +17,23 @@ import {
   rewardSharesOwed,
 } from "../modules/commitment-pooling/reward-payer";
 import type { Address } from "../types/domain";
+import { createTestQueryClient } from "./test-utils/query-client";
+import { renderHookWithProviders } from "./test-utils/render-helpers";
+
+const mocks = vi.hoisted(() => ({ readRecipients: vi.fn() }));
+
+// The payer counts as deployed for the share hook; the pure share functions never read it.
+vi.mock("../utils/blockchain/contracts", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../utils/blockchain/contracts")>()),
+  getRewardPayerDeployment: () => ({
+    address: "0x4444444444444444444444444444444444444444",
+    deployBlock: 1n,
+  }),
+}));
+vi.mock("../modules/commitment-pooling/data-settlement-chain", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../modules/commitment-pooling/data-settlement-chain")>()),
+  readPayoutShareRecipients: mocks.readRecipients,
+}));
 
 const MODULE = "0x6BB5b0fd70b6771B0E955Fef37f8Bd2ce911470a" as Address;
 const USDC = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831" as Address;
@@ -296,5 +319,37 @@ describe("finding the transaction that paid a share", () => {
         shareId: `0x${"cd".repeat(32)}`,
       })
     ).rejects.toThrow("down");
+  });
+});
+
+describe("reading a promise's shares for its reader", () => {
+  const leg: RewardLeg = {
+    ...usdcLeg,
+    chainId: 42161,
+    symbol: "USDC",
+    decimals: 6,
+    usdCentsAsSet: 2_000n,
+  };
+
+  // TanStack reports a read paused offline as neither loading nor failed. It still hasn't
+  // answered, so no part may read as owed.
+  it("reads as unanswered while a read is paused offline", async () => {
+    mocks.readRecipients.mockResolvedValue({ finalized: false, recipients: [] });
+    onlineManager.setOnline(false);
+    try {
+      const { result } = renderHookWithProviders(
+        () => usePromiseRewardShares({ chainId: 42161, commitmentId: 19n, legs: [leg] }),
+        { queryClient: createTestQueryClient() }
+      );
+      expect(result.current.isReading).toBe(true);
+      expect(result.current.readFailed).toBe(false);
+      expect(mocks.readRecipients).not.toHaveBeenCalled();
+
+      onlineManager.setOnline(true);
+      await waitFor(() => expect(result.current.isReading).toBe(false));
+      expect(result.current.splitFixed).toBe(false);
+    } finally {
+      onlineManager.setOnline(true);
+    }
   });
 });
