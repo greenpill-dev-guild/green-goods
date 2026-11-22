@@ -43,6 +43,8 @@ contract RewardPayer {
         address promiseModule
     );
 
+    /// @dev A share that names nothing payable, or a recipient that could never pass the money on:
+    /// this contract, which has no owner and no way out for funds, or the token itself.
     error InvalidShare();
     /// @dev A share is paid to its gardener by someone else; paying yourself moves nothing.
     error SelfPayment();
@@ -80,6 +82,7 @@ contract RewardPayer {
         if (
             share.promiseChainId == 0 || share.promiseModule == address(0) || share.commitmentId == 0
                 || share.token.code.length == 0 || share.recipient == address(0) || share.amount == 0
+                || share.recipient == address(this) || share.recipient == share.token
         ) revert InvalidShare();
         if (share.recipient == msg.sender) revert SelfPayment();
         shareId = shareIdOf(share);

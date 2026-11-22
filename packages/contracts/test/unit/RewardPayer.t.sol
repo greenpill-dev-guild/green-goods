@@ -201,6 +201,22 @@ contract RewardPayerTest is Test {
         vm.stopPrank();
     }
 
+    /// The payer has no owner and no way out for funds, and a token can't spend what it holds, so a
+    /// share naming either as its recipient would lock the caller's money for good.
+    function testRewardPayer_refusesAShareThatWouldLockFundsInThePayerOrTheToken() public {
+        RewardPayer.Share memory intoPayer = _share(address(payer), 20e6);
+        RewardPayer.Share memory intoToken = _share(address(usdc), 20e6);
+        vm.startPrank(steward);
+        vm.expectRevert(RewardPayer.InvalidShare.selector);
+        payer.pay(intoPayer);
+        vm.expectRevert(RewardPayer.InvalidShare.selector);
+        payer.pay(intoToken);
+        vm.stopPrank();
+        assertEq(usdc.balanceOf(steward), 1000e6, "nothing left the caller's wallet");
+        assertEq(payer.paidBy(payer.shareIdOf(intoPayer)), address(0));
+        assertEq(payer.paidBy(payer.shareIdOf(intoToken)), address(0));
+    }
+
     function testRewardPayer_revertsWhenTheGardenerWouldNotReceiveTheWholeShare() public {
         FeeOnTransferToken fee = new FeeOnTransferToken();
         FalseReturningToken refusing = new FalseReturningToken();
@@ -281,7 +297,9 @@ contract RewardPayerTest is Test {
     )
         public
     {
-        vm.assume(recipient != address(0) && recipient != steward && recipient != address(payer));
+        vm.assume(
+            recipient != address(0) && recipient != steward && recipient != address(payer) && recipient != address(usdc)
+        );
         commitmentId = bound(commitmentId, 1, type(uint128).max);
         amount = bound(amount, 1, 1000e6);
         RewardPayer.Share memory share = _share(recipient, amount);
