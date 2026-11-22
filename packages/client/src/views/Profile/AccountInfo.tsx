@@ -1,17 +1,15 @@
 import { Button } from "@green-goods/shared/components/Button";
-import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { isPasskeyServerEnabled } from "@green-goods/shared/config/passkeyServer";
 import { useAuthActions, useAuthState } from "@green-goods/shared/hooks/auth/useAuth";
 import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
 import type { Address } from "@green-goods/shared/types/domain";
-import { debugError } from "@green-goods/shared/utils/debug";
 import { RiKeyLine, RiLogoutBoxRLine, RiUserLine, RiWalletLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/Cards";
 import { Avatar } from "@/components/Display";
 import { AddressCopy } from "@/components/Inputs";
-import { APP_ROUTES } from "@/config/pwaRouting";
+import { signOutToLogin } from "@/components/Navigation/signOutToLogin";
 
 export const AccountInfo: React.FC = () => {
   const { authMode, credential, walletAddress, embeddedAddress, userName } = useAuthState();
@@ -23,38 +21,7 @@ export const AccountInfo: React.FC = () => {
   const navigate = useNavigate();
   const intl = useIntl();
 
-  const handleLogout = async () => {
-    try {
-      await signOut();
-      navigate(APP_ROUTES.login, {
-        replace: true,
-        state: { fromLogout: true },
-        viewTransition: true,
-      });
-      toastService.success({
-        title: intl.formatMessage({
-          id: "app.account.sessionClosed",
-          defaultMessage: "Signed out",
-        }),
-        context: "logout",
-        suppressLogging: true,
-      });
-    } catch (err) {
-      debugError("Logout failed", err);
-      toastService.error({
-        title: intl.formatMessage({
-          id: "app.account.logoutFailed",
-          defaultMessage: "Failed to log out",
-        }),
-        message: intl.formatMessage({
-          id: "app.account.logoutRetry",
-          defaultMessage: "Please try again.",
-        }),
-        context: "logout",
-        error: err,
-      });
-    }
-  };
+  const handleLogout = () => signOutToLogin({ signOut, navigate, intl });
 
   return (
     <section className="flex flex-col gap-2">

@@ -29,7 +29,7 @@ import { cycleName } from "../poolPresentation";
 import { exactTime } from "../poolTime";
 import { VoucherProposeReturnDialog } from "../VoucherProposeReturnDialog";
 import { VoucherRowAct } from "../VoucherRowAct";
-import { voucherBookingOptionalAct } from "../voucherPresentation";
+import { voucherBookingOptionalAct } from "../voucherBookingActs";
 import { AddToGroupDialog } from "./AddToGroupDialog";
 import { addToGroupRefusal } from "./addToGroupStatus";
 import { EditConfirmersDialog } from "./EditConfirmersDialog";

@@ -1,7 +1,8 @@
 import { findInput } from "@green-goods/shared/modules/agent-reporting";
 import type { DraftRecord } from "../drafts";
 import { askGarden } from "./garden-step";
-import { askAction, askAnotherGarden, askField, type CatalogView } from "./prompting";
+import { askField } from "./field-questions";
+import { askAction, askAnotherGarden, type CatalogView } from "./prompting";
 import type { TurnWriter } from "./writer";
 
 /**

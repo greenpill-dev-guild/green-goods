@@ -121,6 +121,24 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
     "Entendido: {action} en {garden}. Una pregunta rápida y luego un resumen para revisar.",
   "report.actionAdoptedMany":
     "Entendido: {action} en {garden}. {count} preguntas rápidas y luego un resumen para revisar.",
+  "question.milestoneType": "¿Qué instalaste o terminaste?",
+  "question.milestoneSolar": "¿Qué potencia solar instalaste, en kW? Por ejemplo, 5 kW.",
+  "question.milestoneBattery":
+    "¿Cuánta capacidad de batería añadiste, en kWh? Por ejemplo, 10 kWh.",
+  "question.milestoneInternet":
+    "¿Qué velocidad tiene ahora la conexión, en Mbps? Por ejemplo, 50 Mbps.",
+  "question.milestoneRetrofit": "¿Cuántas rehabilitaciones terminaste?",
+  "question.milestoneCommissioning": "¿Cuántos sistemas probaste y entregaste?",
+  "question.seedlingsPlanted": "¿Cuántas plántulas plantaste?",
+  "question.seedlingsAndSpecies": "¿Cuántas plántulas plantaste, y de qué especies?",
+  "question.participants": "¿Cuántas personas participaron?",
+  "question.speciesTags": "¿Qué especies plantaste?",
+  "report.descriptionStale":
+    "\nTu descripción todavía dice {was}. Envía EDIT para cambiar el texto.",
+  "report.accepted": "Tengo:{facts}",
+  "report.factNew": "\n• {title}: {now}",
+  "report.factChanged": "\n• {title}: {now} (antes: {was})",
+  "report.factTime": "Tiempo dedicado",
   "report.askAction": "¿Qué actividad de {garden} describe mejor tu trabajo?",
   "report.moreChoices": "Más opciones",
   "report.noActions":
@@ -156,6 +174,8 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "report.invalid.ambiguous_number":
     "¿Es un número entero o decimal? Escríbelo sin separador de miles, por ejemplo 1200 o 1,2.",
   "report.invalid.negative": "Responde con un número igual o mayor que cero.",
+  "report.invalid.whole_number":
+    "Responde con un número entero igual o mayor que uno, por ejemplo 2.",
   "report.invalid.unit_mismatch":
     "Esto se cuenta en {unit}, pero escribiste {stated}. ¿Puedes darlo en {unit}?",
   "report.invalid.unit_required": "Incluye la unidad, por ejemplo 2 horas o 30 minutos.",

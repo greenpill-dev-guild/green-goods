@@ -128,4 +128,42 @@ export const REPORTING_MIGRATIONS: readonly ReportingMigration[] = [
        AND state IN ('ready','needs_clarification','failed','unsupported','deleted')`,
     ],
   },
+  {
+    version: 8,
+    name: "a conversation's pending goal",
+    // What a person asked to do before it could start, such as a review asked for before an
+    // account was linked. One row per conversation, read only by the identity that set it.
+    statements: [
+      `CREATE TABLE IF NOT EXISTS dialogue_goals (
+        conversation_id TEXT PRIMARY KEY REFERENCES conversations(id) ON DELETE CASCADE,
+        participant_id TEXT NOT NULL REFERENCES participants(id),
+        identity_epoch INTEGER NOT NULL CHECK (identity_epoch >= 1),
+        goal TEXT NOT NULL CHECK (goal IN ('review')),
+        set_at INTEGER NOT NULL,
+        expires_at INTEGER NOT NULL
+      )`,
+      // What a model's view of a conversation looks up on every turn it is built: the reviews and
+      // review questions a chat has had, and the last reply that put a question.
+      `CREATE INDEX IF NOT EXISTS review_intents_conversation
+        ON review_intents(conversation_id, created_at)`,
+      `CREATE INDEX IF NOT EXISTS conversation_prompts_reviews
+        ON conversation_prompts(conversation_id, created_at) WHERE subject_kind = 'review'`,
+      `CREATE INDEX IF NOT EXISTS delivery_outbox_prompt
+        ON delivery_outbox(prompt_id, dispatch_seq) WHERE prompt_id IS NOT NULL`,
+      // Where a model's view of a conversation starts: the account's last link or unlink, and
+      // the chat's last closed report.
+      `CREATE INDEX IF NOT EXISTS account_bindings_participant
+        ON account_bindings(participant_id)`,
+      `CREATE INDEX IF NOT EXISTS work_drafts_conversation
+        ON work_drafts(conversation_id, updated_at)`,
+    ],
+  },
+  {
+    version: 9,
+    name: "the question profile a report asks with",
+    // `slug@version` of the profile a report took when it chose its activity. A report started
+    // before this column existed has none, and keeps being asked from the activity's own words.
+    columns: [{ table: "work_drafts", column: "question_profile", definition: "TEXT" }],
+    statements: [],
+  },
 ];

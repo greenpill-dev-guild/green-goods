@@ -77,6 +77,7 @@ const TEXT_ANSWER_PROMPTS = new Set([
   "select_garden",
   "select_action",
   "field",
+  "fields",
   "time",
   "time_unit",
   "title",
