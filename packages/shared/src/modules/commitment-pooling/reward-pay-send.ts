@@ -69,11 +69,7 @@ export function createRewardPayChain(chainId: number): RewardPayChain {
 }
 
 /** Why a payment wasn't asked for, read before any signature. */
-export type RewardPayRefusal =
-  | "no-shares"
-  | "mixed-tokens"
-  | "already-paid"
-  | "insufficient-balance";
+type RewardPayRefusal = "no-shares" | "mixed-tokens" | "already-paid" | "insufficient-balance";
 
 export type RewardPayStep = "approving" | "paying" | "confirming";
 
@@ -107,7 +103,7 @@ const payAllCall = (payer: Address, shares: readonly RewardPayerShare[], chainId
  * Whether these shares can be paid from `account` now, read before asking; null when they can.
  * Every share must be in one token, unpaid, and the wallet must hold their total.
  */
-export async function rewardPayRefusal(input: {
+async function rewardPayRefusal(input: {
   chain: RewardPayChain;
   payer: Address;
   account: Address;
