@@ -74,6 +74,22 @@ describe("reading a review answer", () => {
     "Approve next time if you add photos",
     // A run-on with more after the decision is asked again.
     "Approve high confidence good work",
+    // Taken back after a contrast, in a later sentence or line, or by a doubt anywhere.
+    "Aprobar, pero no",
+    "Aprovar, mas não",
+    "Approve, but not yet",
+    "Approve. Not yet.",
+    "Approve\nnot yet",
+    "Aprobar. No, faltan fotos.",
+    "Approve. Not sure.",
+    "Approve. Wait.",
+    "Approve. Just kidding.",
+    "Approve, as long as the photos are fixed",
+    "Apruebo, siempre que manden fotos",
+    "Apruebo, si mandan fotos",
+    "Maybe approve. Probably fine.",
+    "Approve, I think",
+    "Approve. Tal vez.",
   ])("takes no decision from %j", (text) => {
     expect(readReviewAnswer(text, "decision").decision).toBeUndefined();
   });
@@ -97,6 +113,49 @@ describe("reading a review answer", () => {
     // Words beside a level at the confidence question are not feedback: that is asked next.
     expect(readReviewAnswer("High, thanks!", "confidence")).toEqual({
       confidence: Confidence.HIGH,
+    });
+  });
+
+  it("reads an approval written with a yes, an emoji or the invited confidence", () => {
+    expect(readReviewAnswer("Apruebo, sí, buen trabajo", "decision")).toEqual({
+      decision: "approve",
+      feedback: "sí, buen trabajo",
+    });
+    expect(readReviewAnswer("Approve 👍", "decision")).toEqual({ decision: "approve" });
+    expect(readReviewAnswer("Aprobado ✅", "decision")).toEqual({ decision: "approve" });
+    expect(readReviewAnswer("Approve with high confidence", "decision")).toEqual({
+      decision: "approve",
+      confidence: Confidence.HIGH,
+    });
+    expect(readReviewAnswer("Aprovo com confiança alta", "decision")).toEqual({
+      decision: "approve",
+      confidence: Confidence.HIGH,
+    });
+  });
+
+  it("keeps the spacing of the feedback around what was read", () => {
+    expect(readReviewAnswer("Great job. Approve. Keep it up.", "decision").feedback).toBe(
+      "Great job. Keep it up."
+    );
+    expect(readReviewAnswer("Thanks, approve, great work", "decision").feedback).toBe(
+      "Thanks, great work"
+    );
+    expect(
+      readReviewAnswer("Clear photos, approve, high confidence, keep going", "decision")
+    ).toEqual({
+      decision: "approve",
+      confidence: Confidence.HIGH,
+      feedback: "Clear photos, keep going",
+    });
+    expect(
+      readReviewAnswer("Photos are clear; approve; high confidence; thanks", "decision").feedback
+    ).toBe("Photos are clear; thanks");
+    expect(readReviewAnswer("Great job.\nApprove.\nKeep it up.", "decision").feedback).toBe(
+      "Great job.\nKeep it up."
+    );
+    // A level and a different bare level settle neither.
+    expect(readReviewAnswer("Approve, high confidence. Low.", "decision")).toEqual({
+      decision: "approve",
     });
   });
 
