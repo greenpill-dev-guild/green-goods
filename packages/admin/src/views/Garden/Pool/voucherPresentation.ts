@@ -343,8 +343,8 @@ function voucherBookingRow(
           : service.kind === "units"
             ? formatMessage(
                 {
-                  id: "hub.garden.pool.voucher.live.units",
-                  defaultMessage: "{units} {label} booked",
+                  id: "hub.garden.pool.voucher.row.endedEarlyUnits",
+                  defaultMessage: "Ended early · {units} {label} booked",
                 },
                 { units: service.units.toString(), label: service.label }
               )

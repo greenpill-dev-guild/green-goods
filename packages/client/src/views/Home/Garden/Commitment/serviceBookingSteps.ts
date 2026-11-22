@@ -295,6 +295,9 @@ export function bookingTracker(ctx: BookingContext): BookingTracker | null {
     case "returnProposed":
     case "returnFailed":
       return yours(4);
+    // The issuer proposes what comes back before the split is the reader's.
+    case "returnDue":
+      return waits(4, approver);
     case "transfersPending":
       return confirmDue ? yours(4) : waits(4, confirming);
     case "closed":

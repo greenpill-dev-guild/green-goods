@@ -77,6 +77,8 @@ export function bookingSentence(ctx: BookingContext): string {
           of: Number(ctx.serviceUnits),
         });
       return profile === "access" ? t("rd.n.proposed.b", values) : t("rd.n.proposed.t");
+    case "returnDue":
+      return t(one ? "rd.n.returnDue1.b" : "rd.n.returnDue.b", values);
     case "transfersPending":
       return refund > 0n ? t("rd.n.legsBack.b", values) : t("rd.n.legsSun.b");
     case "returnFailed":

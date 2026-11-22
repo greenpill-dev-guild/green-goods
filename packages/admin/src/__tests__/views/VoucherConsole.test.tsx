@@ -230,6 +230,28 @@ describe("the issuer's acts in the Promises console", () => {
     await waitFor(() => expect(reportVisit).toHaveBeenCalledWith(visit));
   });
 
+  // PRD-1462: a live units booking whose promise was canceled says so on its row, and waits on
+  // the issuer's Propose Return.
+  it("says a units booking ended early on its row, with Propose Return", () => {
+    const cut: VoucherBooking = {
+      ...endedEarly,
+      service: {
+        kind: "units",
+        units: 1n,
+        label: "visits",
+        returnLimit: 6n * VOUCHER,
+        returnCeiling: 0n,
+      },
+      stage: { kind: "ended-early", returnLimit: 6n * VOUCHER, returnCeiling: 0n },
+    };
+    offers([cut]);
+
+    expect(
+      within(screen.getByTestId("pool-commitment-51")).getByText("Ended early · 1 visits booked")
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Propose Return…" }).length).toBeGreaterThan(0);
+  });
+
   // A visit that stopped early used to fall through to the visit's own row, with no act
   // (Codex on #1320); its return counts usable hours, not days.
   it("offers Propose Return on a visit that ended early, counting its usable hours", async () => {
