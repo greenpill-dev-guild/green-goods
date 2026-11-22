@@ -7,11 +7,13 @@ import type { ResolvedConfig } from "vite";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   createLocaleCataloguesPlugin,
+  HUB_MESSAGE_PREFIXES,
   WEBSITE_ONLY_MESSAGE_PREFIXES,
 } from "../../../vite/locale-catalogues";
 
 const websiteOnly = (key: string) =>
   WEBSITE_ONLY_MESSAGE_PREFIXES.some((prefix) => key.startsWith(prefix));
+const hubOnly = (key: string) => HUB_MESSAGE_PREFIXES.some((prefix) => key.startsWith(prefix));
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -37,6 +39,7 @@ async function emit(plugin: ReturnType<typeof createLocaleCataloguesPlugin>, pat
       error(message: string): never {
         throw new Error(message);
       },
+      addWatchFile() {},
     } as never,
     "",
     path,
@@ -70,27 +73,104 @@ describe("locale catalogue bundles", () => {
   it("preserves every message the installed app can show and shares keys to reduce the payload", async () => {
     const root = resolve(import.meta.dirname, "../../..");
     const plugin = await configure(root);
+    // Hub ids the installed app's own source writes out whole, read without the plugin's scanner.
+    const written = new Set<string>();
+    const visit = async (directory: string) => {
+      for (const entry of await readdir(directory, { withFileTypes: true })) {
+        const path = join(directory, entry.name);
+        if (entry.isDirectory()) {
+          if (entry.name !== "node_modules" && entry.name !== "__tests__") await visit(path);
+        } else if (/\.tsx?$/.test(entry.name) && !/\.(test|stories)\.tsx?$/.test(entry.name)) {
+          for (const match of (await readFile(path, "utf8")).matchAll(
+            /["'`]((?:hub|admin)\.[\w.-]+)["'`]/g
+          ))
+            written.add(match[1]);
+        }
+      }
+    };
+    await visit(resolve(root, "src"));
+    await visit(resolve(root, "../shared/src"));
     const tables = new Map<string, string>();
     let originalBytes = 0;
     let packedBytes = 0;
     for (const locale of ["en", "es", "pt"]) {
       const path = resolve(root, `../shared/src/i18n/${locale}.json`);
       const source: Record<string, string> = JSON.parse(await readFile(path, "utf8"));
-      // The website's own pages are not in the installed app, so their copy is left out.
-      const messages = Object.fromEntries(
-        Object.entries(source).filter(([key]) => !websiteOnly(key))
-      );
-      expect(Object.keys(messages).length).toBeLessThan(Object.keys(source).length);
       const output = await emit(plugin, path);
-      expect(output.messages).toEqual(messages);
-      expect(Object.keys(output.messages!)).toEqual(Object.keys(messages));
+      const messages = output.messages!;
+      // Every message that is not website-only or Hub copy is kept, with its value, in order.
+      const shown = Object.entries(source).filter(([key]) => !websiteOnly(key) && !hubOnly(key));
+      expect(Object.entries(messages).filter(([key]) => !hubOnly(key))).toEqual(shown);
+      // No website-only message rides along.
+      expect(Object.keys(messages).filter(websiteOnly)).toEqual([]);
+      // Hub copy the installed app writes out is kept; the rest of the Hub's copy stays out.
+      const hub = Object.keys(source).filter(hubOnly);
+      for (const key of hub.filter((key) => written.has(key))) {
+        expect(messages[key]).toBe(source[key]);
+      }
+      const keptHub = Object.keys(messages).filter(hubOnly);
+      expect(keptHub.length).toBeGreaterThanOrEqual(hub.filter((key) => written.has(key)).length);
+      expect(keptHub.length).toBeLessThan(hub.length / 10);
       tables.set(output.keyId, output.keyCode);
-      originalBytes += gzipSync(JSON.stringify(messages)).length;
+      originalBytes += gzipSync(JSON.stringify(Object.fromEntries(shown))).length;
       packedBytes += gzipSync(output.code).length;
     }
     expect(tables.size).toBe(1);
     packedBytes += [...tables.values()].reduce((sum, code) => sum + gzipSync(code).length, 0);
     expect(packedBytes).toBeLessThan(originalBytes);
+  });
+
+  it("keeps a Hub message only while installed-app source names it, whole or by its start", async () => {
+    const root = await mkdtemp(join(tmpdir(), "gg-hub-messages-"));
+    roots.push(root);
+    const client = join(root, "client");
+    for (const directory of [
+      "shared/src/i18n",
+      "shared/src/hooks",
+      "client/src/views",
+      "client/src/__tests__",
+    ])
+      await mkdir(join(root, directory), { recursive: true });
+    await writeFile(
+      join(root, "client/src/views/Garden.tsx"),
+      'export const title = formatMessage({ id: "hub.garden.title" });\n' +
+        "export const tab = (name: string) => formatMessage({ id: `hub.tabs.${name}` });\n"
+    );
+    await writeFile(
+      join(root, "shared/src/hooks/useRoles.ts"),
+      'export const LABELS = { steward: "admin.roles" } as const;\n'
+    );
+    // Tests, stories and declarations do not run in the installed app.
+    await writeFile(
+      join(root, "client/src/views/Garden.test.tsx"),
+      'it("hub.unused.test", () => {});\n'
+    );
+    await writeFile(
+      join(root, "client/src/__tests__/fixture.ts"),
+      'export const id = "hub.unused.fixture";\n'
+    );
+    const catalogue = {
+      "app.always": "Always",
+      "public.passport.title": "Website only",
+      "hub.garden.title": "Named whole",
+      "hub.garden.subtitle": "Never named",
+      "hub.tabs.work": "Started by a template",
+      "hub.tabs.review": "Started by a template",
+      "admin.roles.steward": "Named by its start",
+      "admin.members.add": "Never named",
+      "hub.unused.test": "Named only in a test",
+      "hub.unused.fixture": "Named only in a fixture",
+    };
+    const path = join(root, "shared/src/i18n/en.json");
+    await writeFile(path, JSON.stringify(catalogue));
+    const output = await emit(await configure(client), path);
+    expect(output.messages).toEqual({
+      "app.always": "Always",
+      "hub.garden.title": "Named whole",
+      "hub.tabs.work": "Started by a template",
+      "hub.tabs.review": "Started by a template",
+      "admin.roles.steward": "Named by its start",
+    });
   });
 
   // A tripwire, not a proof. It reads literal message ids and literal import specifiers, so an id
@@ -201,6 +281,7 @@ describe("locale catalogue bundles", () => {
     const client = join(root, "client");
     const directory = join(root, "shared/src/i18n");
     await mkdir(directory, { recursive: true });
+    await mkdir(join(client, "src"), { recursive: true });
     const variants = [
       { "app.second": "Olá {name}\n'\"\\", "app.first": "{n, plural, one {uno} other {#}}" },
       { "app.first": "ẹ ọ ị ụ", "app.second": "Second", "app.extra": "Extra" },
