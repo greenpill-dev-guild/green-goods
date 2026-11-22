@@ -341,6 +341,8 @@ describe("commitment reward legs, declared at Create", () => {
         rewardLegs,
       });
     expect(() => build([{ ...usdcLeg, usdCents: "600", amount: "6000000" }])).toThrow("equal");
+    // The amount paid is exactly the dollars it stands for: $5.00 is never 5,000 USDC.
+    expect(() => build([{ ...usdcLeg, amount: "5000000000" }])).toThrow("equal");
     // With no G$ part set in dollars there is nothing to balance it against.
     expect(() => build([usdcLeg], "")).toThrow();
   });
@@ -379,6 +381,16 @@ describe("commitment reward legs, declared at Create", () => {
       });
       expect(promiseRewardLegsOf(goodDollarPromise, metadata)?.incomplete).toBe(true);
     }
+    // A part whose amount isn't the dollars it states can't be shown truthfully.
+    expect(
+      promiseRewardLegsOf(
+        goodDollarPromise,
+        buildCommitmentMetadata({
+          title: "Survey",
+          rewardLegs: [{ ...usdcLeg, amount: "5000000000" }],
+        })
+      )?.incomplete
+    ).toBe(true);
     // A total never mixes dollars as set with a part that reads only in G$.
     expect(
       rewardCentsAsSetTotal(

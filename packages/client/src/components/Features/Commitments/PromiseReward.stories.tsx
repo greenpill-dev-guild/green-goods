@@ -59,7 +59,13 @@ function RewardLine({ metadata, goodDollars, derivedState, parts = false }: Rewa
     <FactList>
       {text ? <PromiseRewardRow text={text} /> : null}
       {text && parts && reward ? (
-        <PromiseRewardParts reward={reward} commitmentId={19n} viewer={null} payout={payout} />
+        <PromiseRewardParts
+          reward={reward}
+          chainId={42161}
+          commitmentId={19n}
+          viewer={null}
+          payout={payout}
+        />
       ) : null}
     </FactList>
   );

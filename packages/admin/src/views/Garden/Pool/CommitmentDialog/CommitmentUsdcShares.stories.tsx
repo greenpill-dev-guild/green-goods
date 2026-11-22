@@ -50,6 +50,7 @@ const meta: Meta<typeof CommitmentUsdcShares> = {
     payerAvailable: true,
     splitFixed: true,
     canPay: true,
+    viewer: STEWARD,
     isOnline: true,
     readFailed: false,
     isPaying: false,
@@ -87,6 +88,28 @@ export const AllPaid: Story = {
 
 export const WaitsForTheGoodDollarPlan: Story = {
   args: { shares: [], splitFixed: false },
+};
+
+/** A steward the split also pays keeps their own share and pays the others. */
+export const StewardAlsoAContributor: Story = {
+  args: { shares: [...owed, share(STEWARD, 5_000_000n, null)] },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("5 USDC, your own share, nothing to send")).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "Pay 20 USDC" })).toBeVisible();
+  },
+};
+
+/** A plan that gives no one a share leaves nothing to pay, and says so. */
+export const NobodyToPay: Story = {
+  args: { shares: [] },
+  play: async ({ canvasElement }) => {
+    await expect(
+      within(canvasElement).getByText(
+        "The G$ payout plan gives no one a share, so there's nothing to pay in this part."
+      )
+    ).toBeVisible();
+  },
 };
 
 export const NotAStewardOfThePayingGarden: Story = {

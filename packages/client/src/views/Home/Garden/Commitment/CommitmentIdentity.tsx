@@ -18,6 +18,7 @@ import {
   promisePayoutOf,
   PromiseRewardParts,
   promiseRewardOf,
+  rewardLinePayout,
   promiseRewardText,
   rewardsNeedPrice,
 } from "@/components/Features/Commitments";
@@ -106,17 +107,18 @@ export function CommitmentIdentity({
   // Today's G$ price is read only for a reward whose dollars can't be read from its record.
   const price = useGoodDollarPrice({ enabled: rewardsNeedPrice(rewards) });
   const payout = promisePayoutOf(commitment);
+  const [onlyReward] = rewards;
   const reward = promiseRewardText({
     intl,
     rewards,
     price: price.state,
-    payout,
+    payout: rewardLinePayout(onlyReward, payout),
   });
   // A reward paid in more than one token shows each part on its own row (PRD-1556).
-  const [onlyReward] = rewards;
   const rewardParts = onlyReward?.others?.length ? (
     <PromiseRewardParts
       reward={onlyReward}
+      chainId={commitment.chainId}
       commitmentId={commitment.commitmentId}
       viewer={viewer}
       payout={payout}

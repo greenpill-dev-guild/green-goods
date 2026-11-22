@@ -141,7 +141,11 @@ export type {
 } from "./useCommitmentPoolSetupSequence";
 export { useCommitmentPoolSetupSequence } from "./useCommitmentPoolSetupSequence";
 export type { RewardShareState } from "./useRewardShares";
-export { useRewardShares, useRewardSharesPaidTo } from "./useRewardShares";
+export {
+  usePromiseRewardShares,
+  useRewardShares,
+  useRewardShareTransaction,
+} from "./useRewardShares";
 export type { SavedOffersApi } from "./useSavedOffers";
 export {
   useSavedOffer,

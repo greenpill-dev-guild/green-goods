@@ -23,6 +23,7 @@ import type { Address } from "../../types/domain";
 import { ERC20_ALLOWANCE_ABI, ERC20_BALANCE_ABI } from "../../utils/blockchain/abis/erc20";
 import { isZeroAddress } from "../../utils/blockchain/address";
 import type { ContractCall, TransactionSender } from "../transactions/types";
+import { mayStillLand } from "../../utils/errors/tx-error-classifier";
 import { missOfSend } from "./creation-send";
 import { REWARD_PAYER_ABI, type RewardPayerShare, rewardPayerShareId } from "./reward-payer";
 import type { SeedCopyMiss } from "./seed-sets";
@@ -69,21 +70,34 @@ export function createRewardPayChain(chainId: number): RewardPayChain {
 }
 
 /** Why a payment wasn't asked for, read before any signature. */
-type RewardPayRefusal = "no-shares" | "mixed-tokens" | "already-paid" | "insufficient-balance";
+type RewardPayRefusal =
+  | "no-shares"
+  | "mixed-tokens"
+  | "self-payment"
+  | "already-paid"
+  | "insufficient-balance";
 
 export type RewardPayStep = "approving" | "paying" | "confirming";
 
 export type RewardPayOutcome =
   | { status: "paid"; transactionHash: Hex; shareIds: Hex[] }
-  /** The wallet took it but nobody can confirm it ran: it may still pay. */
-  | { status: "unconfirmed"; transactionHash: Hex; shareIds: Hex[] }
+  /** It went out but nobody can confirm it ran yet: it may still pay, and never twice. */
+  | { status: "unconfirmed"; transactionHash: Hex | null; shareIds: Hex[] }
+  /** The approval went to the wallet as a proposal; paying waits until it runs. */
+  | { status: "approval-pending" }
   | { status: "refused-before-asking"; refusal: RewardPayRefusal }
   /** The approval or the payment didn't go through; an approval that did is harmless. */
   | { status: "not-paid"; miss: SeedCopyMiss; approved: boolean };
 
-const payAllCall = (payer: Address, shares: readonly RewardPayerShare[], chainId: number) =>
+const payAllCall = (
+  payer: Address,
+  account: Address,
+  shares: readonly RewardPayerShare[],
+  chainId: number
+) =>
   ({
     address: payer,
+    account,
     abi: REWARD_PAYER_ABI as unknown as Abi,
     functionName: "payAll",
     args: [
@@ -101,7 +115,8 @@ const payAllCall = (payer: Address, shares: readonly RewardPayerShare[], chainId
 
 /**
  * Whether these shares can be paid from `account` now, read before asking; null when they can.
- * Every share must be in one token, unpaid, and the wallet must hold their total.
+ * Every share must be in one token, unpaid and owed to someone other than the payer, and the
+ * wallet must hold their total.
  */
 async function rewardPayRefusal(input: {
   chain: RewardPayChain;
@@ -114,6 +129,10 @@ async function rewardPayRefusal(input: {
   if (!first) return "no-shares";
   const token = first.token.toLowerCase();
   if (shares.some((share) => share.token.toLowerCase() !== token)) return "mixed-tokens";
+  // The payer refuses a payment to oneself, and payAll would take every other share down with it.
+  if (shares.some((share) => share.recipient.toLowerCase() === account.toLowerCase())) {
+    return "self-payment";
+  }
   const paid = await Promise.all(
     shares.map((share) => chain.paidBy(payer, rewardPayerShareId(share)))
   );
@@ -164,10 +183,8 @@ export async function sendRewardSharePayment(input: {
         },
         { onBeforeBroadcast: async () => void (crossed = true) }
       );
-      // An approval nobody can confirm leaves the payment to wait for it.
-      if (approval.confirmation === "pending") {
-        return { status: "not-paid", miss: "failed", approved: false };
-      }
+      // An approval nobody can confirm yet leaves the payment to wait for it.
+      if (approval.confirmation === "pending") return { status: "approval-pending" };
       approved = true;
     } catch (error) {
       return { status: "not-paid", miss: missOfSend(error, !crossed), approved: false };
@@ -177,7 +194,7 @@ export async function sendRewardSharePayment(input: {
   step("paying");
   let crossed = false;
   try {
-    const payment = await sender.sendContractCall(payAllCall(payer, shares, chainId), {
+    const payment = await sender.sendContractCall(payAllCall(payer, account, shares, chainId), {
       onBeforeBroadcast: async () => void (crossed = true),
       onBroadcast: async () => step("confirming"),
     });
@@ -186,6 +203,16 @@ export async function sendRewardSharePayment(input: {
       ? { status: "unconfirmed", transactionHash, shareIds }
       : { status: "paid", transactionHash, shareIds };
   } catch (error) {
+    // A payment past its receipt wait went out and may still land: it reads as unconfirmed,
+    // never as failed. The payer would refuse a second payment of the same shares anyway.
+    if (crossed && mayStillLand(error)) {
+      const hash = (error as { hash?: unknown }).hash;
+      return {
+        status: "unconfirmed",
+        transactionHash: typeof hash === "string" && hash.startsWith("0x") ? (hash as Hex) : null,
+        shareIds,
+      };
+    }
     return { status: "not-paid", miss: missOfSend(error, !crossed), approved };
   }
 }

@@ -2,7 +2,9 @@ import { FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import {
   promiseRewardLegsOf,
   type RewardLeg,
-  useRewardSharesPaidTo,
+  type RewardShareState,
+  usePromiseRewardShares,
+  useRewardShareTransaction,
 } from "@green-goods/shared/commitment-pooling";
 import { displayBucketOf } from "@green-goods/shared/modules/commitment-pooling/display-groups";
 import type { CommitmentMetadataV1 } from "@green-goods/shared/modules/commitment-pooling/metadata";
@@ -278,34 +280,109 @@ const PART_MESSAGE_ID = {
 } as const;
 
 /**
+ * The payout a reward's one line reads: for a reward paid in more than one token,
+ * once it's kept the line leaves where it stands to the part rows below it, so it
+ * never calls the whole reward paid while one part is still owed.
+ */
+export function rewardLinePayout(
+  reward: PromiseReward | undefined,
+  payout: RewardPayout
+): RewardPayout {
+  return reward?.others?.length && payout !== "afterKept" ? "unstated" : payout;
+}
+
+/**
+ * One wallet-paid part's row: its amount, network and where it stands. A reader
+ * the split pays sees their own share and its transaction once paid; anyone else
+ * sees the part as paid only when every share of it is.
+ */
+function RewardPartRow({
+  leg,
+  shares,
+  viewer,
+  payout,
+  network,
+}: {
+  leg: RewardLeg;
+  shares: readonly RewardShareState[];
+  viewer: Address | null;
+  payout: RewardPayout;
+  network: string;
+}) {
+  const intl = useIntl();
+  const { formatMessage, locale } = intl;
+  const ofLeg = shares.filter((share) => share.token.toLowerCase() === leg.token.toLowerCase());
+  const own = viewer
+    ? ofLeg.find((share) => share.recipient.toLowerCase() === viewer.toLowerCase())
+    : undefined;
+  const paid = own
+    ? Boolean(own.paidBy)
+    : ofLeg.length > 0 && ofLeg.every((share) => Boolean(share.paidBy));
+  const transaction = useRewardShareTransaction({
+    chainId: leg.chainId,
+    shareId: own?.paidBy ? own.shareId : null,
+  });
+  const state = paid ? "paid" : payout === "afterKept" ? "afterKept" : "notPaidYet";
+  const amount = formatMessage(
+    { id: "app.commitment.reward.tokenAmount" },
+    {
+      amount: formatTokenAmount(own?.amount ?? leg.amount, leg.decimals, 2, locale),
+      symbol: leg.symbol,
+    }
+  );
+  return (
+    <FactRow
+      data-component="PromiseRewardPart"
+      icon={<RiCoinsLine />}
+      label={formatMessage({ id: "app.commitment.reward.part.label" }, { symbol: leg.symbol })}
+      value={formatMessage({ id: PART_MESSAGE_ID[state] }, { amount, network })}
+      action={
+        transaction.data ? (
+          <a
+            className="type-label text-primary-base underline"
+            href={`${getBlockExplorer(leg.chainId)}/tx/${transaction.data}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            {formatMessage({ id: "app.commitment.reward.part.viewTransaction" })}
+          </a>
+        ) : undefined
+      }
+    />
+  );
+}
+
+/**
  * Each part of a reward paid in more than one token, as its own row: the token,
- * the network it is paid on, and where it stands (PRD-1556). A part the reward
- * payer has paid to the reader links to its transaction. The G$ part's payout
- * is shown by the wallet's settlement receipts, so its row names the amount and
- * network only.
+ * the network it is paid on, and where it stands (PRD-1556). Wallet-paid shares
+ * are computed from the promise's G$ payout plan, the same way the steward's Hub
+ * computes them, and read from the reward payer. The G$ part's delivery is shown
+ * by the wallet's settlement receipts, so its row names the amount and network.
  */
 export function PromiseRewardParts({
   reward,
+  chainId,
   commitmentId,
   viewer,
   payout,
 }: {
   reward: PromiseReward;
+  chainId: number;
   commitmentId: bigint;
   viewer: Address | null;
   payout: RewardPayout;
 }) {
   const intl = useIntl();
-  const { formatMessage, locale } = intl;
-  const [first] = reward.others ?? [];
-  const receipts = useRewardSharesPaidTo({
-    chainId: first?.chainId ?? 0,
+  const { formatMessage } = intl;
+  const others = reward.others ?? [];
+  const { shares } = usePromiseRewardShares({
+    chainId,
     commitmentId,
-    recipient: viewer,
-    enabled: Boolean(first) && payout !== "afterKept",
+    legs: others,
+    enabled: others.length > 0 && payout !== "afterKept",
   });
-  if (!first) return null;
-  const network = (chainId: number) => getChain(chainId)?.name ?? String(chainId);
+  if (others.length === 0) return null;
+  const network = (id: number) => getChain(id)?.name ?? String(id);
   return (
     <>
       {reward.wei > 0n ? (
@@ -322,48 +399,16 @@ export function PromiseRewardParts({
           )}
         />
       ) : null}
-      {(reward.others ?? []).map((leg) => {
-        const paid = receipts.data?.find(
-          (receipt) => receipt.token.toLowerCase() === leg.token.toLowerCase()
-        );
-        const state = paid ? "paid" : payout === "afterKept" ? "afterKept" : "notPaidYet";
-        return (
-          <FactRow
-            key={`${leg.chainId}:${leg.token}`}
-            data-component="PromiseRewardPart"
-            icon={<RiCoinsLine />}
-            label={formatMessage(
-              { id: "app.commitment.reward.part.label" },
-              { symbol: leg.symbol }
-            )}
-            value={formatMessage(
-              { id: PART_MESSAGE_ID[state] },
-              {
-                amount: formatMessage(
-                  { id: "app.commitment.reward.tokenAmount" },
-                  {
-                    amount: formatTokenAmount(leg.amount, leg.decimals, 2, locale),
-                    symbol: leg.symbol,
-                  }
-                ),
-                network: network(leg.chainId),
-              }
-            )}
-            action={
-              paid ? (
-                <a
-                  className="type-label text-primary-base underline"
-                  href={`${getBlockExplorer(leg.chainId)}/tx/${paid.transactionHash}`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {formatMessage({ id: "app.commitment.reward.part.viewTransaction" })}
-                </a>
-              ) : undefined
-            }
-          />
-        );
-      })}
+      {others.map((leg) => (
+        <RewardPartRow
+          key={`${leg.chainId}:${leg.token}`}
+          leg={leg}
+          shares={shares}
+          viewer={viewer}
+          payout={payout}
+          network={network(leg.chainId)}
+        />
+      ))}
     </>
   );
 }

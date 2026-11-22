@@ -77,13 +77,26 @@ function goodDollarLegOf(commitment: RewardRecord, metadata: RewardMetadata): Re
  * A token a steward may pay a part in: one the registry lists on that chain, and
  * not G$, whose transfer fee would leave the gardener short of the declared amount.
  */
-export function stewardWalletRewardToken(chainId: number, token: string) {
+function stewardWalletRewardToken(chainId: number, token: string) {
   const address = token.toLowerCase();
   return (
     getStablecoinSendableTokens(chainId).find(
       (entry) => entry.supported && entry.symbol !== "G$" && entry.address.toLowerCase() === address
     ) ?? null
   );
+}
+
+/**
+ * Whether a declared part's amount is exactly the dollars it says it stands for,
+ * in a stable token the registry lists on its chain (6 decimals for USDC: $5.00 is
+ * 5,000,000). A part whose amount and dollars disagree can't be shown or paid truthfully.
+ */
+export function rewardLegAmountMatchesDollars(
+  leg: Pick<CommitmentRewardLegRecord, "chainId" | "token" | "amount" | "usdCents">
+): boolean {
+  const token = stewardWalletRewardToken(leg.chainId, leg.token);
+  if (!token || token.decimals < 2) return false;
+  return BigInt(leg.amount) === BigInt(leg.usdCents) * 10n ** BigInt(token.decimals - 2);
 }
 
 /** A promise's reward as its parts, or null when it carries none. */
@@ -97,7 +110,7 @@ export function promiseRewardLegsOf(
   let incomplete = metadata?.rewardLegsUnreadable === true;
   for (const declared of metadata?.rewardLegs ?? []) {
     const token = stewardWalletRewardToken(declared.chainId, declared.token);
-    if (!token) {
+    if (!token || !rewardLegAmountMatchesDollars(declared)) {
       incomplete = true;
       continue;
     }

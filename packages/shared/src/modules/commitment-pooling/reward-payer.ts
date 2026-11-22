@@ -8,10 +8,11 @@
  * So the share has to be computed the same way everywhere, here, in the
  * indexer and by anyone checking a receipt: this module owns that computation.
  *
- * A part is split among the people the promise pays, by the payment weights its
- * G$ payout plan fixed, or whole to its one contributor when it has no plan.
- * Shares are ordered by recipient address and the rounding remainder goes to the
- * first, so every reader arrives at the same amounts.
+ * A part is split among the people the promise's G$ payout plan pays, by the
+ * payment weights that plan fixed. Someone the plan gives nothing (weight zero)
+ * gets nothing here either. Shares are ordered by recipient address and the
+ * rounding remainder goes to the first, so every reader arrives at the same
+ * amounts.
  *
  * @module modules/commitment-pooling/reward-payer
  */
@@ -107,9 +108,10 @@ export function rewardPayerShareId(share: RewardPayerShare): Hex {
 
 /**
  * The shares a wallet-paid part splits into: by weight, in recipient address
- * order, the rounding remainder to the first. Empty when there is nobody to pay,
- * a weight is not a whole positive number, or a recipient is named twice: a
- * split the app can't state exactly is never offered to pay.
+ * order, the rounding remainder to the first. Recipients the plan gives nothing
+ * are left out. Empty when nobody is left to pay, a weight is not a whole
+ * non-negative number, or a recipient is named twice: a split the app can't
+ * state exactly is never offered to pay.
  */
 export function rewardLegShares(input: {
   promiseChainId: number;
@@ -118,11 +120,14 @@ export function rewardLegShares(input: {
   leg: Pick<RewardLeg, "rail" | "token" | "amount">;
   recipients: readonly RewardShareRecipient[];
 }): RewardPayerShare[] {
-  const { leg, recipients } = input;
-  if (leg.rail !== "steward-wallet" || leg.amount <= 0n || recipients.length === 0) return [];
-  if (recipients.some((entry) => !Number.isSafeInteger(entry.weightBps) || entry.weightBps <= 0)) {
+  const { leg } = input;
+  if (
+    input.recipients.some((entry) => !Number.isSafeInteger(entry.weightBps) || entry.weightBps < 0)
+  ) {
     return [];
   }
+  const recipients = input.recipients.filter((entry) => entry.weightBps > 0);
+  if (leg.rail !== "steward-wallet" || leg.amount <= 0n || recipients.length === 0) return [];
   const ordered = recipients
     .map((entry) => ({ recipient: getAddress(entry.recipient), weight: BigInt(entry.weightBps) }))
     .sort((a, b) => (a.recipient.toLowerCase() < b.recipient.toLowerCase() ? -1 : 1));
@@ -143,59 +148,39 @@ export function rewardLegShares(input: {
     .filter((share) => share.amount > 0n);
 }
 
-/** One share the payer recorded as paid to a gardener, from its `RewardSharePaid` event. */
-export interface RewardSharePaidReceipt {
-  shareId: Hex;
-  token: Address;
-  amount: bigint;
-  payer: Address;
-  transactionHash: Hex;
-}
+/** How many blocks one log query spans; public Arbitrum RPCs refuse much wider ranges. */
+const RECEIPT_SCAN_SPAN = 500_000n;
 
 /**
- * Every share of one promise the payer has paid to one gardener, read from its
- * events since it was deployed. A gardener needs no split to read this: the event
- * names the promise and the recipient, so their own receipts are all there is.
+ * The transaction that paid one share, found from the payer's `RewardSharePaid`
+ * event for that share id. It searches back from the latest block in bounded
+ * spans, so it keeps working as the chain grows past what one query may span.
+ * Null when no span from the payer's deployment on holds it.
  */
-export async function readRewardSharesPaidTo(input: {
-  client: Pick<PublicClient, "getLogs">;
+export async function readRewardShareTransaction(input: {
+  client: Pick<PublicClient, "getLogs" | "getBlockNumber">;
   payer: Address;
   fromBlock: bigint;
-  commitmentId: bigint;
-  recipient: Address;
-}): Promise<RewardSharePaidReceipt[]> {
+  shareId: Hex;
+}): Promise<Hex | null> {
   const [event] = REWARD_PAYER_ABI.filter((entry) => entry.type === "event");
-  const logs = await input.client.getLogs({
-    address: input.payer,
-    event: event as Extract<(typeof REWARD_PAYER_ABI)[number], { type: "event" }>,
-    args: { commitmentId: input.commitmentId, recipient: input.recipient },
-    fromBlock: input.fromBlock,
-    toBlock: "latest",
-  });
-  return logs.flatMap((log) => {
-    const args = log.args as {
-      shareId?: Hex;
-      token?: Address;
-      amount?: bigint;
-      payer?: Address;
-    };
-    if (
-      !args.shareId ||
-      !args.token ||
-      args.amount === undefined ||
-      !args.payer ||
-      !log.transactionHash
-    ) {
-      return [];
-    }
-    return [
-      {
-        shareId: args.shareId,
-        token: getAddress(args.token),
-        amount: args.amount,
-        payer: getAddress(args.payer),
-        transactionHash: log.transactionHash,
-      },
-    ];
-  });
+  let toBlock = await input.client.getBlockNumber();
+  while (toBlock >= input.fromBlock) {
+    const fromBlock =
+      toBlock - input.fromBlock >= RECEIPT_SCAN_SPAN
+        ? toBlock - RECEIPT_SCAN_SPAN + 1n
+        : input.fromBlock;
+    const logs = await input.client.getLogs({
+      address: input.payer,
+      event: event as Extract<(typeof REWARD_PAYER_ABI)[number], { type: "event" }>,
+      args: { shareId: input.shareId },
+      fromBlock,
+      toBlock,
+    });
+    const found = logs.find((log) => log.transactionHash);
+    if (found?.transactionHash) return found.transactionHash;
+    if (fromBlock === input.fromBlock) break;
+    toBlock = fromBlock - 1n;
+  }
+  return null;
 }

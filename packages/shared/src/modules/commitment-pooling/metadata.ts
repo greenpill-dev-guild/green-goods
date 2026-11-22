@@ -81,7 +81,7 @@ export interface CommitmentRewardLegRecord {
 export const COMMITMENT_REWARD_LEG_VERSION = 1 as const;
 
 /** More legs than a steward can set: a document carrying more is read as carrying none. */
-export const MAX_COMMITMENT_REWARD_LEGS = 4;
+const MAX_COMMITMENT_REWARD_LEGS = 4;
 
 export const COMMITMENT_REWARD_RECORD_VERSION = 1 as const;
 

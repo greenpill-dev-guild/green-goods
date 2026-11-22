@@ -17,7 +17,7 @@ import { commitmentPoolingKeys } from "../../config/query-keys/commitment-poolin
 import {
   type RewardPayerShare,
   type RewardShareRecipient,
-  readRewardSharesPaidTo,
+  readRewardShareTransaction,
   rewardLegShares,
   rewardPayerShareId,
 } from "../../modules/commitment-pooling/reward-payer";
@@ -31,6 +31,7 @@ import type { RewardLeg } from "../../modules/commitment-pooling/reward-legs";
 import type { Address } from "../../types/domain";
 import { isZeroAddress } from "../../utils/blockchain/address";
 import { getNetworkContracts, getRewardPayerDeployment } from "../../utils/blockchain/contracts";
+import { readPayoutShareRecipients } from "../../modules/commitment-pooling/data-settlement-chain";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
 
@@ -40,13 +41,16 @@ export interface RewardShareState extends RewardPayerShare {
   paidBy: Address | null | undefined;
 }
 
-export function useRewardShares(input: {
+interface RewardSharesInput {
   /** The chain the promise and its wallet-paid parts live on (Arbitrum for the pilot). */
   chainId: number;
   commitmentId: bigint;
   legs: readonly RewardLeg[];
   recipients: readonly RewardShareRecipient[];
-}) {
+}
+
+/** The shares and who paid each, read only: no wallet or sign-in is involved. */
+function useRewardShareStates(input: RewardSharesInput) {
   const { chainId, commitmentId } = input;
   const contracts = getNetworkContracts(chainId);
   const payer =
@@ -79,20 +83,39 @@ export function useRewardShares(input: {
       paidBy: who === undefined ? undefined : isZeroAddress(who) ? null : who,
     };
   });
+  return {
+    payer,
+    shares: states,
+    queryKey: commitmentPoolingKeys.rewardShares(chainId, commitmentId, ids.join(",")),
+    isReading: read.isLoading,
+    readFailed: read.isError,
+  };
+}
 
+/** A promise's wallet-paid shares, and paying what is owed from the steward's wallet. */
+export function useRewardShares(input: RewardSharesInput) {
+  const { chainId } = input;
+  const { payer, shares: states, queryKey, isReading, readFailed } = useRewardShareStates(input);
   const queryClient = useQueryClient();
   const sender = useTransactionSender();
   const account = usePrimaryAddress();
   const [step, setStep] = useState<RewardPayStep | null>(null);
   const [isPaying, setIsPaying] = useState(false);
 
-  /** Pay every share still owed in one part's token; reads again before any signature. */
+  /**
+   * Pay every share still owed in one part's token; reads again before any
+   * signature. A share of the paying steward's own is left out: the payer
+   * refuses a payment to oneself, and what a steward owes themself needs no send.
+   */
   const payOwed = async (token: Address): Promise<RewardPayOutcome> => {
     if (!payer || !sender || !account) {
       return { status: "refused-before-asking", refusal: "no-shares" };
     }
     const owed = states.filter(
-      (share) => share.token.toLowerCase() === token.toLowerCase() && share.paidBy === null
+      (share) =>
+        share.token.toLowerCase() === token.toLowerCase() &&
+        share.paidBy === null &&
+        share.recipient.toLowerCase() !== account.toLowerCase()
     );
     setIsPaying(true);
     try {
@@ -108,9 +131,7 @@ export function useRewardShares(input: {
     } finally {
       setIsPaying(false);
       setStep(null);
-      await queryClient.invalidateQueries({
-        queryKey: commitmentPoolingKeys.rewardShares(chainId, commitmentId, ids.join(",")),
-      });
+      await queryClient.invalidateQueries({ queryKey });
     }
   };
 
@@ -118,8 +139,8 @@ export function useRewardShares(input: {
     /** Null until the payer is deployed on this chain: nothing can be paid or read. */
     payer,
     shares: states,
-    isReading: read.isLoading,
-    readFailed: read.isError,
+    isReading,
+    readFailed,
     payOwed,
     isPaying,
     step,
@@ -127,33 +148,52 @@ export function useRewardShares(input: {
 }
 
 /**
- * The shares of one promise the reward payer has paid to one gardener, for the
- * gardener's own view of their reward. Empty until the payer is deployed.
+ * A promise's wallet-paid shares for anyone reading the reward, a gardener
+ * included: it reads who the G$ payout plan pays, splits each part the same way
+ * the steward's Hub does and reads which shares the payer has recorded. Before
+ * the plan is finalized there is no split, so no shares.
  */
-export function useRewardSharesPaidTo(input: {
+export function usePromiseRewardShares(input: {
   chainId: number;
   commitmentId: bigint;
-  recipient: Address | null | undefined;
+  legs: readonly RewardLeg[];
   enabled?: boolean;
 }) {
+  const payerDeployed = getRewardPayerDeployment(input.chainId) !== null;
+  const recipientsRead = useQuery({
+    queryKey: commitmentPoolingKeys.rewardShareRecipients(input.chainId, input.commitmentId),
+    queryFn: () =>
+      readPayoutShareRecipients({ chainId: input.chainId, commitmentId: input.commitmentId }),
+    enabled: (input.enabled ?? true) && payerDeployed && input.legs.length > 0,
+  });
+  const plan = recipientsRead.data ?? null;
+  const shares = useRewardShareStates({
+    chainId: input.chainId,
+    commitmentId: input.commitmentId,
+    legs: input.legs,
+    recipients: plan?.finalized ? plan.recipients : [],
+  });
+  return { ...shares, splitFixed: plan?.finalized === true };
+}
+
+/** The transaction that paid one share, once the payer has recorded it as paid. */
+export function useRewardShareTransaction(input: {
+  chainId: number;
+  shareId: `0x${string}` | null;
+}) {
   const deployment = getRewardPayerDeployment(input.chainId);
-  const recipient = input.recipient ?? null;
   return useQuery({
-    queryKey: commitmentPoolingKeys.rewardSharesPaidTo(
-      input.chainId,
-      input.commitmentId,
-      recipient ?? ""
-    ),
+    queryKey: commitmentPoolingKeys.rewardShareTransaction(input.chainId, input.shareId ?? ""),
     queryFn: async () => {
       const { createPublicClientForChain } = await import("../../config/pimlico");
-      return readRewardSharesPaidTo({
+      return readRewardShareTransaction({
         client: createPublicClientForChain(input.chainId),
         payer: (deployment as NonNullable<typeof deployment>).address,
         fromBlock: (deployment as NonNullable<typeof deployment>).deployBlock,
-        commitmentId: input.commitmentId,
-        recipient: recipient as Address,
+        shareId: input.shareId as `0x${string}`,
       });
     },
-    enabled: (input.enabled ?? true) && deployment !== null && recipient !== null,
+    enabled: deployment !== null && input.shareId !== null,
+    staleTime: Number.POSITIVE_INFINITY,
   });
 }

@@ -209,7 +209,7 @@ export function SeedRewardSection({
                   {
                     id: "hub.garden.pool.seed.rewardMatchedSummary",
                     defaultMessage:
-                      "Each gardener gets {amount} in G$ and {amount} in USDC once it's kept. You pay the USDC from your own wallet then. Nothing is reserved or paid here.",
+                      "Each one pays {amount} in G$ and {amount} in USDC once it's kept, shared by whoever keeps it. You pay the USDC from your own wallet then. Nothing is reserved or paid here.",
                   },
                   { amount: formatUsd(cents, locale) }
                 )

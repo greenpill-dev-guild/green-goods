@@ -3,7 +3,12 @@ import { describe, expect, it, vi } from "vitest";
 import { sendRewardSharePayment } from "../modules/commitment-pooling/reward-pay-send";
 import type { TransactionSender } from "../modules/transactions/types";
 
-import { rewardLegShares, rewardPayerShareId } from "../modules/commitment-pooling/reward-payer";
+import {
+  readRewardShareTransaction,
+  rewardLegShares,
+  rewardPayerShareId,
+} from "../modules/commitment-pooling/reward-payer";
+import { ReceiptWaitLimitError } from "../modules/transactions/types";
 import type { Address } from "../types/domain";
 
 const MODULE = "0x6BB5b0fd70b6771B0E955Fef37f8Bd2ce911470a" as Address;
@@ -53,6 +58,14 @@ describe("reward payer shares", () => {
       rewardLegShares({ ...promise, leg, recipients });
     expect(shares([])).toEqual([]);
     expect(shares([{ recipient: A, weightBps: 0 }])).toEqual([]);
+    expect(shares([{ recipient: A, weightBps: -1 }])).toEqual([]);
+    // Someone the G$ plan gives nothing gets nothing here, and the rest still split.
+    expect(
+      shares([
+        { recipient: A, weightBps: 10_000 },
+        { recipient: B, weightBps: 0 },
+      ]).map((share) => [share.recipient, share.amount])
+    ).toEqual([[A, 20_000_000n]]);
     expect(shares([{ recipient: A, weightBps: 1.5 }])).toEqual([]);
     expect(
       shares([
@@ -116,7 +129,7 @@ describe("paying reward shares from the steward's wallet", () => {
     });
     const [approve, payAll] = sendContractCall.mock.calls.map(([call]) => call);
     expect(approve).toMatchObject({ functionName: "approve", args: [PAYER, 20_000_000n] });
-    expect(payAll?.functionName).toBe("payAll");
+    expect(payAll).toMatchObject({ functionName: "payAll", account: STEWARD });
     expect((payAll?.args[0] as unknown[]).length).toBe(2);
   });
 
@@ -142,6 +155,19 @@ describe("paying reward shares from the steward's wallet", () => {
       await expect(pay()).resolves.toEqual({ status: "refused-before-asking", refusal });
       expect(sendContractCall).not.toHaveBeenCalled();
     }
+    // A share of the payer's own would make the payer refuse the whole batch.
+    const own = setup();
+    await expect(
+      sendRewardSharePayment({
+        sender: { sendContractCall: own.sendContractCall } as unknown as TransactionSender,
+        chain: own.chain,
+        chainId: 42161,
+        payer: PAYER,
+        account: A,
+        shares,
+      })
+    ).resolves.toEqual({ status: "refused-before-asking", refusal: "self-payment" });
+    expect(own.sendContractCall).not.toHaveBeenCalled();
   });
 
   it("stops at a declined approval, and says when a payment can't be confirmed yet", async () => {
@@ -165,5 +191,51 @@ describe("paying reward shares from the steward's wallet", () => {
       status: "unconfirmed",
       transactionHash: "0xdef",
     });
+
+    // An approval a Safe only proposed leaves the payment to wait for it.
+    const proposed = setup();
+    proposed.sendContractCall.mockResolvedValueOnce({
+      hash: "0xprop" as `0x${string}`,
+      confirmation: "pending",
+    } as never);
+    await expect(proposed.pay()).resolves.toEqual({ status: "approval-pending" });
+    expect(proposed.sendContractCall).toHaveBeenCalledTimes(1);
+
+    // A payment past its receipt wait went out and may still land: never "not paid".
+    const waited = setup({ allowance: 20_000_000n });
+    waited.sendContractCall.mockImplementationOnce(async (_call, options) => {
+      await (options as { onBeforeBroadcast?: () => Promise<void> }).onBeforeBroadcast?.();
+      throw new ReceiptWaitLimitError(120_000, { hash: `0x${"ab".repeat(32)}` });
+    });
+    await expect(waited.pay()).resolves.toMatchObject({
+      status: "unconfirmed",
+      transactionHash: `0x${"ab".repeat(32)}`,
+    });
+  });
+});
+
+describe("finding the transaction that paid a share", () => {
+  it("searches back from the latest block in bounded spans, never past the payer's deployment", async () => {
+    const spans: [bigint, bigint][] = [];
+    const client = {
+      getBlockNumber: vi.fn(async () => 2_100_000n),
+      getLogs: vi.fn(async ({ fromBlock, toBlock }: { fromBlock: bigint; toBlock: bigint }) => {
+        spans.push([fromBlock, toBlock]);
+        return fromBlock <= 1_000_000n ? [{ transactionHash: "0xpaid" }] : [];
+      }),
+    };
+    await expect(
+      readRewardShareTransaction({
+        client: client as never,
+        payer: "0x4444444444444444444444444444444444444444" as Address,
+        fromBlock: 900_000n,
+        shareId: `0x${"cd".repeat(32)}`,
+      })
+    ).resolves.toBe("0xpaid");
+    expect(spans).toEqual([
+      [1_600_001n, 2_100_000n],
+      [1_100_001n, 1_600_000n],
+      [900_000n, 1_100_000n],
+    ]);
   });
 });

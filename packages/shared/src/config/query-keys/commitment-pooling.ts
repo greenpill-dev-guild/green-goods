@@ -284,18 +284,16 @@ export const commitmentPoolingKeys = {
       String(commitmentId),
       shareIds,
     ] as const,
-  /** The wallet-paid shares of one commitment the reward payer has paid to one gardener. */
-  rewardSharesPaidTo: (
-    chainId: number,
-    commitmentId: bigint | string | number,
-    recipient: string
-  ) =>
+  /** Who one commitment's G$ payout plan pays, for splitting its wallet-paid parts the same way. */
+  rewardShareRecipients: (chainId: number, commitmentId: bigint | string | number) =>
     [
       ...commitmentPoolingKeys.all(chainId),
-      "reward-shares-paid-to",
+      "reward-share-recipients",
       String(commitmentId),
-      recipient.toLowerCase(),
     ] as const,
+  /** The transaction that paid one wallet-paid reward share. */
+  rewardShareTransaction: (chainId: number, shareId: string) =>
+    [...commitmentPoolingKeys.all(chainId), "reward-share-transaction", shareId] as const,
   /** Owner, pause flag and gardener-delivery gate of the settlement module. */
   settlementOperations: (chainId: number) =>
     [...commitmentPoolingKeys.all(chainId), "settlement-operations"] as const,

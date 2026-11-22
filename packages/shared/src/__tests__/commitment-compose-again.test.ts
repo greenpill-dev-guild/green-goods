@@ -169,6 +169,26 @@ describe("composerValuesFromCommitment", () => {
         requirements: [],
       }).considerationUsd
     ).toBe("5.00");
+    // A reward matched in USDC stays matched at the same dollars (PRD-1556).
+    const matched = composerValuesFromCommitment({
+      composer: "steward",
+      commitment: { ...seeded, considerationRail: "CELO_SETTLEMENT" },
+      metadata: {
+        ...words,
+        reward,
+        rewardLegs: [
+          {
+            version: 1,
+            chainId: 42161,
+            token: "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+            amount: "5000000",
+            usdCents: "500",
+          },
+        ],
+      },
+      requirements: [],
+    });
+    expect(matched).toMatchObject({ considerationUsd: "5.00", rewardMatchedUsdc: true });
   });
 
   it("never copies the new maker into the confirmer group they would have to reach", () => {
