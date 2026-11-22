@@ -2,10 +2,10 @@ import {
   type ActionDefinitionSnapshot,
   parseNumberAnswer,
   type ReportField,
-  validateDetailValue,
 } from "@green-goods/shared/modules/agent-reporting";
 import type { WorkInput } from "@green-goods/shared/types/domain";
-import { acceptsAmount, profiledInput, profiledWords, type QuestionProfile } from "../questions";
+import { profiledInput, profiledWords, type QuestionProfile } from "../questions";
+import { finalFacts } from "./story-facts";
 import {
   choiceIn,
   choiceNames,
@@ -46,6 +46,8 @@ export interface StoryContext {
 }
 
 const CHOICE_TYPES = new Set<WorkInput["type"]>(["select", "band", "multi-select"]);
+/** Choices that describe nothing: "other trees". */
+const VAGUE = new Set(["other", "outro", "otro"].map(W.wordKey));
 
 export function readStory(text: string, context: StoryContext): StoryFact[] {
   const { snapshot, profile, details, locale } = context;
@@ -69,7 +71,15 @@ export function readStory(text: string, context: StoryContext): StoryFact[] {
   );
   const negations = W.negations(locale);
   const afterAFact = W.afterAFact(locale);
+  const placeOpeners = W.placeOpeners(locale);
   const tokens = tokenize(text);
+  const actFits = W.actsFor(snapshot.definition.title, snapshot.definition.slug, inputs);
+  // "It took 2 hours" is time worked, even where a field counts hours.
+  const timed = tokens.some((token) => W.WORK_TIME.has(token.word));
+  /** Whether the last quantity read was a bare number, answering the open question. */
+  let bare = false;
+  /** The number field each choice read beside a number describes. */
+  const describedBy = new Map<ReportField, ReportField>();
   const read = new Map<ReportField, StoryFact[]>();
   const durations: Array<{
     minutes: number;
@@ -125,7 +135,10 @@ export function readStory(text: string, context: StoryContext): StoryFact[] {
       const inUnit = (input: WorkInput) =>
         (W.HOURS.has(W.wordKey(input.unit ?? "")) && duration.unit === "hours") ||
         (W.MINUTES.has(W.wordKey(input.unit ?? "")) && duration.unit === "minutes");
-      const field = askedKeys.has("timeSpentMinutes") ? undefined : numbers.find(inUnit);
+      const askedInUnit = numbers.find((input) => askedKeys.has(input.key) && inUnit(input));
+      const field =
+        askedInUnit ??
+        (askedKeys.has("timeSpentMinutes") || timed ? undefined : numbers.find(inUnit));
       if (field && duration.simple !== null)
         note({
           field: `details.${field.key}`,
@@ -155,6 +168,7 @@ export function readStory(text: string, context: StoryContext): StoryFact[] {
       ? { ...token, kind: "word" as const, word: W.wordKey(split[2] as string) }
       : tokens[next];
     let counted = nounOf(unitToken);
+    bare = !counted;
     if (counted) next += 1;
     else if (plain && askedNumber && !split) counted = askedNumber;
     if (!counted) return null;
@@ -166,6 +180,8 @@ export function readStory(text: string, context: StoryContext): StoryFact[] {
         if (!W.JOINERS.has(tokens[next]?.word ?? "")) break;
       }
     }
+    // "12 other trees" says nothing about the species, so it is not read as one.
+    if (describing.some((choice) => VAGUE.has(W.wordKey(choice.key)))) return null;
     if (!describing.every((choice) => describes(counted as WorkInput, choice.input))) return null;
     const original = said(at, next);
     note({
@@ -174,7 +190,10 @@ export function readStory(text: string, context: StoryContext): StoryFact[] {
       original,
       ...(counted.unit ? { unit: counted.unit } : {}),
     });
-    for (const choice of describing) noteChoice(choice.input, choice.key, original);
+    for (const choice of describing) {
+      noteChoice(choice.input, choice.key, original);
+      describedBy.set(`details.${choice.input.key}`, `details.${counted.key}`);
+    }
     return next;
   };
 
@@ -230,8 +249,21 @@ export function readStory(text: string, context: StoryContext): StoryFact[] {
         continue;
       }
       if (numeric(token) || (token.kind === "word" && durationAt(i))) {
+        bare = false;
         const next = quantityAt(i);
         if (next === null) return false;
+        // A bare number stands alone: only another fact may follow it ("12, 3 hours", "12 and 45
+        // min", "40 fruit trees and shade trees"), never words that say what it counted.
+        const after = tokens[next];
+        const more = (at: number) =>
+          numeric(tokens[at]) || durationAt(at) !== null || choiceAt(at, askedChoices) !== null;
+        if (
+          bare &&
+          after &&
+          after.kind !== "break" &&
+          !(W.JOINERS.has(after.word) && more(next + 1))
+        )
+          return false;
         [i, placed, place, plain] = [next, true, false, false];
         continue;
       }
@@ -252,24 +284,35 @@ export function readStory(text: string, context: StoryContext): StoryFact[] {
         continue;
       }
       i += 1;
+      // A verb for a kind of work this activity is not about: "we removed 12 trees".
+      const act = actFits(word);
+      if (act === false) return false;
+      if (!W.APPROXIMATE.has(word)) plain = false;
       if (place) {
-        place = !(W.PEOPLE.has(word) || W.REPORT_CUES.has(word) || W.WORK_TIME.has(word));
+        place = !(W.PEOPLE.has(word) || W.REPORT_CUES.has(word) || act || W.WORK_TIME.has(word));
         continue;
       }
-      if (W.BEFORE_A_NUMBER.has(word) && numeric(tokens[i])) continue;
+      // "me and 5 people" counts one more than it says.
+      if (
+        W.JOINERS.has(word) &&
+        (W.PEOPLE.has(tokens[i - 2]?.word ?? "") || W.PEOPLE.has(tokens[i]?.word ?? ""))
+      )
+        return false;
+      if (W.BEFORE_A_NUMBER.has(word) && (numeric(tokens[i]) || durationAt(i))) continue;
       if (placed && W.JOINERS.has(word)) continue;
       if (placed && afterAFact.has(word)) tail = true;
-      else if (!placed && W.PLACE_OPENERS.has(word)) [place, plain] = [true, false];
+      else if (!placed && placeOpeners.has(word)) place = true;
       else if (
         W.FILLERS.has(word) ||
         W.PEOPLE.has(word) ||
         W.REPORT_CUES.has(word) ||
+        act ||
         W.WORK_TIME.has(word) ||
         W.JOINERS.has(word) ||
+        W.APPROXIMATE.has(word) ||
         morning
       )
         continue;
-      else if (token.capital && i - 1 > offset) plain = false;
       else return false;
     }
     return true;
@@ -287,10 +330,9 @@ export function readStory(text: string, context: StoryContext): StoryFact[] {
   const words = new Set(tokens.map((token) => token.word));
   // With no question open, a message has to say it reports work, or name a field outright. A word
   // for time ("it took", "levou") says only how long, so it cues a duration and never a count.
-  const timed = [...words].some((word) => W.WORK_TIME.has(word));
   const cued =
     named ||
-    [...words].some((word) => W.REPORT_CUES.has(word)) ||
+    [...words].some((word) => W.REPORT_CUES.has(word) || actFits(word) === true) ||
     (timed && read.size === 0 && durations.length > 0);
   if (asked.length === 0 && !cued) return [];
   // A duration is time spent on the work when time is what was asked, when the message also names
@@ -304,29 +346,5 @@ export function readStory(text: string, context: StoryContext): StoryFact[] {
       original: duration.original,
       unit: duration.unit,
     });
-  return finalFacts();
-
-  function finalFacts(): StoryFact[] {
-    const facts: StoryFact[] = [];
-    for (const [field, candidates] of read) {
-      const key = field.startsWith("details.") ? field.slice("details.".length) : null;
-      const input = key ? inputs.find((candidate) => candidate.key === key) : null;
-      const first = candidates[0] as StoryFact;
-      // Several choices named for a field that takes several are all of them.
-      const fact: StoryFact =
-        input?.type === "multi-select"
-          ? {
-              ...first,
-              value: [...new Set(candidates.flatMap((candidate) => candidate.value))] as string[],
-            }
-          : first;
-      const values = new Set(candidates.map((candidate) => JSON.stringify(candidate.value)));
-      // Two different values for one field is a question to ask, not a value to pick.
-      if (input?.type !== "multi-select" && values.size !== 1) continue;
-      if (input && !validateDetailValue(input, fact.value).ok) continue;
-      if (input && !acceptsAmount(profile, input.key, details, fact.value)) continue;
-      facts.push(fact);
-    }
-    return facts;
-  }
+  return finalFacts({ read, inputs, profile, details, describedBy, named });
 }

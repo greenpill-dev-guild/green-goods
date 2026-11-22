@@ -38,6 +38,8 @@ export interface FieldQuestion {
    * definition, with no unit and no example.
    */
   by?: { field: string; choices: Record<string, ChoiceMeaning> };
+  /** A count of things: a whole number, one or more. */
+  count?: true;
   /**
    * Words a gardener may use for this field's quantity, so "12 mudas" names it. They are matched
    * against what people write and never shown, so they sit here and not in the copy catalogs.
@@ -96,6 +98,7 @@ export const QUESTION_PROFILES: readonly QuestionProfile[] = [
       seedlingsPlanted: {
         type: "number",
         ask: "question.seedlingsPlanted",
+        count: true,
         words: {
           en: ["seedlings", "trees", "saplings"],
           es: ["plántulas", "plantones", "árboles"],
@@ -105,6 +108,7 @@ export const QUESTION_PROFILES: readonly QuestionProfile[] = [
       participants: {
         type: "number",
         ask: "question.participants",
+        count: true,
         words: {
           en: ["people", "participants", "volunteers"],
           es: ["personas", "participantes", "voluntarios"],
@@ -216,6 +220,7 @@ export function acceptsAmount(
   details: Details,
   value: unknown
 ): boolean {
-  if (!chosenMeaning(profile?.fields[key], details)?.count) return true;
+  const question = profile?.fields[key];
+  if (!question?.count && !chosenMeaning(question, details)?.count) return true;
   return typeof value === "number" && Number.isInteger(value) && value >= 1;
 }

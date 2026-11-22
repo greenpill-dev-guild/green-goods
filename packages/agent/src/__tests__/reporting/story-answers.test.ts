@@ -142,6 +142,13 @@ describe("reading several facts from one message", () => {
     ["it took me 2 hours to get there", "en"],
     ["12 other people came too", "en"],
     ["my 3 trees at home are fine", "en"],
+    // A verb for other work, and counts of people that leave someone out.
+    ["we removed 12 trees", "en"],
+    ["quitamos 12 árboles", "es"],
+    ["we added 10 trees today", "en"],
+    ["we planted 12 other trees", "en"],
+    ["3 medicinal seedlings and 9 trees", "en"],
+    ["plantamos 1,5 árboles", "es"],
   ])("takes nothing from %j", (text, locale) => {
     expect(reading(text, plantingEvent, { locale })).toEqual({});
   });
@@ -150,6 +157,22 @@ describe("reading several facts from one message", () => {
     const seedlings = { asked: "details.seedlingsPlanted" } as const;
     for (const text of ["see you at 5", "I'll count and tell you at 6", "we were on plot 7"])
       expect(reading(text, plantingEvent, seedlings)).toEqual({});
+    // A bare number answers only on its own; a name or unit after it, or people around it, does not.
+    const participants = { asked: "details.participants" } as const;
+    for (const text of [
+      "we planted 40",
+      "5 plus me",
+      "me and 5 people",
+      "6 of us",
+      "WE BOUGHT 40",
+      "50+ people",
+    ])
+      expect(reading(text, plantingEvent, participants)).toEqual({});
+    const solar = {
+      details: { milestoneType: "Solar kW installed" },
+      asked: "details.milestoneValue",
+    } as const;
+    expect(reading("5 MW", milestone, solar)).toEqual({});
     const species = { asked: "details.speciesTags" } as const;
     for (const text of [
       "no fruit trees, only shade trees",
@@ -243,6 +266,12 @@ describe("reading several facts from one message", () => {
     });
     expect(reading("6 hours", serviceSession, { asked: "timeSpentMinutes" })).toEqual({
       timeSpentMinutes: 360,
+    });
+    // Time worked is time spent, unless the field in that unit is the one asked.
+    const users = { asked: "details.usersServed" } as const;
+    expect(reading("it took 2 hours", serviceSession, users)).toEqual({ timeSpentMinutes: 120 });
+    expect(reading("trabajamos 3 horas", serviceSession, { ...users, locale: "es" })).toEqual({
+      timeSpentMinutes: 180,
     });
   });
 });

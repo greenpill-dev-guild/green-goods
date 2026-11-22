@@ -24,21 +24,59 @@ const words = (list: string) => new Set(list.split(/\s+/u).filter(Boolean).map(w
 /** Who did the work. */
 export const PEOPLE = words(`i we me us it they them yo nosotros nosotras nos eu nós gente`);
 
-/** Verbs that say the work was done, and words that say a number is a total or a correction. */
+/** Words that say a number is work done, a total or a correction, whatever the activity. */
 export const REPORT_CUES = words(`
-  planted sowed seeded installed added built removed collected gathered cleared cleaned repaired
-  fixed harvested served trained taught delivered held hosted opened open did
-  done made finished completed recycled composted sorted transferred total actually sorry correction
-  planté plantamos sembré sembramos instalé instalamos añadí añadimos agregué agregamos
-  construimos quitamos recogí recogimos limpié limpiamos reparé reparamos arreglamos cosechamos
-  atendimos servimos capacitamos entregamos abrimos hicimos hice completamos plantadas plantados hechas hechos instalados
-  instaladas completados completadas realidad perdón corrección
-  plantei semeei semeamos instalei adicionei adicionamos colocamos construímos removemos
-  coletamos recolhemos limpei limpamos consertamos colhemos atendemos treinamos entregamos
-  fizemos fiz
-  concluímos concluído concluída concluídos concluídas feito feita feitos feitas instalado
-  plantada plantado verdade desculpa desculpe correção
+  did done made finished completed total actually sorry correction
+  hicimos hice completamos hechas hechos completados completadas realidad perdón corrección
+  fizemos fiz concluímos concluído concluída concluídos concluídas feito feita feitos feitas
+  verdade desculpa desculpe correção
 `);
+
+/**
+ * Verbs that name a kind of work, each with the stem the activity has to mention for the verb to
+ * count toward it: "we removed 12 trees" is not a planting, and "plantamos" is. A verb whose
+ * stem the activity does not mention leaves the message to a question.
+ */
+const ACTS: Record<string, string> = {
+  plant: `planted sowed seeded planté plantamos sembré sembramos plantadas plantados plantei semeei
+    semeamos plantada plantado`,
+  install: "installed instalé instalamos instalados instaladas instalei instalado",
+  add: "added añadí añadimos agregué agregamos adicionei adicionamos",
+  remov: "removed quitamos sacamos removemos tiramos",
+  collect: "collected gathered recogí recogimos coletamos recolhemos",
+  clean: "cleaned cleared limpié limpiamos limpei limpamos",
+  repair: "repaired fixed reparé reparamos arreglamos consertamos",
+  harvest: "harvested cosechamos colhemos",
+  serv: "served atendimos servimos atendemos",
+  deliver: "delivered entregamos",
+  open: "opened open abrimos",
+  recycl: "recycled",
+  compost: "composted",
+  sort: "sorted",
+  transfer: "transferred",
+};
+const ACT_STEMS = new Map(
+  Object.entries(ACTS).flatMap(([stem, list]) => [...words(list)].map((word) => [word, stem]))
+);
+
+/**
+ * For an activity, whether a word that names a kind of work fits it: true or false for such a
+ * word, null for any other. The activity's title, slug, field titles and choices say what it is
+ * about.
+ */
+export function actsFor(
+  title: string,
+  slug: string,
+  inputs: ReadonlyArray<{ title: string; options: readonly string[] }>
+): (word: string) => boolean | null {
+  const about = fold(
+    [title, slug, ...inputs.flatMap((input) => [input.title, ...input.options])].join(" ")
+  );
+  return (word) => {
+    const stem = ACT_STEMS.get(word);
+    return stem === undefined ? null : about.includes(stem);
+  };
+}
 
 /** Words that carry no meaning a number could take: articles, past forms of "be", time words. */
 export const FILLERS = words(`
@@ -49,6 +87,10 @@ export const FILLERS = words(`
   noche aproximadamente alrededor cerca sobre todo todas todos principalmente solo sólo
   o os um uma uns umas foi foram eram tivemos teve hoje ontem manhã noite apenas só
 `);
+
+/** Words that may come before a number that answers the open question on its own: "about 12". */
+export const APPROXIMATE = words(`about around approximately roughly unos unas uns umas
+  aproximadamente alrededor cerca`);
 
 /** "esta mañana" is this morning; "mañana" alone is tomorrow. */
 export const MORNING_LEAD = words(`esta la por de`);
@@ -61,7 +103,9 @@ export const JOINERS = words(`and y e plus with con com also también também &`
 export const BEFORE_A_NUMBER = words(`in en em for por para durante during de`);
 
 /** Words that open a place before the work is named: "At TAS today I planted ...". */
-export const PLACE_OPENERS = words(`at in on en em na nas`);
+export function placeOpeners(locale: string): Set<string> {
+  return words(`at in on en em na nas ${locale.startsWith("pt") ? "no nos" : ""}`);
+}
 
 /** Words that open a place or a description after a fact: "... by the fence", "de baobá". */
 const AFTER_A_FACT = `by at in on near along beside behind around across inside outside under
@@ -70,7 +114,8 @@ const AFTER_A_FACT = `by at in on near along beside behind around across inside 
 
 /** In Spanish and Portuguese "a" opens a place ("a lo largo", "à cerca"); in English it counts. */
 export function afterAFact(locale: string): Set<string> {
-  return words(`${AFTER_A_FACT} ${locale.startsWith("en") ? "" : "a al ao"}`);
+  const portuguese = locale.startsWith("pt") ? "no nos" : "";
+  return words(`${AFTER_A_FACT} ${locale.startsWith("en") ? "" : "a al ao"} ${portuguese}`);
 }
 
 /** Words before a number that make it a clock time: "at 5", "às 8 horas", "a las 9". */
@@ -96,7 +141,7 @@ export const NOT_DONE = words(`
   robadas esperábamos esperamos planeamos vamos voy iremos próximo próxima después todavía aún
   ya hay son es
   morreram morreu mortas mortos perdemos faltaram faltou roubadas esperávamos planejamos vou vai
-  amanhã depois ainda já são é
+  amanhã depois ainda já são
 `);
 
 /** Words a choice may be named after: "the species was neem", "species: neem". */
@@ -114,3 +159,41 @@ export const MINUTES = words(`minute minutes min mins minuto minutos`);
 export const ONE = words(`a an one un una uma um`);
 /** "and a half", "y media", "e meia". */
 export const HALF = words(`half media meia`);
+
+/** Units of measure: a number in one of these is a measure, never a count of the words' things. */
+const UNITS =
+  words(`kg g mg lb lbs ton tons tonne tonnes t m km cm mm ha hectare hectares acre acres
+  l liter liters litre litres ml kw kwh mw mwh w wh gw gwh mbps gbps kbps usd usdc eth btc dollars
+  dólares reais naira percent hours hour minutes min mins horas minutos h`);
+
+/** Words that multiply the number before them: "4 thousand" is not 4. */
+const MULTIPLIERS = words(`hundred hundreds thousand thousands million millions dozen dozens k
+  cien ciento cientos mil miles millón millones docena docenas
+  cem cento centenas milhar milhares milhão milhões dúzia dúzias`);
+
+/**
+ * Whether the words after a number in an answer may simply name what the asked field counts, as
+ * "12 bags" does for "Amount Removed (kg or bags)" or "6 kids" for participants: one or two plain
+ * words, none of them a negation, a sign the work is not done, or a unit the field's title does
+ * not name. Words the reader knows as another field's are read by it before this is asked.
+ */
+export function namesTheCount(stated: string, fieldTitle: string, locale: string): boolean {
+  const said = stated.trim().split(/\s+/u);
+  if (said.length === 0 || said.length > 2 || said.some((word) => !/^[\p{L}'’]+$/u.test(word)))
+    return false;
+  const title = new Set(
+    fold(fieldTitle)
+      .split(/[^\p{L}\p{N}]+/u)
+      .map(singular)
+  );
+  const refused = negations(locale);
+  return said
+    .map(wordKey)
+    .every(
+      (word) =>
+        !refused.has(word) &&
+        !NOT_DONE.has(word) &&
+        !MULTIPLIERS.has(word) &&
+        (!UNITS.has(word) || title.has(word))
+    );
+}

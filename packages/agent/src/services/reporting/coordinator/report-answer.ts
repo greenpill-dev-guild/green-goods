@@ -25,6 +25,7 @@ import { askField, fieldHint, fieldQuestionText } from "./field-questions";
 import { askAction, askAnotherGarden, gardenLabel, promptNextStep } from "./prompting";
 import { frozenReply } from "./report-commands";
 import { handleReportMessage } from "./report-message";
+import { namesTheCount } from "./story-words";
 import {
   adoptAction,
   apply,
@@ -235,7 +236,20 @@ export function handleReportAnswer(
       // answer, so the first number in them is never taken on its own.
       const saysMore = !answer.ok || Boolean(answer.statedUnit);
       if (saysMore && text && applyStory(writer, draft, work, text, `details.${input.key}`)) break;
-      const unread = answer.ok && Boolean(answer.statedUnit) && input.type === "number";
+      // A value the report already holds, said again from the edit menu, changes nothing.
+      if (
+        answer.ok &&
+        JSON.stringify(work.content.details[input.key]) === JSON.stringify(answer.value)
+      ) {
+        work.answered = `details.${input.key}`;
+        break;
+      }
+      // "12 bags" for "Amount Removed (kg or bags)": a number and a plain word for what is counted.
+      const unread =
+        answer.ok &&
+        Boolean(answer.statedUnit) &&
+        input.type === "number" &&
+        (work.recognised || !namesTheCount(answer.statedUnit ?? "", input.title, ctx.locale));
       if (!answer.ok && answer.reason === "unknown_option") {
         return offChoice(writer, plan, external, () => askField(writer, draft, input, prompt.page));
       }

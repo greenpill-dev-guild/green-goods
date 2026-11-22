@@ -73,6 +73,8 @@ export interface Working {
   answered?: ReportField;
   /** The linked account's only garden, when this turn gave it to the report without asking. */
   taken?: ReportingGarden;
+  /** The reader that needs no model recognised a fact in this turn's words, held or new. */
+  recognised?: boolean;
 }
 
 export function apply(work: Working, changes: FieldChange[]): void {
@@ -95,13 +97,15 @@ export function applyStory(
   text: string,
   asked: ReportField | readonly ReportField[] | null = null
 ): boolean {
-  const facts = readStory(text, {
+  const read = readStory(text, {
     snapshot: work.snapshot,
     profile: questionProfileOf(writer.core, draft, work.snapshot),
     details: work.content.details,
     locale: writer.ctx.locale,
     asked,
-  }).filter(
+  });
+  work.recognised ||= read.length > 0;
+  const facts = read.filter(
     (fact) => JSON.stringify(valueOf(work.content, fact.field)) !== JSON.stringify(fact.value)
   );
   if (facts.length === 0) return false;

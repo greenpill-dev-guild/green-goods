@@ -87,6 +87,7 @@ const WORDS = {
     several: "40 seedlings, 6 people, 2 hours",
     unread: "40 seedlings, 6 people, 2 hours and 4 buckets",
     hello: "hello",
+    kids: "6 kids",
     correction: "Actually it was 45 seedlings, not 40.",
     species: "Which species did you plant?",
     kind: "What did you install or finish?",
@@ -99,6 +100,7 @@ const WORDS = {
     several: "40 plántulas, 6 personas, 2 horas",
     unread: "40 plántulas, 6 personas, 2 horas y 4 cubos",
     hello: "hola",
+    kids: "6 niños",
     correction: "En realidad fueron 45 plántulas, no 40.",
     species: "¿Qué especies plantaste?",
     kind: "¿Qué instalaste o terminaste?",
@@ -111,6 +113,7 @@ const WORDS = {
     several: "40 mudas, 6 pessoas, 2 horas",
     unread: "40 mudas, 6 pessoas, 2 horas e 4 baldes",
     hello: "olá",
+    kids: "6 crianças",
     correction: "Na verdade foram 45 mudas, não 40.",
     species: "Quais espécies você plantou?",
     kind: "O que você instalou ou concluiu?",
@@ -213,6 +216,14 @@ describe.each(LOCALES)("reporting with models off, in %s", (locale) => {
     expect(reply).toMatch(/40[^]*6[^]*2/u);
   });
 
+  it("takes a count named in a word the activity does not know", async () => {
+    await begin(locale, words.plain);
+    await harness.say(person, "40 fruit trees");
+    expect(report().question).toBe("field:participants");
+    await harness.say(person, words.kids);
+    expect(report().details.participants).toBe(6);
+  });
+
   it("takes both halves of a paired question from one answer, or one and asks the other", async () => {
     await begin(locale, words.plain);
     // A choice of more than one word, as the published species are.
@@ -281,6 +292,13 @@ describe.each(LOCALES)("reporting with models off, in %s", (locale) => {
     await harness.say(person, "5 kWh");
     expect(report().details.milestoneValue).toBeUndefined();
     await harness.say(person, "5 kW");
+    expect(report().details).toEqual({ milestoneType: "Solar kW installed", milestoneValue: 5 });
+
+    // Saying the held value again from the edit menu changes nothing and asks nothing.
+    await harness.say(person, "EDIT");
+    await harness.say(person, "6");
+    const [again] = await harness.say(person, "5 kW");
+    expect(again).not.toContain("number");
     expect(report().details).toEqual({ milestoneType: "Solar kW installed", milestoneValue: 5 });
 
     // Changing what was installed takes out the amount in the old unit, so it is asked again.
