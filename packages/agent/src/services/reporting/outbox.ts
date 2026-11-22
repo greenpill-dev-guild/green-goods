@@ -33,6 +33,18 @@ function payloadContext(outboxId: string): string {
   return `delivery_outbox.payload:${outboxId}`;
 }
 
+/** A reply as it was written, or null once retention has removed its content. */
+export function readReplyMessage(
+  core: ReportingCore,
+  row: { id: string; payload_ciphertext: string | null }
+): OutboundMessage | null {
+  return row.payload_ciphertext
+    ? (JSON.parse(
+        core.keyring.open(row.payload_ciphertext, payloadContext(row.id))
+      ) as OutboundMessage)
+    : null;
+}
+
 /** Call inside the committing transaction. A repeated dedupe key returns null and sends nothing. */
 export function enqueueReply(core: ReportingCore, intent: ReplyIntent): string | null {
   const id = core.ids.id();
@@ -212,11 +224,7 @@ export async function dispatchOutbox(
       const claim = claimNext(core, conversationId);
       if (!claim) break;
       const chat = decryptConversationChat(core, conversationId);
-      const message = claim.row.payload_ciphertext
-        ? (JSON.parse(
-            core.keyring.open(claim.row.payload_ciphertext, payloadContext(claim.row.id))
-          ) as OutboundMessage)
-        : null;
+      const message = readReplyMessage(core, claim.row);
       const result =
         chat && message
           ? await transport
@@ -290,11 +298,7 @@ async function retireEarlierQuestion(
     } | null;
     if (!earlier || (JSON.parse(earlier.options_json) as unknown[]).length === 0) return;
     // The question as sent lets the channel keep its links; a purge leaves only the question row.
-    const message = earlier.payload_ciphertext
-      ? (JSON.parse(
-          core.keyring.open(earlier.payload_ciphertext, payloadContext(earlier.id))
-        ) as OutboundMessage)
-      : null;
+    const message = readReplyMessage(core, earlier);
     await transport.retireChoices?.({
       providerRealm: chat.providerRealm,
       externalChatId: chat.chatId,

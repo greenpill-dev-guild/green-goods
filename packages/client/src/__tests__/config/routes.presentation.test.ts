@@ -103,6 +103,8 @@ describe("presentation route trees", () => {
     expect(ids).toContain(CLIENT_ROUTE_IDS.home);
     expect(ids).toContain(CLIENT_ROUTE_IDS.login);
     expect(ids).not.toContain(CLIENT_ROUTE_IDS.publicHome);
+    // The passport's copy is left out of the installed app's catalogs, so its page must be too.
+    expect(ids).not.toContain(CLIENT_ROUTE_IDS.publicGardenPassport);
   });
 
   // Explore lives under Home, so Home stays mounted and the bottom bar stays on it (DL-125).

@@ -203,10 +203,44 @@ export interface PassportSettlement {
   }>;
 }
 
+/** One reviewed exchange pool's place for a voucher. */
+export interface PassportPoolHolding {
+  /** The pool's reviewed id, unique among a voucher's pools. */
+  id: string;
+  /** The pool's public name. */
+  name: string;
+  /** Whether the pool's registry admits the voucher today. */
+  listed: boolean;
+  /** Null once anyone has used the voucher: the holding moves with each person's exchange. */
+  holding: bigint | null;
+  /** The most the pool may hold of this voucher. Zero before a limit is set, and once delisted. */
+  holdingLimit: bigint;
+}
+
+/**
+ * One voucher a garden issues, as its token and its exchange pools hold it on the voucher chain.
+ * Pool inventory, the holding limit and what is outstanding are three different facts.
+ */
+export interface PassportVoucherSupply {
+  token: Address;
+  symbol: string;
+  decimals: number;
+  pools: PassportPoolHolding[];
+  /** Vouchers out of the issuer's reserve. Null once anyone has used the voucher. */
+  outstanding: bigint | null;
+  /**
+   * The voucher has moved to or from someone other than its issuer's reserve and the reviewed
+   * pools, and no source counts the people behind that, so a holding or an outstanding total
+   * could be one person's amount. Both are null, and the holding limit, the pool's policy, stays.
+   */
+  heldBack: boolean;
+}
+
 interface PassportUnavailableSources {
   promises: boolean;
   vouchers: boolean;
   settlement: boolean;
+  supply: boolean;
 }
 
 export interface PublicGardenPassportRecord {
@@ -219,6 +253,11 @@ export interface PublicGardenPassportRecord {
   promises: PassportSection<PassportPromises>;
   vouchers: PassportSection<PassportVouchers>;
   settlement: PassportSection<PassportSettlement>;
+  /**
+   * The vouchers this garden issues, read from the voucher chain itself. `asOf` is the time of
+   * the block the reading was taken at, not a last change. Empty when the garden issues none.
+   */
+  supply: PassportSection<PassportVoucherSupply[]>;
   partialData: boolean;
   unavailableSources: PassportUnavailableSources;
 }

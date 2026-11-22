@@ -30,6 +30,7 @@ import { jobQueueEventBus } from "./event-bus";
 import { createJobExecutorRegistry, type JobExecutor } from "./executor-registry";
 import {
   trackJobCreated,
+  trackJobDiscarded,
   trackJobPermanentlyFailed,
   trackJobProcessed,
   trackJobProcessingError,
@@ -137,6 +138,7 @@ export function createDefaultJobQueueDependencies(): JobQueueDependencies {
       processingStarted: trackJobStarted,
       jobSkipped: trackJobSkipped,
       receiptWaitLimitReached: trackReceiptWaitLimitReached,
+      jobDiscarded: trackJobDiscarded,
     },
     quota: { get: getStorageQuota },
     scheduler: {

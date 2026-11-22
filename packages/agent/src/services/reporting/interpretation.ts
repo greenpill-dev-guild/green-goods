@@ -1,5 +1,6 @@
 import type {
   FactKind,
+  FactOrigin,
   ReportContent,
   ReportField,
   ReportRequirement,
@@ -15,9 +16,6 @@ const log = createLogger("reporting");
  * OpenAI proposes field values with source references. Neither can choose an Action outside the
  * candidate list, grant authority, change consent or report an outcome: every proposal is
  * validated against the Action's inputs and committed only if the draft revision is unchanged.
- *
- * Requests carry a bounded snapshot: no phone numbers, wallet addresses, links, signatures or
- * unrelated chat history.
  */
 export type InterpretedIntent =
   | "report_content"
@@ -30,16 +28,55 @@ export type InterpretedIntent =
   | "greeting"
   | "unclear";
 
-export interface InterpretationRequest {
+/** What the conversation is for right now. */
+export type DialogueGoal = "report" | "review" | "none";
+
+export interface DialogueTurn {
+  role: "person" | "assistant";
+  text: string;
+}
+
+/** The question the conversation has open, as it was put. */
+export interface DialogueQuestion {
+  kind: string;
+  field: string | null;
+  text: string;
+  options: string[];
+}
+
+/**
+ * The bounded view of a conversation a model reads: the latest message, the open question and the
+ * few turns before it, the draft's fields with where each came from, what is still missing, and
+ * the gardens and activities on offer. Gardens are named by opaque identifiers that mean nothing
+ * outside the turn. It holds no phone number, account address, link, signature or provider
+ * identifier, and no history beyond its turns.
+ */
+export interface DialogueSnapshot {
+  version: 1;
   locale: string;
+  goal: DialogueGoal;
   draftRevision: number;
   message: { sourceEntryId: string; text: string };
+  turns: DialogueTurn[];
+  question: DialogueQuestion | null;
   content: Pick<ReportContent, "actionUID" | "title" | "timeSpentMinutes" | "feedback" | "details">;
+  /** Where each accepted field came from, and whether the gardener stated it. */
+  provenance: Partial<Record<ReportField, { origin: FactOrigin; stated: boolean }>>;
+  conflicts: Array<{ field: ReportField; proposed: unknown }>;
   requirements: ReportRequirement[];
   gardens: Array<{ key: string; label: string }>;
   actions: Array<{ uid: number; title: string; inputs: WorkInput[] }>;
   observations: Array<{ assetId: string; digest: string; summary: string }>;
 }
+
+declare const passedPrivacyGateway: unique symbol;
+
+/**
+ * A snapshot that has passed the privacy gateway (`dialogueView` in
+ * coordinator/dialogue-context.ts), the only place one is made. Provider adapters take nothing
+ * else, so a request cannot reach a provider without it.
+ */
+export type InterpretationRequest = DialogueSnapshot & { readonly [passedPrivacyGateway]: true };
 
 export interface ProposedFact {
   field: ReportField;
