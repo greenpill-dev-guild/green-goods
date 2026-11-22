@@ -453,7 +453,7 @@ export const VoucherBookings: Story = {
     await expect(await within(mara).findByText("Mara")).toBeVisible();
     await expect(within(mara).getByText(/Takes 1 Tech and Sun voucher/)).toBeVisible();
     await expect(canvas.getByText(/Booking: deposit confirmed/)).toBeVisible();
-    await expect(canvas.getByText(/Booking asked/)).toBeVisible();
+    await expect(canvas.getByText(/Asked to book/)).toBeVisible();
     await expect(canvas.queryByRole("button", { name: "Report Visit…" })).toBeNull();
   },
 };
