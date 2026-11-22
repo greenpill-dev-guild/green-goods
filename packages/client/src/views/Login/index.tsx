@@ -25,6 +25,7 @@ export function Login() {
     keepOriginalAccount,
     browserGuidanceAction,
     continueWithUsername,
+    createNamedAccount,
     goTo,
     intl,
     isNestedRoute,
@@ -36,6 +37,7 @@ export function Login() {
     passkeyServerEnabled,
     personalizedLabel,
     redirectTo,
+    savedAccountName,
     screen,
     setUsername,
     username,
@@ -189,6 +191,55 @@ export function Login() {
       />
     </Helmet>
   );
+
+  // The typed name belongs to nobody, and this phone already has an account: a typo must not
+  // quietly become a second account, so the person says it is a new one.
+  if (screen === "confirmNewAccount") {
+    const name = username.trim();
+    return (
+      <>
+        {helmet}
+        <Splash
+          login={createNamedAccount}
+          isLoggingIn={isAuthenticating}
+          loadingState={loadingState ?? undefined}
+          message={loadingMessage}
+          buttonLabel={intl.formatMessage({
+            id: "app.login.newAccount.create",
+            defaultMessage: "Create New Account",
+          })}
+          errorMessage={!isAuthenticating ? loginError : null}
+          focusInfo
+          infoMessage={
+            savedAccountName
+              ? intl.formatMessage(
+                  {
+                    id: "app.login.newAccount.infoSaved",
+                    defaultMessage:
+                      "No account is named {name}. This phone has the account {saved}. Create a new account?",
+                  },
+                  { name, saved: savedAccountName }
+                )
+              : intl.formatMessage(
+                  {
+                    id: "app.login.newAccount.info",
+                    defaultMessage:
+                      "No account is named {name}. Another account is saved on this phone. Create a new account?",
+                  },
+                  { name }
+                )
+          }
+          tertiaryAction={{
+            label: intl.formatMessage({
+              id: "app.login.newAccount.checkName",
+              defaultMessage: "Check the Name",
+            }),
+            onClick: goToUsername,
+          }}
+        />
+      </>
+    );
+  }
 
   if (screen === "username") {
     return (
