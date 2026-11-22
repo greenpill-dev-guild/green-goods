@@ -1,3 +1,4 @@
+// TEST-QUALITY: allow-small-test-file - Login.test.tsx mocks Splash and runs the real controller; this screen needs the real Splash for focus and a stubbed controller, and Vitest module mocks are per file.
 /**
  * The question sign-in asks on a shared phone, as the Login view draws it: the typed name belongs
  * to nobody and another account is saved here. The controller that decides to ask is tested in
