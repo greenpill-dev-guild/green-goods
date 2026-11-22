@@ -152,6 +152,50 @@ describe("the dialogue planner", () => {
     });
   });
 
+  it("answers a question that names an activity, with its switch off, and starts nothing", async () => {
+    const reading = (intent: string, actionUID: number | null, facts: unknown[] = []) =>
+      says({ intent, gardenKey: null, actionUID, facts });
+    harnessWith([
+      reading("report_content", null),
+      reading("help", 8),
+      reading("cancel", 8),
+      reading("help", 8),
+    ]);
+    setControl(harness.core, "dialogue_planner", false, { actor: "test", reason: "off" });
+    await consented();
+    expect(report()).toMatchObject({ activity: null, question: "select_action" });
+
+    // Help or a cancel that names an activity is answered, and the activity is not taken.
+    for (const words of ["how do I report weeding?", "cancel, it isn't weeding"]) {
+      const replies = await harness.say(ADA, words);
+      expect(replies.join("\n")).not.toContain("Got it");
+      expect(report()).toMatchObject({ activity: null });
+    }
+    // With no report open, a question about an activity starts none.
+    await harness.say(ADA, "CANCEL");
+    await harness.say(ADA, "how do I report weeding?");
+    expect(
+      harness.core.db.query("SELECT count(*) AS n FROM work_drafts WHERE lifecycle = 'open'").get()
+    ).toEqual({ n: 0 });
+  });
+
+  it("leaves out a time whose own words come to another number", async () => {
+    harnessWith([
+      says({
+        intent: "report_content",
+        gardenKey: null,
+        actionUID: 7,
+        facts: [
+          fact("details.seedlings", 12, "twelve baobab seedlings"),
+          fact("timeSpentMinutes", 3, "3 hours"),
+        ],
+      }),
+    ]);
+    setControl(harness.core, "dialogue_planner", false, { actor: "test", reason: "off" });
+    await consented();
+    expect(report()).toMatchObject({ activity: 7, details: { seedlings: 12 }, minutes: null });
+  });
+
   it("leaves out what the report never offered, and keeps the rest", async () => {
     harnessWith([
       says(
@@ -182,7 +226,7 @@ describe("the dialogue planner", () => {
     ["an outcome in place of a topic", says(plan({ next: "published", facts: [] }))],
     [
       "a field outside the reply's shape",
-      says({ ...plan(), confirm: true, say: "Your report is published ✅" }),
+      says({ ...plan({ activity: 7 }), confirm: true, say: "Your report is published ✅" }),
     ],
     [
       "more questions than a reply may name",
