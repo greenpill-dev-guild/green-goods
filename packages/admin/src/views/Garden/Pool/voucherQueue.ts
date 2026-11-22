@@ -5,12 +5,8 @@ import type { VoucherBooking } from "@green-goods/shared/modules/commitment-pool
 import type { PoolClaimRequestRow } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import type { IntlShape } from "react-intl";
 import { dayText } from "./poolTime";
-import {
-  voucherAmountWords,
-  voucherBookingAct,
-  voucherCount,
-  voucherOfferRow,
-} from "./voucherPresentation";
+import { voucherBookingAct } from "./voucherBookingActs";
+import { voucherAmountWords, voucherCount, voucherOfferRow } from "./voucherPresentation";
 
 type Intl = Pick<IntlShape, "formatMessage" | "formatDate" | "formatTime" | "formatDateToParts">;
 

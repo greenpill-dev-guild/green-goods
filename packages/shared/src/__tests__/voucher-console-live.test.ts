@@ -322,6 +322,22 @@ describe("live voucher steward integration", () => {
     ).rejects.toThrow("pending or failed frozen transfer");
   });
 
+  // PRD-1462: a booking whose promise was canceled or expired keeps its vouchers in escrow until
+  // the issuer proposes a return, so the console says it ended early, not that it is under way.
+  it.each([
+    "CANCELLED",
+    "EXPIRED",
+  ])("reads a started booking whose promise is %s as ended early", async (coreState) => {
+    const f = fixture(true);
+    f.snapshot.coreState = coreState;
+    const view = await readLiveVoucherConsole(f.input, f.deps);
+    expect(view.bookings[0]!.stage).toEqual({
+      kind: "ended-early",
+      returnLimit: 1_000_000n,
+      returnCeiling: 0n,
+    });
+  });
+
   it("hydrates account-wide wallet bookings from canonical custody", async () => {
     const f = fixture(true);
     const wallet = await readLiveVoucherWallet(f.wallet, f.deps);
