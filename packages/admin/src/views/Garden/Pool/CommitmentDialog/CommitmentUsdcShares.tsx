@@ -88,9 +88,9 @@ export function CommitmentUsdcShares({
   // What the viewer would pay: never their own share, nor one a steward kept while paying the rest.
   const owed = rewardSharesOwed(shares, viewer);
   const owedTotal = owed.reduce((sum, share) => sum + share.amount, 0n);
-  // Paid once every share is, the paying steward's own counting as settled.
-  const allPaid =
-    shares.length > 0 && shares.every((share) => isOwn(share) || rewardShareSettled(share, shares));
+  // Paid once every share is settled: paid, or kept by a steward who paid the rest. A viewer's
+  // own unpaid share counts only once they have paid the others, never just for being theirs.
+  const allPaid = shares.length > 0 && shares.every((share) => rewardShareSettled(share, shares));
   const shareState = (share: RewardShareState) =>
     share.paidBy
       ? "paid"

@@ -120,6 +120,28 @@ export const ACoStewardAfterTheOtherPaid: Story = {
   },
 };
 
+/**
+ * Another steward paid everyone else and left this steward's own share unpaid. It is still theirs
+ * to keep, but nobody has settled it, so the part doesn't read as paid.
+ */
+export const AnotherStewardPaidTheOthers: Story = {
+  args: {
+    shares: [
+      share(STEWARD, 5_000_000n, null),
+      ...owed.map((entry) => ({
+        ...entry,
+        paidBy: "0x3333333333333333333333333333333333333333" as const,
+      })),
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("5 USDC, your own share, nothing to send")).toBeVisible();
+    await expect(canvas.queryByText("Paid")).toBeNull();
+    await expect(canvas.queryByRole("button")).toBeNull();
+  },
+};
+
 /** Until the settlement read answers, the section doesn't ask for a plan that may already exist. */
 export const WhileThePlanReads: Story = {
   args: { shares: [], splitFixed: null },

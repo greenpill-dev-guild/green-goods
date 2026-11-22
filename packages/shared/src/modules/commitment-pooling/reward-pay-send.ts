@@ -2,10 +2,11 @@
  * Paying a promise's wallet-paid shares
  *
  * A steward pays the shares of a reward part, USDC for the pilot, from their own
- * wallet through the reward payer (PRD-1556). Before anything is asked, the read
- * has to show that no share is paid yet and that the wallet holds the whole
- * amount: the payer refuses a paid share, and the token refuses an amount the
- * wallet doesn't hold, so either would only cost a signature. Then it is one
+ * wallet through the reward payer (PRD-1556). Before anything is asked, a fresh
+ * read has to show that the part still owes exactly the shares the steward was
+ * shown, none paid and none kept since, and that the wallet holds their total:
+ * the payer refuses a paid share, and the token refuses an amount the wallet
+ * doesn't hold, so either would only cost a signature. Then it is one
  * approval for exactly the total, skipped only when the allowance already is
  * exactly that, so a steward never leaves more approved than a payment moves;
  * and one call that pays every share or none.
