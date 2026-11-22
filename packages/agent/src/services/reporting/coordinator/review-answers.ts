@@ -48,18 +48,40 @@ const STATED = new RegExp(
 );
 const BARE_LEVEL = new RegExp(`^(?:${LEVEL})$`, "u");
 const LEVEL_WORD = new RegExp(`(?:^| )(${LEVEL})(?: |$)`, "u");
-/** Words that, opening a later part of the same sentence, make what it stated conditional or refused. */
-const HEDGE =
-  /^(?:no|not|nao|never|nunca|yet|todavia|ainda|if|unless|once|when|until|after|except|only|se|cuando|quando|hasta|ate|salvo|excepto|exceto|solo|a menos|or|o|ou|provided|as long as|siempre que|desde que|contanto que|con tal|i think|i guess|creo|acho)(?= |$)/u;
+/**
+ * Words that, opening a later part of the decision's own sentence, make it conditional or
+ * uncertain: "Approve, if the photos are fixed", "Approve, I think". Later sentences are feedback:
+ * "Reject. The photos are probably from another garden." gives its reason.
+ */
+const CONDITION =
+  /^(?:if|unless|once|when|until|except|only if|provided|as long as|assuming|pending|depending|se|cuando|quando|hasta|ate|salvo|excepto|exceto|solo si|so se|a menos|siempre que|desde que|contanto que|con tal|a condicion|maybe|perhaps|probably|i think|i guess|i suppose|i believe|creo|acho|supongo|acredito|not sure|no estoy|tal vez|talvez|quizas|quiza)(?= |$)/u;
+/** A doubt anywhere in a later part of the decision's own sentence: "high, but I'm not sure". */
+const DOUBT = /(?:^| )(?:not sure|unsure|no estoy segur[oa]|nao tenho certeza|nao sei)(?: |$)/u;
 /** "si" is "if"; "sí" is "yes", so it is told apart before accents are folded. */
 const IF_SI = /^si(?=[\s,]|$)/u;
-/** Said after a decision in any later sentence or line, these take it back: "Approve. Not yet." */
-const TAKEN_BACK =
-  /^(?:(?:no|not|nope|nao)$|(?:not yet|not now|todavia no|aun no|ainda nao|wait|espera|just kidding|es broma|brincadeira|if|unless|provided|as long as|only if|siempre que|desde que|contanto que|solo si|so se)(?: |$))/u;
-const BUT_NOT = /(?:^| )(?:but|pero|mas) (?:no|not|nao)(?: |$)/u;
-/** Anywhere in the answer, a doubt leaves every decision and level to be asked. */
-const DOUBT =
-  /(?:^| )(?:not sure|unsure|no estoy segur[oa]|no se|nao sei|nao tenho certeza|maybe|perhaps|probably|i guess|tal vez|talvez|quizas|quiza)(?: |$)/u;
+/** A contrast then a "no" in the decision's own sentence: "Approve, but not yet", "Aprobar, aunque no". */
+const BUT_NOT =
+  /(?:^| )(?:but|pero|mas|though|although|aunque|porem|embora|however)(?: \p{L}+){0,2} (?:no|not|nao)(?: |$)/u;
+/**
+ * A part made only of these words, anywhere after a decision, takes it back: "Not yet.", "Actually
+ * no.", "Never mind.", "Mejor no.", "Not sure." It must hold one of the `RETRACTS` words.
+ */
+const TAKE_BACK_WORDS = new Set(
+  (
+    "actually no not nope nah never nunca nao yet todavia aun ainda now wait espera hold on mind " +
+    "scratch that really way just kidding es broma brincadeira i im m am changed my mejor melhor " +
+    "or o ou sure unsure seguro segura estoy tenho tengo certeza maybe perhaps probably tal vez " +
+    "talvez quizas quiza sorry"
+  ).split(" ")
+);
+const RETRACTS =
+  /(?:^| )(?:no|not|nope|nah|never|nunca|nao|wait|espera|hold|mind|scratch|kidding|broma|brincadeira|unsure|maybe|perhaps|probably|vez|talvez|quizas|quiza)(?: |$)/u;
+const takesBack = (words: string) =>
+  words !== "" &&
+  words.split(" ").every((word) => TAKE_BACK_WORDS.has(word)) &&
+  RETRACTS.test(words);
+/** Marks that undo what they sit beside: a thumbs down, a cross, WhatsApp's strikethrough. */
+const UNDONE = /[\u{1F44E}\u{1F914}\u{274C}\u{1F6AB}\u{26D4}~]/u;
 
 const levelOf = (words: string): Confidence | undefined =>
   LEVELS.find(([, names]) => names.split("|").includes(words))?.[0];
@@ -72,6 +94,15 @@ const plainOf = (text: string) =>
     .trim();
 
 type Span = readonly [number, number];
+
+/** The decision words an answer names anywhere, whether or not it states one. */
+export function namedDecisions(text: string): Set<"approve" | "reject"> {
+  const plain = fold(text);
+  const named = new Set<"approve" | "reject">();
+  if (SAYS_APPROVE.test(plain)) named.add("approve");
+  if (SAYS_REJECT.test(plain)) named.add("reject");
+  return named;
+}
 
 /**
  * The answer with what was read taken out, with the punctuation and one line's space that closed
@@ -120,21 +151,28 @@ export function readReviewAnswer(text: string, asked: Asked): ReviewReading {
     !part.asks && BARE_LEVEL.test(part.words) ? levelOf(part.words) : undefined
   );
   const first = parts.findIndex((_, index) => stated[index] || bareAt[index] !== undefined);
-  // What a later part says can take back everything stated before it: a doubt anywhere, "not yet"
-  // or "wait" in a later sentence, "but not", or a condition or a "no" later in the same sentence.
+  const readHere = (index: number) => stated[index] || bareAt[index] !== undefined;
+  // What follows a decision or a level can take it back: a part made only of take-back words in any
+  // later sentence ("Approve. Not yet."), a mark that undoes it, or, in its own sentence, a
+  // condition, a doubt or a contrast with a "no" ("Approve, if the photos are fixed").
   const takenBack =
     first >= 0 &&
-    (DOUBT.test(plainOf(text)) ||
-      parts.some(
-        (part, index) =>
-          index > first &&
-          (TAKEN_BACK.test(part.words) ||
+    parts.some((part, index) => {
+      if (index < first) return false;
+      if (UNDONE.test(part.raw)) return true;
+      if (index === first) return false;
+      const sameSentence = parts.some(
+        (before, at) => at < index && readHere(at) && before.sentence === part.sentence
+      );
+      return (
+        takesBack(part.words) ||
+        (sameSentence &&
+          (CONDITION.test(part.words) ||
+            DOUBT.test(part.words) ||
             BUT_NOT.test(part.words) ||
-            ((HEDGE.test(part.words) || IF_SI.test(part.raw.normalize("NFC").toLowerCase())) &&
-              parts.some(
-                (before, at) => at < index && stated[at] && before.sentence === part.sentence
-              )))
-      ));
+            IF_SI.test(part.raw.normalize("NFC").toLowerCase())))
+      );
+    });
   const decisions = new Set<"approve" | "reject">();
   const levels = new Set<Confidence>();
   const read: Span[] = [];

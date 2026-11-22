@@ -19,7 +19,7 @@ import { decisionLinkIsLatest, reviewLinkLapsed, sendReviewSigningLink } from ".
 import { accountLink } from "./account-link";
 import type { ChatCommand } from "./commands";
 import type { TurnPlan } from "./context";
-import { readReviewAnswer } from "./review-answers";
+import { namedDecisions, readReviewAnswer } from "./review-answers";
 import { isReviewPrompt, nextReviewStep } from "./review-prompts";
 import type { TurnWriter } from "./writer";
 
@@ -161,6 +161,12 @@ export function answerReviewPrompt(
     else if (prompt.kind === "review_confidence" && !read.decision)
       return nextReviewStep(writer, review, account.address);
   }
+  // Feedback that names the other decision without stating it is a change of mind not understood:
+  // the question is put again, and those words never become this decision's public feedback.
+  const other = content.decision === "approve" ? "reject" : "approve";
+  if (prompt.kind === "review_feedback" && !read.decision && plan.text)
+    if (content.decision && namedDecisions(plan.text).has(other))
+      return nextReviewStep(writer, review, account.address);
   const feedback =
     prompt.kind === "review_feedback" && !read.decision && read.confidence === undefined
       ? (plan.text ?? "")
