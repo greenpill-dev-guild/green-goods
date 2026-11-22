@@ -162,6 +162,12 @@ export interface JobQueueAnalytics {
     kind: string,
     context: { limitMs: number; explicit: boolean; authMode: string }
   ): void;
+  /**
+   * A job left the queue unsent because it was thrown away: `discarded` for the one a person
+   * discarded, `with-another` for one that went with it. Without this, a job could leave with no
+   * record of landing, failing or being dropped (PRD-1478).
+   */
+  jobDiscarded(job: Job, reason: "discarded" | "with-another"): void;
 }
 
 export interface JobQueueLogger {

@@ -34,6 +34,7 @@ vi.mock("../../utils/storage/quota", () => ({
 
 import {
   trackJobCreated,
+  trackJobDiscarded,
   trackJobPermanentlyFailed,
   trackJobProcessed,
   trackJobProcessingError,
@@ -237,5 +238,33 @@ describe("job queue analytics privacy", () => {
       expect.any(Object),
       { includeSessionId: false }
     );
+  });
+
+  // PRD-1478: a thrown-away job says what it was and after what, never whose or which.
+  it("records a discarded job by its kind, tries and error family alone", () => {
+    trackJobDiscarded(
+      {
+        id: "job-secret",
+        kind: "commitment",
+        payload: { title: "a request" },
+        userAddress: "0x1111111111111111111111111111111111111111",
+        chainId: 42161,
+        createdAt: 1,
+        attempts: 1,
+        synced: false,
+        lastError: "TimeoutError: The request took too long to respond.",
+      } as Job,
+      "discarded"
+    );
+
+    const [event, properties] = analyticsMocks.track.mock.calls.at(-1)!;
+    expect(event).toBe("offline_job_discarded");
+    expect(properties).toMatchObject({
+      job_kind: "commitment",
+      reason: "discarded",
+      attempts: 1,
+      chain_id: 42161,
+    });
+    expect(JSON.stringify(properties)).not.toMatch(/job-secret|0x1111|a request/);
   });
 });
