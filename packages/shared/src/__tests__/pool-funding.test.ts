@@ -680,7 +680,12 @@ describe("selectExceededTransferLimit", () => {
       snapshot: {
         ...read.snapshot!,
         disbursements: [
-          { id: "42161-8", disbursementId: 8n, executionKey: dispatched ? executionKey : null },
+          {
+            id: "42161-8",
+            disbursementId: 8n,
+            state: dispatched ? "DISPATCHED" : "QUEUED",
+            executionKey: dispatched ? executionKey : null,
+          },
         ] as PoolFundingDisbursement[],
         executions: recordedOnCelo
           ? [{ executionKey, status: "FAILED", createdAt: 1, acknowledgmentSent: false }]
@@ -879,6 +884,18 @@ describe("selectExceededTransferLimit", () => {
         })
       ).toBe(expected);
     }
+  });
+
+  it("selectQueuedTransferBlock: holds a resend the caller's read shows requeued, until the index agrees", () => {
+    // The index still lists the old command; the caller's read already has the transfer
+    // queued, whose dispatch goes to the current executor, not the recorded one.
+    const read = queuedRead({ dispatched: true, commandExecutor: { paused: false } });
+    expect(
+      selectQueuedTransferBlock(read, { disbursementId: 8n, amount: 900n, state: "QUEUED" })
+    ).toBe("limits_unread");
+    expect(
+      selectQueuedTransferBlock(read, { disbursementId: 8n, amount: 900n, state: "DISPATCHED" })
+    ).toBe(null);
   });
 
   it("selectQueuedTransferBlock: holds a transfer the read doesn't list", () => {

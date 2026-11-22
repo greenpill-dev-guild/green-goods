@@ -222,8 +222,11 @@ export function useProtocolFundingOperationsController(input: {
   const outcome: ProposalOutcome = outcomeQuery.data ?? "unresolved";
   const settlement = proposed ? proposalSettlement(proposed, outcome, sourceQuery.snapshot) : null;
   // Kept the first time it settles; React renders again before committing this render.
-  if (proposed && settlement && !proposed.settled)
-    setProposed({ ...proposed, settled: settlement });
+  if (proposed && settlement && !proposed.settled) {
+    setProposed((current) =>
+      current === proposed ? { ...current, settled: settlement } : current
+    );
+  }
   const proposalPending = proposed !== null && settlement === null;
   // From the first tap: a send reads the Safe again before the wallet is asked.
   const isActing = mutation.isPending || lastAct?.phase === "signing";

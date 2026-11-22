@@ -251,6 +251,9 @@ const SAFE_WIDE_UNREAD = [
  * A dispatched transfer's command goes to the executor it was recorded for. During a
  * route change's grace window that can be the previous executor, so a resend is held
  * on that executor's pause flag, read for its command, and not on the current one's.
+ * The caller's own read of the transfer can be ahead of the funding index: one the
+ * index still lists as dispatched may already be requeued, and its dispatch goes to
+ * the current executor. Until the two reads agree it is a resend, it waits.
  */
 export function selectQueuedTransferBlock(
   funding: Omit<TransferFundingRead, "snapshot"> & {
@@ -260,13 +263,14 @@ export function selectQueuedTransferBlock(
       | "limits"
       | "disbursements"
       | "executions"
+      | "executorPaused"
       | "commandExecutors"
       | "feeQuotes"
       | "feePolicy"
       | "settlementUnavailableReasons"
     > | null;
   },
-  transfer: { disbursementId: bigint; amount: bigint }
+  transfer: { disbursementId: bigint; amount: bigint; state?: string }
 ): PoolFundingTransferBlock | null {
   const { snapshot } = funding;
   // A snapshot kept from a failed refresh is not current, so it shows nothing.
@@ -274,12 +278,15 @@ export function selectQueuedTransferBlock(
   const row = snapshot.disbursements.find(
     (entry) => entry.disbursementId === transfer.disbursementId
   );
-  const commandPaused = row?.executionKey
-    ? recordedExecutorPaused(snapshot, row.executionKey)
-    : undefined;
+  const resend = row?.state === "DISPATCHED" && row.executionKey ? row.executionKey : null;
+  if (resend && transfer.state !== undefined && transfer.state !== "DISPATCHED") {
+    return "limits_unread";
+  }
+  const commandPaused = resend ? recordedExecutorPaused(snapshot, resend) : undefined;
   if (row && celoRecorded(snapshot, row)) {
-    if (typeof commandPaused !== "boolean") return "executor_unreadable";
-    return commandPaused ? "executor_paused" : null;
+    const paused = commandPaused === undefined ? snapshot.executorPaused : commandPaused;
+    if (paused === null) return "executor_unreadable";
+    return paused ? "executor_paused" : null;
   }
   const reasons: readonly SettlementUnavailableReason[] =
     commandPaused === undefined
