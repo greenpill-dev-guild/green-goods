@@ -38,6 +38,9 @@ export const worksKeys = {
   /** Every work the garden received between two moments, in seconds (`readGardenWorkRange`). */
   range: (gardenId: string, chainId: number, from: number, to: number) =>
     ["greengoods", "works", "range", gardenSegment(gardenId), chainId, from, to] as const,
+  /** Review Health's weeks: a period read too, so a decision refreshes it with the others. */
+  reviewFlow: (gardenId: string, chainId: number, from: number, to: number) =>
+    ["greengoods", "works", "range", gardenSegment(gardenId), chainId, "flow", from, to] as const,
   /** Every period read of a garden (`range`), for refreshing them all after a decision. */
   ranges: (gardenId: string, chainId: number) =>
     ["greengoods", "works", "range", gardenSegment(gardenId), chainId] as const,

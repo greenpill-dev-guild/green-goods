@@ -685,7 +685,7 @@ describe("CommitmentDialogPanel (W10)", () => {
     expect(ask).not.toHaveTextContent(/Not chosen|another ask was approved/);
   });
 
-  it("offers Edit Reward on a promise that stands alone, only while nobody has taken it", () => {
+  it("offers Edit Reward and Edit Confirmers on a promise that stands alone, only while nobody has taken it", () => {
     const untaken = {
       onchainState: "REQUESTED" as const,
       derivedState: "REQUESTED" as const,
@@ -700,21 +700,37 @@ describe("CommitmentDialogPanel (W10)", () => {
     expect(editReward()).toBeInTheDocument();
     alone.unmount();
 
-    // A copy in a group changes its reward from the group's inspector.
+    const groupWords = {
+      version: 1 as const,
+      title: "Repair tool handles",
+      displayGroup: { version: 1 as const, id: "group-00000001" },
+    };
+    const editConfirmers = () => screen.queryByRole("button", { name: "Edit Confirmers" });
+
+    // A copy the list shows in a group changes its terms from the group's inspector.
     mocks.controller = controller({
       commitment: untaken,
-      metadata: {
-        version: 1,
-        title: "Repair tool handles",
-        displayGroup: { version: 1, id: "group-00000001" },
-      },
+      metadata: groupWords,
+      editsTermsFromGroup: true,
     });
     const grouped = renderPanel();
     expect(editReward()).not.toBeInTheDocument();
+    expect(editConfirmers()).not.toBeInTheDocument();
     grouped.unmount();
 
-    // A document still loading, or one that couldn't be read, may name a group.
-    mocks.controller = controller({ commitment: untaken, metadataKnown: false });
+    // A group's lone surviving copy lists on its own, so both edits are here (PRD-1548).
+    mocks.controller = controller({
+      commitment: { ...untaken, protocolFallbackEnabled: false },
+      metadata: groupWords,
+      editsTermsFromGroup: false,
+    });
+    const lone = renderPanel();
+    expect(editReward()).toBeInTheDocument();
+    expect(editConfirmers()).toBeInTheDocument();
+    lone.unmount();
+
+    // Until its words and the pool's are read, it may still be a copy.
+    mocks.controller = controller({ commitment: untaken, editsTermsFromGroup: null });
     const unread = renderPanel();
     expect(editReward()).not.toBeInTheDocument();
     unread.unmount();

@@ -9,6 +9,7 @@ import {
 import { EditGardenDialog } from "./EditGardenDialog";
 import { OverviewTab } from "./OverviewTab";
 import { ImpactTab } from "./ImpactTab";
+import { ReviewHealthCard } from "./ReviewHealthCard";
 import { WorkCalendarCard } from "./WorkCalendarCard";
 import { WorkDayDialog } from "./WorkDayDialog";
 import { GardenPoolTab } from "../Pool";
@@ -83,6 +84,17 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
           gardenerCount={workspace.garden.gardeners.length}
           treasuryBalance={workspace.treasuryBalance}
           karmaIntegration={workspace.karmaIntegration}
+          reviewHealth={
+            <ReviewHealthCard
+              health={workspace.reviewHealth}
+              gardenId={workspace.garden.id}
+              waiting={{
+                pendingCount: workspace.derived.reviewQueue.pendingCount,
+                oldestPendingAt: workspace.derived.reviewQueue.oldestPendingAt,
+                complete: workspace.derived.reviewQueue.waitingByBandComplete,
+              }}
+            />
+          }
         />
       ) : null}
 
