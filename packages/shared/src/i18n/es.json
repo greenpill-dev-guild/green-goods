@@ -7804,6 +7804,8 @@
   "hub.garden.pool.voucher.acceptStart.noteBody": "Si el inicio no se envía, la reserva sigue aceptada y {name} puede iniciarla desde la app {minutes} minutos después de que la aceptes.",
   "hub.garden.pool.voucher.acceptStart.safeTitle": "La aceptación espera a los firmantes de tu Safe",
   "hub.garden.pool.voucher.acceptStart.safeBody": "No se inició nada. Cuando la aprueben, el miembro puede iniciar la reserva desde la app después de {minutes} minutos.",
+  "hub.garden.pool.voucher.acceptStart.acceptingTitle": "La aceptación todavía se está confirmando",
+  "hub.garden.pool.voucher.acceptStart.acceptingBody": "No se inició nada. Si llega, el miembro puede iniciar la reserva desde la app {minutes} minutos después de que la aceptaste.",
   "hub.garden.pool.voucher.acceptStart.confirmingTitle": "Aceptada. El inicio todavía se está confirmando",
   "hub.garden.pool.voucher.acceptStart.confirmingBody": "Todavía puede llegar. Si no llega, el miembro puede iniciar la reserva desde la app.",
   "hub.garden.pool.voucher.acceptStart.notSentTitle": "Aceptada. El inicio no se envió",

@@ -342,6 +342,31 @@ describe("PoolClaimsCard (Review Promises)", () => {
       info.mockRestore();
     });
 
+    // PRD-1574: the wallet answered with no receipt, so the acceptance itself may not land yet.
+    it("says an acceptance still being confirmed started nothing", async () => {
+      const acceptAndStartBooking = vi.fn().mockResolvedValue("acceptanceConfirming");
+      const info = vi.spyOn(toastService, "info");
+      card(
+        {
+          claims: [kwesiRow],
+          titles: bookingTitles,
+          acts: { ...poolConsoleControllerFixture().acts, acceptAndStartBooking },
+        },
+        vouchersFor([kwesiAsk])
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Accept and Start…" }));
+      const dialog = await screen.findByRole("dialog");
+      fireEvent.click(within(dialog).getByRole("button", { name: "Accept and Start" }));
+      await waitFor(() =>
+        expect(info).toHaveBeenCalledWith({
+          title: "The acceptance is still being confirmed",
+          message:
+            "Nothing was started. If it lands, the member can start the booking from the app 15 minutes after you accepted.",
+        })
+      );
+      info.mockRestore();
+    });
+
     // The row read "Deposit confirmed" with Accept… although its dialog refused (Codex on #1320).
     it("reads an ask with no consent to name as missing its agreement, with no Accept", () => {
       const acceptAndStartBooking = vi.fn().mockResolvedValue("started");

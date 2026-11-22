@@ -1,7 +1,6 @@
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import type {
   PoolConsoleController,
-  VoucherAcceptAndStartOutcome,
   VoucherConsoleView,
 } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import {
@@ -13,7 +12,6 @@ import {
   type IssuerSafeThreshold,
   selectCanApproveBooking,
   selectVoucherAskStage,
-  VOUCHER_START_FALLBACK_SECONDS,
   type VoucherAsk,
   type VoucherBooking,
 } from "@green-goods/shared/modules/commitment-pooling/pool-console";
@@ -22,9 +20,10 @@ import type {
   PoolClaimRequestRow,
 } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import { type ReactNode, useState } from "react";
-import { type IntlShape, useIntl } from "react-intl";
+import { useIntl } from "react-intl";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import type { AdminDialogProps } from "@/components/AdminDialog";
+import { acceptAndStartNotice } from "./acceptAndStartNotice";
 import type { PoolWriteTarget } from "./PoolTarget";
 import { VoucherAcceptDialog, VoucherApproveDialog } from "./VoucherAskDialogs";
 import { type VoucherBookingAct, VoucherBookingDialogs } from "./VoucherBookingDialogs";
@@ -68,61 +67,6 @@ export interface PoolClaimsCardProps {
 
 /** A Safe file changes nothing until the signers execute it, so only a sent act has an outcome. */
 const sendsDirectly = (issuer: VoucherBooking["issuer"]) => issuer.execution !== "safe-file";
-
-/**
- * What an Accept and Start says when its start didn't fully go (DL-193). The booking stays
- * accepted either way, and the member's own Start the Booking covers a start that didn't go.
- */
-function acceptAndStartNotice(
-  outcome: Exclude<VoucherAcceptAndStartOutcome, "started">,
-  intl: IntlShape
-): { title: string; message: string } {
-  const minutes = VOUCHER_START_FALLBACK_SECONDS / 60;
-  switch (outcome) {
-    case "acceptanceWaiting":
-      return {
-        title: intl.formatMessage({
-          id: "hub.garden.pool.voucher.acceptStart.safeTitle",
-          defaultMessage: "The acceptance waits on your Safe’s signers",
-        }),
-        message: intl.formatMessage(
-          {
-            id: "hub.garden.pool.voucher.acceptStart.safeBody",
-            defaultMessage:
-              "Nothing was started. Once they approve it, the member can start the booking from the app after {minutes} minutes.",
-          },
-          { minutes }
-        ),
-      };
-    case "unconfirmed":
-      return {
-        title: intl.formatMessage({
-          id: "hub.garden.pool.voucher.acceptStart.confirmingTitle",
-          defaultMessage: "Accepted. The start is still being confirmed",
-        }),
-        message: intl.formatMessage({
-          id: "hub.garden.pool.voucher.acceptStart.confirmingBody",
-          defaultMessage:
-            "It can still land. If it doesn’t, the member can start the booking from the app.",
-        }),
-      };
-    case "notSent":
-      return {
-        title: intl.formatMessage({
-          id: "hub.garden.pool.voucher.acceptStart.notSentTitle",
-          defaultMessage: "Accepted. The start wasn’t sent",
-        }),
-        message: intl.formatMessage(
-          {
-            id: "hub.garden.pool.voucher.acceptStart.notSentBody",
-            defaultMessage:
-              "The booking stays accepted. The member can start it from the app {minutes} minutes after you accepted.",
-          },
-          { minutes }
-        ),
-      };
-  }
-}
 
 /**
  * Review Promises (PRD-1025, named by DL-077), at the top of the Promises tab's
