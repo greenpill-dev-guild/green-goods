@@ -41,6 +41,8 @@ export interface SeedStepReviewProps {
   /** Without a registered protocol pool the Green Goods team fallback reads off. */
   protocolRegistered: boolean;
   price: GoodDollarPriceState;
+  /** Whether a USDC match can be declared here; one that can't is not shown as promised. */
+  usdcMatchAvailable: boolean;
   capacity: SeedReviewCapacity;
   submitError: string | null;
   /** The device queue could not be read; creating will still try. */
@@ -69,6 +71,7 @@ export function SeedStepReview({
   cycleOptions,
   protocolRegistered,
   price,
+  usdcMatchAvailable,
   capacity,
   submitError,
   queueUnavailable,
@@ -160,7 +163,7 @@ export function SeedStepReview({
         )}
       </>
     );
-  const reward = rewardFacts({ values, count, price, locale, formatMessage });
+  const reward = rewardFacts({ values, count, price, locale, formatMessage, usdcMatchAvailable });
 
   return (
     <div className="space-y-4" data-testid="seed-review">

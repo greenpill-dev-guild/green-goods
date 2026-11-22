@@ -5,6 +5,7 @@ import {
 } from "@green-goods/shared/modules/agent-reporting";
 import type { DraftRecord } from "../drafts";
 import { profiledInput } from "../questions";
+import { type DescriptionChange, reviseDescription } from "./description";
 import { questionProfileOf } from "./draft-commit";
 import { formatDetail } from "./field-questions";
 import { formatMinutes } from "./prompting";
@@ -19,7 +20,8 @@ export function acknowledgement(
   writer: TurnWriter,
   before: DraftRecord,
   after: DraftRecord,
-  answered: ReportField | undefined
+  answered: ReportField | undefined,
+  notes: readonly string[] = []
 ): string | null {
   const profile = questionProfileOf(writer.core, after);
   const lines: Array<{ field: ReportField; title: string; now: string; was: string | null }> = [];
@@ -50,7 +52,9 @@ export function acknowledgement(
   // saying first.
   const complete = outstandingRequirements(after.content, after.snapshot).length === 0;
   const said = complete ? lines.filter((line) => line.was !== null) : lines;
-  if (said.length === 0 || (said.length === 1 && said[0]?.field === answered)) return null;
+  // What happened to the description is said even when the change itself needs no reading back.
+  if (said.length === 0 || (said.length === 1 && said[0]?.field === answered))
+    return notes.length > 0 ? notes.join("").trim() : null;
   const facts = said
     .map(({ title, now, was }) =>
       writer.text(was === null ? "report.factNew" : "report.factChanged", {
@@ -60,5 +64,46 @@ export function acknowledgement(
       })
     )
     .join("");
-  return writer.text("report.accepted", { facts });
+  return `${writer.text("report.accepted", { facts })}${notes.join("")}`;
+}
+
+/**
+ * Notes for the reply when the gardener changed, in this turn, a value their own description
+ * also states: the description is the gardener's words and is never rewritten, so the reply says
+ * it may still say the old value and how to change it. A model's reading changes nothing here.
+ */
+export function alignDescription(
+  writer: TurnWriter,
+  draft: Pick<DraftRecord, "id" | "snapshot">,
+  before: ReportContent,
+  content: ReportContent,
+  snapshot: DraftRecord["snapshot"]
+): { feedback: string | null; notes: string[] } {
+  const notes: string[] = [];
+  const description = content.feedback;
+  if (!description || description !== before.feedback) return { feedback: null, notes };
+  const turn = writer.sourceEntryId();
+  const statedNow = (field: ReportField) => {
+    const read = content.provenance[field];
+    return Boolean(
+      read?.gardenerStated && read.sources.some((source) => source.sourceEntryId === turn)
+    );
+  };
+  const profile = questionProfileOf(writer.core, draft, snapshot);
+  for (const definition of snapshot?.definition.inputs ?? []) {
+    const was = before.details[definition.key];
+    const now = content.details[definition.key];
+    const field = `details.${definition.key}` as const;
+    if (was === undefined || now === undefined || JSON.stringify(was) === JSON.stringify(now))
+      continue;
+    if (!statedNow(field)) continue;
+    const shown = formatDetail(profiledInput(profile, definition, before.details), was);
+    const change: DescriptionChange =
+      typeof was === "number" && typeof now === "number"
+        ? { kind: "number", before: was, after: now }
+        : { kind: "words", before: shown, after: shown };
+    const { revised, stale } = reviseDescription(description, change);
+    if (revised || stale) notes.push(writer.text("report.descriptionStale", { was: shown }));
+  }
+  return { feedback: null, notes };
 }

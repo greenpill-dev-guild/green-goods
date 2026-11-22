@@ -22,12 +22,13 @@ import {
   type ReportingGarden,
   soleGarden,
 } from "../gardens";
-import { acceptsAmount, profiledInput } from "../questions";
-import type { ReportingCore } from "../runtime";
+import { profiledInput } from "../questions";
 import { commitContentChange, lifecycleState, questionProfileOf } from "./draft-commit";
 import { announceGarden } from "./garden-step";
+import type { Suggestion } from "./last-report";
+import { keepProfileRules } from "./profile-rules";
 import { type CatalogView, gardenLabel, promptNextStep } from "./prompting";
-import { acknowledgement } from "./read-back";
+import { acknowledgement, alignDescription } from "./read-back";
 import { readStory } from "./story-answers";
 import type { TurnWriter } from "./writer";
 
@@ -43,6 +44,8 @@ export interface TurnExternal {
    * so what the story said is not asked again. Null when the turn chooses none, or none was read.
    */
   reread?: InterpretationResult | null;
+  /** The linked account's last garden and activity, when this turn may offer them. */
+  suggestion?: Suggestion;
 }
 
 export const gardenerFact = (
@@ -166,40 +169,6 @@ function rereadStory(writer: TurnWriter, draft: DraftRecord, work: Working): voi
       },
     }))
   );
-}
-
-/**
- * The rules a report's question profile puts on its numbers, kept whatever set them: a gardener's
- * answer, a model's reading, a disagreement settled, or a file. A count is a whole number of one or
- * more; a number whose meaning follows another field's choice is taken out when that choice
- * changes without it, so it is asked again in its new unit and never shown in the wrong one.
- */
-export function keepProfileRules(core: ReportingCore, draft: DraftRecord, work: Working): void {
-  const profile = questionProfileOf(core, draft, work.snapshot);
-  if (!profile) return;
-  const before = draft.content.details;
-  const now = work.content.details;
-  for (const [key, question] of Object.entries(profile.fields)) {
-    const value = now[key];
-    if (value === undefined) continue;
-    const chooser = question.by?.field;
-    // A number held before its type was chosen, or under another type, has no meaning in the new
-    // unit: it goes, and is asked again. One given with its type in this turn stays.
-    const rechosen =
-      chooser !== undefined &&
-      before[chooser] !== now[chooser] &&
-      JSON.stringify(before[key]) === JSON.stringify(value);
-    if (!rechosen && acceptsAmount(profile, key, now, value)) continue;
-    const { [key]: _dropped, ...details } = work.content.details;
-    const { [`details.${key}` as const]: _read, ...provenance } = work.content.provenance;
-    work.content = {
-      ...work.content,
-      details,
-      provenance,
-      conflicts: work.content.conflicts.filter((conflict) => conflict.field !== `details.${key}`),
-    };
-    work.changed = true;
-  }
 }
 
 /** Adopts an Action and its frozen definition, keeping only details that definition accepts. */
@@ -362,6 +331,8 @@ function applyModelFacts(
   sources: FieldProvenance["sources"],
   only: "empty" | "any" = "any"
 ): void {
+  // What a model reads is a proposal: one that disagrees with what the gardener stated becomes a
+  // question, never the value.
   const profile = questionProfileOf(writer.core, draft, work.snapshot);
   const facts = result.facts.filter((fact) => {
     const key = fact.field.startsWith("details.") ? fact.field.slice("details.".length) : null;
@@ -450,6 +421,11 @@ export function finish(
       applyModelFacts(writer, draft, work, external.reread, story.sources, "empty");
   }
   keepProfileRules(writer.core, draft, work);
+  // A value this turn replaced may still stand in the description: the two are kept in step.
+  const aligned = alignDescription(writer, draft, draft.content, work.content, work.snapshot);
+  const described = work.content.provenance.feedback;
+  if (aligned.feedback && described)
+    apply(work, [{ field: "feedback", value: aligned.feedback, provenance: described }]);
   // An activity chosen after the photos may accept fewer of them than were sent.
   const photoLimit = keepAcceptedPhotos(work);
   const next = work.changed
@@ -477,9 +453,11 @@ export function finish(
     }
   }
   // Files are answered once they are processed, in one reply; nothing is read back before that.
-  const understood = ask ? acknowledgement(writer, draft, next, work.answered) : null;
+  const understood = ask
+    ? acknowledgement(writer, draft, next, work.answered, aligned.notes)
+    : null;
   if (understood) writer.preface(understood);
-  if (ask) promptNextStep(writer, next, external.catalog);
+  if (ask) promptNextStep(writer, next, external.catalog, external.suggestion);
   writer.flushPreface();
   return next;
 }

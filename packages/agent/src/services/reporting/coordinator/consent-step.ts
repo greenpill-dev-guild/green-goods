@@ -4,6 +4,7 @@ import { enqueueJob } from "../jobs";
 import { releaseQuarantine } from "../inbox";
 import { settleFileBatch } from "../media-intake";
 import { endRecognition } from "../recognition";
+import { forgetLastReports } from "../suggestions";
 import { audit, ensureParticipant } from "../participants";
 import { closeConversationPrompt, resolvePrompt } from "../prompts";
 import { commitLifecycle, EDITABLE_STATES, lifecycleState } from "./draft-commit";
@@ -30,7 +31,13 @@ export function sendConsentNotice(writer: TurnWriter): void {
         { id: "decline", label: writer.text("consent.decline"), value: "decline" },
       ],
     },
-    () => writer.text("consent.notice", { processors, version: core.settings.noticeVersion })
+    () =>
+      writer.text("consent.notice", {
+        processors,
+        version: core.settings.noticeVersion,
+        // How long a message sent before the answer is held, as the notice states it (RESR-88).
+        hours: Math.round(core.settings.preConsentRetentionMs / (60 * 60 * 1000)),
+      })
   );
   core.db
     .query(
@@ -85,6 +92,7 @@ export function withdrawProcessing(writer: TurnWriter, mode: "stop" | "delete"):
       : false;
   if (ctx.binding) {
     endRecognition(core, ctx.binding.participantId);
+    forgetLastReports(core, ctx.binding.participantId);
     core.db
       .query(
         `UPDATE execution_grants SET state = 'paused', version = version + 1, updated_at = $now

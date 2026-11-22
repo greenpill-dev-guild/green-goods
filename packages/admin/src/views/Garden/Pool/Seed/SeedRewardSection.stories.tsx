@@ -3,6 +3,7 @@ import {
   useCommitmentComposerForm,
 } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
 import type { Meta, StoryObj } from "@storybook/react";
+import { expect, within } from "storybook/test";
 import { STORY_PRICE_STATE } from "../poolStoryFixtures";
 import { SeedRewardSection, type SeedRewardSectionProps } from "./SeedRewardSection";
 
@@ -29,6 +30,7 @@ const meta: Meta<typeof SeedRewardSection> = {
     busy: false,
     errorOf: () => undefined,
     settlementActive: true,
+    usdcMatchAvailable: false,
     price: STORY_PRICE_STATE,
     count: 10,
   },
@@ -47,14 +49,36 @@ type Story = StoryObj<typeof SeedRewardSection>;
 
 export const NoReward: Story = {};
 
-/** $5.00 for each of ten: about 38,866 G$ each, up to $50.00 if all are kept. */
+/**
+ * $5.00 for each of ten: about 38,866 G$ each, up to $50.00 if all are kept. Where the
+ * reward payer isn't deployed, the reward is G$ only: no USDC match is offered (PRD-1556).
+ */
 export const FiveDollarsEach: Story = {
+  tags: ["storybook-ci"],
   args: {
     values: {
       ...COMMITMENT_COMPOSER_DEFAULTS,
       considerationRail: "CELO_SETTLEMENT",
       considerationUsd: "5.00",
     },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("textbox", { name: /Amount for each/ })).toBeVisible();
+    await expect(canvas.queryByText("Paid in")).toBeNull();
+    await expect(canvas.queryByText("G$, matched in USDC")).toBeNull();
+  },
+};
+
+/** Where the network can pay USDC, the steward may match the G$ with the same dollars in USDC. */
+export const MatchedInUsdc: Story = {
+  tags: ["storybook-ci"],
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByText("G$, matched in USDC")).toBeVisible();
+  },
+  args: {
+    usdcMatchAvailable: true,
+    values: { ...FiveDollarsEach.args!.values!, rewardMatchedUsdc: true },
   },
 };
 

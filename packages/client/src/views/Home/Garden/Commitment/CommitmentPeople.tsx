@@ -42,6 +42,8 @@ export interface CommitmentPeopleProps {
   takes?: string | null;
   /** The reward it carries, in words, or null when it carries none or the page doesn't say. */
   reward?: string | null;
+  /** The reward's parts, one row each, when it pays in more than one token. */
+  rewardParts?: React.ReactNode;
   /** Who is reading, so the team can say "You" rather than their name. */
   viewer: Address | null;
   /** The stewards of the promise's garden, so whoever confirms it carries the role. */
@@ -87,6 +89,7 @@ export function CommitmentPeople({
   units,
   takes = null,
   reward = null,
+  rewardParts = null,
   viewer,
   stewards,
 }: CommitmentPeopleProps) {
@@ -163,6 +166,7 @@ export function CommitmentPeople({
         ) : null}
 
         {reward ? <PromiseRewardRow text={reward} /> : null}
+        {rewardParts}
 
         {commitment.leadProvider ? (
           <FactRow
