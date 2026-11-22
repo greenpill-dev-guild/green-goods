@@ -44,6 +44,7 @@ import {
   type TickSummary,
 } from "../../../services/reporting/worker";
 import type { ReportingGarden } from "../../../services/reporting/gardens";
+import type { QuestionProfile } from "../../../services/reporting/questions";
 import {
   type FixedGardens,
   FixtureCatalog,
@@ -83,6 +84,8 @@ export interface HarnessOptions {
   /** The gardens the directory lists; TAS and Aiyeloja Family Garden by default. */
   gardens?: ReportingGarden[];
   settings?: Partial<ReportingSettings>;
+  /** How activities' fields are asked; the built-in question profiles when left out. */
+  questions?: readonly QuestionProfile[];
   jobs?: (harness: Harness) => ReportingWorkerDeps["jobs"];
 }
 
@@ -183,6 +186,7 @@ export class Harness {
         ...this.options.settings,
       },
       gardens: this.gardens,
+      ...(this.options.questions ? { questions: this.options.questions } : {}),
     };
   }
 
