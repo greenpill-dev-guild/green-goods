@@ -152,6 +152,8 @@ export function useGardenReviewHealth(gardenId: Address | undefined, active: boo
       : !isOnline || read.isPaused
         ? "offline"
         : "loading";
+  // Weeks read before going offline or before a refresh failed: shown, but as the last read.
+  const stale = Boolean(read.data) && (!isOnline || read.isPaused || read.isError);
 
   // The open week lives in the URL, so a reload, a shared link and Back land on it.
   const { searchParams } = useCanvasSearchParams();
@@ -176,6 +178,8 @@ export function useGardenReviewHealth(gardenId: Address | undefined, active: boo
   return {
     weeks,
     state,
+    /** The weeks shown are the last successful read, not a current one. */
+    stale,
     isFetching: read.isFetching,
     retry: read.refetch,
     openWeek,

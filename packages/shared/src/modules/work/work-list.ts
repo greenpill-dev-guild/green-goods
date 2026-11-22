@@ -295,11 +295,14 @@ export async function readGardenReviewFlow({
   const range = await readGardenWorkRange({ garden, chainId, from, to, visibility: exclusions });
   return inTurn(async () => {
     // A second before the period, since the read lists decisions after its moment, not at it.
-    const { decisions, decisionsTruncated } = await getGardenActivitySince(garden, {
-      ...exclusions,
-      chainId,
-      since: from - 1,
-    });
+    const { decisions, decisionsTruncated, decisionsDropped } = await getGardenActivitySince(
+      garden,
+      {
+        ...exclusions,
+        chainId,
+        since: from - 1,
+      }
+    );
     const decidedIds = [...new Set(decisions.map((decision) => decision.workUID.toLowerCase()))];
     // Only a cut decisions list hides decisions; a long submissions list beside it does not.
     const reviewedReadFrom =
@@ -312,17 +315,18 @@ export async function readGardenReviewFlow({
         reviewed: [],
         submittedComplete: range.complete,
         reviewedReadFrom,
-        reviewedComplete: true,
+        reviewedComplete: !decisionsDropped,
       };
     }
 
     // A work's first decision may predate the period, so each decided work's whole history counts.
     let approvals: EASWorkApproval[] = [];
-    let reviewedComplete = true;
+    // A decision row that could not be read leaves its week's reviewed count short.
+    let reviewedComplete: boolean;
     try {
       const result = await readWorkApprovalsForWorks(decidedIds, chainId);
       approvals = result.approvals;
-      reviewedComplete = result.failedWorkUIDs.length === 0;
+      reviewedComplete = result.failedWorkUIDs.length === 0 && !decisionsDropped;
     } catch (error) {
       logger.warn("[readGardenReviewFlow] Decision histories could not be read", { error, garden });
       reviewedComplete = false;

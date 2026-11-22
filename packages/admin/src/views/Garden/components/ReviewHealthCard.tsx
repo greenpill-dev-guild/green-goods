@@ -104,15 +104,9 @@ export function ReviewHealthCard({
     <AdminCard density="none" data-component="ReviewHealthCard">
       <AdminCardHeader>
         <div className="min-w-0">
-          <AdminCardTitle>
-            {formatMessage({
-              id: "hub.garden.reviewHealth.title",
-            })}
-          </AdminCardTitle>
+          <AdminCardTitle>{formatMessage({ id: "hub.garden.reviewHealth.title" })}</AdminCardTitle>
           <p className="mt-1 type-body text-text-sub">
-            {formatMessage({
-              id: "hub.garden.reviewHealth.description",
-            })}
+            {formatMessage({ id: "hub.garden.reviewHealth.description" })}
           </p>
         </div>
       </AdminCardHeader>
@@ -120,9 +114,7 @@ export function ReviewHealthCard({
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Link to={adminRoutes.reviewWork({ gardenId })} className={NUMBER_LINK_CLASS}>
             <StatTile
-              label={formatMessage({
-                id: "hub.garden.reviewHealth.waitingNow",
-              })}
+              label={formatMessage({ id: "hub.garden.reviewHealth.waitingNow" })}
               value={`${intl.formatNumber(waiting.pendingCount)}${waiting.complete ? "" : "+"}`}
             />
           </Link>
@@ -131,13 +123,14 @@ export function ReviewHealthCard({
             className={NUMBER_LINK_CLASS}
           >
             <StatTile
-              label={formatMessage({
-                id: "hub.garden.reviewHealth.oldestWaiting",
-              })}
+              label={formatMessage({ id: "hub.garden.reviewHealth.oldestWaiting" })}
               value={
                 oldestDays === null
                   ? formatMessage({
-                      id: "hub.garden.reviewHealth.nothingWaiting",
+                      // Past the queue read's limit, none loaded is not none waiting.
+                      id: waiting.complete
+                        ? "hub.garden.reviewHealth.nothingWaiting"
+                        : "hub.garden.reviewHealth.oldestUnknown",
                     })
                   : oldestDays < 1
                     ? formatMessage({ id: "app.garden.detail.metric.underADay" })
@@ -154,21 +147,11 @@ export function ReviewHealthCard({
         </div>
 
         {health.state === "loading" ? (
-          <div
-            role="status"
-            aria-label={formatMessage({
-              id: "hub.garden.reviewHealth.loading",
-            })}
-          >
+          <div role="status" aria-label={formatMessage({ id: "hub.garden.reviewHealth.loading" })}>
             <SkeletonText lines={5} />
           </div>
         ) : health.state === "error" ? (
-          <Alert
-            variant="error"
-            title={formatMessage({
-              id: "hub.garden.reviewHealth.error",
-            })}
-          >
+          <Alert variant="error" title={formatMessage({ id: "hub.garden.reviewHealth.error" })}>
             <Button
               type="button"
               size="sm"
@@ -181,18 +164,19 @@ export function ReviewHealthCard({
           </Alert>
         ) : health.state === "offline" ? (
           <Alert variant="info" title={formatMessage({ id: "hub.garden.calendar.offline.title" })}>
-            {formatMessage({
-              id: "hub.garden.reviewHealth.offline",
-            })}
+            {formatMessage({ id: "hub.garden.reviewHealth.offline" })}
           </Alert>
         ) : (
           <>
+            {health.stale ? (
+              <Alert variant="info" title={formatMessage({ id: "hub.garden.reviewHealth.stale" })}>
+                {formatMessage({ id: "hub.garden.reviewHealth.offline" })}
+              </Alert>
+            ) : null}
             <figure className="flex min-w-0 flex-col gap-2">
               <figcaption className="flex flex-wrap items-center justify-between gap-2">
                 <span className="type-label text-text-strong">
-                  {formatMessage({
-                    id: "hub.garden.reviewHealth.chartTitle",
-                  })}
+                  {formatMessage({ id: "hub.garden.reviewHealth.chartTitle" })}
                 </span>
                 <span className="flex flex-wrap items-center gap-3 type-meta text-text-sub">
                   <span className="inline-flex items-center gap-1">
@@ -200,18 +184,14 @@ export function ReviewHealthCard({
                       aria-hidden
                       className="h-2.5 w-2.5 rounded-(--admin-radius-xs) bg-text-soft"
                     />
-                    {formatMessage({
-                      id: "hub.garden.reviewHealth.submitted",
-                    })}
+                    {formatMessage({ id: "hub.garden.reviewHealth.submitted" })}
                   </span>
                   <span className="inline-flex items-center gap-1">
                     <span
                       aria-hidden
                       className="h-2.5 w-2.5 rounded-(--admin-radius-xs) bg-information-base"
                     />
-                    {formatMessage({
-                      id: "hub.garden.reviewHealth.reviewed",
-                    })}
+                    {formatMessage({ id: "hub.garden.reviewHealth.reviewed" })}
                   </span>
                 </span>
               </figcaption>
@@ -269,9 +249,7 @@ export function ReviewHealthCard({
             </figure>
             <details className="type-meta">
               <summary className="cursor-pointer type-label text-text-strong">
-                {formatMessage({
-                  id: "hub.garden.reviewHealth.showTable",
-                })}
+                {formatMessage({ id: "hub.garden.reviewHealth.showTable" })}
               </summary>
               <div className="mt-2 overflow-x-auto">
                 <table className="w-full min-w-[16rem]">
@@ -281,9 +259,7 @@ export function ReviewHealthCard({
                   <thead>
                     <tr className="border-b border-stroke-soft text-left text-text-sub">
                       <th scope="col" className="py-1 pr-3 font-medium">
-                        {formatMessage({
-                          id: "hub.garden.reviewHealth.week",
-                        })}
+                        {formatMessage({ id: "hub.garden.reviewHealth.week" })}
                       </th>
                       <th scope="col" className="py-1 pr-3 text-right font-medium">
                         {formatMessage({ id: "hub.garden.reviewHealth.submitted" })}
@@ -329,14 +305,8 @@ export function ReviewHealthCard({
               </div>
             </details>
             <p className="type-meta text-text-soft">
-              {formatMessage({
-                id: "hub.garden.reviewHealth.basis",
-              })}
-              {anyPartial
-                ? ` ${formatMessage({
-                    id: "hub.garden.reviewHealth.partial",
-                  })}`
-                : null}
+              {formatMessage({ id: "hub.garden.reviewHealth.basis" })}
+              {anyPartial ? ` ${formatMessage({ id: "hub.garden.reviewHealth.partial" })}` : null}
             </p>
           </>
         )}

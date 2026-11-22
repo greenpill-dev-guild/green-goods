@@ -52,6 +52,7 @@ function storyHealth(
   return {
     weeks,
     state: "ready",
+    stale: false,
     isFetching: false,
     retry: fn() as unknown as GardenReviewHealth["retry"],
     openWeek: null,

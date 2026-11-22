@@ -4844,6 +4844,8 @@
   "hub.garden.reviewHealth.error": "No se pudieron leer las semanas",
   "hub.garden.reviewHealth.loading": "Leyendo las últimas ocho semanas",
   "hub.garden.reviewHealth.nothingWaiting": "Nada en espera",
+  "hub.garden.reviewHealth.stale": "Son las semanas de la última lectura",
+  "hub.garden.reviewHealth.oldestUnknown": "Aún sin leer",
   "hub.garden.reviewHealth.offline": "Las semanas se leen cuando vuelvas a estar en línea.",
   "hub.garden.reviewHealth.oldestWaiting": "Espera más larga",
   "hub.garden.reviewHealth.partial": "Una semana con contorno discontinuo no se pudo leer completa: su conteo, marcado con + en la tabla, es un mínimo.",

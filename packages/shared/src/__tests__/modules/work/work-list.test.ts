@@ -433,5 +433,17 @@ describe("readGardenReviewFlow", () => {
     });
     const whole = await readGardenReviewFlow({ garden, chainId: 42161, from: 100, to: 200 });
     expect(whole.reviewedReadFrom).toBeNull();
+    expect(whole.reviewedComplete).toBe(true);
+
+    // A decision row that could not be read leaves the reviewed counts short.
+    seams.activity.mockResolvedValue({
+      works: [],
+      decisions: [],
+      truncated: false,
+      decisionsTruncated: false,
+      decisionsDropped: true,
+    });
+    const dropped = await readGardenReviewFlow({ garden, chainId: 42161, from: 100, to: 200 });
+    expect(dropped.reviewedComplete).toBe(false);
   });
 });

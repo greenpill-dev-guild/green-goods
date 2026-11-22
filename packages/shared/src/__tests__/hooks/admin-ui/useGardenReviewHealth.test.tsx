@@ -1,5 +1,5 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -8,10 +8,13 @@ import type { GardenReviewFlow } from "../../../modules/work/work-list";
 import { createMockWork } from "../../test-utils/mock-factories";
 import { createTestQueryClient } from "../../test-utils/query-client";
 
-const flow = vi.hoisted(() => ({ current: null as GardenReviewFlow | null }));
+const flow = vi.hoisted(() => ({ current: null as GardenReviewFlow | null, fails: false }));
 vi.mock("../../../modules/work/work-list", async (original) => ({
   ...(await original<typeof import("../../../modules/work/work-list")>()),
-  readGardenReviewFlow: async () => flow.current,
+  readGardenReviewFlow: async () => {
+    if (flow.fails) throw new Error("EAS unreachable");
+    return flow.current;
+  },
 }));
 vi.mock("../../../hooks/work/useWorkVisibility", () => ({
   workVisibilityQuery: () => ({ queryKey: ["visibility"], queryFn: async () => ({}) }),
@@ -53,7 +56,10 @@ describe("Review Health's eight weeks", () => {
       reviewedComplete: true,
     } as unknown as GardenReviewFlow;
   });
-  afterEach(() => vi.useRealTimers());
+  afterEach(() => {
+    vi.useRealTimers();
+    flow.fails = false;
+  });
 
   it("covers eight Monday-first weeks, this one last", async () => {
     const { result } = renderHealth();
@@ -107,6 +113,17 @@ describe("Review Health's eight weeks", () => {
       true,
       true,
     ]);
+  });
+
+  it("keeps the last weeks read when a refresh fails, and says they are the last read", async () => {
+    const { result } = renderHealth();
+    await waitFor(() => expect(result.current.state).toBe("ready"));
+    expect(result.current.stale).toBe(false);
+    flow.fails = true;
+    await act(async () => void (await result.current.retry()));
+    await waitFor(() => expect(result.current.stale).toBe(true));
+    expect(result.current.state).toBe("ready");
+    expect(result.current.weeks.at(-1)?.submitted).toHaveLength(1);
   });
 
   it("opens the week and the list the URL names", async () => {

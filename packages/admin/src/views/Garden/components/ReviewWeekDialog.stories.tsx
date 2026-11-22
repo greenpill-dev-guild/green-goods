@@ -39,6 +39,7 @@ function storyHealth(overrides: Partial<GardenReviewHealth>): GardenReviewHealth
   return {
     weeks: [WEEK],
     state: "ready",
+    stale: false,
     isFetching: false,
     retry: fn() as unknown as GardenReviewHealth["retry"],
     openWeek: WEEK,

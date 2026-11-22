@@ -4844,6 +4844,8 @@
   "hub.garden.reviewHealth.error": "The weeks could not be read",
   "hub.garden.reviewHealth.loading": "Reading the last eight weeks",
   "hub.garden.reviewHealth.nothingWaiting": "Nothing waiting",
+  "hub.garden.reviewHealth.stale": "These are the weeks as last read",
+  "hub.garden.reviewHealth.oldestUnknown": "Not read yet",
   "hub.garden.reviewHealth.offline": "The weeks are read when you are back online.",
   "hub.garden.reviewHealth.oldestWaiting": "Oldest waiting",
   "hub.garden.reviewHealth.partial": "A week drawn with a dashed outline could not be read in full: its count, marked + in the table, is a minimum.",

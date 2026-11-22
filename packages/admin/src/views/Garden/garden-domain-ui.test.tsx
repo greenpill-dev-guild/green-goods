@@ -99,6 +99,7 @@ vi.mock("@green-goods/shared/hooks/admin-ui/garden/useGardenWorkspaceController"
         reviewHealth: {
           weeks: [],
           state: "loading",
+          stale: false,
           isFetching: false,
           retry: vi.fn(),
           openWeek: null,
