@@ -43,7 +43,13 @@ vi.mock("../../../hooks/garden/useAdminGardenWorkspaceSelection", () => ({
   }),
 }));
 vi.mock("../../../hooks/garden/useGardenDerivedState", () => ({
-  useGardenDerivedState: () => ({ reviewQueue: { waitingOverWeekCount: 0 } }),
+  useGardenDerivedState: () => ({
+    reviewQueue: {
+      waitingOverWeekCount: 0,
+      waitingByBand: { under2d: 0, days2to7: 0, weeks1to2: 0, over2w: 0 },
+      waitingByBandComplete: true,
+    },
+  }),
 }));
 vi.mock("../../../hooks/blockchain/useBaseLists", () => ({
   useActions: () => ({ data: [] }),
