@@ -306,6 +306,17 @@ describe("what a model is given", () => {
     expect(request.turns.map((turn) => turn.text)).not.toContain("hello");
   });
 
+  it("keeps a message from before an account link out, even in the same millisecond", async () => {
+    await consented(ADA, "Today I planted twelve baobab seedlings by the fence");
+    harness.clock.advance(10_000);
+    await heard(ADA, "do the north beds count?");
+    await harness.say(ADA, "CONNECT");
+    // The link lands in the same millisecond as the message before it, as in one worker pass.
+    await link(ADA);
+    const afterLink = await heard(ADA, "and the south beds?");
+    expect(afterLink.turns.filter((turn) => turn.role === "person")).toEqual([]);
+  });
+
   it("starts again after consent is withdrawn, and after the account changes", async () => {
     await consented(ADA, "Today I planted twelve baobab seedlings by the fence");
     await heard(ADA, "is the fence side part of TAS?");

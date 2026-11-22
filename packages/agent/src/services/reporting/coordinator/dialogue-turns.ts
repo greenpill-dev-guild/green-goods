@@ -86,15 +86,17 @@ function contextStart(core: ReportingCore, ctx: TurnContext): ContextStart {
            WHERE conversation_id = $conversation AND lifecycle <> 'open'`
         )
         .get({ conversation: ctx.conversationId }) as { at: number | null });
-  // A consent and an account link each follow the person's reply to a notice or a link, and the
-  // chat's own link is its first contact, so a message read in their millisecond counts. A report
-  // can begin in the same pass as the last one ended, so there a message counts only if it arrived
-  // no earlier than the story that began the report.
+  // Three boundaries can fall in the same worker pass as the message before them, so a message
+  // read in their millisecond counts only if it came after: a report counts from the story that
+  // began it, and an account link, which records no message, lets no message of its millisecond
+  // count. A consent follows the reply to its notice, and the stories held for it arrived before
+  // that reply and are read under it, so a message of its millisecond counts; so does one at the
+  // chat's own link, its first contact.
   const at = (bound: { at: number | null } | null, arrival = 0): ContextStart[] =>
     bound?.at ? [{ at: bound.at, arrival }] : [];
   const bounds = [
     ...at(consent),
-    ...at(account),
+    ...at(account, UNKNOWN),
     ...at(channel),
     ...at(report, (report as { arrival?: number | null } | null)?.arrival ?? UNKNOWN),
   ];

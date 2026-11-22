@@ -40,6 +40,8 @@ export const REDACTION_MARK = /\[(?:link|email|address|account|handle|token|phon
  *   wrote numbers.
  * - A full stop with no space after it reads as a link when a slash follows later in the word
  *   ("rega.poda/colheita") or the next word is a common ending ("garden.Site visit").
+ * - Four numbers of up to three digits joined by full stops, followed by a port or a path, read as
+ *   a network address ("1.2.3.4/5").
  * - A link of two names with no scheme, an upper-case ending outside the common ones, a path and
  *   no query ("T.ME/NAME") passes, since "Sr.Silva/Sra.Souza" is written the same way.
  *
@@ -65,13 +67,17 @@ const REDACTIONS: ReadonlyArray<readonly [RegExp, string]> = [
   [/(?<![\p{L}\p{N}])(?:[\p{L}\p{N}-]+\.){2,}\p{L}{2,}(?::\d+)?\/\S*/gu, "[link]"],
   // Any host, in any case, with a query that carries a value: "Photos.Example.Mx/x?token=1".
   [new RegExp(`${HOST}\\p{L}{2,}(?::\\d+)?(?:\\/[^\\s?]*)?\\?\\S*=\\S*`, "gu"), "[link]"],
-  // A host named by its address or as this machine, with a port or what follows it:
-  // "192.168.1.2/private?token=1", "[fe80::1]:8080/x", "localhost:3000/x".
+  // A host named by its address, with a port or a path: "192.168.1.2/private?token=1",
+  // "Done.10.0.0.5:8080/x". A bare "1.2.3.4" is left, as a section or step number is written.
   [
-    /(?<![\p{L}\p{N}.])(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)(?::\d+)?(?:[/?#]\S*)?(?!\d|\.\d)/gu,
+    /(?<![\p{L}\p{N}]|\d\.)(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)(?::\d+(?:[/?#]\S*)?|[/?#]\S*)/gu,
     "[link]",
   ],
-  [/\[[0-9a-f:]*:[0-9a-f:]*\](?::\d+)?(?:[/?#]\S*)?/giu, "[link]"],
+  // A bracketed IPv6 address, with two colons or more: "[fe80::1%eth0]:8080/x", "[::1]".
+  [
+    /\[(?:[0-9a-f]{0,4}:){2,7}[0-9a-f]{0,4}(?:(?:\d{1,3}\.){3}\d{1,3})?(?:%\w+)?\](?::\d+)?(?:[/?#]\S*)?/giu,
+    "[link]",
+  ],
   [/(?<![\p{L}\p{N}])localhost(?::\d+)?(?:[/?#]\S*)?/giu, "[link]"],
   // A bare host under an ending that is rarely an everyday word.
   [
@@ -214,7 +220,6 @@ function withoutPhones(text: string): string {
   return clean;
 }
 
-/** A character an identifier may be written in: Latin letters with their accents, digits, marks. */
 /** Scripts written without spaces between words: their letters are prose, not an identifier. */
 const UNSPACED =
   /[\p{Script=Thai}\p{Script=Lao}\p{Script=Khmer}\p{Script=Myanmar}\p{Script=Tibetan}\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u;
