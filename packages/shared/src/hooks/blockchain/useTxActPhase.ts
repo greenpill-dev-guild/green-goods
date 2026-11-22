@@ -36,11 +36,14 @@ import { useOptionalAuthContext } from "../../providers/Auth";
 import { isUnconfirmedTxError } from "../../utils/errors/tx-error-classifier";
 import { useTimeout } from "../utils/useTimeout";
 
-/** The send callbacks an act forwards to the transaction sender. */
+/**
+ * The send callbacks an act forwards to the transaction sender, and `onUnconfirmed`, which the
+ * act calls when the wallet's answer has no receipt and no Safe behind it, so it may still land.
+ */
 export type ActSendCallbacks = Pick<
   TransactionSendOptions,
   "onBroadcast" | "onAwaiting" | "signal"
->;
+> & { onUnconfirmed?: () => void };
 
 /** The line an act moves: its events, the timer that marks a slow wallet, and what landing does. */
 export interface ActLine {
@@ -77,6 +80,7 @@ export async function followAct<T>(
     });
   });
   let awaitingSigners = false;
+  let unconfirmed = false;
   // Once the wallet has answered there is nothing left to stop waiting for.
   let answered = false;
   line.step({
@@ -102,10 +106,17 @@ export async function followAct<T>(
           awaitingSigners = true;
           line.step({ type: "safe-signers", key });
         },
+        onUnconfirmed: () => {
+          if (cancel.signal.aborted) return;
+          answered = true;
+          unconfirmed = true;
+        },
       }),
       stopped,
     ]);
-    if (!awaitingSigners) line.landed();
+    // An answer with no receipt may still land, so it is held as still confirming (PRD-1574).
+    if (unconfirmed) line.step({ type: "still-confirming", key });
+    else if (!awaitingSigners) line.landed();
     return result;
   } catch (error) {
     line.step({ type: endingOf(error), key });

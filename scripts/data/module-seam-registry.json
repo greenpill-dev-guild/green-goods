@@ -83,7 +83,7 @@
         "integration": ["packages/shared/src/__tests__/commitment-pooling-hooks.test.tsx"]
       },
       "reviewedAt": "2026-11-21",
-      "evidenceFingerprint": "sha256:9387c8eca08980e9b25151e00b771b62c595bea41cef9659cfa8df986bdc3f86"
+      "evidenceFingerprint": "sha256:b90468fc1a71364d4fcdb3bd28ed2e689b8af1090a631fff08d76051c274c3f3"
     }
   ]
 }

@@ -7763,6 +7763,8 @@
   "hub.garden.pool.voucher.acceptStart.noteBody": "If the start doesn’t go, the booking stays accepted, and {name} can start it from the app {minutes} minutes after you accept.",
   "hub.garden.pool.voucher.acceptStart.safeTitle": "The acceptance waits on your Safe’s signers",
   "hub.garden.pool.voucher.acceptStart.safeBody": "Nothing was started. Once they approve it, the member can start the booking from the app after {minutes} minutes.",
+  "hub.garden.pool.voucher.acceptStart.acceptingTitle": "The acceptance is still being confirmed",
+  "hub.garden.pool.voucher.acceptStart.acceptingBody": "Nothing was started. If it lands, the member can start the booking from the app {minutes} minutes after you accepted.",
   "hub.garden.pool.voucher.acceptStart.confirmingTitle": "Accepted. The start is still being confirmed",
   "hub.garden.pool.voucher.acceptStart.confirmingBody": "It can still land. If it doesn’t, the member can start the booking from the app.",
   "hub.garden.pool.voucher.acceptStart.notSentTitle": "Accepted. The start wasn’t sent",
