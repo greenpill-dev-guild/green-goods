@@ -137,12 +137,7 @@ export function questionId(requirement: ReportRequirement): string | null {
   }
 }
 
-export type RefusalReason =
-  | "not_offered"
-  | "not_allowed"
-  | "not_outstanding"
-  | "repeated"
-  | "empty";
+type RefusalReason = "not_offered" | "not_allowed" | "not_outstanding" | "repeated" | "empty";
 
 export interface ValidatedProposal {
   /** What the turn applies, in the shape its handlers read. */
