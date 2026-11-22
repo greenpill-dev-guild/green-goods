@@ -63,7 +63,7 @@ export const RequestFrom: Story = {
   args: {
     record: "Ride to the market on Saturday",
     party: {
-      label: "Asked by",
+      label: "Asked to take it up",
       value: <AddressDisplay address={STORY_MARIA} interactive={false} />,
     },
   },

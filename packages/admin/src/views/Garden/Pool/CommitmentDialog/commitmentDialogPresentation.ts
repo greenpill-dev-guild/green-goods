@@ -110,7 +110,7 @@ export function eventLabel(event: CommitmentEventRecord, formatMessage: FormatMe
     },
     CLAIM_DECLINED: {
       id: "hub.garden.pool.commitment.event.claimDeclined",
-      defaultMessage: "A steward declined",
+      defaultMessage: "Take-up declined",
     },
     ACCEPTED: { id: "hub.garden.pool.commitment.event.accepted", defaultMessage: "Taken up" },
     CONTRIBUTOR_ADDED: {

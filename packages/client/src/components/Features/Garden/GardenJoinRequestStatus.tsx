@@ -96,7 +96,7 @@ export function GardenJoinRequestStatus({
           : request?.state === "pending"
             ? formatMessage({
                 id: "app.garden.joinRequest.pendingDescription",
-                defaultMessage: "A garden steward will review it.",
+                defaultMessage: "A garden steward will review your introduction.",
               })
             : request?.state === "welcomed"
               ? formatMessage({

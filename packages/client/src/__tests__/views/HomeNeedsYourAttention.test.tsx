@@ -137,7 +137,7 @@ describe("Home Needs Your Attention", () => {
 
     expect(rows().map(titleOf)).toEqual([
       "2 submissions to review",
-      "3 asking to join",
+      "3 people asking to join",
       "1 asking to take up a promise",
       "1 promise to confirm",
     ]);

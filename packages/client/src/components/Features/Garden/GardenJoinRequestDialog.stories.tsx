@@ -264,7 +264,7 @@ export const WithdrawalFailedAfterRefresh: Story = {
     });
     await userEvent.click(sheet.getByRole("button", { name: "Withdraw" }));
     await expect(await sheet.findByRole("alert")).toHaveTextContent(
-      "Asking to join is unavailable right now. Please try again later."
+      "This isn’t available right now. Please try again later."
     );
     await expect(sheet.getByRole("button", { name: "Withdraw" })).toBeEnabled();
     await expect(sheet.queryByText(/Withdrawn\. You can ask again/)).not.toBeInTheDocument();

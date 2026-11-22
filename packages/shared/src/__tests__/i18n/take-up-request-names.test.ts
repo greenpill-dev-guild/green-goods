@@ -11,8 +11,9 @@ type LocaleCatalog = Record<string, string>;
  * Ask is only a verb. Spanish says solicitud for what waits on a steward and Portuguese moves
  * every take-up and join line from pedido to solicitação; both keep pedido for the kind.
  *
- * Every claim and join message speaks of a take-up or a join, so this scans them all; the take-up
- * and join lines elsewhere are named.
+ * Every claim, join and booking message speaks of a take-up, a join or a booking, as do the Hub's
+ * take-up queue, decline dialog and history lines, so this scans them all; the take-up and join
+ * lines elsewhere are named.
  */
 const TAKE_UP_AND_JOIN_LINES = [
   "app.commitment.act.askToTakeUp",
@@ -30,13 +31,28 @@ const TAKE_UP_AND_JOIN_LINES = [
   "hub.garden.pool.declineClaim.confirm",
   "hub.garden.pool.declineClaim.title",
   "hub.garden.pool.declineClaim.description",
+  "hub.garden.pool.expire.description",
+  "hub.garden.pool.pause.description",
+  "hub.garden.pool.voucher.row.asked",
+  "app.home.requests.title",
+];
+
+const TAKE_UP_JOIN_AND_BOOKING_PREFIXES = [
+  "app.claim.",
+  "app.garden.joinRequest.",
+  "app.garden.joinQueue.",
+  "app.voucher.wait.",
+  "hub.community.joinRequests.",
+  "hub.garden.pool.asks.",
+  "hub.garden.pool.claims.",
+  "hub.garden.pool.approvals.",
+  "hub.garden.pool.target.",
+  "hub.garden.pool.declineClaim.",
+  "hub.garden.pool.commitment.event.claim",
 ];
 
 const isTakeUpOrJoin = (key: string) =>
-  key.startsWith("app.claim.") ||
-  key.startsWith("app.garden.joinRequest.") ||
-  key.startsWith("app.garden.joinQueue.") ||
-  key.startsWith("hub.community.joinRequests.") ||
+  TAKE_UP_JOIN_AND_BOOKING_PREFIXES.some((prefix) => key.startsWith(prefix)) ||
   TAKE_UP_AND_JOIN_LINES.includes(key);
 
 const locales: Array<{ locale: string; messages: LocaleCatalog; retired: RegExp }> = [
@@ -87,7 +103,10 @@ describe("taking a promise up and joining a garden are asked, not requested (DL-
       .filter(
         ([key, value]) =>
           (key.startsWith("app.") || key.startsWith("hub.")) &&
-          /\b(an|the|this|every|your|another|any) asks?\b/i.test(value)
+          (/\b(an|the|this|every|your|another|any) asks?\b/i.test(value) ||
+            // "each asks for" is the verb; "each ask" can only be the noun.
+            /\beach ask\b/i.test(value) ||
+            /^Asks?(\s*[·:(]|$)/.test(value))
       )
       .map(([key, value]) => `${key}: ${value}`);
     expect(askAsNoun).toEqual([]);

@@ -51,7 +51,7 @@ export const DeclinedGardenRequest: Story = {
         "Nothing else about the promise changed. While it is still open you can ask again for your garden."
       )
     ).toBeVisible();
-    await expect(canvas.getByText("Asked by")).toBeVisible();
+    await expect(canvas.getByText("Asked to take it up")).toBeVisible();
     await expect(canvas.getByText("Asked")).toBeVisible();
     canvas.getByRole("button", { name: "Ask Again" }).click();
     await expect(args.onAskAgain).toHaveBeenCalledTimes(1);

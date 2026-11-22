@@ -305,7 +305,7 @@ export function CommitmentDeclineClaimDialog({
             party={{
               label: formatMessage({
                 id: "hub.garden.pool.target.requestFrom",
-                defaultMessage: "Asked by",
+                defaultMessage: "Asked to take it up",
               }),
               value: <AddressDisplay address={open.claimant} interactive={false} />,
             }}

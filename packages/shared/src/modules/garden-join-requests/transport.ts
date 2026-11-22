@@ -71,7 +71,7 @@ export function gardenJoinRequestErrorMessage(error: unknown): {
     case "request_not_found":
       return {
         id: "app.garden.joinRequest.error.notFound",
-        defaultMessage: "We couldn’t find you among the people asking to join this garden.",
+        defaultMessage: "We couldn’t find this. It may have been withdrawn or already answered.",
       };
     case "open_joining_enabled":
       return {
@@ -86,8 +86,7 @@ export function gardenJoinRequestErrorMessage(error: unknown): {
     case "queue_full":
       return {
         id: "app.garden.joinRequest.error.queueFull",
-        defaultMessage:
-          "Too many people are asking to join this garden right now. Please try again later.",
+        defaultMessage: "This garden’s queue is full right now. Please try again later.",
       };
     case "rate_limited":
       return {
@@ -97,7 +96,7 @@ export function gardenJoinRequestErrorMessage(error: unknown): {
     case "chain_unsupported":
       return {
         id: "app.garden.joinRequest.error.unsupportedChain",
-        defaultMessage: "Asking to join isn’t available on this network.",
+        defaultMessage: "This isn’t available on this network.",
       };
     case "request_withdrawn":
       return {
@@ -109,7 +108,7 @@ export function gardenJoinRequestErrorMessage(error: unknown): {
     case "origin_not_allowed":
       return {
         id: "app.garden.joinRequest.error.unavailable",
-        defaultMessage: "Asking to join is unavailable right now. Please try again later.",
+        defaultMessage: "This isn’t available right now. Please try again later.",
       };
     default:
       if (
@@ -118,7 +117,7 @@ export function gardenJoinRequestErrorMessage(error: unknown): {
       ) {
         return {
           id: "app.garden.joinRequest.error.unavailable",
-          defaultMessage: "Asking to join is unavailable right now. Please try again later.",
+          defaultMessage: "This isn’t available right now. Please try again later.",
         };
       }
       return {

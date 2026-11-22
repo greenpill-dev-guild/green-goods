@@ -321,7 +321,7 @@ describe("GardenJoinRequestDialog", () => {
     await user.click(screen.getByRole("button", { name: "Withdraw" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Asking to join is unavailable right now. Please try again later."
+      "This isn’t available right now. Please try again later."
     );
     expect(withdrawRequest).toHaveBeenCalledOnce();
     expect(screen.getByRole("button", { name: "Withdraw" })).toBeEnabled();

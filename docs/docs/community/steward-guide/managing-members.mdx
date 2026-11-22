@@ -2,7 +2,7 @@
 title: Manage Members
 sidebar_label: Manage Members
 slug: /community/steward-guide/managing-members
-description: "Add people to your garden, change their roles, answer requests to join, and decide whether anyone can join without asking."
+description: "Add people to your garden, change their roles, answer people who ask to join, and decide whether anyone can join without asking."
 audience: steward
 owner: docs
 last_verified: "2026-10-13"
@@ -12,7 +12,7 @@ difficulty: "standard"
 estimated_time: "2 to 10 minutes."
 prereqs: "Steward or owner access to the garden, and each person's account address or name."
 next_steps: "/community/evaluator-guide/making-an-assessment"
-persona_context: "Stewards onboarding gardeners and fellow stewards, and answering requests to join."
+persona_context: "Stewards onboarding gardeners and fellow stewards, and answering people who ask to join."
 source_of_truth:
   - packages/admin/src/views/Community/index.tsx
   - packages/admin/src/views/Community/components/CommunityMembersTab.tsx
@@ -95,23 +95,23 @@ Removing a role removes only that one. If you take the steward role away from so
 
 Some roles show a lock instead of a check box, with the reason on their row. Only an owner can change an owner's roles or remove a steward's Steward role. You can't remove your own Owner or Steward role here, and a garden always keeps at least one owner.
 
-## Answer requests
+## Answer people who ask to join or steward
 
 People can ask to join a garden, and ask to help steward it. Both kinds wait for you on the **Members** tab.
 
-1. Find **Join Requests** or **Steward Access Requests** on the **Members** tab.
-2. Tap **Check Requests** and sign the message. The list does not load until you ask for it.
-3. Read each request: the person's name, their account, and their note.
-4. Tap **Welcome** to let a gardener in, or **Approve Steward Access** to make someone a steward. You confirm the role first, and then sign to close the request.
-5. To turn a request down, tap **Decline**, write a reason under **Reason for declining**, and tap **Decline Request**. The person sees your reason.
+1. Find **Asking to Join** or **Steward Access Requests** on the **Members** tab.
+2. Tap **Check Who's Asking** and sign the message. The list does not load until you ask for it.
+3. Read each one: the person's name, their account, and their note.
+4. Tap **Welcome** to let a gardener in, or **Approve Steward Access** to make someone a steward. You confirm the role first, and then sign to close it.
+5. To turn someone down, tap **Decline**, write a reason under **Reason for declining**, and tap **Decline** again to confirm. The person sees your reason.
 
 If you do not recognize someone, ask in the chat your garden already uses before you approve. A steward can add members, approve work, and handle the garden's funds.
 
-If you see neither card, requests are switched off for now. Add people with **Add Member**, using the Account ID they send you.
+If you see neither card, nobody can ask to join or steward right now. Add people with **Add Member**, using the Account ID they send you.
 
 ## Decide who can join without asking
 
-By default a garden is invite only: people join when you add them or approve their request. You can open it so anyone can join as a gardener.
+By default a garden is invite only: people join when you add them or let them in when they ask. You can open it so anyone can join as a gardener.
 
 1. Open the **Garden** workspace and tap **Edit Garden**.
 2. Turn on **Open joining**.
@@ -132,7 +132,7 @@ To return to controlled onboarding, turn **Open joining** off and save. Existing
 
 - **Adding:** a message says the role was added, and the person appears in the member list. The list can take a moment to catch up.
 - **Removing:** the role disappears from the person's row.
-- **Requests:** a message says **The gardener was welcomed**, **Steward access was confirmed**, or **The request was declined**, and the request leaves the list.
+- **People who asked:** a message says **The gardener was welcomed**, **Steward access was confirmed**, or **They were declined**, and they leave the list.
 - **Open joining:** gardeners now see **Join Garden** on your garden's page in the app.
 
 ## What happens next
@@ -147,7 +147,7 @@ The person acts next. A new gardener sees your garden under **My gardens** in th
 | The address will not go into the list | Check for a missing character. Ask the person to copy their Account ID from the app again |
 | You added someone and they still cannot see the garden | They are probably signed in to a different account. Compare the address you added with the Account ID in their app |
 | **Missing coverage** next to the member list | The garden has nobody in one of the key roles: owner, steward, or evaluator. Add someone to it |
-| A request shows as still catching up | The role was given. The member list will show it shortly |
+| Someone you let in shows as still catching up | The role was given. The member list will show it shortly |
 | **Nothing was removed** after you confirmed | The wallet request was declined, so nothing changed. Your checks are still there. Tap the red button again, or **Back** to change them |
 | **We couldn't confirm a removal** | The role may already be gone. Tap **Check Again** to read the garden before you send anything else |
 | Some roles are removed and some are not | The ones marked removed are gone. The red button, which reads something like **Remove 1 Remaining Role**, sends only the roles still held |

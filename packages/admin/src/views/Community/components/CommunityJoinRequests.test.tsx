@@ -80,7 +80,7 @@ const messages = {
   "hub.community.joinRequests.decline": "Decline",
   "hub.community.joinRequests.declined": "They were declined.",
   "hub.community.joinRequests.declineDescription": "Decline {name}'s request.",
-  "hub.community.joinRequests.declineTitle": "Decline Joining",
+  "hub.community.joinRequests.declineTitle": "Decline Membership",
   "hub.community.joinRequests.description": "Review pending requests.",
   "hub.community.joinRequests.empty": "No pending requests.",
   "hub.community.joinRequests.load": "Check Who's Asking",

@@ -233,7 +233,7 @@ export function PoolReasonDialogs({
               party={{
                 label: formatMessage({
                   id: "hub.garden.pool.target.requestFrom",
-                  defaultMessage: "Asked by",
+                  defaultMessage: "Asked to take it up",
                 }),
                 value: (
                   <AddressDisplay address={reasonDialog.row.claim.claimant} interactive={false} />

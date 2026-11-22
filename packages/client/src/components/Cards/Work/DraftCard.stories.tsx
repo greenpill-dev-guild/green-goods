@@ -246,7 +246,7 @@ export const ForAPromiseOrAnAsk: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("Step 3 of 4 · 1 photo")).toBeVisible();
-    await expect(canvas.getByText("Takes up an ask · Step 3 of 4 · 1 photo")).toBeVisible();
+    await expect(canvas.getByText("Takes up a request · Step 3 of 4 · 1 photo")).toBeVisible();
   },
 };
 
@@ -262,7 +262,7 @@ export const ForAPromiseOrAnAskPortuguese: Story = {
 
 /** The take-up phrase each language leads an Open ask's draft line with. */
 const TAKE_UP_PHRASE = {
-  en: { messages: enMessages, phrase: "Takes up an ask" },
+  en: { messages: enMessages, phrase: "Takes up a request" },
   es: { messages: esMessages, phrase: "Acepta un pedido" },
   pt: { messages: ptMessages, phrase: "Aceita um pedido" },
 } as const;
