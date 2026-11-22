@@ -141,6 +141,60 @@ describe("suggesting the last report's garden and activity", () => {
     expect(await harness.say(ADA, NEXT_STORY)).toEqual([OWN_GARDENS]);
   });
 
+  it("closes an open offer when the account changes, so no other account takes it", async () => {
+    await published();
+    harness.chain.grantRole(TAS.address, bolaAccount.address, { gardener: true });
+    harness.chain.grantRole(AIYELOJA.address, bolaAccount.address, { gardener: true });
+    expect(await harness.say(ADA, NEXT_STORY)).toEqual([SUGGESTION]);
+    await harness.say(ADA, "SWITCH");
+    // The offer's Yes, tapped after the switch, is an old button: it takes nothing.
+    await harness.press(ADA, "Yes");
+    const browser = new TestBrowser(harness.app);
+    await browser.open(latestLink(harness));
+    const proof = await browser.prove(bolaAccount);
+    await harness.say(ADA, `PAIR ${proof.body.pairingCode}`);
+    expect(openReport()).toMatchObject({ garden: null, activity: null });
+
+    // Unlinked, the offer is closed too, and the garden is asked again.
+    await harness.say(ADA, "CANCEL");
+    expect(await harness.say(ADA, NEXT_STORY)).toEqual([OWN_GARDENS]);
+    harness.close();
+    harness = new Harness();
+    await published();
+    await harness.say(ADA, NEXT_STORY);
+    const replies = await harness.say(ADA, "DISCONNECT");
+    expect(replies.at(-1)).not.toContain("last time");
+    await harness.press(ADA, "Yes");
+    expect(openReport()).toMatchObject({ garden: null, activity: null });
+  });
+
+  it.each([
+    "STOP",
+    "DELETE",
+  ])("forgets a report still publishing when %s is sent", async (command) => {
+    harness.chain.grantRole(AIYELOJA.address, adaAccount.address, { gardener: true });
+    await confirmLinkAndPublish(harness);
+    const { browser, view, envelope } = await openSigningPage(harness);
+    const attempt = await reserve(browser, view, envelope);
+    const hash = harness.chain.submit({
+      attester: adaAccount.address,
+      to: envelope.call.to,
+      data: envelope.call.data,
+    });
+    harness.clock.advance(1000);
+    await harness.say(ADA, command);
+    // The receipt arrives after the command, for a report begun before it.
+    harness.clock.advance(1000);
+    await reportOutcome(browser, view, envelope, attempt.body.attemptId, {
+      kind: "broadcast",
+      transactionHash: hash,
+    });
+    await harness.drain();
+    await harness.say(ADA, "START");
+    await harness.press(ADA, "I agree");
+    expect((await harness.say(ADA, NEXT_STORY)).join("\n")).not.toContain("last time");
+  });
+
   it("stops offering when asked to, after STOP, and after ninety days", async () => {
     await published();
     await harness.say(ADA, NEXT_STORY);
