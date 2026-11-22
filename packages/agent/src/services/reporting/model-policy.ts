@@ -206,6 +206,19 @@ function withoutPhones(text: string): string {
   return clean;
 }
 
+/** A character an identifier may be written in: Latin letters with their accents, digits, marks. */
+const IDENTIFIER_PART = /[\p{Script=Latin}\p{N}\p{M}._%+@:/?#=&()-]/u;
+
+/**
+ * Text with no spaces, without the identifier it may end in half of ("josé" of an email address).
+ * Letters of other scripts end the run, so Thai written without spaces is kept. Read from the end.
+ */
+function withoutTrailingIdentifier(text: string): string {
+  let start = text.length;
+  while (start > 0 && IDENTIFIER_PART.test(text[start - 1] as string)) start -= 1;
+  return text.slice(0, start);
+}
+
 const NUMBER_PART = /[\d\s().\u2010-\u2015+/-]/u;
 
 /**
@@ -223,13 +236,12 @@ function withoutTrailingNumber(text: string): string {
 export function sanitizeModelText(text: string, maxChars: number): string {
   // Nothing past twice the bound can survive the cut, so it is not worth matching against. A word
   // the first cut leaves in half is dropped, so half an identifier is never left at the end. Text
-  // with no space to cut at, as Thai is written, loses only the letters, digits and marks an
-  // identifier is written in.
+  // with no space to cut at loses only what an identifier may be written in, so Thai is kept.
   const limit = maxChars * 2;
   const long = text.length > limit;
   const head = long ? text.slice(0, limit).replace(/[\ud800-\udbff]$/u, "") : text;
-  const cut = /\s\S+$/u.test(head) ? /\S+$/u : /[\w.@:/?#=&%+()-]+$/u;
-  let clean = long ? withoutTrailingNumber(head.replace(cut, "")) : head;
+  const cut = /\s\S+$/u.test(head) ? head.replace(/\S+$/u, "") : withoutTrailingIdentifier(head);
+  let clean = long ? withoutTrailingNumber(cut) : head;
   for (const [pattern, replacement] of REDACTIONS) clean = clean.replace(pattern, replacement);
   clean = withoutPhones(clean).trim();
   if (clean.length < maxChars) return long ? `${clean}…` : clean;

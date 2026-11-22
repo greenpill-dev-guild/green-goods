@@ -121,6 +121,9 @@ describe("model input sanitizer", () => {
     const shortened = `t.me/${"a".repeat(1979)} alice@example.com`;
     expect(sanitizeModelText(shortened, 500)).not.toMatch(/alice|example/u);
     expect(sanitizeModelText(`${"ก".repeat(990)}alice@example.com`, 500)).not.toMatch(/alice/u);
+    expect(sanitizeModelText(`0x${"a".repeat(980)},joséphine.dupont@example.org`, 500)).not.toMatch(
+      /jos/u
+    );
   });
 
   it("cuts text with no spaces, and never through a character written as a pair", () => {
