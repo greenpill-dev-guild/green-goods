@@ -3,7 +3,7 @@
 /**
  * The issuer's acts in the Promises console (PRD-1297 surface 6): a booking
  * under way waits for its act in Review Promises, and its promise keeps one row
- * in Offers and Asks, grouped or past due; each act's dialog sends exactly what
+ * in Offers and Requests, grouped or past due; each act's dialog sends exactly what
  * it reviewed and waits while the console can't act, a return above the
  * issuer's terms or below the escrow's ceiling is refused, a failed return
  * needs recovery, and Your Reserve leads with three numbers and repairs a short

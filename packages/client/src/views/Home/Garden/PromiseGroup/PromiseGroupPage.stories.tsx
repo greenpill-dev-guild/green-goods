@@ -108,7 +108,7 @@ export const StewardReviewed: Story = {
   args: page({ available: 4, inProgress: 3, kept: 3 }, { bar: { act: "askToTakeUp", hold: null } }),
   play: async ({ canvasElement }) => {
     await expect(
-      within(canvasElement).getByRole("button", { name: "Request to Take Up One" })
+      within(canvasElement).getByRole("button", { name: "Ask to Take Up One" })
     ).toBeEnabled();
   },
 };
@@ -133,7 +133,7 @@ export const StewardReviewedEveryOneAskedFor: Story = {
     await expect(canvas.getByRole("region", { name: "Right now" })).toHaveTextContent(
       "None available · 2 waiting on a steward · 3 in progress · 5 kept"
     );
-    await expect(canvas.getByRole("button", { name: "Request to Take Up One" })).toBeDisabled();
+    await expect(canvas.getByRole("button", { name: "Ask to Take Up One" })).toBeDisabled();
     await expect(canvas.getByText("None are available right now")).toBeVisible();
   },
 };

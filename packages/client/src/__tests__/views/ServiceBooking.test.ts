@@ -1343,7 +1343,7 @@ describe("agreeing to a request's reward before taking it up", () => {
       },
     });
     expect(view("reviewed", offered).agreeSheet?.consent).toBe(
-      "Agreeing records these exact rewards with your request. Riverside Commons Garden's stewards then accept you."
+      "Agreeing records these exact rewards as you ask to take this up. Riverside Commons Garden's stewards then accept you."
     );
   });
 

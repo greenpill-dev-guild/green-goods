@@ -98,10 +98,10 @@ describe("GardenJoinRequestDialog", () => {
       </MemoryRouter>
     );
 
-    await user.click(screen.getByRole("button", { name: "Request to Join" }));
+    await user.click(screen.getByRole("button", { name: "Ask to Join" }));
     // Rides the adaptive shell: centered here, the shared bottom sheet below 640px.
     expect(screen.getByRole("dialog")).toHaveAttribute("data-component", "DialogShell");
-    const send = screen.getByRole("button", { name: "Send Request" });
+    const send = screen.getByRole("button", { name: "Ask to Join" });
     expect(send).toHaveAttribute("aria-disabled", "true");
     await user.type(screen.getByLabelText("Display name"), "Maya");
     await user.type(screen.getByLabelText("Note (optional)"), "I can help with seedlings.");
@@ -112,7 +112,7 @@ describe("GardenJoinRequestDialog", () => {
       note: "I can help with seedlings.",
       requestedVia: "garden_detail",
     });
-    expect(await screen.findByText("Your request was sent to the garden stewards.")).toBeVisible();
+    expect(await screen.findByText("Sent to the garden’s stewards.")).toBeVisible();
   });
 
   it.each([
@@ -134,10 +134,10 @@ describe("GardenJoinRequestDialog", () => {
       </MemoryRouter>
     );
 
-    await user.click(screen.getByRole("button", { name: "Request to Join" }));
+    await user.click(screen.getByRole("button", { name: "Ask to Join" }));
     expect(screen.queryByLabelText("Display name")).not.toBeInTheDocument();
     expect(screen.getByText(expected)).toBeVisible();
-    await user.click(screen.getByRole("button", { name: "Send Request" }));
+    await user.click(screen.getByRole("button", { name: "Ask to Join" }));
 
     expect(submitRequest).toHaveBeenCalledWith(expect.objectContaining({ displayName: expected }));
   });
@@ -157,10 +157,10 @@ describe("GardenJoinRequestDialog", () => {
       </MemoryRouter>
     );
 
-    await user.click(screen.getByRole("button", { name: "Request to Join" }));
+    await user.click(screen.getByRole("button", { name: "Ask to Join" }));
 
     expect(screen.getByLabelText("Display name")).toBeVisible();
-    expect(screen.getByRole("button", { name: "Send Request" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "Ask to Join" })).toHaveAttribute(
       "aria-disabled",
       "true"
     );
@@ -182,11 +182,11 @@ describe("GardenJoinRequestDialog", () => {
       </MemoryRouter>
     );
 
-    await user.click(screen.getByRole("button", { name: "Request to Join" }));
+    await user.click(screen.getByRole("button", { name: "Ask to Join" }));
 
     expect(screen.queryByText("maya")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Display name")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Send Request" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "Ask to Join" })).toHaveAttribute(
       "aria-disabled",
       "true"
     );
@@ -202,9 +202,9 @@ describe("GardenJoinRequestDialog", () => {
       </MemoryRouter>
     );
     expect(checkStatus).not.toHaveBeenCalled();
-    await user.click(screen.getByRole("button", { name: "Request to Join" }));
+    await user.click(screen.getByRole("button", { name: "Ask to Join" }));
     expect(screen.getByText(/Confirm with your wallet or passkey/)).toBeVisible();
-    await user.click(screen.getByRole("button", { name: "Check Request Status" }));
+    await user.click(screen.getByRole("button", { name: "Check Status" }));
     expect(checkStatus).toHaveBeenCalledOnce();
     expect(await screen.findByText("Checked just now.")).toBeVisible();
     expect(scrollFeedbackIntoView).toHaveBeenCalledWith({ block: "nearest", behavior: "instant" });
@@ -219,15 +219,15 @@ describe("GardenJoinRequestDialog", () => {
         </IntlProvider>
       </MemoryRouter>
     );
-    await user.click(screen.getByRole("button", { name: "Request to Join" }));
-    await user.click(screen.getByRole("button", { name: "Check Request Status" }));
+    await user.click(screen.getByRole("button", { name: "Ask to Join" }));
+    await user.click(screen.getByRole("button", { name: "Check Status" }));
     expect(checkStatus).toHaveBeenCalledOnce();
     expect(screen.getByRole("status")).toHaveAttribute("aria-busy", "true");
     expect(screen.getByRole("status")).toHaveTextContent("Checking for updates…");
     expect(screen.getByRole("button", { name: "Checking…" })).toHaveAttribute("aria-busy", "true");
     await screen.findByText("Checked just now.");
     expect(screen.getByRole("status")).toHaveAttribute("aria-busy", "false");
-    expect(screen.getByRole("button", { name: "Check Request Status" })).not.toHaveAttribute(
+    expect(screen.getByRole("button", { name: "Check Status" })).not.toHaveAttribute(
       "aria-busy",
       "true"
     );
@@ -244,12 +244,12 @@ describe("GardenJoinRequestDialog", () => {
         </IntlProvider>
       </MemoryRouter>
     );
-    await user.click(screen.getByRole("button", { name: "Request to Join" }));
+    await user.click(screen.getByRole("button", { name: "Ask to Join" }));
     expect(checkStatus).toHaveBeenCalledOnce();
     expect(screen.queryByText(/Checked just now/)).not.toBeInTheDocument();
     expect(scrollFeedbackIntoView).not.toHaveBeenCalled();
-    expect(screen.queryByRole("button", { name: "Send Request" })).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Check Request Status" }));
+    expect(screen.queryByRole("button", { name: "Ask to Join" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Check Status" }));
     expect(checkStatus).toHaveBeenCalledTimes(2);
     expect(await screen.findByText("Checked just now.")).toBeVisible();
     expect(scrollFeedbackIntoView).toHaveBeenCalled();
@@ -264,11 +264,11 @@ describe("GardenJoinRequestDialog", () => {
         </IntlProvider>
       </MemoryRouter>
     );
-    await user.click(screen.getByRole("button", { name: "Request to Join" }));
-    await user.click(screen.getByRole("button", { name: "Check Request Status" }));
+    await user.click(screen.getByRole("button", { name: "Ask to Join" }));
+    await user.click(screen.getByRole("button", { name: "Check Status" }));
     expect(await screen.findByText(/Checked just now/)).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Close" }));
-    await user.click(screen.getByRole("button", { name: "Request to Join" }));
+    await user.click(screen.getByRole("button", { name: "Ask to Join" }));
     expect(screen.queryByText(/Checked just now/)).not.toBeInTheDocument();
     expect(checkStatus).toHaveBeenCalledOnce();
   });
@@ -283,10 +283,10 @@ describe("GardenJoinRequestDialog", () => {
         </IntlProvider>
       </MemoryRouter>
     );
-    await user.click(screen.getByRole("button", { name: "Request to Join" }));
-    await user.click(screen.getByRole("button", { name: "Withdraw Request" }));
+    await user.click(screen.getByRole("button", { name: "Ask to Join" }));
+    await user.click(screen.getByRole("button", { name: "Withdraw" }));
     expect(withdrawRequest).toHaveBeenCalledOnce();
-    expect(await screen.findByText(/Your request was withdrawn/)).toBeVisible();
+    expect(await screen.findByText(/Withdrawn\. You can ask again/)).toBeVisible();
     expect(scrollFeedbackIntoView).toHaveBeenCalled();
   });
 
@@ -310,22 +310,22 @@ describe("GardenJoinRequestDialog", () => {
       </MemoryRouter>
     );
 
-    await user.click(screen.getByRole("button", { name: "Request to Join" }));
+    await user.click(screen.getByRole("button", { name: "Ask to Join" }));
     if (refresh === "explicit") {
-      await user.click(screen.getByRole("button", { name: "Check Request Status" }));
+      await user.click(screen.getByRole("button", { name: "Check Status" }));
       await screen.findByText("Checked just now.");
     }
     await waitFor(() =>
       expect(checkStatus).toHaveBeenCalledWith({ allowSignature: refresh === "explicit" })
     );
-    await user.click(screen.getByRole("button", { name: "Withdraw Request" }));
+    await user.click(screen.getByRole("button", { name: "Withdraw" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Garden join requests are unavailable right now. Please try again later."
+      "This isn’t available right now. Please try again later."
     );
     expect(withdrawRequest).toHaveBeenCalledOnce();
-    expect(screen.getByRole("button", { name: "Withdraw Request" })).toBeEnabled();
-    expect(screen.queryByText(/Your request was withdrawn/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Withdraw" })).toBeEnabled();
+    expect(screen.queryByText(/Withdrawn\. You can ask again/)).not.toBeInTheDocument();
   });
 
   it("keeps an uncertain save blocked after dialog remount", async () => {
@@ -338,12 +338,12 @@ describe("GardenJoinRequestDialog", () => {
         </IntlProvider>
       </MemoryRouter>
     );
-    await user.click(screen.getByRole("button", { name: "Request to Join" }));
+    await user.click(screen.getByRole("button", { name: "Ask to Join" }));
     await user.type(screen.getByLabelText("Display name"), "Maya");
     expect(screen.getByRole("alert")).toHaveTextContent(
-      "We could not confirm whether your request was saved"
+      "We couldn’t confirm whether that was saved"
     );
-    expect(screen.getByRole("button", { name: "Send Request" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "Ask to Join" })).toHaveAttribute(
       "aria-disabled",
       "true"
     );
@@ -363,27 +363,27 @@ describe("GardenJoinRequestDialog", () => {
       </MemoryRouter>
     );
 
-    await user.click(screen.getByRole("button", { name: "Request to Join" }));
+    await user.click(screen.getByRole("button", { name: "Ask to Join" }));
     await user.type(screen.getByLabelText("Display name"), "Maya");
-    await user.click(screen.getByRole("button", { name: "Send Request" }));
+    await user.click(screen.getByRole("button", { name: "Ask to Join" }));
 
     expect(scrollFeedbackIntoView).toHaveBeenCalled();
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "We could not confirm whether your request was saved"
+      "We couldn’t confirm whether that was saved"
     );
     expect(
-      screen.queryByText("You do not have a request for this garden yet.")
+      screen.queryByText("You haven’t asked to join this garden yet.")
     ).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Send Request" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "Ask to Join" })).toHaveAttribute(
       "aria-disabled",
       "true"
     );
 
-    await user.click(screen.getByRole("button", { name: "Check Request Status" }));
+    await user.click(screen.getByRole("button", { name: "Check Status" }));
     expect(checkStatus).toHaveBeenCalledOnce();
     await screen.findByText("Checked just now.");
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Send Request" })).not.toHaveAttribute(
+    expect(screen.getByRole("button", { name: "Ask to Join" })).not.toHaveAttribute(
       "aria-disabled",
       "true"
     );
@@ -403,12 +403,12 @@ describe("GardenJoinRequestDialog", () => {
         </IntlProvider>
       </MemoryRouter>
     );
-    await user.click(screen.getByRole("button", { name: "Request to Join" }));
+    await user.click(screen.getByRole("button", { name: "Ask to Join" }));
     await user.type(screen.getByLabelText("Display name"), "Maya");
     expect(screen.getByRole("alert")).toHaveTextContent(
-      "This attempt did not save a request. Please try again."
+      "That didn’t go through. Please try again."
     );
-    expect(screen.getByRole("button", { name: "Send Request" })).not.toHaveAttribute(
+    expect(screen.getByRole("button", { name: "Ask to Join" })).not.toHaveAttribute(
       "aria-disabled",
       "true"
     );
@@ -467,9 +467,9 @@ describe("GardenJoinRequestDialog", () => {
       </MemoryRouter>
     );
 
-    await user.click(screen.getByRole("button", { name: "Request to Join" }));
+    await user.click(screen.getByRole("button", { name: "Ask to Join" }));
 
-    expect(screen.getByRole("button", { name: "Check Request Status" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "Check Status" })).toHaveAttribute(
       "aria-disabled",
       "true"
     );

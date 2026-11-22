@@ -347,7 +347,7 @@ describe("the sheet", () => {
       "Seed Swap",
     ]);
     expect(rows.map((row) => within(row).getByRole("status").textContent)).toEqual([
-      "Take-up request",
+      "Asked to take up",
       "New submission",
       "Taken up",
       "Rejected",
@@ -545,7 +545,7 @@ describe("the sheet", () => {
 
       const row = rowsOf(sheet)[3];
       expect(titleOf(row)).toBe("3 people asked to join");
-      expect(within(row).getByRole("status").textContent).toBe("Join request");
+      expect(within(row).getByRole("status").textContent).toBe("Asked to join");
       expect(detailsOf(row)).toEqual(["4 hr. ago"]);
       for (const tab of ["Work", "Promises"]) {
         fireEvent.click(within(sheet).getByRole("tab", { name: tab }));

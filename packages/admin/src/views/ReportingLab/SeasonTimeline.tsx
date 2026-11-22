@@ -140,7 +140,7 @@ export function SeasonTimeline({
       const linked = linkedWork(dataset, promise);
       return (
         <FactList frame="inset">
-          <FactRow label="Direction" value={promise.direction === "offer" ? "Offer" : "Ask"} />
+          <FactRow label="Direction" value={promise.direction === "offer" ? "Offer" : "Request"} />
           <FactRow label="Lead" value={lead(promise.leadId)} />
           <FactRow label="Due" value={day(promise.due)} />
           <FactRow label="Done" value={promise.doneOn ? day(promise.doneOn) : "Not yet"} />

@@ -306,7 +306,8 @@ export function SeedStepReview({
               values.claimMode === "APPROVAL_GATED"
                 ? formatMessage({
                     id: "hub.garden.pool.seed.review.claimGated",
-                    defaultMessage: "Steward-reviewed: each ask waits for your approval",
+                    defaultMessage:
+                      "Steward-reviewed: whoever asks to take one up waits for your approval",
                   })
                 : formatMessage({
                     id: "hub.garden.pool.seed.review.claimOpen",
@@ -363,7 +364,7 @@ export function SeedStepReview({
             {
               id: "hub.garden.pool.seed.tray.roomOver",
               defaultMessage:
-                "These offers are more than you can hold at once. You have room for {room, plural, =0 {no more} other {# more}} under the pool's promise limit of {cap} per person. Remove an offer, change it to an ask, or raise the limit in the pool settings.",
+                "These offers are more than you can hold at once. You have room for {room, plural, =0 {no more} other {# more}} under the pool's promise limit of {cap} per person. Remove an offer, change it to a request, or raise the limit in the pool settings.",
             },
             { room: capacity.room ?? 0, cap: capacity.cap ?? 0 }
           )}
@@ -374,7 +375,7 @@ export function SeedStepReview({
             {
               id: "hub.garden.pool.seed.tray.roomFull",
               defaultMessage:
-                "That is as many offers as you can hold at once: the pool's promise limit is {cap} per person. An ask takes none of that room.",
+                "That is as many offers as you can hold at once: the pool's promise limit is {cap} per person. A request takes none of that room.",
             },
             { cap: capacity.cap ?? 0 }
           )}

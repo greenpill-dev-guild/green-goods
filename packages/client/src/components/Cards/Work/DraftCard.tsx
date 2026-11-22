@@ -58,7 +58,7 @@ export const DraftCard: React.FC<DraftCardProps> = ({
               {
                 id: "app.pending.status.draftTakesUp",
                 defaultMessage:
-                  "{count, plural, =0 {Takes up an ask · Step {step} of 4} one {Takes up an ask · Step {step} of 4 · # attachment} other {Takes up an ask · Step {step} of 4 · # attachments}}",
+                  "{count, plural, =0 {Takes up a request · Step {step} of 4} one {Takes up a request · Step {step} of 4 · # attachment} other {Takes up a request · Step {step} of 4 · # attachments}}",
               },
               progress
             )
