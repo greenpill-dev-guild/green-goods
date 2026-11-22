@@ -413,8 +413,7 @@ export const UsernameNotFound: Story = {
 const confirmNewAccountArgs: SplashStoryArgs = {
   login: () => {},
   buttonLabel: "Create New Account",
-  infoMessage:
-    "No account is named marja. The account maria is saved on this phone. Create a new account named marja?",
+  infoMessage: "No account is named marja. This phone has the account maria. Create a new account?",
   tertiaryAction: { label: "Check the Name", onClick: () => {} },
 };
 

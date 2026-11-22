@@ -17,6 +17,7 @@ import {
 } from "../../../modules/auth/pilot-account-enrollment";
 import { logger } from "../../../modules/app/logger";
 import { useApp } from "../../../providers/App";
+import { displayablePasskeyName } from "../../../public-contracts/passkey-directory";
 import { copyToClipboard } from "../../../utils/app/clipboard";
 import { debugError } from "../../../utils/debug";
 import { PasskeyNotFoundError } from "../../../workflows/auth-passkey-errors";
@@ -131,6 +132,9 @@ export function useLoginScreenController(routes: { login: string; home: string }
   const recoveryAttemptNameRef = useRef<string | null>(null);
   // The name being tried as a sign-in only, because another account is saved on this phone.
   const signInOnlyNameRef = useRef<string | null>(null);
+  // The not-found error the new-account question answers. The machine keeps holding it, so a
+  // re-run of the error effect (a language change) must leave the question, not show the error.
+  const askedAboutErrorRef = useRef<unknown>(null);
   // Whether the attempt in flight creates an account: a prompt that closes then made none.
   const creatingRef = useRef(false);
   const passkeyServerEnabled = isPasskeyServerEnabled();
@@ -167,6 +171,7 @@ export function useLoginScreenController(routes: { login: string; home: string }
 
   useEffect(() => {
     if (auth.error && !auth.isAuthenticating) {
+      if (auth.error === askedAboutErrorRef.current) return;
       setLoadingState(null);
       setLoadingMessage(undefined);
       const triedSignInOnly = signInOnlyNameRef.current !== null;
@@ -178,6 +183,7 @@ export function useLoginScreenController(routes: { login: string; home: string }
         auth.error instanceof PasskeyNotFoundError &&
         auth.error.scope === "name"
       ) {
+        askedAboutErrorRef.current = auth.error;
         setLoginError(null);
         setScreen("confirmNewAccount");
         return;
@@ -250,6 +256,7 @@ export function useLoginScreenController(routes: { login: string; home: string }
 
   const begin = (message: string, { creating = false } = {}) => {
     creatingRef.current = creating;
+    signInOnlyNameRef.current = null;
     setLoginError(null);
     setLoadingMessage(message);
     setLoadingState("welcome");
@@ -287,7 +294,6 @@ export function useLoginScreenController(routes: { login: string; home: string }
         goTo("confirmNewAccount");
         return;
       }
-      signInOnlyNameRef.current = name;
       recoveryAttemptNameRef.current = name;
       begin(
         intl.formatMessage({
@@ -295,6 +301,7 @@ export function useLoginScreenController(routes: { login: string; home: string }
           defaultMessage: "Continuing...",
         })
       );
+      signInOnlyNameRef.current = name;
       try {
         await auth.loginWithPasskey(name);
       } catch (error) {
@@ -432,8 +439,8 @@ export function useLoginScreenController(routes: { login: string; home: string }
           { name: storedName }
         )
       : undefined,
-    /** The account already saved on this phone, when it has a name to show. */
-    savedAccountName: storedName || undefined,
+    /** The account already saved on this phone, when it has a name a person chose. */
+    savedAccountName: displayablePasskeyName(storedName) ?? undefined,
     redirectTo: fromLogout
       ? routes.home
       : new URLSearchParams(location.search).get("redirectTo") || routes.home,

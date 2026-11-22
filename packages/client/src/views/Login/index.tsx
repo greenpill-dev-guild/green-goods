@@ -209,13 +209,14 @@ export function Login() {
             defaultMessage: "Create New Account",
           })}
           errorMessage={!isAuthenticating ? loginError : null}
+          focusInfo
           infoMessage={
             savedAccountName
               ? intl.formatMessage(
                   {
                     id: "app.login.newAccount.infoSaved",
                     defaultMessage:
-                      "No account is named {name}. The account {saved} is saved on this phone. Create a new account named {name}?",
+                      "No account is named {name}. This phone has the account {saved}. Create a new account?",
                   },
                   { name, saved: savedAccountName }
                 )
@@ -223,7 +224,7 @@ export function Login() {
                   {
                     id: "app.login.newAccount.info",
                     defaultMessage:
-                      "No account is named {name}. Another account is saved on this phone. Create a new account named {name}?",
+                      "No account is named {name}. Another account is saved on this phone. Create a new account?",
                   },
                   { name }
                 )

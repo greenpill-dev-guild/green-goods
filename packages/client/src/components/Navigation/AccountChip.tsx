@@ -69,6 +69,7 @@ function SignedInAccount({
         size="compact"
         onClick={() => setSheetOpen(true)}
         aria-label={intl.formatMessage({ id: "app.account.chip.label" }, { name })}
+        title={intl.formatMessage({ id: "app.account.chip.label" }, { name })}
         aria-haspopup="dialog"
         icon={<RiUserLine className={pwaStatusStyles.primary.icon} aria-hidden="true" />}
       />
