@@ -276,6 +276,26 @@ export const commitmentPoolingKeys = {
   /** Whether a wallet has run one settlement proposal, by the identifier it returned for it. */
   settlementProposal: (chainId: number, proposal: string) =>
     [...commitmentPoolingKeys.all(chainId), "settlement-proposal", proposal] as const,
+  /** Who paid each wallet-paid reward share of one commitment, read from the reward payer. */
+  rewardShares: (chainId: number, commitmentId: bigint | string | number, shareIds: string) =>
+    [
+      ...commitmentPoolingKeys.all(chainId),
+      "reward-shares",
+      String(commitmentId),
+      shareIds,
+    ] as const,
+  /** The wallet-paid shares of one commitment the reward payer has paid to one gardener. */
+  rewardSharesPaidTo: (
+    chainId: number,
+    commitmentId: bigint | string | number,
+    recipient: string
+  ) =>
+    [
+      ...commitmentPoolingKeys.all(chainId),
+      "reward-shares-paid-to",
+      String(commitmentId),
+      recipient.toLowerCase(),
+    ] as const,
   /** Owner, pause flag and gardener-delivery gate of the settlement module. */
   settlementOperations: (chainId: number) =>
     [...commitmentPoolingKeys.all(chainId), "settlement-operations"] as const,

@@ -29,6 +29,7 @@ const meta: Meta<typeof SeedRewardSection> = {
     busy: false,
     errorOf: () => undefined,
     settlementActive: true,
+    usdcMatchAvailable: false,
     price: STORY_PRICE_STATE,
     count: 10,
   },
@@ -55,6 +56,14 @@ export const FiveDollarsEach: Story = {
       considerationRail: "CELO_SETTLEMENT",
       considerationUsd: "5.00",
     },
+  },
+};
+
+/** Where the network can pay USDC, the steward may match the G$ with the same dollars in USDC. */
+export const MatchedInUsdc: Story = {
+  args: {
+    usdcMatchAvailable: true,
+    values: { ...FiveDollarsEach.args!.values!, rewardMatchedUsdc: true },
   },
 };
 

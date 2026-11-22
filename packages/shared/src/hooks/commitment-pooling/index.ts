@@ -140,6 +140,8 @@ export type {
   PoolSetupStepStatus,
 } from "./useCommitmentPoolSetupSequence";
 export { useCommitmentPoolSetupSequence } from "./useCommitmentPoolSetupSequence";
+export type { RewardShareState } from "./useRewardShares";
+export { useRewardShares, useRewardSharesPaidTo } from "./useRewardShares";
 export type { SavedOffersApi } from "./useSavedOffers";
 export {
   useSavedOffer,

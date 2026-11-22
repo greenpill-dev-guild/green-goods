@@ -5,6 +5,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { useIntl } from "react-intl";
 import { expect, within } from "storybook/test";
 import {
+  PromiseRewardParts,
   PromiseRewardRow,
   promisePayoutOf,
   promiseRewardOf,
@@ -34,10 +35,12 @@ interface RewardLineProps {
   /** Whether the promise has a G$ part on chain. */
   goodDollars: boolean;
   derivedState: "ACCEPTED" | "FULFILLED";
+  /** Show each part on its own row, as the promise page does. */
+  parts?: boolean;
 }
 
 /** The reward row as a promise's facts draw it, from the record and its metadata. */
-function RewardLine({ metadata, goodDollars, derivedState }: RewardLineProps) {
+function RewardLine({ metadata, goodDollars, derivedState, parts = false }: RewardLineProps) {
   const intl = useIntl();
   const reward = promiseRewardOf(
     goodDollars
@@ -45,13 +48,21 @@ function RewardLine({ metadata, goodDollars, derivedState }: RewardLineProps) {
       : { considerationRail: "NONE", considerationAmount: 0n },
     metadata
   );
+  const payout = promisePayoutOf({ derivedState, considerationPaid: false });
   const text = promiseRewardText({
     intl,
     rewards: reward ? [reward] : [],
     price: NO_PRICE,
-    payout: promisePayoutOf({ derivedState, considerationPaid: false }),
+    payout,
   });
-  return <FactList>{text ? <PromiseRewardRow text={text} /> : null}</FactList>;
+  return (
+    <FactList>
+      {text ? <PromiseRewardRow text={text} /> : null}
+      {text && parts && reward ? (
+        <PromiseRewardParts reward={reward} commitmentId={19n} viewer={null} payout={payout} />
+      ) : null}
+    </FactList>
+  );
 }
 
 /**
@@ -84,6 +95,20 @@ export const GoodDollarsAndUsdc: Story = {
     await expect(
       within(canvasElement).getByText("$40.00, paid in G$ and USDC after it's kept")
     ).toBeVisible();
+  },
+};
+
+/** On the promise page, each part on its own row with its network and where it stands. */
+export const PartsOnThePromisePage: Story = {
+  args: {
+    metadata: { reward: G_DOLLAR_REWARD, rewardLegs: [USDC_LEG] },
+    derivedState: "FULFILLED",
+    parts: true,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("160,000 G$ on Celo")).toBeVisible();
+    await expect(canvas.getByText("20 USDC on Arbitrum One, not paid yet")).toBeVisible();
   },
 };
 

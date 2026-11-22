@@ -1,3 +1,6 @@
+import { matchedUsdcLegs, rewardUsdcToken } from "@green-goods/shared/commitment-pooling";
+import { isZeroAddress } from "@green-goods/shared/utils/blockchain/address";
+import { getNetworkContracts } from "@green-goods/shared/utils/blockchain/contracts";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { usePoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController";
 import {
@@ -89,6 +92,10 @@ export function SeedCommitmentDialog({
   const protocolContext = pool.pool?.poolType === "PROTOCOL";
   const protocolPool = useProtocolPool({ chainId });
   const settlement = useSettlementAccount({ chainId, garden });
+  // A USDC part is offered only where the app can pay it: USDC on this chain and the payer deployed.
+  const usdcMatchAvailable =
+    rewardUsdcToken(chainId) !== null &&
+    !isZeroAddress(getNetworkContracts(chainId).rewardPayer ?? null);
   const { data: actions = [] } = useActions(chainId);
   const { data: gardens } = useGardens(chainId);
   const [windowNow, setWindowNow] = useState(() => Date.now());
@@ -160,6 +167,8 @@ export function SeedCommitmentDialog({
       allowGatedOffers: true,
       allowRequestReward: true,
       ...(createPrice.current ? { goodDollarPrice: createPrice.current } : {}),
+      // Declared only where this chain can pay it, whatever a saved answer carries.
+      rewardLegs: usdcMatchAvailable ? matchedUsdcLegs(row, chainId) : undefined,
     });
   };
   const tray = useSeedTray({ form, chainId, owner: jobs.viewer, buildCopy });
@@ -354,6 +363,7 @@ export function SeedCommitmentDialog({
           members={members}
           protocolRegistered={protocolRegistered}
           settlementActive={settlementActive}
+          usdcMatchAvailable={usdcMatchAvailable}
           price={price.state}
         />
       );

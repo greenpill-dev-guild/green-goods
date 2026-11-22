@@ -15,9 +15,16 @@
  * @module modules/commitment-pooling/reward-legs
  */
 
+import type { CommitmentComposerValues } from "../../hooks/commitment-pooling/useCommitmentComposerForm";
 import { CELO_G_DOLLAR_TOKEN, getStablecoinSendableTokens } from "../../config/tokens";
 import type { Address } from "../../types/domain";
-import { type CommitmentMetadataV1, rewardCentsAsSet } from "./metadata";
+import { parseUsdCents } from "../wallet/good-dollar-price";
+import {
+  COMMITMENT_REWARD_LEG_VERSION,
+  type CommitmentMetadataV1,
+  type CommitmentRewardLegRecord,
+  rewardCentsAsSet,
+} from "./metadata";
 import type { CommitmentReadModel } from "./types-core";
 
 /** How a part is paid: through Celo settlement from the garden's Safe, or from the steward's wallet. */
@@ -119,4 +126,43 @@ export function rewardCentsAsSetTotal(reward: Pick<PromiseRewardLegs, "legs">): 
     total += leg.usdCentsAsSet;
   }
   return reward.legs.length > 0 ? total : null;
+}
+
+/** USDC on a chain, as the registry lists it; null where the app has none to pay in. */
+export function rewardUsdcToken(chainId: number) {
+  return (
+    getStablecoinSendableTokens(chainId).find(
+      (entry) => entry.supported && entry.symbol === "USDC"
+    ) ?? null
+  );
+}
+
+/**
+ * The USDC part a seeding answer declares: the same dollars as its G$ part, in
+ * USDC on the promise's chain, paid from the steward's wallet once it's kept.
+ * The two parts are balanced 1:1 in dollars at the G$ price read at Create.
+ * Undefined when the answer asks for no match, has no G$ part set in dollars, or
+ * the chain has no USDC to pay in.
+ */
+export function matchedUsdcLegs(
+  values: Pick<
+    CommitmentComposerValues,
+    "considerationRail" | "considerationUsd" | "rewardMatchedUsdc"
+  >,
+  chainId: number
+): CommitmentRewardLegRecord[] | undefined {
+  if (!values.rewardMatchedUsdc || values.considerationRail !== "CELO_SETTLEMENT") return undefined;
+  const cents =
+    values.considerationUsd === undefined ? null : parseUsdCents(values.considerationUsd);
+  const token = rewardUsdcToken(chainId);
+  if (cents === null || cents <= 0n || !token || token.decimals < 2) return undefined;
+  return [
+    {
+      version: COMMITMENT_REWARD_LEG_VERSION,
+      chainId,
+      token: token.address.toLowerCase(),
+      amount: (cents * 10n ** BigInt(token.decimals - 2)).toString(),
+      usdCents: cents.toString(),
+    },
+  ];
 }

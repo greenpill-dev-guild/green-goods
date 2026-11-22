@@ -1,0 +1,192 @@
+/**
+ * Paying a promise's wallet-paid shares
+ *
+ * A steward pays the shares of a reward part, USDC for the pilot, from their own
+ * wallet through the reward payer (PRD-1556). Before anything is asked, the read
+ * has to show that no share is paid yet and that the wallet holds the whole
+ * amount: the payer refuses a paid share, and the token refuses an amount the
+ * wallet doesn't hold, so either would only cost a signature. Then it is one
+ * approval for exactly the total, skipped when the allowance already covers it,
+ * and one call that pays every share or none.
+ *
+ * These go as two sends. A passkey can join them into one only once its rail is
+ * listed in `batch-enablement`, which needs a live batch first.
+ *
+ * @module modules/commitment-pooling/reward-pay-send
+ */
+
+import { readContract } from "@wagmi/core";
+import type { Abi, Hex } from "viem";
+import { getWagmiConfig } from "../../config/appkit";
+import type { Address } from "../../types/domain";
+import { ERC20_ALLOWANCE_ABI, ERC20_BALANCE_ABI } from "../../utils/blockchain/abis/erc20";
+import { isZeroAddress } from "../../utils/blockchain/address";
+import type { ContractCall, TransactionSender } from "../transactions/types";
+import { missOfSend } from "./creation-send";
+import { REWARD_PAYER_ABI, type RewardPayerShare, rewardPayerShareId } from "./reward-payer";
+import type { SeedCopyMiss } from "./seed-sets";
+
+/** How a payment reads the payout chain. */
+export interface RewardPayChain {
+  allowance(token: Address, owner: Address, spender: Address): Promise<bigint>;
+  balance(token: Address, owner: Address): Promise<bigint>;
+  /** Who paid a share; the zero address while it is unpaid. */
+  paidBy(payer: Address, shareId: Hex): Promise<Address>;
+}
+
+/** The payout chain as the app's wallet configuration reads it. */
+export function createRewardPayChain(chainId: number): RewardPayChain {
+  const read = <T>(request: {
+    address: Address;
+    abi: Abi;
+    functionName: string;
+    args: unknown[];
+  }) => readContract(getWagmiConfig(), { ...request, chainId }) as Promise<T>;
+  return {
+    allowance: (token, owner, spender) =>
+      read<bigint>({
+        address: token,
+        abi: ERC20_ALLOWANCE_ABI as unknown as Abi,
+        functionName: "allowance",
+        args: [owner, spender],
+      }),
+    balance: (token, owner) =>
+      read<bigint>({
+        address: token,
+        abi: ERC20_BALANCE_ABI as unknown as Abi,
+        functionName: "balanceOf",
+        args: [owner],
+      }),
+    paidBy: (payer, shareId) =>
+      read<Address>({
+        address: payer,
+        abi: REWARD_PAYER_ABI as unknown as Abi,
+        functionName: "paidBy",
+        args: [shareId],
+      }),
+  };
+}
+
+/** Why a payment wasn't asked for, read before any signature. */
+export type RewardPayRefusal =
+  | "no-shares"
+  | "mixed-tokens"
+  | "already-paid"
+  | "insufficient-balance";
+
+export type RewardPayStep = "approving" | "paying" | "confirming";
+
+export type RewardPayOutcome =
+  | { status: "paid"; transactionHash: Hex; shareIds: Hex[] }
+  /** The wallet took it but nobody can confirm it ran: it may still pay. */
+  | { status: "unconfirmed"; transactionHash: Hex; shareIds: Hex[] }
+  | { status: "refused-before-asking"; refusal: RewardPayRefusal }
+  /** The approval or the payment didn't go through; an approval that did is harmless. */
+  | { status: "not-paid"; miss: SeedCopyMiss; approved: boolean };
+
+const payAllCall = (payer: Address, shares: readonly RewardPayerShare[], chainId: number) =>
+  ({
+    address: payer,
+    abi: REWARD_PAYER_ABI as unknown as Abi,
+    functionName: "payAll",
+    args: [
+      shares.map((share) => ({
+        promiseChainId: BigInt(share.promiseChainId),
+        promiseModule: share.promiseModule,
+        commitmentId: share.commitmentId,
+        token: share.token,
+        recipient: share.recipient,
+        amount: share.amount,
+      })),
+    ],
+    chainId,
+  }) satisfies ContractCall;
+
+/**
+ * Whether these shares can be paid from `account` now, read before asking; null when they can.
+ * Every share must be in one token, unpaid, and the wallet must hold their total.
+ */
+export async function rewardPayRefusal(input: {
+  chain: RewardPayChain;
+  payer: Address;
+  account: Address;
+  shares: readonly RewardPayerShare[];
+}): Promise<RewardPayRefusal | null> {
+  const { chain, payer, account, shares } = input;
+  const [first] = shares;
+  if (!first) return "no-shares";
+  const token = first.token.toLowerCase();
+  if (shares.some((share) => share.token.toLowerCase() !== token)) return "mixed-tokens";
+  const paid = await Promise.all(
+    shares.map((share) => chain.paidBy(payer, rewardPayerShareId(share)))
+  );
+  if (paid.some((who) => !isZeroAddress(who))) return "already-paid";
+  const total = shares.reduce((sum, share) => sum + share.amount, 0n);
+  return (await chain.balance(first.token, account)) < total ? "insufficient-balance" : null;
+}
+
+export async function sendRewardSharePayment(input: {
+  sender: TransactionSender;
+  chain: RewardPayChain;
+  chainId: number;
+  payer: Address;
+  account: Address;
+  shares: readonly RewardPayerShare[];
+  /** Told as the payment moves. Report-only. */
+  onStep?: (step: RewardPayStep) => void;
+}): Promise<RewardPayOutcome> {
+  const { sender, chain, chainId, payer, account, shares } = input;
+  const refusal = await rewardPayRefusal({ chain, payer, account, shares });
+  if (refusal) return { status: "refused-before-asking", refusal };
+  const token = (shares[0] as RewardPayerShare).token;
+  const total = shares.reduce((sum, share) => sum + share.amount, 0n);
+  const shareIds = shares.map(rewardPayerShareId);
+  const step = (next: RewardPayStep) => {
+    try {
+      input.onStep?.(next);
+    } catch {
+      // A progress report never decides a payment.
+    }
+  };
+
+  let approved = false;
+  if ((await chain.allowance(token, account, payer)) < total) {
+    step("approving");
+    let crossed = false;
+    try {
+      const approval = await sender.sendContractCall(
+        {
+          address: token,
+          account,
+          abi: ERC20_ALLOWANCE_ABI as unknown as Abi,
+          functionName: "approve",
+          args: [payer, total],
+          chainId,
+        },
+        { onBeforeBroadcast: async () => void (crossed = true) }
+      );
+      // An approval nobody can confirm leaves the payment to wait for it.
+      if (approval.confirmation === "pending") {
+        return { status: "not-paid", miss: "failed", approved: false };
+      }
+      approved = true;
+    } catch (error) {
+      return { status: "not-paid", miss: missOfSend(error, !crossed), approved: false };
+    }
+  }
+
+  step("paying");
+  let crossed = false;
+  try {
+    const payment = await sender.sendContractCall(payAllCall(payer, shares, chainId), {
+      onBeforeBroadcast: async () => void (crossed = true),
+      onBroadcast: async () => step("confirming"),
+    });
+    const transactionHash = payment.hash as Hex;
+    return payment.confirmation === "pending"
+      ? { status: "unconfirmed", transactionHash, shareIds }
+      : { status: "paid", transactionHash, shareIds };
+  } catch (error) {
+    return { status: "not-paid", miss: missOfSend(error, !crossed), approved };
+  }
+}

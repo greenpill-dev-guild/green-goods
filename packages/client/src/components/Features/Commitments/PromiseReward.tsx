@@ -1,5 +1,9 @@
 import { FactRow } from "@green-goods/shared/components/Cards/FactRow";
-import { promiseRewardLegsOf, type RewardLeg } from "@green-goods/shared/commitment-pooling";
+import {
+  promiseRewardLegsOf,
+  type RewardLeg,
+  useRewardSharesPaidTo,
+} from "@green-goods/shared/commitment-pooling";
 import { displayBucketOf } from "@green-goods/shared/modules/commitment-pooling/display-groups";
 import type { CommitmentMetadataV1 } from "@green-goods/shared/modules/commitment-pooling/metadata";
 import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment-pooling/types-core";
@@ -8,6 +12,9 @@ import {
   goodDollarWeiToUsdCents,
 } from "@green-goods/shared/modules/wallet/good-dollar-price";
 import { formatUsdCents } from "@green-goods/shared/utils/blockchain/price-feeds";
+import type { Address } from "@green-goods/shared/types/domain";
+import { getBlockExplorer } from "@green-goods/shared/utils/blockchain/chain-registry";
+import { getChain } from "@green-goods/shared/utils/blockchain/contracts";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import { RiCoinsLine } from "@remixicon/react";
 import { type IntlShape, useIntl } from "react-intl";
@@ -261,5 +268,102 @@ export function PromiseRewardRow({ text }: { text: string }) {
       label={formatMessage({ id: "app.commitment.reward.label" })}
       value={text}
     />
+  );
+}
+
+const PART_MESSAGE_ID = {
+  afterKept: "app.commitment.reward.part.afterKept",
+  notPaidYet: "app.commitment.reward.part.notPaidYet",
+  paid: "app.commitment.reward.part.paid",
+} as const;
+
+/**
+ * Each part of a reward paid in more than one token, as its own row: the token,
+ * the network it is paid on, and where it stands (PRD-1556). A part the reward
+ * payer has paid to the reader links to its transaction. The G$ part's payout
+ * is shown by the wallet's settlement receipts, so its row names the amount and
+ * network only.
+ */
+export function PromiseRewardParts({
+  reward,
+  commitmentId,
+  viewer,
+  payout,
+}: {
+  reward: PromiseReward;
+  commitmentId: bigint;
+  viewer: Address | null;
+  payout: RewardPayout;
+}) {
+  const intl = useIntl();
+  const { formatMessage, locale } = intl;
+  const [first] = reward.others ?? [];
+  const receipts = useRewardSharesPaidTo({
+    chainId: first?.chainId ?? 0,
+    commitmentId,
+    recipient: viewer,
+    enabled: Boolean(first) && payout !== "afterKept",
+  });
+  if (!first) return null;
+  const network = (chainId: number) => getChain(chainId)?.name ?? String(chainId);
+  return (
+    <>
+      {reward.wei > 0n ? (
+        <FactRow
+          data-component="PromiseRewardPart"
+          icon={<RiCoinsLine />}
+          label={formatMessage({ id: "app.commitment.reward.part.label" }, { symbol: "G$" })}
+          value={formatMessage(
+            { id: "app.commitment.reward.part.goodDollars" },
+            {
+              amount: tokensAmountText(intl, { wei: reward.wei, centsAsSet: null }),
+              network: network(42220),
+            }
+          )}
+        />
+      ) : null}
+      {(reward.others ?? []).map((leg) => {
+        const paid = receipts.data?.find(
+          (receipt) => receipt.token.toLowerCase() === leg.token.toLowerCase()
+        );
+        const state = paid ? "paid" : payout === "afterKept" ? "afterKept" : "notPaidYet";
+        return (
+          <FactRow
+            key={`${leg.chainId}:${leg.token}`}
+            data-component="PromiseRewardPart"
+            icon={<RiCoinsLine />}
+            label={formatMessage(
+              { id: "app.commitment.reward.part.label" },
+              { symbol: leg.symbol }
+            )}
+            value={formatMessage(
+              { id: PART_MESSAGE_ID[state] },
+              {
+                amount: formatMessage(
+                  { id: "app.commitment.reward.tokenAmount" },
+                  {
+                    amount: formatTokenAmount(leg.amount, leg.decimals, 2, locale),
+                    symbol: leg.symbol,
+                  }
+                ),
+                network: network(leg.chainId),
+              }
+            )}
+            action={
+              paid ? (
+                <a
+                  className="type-label text-primary-base underline"
+                  href={`${getBlockExplorer(leg.chainId)}/tx/${paid.transactionHash}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {formatMessage({ id: "app.commitment.reward.part.viewTransaction" })}
+                </a>
+              ) : undefined
+            }
+          />
+        );
+      })}
+    </>
   );
 }
