@@ -78,8 +78,23 @@ const BOOT_COPY: Record<
   },
 };
 
-/** The language chosen in the app, when storage can be read. */
+/**
+ * The language chosen on any Green Goods site, when it can be read: the `gg-language` cookie on
+ * the shared domain first, as Shared's `readStoredLanguage` reads it (PRD-1493), so a choice made
+ * in the App opens the Hub's sign-in in it, else this site's own storage.
+ */
 function storedLanguage(): string | null {
+  try {
+    for (const part of document.cookie.split(";")) {
+      const [name, ...value] = part.trim().split("=");
+      if (name === "gg-language" && value.length > 0) {
+        const shared = decodeURIComponent(value.join("="));
+        if (shared) return shared;
+      }
+    }
+  } catch {
+    // Cookies can be blocked; this site's own choice still applies.
+  }
   try {
     return window.localStorage.getItem("gg-language");
   } catch {

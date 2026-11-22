@@ -80,6 +80,32 @@ function canFinishCreation(job: Job): boolean {
   );
 }
 
+/**
+ * Each group's copies queued on this device and still sendable, under the queue's key so whatever
+ * refreshes the queue refreshes this read. The group row counts them, and a copy's own inspector
+ * leaves its terms to the group while any wait (PRD-1548).
+ */
+export function useQueuedGroupCopies(input: {
+  chainId: number;
+  owner: Address | null;
+}): ReadonlyMap<string, readonly string[]> {
+  const { chainId, owner } = input;
+  const waitingQuery = useQuery({
+    queryKey: commitmentPoolingKeys.queuedGroupCopies(owner, chainId),
+    enabled: Boolean(owner),
+    queryFn: async () =>
+      waitingCopiesByGroup(
+        (await jobQueue.getJobs(owner as string, { kind: "commitment", synced: false })).filter(
+          canFinishCreation
+        ),
+        chainId
+      ),
+    staleTime: Number.POSITIVE_INFINITY,
+    refetchOnWindowFocus: "always",
+  });
+  return waitingQuery.data ?? NOTHING_WAITING;
+}
+
 export interface FinishCreatingController {
   /** Each group's copies still waiting in the steward's queue on this chain, by job id. */
   waiting: ReadonlyMap<string, readonly string[]>;
@@ -101,20 +127,7 @@ export function useFinishCreating(input: {
   const [sendingGroupId, setSendingGroupId] = useState<string | null>(null);
   const [copies, setCopies] = useState<readonly SeedCopyProgress[] | null>(null);
   const [pastCeilings, setPastCeilings] = useState(false);
-  // Under the queue's key: whatever refreshes the queue refreshes this read.
-  const waitingQuery = useQuery({
-    queryKey: commitmentPoolingKeys.queuedGroupCopies(owner, chainId),
-    enabled: Boolean(owner),
-    queryFn: async () =>
-      waitingCopiesByGroup(
-        (await jobQueue.getJobs(owner as string, { kind: "commitment", synced: false })).filter(
-          canFinishCreation
-        ),
-        chainId
-      ),
-    staleTime: Number.POSITIVE_INFINITY,
-    refetchOnWindowFocus: "always",
-  });
+  const waiting = useQueuedGroupCopies({ chainId, owner });
 
   const finish = useCallback<FinishCreatingController["finish"]>(
     async (displayGroupId) => {
@@ -189,5 +202,5 @@ export function useFinishCreating(input: {
     [owner, sender, chainId, queryClient, pastCeilings]
   );
 
-  return { waiting: waitingQuery.data ?? NOTHING_WAITING, sendingGroupId, copies, finish };
+  return { waiting, sendingGroupId, copies, finish };
 }
