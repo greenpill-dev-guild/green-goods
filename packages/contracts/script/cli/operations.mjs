@@ -35,8 +35,13 @@ for (const target of words('action-registry garden-token yield-resolver gardens-
 }
 add('verify', 'script/utils/post-deploy-verify.ts', { flags: words('check-etherscan check-indexer-runtime check-steward-upgrade skip-indexer skip-indexer-runtime skip-local-indexer-start start-local-indexer stop-local-indexer-after-check no-octant no-cookiejar ack-product-copy require-product-copy'), values: words('rpc-url chain-id community-slug expected-hats-implementation indexer-poll-seconds indexer-timeout-seconds indexer-url steward-baseline steward-probe-account'), repeatable: ['steward-probe-account'] });
 add('verify arbitrum-fork', 'script/verify-arbitrum-fork.ts', { networks: ['arbitrum'], forwardNetwork: false });
-add('deploy single-attestation-policy', 'script/deploy/single-attestation-policy.ts', { prefix: ['deploy'], networks: ['localhost', 'sepolia', 'arbitrum'], modes: { preflight: ['--preflight'], plan: ['--plan-only'], simulate: ['--simulate'], broadcast: ['--broadcast'] }, values: words('sender expected-nonce plan'), safeguards: ['production bytecode and reviewed commit/nonce/CREATE-address binding', 'keystore signing only in broadcast', 'exclusive pending broadcast journal; reconcile instead of rebroadcast', 'Sepolia gate and exact RPC receipt/runtime verification', 'standalone deployment artifact; reporting authority remains disabled'] });
-add('verify single-attestation-policy', 'script/deploy/single-attestation-policy.ts', { prefix: ['verify'], networks: ['localhost', 'sepolia', 'arbitrum'], flags: ['publish-source'], values: ['receipt'], effects: ['verify recorded deployment or reconcile pending receipt', 'persist only standalone verified policy artifact', 'with --publish-source, submit the verified source to the network explorer; no signer and no transaction'] });
+// Standalone contracts: a pinned CREATE plan, signer-free simulation, journaled broadcast and exact verification.
+const standaloneDeploy = () => ({ prefix: ['deploy'], networks: ['localhost', 'sepolia', 'arbitrum'], modes: { preflight: ['--preflight'], plan: ['--plan-only'], simulate: ['--simulate'], broadcast: ['--broadcast'] }, values: words('sender expected-nonce plan') });
+const standaloneVerify = () => ({ prefix: ['verify'], networks: ['localhost', 'sepolia', 'arbitrum'], flags: ['publish-source'], values: ['receipt'] });
+add('deploy single-attestation-policy', 'script/deploy/single-attestation-policy.ts', { ...standaloneDeploy(), standalone: 'policy', safeguards: ['production bytecode and reviewed commit/nonce/CREATE-address binding', 'keystore signing only in broadcast', 'exclusive pending broadcast journal; reconcile instead of rebroadcast', 'Sepolia gate and exact RPC receipt/runtime verification', 'standalone deployment artifact; reporting authority remains disabled'] });
+add('verify single-attestation-policy', 'script/deploy/single-attestation-policy.ts', { ...standaloneVerify(), standalone: 'policy', effects: ['verify recorded deployment or reconcile pending receipt', 'persist only standalone verified policy artifact', 'with --publish-source, submit the verified source to the network explorer; no signer and no transaction'] });
+add('deploy reward-payer', 'script/deploy/reward-payer.ts', { ...standaloneDeploy(), standalone: 'reward payer', safeguards: ['production bytecode and reviewed commit/nonce/CREATE-address binding', 'keystore signing only in a live broadcast; a localhost broadcast signs through the local node', 'exclusive pending broadcast journal; reconcile instead of rebroadcast', 'Sepolia gate and exact RPC receipt/runtime verification with a shareIdOf probe', 'standalone deployment artifact; no owner, roles or funds'] });
+add('verify reward-payer', 'script/deploy/reward-payer.ts', { ...standaloneVerify(), standalone: 'reward payer', effects: ['verify recorded deployment or reconcile pending receipt', 'persist the standalone verified artifact and promote rewardPayer into <chainId>-latest.json', 'with --publish-source, submit the verified source to the network explorer; no signer and no transaction'] });
 add('verify reporting-kernel', 'script/reporting-kernel-compatibility.ts', { networks: ['arbitrum'], modes: { simulate: ['--simulate'] }, effects: ['exercise the real Kernel and policies on an isolated Arbitrum fork', 'record compatibility evidence; no mainnet broadcast'] });
 add('status', 'script/deploy.ts', { prefix: ['status'], forwardNetwork: 'positional' });
 add('fork', 'script/deploy.ts', { prefix: ['fork'], forwardNetwork: 'positional' });
@@ -159,12 +164,13 @@ function parse(operation, args) {
   if (values.json && !values.explain) throw new Error('--json requires --explain');
   if (operation.command.startsWith('settlement garden-') && !operation.modes && !operation.command.endsWith('adopt') && (values.step || values.receipt)) throw new Error('Read-only settlement action cannot execute or recover a boundary');
   if (operation.command === 'deploy commitment-schemas' && values.mode === 'plan' && values['expected-nonce'] === undefined) throw new Error('Transaction planning requires --expected-nonce');
-  if (operation.command === 'deploy single-attestation-policy') {
-    if (values.mode === 'plan') for (const key of ['sender', 'expected-nonce']) if (values[key] === undefined) throw new Error(`Policy planning requires --${key}`);
-    if (values.mode === 'broadcast' && values['expected-nonce'] === undefined) throw new Error('Policy broadcast requires --expected-nonce');
-    if (values.mode === 'preflight' && ['sender', 'expected-nonce', 'plan'].some(key => values[key] !== undefined) || ['simulate', 'broadcast'].includes(values.mode) && values.sender !== undefined) throw new Error('Unexpected input for this policy operation');
+  if (operation.standalone && operation.command.startsWith('deploy ')) {
+    const Noun = `${operation.standalone[0].toUpperCase()}${operation.standalone.slice(1)}`;
+    if (values.mode === 'plan') for (const key of ['sender', 'expected-nonce']) if (values[key] === undefined) throw new Error(`${Noun} planning requires --${key}`);
+    if (values.mode === 'broadcast' && values['expected-nonce'] === undefined) throw new Error(`${Noun} broadcast requires --expected-nonce`);
+    if (values.mode === 'preflight' && ['sender', 'expected-nonce', 'plan'].some(key => values[key] !== undefined) || ['simulate', 'broadcast'].includes(values.mode) && values.sender !== undefined) throw new Error(`Unexpected input for this ${operation.standalone} operation`);
   }
-  if (operation.command === 'verify single-attestation-policy' && values['publish-source'] && values.network === 'localhost') throw new Error('Source publication needs a network with an explorer');
+  if (operation.standalone && operation.command.startsWith('verify ') && values['publish-source'] && values.network === 'localhost') throw new Error('Source publication needs a network with an explorer');
   if (['check-indexer-runtime', 'start-local-indexer'].some((key) => values[key]) && values['skip-indexer-runtime']) throw new Error('Conflicting indexer options');
   if (values['start-local-indexer'] && values['skip-local-indexer-start']) throw new Error('Conflicting local indexer options');
   if (operation.command === 'release recover' && values.mode === 'preflight' && values['save-artifacts']) throw new Error('Artifact recovery writes require live verification; omit preflight mode');
@@ -204,7 +210,7 @@ export function resolveCommand(input) {
   const isUpgrade = operation.handler === 'script/upgrade.ts';
   const target = operation.prefix[0];
   const checks = [];
-  if (operation.handler === 'script/deploy/single-attestation-policy.ts') {
+  if (operation.standalone) {
     env.FOUNDRY_KEYSTORE_ACCOUNT = 'green-goods-deployer';
     env.PINATA_JWT = ''; env.PINATA_GATEWAY = '';
   }
