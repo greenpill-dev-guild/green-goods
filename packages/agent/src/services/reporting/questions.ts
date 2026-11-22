@@ -25,7 +25,7 @@ interface ChoiceMeaning {
   words?: Partial<Record<AgentLocale, readonly string[]>>;
 }
 
-export interface FieldQuestion {
+interface FieldQuestion {
   /** The input type this question was written for. */
   type: WorkInput["type"];
   /** The question as the chat puts it; left out, the definition's title and hint ask it. */

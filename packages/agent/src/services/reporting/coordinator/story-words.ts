@@ -6,14 +6,14 @@
  * "watered" cannot. Words are matched folded (lower case, no accents or apostrophes) and with a
  * final "s" taken off, so each list is written as people write the words.
  */
-export const fold = (text: string) =>
+const fold = (text: string) =>
   text
     .normalize("NFD")
     .replace(/\p{M}+/gu, "")
     .toLowerCase()
     .replace(/['’]/gu, "");
 
-export const singular = (word: string) =>
+const singular = (word: string) =>
   word.length > 3 && word.endsWith("s") ? word.slice(0, -1) : word;
 
 /** A word as the reader compares it. */
