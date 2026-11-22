@@ -11,7 +11,12 @@
 import type { Job, WorkJobPayload } from "../../types/job-queue";
 import { commitmentJobPrerequisite, type WorkLinkJobPayload } from "../commitment-pooling/jobs";
 import { forgetWorkBroadcast, retainedWorkBroadcast } from "../work/work-confirmation";
-import type { JobQueueEvents, JobQueueExecutionClaims, JobQueueStore } from "./ports";
+import type {
+  JobQueueAnalytics,
+  JobQueueEvents,
+  JobQueueExecutionClaims,
+  JobQueueStore,
+} from "./ports";
 import { hasRecordedSend, hasRevertedWorkSend, JOB_DISCARDED } from "./queue-policy";
 import { isTakeUpOf, takeUpOf } from "./take-up-hold";
 
@@ -52,8 +57,15 @@ export function createJobRecovery(
   store: Pick<JobQueueStore, "getJob" | "amendJob" | "deleteJob"> &
     Partial<Pick<JobQueueStore, "getJobs" | "markJobTerminalFailed">>,
   events: Pick<JobQueueEvents, "emit">,
-  claims?: JobQueueExecutionClaims
+  claims?: JobQueueExecutionClaims,
+  analytics?: Pick<JobQueueAnalytics, "jobDiscarded">
 ) {
+  /** Every job a discard deletes says so, on the queue's events and in analytics. */
+  function thrownAway(job: Job, reason: "discarded" | "with-another") {
+    events.emit("job:failed", { jobId: job.id, job, error: JOB_DISCARDED });
+    analytics?.jobDiscarded(job, reason);
+  }
+
   /**
    * The chain one tap queued to take a promise up while logging work for it (decision 18).
    * Discarding its work takes its take-up too, while nothing of that was sent and no other
@@ -83,7 +95,7 @@ export function createJobRecovery(
         continue;
       }
       await store.deleteJob(link.id);
-      events.emit("job:failed", { jobId: link.id, job: link, error: JOB_DISCARDED });
+      thrownAway(link, "with-another");
     }
     for (const workId of held) {
       if (linkKept.has(workId)) continue;
@@ -91,6 +103,66 @@ export function createJobRecovery(
         if (work.synced) return;
         delete (work.payload as WorkJobPayload).dependentWorkLink;
       });
+    }
+  }
+
+  async function discardAs(
+    jobId: string,
+    reason: "discarded" | "with-another",
+    beforeDelete?: (job: Job) => Promise<void>
+  ): Promise<boolean> {
+    // A send holds the job's execution claim for its whole length, whoever
+    // started it: a tap, a background flush, or another tab. Taking the
+    // claim first makes the check and the delete one held act: a running
+    // send refuses the discard, and no send can start until it is done.
+    const hold = claims ? await claims.acquire(jobId) : null;
+    if (claims && !hold) return false;
+    try {
+      const job = await store.getJob(jobId);
+      if (!job || !isDiscardableJob(job)) return false;
+      // What the caller keeps beside the job goes first, inside the same
+      // hold. The job is what the person sees, so it goes last: a discard
+      // that stops here leaves that one record to discard again.
+      await beforeDelete?.(job);
+      await discardTakeUpChain(job, (id) => discardAs(id, "with-another"));
+      if (job.kind === "work" && store.getJobs && store.markJobTerminalFailed) {
+        const dependents = await store.getJobs({
+          userAddress: job.userAddress,
+          kind: "workLink",
+          synced: false,
+        });
+        for (const dependent of dependents) {
+          const payload = dependent.payload as WorkLinkJobPayload;
+          if ("sourceWorkJobId" in payload && payload.sourceWorkJobId === jobId) {
+            const error = "identity_conflict:source-work-terminal";
+            await store.markJobTerminalFailed(dependent.id, error);
+            events.emit("job:failed", { jobId: dependent.id, job: dependent, error });
+          }
+        }
+      }
+      // Add and Send's second act goes with its proof. It waited for the proof,
+      // so nothing of it was ever sent, and there is nothing left to send after.
+      if (job.kind === "evidence" && store.getJobs) {
+        const sends = await store.getJobs({
+          userAddress: job.userAddress,
+          kind: "confirmation",
+          synced: false,
+        });
+        for (const send of sends) {
+          if (
+            commitmentJobPrerequisite(send.kind, send.payload) === jobId &&
+            isDiscardableJob(send)
+          ) {
+            await store.deleteJob(send.id);
+            thrownAway(send, "with-another");
+          }
+        }
+      }
+      await store.deleteJob(jobId);
+      thrownAway(job, reason);
+      return true;
+    } finally {
+      await hold?.release();
     }
   }
 
@@ -130,60 +202,8 @@ export function createJobRecovery(
       if (retried) events.emit("job:added", { jobId, job: retried });
     },
 
-    async discardJob(jobId: string, beforeDelete?: (job: Job) => Promise<void>): Promise<boolean> {
-      // A send holds the job's execution claim for its whole length, whoever
-      // started it: a tap, a background flush, or another tab. Taking the
-      // claim first makes the check and the delete one held act: a running
-      // send refuses the discard, and no send can start until it is done.
-      const hold = claims ? await claims.acquire(jobId) : null;
-      if (claims && !hold) return false;
-      try {
-        const job = await store.getJob(jobId);
-        if (!job || !isDiscardableJob(job)) return false;
-        // What the caller keeps beside the job goes first, inside the same
-        // hold. The job is what the person sees, so it goes last: a discard
-        // that stops here leaves that one record to discard again.
-        await beforeDelete?.(job);
-        await discardTakeUpChain(job, (id) => recovery.discardJob(id));
-        if (job.kind === "work" && store.getJobs && store.markJobTerminalFailed) {
-          const dependents = await store.getJobs({
-            userAddress: job.userAddress,
-            kind: "workLink",
-            synced: false,
-          });
-          for (const dependent of dependents) {
-            const payload = dependent.payload as WorkLinkJobPayload;
-            if ("sourceWorkJobId" in payload && payload.sourceWorkJobId === jobId) {
-              const error = "identity_conflict:source-work-terminal";
-              await store.markJobTerminalFailed(dependent.id, error);
-              events.emit("job:failed", { jobId: dependent.id, job: dependent, error });
-            }
-          }
-        }
-        // Add and Send's second act goes with its proof. It waited for the proof,
-        // so nothing of it was ever sent, and there is nothing left to send after.
-        if (job.kind === "evidence" && store.getJobs) {
-          const sends = await store.getJobs({
-            userAddress: job.userAddress,
-            kind: "confirmation",
-            synced: false,
-          });
-          for (const send of sends) {
-            if (
-              commitmentJobPrerequisite(send.kind, send.payload) === jobId &&
-              isDiscardableJob(send)
-            ) {
-              await store.deleteJob(send.id);
-              events.emit("job:failed", { jobId: send.id, job: send, error: JOB_DISCARDED });
-            }
-          }
-        }
-        await store.deleteJob(jobId);
-        events.emit("job:failed", { jobId, job, error: JOB_DISCARDED });
-        return true;
-      } finally {
-        await hold?.release();
-      }
+    discardJob(jobId: string, beforeDelete?: (job: Job) => Promise<void>): Promise<boolean> {
+      return discardAs(jobId, "discarded", beforeDelete);
     },
   };
   return recovery;
