@@ -70,13 +70,20 @@ export const GARDEN_ROLE_ORDER: readonly GardenRole[] = [
 ] as const;
 
 /**
- * The sub-roles a repair may grant for a person, given their roles. An owner's grant gives Steward
- * and Gardener but never Evaluator (the PRD-1554 ruling), and a Steward grant mints Evaluator too,
- * so an owner may be given back only Gardener. A steward's own grant gives Evaluator and Gardener;
- * granting either has no cascade.
+ * The sub-roles a repair may grant for a person. An Owner grant gives Steward and Gardener but never
+ * Evaluator (the PRD-1554 ruling), and a Steward grant mints Evaluator too, so an owner may be given
+ * back only Gardener. Anyone whose Steward came from an Owner grant, a former owner included, is
+ * never offered Evaluator (PRD-979 ruling): a Steward granted directly before Owner already minted
+ * Evaluator, so any Owner grant on record settles it. Otherwise a steward's own grant gives
+ * Evaluator and Gardener; granting either has no cascade.
  */
-function repairableSubRoles(roles: readonly GardenRole[]): readonly GardenRole[] {
-  if (roles.includes("owner")) return ["gardener"];
+function repairableSubRoles(
+  roles: readonly GardenRole[],
+  grantedRoles: readonly GardenRole[]
+): readonly GardenRole[] {
+  if (roles.includes("owner") || (roles.includes("steward") && grantedRoles.includes("owner"))) {
+    return ["gardener"];
+  }
   if (roles.includes("steward")) return ["evaluator", "gardener"];
   return [];
 }
@@ -90,7 +97,7 @@ export function restorableSubRoles(
   roles: readonly GardenRole[],
   grantedRoles: readonly GardenRole[]
 ): GardenRole[] {
-  const repairable = repairableSubRoles(roles);
+  const repairable = repairableSubRoles(roles, grantedRoles);
   return GARDEN_ROLE_ORDER.filter(
     (role) => repairable.includes(role) && !roles.includes(role) && !grantedRoles.includes(role)
   );

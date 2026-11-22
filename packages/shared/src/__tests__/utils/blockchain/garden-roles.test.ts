@@ -89,6 +89,15 @@ describe("utils/blockchain/garden-roles restorableSubRoles", () => {
     ).toEqual([]);
   });
 
+  it("never offers Evaluator to a former owner whose Steward came from the Owner grant", () => {
+    // Owner revoked later; the Steward and Gardener the Owner grant gave remain.
+    expect(restorableSubRoles(["steward", "gardener"], ["owner", "steward", "gardener"])).toEqual(
+      []
+    );
+    // A former owner may still be given back a Gardener no grant minted.
+    expect(restorableSubRoles(["steward"], ["owner", "steward"])).toEqual(["gardener"]);
+  });
+
   it("never offers back a role removed moments ago, before its revocation is indexed", () => {
     // The roster already dropped Evaluator; the history still shows only its grant.
     expect(

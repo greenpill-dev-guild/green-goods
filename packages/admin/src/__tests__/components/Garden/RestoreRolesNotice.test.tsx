@@ -170,4 +170,19 @@ describe("RestoreRolesNotice", () => {
     expect(screen.getByRole("button", { name: "Restore Evaluator and Gardener" })).toBeEnabled();
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
+
+  it("offers a former owner whose Steward came from the Owner grant no Evaluator", () => {
+    render(
+      <RestoreRolesNotice
+        address={MEMBER}
+        roles={["steward", "gardener"]}
+        grantedRoles={["owner", "steward", "gardener"]}
+        check={vi.fn()}
+        restore={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByText(/Missing/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
 });
