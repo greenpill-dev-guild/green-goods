@@ -102,9 +102,10 @@ export function trackJobPermanentlyFailed(job: Job): void {
 }
 
 /**
- * A job thrown away unsent: the one a person discarded, or one that went with it. The kind, its
- * tries and the family of its last error say what was dropped and after what; nothing names the
- * job, what it holds, or whose it is (PRD-1478).
+ * A job thrown away unsent: the one a discard was called on (a person's tap, or the app rolling
+ * back an act that didn't go), or one that went with it. The kind, its tries and the family of its
+ * last error say what was dropped and after what; nothing names the job, what it holds, or whose
+ * it is (PRD-1478).
  */
 export function trackJobDiscarded(job: Job, reason: "discarded" | "with-another"): void {
   trackPrivateQueueEvent("offline_job_discarded", {

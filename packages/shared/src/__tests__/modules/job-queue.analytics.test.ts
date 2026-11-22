@@ -257,14 +257,18 @@ describe("job queue analytics privacy", () => {
       "discarded"
     );
 
-    const [event, properties] = analyticsMocks.track.mock.calls.at(-1)!;
+    const [event, properties, options] = analyticsMocks.track.mock.calls.at(-1)!;
     expect(event).toBe("offline_job_discarded");
+    expect(options).toEqual({ includeSessionId: false });
     expect(properties).toMatchObject({
       job_kind: "commitment",
       reason: "discarded",
       attempts: 1,
       chain_id: 42161,
     });
-    expect(JSON.stringify(properties)).not.toMatch(/job-secret|0x1111|a request/);
+    expect(JSON.stringify(properties)).not.toMatch(/job-secret|0x1111|a request|too long/);
+    expect(typeof (properties as { parsed_error_family?: unknown }).parsed_error_family).toBe(
+      "string"
+    );
   });
 });
