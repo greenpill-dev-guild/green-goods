@@ -25,16 +25,18 @@ import { GROUP_ACT_LABEL, type PromiseGroupBar, PromiseGroupPage } from "./Promi
 import { TakeUpOneSheet } from "./TakeUpOneSheet";
 
 /**
- * A group of voucher service offers is booked from a copy's own page, never taken up: the chain
- * refuses the ordinary take-up on a service offer (`ServiceClaimPathRequired`, PRD-1587). Until
- * the copies' service read can say, or when it failed, the act waits, since they may be.
+ * A group of service offers is booked from a copy's own page, never taken up: the chain refuses
+ * the ordinary take-up on a service offer (`ServiceClaimPathRequired`, PRD-1587). A request that
+ * only carries a voucher reward is still taken up, its reward agreed on the copy's page. Until
+ * the copy's service read can say, or when it failed, the act waits, since it may be an offer.
  */
 function groupBar(
   bar: PromiseGroupController["bar"],
-  service: ReturnType<typeof serviceReadOutcome>
+  service: ReturnType<typeof serviceReadOutcome>,
+  serviceOffer: boolean
 ): PromiseGroupBar | null {
   if (!bar || service === "ordinary") return bar;
-  if (service === "service") return { act: "book", hold: bar.hold };
+  if (service === "service") return serviceOffer ? { act: "book", hold: bar.hold } : bar;
   return { ...bar, hold: "unknown" };
 }
 
@@ -51,22 +53,23 @@ export function GardenPromiseGroup() {
     displayGroupId: groupId,
     copyId: search.get("copy"),
   });
-  // Every copy shares one set of terms, so one copy's service read speaks for the group.
+  // Terms are set on each copy, so the copy the act would choose, the one the chain checks, decides.
   const viewer = usePrimaryAddress();
-  const sampleId = controller.sample?.commitmentId ?? null;
+  const readId = controller.choice ?? controller.sample?.commitmentId ?? null;
   const serviceKey = useMemo(
     () =>
-      viewer && sampleId !== null
+      viewer && readId !== null
         ? {
             sourceChainId: DEFAULT_CHAIN_ID,
             coreModule: getNetworkContracts(DEFAULT_CHAIN_ID).commitmentPoolingModule,
-            commitmentId: sampleId,
+            commitmentId: readId,
             buyer: viewer,
           }
         : null,
-    [viewer, sampleId]
+    [viewer, readId]
   );
-  const service = serviceReadOutcome(useServiceAccess(serviceKey));
+  const serviceAccess = useServiceAccess(serviceKey);
+  const service = serviceReadOutcome(serviceAccess);
   const [sheetOpen, setSheetOpen] = useState(false);
   // On the protocol pool the person chooses who takes it up before the sheet.
   const [contextOpen, setContextOpen] = useState(false);
@@ -127,7 +130,7 @@ export function GardenPromiseGroup() {
     payout: open ? "afterKept" : "unstated",
   });
   const inFlight = takeUpState.step === "checking" || takeUpState.step === "sending";
-  const bar = groupBar(controller.bar, service);
+  const bar = groupBar(controller.bar, service, serviceAccess.data?.knownService === true);
   const closeSheet = () => {
     if (inFlight) return;
     setSheetOpen(false);
@@ -143,7 +146,10 @@ export function GardenPromiseGroup() {
         note={controller.metadata?.note ?? null}
         reward={reward}
         counts={controller.counts}
-        availabilityKnown={controller.availabilityKnown}
+        // A failed service read leaves unknown only whether the act can go, so only an act waits.
+        availabilityKnown={
+          controller.availabilityKnown && !(controller.bar && service === "failed")
+        }
         cap={controller.cap}
         yours={controller.yours}
         bar={bar}
@@ -159,7 +165,10 @@ export function GardenPromiseGroup() {
           ) : null
         }
         onBack={back}
-        onRefresh={controller.refresh}
+        onRefresh={() => {
+          controller.refresh();
+          void serviceAccess.refetch();
+        }}
         onRun={() => {
           if (bar?.act === "book") return openCopy(controller.choice ?? sample.commitmentId);
           if (controller.claimNeedsContext) return setContextOpen(true);

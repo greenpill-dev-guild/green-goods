@@ -117,7 +117,8 @@ export function PromiseGroupPage({
             isPending={isPending}
             isOnline={isOnline}
             blockedReasonId={
-              queueUnreadable
+              // Booking only opens a copy's page, so it queues nothing that could send twice.
+              queueUnreadable && bar.act !== "book"
                 ? "app.commitments.queueUnreadable"
                 : bar.hold
                   ? HOLD_REASON[bar.hold]
