@@ -2957,7 +2957,7 @@
   "app.home.attention.reviewUncounted": "Submissions to review",
   "app.home.attention.joinRequests": "{count, plural, one {# person asking to join} other {# people asking to join}}",
   "app.home.attention.joinRequestsDetail": "See who asked in Gardeners",
-  "app.home.attention.takeUp": "{count, plural, one {# asking to take up a promise} other {# asking to take up promises}}",
+  "app.home.attention.takeUp": "{count, plural, one {# person asking to take it up} other {# people asking to take it up}}",
   "app.home.attention.confirm": "{count, plural, one {# promise to confirm} other {# promises to confirm}}",
   "app.home.attention.error.title": "Couldn't load it all",
   "app.home.attention.error.detail": "Nothing was lost",

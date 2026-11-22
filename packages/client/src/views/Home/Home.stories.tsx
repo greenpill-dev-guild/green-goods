@@ -282,7 +282,7 @@ export const OfferOrAskOpen: Story = {
     await userEvent.click(await canvas.findByRole("button", { name: "Offer or Request" }));
     const sheet = within(await screen.findByRole("dialog", { name: "Offer or Request" }));
     await expect(sheet.getByRole("button", { name: /^Offer/ })).toBeVisible();
-    await expect(sheet.getByRole("button", { name: /^Ask/ })).toBeVisible();
+    await expect(sheet.getByRole("button", { name: /^Request/ })).toBeVisible();
   },
 };
 

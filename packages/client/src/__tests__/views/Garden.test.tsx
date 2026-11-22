@@ -577,7 +577,7 @@ describe("Garden (Work) View", () => {
     // A draft for a promise of the member's own: Review says nothing more.
     mockTakeUpPrompts = null;
     renderWithProviders();
-    expect(screen.queryByText(/takes up the ask/)).toBeNull();
+    expect(screen.queryByText(/takes up the request/)).toBeNull();
     expect(screen.getByRole("button", { name: "Upload Work" })).not.toHaveAccessibleDescription();
   });
 

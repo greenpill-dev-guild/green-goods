@@ -2957,7 +2957,7 @@
   "app.home.attention.reviewUncounted": "Envios para revisar",
   "app.home.attention.joinRequests": "{count, plural, one {# solicitação para entrar} other {# solicitações para entrar}}",
   "app.home.attention.joinRequestsDetail": "Veja quem solicitou em Jardineiros",
-  "app.home.attention.takeUp": "{count, plural, one {# solicitação para aceitar uma promessa} other {# solicitações para aceitar promessas}}",
+  "app.home.attention.takeUp": "{count, plural, one {# pessoa solicita aceitá-la} other {# pessoas solicitam aceitá-la}}",
   "app.home.attention.confirm": "{count, plural, one {# promessa a confirmar} other {# promessas a confirmar}}",
   "app.home.attention.error.title": "Nem tudo carregou",
   "app.home.attention.error.detail": "Nada foi perdido",

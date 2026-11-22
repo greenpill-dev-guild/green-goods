@@ -49,11 +49,34 @@ const TAKE_UP_JOIN_AND_BOOKING_PREFIXES = [
   "hub.garden.pool.target.",
   "hub.garden.pool.declineClaim.",
   "hub.garden.pool.commitment.event.claim",
+  "app.pool.group.sheet.",
+  "app.serviceAccess.",
+];
+
+/** Story fixtures that name a promise of the request kind, which keeps its word. */
+const KIND_FIXTURES = [
+  "app.serviceAccess.pilot.requestOnly",
+  "app.serviceAccess.pilot.requestWithMoney",
+];
+
+/** Lines that name the kind: Spanish and Portuguese keep pedido there, never solicitud. */
+const KIND_LINES = [
+  "app.commitments.filter.requests",
+  "app.commitments.row.request",
+  "app.commitments.direction.request",
+  "app.commitments.state.requested",
+  "app.voucher.rw.kind",
+  "app.voucher.rw.x.rec",
+  "hub.garden.pool.row.request",
+  "hub.garden.pool.row.state.requested",
+  "hub.garden.pool.promises.title",
+  "hub.garden.pool.setup.done.body",
 ];
 
 const isTakeUpOrJoin = (key: string) =>
-  TAKE_UP_JOIN_AND_BOOKING_PREFIXES.some((prefix) => key.startsWith(prefix)) ||
-  TAKE_UP_AND_JOIN_LINES.includes(key);
+  !KIND_FIXTURES.includes(key) &&
+  (TAKE_UP_JOIN_AND_BOOKING_PREFIXES.some((prefix) => key.startsWith(prefix)) ||
+    TAKE_UP_AND_JOIN_LINES.includes(key));
 
 const locales: Array<{ locale: string; messages: LocaleCatalog; retired: RegExp }> = [
   { locale: "en", messages: en, retired: /\brequest/i },
@@ -89,6 +112,20 @@ describe("taking a promise up and joining a garden are asked, not requested (DL-
     ]);
   });
 
+  it("keeps pedido for the kind in Spanish and Portuguese, never solicitud", () => {
+    const offenders = [
+      { locale: "es", messages: es as LocaleCatalog },
+      { locale: "pt", messages: pt as LocaleCatalog },
+    ].flatMap(({ locale, messages }) =>
+      KIND_LINES.filter((key) => /solicit/i.test(messages[key] ?? "")).map(
+        (key) => `${locale} ${key}: ${messages[key]}`
+      )
+    );
+
+    expect(KIND_LINES.every((key) => key in es && key in pt)).toBe(true);
+    expect(offenders).toEqual([]);
+  });
+
   it("calls the kinds Offer and Request in English, never an ask", () => {
     expect(
       [
@@ -106,6 +143,7 @@ describe("taking a promise up and joining a garden are asked, not requested (DL-
           (/\b(an|the|this|every|your|another|any) asks?\b/i.test(value) ||
             // "each asks for" is the verb; "each ask" can only be the noun.
             /\beach ask\b/i.test(value) ||
+            /\boffers? (and|or) asks?\b/i.test(value) ||
             /^Asks?(\s*[·:(]|$)/.test(value))
       )
       .map(([key, value]) => `${key}: ${value}`);
