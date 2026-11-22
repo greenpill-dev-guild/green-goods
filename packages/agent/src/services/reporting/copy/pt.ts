@@ -322,7 +322,7 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "review.resumeFirst":
     "Você tem uma revisão em andamento. Envie CANCEL para descartá-la ou continue com ela.",
   "review.askDecision":
-    "Você aprova ou rejeita “{title}” de {gardener}? Você pode dar sua confiança e seu comentário na mesma resposta.",
+    "Você aprova ou rejeita “{title}” de {gardener}? Você pode dar seu nível de confiança e seu comentário na mesma resposta.",
   "review.approve": "Aprovar",
   "review.reject": "Rejeitar",
   "review.askConfidence": "Qual é a sua confiança neste trabalho?",

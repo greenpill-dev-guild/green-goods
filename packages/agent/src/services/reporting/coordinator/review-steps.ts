@@ -111,6 +111,18 @@ function decisionFromText(text: string | null): "approve" | "reject" | null {
   return null;
 }
 
+/**
+ * A changed decision drops the feedback given for the other one, so a rejection is asked for its
+ * own reason and never shows the approval's praise as one.
+ */
+function decide(
+  content: ReviewRecord["content"],
+  decision: "approve" | "reject"
+): ReviewRecord["content"] {
+  const next = withDecision(content, decision);
+  return content.decision && content.decision !== decision ? { ...next, feedback: null } : next;
+}
+
 /** Applies an answer to the open review question; content changes become a new revision. */
 export function answerReviewPrompt(
   writer: TurnWriter,
@@ -136,10 +148,10 @@ export function answerReviewPrompt(
       decisionFromText(plan.text) ??
       read.decision;
     if (!decision) return nextReviewStep(writer, review, account.address);
-    content = withDecision(content, decision);
+    content = decide(content, decision);
   } else if (read.decision) {
     // A decision stated at a later question changes it: "Actually reject, the site is wrong."
-    content = withDecision(content, read.decision);
+    content = decide(content, read.decision);
   }
   if (prompt.kind === "review_confidence" || read.confidence !== undefined) {
     const level = read.confidence ?? Number(plan.option?.value ?? plan.text?.trim());
@@ -172,10 +184,12 @@ export function correctReview(writer: TurnWriter, review: ReviewRecord, text: st
   if (!account) return writer.say("review.none");
   const read = text ? readReviewAnswer(text, null) : {};
   let content = review.content;
-  if (read.decision) content = withDecision(content, read.decision);
+  if (read.decision) content = decide(content, read.decision);
   if (read.confidence !== undefined) content = withConfidence(content, read.confidence) ?? content;
   if (read.feedback !== undefined) content = withFeedback(content, read.feedback) ?? content;
-  if (content === review.content) return nextReviewStep(writer, review, account.address);
+  // Saying again what the summary shows changes nothing, so its code still confirms it.
+  if (JSON.stringify(content) === JSON.stringify(review.content))
+    return nextReviewStep(writer, review, account.address);
   applyReviewContent(writer, review, content, account.address);
 }
 
