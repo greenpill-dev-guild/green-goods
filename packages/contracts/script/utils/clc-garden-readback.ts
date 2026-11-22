@@ -180,7 +180,11 @@ export async function verifyCLCGardenPool(
       );
   }
 }
-/** Preserve the separately accepted one-approval TAS policy; never finalize its bootstrap here. */
+/**
+ * Require the approved live TAS policy: a locked guard that needs two signatures (absolute 0,2,2).
+ * Steward owners join and leave through the guard, so the owner count is read, not pinned.
+ * This never changes Safe configuration.
+ */
 export async function verifyCLCGardenAuthorities(provider: JsonRpcProvider, plan: CLCGardenPlan) {
   const result = [];
   for (const pool of Object.values(plan.pools)) {
@@ -197,7 +201,7 @@ export async function verifyCLCGardenAuthorities(provider: JsonRpcProvider, plan
     const threshold = Number(await safe.getThreshold());
     if (!owners.length || threshold < 1 || threshold > owners.length) throw new Error("Invalid pool Safe authority");
     if (pool.id === "tech-and-sun") {
-      equal(threshold, 1, "TAS one-approval policy");
+      equal(threshold, 2, "TAS two-signature policy");
       const gateAddress = storedAddress(await provider.getStorage(pool.owner, GUARD_SLOT));
       const gate = new Contract(
         gateAddress,
@@ -209,11 +213,11 @@ export async function verifyCLCGardenAuthorities(provider: JsonRpcProvider, plan
         provider,
       );
       equal(await gate.safe(), pool.owner, "TAS guard binding");
-      equal(await gate.locked(), false, "TAS bootstrap remains unfinalized");
+      equal(await gate.locked(), true, "TAS guard locked");
       const config = await gate.thresholdConfig();
       equal(config[0], 0, "TAS absolute threshold");
-      equal(config[1], 1, "TAS minimum");
-      equal(config[2], 1, "TAS target");
+      equal(config[1], 2, "TAS minimum");
+      equal(config[2], 2, "TAS target");
       const [modules, next] = await safe.getModulesPaginated("0x0000000000000000000000000000000000000001", 2);
       equal(modules.length, 1, "TAS sole module count");
       equal(modules[0], gateAddress, "TAS sole guard module");

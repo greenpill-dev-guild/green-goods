@@ -152,7 +152,7 @@ describe("adopted garden governance", () => {
       "function hasRole(bytes32,address) view returns(bool)",
       "function getMinDelay() view returns(uint256)",
     ]);
-    const state = { threshold: 1, locked: false, minimum: 1, safeRole: true };
+    const state = { threshold: 2, locked: true, minimum: 2, safeRole: true };
     const provider = {
       getStorage: async () => zeroPadValue(guard, 32),
       getCode: async () => "0x6000",
@@ -183,20 +183,27 @@ describe("adopted garden governance", () => {
     } as unknown as JsonRpcProvider;
     return { plan, provider, state };
   }
-  it("preserves the existing nonzero GG delay and selected TAS one-approval policy", async () => {
+  it("preserves the existing nonzero GG delay and the locked TAS two-signature policy", async () => {
     const f = authorityFixture();
     const result = await verifyCLCGardenAuthorities(f.provider, f.plan);
     expect(result.map((row) => [row.poolId, row.threshold, row.minDelay])).toEqual([
       ["green-goods", 2, "86400"],
-      ["tech-and-sun", 1, "0"],
+      ["tech-and-sun", 2, "0"],
     ]);
   });
-  it.each(["threshold", "locked", "minimum", "safe-role"])("rejects a changed %s policy", async (fault) => {
+  it.each([
+    "threshold",
+    "locked",
+    "minimum",
+    "safe-role",
+    "one-approval-bootstrap",
+  ])("rejects a changed %s policy", async (fault) => {
     const f = authorityFixture();
-    if (fault === "threshold") f.state.threshold = 2;
-    if (fault === "locked") f.state.locked = true;
-    if (fault === "minimum") f.state.minimum = 2;
+    if (fault === "threshold") f.state.threshold = 1;
+    if (fault === "locked") f.state.locked = false;
+    if (fault === "minimum") f.state.minimum = 1;
     if (fault === "safe-role") f.state.safeRole = false;
+    if (fault === "one-approval-bootstrap") Object.assign(f.state, { threshold: 1, locked: false, minimum: 1 });
     await expect(verifyCLCGardenAuthorities(f.provider, f.plan)).rejects.toThrow();
   });
 });
