@@ -1,8 +1,14 @@
+import { useServiceAccess } from "@green-goods/shared/commitment-pooling";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
 import { useGoodDollarPrice } from "@green-goods/shared/hooks/blockchain/useGoodDollarPrice";
-import { usePromiseGroupController } from "@green-goods/shared/hooks/client-ui/pool/usePromiseGroupController";
+import {
+  type PromiseGroupController,
+  usePromiseGroupController,
+} from "@green-goods/shared/hooks/client-ui/pool/usePromiseGroupController";
 import { formatCommitmentUnits } from "@green-goods/shared/i18n/commitmentUnits";
-import { useEffect, useState } from "react";
+import { getNetworkContracts } from "@green-goods/shared/utils/blockchain/contracts";
+import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
@@ -14,8 +20,23 @@ import {
 import { type ClaimContext, ClaimContextSheet } from "../Commitment/ClaimContextSheet";
 import { CommitmentDetailState } from "../Commitment/CommitmentDetailShell";
 import { JoinToAct, MembershipCheckFailed } from "../Commitment/JoinToAct";
-import { GROUP_ACT_LABEL, PromiseGroupPage } from "./PromiseGroupPage";
+import { serviceReadOutcome } from "../Commitment/serviceBooking";
+import { GROUP_ACT_LABEL, type PromiseGroupBar, PromiseGroupPage } from "./PromiseGroupPage";
 import { TakeUpOneSheet } from "./TakeUpOneSheet";
+
+/**
+ * A group of voucher service offers is booked from a copy's own page, never taken up: the chain
+ * refuses the ordinary take-up on a service offer (`ServiceClaimPathRequired`, PRD-1587). Until
+ * the copies' service read can say, or when it failed, the act waits, since they may be.
+ */
+function groupBar(
+  bar: PromiseGroupController["bar"],
+  service: ReturnType<typeof serviceReadOutcome>
+): PromiseGroupBar | null {
+  if (!bar || service === "ordinary") return bar;
+  if (service === "service") return { act: "book", hold: bar.hold };
+  return { ...bar, hold: "unknown" };
+}
 
 /** A group of promises, opened from its row on the Promises tab (PRD-1029 c2–c9). */
 export function GardenPromiseGroup() {
@@ -30,6 +51,22 @@ export function GardenPromiseGroup() {
     displayGroupId: groupId,
     copyId: search.get("copy"),
   });
+  // Every copy shares one set of terms, so one copy's service read speaks for the group.
+  const viewer = usePrimaryAddress();
+  const sampleId = controller.sample?.commitmentId ?? null;
+  const serviceKey = useMemo(
+    () =>
+      viewer && sampleId !== null
+        ? {
+            sourceChainId: DEFAULT_CHAIN_ID,
+            coreModule: getNetworkContracts(DEFAULT_CHAIN_ID).commitmentPoolingModule,
+            commitmentId: sampleId,
+            buyer: viewer,
+          }
+        : null,
+    [viewer, sampleId]
+  );
+  const service = serviceReadOutcome(useServiceAccess(serviceKey));
   const [sheetOpen, setSheetOpen] = useState(false);
   // On the protocol pool the person chooses who takes it up before the sheet.
   const [contextOpen, setContextOpen] = useState(false);
@@ -90,6 +127,7 @@ export function GardenPromiseGroup() {
     payout: open ? "afterKept" : "unstated",
   });
   const inFlight = takeUpState.step === "checking" || takeUpState.step === "sending";
+  const bar = groupBar(controller.bar, service);
   const closeSheet = () => {
     if (inFlight) return;
     setSheetOpen(false);
@@ -108,7 +146,7 @@ export function GardenPromiseGroup() {
         availabilityKnown={controller.availabilityKnown}
         cap={controller.cap}
         yours={controller.yours}
-        bar={controller.bar}
+        bar={bar}
         isPending={inFlight}
         isOnline={controller.isOnline}
         queueUnreadable={controller.queueUnreadable}
@@ -122,16 +160,20 @@ export function GardenPromiseGroup() {
         }
         onBack={back}
         onRefresh={controller.refresh}
-        onRun={() => (controller.claimNeedsContext ? setContextOpen(true) : setSheetOpen(true))}
+        onRun={() => {
+          if (bar?.act === "book") return openCopy(controller.choice ?? sample.commitmentId);
+          if (controller.claimNeedsContext) return setContextOpen(true);
+          setSheetOpen(true);
+        }}
         onOpenCopy={openCopy}
       />
-      {controller.bar && controller.claimNeedsContext ? (
+      {bar && bar.act !== "book" && controller.claimNeedsContext ? (
         <ClaimContextSheet
           open={contextOpen}
           onOpenChange={setContextOpen}
           memberGardens={controller.claimGardens.member}
           stewardedGardens={controller.claimGardens.stewarded}
-          approvalGated={controller.bar.act === "askToTakeUp"}
+          approvalGated={bar.act === "askToTakeUp"}
           isPending={false}
           continueLabel={formatMessage({ id: "app.common.continue" })}
           onContinue={(chosen) => {
@@ -141,12 +183,12 @@ export function GardenPromiseGroup() {
           }}
         />
       ) : null}
-      {controller.bar ? (
+      {bar && bar.act !== "book" ? (
         <TakeUpOneSheet
           open={sheetOpen}
           onClose={closeSheet}
-          approvalGated={controller.bar.act === "askToTakeUp"}
-          actLabelId={GROUP_ACT_LABEL[controller.bar.act]}
+          approvalGated={bar.act === "askToTakeUp"}
+          actLabelId={GROUP_ACT_LABEL[bar.act]}
           title={title}
           terms={[units, due].filter(Boolean).join(" · ") || null}
           reward={reward}

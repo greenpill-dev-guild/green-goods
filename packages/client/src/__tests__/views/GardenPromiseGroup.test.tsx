@@ -13,7 +13,7 @@
 import userEvent from "@testing-library/user-event";
 import type { PromiseGroupController } from "@green-goods/shared/hooks/client-ui/pool/usePromiseGroupController";
 import type { Address } from "@green-goods/shared/types/domain";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { storyGroup } from "../../components/Features/Commitments/promiseGroupStoryFixtures";
@@ -26,6 +26,23 @@ const SHE_STEWARDS = "0x6666666666666666666666666666666666666666" as Address;
 const mockController = vi.fn();
 vi.mock("@green-goods/shared/hooks/client-ui/pool/usePromiseGroupController", () => ({
   usePromiseGroupController: (input: unknown) => mockController(input),
+}));
+
+// The copies' service read: unread by default, so an ordinary group keeps its take-up.
+const serviceRead = vi.hoisted(() => ({
+  current: { data: undefined, isError: false, status: "pending", fetchStatus: "idle" } as {
+    data?: unknown;
+    isError: boolean;
+    status: string;
+    fetchStatus: string;
+  },
+}));
+vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling")>()),
+  useServiceAccess: () => serviceRead.current,
+}));
+vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
+  usePrimaryAddress: () => "0x7777777777777777777777777777777777777777",
 }));
 
 const start = vi.fn();
@@ -43,6 +60,7 @@ function controller(overrides: Partial<PromiseGroupController> = {}): PromiseGro
     availabilityKnown: true,
     yours: [],
     bar: { act: "takeUp", hold: null },
+    choice: null,
     cap: null,
     isMember: true,
     membershipUnavailable: false,
@@ -56,11 +74,16 @@ function controller(overrides: Partial<PromiseGroupController> = {}): PromiseGro
   };
 }
 
+function Location() {
+  return <p data-testid="location">{useLocation().pathname}</p>;
+}
+
 const render = (path = "/home/0xgarden/commitments/group/set-1") =>
   renderWithProviders(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route path="/home/:id/commitments/group/:groupId" element={<GardenPromiseGroup />} />
+        <Route path="/home/:id/commitments/:commitmentId" element={<Location />} />
       </Routes>
     </MemoryRouter>
   );
@@ -68,6 +91,12 @@ const render = (path = "/home/0xgarden/commitments/group/set-1") =>
 describe("GardenPromiseGroup", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    serviceRead.current = {
+      data: undefined,
+      isError: false,
+      status: "pending",
+      fetchStatus: "idle",
+    };
   });
 
   it("opens the take-up sheet straight away on a garden pool", async () => {
@@ -208,6 +237,40 @@ describe("GardenPromiseGroup", () => {
 
     const asks = screen.getByRole("region", { name: "What each one asks" });
     expect(within(asks).getByText("$20.00")).toBeInTheDocument();
+  });
+
+  // PRD-1587: Take Up One on a group of voucher service offers queued an ordinary take-up, which
+  // the chain refuses on a service offer (ServiceClaimPathRequired), five times over. A service
+  // offer is booked from a copy's own page.
+  it("books a group of voucher offers from a copy's page, never through an ordinary take-up", async () => {
+    serviceRead.current = {
+      data: { knownService: true, acceptancePolicy: { blockGenericMemberAcceptance: true } },
+      isError: false,
+      status: "success",
+      fetchStatus: "idle",
+    };
+    const { group } = storyGroup({ available: 4, inProgress: 3, kept: 3 });
+    const pick = group.children[1]!.commitmentId;
+    mockController.mockReturnValue(controller({ choice: pick }));
+    const user = userEvent.setup();
+    render();
+
+    expect(screen.queryByRole("button", { name: "Take Up One" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Book One" }));
+
+    expect(start).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      `/home/0xgarden/commitments/${pick.toString()}`
+    );
+  });
+
+  it("holds the act while it can't tell whether the copies are voucher offers", () => {
+    serviceRead.current = { data: undefined, isError: true, status: "error", fetchStatus: "idle" };
+    mockController.mockReturnValue(controller());
+    render();
+
+    expect(screen.getByRole("button", { name: "Take Up One" })).toBeDisabled();
   });
 
   it("passes the copy a link names, so a reload finds the same group", () => {
