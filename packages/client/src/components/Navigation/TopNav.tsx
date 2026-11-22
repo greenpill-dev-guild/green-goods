@@ -4,6 +4,7 @@ import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiArrowLeftFill, RiBankLine, RiGovernmentLine, RiShareLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { type PwaStatusTone, pwaStatusStyles } from "@/components/Pwa/statusStyles";
+import { AccountChip } from "./AccountChip";
 
 type TopNavProps = {
   onBackClick?: (e: React.SyntheticEvent<HTMLButtonElement>) => void;
@@ -141,6 +142,9 @@ export const TopNav: React.FC<TopNavProps> = ({
       {/* A garden's page actions stack at the end. */}
       <div className="flex grow" />
       <div className="flex flex-col items-end gap-2 z-1">
+        {/* Who is signed in, on every bar but the garden page's, whose own actions stack here
+            and which sends nothing. */}
+        {garden ? null : <AccountChip besideTracker={children !== undefined} />}
         {/* No bell here: Home's bell carries the garden's events and Needs Your Attention what
             waits on a steward (DL-130), so a second count of pending work would disagree. */}
         {garden && showGovernanceButton && onGovernanceClick && (

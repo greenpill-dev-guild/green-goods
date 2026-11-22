@@ -568,7 +568,8 @@ describe("Login View - Existing User (entry screen)", () => {
     await user.type(screen.getByTestId("username-input"), "synceduser");
     await user.click(screen.getByTestId("primary-button"));
 
-    expect(mockLoginWithPasskey).toHaveBeenCalledWith("synceduser", { createIfMissing: true });
+    // An account is already saved on this phone, so a name it doesn't hold is a sign-in only.
+    expect(mockLoginWithPasskey).toHaveBeenCalledWith("synceduser");
     expect(await screen.findByTestId("error-message")).toHaveTextContent(/no passkey found/i);
     expect(screen.queryByTestId("secondary-button")).not.toBeInTheDocument();
     expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Back");

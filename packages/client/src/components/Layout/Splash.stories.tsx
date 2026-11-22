@@ -406,6 +406,23 @@ export const UsernameNotFound: Story = {
   args: { ...recoverFormArgs, errorMessage: COPY.err.noPasskey },
 };
 
+/**
+ * The typed name belongs to nobody while another account is saved on this phone: a typo must not
+ * quietly become a second account, so the person says it is a new one or goes back to the name.
+ */
+const confirmNewAccountArgs: SplashStoryArgs = {
+  login: () => {},
+  buttonLabel: "Create New Account",
+  infoMessage:
+    "No account is named marja. The account maria is saved on this phone. Create a new account named marja?",
+  tertiaryAction: { label: "Check the Name", onClick: () => {} },
+};
+
+export const ConfirmNewAccount: Story = {
+  name: "Auth · Ask before a new account (shared phone)",
+  args: confirmNewAccountArgs,
+};
+
 export const ServerUnavailable: Story = {
   name: "Auth · Error · passkey server unavailable",
   args: { ...recoverFormArgs, errorMessage: COPY.err.network },
@@ -449,6 +466,7 @@ const CATALOG: ReadonlyArray<{ label: string; args: SplashStoryArgs }> = [
   { label: "Username · new name", args: createFormArgs },
   { label: "Username · existing name", args: recoverFormArgs },
   { label: "Error · not found", args: { ...recoverFormArgs, errorMessage: COPY.err.noPasskey } },
+  { label: "Ask · new account on a shared phone", args: confirmNewAccountArgs },
   {
     label: "Error · server unavailable",
     args: { ...recoverFormArgs, errorMessage: COPY.err.network },

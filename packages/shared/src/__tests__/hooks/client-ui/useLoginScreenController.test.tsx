@@ -13,6 +13,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { toastService } from "../../../components/Toast/toast.service";
 import { useLoginScreenController } from "../../../hooks/client-ui/auth/useLoginScreenController";
 import enMessages from "../../../i18n/en.json";
+import { setStoredUsername } from "../../../modules/auth/session";
+import { PasskeyNotFoundError } from "../../../workflows/auth-passkey-errors";
 
 const auth = vi.hoisted(() => ({
   current: {} as Record<string, unknown>,
@@ -50,6 +52,7 @@ function renderController(entry: string | { pathname: string; state?: unknown } 
 }
 
 beforeEach(() => {
+  localStorage.clear();
   auth.serverEnabled = true;
   auth.current = {
     isAuthenticated: false,
@@ -166,6 +169,71 @@ describe("useLoginScreenController", () => {
     rerender();
 
     expect(show).not.toHaveBeenCalled();
+  });
+
+  describe("on a phone that already has an account saved", () => {
+    beforeEach(() => {
+      setStoredUsername("maria");
+      auth.current = { ...auth.current, hasStoredCredential: true };
+    });
+
+    it("asks before a name nobody holds becomes a second account, then creates it on a yes", async () => {
+      const { result, rerender } = renderController();
+
+      act(() => result.current.setUsername("marja"));
+      await act(async () => result.current.continueWithUsername());
+      // A sign-in only: nothing is created while the name might be a typo.
+      expect(auth.current.loginWithPasskey).toHaveBeenCalledExactlyOnceWith("marja");
+      auth.current = { ...auth.current, error: new PasskeyNotFoundError("name") };
+      rerender();
+
+      expect(result.current.screen).toBe("confirmNewAccount");
+      expect(result.current.loginError).toBeNull();
+      expect(result.current.savedAccountName).toBe("maria");
+      expect(auth.current.createAccount).not.toHaveBeenCalled();
+
+      await act(async () => result.current.createNamedAccount());
+      expect(auth.current.loginWithPasskey).toHaveBeenLastCalledWith("marja", {
+        createIfMissing: true,
+      });
+    });
+
+    it("signs the saved name in without asking, however it was typed", async () => {
+      const { result } = renderController();
+
+      act(() => result.current.setUsername("@Maria "));
+      await act(async () => result.current.continueWithUsername());
+
+      expect(auth.current.loginWithPasskey).toHaveBeenCalledExactlyOnceWith("@Maria", {
+        createIfMissing: true,
+      });
+      expect(result.current.screen).not.toBe("confirmNewAccount");
+    });
+
+    it("shows any other sign-in failure as an error instead of offering a new account", async () => {
+      const { result, rerender } = renderController();
+
+      act(() => result.current.setUsername("marja"));
+      await act(async () => result.current.continueWithUsername());
+      auth.current = { ...auth.current, error: new Error("The directory did not answer.") };
+      rerender();
+
+      expect(result.current.screen).not.toBe("confirmNewAccount");
+      expect(result.current.loginError).toBeTruthy();
+    });
+
+    it("asks before the ceremony when there is no directory to look the name up in", async () => {
+      auth.serverEnabled = false;
+      const { result } = renderController();
+
+      act(() => result.current.setUsername("marja"));
+      await act(async () => result.current.continueWithUsername());
+      expect(result.current.screen).toBe("confirmNewAccount");
+      expect(auth.current.createAccount).not.toHaveBeenCalled();
+
+      await act(async () => result.current.createNamedAccount());
+      expect(auth.current.createAccount).toHaveBeenCalledExactlyOnceWith("marja");
+    });
   });
 
   it.each([
