@@ -101,6 +101,10 @@ export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceConte
             enabled={
               Boolean(workspace.community) && (workspace.pools.length > 0 || workspace.poolsUnread)
             }
+            // With governance on, the coordination tab already offers this retry.
+            onRereadPools={
+              !GOVERNANCE_ENABLED && workspace.poolsUnread ? workspace.rereadPools : undefined
+            }
           />
         }
         chainId={workspace.garden.chainId}
