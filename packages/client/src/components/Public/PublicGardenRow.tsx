@@ -1,4 +1,6 @@
+import { isPublicPassportPublished } from "@green-goods/shared/commitment-pooling/public";
 import { ENDOWMENT_DEPOSITS_ENABLED } from "@green-goods/shared/config/app";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import type { PublicGardenSummary } from "@green-goods/shared/hooks/public/usePublicGardens";
 import type {
@@ -9,7 +11,12 @@ import type { PublicFundingIntentKind } from "@green-goods/shared/public-contrac
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { ImageWithFallback } from "@/components/Display/Image/ImageWithFallback";
-import { EditorialGhostButton, EditorialMetaRow, EditorialPrimaryButton } from "./atoms";
+import {
+  EditorialGhostButton,
+  EditorialLinkArrow,
+  EditorialMetaRow,
+  EditorialPrimaryButton,
+} from "./atoms";
 import { GardenCoverFallback } from "./GardenCoverFallback";
 import { PublicGardenMeta } from "./PublicGardenMeta";
 import { getPublicGardenDescription } from "@/content/publicGardenNarrative";
@@ -145,6 +152,14 @@ export function PublicGardenRow({
             </EditorialGhostButton>
           )}
         </div>
+        {/* A funder choosing a garden can read its record first, where one is published. */}
+        {isPublicPassportPublished(DEFAULT_CHAIN_ID, garden.address) ? (
+          <div className="flex min-h-11 basis-full items-center">
+            <EditorialLinkArrow to={`/gardens/${garden.address}/passport`}>
+              {formatMessage({ id: "public.passport.read", defaultMessage: "Read the Passport" })}
+            </EditorialLinkArrow>
+          </div>
+        ) : null}
       </div>
     </div>
   );

@@ -13,6 +13,7 @@ vi.mock("../../../modules/data/graphql", () => ({ easGraphQL: vi.fn((query) => q
 import {
   getGardenActivitySince,
   getWorkListPage,
+  getWorksInRange,
   readWorkApprovalsForWorks,
 } from "../../../modules/data/eas-work-list";
 import type { GraphQLReader } from "../../../modules/data/graphql-client";
@@ -169,5 +170,66 @@ describe("getGardenActivitySince", () => {
     } as unknown as GraphQLReader);
     expect(cut.works).toHaveLength(2);
     expect(cut.truncated).toBe(true);
+  });
+});
+
+describe("getWorksInRange", () => {
+  // 450 works, one a second, so a range read has to page past EAS's first answer.
+  const records = Array.from({ length: 450 }, (_, index) => workRow(index + 1, 1000 + index));
+  const query = vi.fn(async (_document, variables) => {
+    const { timeCreated, id } = variables.where;
+    return {
+      data: {
+        attestations: records
+          .filter((row) => row.timeCreated >= timeCreated.gte && row.timeCreated < timeCreated.lt)
+          .filter((row) => !id?.notIn.includes(row.id))
+          .slice(variables.skip, variables.skip + variables.take),
+      },
+    };
+  });
+  const reader = { query } as unknown as GraphQLReader;
+
+  it("reads every work of the range, oldest first, however many pages that takes", async () => {
+    const range = { chainId: 42161, from: 1000, to: 1450, excludedWorkUIDs: [uid(2)] };
+    const page = await getWorksInRange(GARDEN, range, reader);
+
+    expect(page.truncated).toBe(false);
+    expect(page.works).toHaveLength(449);
+    expect(page.works.slice(0, 2).map((work) => work.id)).toEqual([uid(1), uid(3)]);
+    expect(page.works.at(-1)?.id).toBe(uid(450));
+    // The start is in the range and the end is not.
+    const narrow = await getWorksInRange(GARDEN, { chainId: 42161, from: 1010, to: 1012 }, reader);
+    expect(narrow.works.map((work) => work.createdAt)).toEqual([1010, 1011]);
+  });
+
+  it("says the range is cut when it holds more than one read lists", async () => {
+    const cut = await getWorksInRange(
+      GARDEN,
+      { chainId: 42161, from: 1000, to: 1450, limit: 300 },
+      reader
+    );
+    expect(cut.works).toHaveLength(300);
+    expect(cut.truncated).toBe(true);
+    const exact = await getWorksInRange(
+      GARDEN,
+      { chainId: 42161, from: 1000, to: 1300, limit: 300 },
+      reader
+    );
+    expect(exact.works).toHaveLength(300);
+    expect(exact.truncated).toBe(false);
+  });
+
+  it("lists a work once when a late attestation shifts the next page back over it", async () => {
+    // The second page starts one row early, as when an earlier attestation is indexed
+    // between the two reads.
+    const shifted = vi.fn(async (_document, variables) => {
+      const start = variables.skip === 0 ? 0 : variables.skip - 1;
+      return { data: { attestations: records.slice(start, start + variables.take) } };
+    });
+    const page = await getWorksInRange(GARDEN, { chainId: 42161, from: 1000, to: 1450 }, {
+      query: shifted,
+    } as unknown as GraphQLReader);
+    const ids = page.works.map((work) => work.id);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 });

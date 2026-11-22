@@ -35,6 +35,13 @@ describe("Review Work tab scopes", () => {
     { scope: "approved", sort: "oldest", search: "", expected: ["approved-old", "approved-new"] },
     { scope: "approved", sort: "newest", search: "riverbank", expected: ["approved-old"] },
     { scope: "pending", sort: "newest", search: "riverbank", expected: [] },
+    // One day's work from the Activity calendar keeps every status, rejected included.
+    {
+      scope: "all",
+      sort: "oldest",
+      search: "",
+      expected: ["pending-old", "approved-old", "approved-new", "pending-new", "rejected"],
+    },
   ] as const)('lists $scope work, $sort first, searching "$search"', ({
     scope,
     sort,

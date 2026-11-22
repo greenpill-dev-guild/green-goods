@@ -42,8 +42,8 @@
           "packages/shared/src/__tests__/hooks/auth/useIdentityChangeReset.test.ts"
         ]
       },
-      "reviewedAt": "2026-11-18",
-      "evidenceFingerprint": "sha256:3c7e8e949884df7bca874acbcb97435e546eebfdc94932ab8f9b6b39b93af6ac"
+      "reviewedAt": "2026-11-21",
+      "evidenceFingerprint": "sha256:3f14ec3d6c3540e57e32e06886ff13a4d4f37233b37b9524514af0b6c5541c26"
     },
     {
       "id": "shared-work-provider-command",
@@ -82,8 +82,8 @@
         "conformance": ["packages/shared/src/__tests__/commitment-pooling-read-repository.test.ts"],
         "integration": ["packages/shared/src/__tests__/commitment-pooling-hooks.test.tsx"]
       },
-      "reviewedAt": "2026-11-18",
-      "evidenceFingerprint": "sha256:90e4f73d9d409a2076ed71d8eaf962c4495dc34d144f5e5859907600a48e3b69"
+      "reviewedAt": "2026-11-21",
+      "evidenceFingerprint": "sha256:9387c8eca08980e9b25151e00b771b62c595bea41cef9659cfa8df986bdc3f86"
     }
   ]
 }

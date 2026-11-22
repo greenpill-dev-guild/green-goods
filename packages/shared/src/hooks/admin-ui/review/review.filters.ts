@@ -22,7 +22,8 @@ interface HypercertLike {
 
 /**
  * The Work tab's list for one scope. Pending and approved are two filters of
- * the same submissions, so they share one search and one sort.
+ * the same submissions, so they share one search and one sort. "all" keeps every
+ * status, for one day's work opened from the Activity calendar.
  */
 export function filterWorksByScope(
   works: Work[],
@@ -34,7 +35,7 @@ export function filterWorksByScope(
   const direction = sortDirection === "oldest" ? 1 : -1;
 
   return works
-    .filter((work) => work.status === scope)
+    .filter((work) => scope === "all" || work.status === scope)
     .filter((work) => {
       if (!search) return true;
       const actionTitle = actionsMap.get(work.actionUID)?.title?.toLowerCase() ?? "";
