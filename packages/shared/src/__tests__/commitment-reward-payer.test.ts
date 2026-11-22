@@ -103,7 +103,10 @@ describe("paying reward shares from the steward's wallet", () => {
       paidBy: vi.fn(async () => read.paidBy ?? ZERO),
     };
     const sendContractCall = vi.fn(
-      async (_call: { functionName: string; args: readonly unknown[] }) => ({
+      async (
+        _call: { functionName: string; args: readonly unknown[] },
+        _options?: { onBeforeBroadcast?: () => Promise<void> }
+      ) => ({
         hash: "0xabc" as `0x${string}`,
       })
     );
@@ -204,7 +207,7 @@ describe("paying reward shares from the steward's wallet", () => {
     // A payment past its receipt wait went out and may still land: never "not paid".
     const waited = setup({ allowance: 20_000_000n });
     waited.sendContractCall.mockImplementationOnce(async (_call, options) => {
-      await (options as { onBeforeBroadcast?: () => Promise<void> }).onBeforeBroadcast?.();
+      await options?.onBeforeBroadcast?.();
       throw new ReceiptWaitLimitError(120_000, { hash: `0x${"ab".repeat(32)}` });
     });
     await expect(waited.pay()).resolves.toMatchObject({
