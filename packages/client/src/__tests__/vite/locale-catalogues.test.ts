@@ -172,8 +172,9 @@ describe("locale catalogue bundles", () => {
     const end = table.indexOf("id: CLIENT_ROUTE_IDS.pwaRuntime,");
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
-    // A computed specifier is one this scan cannot follow, so the table may not use one.
-    expect(table).not.toMatch(/import\s*\(\s*[^"'\s]/);
+    // A computed specifier is one this scan cannot follow, so the table may not use one: every
+    // import() there takes one string literal and nothing else.
+    expect(table).not.toMatch(/import\s*\((?!\s*(["'])[^"'`]+\1\s*\))/);
     const reached = references(routeTable).filter((reference) => carrying.has(reference.file));
     expect(reached.length).toBeGreaterThan(0);
     for (const reference of reached) {

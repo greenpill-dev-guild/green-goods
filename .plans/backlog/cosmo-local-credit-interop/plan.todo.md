@@ -494,8 +494,8 @@ receiver takes the garden's name. The live Tech and Sun Safe is finalized throug
     that issues no listed voucher reads nothing. Privacy ruling: DL-202.
   - [ ] Remaining: the pool's holding and the outstanding total once people use a voucher. Both
     move with each person's exchange or booking and no source counts the people behind them, so
-    they are published only until the first award, exchange, booking or voucher outside the pools,
-    and held back after. Publishing them beyond that needs a count of the people who hold or have
+    they are published only while the voucher's transfer history stays between the garden's
+    reserve and the reviewed pools, and held back after. Publishing them beyond that needs a count of the people who hold or have
     moved each voucher, from the indexer.
 - [ ] **PRD-1197, 22 October:** record human go/no-go, explicitly addressing every original gate.
   Depends on PRD-1096 and COM-46. No default substitution or implied funds authority.

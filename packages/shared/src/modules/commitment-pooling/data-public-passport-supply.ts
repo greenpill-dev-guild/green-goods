@@ -1,8 +1,6 @@
 import { decodeFunctionResult, encodeFunctionData, type Hex, parseAbi } from "viem";
 import type { Address } from "../../types/domain";
 import { getRpcUrl } from "../../utils/blockchain/chain-registry";
-import { type GraphQLReader, greenGoodsIndexer } from "../data/graphql-client";
-import type { RawRow } from "./data-core";
 import { GREEN_GOODS_ISSUER_ROUTE } from "./service-issuer-live-config";
 import type { ServiceIssuerRoute } from "./service-issuer-types";
 import type { PassportVoucherSupply } from "./public-passport-types";
@@ -11,6 +9,9 @@ import type { PassportVoucherSupply } from "./public-passport-types";
 const VOUCHER_CHAIN_ID = 100;
 /** One limit for the whole reading: a slow chain must not hold the rest of the passport up. */
 const READ_TIMEOUT_MS = 8_000;
+/** `Transfer(address,address,uint256)`. */
+const TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+const ZERO_ADDRESS = `0x${"0".repeat(40)}`;
 
 const SUPPLY_ABI = parseAbi([
   "function totalSupply() view returns (uint256)",
@@ -24,8 +25,14 @@ const SUPPLY_ABI = parseAbi([
  * a balance and the supply it is compared with are never from two different moments.
  */
 export interface PassportVoucherChain {
-  block(): Promise<{ hash: Hex; timestamp: number }>;
+  block(): Promise<{ hash: Hex; number: bigint; timestamp: number }>;
   call(to: Address, data: Hex, blockHash: Hex): Promise<Hex>;
+  /** Both ends of every transfer of the token, from its first block to the block read. */
+  transfers(
+    token: Address,
+    fromBlock: bigint,
+    toBlock: bigint
+  ): Promise<{ from: string; to: string }[]>;
 }
 
 /**
@@ -49,16 +56,26 @@ function publicVoucherChain(deadline: AbortSignal): PassportVoucherChain {
     }
     return body.result;
   };
+  const quantity = (value: bigint) => `0x${value.toString(16)}`;
   return {
     block: async () => {
       const block = (await request("eth_getBlockByNumber", ["finalized", false])) as {
         hash?: unknown;
+        number?: unknown;
         timestamp?: unknown;
       };
-      if (typeof block.hash !== "string" || typeof block.timestamp !== "string") {
+      if (
+        typeof block.hash !== "string" ||
+        typeof block.number !== "string" ||
+        typeof block.timestamp !== "string"
+      ) {
         throw new Error("Voucher chain block is unreadable");
       }
-      return { hash: block.hash as Hex, timestamp: Number(BigInt(block.timestamp)) };
+      return {
+        hash: block.hash as Hex,
+        number: BigInt(block.number),
+        timestamp: Number(BigInt(block.timestamp)),
+      };
     },
     call: async (to, data, blockHash) => {
       const result = await request("eth_call", [{ to, data }, { blockHash }]);
@@ -67,41 +84,34 @@ function publicVoucherChain(deadline: AbortSignal): PassportVoucherChain {
       }
       return result as Hex;
     },
+    transfers: async (token, fromBlock, toBlock) => {
+      const logs = await request("eth_getLogs", [
+        {
+          address: token,
+          topics: [TRANSFER_TOPIC],
+          fromBlock: quantity(fromBlock),
+          toBlock: quantity(toBlock),
+        },
+      ]);
+      if (!Array.isArray(logs)) throw new Error("Voucher transfer history is unreadable");
+      return logs.map((log: { topics?: unknown }) => {
+        const topics = Array.isArray(log.topics) ? log.topics : [];
+        const [, from, to] = topics;
+        if (
+          typeof from !== "string" ||
+          typeof to !== "string" ||
+          from.length !== 66 ||
+          to.length !== 66
+        ) {
+          throw new Error("Voucher transfer is unreadable");
+        }
+        return { from: `0x${from.slice(26)}`, to: `0x${to.slice(26)}` };
+      });
+    },
   };
 }
 
 const same = (left: string, right: string) => left.toLowerCase() === right.toLowerCase();
-/** An address as the index may hold it: lower case, or as the event wrote it. */
-const spellings = (address: Address): string[] => [...new Set([address.toLowerCase(), address])];
-
-/**
- * Whether the voucher has started to move: exchanged in any indexed pool, presented for a booking,
- * or awarded to someone. One row of any kind is enough, so one row of each is all that is asked
- * for. An award does not name its voucher in the index, so any award counts for every voucher: a
- * member who puts an awarded voucher into the pool would otherwise leave no trace here.
- */
-async function voucherInUse(
-  sourceChainId: number,
-  token: Address,
-  reader: GraphQLReader,
-  deadline: AbortSignal
-): Promise<boolean> {
-  const entities = ["VoucherPoolExchange", "VoucherServiceSetup", "EarnedVoucherDistribution"];
-  const result = await reader.query<Record<string, RawRow[]>>(
-    `query PublicPassportVoucherUse($chainId: Int!, $tokens: [String!]!) {
-      VoucherPoolExchange(where: { _or: [{ tokenIn: { _in: $tokens } }, { tokenOut: { _in: $tokens } }] }, limit: 1) { id }
-      VoucherServiceSetup(where: { token: { _in: $tokens } }, limit: 1) { id }
-      EarnedVoucherDistribution(where: { chainId: { _eq: $chainId }, preparedSeen: { _eq: true } }, limit: 1) { id }
-    }`,
-    { chainId: sourceChainId, tokens: spellings(token) },
-    "getPublicPassportVoucherUse",
-    deadline
-  );
-  if (result.error) throw result.error;
-  const rows = entities.map((entity) => result.data?.[entity]);
-  if (!rows.every(Array.isArray)) throw new Error("Passport voucher use records are unavailable");
-  return rows.some((found) => (found as RawRow[]).length > 0);
-}
 
 /**
  * The vouchers a garden issues, as their tokens and the reviewed exchange pools hold them: what
@@ -109,17 +119,17 @@ async function voucherInUse(
  * A garden that issues no voucher on the reviewed route reads nothing.
  *
  * A pool's holding moves with each person's exchange, and outstanding minus the pools is what
- * holders have. No source counts the people behind either, so a single exchange, booking or
- * award would show as one person's amount beside what the pool was seeded with. Both figures are
- * published only while the voucher has not started to move: no exchange in a reviewed pool, no
- * booking, no award, and nothing outside the pools. After that they are held back and the holding
- * limit, which is the pool's own policy, stays. A voucher one person issues is left out
- * altogether: its supply is that person's own.
+ * holders have. No source counts the people behind either, so a single exchange, booking, award
+ * or gift would show as one person's amount beside what the pool was seeded with. Both figures
+ * are published only while the voucher's whole transfer history, from its first block, stays
+ * between its issue, the garden's reserve and the reviewed pools. One transfer to or from anyone
+ * else holds them back for good, and the holding limit, which is the pool's own policy, stays.
+ * A voucher one person issues is left out altogether: its supply is that person's own.
  */
 export async function readPassportVoucherSupply(
   chainId: number,
   garden: Address,
-  options: { chain?: PassportVoucherChain; reader?: GraphQLReader; route?: ServiceIssuerRoute } = {}
+  options: { chain?: PassportVoucherChain; route?: ServiceIssuerRoute } = {}
 ): Promise<{ supply: PassportVoucherSupply[]; asOf: number | null }> {
   const route = options.route ?? GREEN_GOODS_ISSUER_ROUTE;
   // A voucher with no reviewed issuer record stays in: the read then fails, where leaving it out
@@ -134,10 +144,7 @@ export async function readPassportVoucherSupply(
       : [];
   if (issued.length === 0) return { supply: [], asOf: null };
 
-  // One limit covers the chain and the index together.
-  const deadline = AbortSignal.timeout(READ_TIMEOUT_MS);
-  const reader = options.reader ?? greenGoodsIndexer;
-  const chain = options.chain ?? publicVoucherChain(deadline);
+  const chain = options.chain ?? publicVoucherChain(AbortSignal.timeout(READ_TIMEOUT_MS));
   const block = await chain.block();
   const call = (to: Address, data: Hex) => chain.call(to, data, block.hash);
   const totalSupply = async (token: Address) =>
@@ -182,10 +189,16 @@ export async function readPassportVoucherSupply(
       const listedIn = route.pools.filter((pool) =>
         pool.listings.some((listing) => listing.assetId === asset.id)
       );
-      const [total, reserve, used, pools] = await Promise.all([
+      // The only places a voucher can be without a person having touched it.
+      const untouched = [
+        ZERO_ADDRESS,
+        asset.ownerReserve,
+        ...listedIn.map((pool) => pool.deployment.address),
+      ];
+      const [total, reserve, history, pools] = await Promise.all([
         totalSupply(voucher.token),
         balanceOf(voucher.token, asset.ownerReserve),
-        voucherInUse(route.service.sourceChainId, voucher.token, reader, deadline),
+        chain.transfers(voucher.token, asset.token.receipt.blockNumber, block.number),
         Promise.all(
           listedIn.map(async (pool) => {
             const [holding, holdingLimit, listed] = await Promise.all([
@@ -202,7 +215,10 @@ export async function readPassportVoucherSupply(
       if (outstanding < 0n || outsidePools < 0n) {
         throw new Error("Voucher balances do not add up to the supply");
       }
-      const heldBack = used || outsidePools > 0n;
+      const moved = history.some((transfer) =>
+        [transfer.from, transfer.to].some((end) => !untouched.some((place) => same(place, end)))
+      );
+      const heldBack = moved || outsidePools > 0n;
       return {
         token: voucher.token.toLowerCase() as Address,
         symbol: voucher.symbol,

@@ -229,8 +229,8 @@ export interface PassportVoucherSupply {
   /** Vouchers out of the issuer's reserve. Null once anyone has used the voucher. */
   outstanding: bigint | null;
   /**
-   * The voucher has started to move (an exchange, a booking, an award, or vouchers outside the
-   * pools), and no source counts the people behind that, so a holding or an outstanding total
+   * The voucher has moved to or from someone other than its issuer's reserve and the reviewed
+   * pools, and no source counts the people behind that, so a holding or an outstanding total
    * could be one person's amount. Both are null, and the holding limit, the pool's policy, stays.
    */
   heldBack: boolean;

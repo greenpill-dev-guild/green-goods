@@ -313,7 +313,7 @@ describe("a garden's public passport", () => {
       pool().getByText("The Riverside exchange pool may hold 40 GGV at most.")
     ).toBeInTheDocument();
     expect(
-      pool().getByText(/are held back\. Vouchers on this record have started to move/)
+      pool().getByText(/are held back\. This voucher has started to move/)
     ).toBeInTheDocument();
     expect(pool().queryByText(/GGV in the Riverside exchange pool/)).not.toBeInTheDocument();
     expect(pool().queryByText(/GGV outstanding\./)).not.toBeInTheDocument();
