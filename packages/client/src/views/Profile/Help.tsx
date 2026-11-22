@@ -195,6 +195,13 @@ export const ProfileHelp: React.FC = () => {
       {LEARN_AND_CONNECT.map((link) => (
         <HelpLinkCard key={link.messageKey} link={link} />
       ))}
+      {/* The docs are published in English only (PRD-1493), so a reader in another language
+          hears it before opening one. */}
+      {intl.locale.startsWith("en") ? null : (
+        <p className="text-xs text-text-sub-600">
+          {intl.formatMessage({ id: "app.profile.help.guidesInEnglish" })}
+        </p>
+      )}
       <HelpSectionHeading>
         {intl.formatMessage({ id: "app.profile.help.privacySafety" })}
       </HelpSectionHeading>
