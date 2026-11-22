@@ -38,7 +38,7 @@ const INTENTS: InterpretedIntent[] = [
   "unclear",
 ];
 
-const INSTRUCTIONS = [
+export const READING_RULES = [
   "You read one message from a gardener reporting regenerative work and propose report fields.",
   "Only use what the message itself says. Never invent quantities, dates, durations or names.",
   "Time spent must be stated by the gardener; convert it to minutes and keep the original words.",
@@ -56,7 +56,7 @@ const MAX_SCHEMA_CANDIDATES = 12;
  * candidates are few, every candidate's, so one reading can name the activity and give its
  * details. A detail of an activity the report does not end up taking is refused by the core.
  */
-function allowedFields(request: InterpretationRequest): ReportField[] {
+export function allowedFields(request: InterpretationRequest): ReportField[] {
   const chosen = request.actions.find((candidate) => candidate.uid === request.content.actionUID);
   const schemas = chosen
     ? [chosen]
@@ -69,67 +69,94 @@ function allowedFields(request: InterpretationRequest): ReportField[] {
   return ["title", "timeSpentMinutes", "feedback", ...new Set(details)];
 }
 
+/** The JSON schema of the values a reading may propose, limited to `fields`. */
+export function factsSchema(fields: readonly ReportField[]) {
+  return {
+    type: "array",
+    maxItems: 20,
+    items: {
+      type: "object",
+      additionalProperties: false,
+      required: ["field", "value", "original", "unit"],
+      properties: {
+        field: { type: "string", enum: fields },
+        value: {
+          anyOf: [
+            { type: "string" },
+            { type: "number" },
+            { type: "array", items: { type: "string" } },
+          ],
+        },
+        original: { type: ["string", "null"] },
+        unit: { type: ["string", "null"] },
+      },
+    },
+  };
+}
+
+/** The offered gardens and activities as a reply may name them, or null for neither. */
+export function candidateSchemas(request: InterpretationRequest) {
+  return {
+    garden: { type: ["string", "null"], enum: [...request.gardens.map((g) => g.key), null] },
+    activity: {
+      type: ["integer", "null"],
+      enum: [...request.actions.map((action) => action.uid), null],
+    },
+  };
+}
+
 function schemaFor(request: InterpretationRequest, fields: readonly ReportField[]) {
+  const candidates = candidateSchemas(request);
   return {
     type: "object",
     additionalProperties: false,
     required: ["intent", "gardenKey", "actionUID", "facts"],
     properties: {
       intent: { type: "string", enum: INTENTS },
-      gardenKey: { type: ["string", "null"], enum: [...request.gardens.map((g) => g.key), null] },
-      actionUID: {
-        type: ["integer", "null"],
-        enum: [...request.actions.map((action) => action.uid), null],
-      },
-      facts: {
-        type: "array",
-        maxItems: 20,
-        items: {
-          type: "object",
-          additionalProperties: false,
-          required: ["field", "value", "original", "unit"],
-          properties: {
-            field: { type: "string", enum: fields },
-            value: {
-              anyOf: [
-                { type: "string" },
-                { type: "number" },
-                { type: "array", items: { type: "string" } },
-              ],
-            },
-            original: { type: ["string", "null"] },
-            unit: { type: ["string", "null"] },
-          },
-        },
-      },
+      gardenKey: candidates.garden,
+      actionUID: candidates.activity,
+      facts: factsSchema(fields),
     },
   };
+}
+
+export const factsOutput = z
+  .array(
+    z.object({
+      field: z.string(),
+      value: z.union([z.string().max(2_000), z.number(), z.array(z.string().max(200)).max(50)]),
+      original: z.string().max(500).nullable(),
+      unit: z.string().max(40).nullable(),
+    })
+  )
+  .max(20);
+
+/** A reply's values as the core reads them: only the fields that were on offer. */
+export function proposedFacts(
+  facts: z.infer<typeof factsOutput>,
+  fields: readonly ReportField[]
+): ProposedFact[] {
+  return facts
+    .filter((fact) => (fields as readonly string[]).includes(fact.field))
+    .map((fact) => ({
+      field: fact.field as ReportField,
+      value: fact.value,
+      kind: "reported" as const,
+      ...(fact.original ? { original: fact.original } : {}),
+      ...(fact.unit ? { unit: fact.unit } : {}),
+    }));
 }
 
 const outputSchema = z.object({
   intent: z.enum(INTENTS as [InterpretedIntent, ...InterpretedIntent[]]),
   gardenKey: z.string().nullable(),
   actionUID: z.number().int().nullable(),
-  facts: z
-    .array(
-      z.object({
-        field: z.string(),
-        value: z.union([z.string().max(2_000), z.number(), z.array(z.string().max(200)).max(50)]),
-        original: z.string().max(500).nullable(),
-        unit: z.string().max(40).nullable(),
-      })
-    )
-    .max(20),
+  facts: factsOutput,
 });
 
-export async function extractWithOpenAI(
-  config: OpenAIConfig,
-  request: InterpretationRequest,
-  signal: AbortSignal,
-  meter?: ModelMeter
-): Promise<Extraction> {
-  const fields = allowedFields(request);
-  const snapshot = {
+/** The snapshot as a model is handed it: the same words for every reading. */
+export function readingInput(request: InterpretationRequest, fields: readonly ReportField[]) {
+  return {
     message: request.message.text,
     locale: request.locale,
     goal: request.goal,
@@ -143,11 +170,21 @@ export async function extractWithOpenAI(
     activities: request.actions,
     fields,
   };
+}
+
+export async function extractWithOpenAI(
+  config: OpenAIConfig,
+  request: InterpretationRequest,
+  signal: AbortSignal,
+  meter?: ModelMeter
+): Promise<Extraction> {
+  const fields = allowedFields(request);
+  const snapshot = readingInput(request, fields);
   const { model, output: raw } = await structuredResponse(
     config,
     {
       purpose: "extraction",
-      instructions: INSTRUCTIONS,
+      instructions: READING_RULES,
       content: [{ type: "input_text", text: JSON.stringify(snapshot) }],
       schemaName: "report_fields",
       schema: schemaFor(request, fields),
@@ -167,15 +204,7 @@ export async function extractWithOpenAI(
     actionUID: request.actions.some((action) => action.uid === output.actionUID)
       ? output.actionUID
       : null,
-    facts: output.facts
-      .filter((fact) => (fields as readonly string[]).includes(fact.field))
-      .map((fact) => ({
-        field: fact.field as ReportField,
-        value: fact.value,
-        kind: "reported" as const,
-        ...(fact.original ? { original: fact.original } : {}),
-        ...(fact.unit ? { unit: fact.unit } : {}),
-      })),
+    facts: proposedFacts(output.facts, fields),
     model,
   };
 }

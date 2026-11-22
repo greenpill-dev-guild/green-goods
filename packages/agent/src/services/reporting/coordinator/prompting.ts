@@ -11,6 +11,7 @@ import { type CatalogResult, orderActions } from "../catalog";
 import type { DraftRecord } from "../drafts";
 import { findGarden, type GardenDirectory, isUnlisted, type ReportingGarden } from "../gardens";
 import { filesInProgress } from "../media-intake";
+import { questionId } from "../dialogue-proposal";
 import { closeConversationPrompt } from "../prompts";
 import { profiledInput, type QuestionProfile } from "../questions";
 import { EDITABLE_STATES, lifecycleState, questionProfileOf } from "./draft-commit";
@@ -320,9 +321,10 @@ export function promptNextStep(
   writer: TurnWriter,
   draft: DraftRecord,
   view: CatalogView,
-  suggestion?: Suggestion
+  suggestion?: Suggestion,
+  prefer: readonly string[] = []
 ): void {
-  promptNextStepFor(writer, draft, view, writer.ctx.account?.address ?? null, suggestion);
+  promptNextStepFor(writer, draft, view, writer.ctx.account?.address ?? null, suggestion, prefer);
 }
 
 /** The same next step from background work, which names the linked account explicitly. */
@@ -331,7 +333,8 @@ export function promptNextStepFor(
   draft: DraftRecord,
   view: CatalogView,
   account: Address | null,
-  suggestion?: Suggestion
+  suggestion?: Suggestion,
+  prefer: readonly string[] = []
 ): void {
   if (askAnotherGarden(writer, draft, account)) return;
   const requirements = outstandingRequirements(draft.content, draft.snapshot);
@@ -344,7 +347,13 @@ export function promptNextStepFor(
   if ((first === "garden" || first === "action") && offerLastReport(writer, draft, suggestion))
     return;
   const profile = questionProfileOf(writer.core, draft);
-  askRequirement(writer, draft, nextRequirement(requirements, draft, profile), view, account);
+  askRequirement(
+    writer,
+    draft,
+    nextRequirement(requirements, draft, profile, prefer),
+    view,
+    account
+  );
 }
 
 const CHOICE_INPUTS = new Set<WorkInput["type"]>(["select", "multi-select", "band"]);
@@ -359,10 +368,36 @@ const CHOICE_INPUTS = new Set<WorkInput["type"]>(["select", "multi-select", "ban
 function nextRequirement(
   requirements: readonly ReportRequirement[],
   draft: DraftRecord,
-  profile: QuestionProfile | null
+  profile: QuestionProfile | null,
+  prefer: readonly string[]
 ): ReportRequirement {
   const first = requirements[0] as ReportRequirement;
-  if (first.kind !== "detail") return first;
+  // Among the report's own field questions, the one a validated proposal would put next goes
+  // first. A contradiction, the garden and the activity always come before any of them, and a
+  // field that waits on another still waits.
+  const preferred = FIELD_KINDS.has(first.kind)
+    ? prefer
+        .map((id) => requirements.find((need) => questionId(need) === id))
+        .find((need) => need !== undefined)
+    : undefined;
+  const chosen = preferred ?? first;
+  return chosen.kind === "detail" ? orderedDetail(requirements, draft, profile, chosen) : chosen;
+}
+
+const FIELD_KINDS = new Set<ReportRequirement["kind"]>([
+  "detail",
+  "time",
+  "title",
+  "feedback",
+  "evidence",
+]);
+
+function orderedDetail(
+  requirements: readonly ReportRequirement[],
+  draft: DraftRecord,
+  profile: QuestionProfile | null,
+  first: Extract<ReportRequirement, { kind: "detail" }>
+): ReportRequirement {
   const before = profile?.fields[first.key]?.after;
   const dependency = requirements.find((need) => need.kind === "detail" && need.key === before);
   if (dependency) return dependency;
