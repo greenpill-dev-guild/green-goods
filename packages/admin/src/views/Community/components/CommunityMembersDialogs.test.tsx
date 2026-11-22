@@ -501,6 +501,8 @@ describe("CommunityMembersDialogs: restoring a missing sub-role (PRD-979)", () =
   afterEach(() => {
     memberHistory.members = [];
     memberHistory.isError = false;
+    batchState.available = false;
+    batchState.add.mockReset();
   });
 
   it("grants only what the chain lacks, through the add path, from the person's Manage Roles row", async () => {
@@ -579,11 +581,11 @@ describe("CommunityMembersDialogs: restoring a missing sub-role (PRD-979)", () =
     );
     // A garden change remounts the dialog, and leaving the route unmounts it.
     unmount();
-    settle({ lacking: ["owner", "evaluator", "gardener"], recordedRoles: ["steward"] });
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await act(async () => {
+      settle({ lacking: ["owner", "evaluator", "gardener"], recordedRoles: ["steward"] });
+    });
 
     expect(batchState.add).not.toHaveBeenCalled();
     expect(addEvaluator).not.toHaveBeenCalled();
-    batchState.available = false;
   });
 });

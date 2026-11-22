@@ -152,16 +152,13 @@ export function ManageMembersDialog({
       setReview(null);
     }
   }
-  useEffect(() => {
-    reviewToken.current += 1;
-  }, [open, initialMember, signer]);
-  // Leaving drops every pending answer too: a garden change remounts this dialog, and a restore
-  // checked for one garden must never reach the wallet once another garden, or no page, is open.
+  // Each of those, and leaving, drops pending answers: a garden change remounts this dialog, so a
+  // restore checked for one garden never reaches the wallet once another garden, or none, is open.
   useEffect(
     () => () => {
       reviewToken.current += 1;
     },
-    []
+    [open, initialMember, signer]
   );
 
   const onName = useCallback(
