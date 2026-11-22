@@ -116,7 +116,7 @@ const same = (left: string, right: string) => left.toLowerCase() === right.toLow
 /**
  * The vouchers a garden issues, as their tokens and the reviewed exchange pools hold them: what
  * each pool holds, the most it may hold, and how many vouchers are out of the issuer's reserve.
- * A garden that issues no voucher on the reviewed route reads nothing.
+ * A garden that issues no voucher a reviewed pool lists reads nothing.
  *
  * A pool's holding moves with each person's exchange, and outstanding minus the pools is what
  * holders have. No source counts the people behind either, so a single exchange, booking, award
@@ -132,14 +132,21 @@ export async function readPassportVoucherSupply(
   options: { chain?: PassportVoucherChain; route?: ServiceIssuerRoute } = {}
 ): Promise<{ supply: PassportVoucherSupply[]; asOf: number | null }> {
   const route = options.route ?? GREEN_GOODS_ISSUER_ROUTE;
-  // A voucher with no reviewed issuer record stays in: the read then fails, where leaving it out
-  // would say the garden issues none.
-  const collective = (token: string) =>
-    !route.assets.some((asset) => same(asset.token.address, token) && asset.kind === "individual");
+  // A voucher counts when a reviewed pool lists it and one person does not issue it alone. One
+  // with no reviewed issuer record stays in: the read then fails, where leaving it out would say
+  // the garden issues none.
+  const counted = (token: string) => {
+    const asset = route.assets.find((entry) => same(entry.token.address, token));
+    if (!asset) return true;
+    return (
+      asset.kind !== "individual" &&
+      route.pools.some((pool) => pool.listings.some((listing) => listing.assetId === asset.id))
+    );
+  };
   const issued =
     chainId === route.service.sourceChainId
       ? route.service.assets.filter(
-          (asset) => asset.garden && same(asset.garden, garden) && collective(asset.token)
+          (asset) => asset.garden && same(asset.garden, garden) && counted(asset.token)
         )
       : [];
   if (issued.length === 0) return { supply: [], asOf: null };

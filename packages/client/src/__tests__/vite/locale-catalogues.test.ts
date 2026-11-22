@@ -121,10 +121,14 @@ describe("locale catalogue bundles", () => {
     const paths = [...sources.keys()];
     expect(paths.filter((path) => refers(path) && !websiteOnlyCode.test(path))).toEqual([]);
 
+    // Space between tokens, comments included: `import /* note */ (` is still a call.
+    const gap = String.raw`(?:\s|/\*[\s\S]*?\*/|//[^\n]*\n)*`;
     // The client files each file imports, with where in the file and whether on demand.
     const references = (path: string) =>
       [
-        ...(sources.get(path) ?? "").matchAll(/(?:from|import)\s*(\()?\s*["']([^"']+)["']/g),
+        ...(sources.get(path) ?? "").matchAll(
+          new RegExp(`(?:from|import)${gap}(\\()?${gap}["']([^"']+)["']`, "g")
+        ),
       ].flatMap((match) => {
         const specifier = match[2];
         const base = specifier.startsWith("@/")
@@ -174,7 +178,7 @@ describe("locale catalogue bundles", () => {
     expect(end).toBeGreaterThan(start);
     // A computed specifier is one this scan cannot follow, so the table may not use one: every
     // import() there takes one string literal and nothing else.
-    expect(table).not.toMatch(/import\s*\((?!\s*(["'])[^"'`]+\1\s*\))/);
+    expect(table).not.toMatch(new RegExp(`import${gap}\\((?!${gap}(["'])[^"'\`]+\\1${gap}\\))`));
     const reached = references(routeTable).filter((reference) => carrying.has(reference.file));
     expect(reached.length).toBeGreaterThan(0);
     for (const reference of reached) {

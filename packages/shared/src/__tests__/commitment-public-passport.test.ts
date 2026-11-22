@@ -1061,6 +1061,24 @@ describe("a garden's passport", () => {
       supply: [],
       asOf: null,
     });
+    // A voucher no reviewed pool lists is not on this line, and the chain is not asked about it.
+    const unlisted = await readPassportVoucherSupply(CHAIN, issuer, {
+      chain: {
+        block: async () => {
+          throw new Error("the chain must not be read");
+        },
+        call: async () => "0x",
+        transfers: async () => [],
+      },
+      route: {
+        ...reviewed,
+        pools: reviewed.pools.map((entry) => ({
+          ...entry,
+          listings: entry.listings.filter((listing) => listing.assetId !== tsv.id),
+        })),
+      },
+    });
+    expect(unlisted).toEqual({ supply: [], asOf: null });
 
     // A garden that issues no voucher asks the chain nothing.
     const silent: PassportVoucherChain = {
