@@ -32,6 +32,8 @@ export interface Reading {
   refused: number;
   /** Facts whose quoted words are not in the message. */
   unquoted: number;
+  /** Fields whose values are the gardener's own words, read with no model. */
+  stated?: string[];
 }
 
 export interface Sample {
@@ -179,6 +181,7 @@ export function deterministicReading(scenario: Scenario, locale: Locale, text: s
     corrects,
     refused: 0,
     unquoted: quoted(facts, text),
+    stated: facts.map((fact) => fact.field),
   };
 }
 
@@ -187,7 +190,7 @@ export function deterministicReading(scenario: Scenario, locale: Locale, text: s
  * name outright is the gardener's and stays, and the model fills only what that left empty.
  */
 export function withFloor(floor: Reading, model: Reading): Reading {
-  return { ...model, facts: { ...model.facts, ...floor.facts } };
+  return { ...model, facts: { ...model.facts, ...floor.facts }, stated: Object.keys(floor.facts) };
 }
 
 /** Fields the evaluation scores: numbers, choices and time. Free text is checked only for `never`. */
@@ -209,8 +212,10 @@ const INPUTS = new Map<string, (typeof ACTIVITIES)[keyof typeof ACTIVITIES]["inp
 
 /**
  * A reading as a turn applies it. A value the report already holds changes nothing, so it is not
- * scored for or against the reader; a value its field cannot take ("12 kg" for a count, ["25"] for
- * a number) is dropped by the report rules, and counted as invalid.
+ * scored for or against the reader. Every value a report holds here is the gardener's, so a
+ * model's different value for it is a disagreement the turn asks about, never the value: it is
+ * not applied, and counted as a conflict. A value its field cannot take ("12 kg" for a count,
+ * ["25"] for a number) is dropped by the report rules, and counted as invalid.
  */
 function asApplied(scenario: Scenario, reading: Reading) {
   const { details = {}, minutes } = scenario.situation;
@@ -218,10 +223,16 @@ function asApplied(scenario: Scenario, reading: Reading) {
     field === "timeSpentMinutes" ? minutes : details[field.slice("details.".length)];
   let restated = 0;
   let invalid = 0;
+  let conflicts = 0;
   const facts: Record<string, unknown> = {};
   for (const [field, value] of Object.entries(reading.facts)) {
-    if (same(held(field), value)) {
+    const holding = held(field);
+    if (same(holding, value)) {
       restated += 1;
+      continue;
+    }
+    if (holding !== undefined && holding !== null && !reading.stated?.includes(field)) {
+      conflicts += 1;
       continue;
     }
     const input = INPUTS.get(field);
@@ -234,7 +245,7 @@ function asApplied(scenario: Scenario, reading: Reading) {
     if (valid) facts[field] = value;
     else invalid += 1;
   }
-  return { facts, restated, invalid };
+  return { facts, restated, invalid, conflicts };
 }
 
 export interface Score {
@@ -252,6 +263,8 @@ export interface Score {
   /** Values the report already held, and values their field could not take. */
   restated: number;
   invalid: number;
+  /** A model's values that disagreed with the gardener's: asked about, not applied. */
+  conflicts: number;
 }
 
 export function score(scenario: Scenario, read: Reading): Score {
@@ -284,5 +297,6 @@ export function score(scenario: Scenario, read: Reading): Score {
       .length,
     restated: applied.restated,
     invalid: applied.invalid,
+    conflicts: applied.conflicts,
   };
 }

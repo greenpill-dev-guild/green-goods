@@ -66,6 +66,7 @@ function figures(rows: Row[]) {
     askedAgain: sum((one) => one.askedAgain),
     restated: sum((one) => one.restated),
     invalid: sum((one) => one.invalid),
+    conflicts: sum((one) => one.conflicts),
     garden: rate(scores.map((one) => one.garden)),
     activity: rate(scores.map((one) => one.activity)),
     asides: rate(scores.map((one) => one.aside)),

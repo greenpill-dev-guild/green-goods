@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { SCENARIOS } from "./driver/dialogue-corpus";
 import { runDialogueEvaluation } from "./driver/dialogue-evaluation";
-import { deterministicReading, score } from "./driver/dialogue-scoring";
+import { deterministicReading, score, withFloor } from "./driver/dialogue-scoring";
 
 const KEYS = { AGENT_REPORTING_OPENAI_API_KEY: "sk-test", AGENT_REPORTING_JEV_API_KEY: "jev-test" };
 
@@ -45,6 +45,33 @@ describe("the dialogue evaluation", () => {
       (sample) => sample.system === "deterministic" && sample.locale === "en"
     );
     expect(floor?.reading?.facts).toMatchObject({ "details.seedlings": 30 });
+  });
+
+  it("scores a model's correction of the gardener's value as a question, as a turn applies it", () => {
+    const scenario = SCENARIOS.find((one) => one.id === "correct-count");
+    if (!scenario) throw new Error("no correction scenario");
+    const model = {
+      facts: { "details.seedlings": 14 },
+      garden: null,
+      activity: null,
+      intent: "correction" as const,
+      corrects: true,
+      refused: 0,
+      unquoted: 0,
+    };
+    // The report holds the gardener's 12: the model's 14 is asked about, not applied.
+    expect(score(scenario, model)).toMatchObject({
+      truePositives: 0,
+      falseNegatives: 1,
+      conflicts: 1,
+    });
+    // The gardener's own words, read with no model, are applied.
+    const floor = { ...model, facts: { "details.seedlings": 14 }, intent: "unclear" as const };
+    expect(score(scenario, withFloor(floor, model))).toMatchObject({
+      truePositives: 1,
+      falseNegatives: 0,
+      conflicts: 0,
+    });
   });
 
   it("finds no injected value or unasked field in what the deterministic reader takes", () => {
