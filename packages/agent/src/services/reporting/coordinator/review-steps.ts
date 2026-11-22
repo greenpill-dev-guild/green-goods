@@ -9,6 +9,7 @@ import {
 import type { Confidence } from "@green-goods/shared/types/domain";
 import { awaitingSafeSigners, chainCheckStopped } from "../check-notices";
 import { invalidateConfirmation, recordConfirmation } from "../confirmations";
+import { forgetGoal, rememberGoal } from "../dialogue-goal";
 import type { ReportingCopyKey } from "../copy";
 import { enqueueJob } from "../jobs";
 import { operationForSubject } from "../operations";
@@ -52,14 +53,28 @@ export function requestReview(writer: TurnWriter, index: number | null): void {
   }
   if (!ctx.binding) return writer.say("help");
   if (!ctx.account) {
+    // Linking comes first; the review is what the chat is for, and pairing carries on with it.
+    rememberGoal(core, {
+      conversationId: ctx.conversationId,
+      participantId: ctx.binding.participantId,
+      identityEpoch: ctx.binding.identityEpoch,
+      goal: "review",
+    });
     const url = accountLink(writer, ctx.binding, null);
     writer.say("review.link", {}, { url, label: writer.text("link.label") });
     writer.say("link.pairHint");
     return;
   }
+  listWorkToReview(writer, ctx.binding.participantId);
+}
+
+/** Reads the work waiting for the linked account's review; the list is the reply. */
+export function listWorkToReview(writer: TurnWriter, participantId: string): void {
+  const { core, ctx } = writer;
+  forgetGoal(core, ctx.conversationId);
   enqueueJob(core, {
     kind: "review_list",
-    subjectId: ctx.binding.participantId,
+    subjectId: participantId,
     dedupeKey: `review-list:${ctx.event.id}`,
     payload: { conversationId: ctx.conversationId },
   });
