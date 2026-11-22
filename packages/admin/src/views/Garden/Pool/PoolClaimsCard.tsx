@@ -30,12 +30,8 @@ import { type VoucherBookingAct, VoucherBookingDialogs } from "./VoucherBookingD
 import { VoucherRowAct } from "./VoucherRowAct";
 import { WaitingBookingRow } from "./WaitingBookingRow";
 import { WaitingForApprovalRow, type VoucherAskRowView } from "./WaitingForApprovalRow";
-import {
-  voucherAskAct,
-  voucherAskDetail,
-  voucherAskTag,
-  voucherBookingAct,
-} from "./voucherPresentation";
+import { voucherBookingAct } from "./voucherBookingActs";
+import { voucherAskAct, voucherAskDetail, voucherAskTag } from "./voucherPresentation";
 import {
   bookingRowKey,
   emptyQueueVisit,

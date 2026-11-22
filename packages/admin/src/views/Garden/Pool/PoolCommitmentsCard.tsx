@@ -33,7 +33,8 @@ import {
 } from "./poolCommitmentRows";
 import { commitmentStateChip } from "./poolPresentation";
 import { rowDueDetail } from "./poolTime";
-import { voucherBookingOptionalAct, voucherOfferRow } from "./voucherPresentation";
+import { voucherBookingOptionalAct } from "./voucherBookingActs";
+import { voucherOfferRow } from "./voucherPresentation";
 import { isVoucherOffer, voucherOfferTakes } from "./voucherQueue";
 
 export type { PoolCommitmentFocus, PoolCommitmentScope } from "./poolCommitmentRows";

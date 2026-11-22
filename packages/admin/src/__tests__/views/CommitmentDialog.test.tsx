@@ -754,6 +754,33 @@ describe("CommitmentDialogPanel (W10)", () => {
     expect(expire.closest('[data-slot="expire"]')).not.toBeNull();
   });
 
+  // PRD-1462: canceling a booked voucher offer leaves the member's vouchers in escrow until the
+  // issuer proposes a return, so the dialog says so before the steward cancels.
+  it("warns that a booked voucher offer's vouchers stay in escrow when it is canceled", () => {
+    mocks.voucherOutcomes = {
+      rewards: [],
+      workFulfilled: false,
+      payment: {
+        asset: { chainId: 100, token: TAKER, symbol: "TEST-B", decimals: 0 },
+        issuer: { name: "Tech and Sun", gender: "feminine" },
+        issuerAccount: TAKER,
+        units: 1n,
+        revision: 1n,
+        admission: null,
+      },
+    };
+    mocks.controller = controller({
+      commitment: { onchainState: "ACCEPTED", derivedState: "ACCEPTED", state: "ACCEPTED" },
+      can: can({ cancel: true }),
+    });
+    renderPanel();
+
+    fireEvent.click(screen.getAllByRole("button", { name: /^cancel promise…$/i })[0]!);
+    expect(screen.getByRole("dialog", { name: /cancel this promise/i })).toHaveTextContent(
+      "Committed units release, but the member’s vouchers stay in escrow until the issuer proposes a return from Review Promises."
+    );
+  });
+
   it("lets a steward cancel a promise nobody has taken up, with a reason, in its own row", async () => {
     mocks.controller = controller({
       commitment: { onchainState: "OFFERED", derivedState: "OFFERED", state: "OFFERED" },
