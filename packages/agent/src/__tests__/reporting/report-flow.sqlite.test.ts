@@ -336,8 +336,13 @@ describe("a reply that is not one of the choices", () => {
     expect(await harness.say(ADA, "where are we with this?")).toEqual([
       "Your report for your garden is still being filled in.",
     ]);
-    // The garden's one activity is read in the same turn, so the reply moves on to its first field.
-    harness.interpreter.responses = [read("report_content", AIYELOJA.key)];
+    // A model names a garden by the identifier its request gave it: the second one offered. The
+    // garden's one activity is read in the same turn, so the reply moves on to its first field.
+    expect(harness.interpreter.requests.at(-1)?.gardens).toEqual([
+      { key: "g1", label: "TAS" },
+      { key: "g2", label: "Aiyeloja Family Garden" },
+    ]);
+    harness.interpreter.responses = [read("report_content", "g2")];
     expect(await harness.say(ADA, "the family garden")).toEqual([
       "Got it: Tree planting at Aiyeloja Family Garden. 3 quick questions, then a summary to check.",
       "1 of 3 · Seedlings planted? Send just the number (seedlings).",

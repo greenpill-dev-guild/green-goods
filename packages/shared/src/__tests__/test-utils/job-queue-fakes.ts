@@ -144,6 +144,7 @@ export function createFakeJobQueueAnalytics(): JobQueueAnalytics {
     processingStarted: vi.fn(),
     jobSkipped: vi.fn(),
     receiptWaitLimitReached: vi.fn(),
+    jobDiscarded: vi.fn(),
   };
 }
 

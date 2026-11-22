@@ -2,7 +2,7 @@ import { Button } from "@green-goods/shared/components/Button";
 import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { APP_NAME } from "@green-goods/shared/config/app";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import type React from "react";
+import { type ChangeEvent, type FC, useEffect, useRef } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 
@@ -25,7 +25,7 @@ interface TertiaryActionConfig {
 
 interface UsernameInputConfig {
   value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
   label?: string;
   placeholder?: string;
   onCancel?: () => void;
@@ -51,6 +51,12 @@ interface SplashProps {
    * The error always wins the zone; info returns when the error clears.
    */
   infoMessage?: string;
+  /**
+   * Moves focus to the info line when it shows, for a screen that opens on a question after an
+   * async step: a screen reader reads the question, Enter does nothing there, and Tab reaches
+   * the actions. Without it the pressed button unmounts and focus falls to the page.
+   */
+  focusInfo?: boolean;
   /** Entry screens only — ignored (not rendered) when usernameInput is set. */
   secondaryAction?: SecondaryActionConfig;
   tertiaryAction?: TertiaryActionConfig;
@@ -64,7 +70,7 @@ interface SplashProps {
  * The primary moves between slots only on deliberate navigation; within a
  * screen every async change (error, loading) keeps all geometry fixed.
  */
-export const Splash: React.FC<SplashProps> = ({
+export const Splash: FC<SplashProps> = ({
   login,
   isLoggingIn = false,
   isLoginDisabled = false,
@@ -74,6 +80,7 @@ export const Splash: React.FC<SplashProps> = ({
   message,
   errorMessage,
   infoMessage,
+  focusInfo = false,
   secondaryAction,
   tertiaryAction,
   usernameInput,
@@ -95,6 +102,10 @@ export const Splash: React.FC<SplashProps> = ({
   const errorMessageId = "login-error-message";
   const showError = Boolean(errorMessage) && !loadingState;
   const showInfo = Boolean(infoMessage) && !showError && !loadingState;
+  const infoRef = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (focusInfo && showInfo) infoRef.current?.focus();
+  }, [focusInfo, showInfo]);
   const usernameDescription = [
     showInfo ? infoMessageId : null,
     showError && usernameInput ? errorMessageId : null,
@@ -232,10 +243,12 @@ export const Splash: React.FC<SplashProps> = ({
               owns the zone. */}
           {showInfo && (
             <p
+              ref={infoRef}
               id={infoMessageId}
               data-testid="info-message"
+              tabIndex={focusInfo ? -1 : undefined}
               className={cn(
-                "w-full rounded-lg border px-4 py-3 text-xs text-text-sub-600 text-center",
+                "w-full rounded-lg border px-4 py-3 text-xs text-text-sub-600 text-center outline-none",
                 pwaStatusStyles.primary.surface,
                 pwaStatusStyles.primary.border
               )}

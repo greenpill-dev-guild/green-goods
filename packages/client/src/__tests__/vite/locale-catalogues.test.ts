@@ -93,6 +93,9 @@ describe("locale catalogue bundles", () => {
     expect(packedBytes).toBeLessThan(originalBytes);
   });
 
+  // A tripwire, not a proof. It reads literal message ids and literal import specifiers, so an id
+  // assembled at run time, a glob import or a computed specifier outside the route table passes
+  // unseen. The route test holds the other end: no passport route in the installed app's tree.
   it("leaves out only copy that no code the installed app can reach refers to", async () => {
     const root = resolve(import.meta.dirname, "../../..");
     const client = resolve(root, "src");
@@ -118,26 +121,39 @@ describe("locale catalogue bundles", () => {
     const paths = [...sources.keys()];
     expect(paths.filter((path) => refers(path) && !websiteOnlyCode.test(path))).toEqual([]);
 
-    // The client files each file imports, static or lazy.
-    const imports = (path: string) =>
-      [...(sources.get(path) ?? "").matchAll(/(?:from|import)\s*\(?\s*["']([^"']+)["']/g)].flatMap(
-        ([, specifier]) => {
-          const base = specifier.startsWith("@/")
-            ? join(client, specifier.slice(2))
-            : specifier.startsWith(".")
-              ? resolve(dirname(path), specifier)
-              : null;
-          if (!base) return [];
-          const file = [
-            base,
-            `${base}.ts`,
-            `${base}.tsx`,
-            join(base, "index.ts"),
-            join(base, "index.tsx"),
-          ].find((candidate) => sources.has(candidate));
-          return file ? [file] : [];
-        }
-      );
+    // Space between tokens, comments included: `import /* note */ (` is still a call.
+    const gap = String.raw`(?:\s|/\*[\s\S]*?\*/|//[^\n]*\n)*`;
+    // The client files each file imports, with where in the file and whether on demand.
+    const references = (path: string) =>
+      [
+        ...(sources.get(path) ?? "").matchAll(
+          new RegExp(`(?:from|import)${gap}(\\()?${gap}["']([^"']+)["']`, "g")
+        ),
+      ].flatMap((match) => {
+        // The path as the runtime reads it: escapes decoded, a `.js` suffix naming its source.
+        const specifier = match[2]
+          .replace(/\\(x[0-9a-f]{2}|u\{[0-9a-f]+\}|u[0-9a-f]{4}|[\s\S])/gi, (_, escape: string) =>
+            /^[xu]/i.test(escape) && escape.length > 1
+              ? String.fromCodePoint(Number.parseInt(escape.replace(/[xu{}]/gi, ""), 16))
+              : escape
+          )
+          .replace(/\.js$/, "");
+        const base = specifier.startsWith("@/")
+          ? join(client, specifier.slice(2))
+          : specifier.startsWith(".")
+            ? resolve(dirname(path), specifier)
+            : null;
+        if (!base) return [];
+        const file = [
+          base,
+          `${base}.ts`,
+          `${base}.tsx`,
+          join(base, "index.ts"),
+          join(base, "index.tsx"),
+        ].find((candidate) => sources.has(candidate));
+        return file ? [{ file, at: match.index, lazy: match[1] === "(" }] : [];
+      });
+    const imports = (path: string) => references(path).map((reference) => reference.file);
     // The website's files that show the copy, themselves or through one another.
     const carrying = new Set(paths.filter(refers));
     for (let grew = true; grew; ) {
@@ -160,19 +176,22 @@ describe("locale catalogue bundles", () => {
           imports(path).some((imported) => carrying.has(imported))
       )
     ).toEqual([routeTable]);
-    // The table lists the website's routes, then the installed app's: a page that shows the copy
-    // is loaded lazily, and only from the website's part.
+    // The table lists the website's routes, then the installed app's. However an import is
+    // spelled, a page that shows the copy is loaded on demand and only from the website's part.
     const table = sources.get(routeTable) ?? "";
-    const website = table.slice(
-      table.indexOf("id: CLIENT_ROUTE_IDS.publicShell,"),
-      table.indexOf("id: CLIENT_ROUTE_IDS.pwaRuntime,")
-    );
-    for (const page of imports(routeTable).filter((imported) => carrying.has(imported))) {
-      const name = page.slice(client.length + 1).replace(/\.tsx?$/, "");
-      const lazy = `import("@/${name}")`;
-      expect(website).toContain(lazy);
-      expect(table.split(lazy)).toHaveLength(website.split(lazy).length);
-      expect(table).not.toMatch(new RegExp(`from\\s+["']@/${name}["']`));
+    const start = table.indexOf("id: CLIENT_ROUTE_IDS.publicShell,");
+    const end = table.indexOf("id: CLIENT_ROUTE_IDS.pwaRuntime,");
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    // A computed specifier is one this scan cannot follow, so the table may not use one: every
+    // import() there takes one string literal and nothing else.
+    expect(table).not.toMatch(new RegExp(`import${gap}\\((?!${gap}(["'])[^"'\`]+\\1${gap}\\))`));
+    const reached = references(routeTable).filter((reference) => carrying.has(reference.file));
+    expect(reached.length).toBeGreaterThan(0);
+    for (const reference of reached) {
+      expect(reference.lazy).toBe(true);
+      expect(reference.at).toBeGreaterThan(start);
+      expect(reference.at).toBeLessThan(end);
     }
   });
 
