@@ -72,6 +72,8 @@ export interface PromiseGroupController {
   yours: InboxCommitment[];
   /** The one act, or null when the reader can't take one up here. */
   bar: GroupTakeUpBar | null;
+  /** The copy the app would choose now; null while availability is unread or none is left. */
+  choice: bigint | null;
   /** The pool's per-person at-once limit, the only limit the page states. */
   cap: bigint | null;
   /** Whether the reader belongs where a take-up goes; null while it reads. */
@@ -310,6 +312,7 @@ export function usePromiseGroupController(input: {
     availabilityKnown,
     yours,
     bar,
+    choice: choice?.commitmentId ?? null,
     cap: cap && cap > 0n ? cap : null,
     isMember,
     membershipUnavailable: isMember === null && roles.membershipUnavailable,
