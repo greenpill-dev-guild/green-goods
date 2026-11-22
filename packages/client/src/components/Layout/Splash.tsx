@@ -2,8 +2,7 @@ import { Button } from "@green-goods/shared/components/Button";
 import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { APP_NAME } from "@green-goods/shared/config/app";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import type React from "react";
-import { useEffect, useRef } from "react";
+import { type ChangeEvent, type FC, useEffect, useRef } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 
@@ -26,7 +25,7 @@ interface TertiaryActionConfig {
 
 interface UsernameInputConfig {
   value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
   label?: string;
   placeholder?: string;
   onCancel?: () => void;
@@ -71,7 +70,7 @@ interface SplashProps {
  * The primary moves between slots only on deliberate navigation; within a
  * screen every async change (error, loading) keeps all geometry fixed.
  */
-export const Splash: React.FC<SplashProps> = ({
+export const Splash: FC<SplashProps> = ({
   login,
   isLoggingIn = false,
   isLoginDisabled = false,

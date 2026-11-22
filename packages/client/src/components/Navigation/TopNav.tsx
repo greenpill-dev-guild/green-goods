@@ -144,7 +144,9 @@ export const TopNav: React.FC<TopNavProps> = ({
       <div className="flex flex-col items-end gap-2 z-1">
         {/* Who is signed in, on every bar but the garden page's, where the garden's own
             actions stack over its banner. A flow that draws no tracker passes null. */}
-        {garden ? null : <AccountChip besideTracker={children != null} />}
+        {garden ? null : (
+          <AccountChip besideTracker={children !== undefined && children !== null} />
+        )}
         {/* No bell here: Home's bell carries the garden's events and Needs Your Attention what
             waits on a steward (DL-130), so a second count of pending work would disagree. */}
         {garden && showGovernanceButton && onGovernanceClick && (
