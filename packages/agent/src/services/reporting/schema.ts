@@ -166,4 +166,21 @@ export const REPORTING_MIGRATIONS: readonly ReportingMigration[] = [
     columns: [{ table: "work_drafts", column: "question_profile", definition: "TEXT" }],
     statements: [],
   },
+  {
+    version: 10,
+    name: "a person's say over last-report suggestions",
+    // The suggestion itself is read from work_records. This holds only whether an account's
+    // suggestions are off, and the time before which its published reports are no longer used.
+    statements: [
+      `CREATE TABLE IF NOT EXISTS report_suggestions (
+        participant_id TEXT NOT NULL REFERENCES participants(id),
+        chain_id INTEGER NOT NULL,
+        account_address TEXT NOT NULL CHECK (account_address = lower(account_address)),
+        disabled INTEGER NOT NULL DEFAULT 0 CHECK (disabled IN (0, 1)),
+        forgotten_before INTEGER NOT NULL DEFAULT 0,
+        updated_at INTEGER NOT NULL,
+        PRIMARY KEY (participant_id, chain_id, account_address)
+      )`,
+    ],
+  },
 ];
