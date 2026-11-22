@@ -96,6 +96,14 @@ export const NotAStewardOfThePayingGarden: Story = {
   },
 };
 
+/** Before the reward payer is deployed, the section says so and offers nothing to pay. */
 export const PayerNotDeployed: Story = {
   args: { shares: [], payerAvailable: false },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(
+      canvas.getByText("Paying this part from the app isn't available on this network yet.")
+    ).toBeVisible();
+    await expect(canvas.queryByRole("button")).toBeNull();
+  },
 };
