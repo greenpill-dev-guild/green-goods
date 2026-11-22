@@ -158,4 +158,12 @@ export const REPORTING_MIGRATIONS: readonly ReportingMigration[] = [
         ON work_drafts(conversation_id, updated_at)`,
     ],
   },
+  {
+    version: 9,
+    name: "the question profile a report asks with",
+    // `slug@version` of the profile a report took when it chose its activity. A report started
+    // before this column existed has none, and keeps being asked from the activity's own words.
+    columns: [{ table: "work_drafts", column: "question_profile", definition: "TEXT" }],
+    statements: [],
+  },
 ];
