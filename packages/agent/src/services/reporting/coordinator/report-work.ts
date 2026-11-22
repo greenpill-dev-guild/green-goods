@@ -232,9 +232,10 @@ export function keepProfileRules(core: ReportingCore, draft: DraftRecord, work: 
     const value = now[key];
     if (value === undefined) continue;
     const chooser = question.by?.field;
+    // A number held before its type was chosen, or under another type, has no meaning in the new
+    // unit: it goes, and is asked again. One given with its type in this turn stays.
     const rechosen =
       chooser !== undefined &&
-      before[chooser] !== undefined &&
       before[chooser] !== now[chooser] &&
       JSON.stringify(before[key]) === JSON.stringify(value);
     if (!rechosen && acceptsAmount(profile, key, now, value)) continue;

@@ -150,6 +150,7 @@ describe("reading several facts from one message", () => {
     ["we planted 12 other trees", "en"],
     ["3 medicinal seedlings and 9 trees", "en"],
     ["plantamos 1,5 árboles", "es"],
+    ["We planted -40 seedlings", "en"],
   ])("takes nothing from %j", (text, locale) => {
     expect(reading(text, plantingEvent, { locale })).toEqual({});
   });

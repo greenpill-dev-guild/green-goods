@@ -1,5 +1,6 @@
 import type { ActionDefinition } from "@green-goods/shared/modules/agent-reporting";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { setControl } from "../../services/reporting/controls";
 import { lifecycleState } from "../../services/reporting/coordinator/draft-commit";
 import { reportingText } from "../../services/reporting/copy";
 import { loadDraft } from "../../services/reporting/drafts";
@@ -327,6 +328,35 @@ describe("what a profile decides, and what it leaves alone", () => {
     expect(report().details).toEqual({ milestoneType: "Retrofit completed" });
     await harness.say(ADA, "2");
     expect(report().details).toEqual({ milestoneType: "Retrofit completed", milestoneValue: 2 });
+  });
+
+  it("asks a milestone's amount again when a model gave it before the type", async () => {
+    setControl(harness.core, "model_processing", true, {
+      actor: "test",
+      reason: "dependent value",
+    });
+    await begin("en", "We worked on the hub today", milestone);
+    expect(report().question).toBe("field:milestoneType");
+    // A model reads an amount from words that pick no type.
+    harness.interpreter.responses = [
+      {
+        intent: "report_content",
+        gardenKey: null,
+        actionUID: null,
+        facts: [
+          { field: "details.milestoneValue", value: 10, kind: "reported", original: "ten units" },
+        ],
+        models: ["fixture-model"],
+      },
+    ];
+    await harness.say(ADA, "it was ten units");
+    expect(report().details.milestoneValue).toBe(10);
+    // Choosing the type gives the number a unit it was never given in, so it is asked again.
+    await harness.say(ADA, "1");
+    expect(report()).toMatchObject({
+      details: { milestoneType: "Solar kW installed" },
+      question: "field:milestoneValue",
+    });
   });
 
   it("asks two related fields together when a profile says so, and the rest one at a time", async () => {
