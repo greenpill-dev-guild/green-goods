@@ -164,7 +164,7 @@ export function SeedRewardSection({
             className="max-w-sm"
           />
           {usdcMatchAvailable && values.considerationUsd !== undefined ? (
-            <AdminFieldGroup label={paidInLabel} className="pt-2">
+            <AdminFieldGroup label={paidInLabel} className="mt-4">
               <AdminChoiceGroup
                 ariaLabel={paidInLabel}
                 value={matched ? "matched" : "goodDollars"}
