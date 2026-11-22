@@ -4,7 +4,7 @@ import type {
   ReviewHealthWeek,
 } from "@green-goods/shared/hooks/admin-ui/garden/useGardenWorkspaceController";
 import type { Work } from "@green-goods/shared/types/domain";
-import { expect, fn, within } from "storybook/test";
+import { expect, fn, screen, within } from "storybook/test";
 import { withAdminIdentity, withRouter } from "../../../../../shared/.storybook/decorators";
 import { daysAgo } from "../../../../../shared/.storybook/fixtures";
 import { ReviewWeekDialog } from "./ReviewWeekDialog";
@@ -76,9 +76,13 @@ type Story = StoryObj<typeof meta>;
 export const Reviewed: Story = {
   tags: ["storybook-ci"],
   play: async () => {
-    const dialog = within(document.body);
-    await expect(await dialog.findByText("Reviewed the week of Nov 9")).toBeVisible();
-    await expect(dialog.getByText("Path mulched")).toBeVisible();
+    const dialog = await screen.findByRole("dialog", { name: "Reviewed the week of Nov 9" });
+    // The reviewed list is chosen, and lists the week's first decisions.
+    await expect(within(dialog).getByRole("button", { name: "Reviewed (2)" })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
+    await expect(within(dialog).getByText("Path mulched")).toBeInTheDocument();
   },
 };
 

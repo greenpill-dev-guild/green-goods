@@ -104,8 +104,11 @@ export const EightWeeks: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole("link", { name: /Waiting now/ })).toBeVisible();
     // Each week is one link to its records; the table, folded away, links each count.
-    await expect(canvas.getAllByRole("link", { name: /^Week of .* reviewed$/ })).toHaveLength(8);
-    await expect(canvas.getByRole("link", { name: /so far/ })).toBeVisible();
+    // A week's column names both counts; the table's links name one each.
+    await expect(canvas.getAllByRole("link", { name: /submitted, .* reviewed$/ })).toHaveLength(8);
+    await expect(
+      canvas.getByRole("link", { name: /so far: .*submitted, .* reviewed$/ })
+    ).toBeVisible();
   },
 };
 
