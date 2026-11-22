@@ -293,6 +293,19 @@ describe("what a model is given", () => {
     expect(JSON.stringify(request)).not.toMatch(/Ada|fence|baobab/);
   });
 
+  it("starts a report's context at its story, even in the same millisecond", async () => {
+    await harness.say(ADA, "hi");
+    await harness.press(ADA, "I agree");
+    await harness.say(ADA, "hello");
+    // The story begins a report with no time passing, as in one worker pass.
+    await harness.say(ADA, "Today I planted twelve baobab seedlings by the fence");
+    const request = await heard(ADA, "is the fence side part of TAS?");
+    expect(request.turns.map((turn) => turn.text)).toContain(
+      "Today I planted twelve baobab seedlings by the fence"
+    );
+    expect(request.turns.map((turn) => turn.text)).not.toContain("hello");
+  });
+
   it("starts again after consent is withdrawn, and after the account changes", async () => {
     await consented(ADA, "Today I planted twelve baobab seedlings by the fence");
     await heard(ADA, "is the fence side part of TAS?");

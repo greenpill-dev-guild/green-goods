@@ -65,6 +65,14 @@ const REDACTIONS: ReadonlyArray<readonly [RegExp, string]> = [
   [/(?<![\p{L}\p{N}])(?:[\p{L}\p{N}-]+\.){2,}\p{L}{2,}(?::\d+)?\/\S*/gu, "[link]"],
   // Any host, in any case, with a query that carries a value: "Photos.Example.Mx/x?token=1".
   [new RegExp(`${HOST}\\p{L}{2,}(?::\\d+)?(?:\\/[^\\s?]*)?\\?\\S*=\\S*`, "gu"), "[link]"],
+  // A host named by its address or as this machine, with a port or what follows it:
+  // "192.168.1.2/private?token=1", "[fe80::1]:8080/x", "localhost:3000/x".
+  [
+    /(?<![\p{L}\p{N}.])(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)(?::\d+)?(?:[/?#]\S*)?(?!\d|\.\d)/gu,
+    "[link]",
+  ],
+  [/\[[0-9a-f:]*:[0-9a-f:]*\](?::\d+)?(?:[/?#]\S*)?/giu, "[link]"],
+  [/(?<![\p{L}\p{N}])localhost(?::\d+)?(?:[/?#]\S*)?/giu, "[link]"],
   // A bare host under an ending that is rarely an everyday word.
   [
     new RegExp(
@@ -207,15 +215,25 @@ function withoutPhones(text: string): string {
 }
 
 /** A character an identifier may be written in: Latin letters with their accents, digits, marks. */
-const IDENTIFIER_PART = /[\p{Script=Latin}\p{N}\p{M}._%+@:/?#=&()-]/u;
+/** Scripts written without spaces between words: their letters are prose, not an identifier. */
+const UNSPACED =
+  /[\p{Script=Thai}\p{Script=Lao}\p{Script=Khmer}\p{Script=Myanmar}\p{Script=Tibetan}\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u;
+/** A character an identifier may be written in: letters, digits, marks and its symbols. */
+const IDENTIFIER_PART = /[\p{L}\p{N}\p{M}._%+@:/?#=&()'-]/u;
 
 /**
- * Text with no spaces, without the identifier it may end in half of ("josé" of an email address).
- * Letters of other scripts end the run, so Thai written without spaces is kept. Read from the end.
+ * Text with no spaces, without the identifier it may end in half of ("josé" or "иван" of an email
+ * address). Letters of scripts written without spaces end the run, so Thai or Japanese prose is
+ * kept; in any other script a run with no space is one word, so at most that word goes. Read from
+ * the end.
  */
 function withoutTrailingIdentifier(text: string): string {
   let start = text.length;
-  while (start > 0 && IDENTIFIER_PART.test(text[start - 1] as string)) start -= 1;
+  while (start > 0) {
+    const character = text[start - 1] as string;
+    if (!IDENTIFIER_PART.test(character) || UNSPACED.test(character)) break;
+    start -= 1;
+  }
   return text.slice(0, start);
 }
 

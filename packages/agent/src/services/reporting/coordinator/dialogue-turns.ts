@@ -31,14 +31,25 @@ const QUESTION_KINDS = new Set([
   "edit_field",
 ]);
 
+/** Where a context begins: a time, and the arrival of the message that began it on a tie. */
+interface ContextStart {
+  at: number;
+  /**
+   * A message read in the same millisecond counts only if it arrived no earlier than this: for a
+   * report, the story that began it; 0 where a tie cannot cross a boundary.
+   */
+  arrival: number;
+}
+
+const UNKNOWN = Number.MAX_SAFE_INTEGER;
+
 /**
  * When the context a model may read begins: at the consent in force, at the last time an account
  * was linked or unlinked, at the chat's own link to its person, and at the start of the open
- * report or the end of the last one, whichever is latest. A turn handled before then belongs to another consent, another account or
- * another report.
+ * report or the end of the last one, whichever is latest. A turn handled before then belongs to
+ * another consent, another account or another report.
  */
-function contextStart(core: ReportingCore, ctx: TurnContext): number {
-  const params = { subject: ctx.subjectId, conversation: ctx.conversationId };
+function contextStart(core: ReportingCore, ctx: TurnContext): ContextStart {
   const consent = core.db
     .query(
       `SELECT MAX(granted_at) AS at FROM consent_records
@@ -64,16 +75,35 @@ function contextStart(core: ReportingCore, ctx: TurnContext): number {
   const report = ctx.draft
     ? (core.db
         .query(
-          "SELECT created_at AS at FROM draft_revisions WHERE draft_id = $draft AND revision = 1"
+          `SELECT r.created_at AS at, e.arrival_seq AS arrival FROM draft_revisions r
+           LEFT JOIN inbox_events e ON e.id = r.source_event_id
+           WHERE r.draft_id = $draft AND r.revision = 1`
         )
-        .get({ draft: ctx.draft.id }) as { at: number | null } | null)
+        .get({ draft: ctx.draft.id }) as { at: number; arrival: number | null } | null)
     : (core.db
         .query(
           `SELECT MAX(updated_at) AS at FROM work_drafts
            WHERE conversation_id = $conversation AND lifecycle <> 'open'`
         )
-        .get({ conversation: params.conversation }) as { at: number | null });
-  return Math.max(consent.at ?? 0, account.at ?? 0, channel.at ?? 0, report?.at ?? 0);
+        .get({ conversation: ctx.conversationId }) as { at: number | null });
+  // A consent and an account link each follow the person's reply to a notice or a link, and the
+  // chat's own link is its first contact, so a message read in their millisecond counts. A report
+  // can begin in the same pass as the last one ended, so there a message counts only if it arrived
+  // no earlier than the story that began the report.
+  const at = (bound: { at: number | null } | null, arrival = 0): ContextStart[] =>
+    bound?.at ? [{ at: bound.at, arrival }] : [];
+  const bounds = [
+    ...at(consent),
+    ...at(account),
+    ...at(channel),
+    ...at(report, (report as { arrival?: number | null } | null)?.arrival ?? UNKNOWN),
+  ];
+  const start = Math.max(0, ...bounds.map((bound) => bound.at));
+  const arrival = Math.max(
+    0,
+    ...bounds.filter((bound) => bound.at === start).map((bound) => bound.arrival)
+  );
+  return { at: start, arrival };
 }
 
 /**
@@ -115,14 +145,17 @@ function questionsAskedBy(
  * The turns before this one, oldest first, at most `maxTurns`. A person's turn is what they typed:
  * commands, codes and button taps are left out, since the state already holds what they did, and
  * so is anything said while a decision on someone's work was open in the chat, or while one of
- * its questions was, the list of work to review among them.
+ * its questions was, the list of work to review among them. A message from the last report read in
+ * the same millisecond as a new report began does not cross into it.
  */
 export function earlierTurns(core: ReportingCore, ctx: TurnContext): DialogueTurn[] {
+  const start = contextStart(core, ctx);
   const events = core.db
     .query(
       `SELECT id, payload_ciphertext FROM inbox_events
        WHERE conversation_id = $conversation AND channel_subject_id = $subject AND kind = 'message'
-         AND state = 'consumed' AND consumed_at >= $since AND arrival_seq < $before
+         AND state = 'consumed' AND arrival_seq < $before
+         AND (consumed_at > $since OR (consumed_at = $since AND arrival_seq >= $sinceArrival))
          AND payload_ciphertext IS NOT NULL
          AND NOT EXISTS (SELECT 1 FROM review_intents r
            WHERE r.conversation_id = inbox_events.conversation_id
@@ -137,7 +170,8 @@ export function earlierTurns(core: ReportingCore, ctx: TurnContext): DialogueTur
     .all({
       conversation: ctx.conversationId,
       subject: ctx.subjectId,
-      since: contextStart(core, ctx),
+      since: start.at,
+      sinceArrival: start.arrival,
       before: ctx.event.arrival_seq,
       limit: MODEL_INPUT_POLICY.maxTurns * 2,
     }) as Array<Pick<InboxEventRow, "id" | "payload_ciphertext">>;
