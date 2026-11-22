@@ -250,9 +250,10 @@ export function validateProposal(
   }
   if (proposal.actions.length === 0) refused.push({ kind: "explain", reason: "empty" });
   // Content comes first: a message that gives details and also says hello is a report. A garden
-  // named in passing does not turn a question about status or help into one.
+  // or an activity named in passing does not turn a question about status or help into one: the
+  // question is answered, as it was before proposals, and what it named stays in the reading.
   const asides = link || topic !== null;
-  const reports = facts.length > 0 || actionUID !== null || (gardenKey !== null && !asides);
+  const reports = facts.length > 0 || ((actionUID !== null || gardenKey !== null) && !asides);
   const intent: InterpretedIntent = reports
     ? corrects
       ? "correction"
