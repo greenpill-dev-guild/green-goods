@@ -15,7 +15,7 @@ generated_from:
   - playwright.config.ts
   - scripts/data/qa-test-catalog.json
   - scripts/data/validation-policy.json
-source_digest: "sha256:021d6e0347c24059747a6e7a95b492b33d8700f908610edcabbf9d81d4602e0d"
+source_digest: "sha256:b37459f9d7cf8590d92856b1de7eb96f9034d2bf4113f7d919b413a342e2c322"
 source_of_truth:
   - package.json
   - packages/admin/vitest.config.ts
@@ -451,7 +451,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `PWA-113` | Resilience | Commitments | Discard removes a commitment act that gave up | Screenshots of the alert and the cleared state |
 | `PWA-114` | Transaction | Commitments | With a wallet, declining the prompt drops the act instead of queueing it | Screenshots after the rejection and after the act lands |
 | `PWA-115` | Journey | Commitments | Offer It Again opens the composer on the earlier offer's answers | Screenshots of the ended offer and of the prefilled composer |
-| `PWA-116` | Journey | Commitments | Ask Again opens the composer on an ended request's answers | Screenshots of the ended request and of the prefilled composer |
+| `PWA-116` | Journey | Commitments | Request It Again opens the composer on an ended request's answers | Screenshots of the ended request and of the prefilled composer |
 | `PWA-119` | Data integrity | Commitments | Approved work fills a requirement row by row until the commitment is ready | Screenshots of the row at 1 of 2 and at 2 of 2 |
 | `PWA-120` | Resilience | Commitments | A queued commitment act survives closing the app and lands once | Screenshots of the waiting bar after the restart and of the landed state |
 | `PWA-121` | Data integrity | Commitments | The screen updates by itself once a queued act lands | Screen recording from the press to the updated band |

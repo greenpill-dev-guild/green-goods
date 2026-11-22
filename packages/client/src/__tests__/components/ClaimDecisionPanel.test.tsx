@@ -29,7 +29,7 @@ describe("ClaimDecisionPanel", () => {
       />
     );
 
-    expect(screen.getByText(/requested by/i)).toBeInTheDocument();
+    expect(screen.getByText(/asked by/i)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Accept" }));
     expect(onAccept).toHaveBeenCalledWith(CLAIMANT);
   });
@@ -54,7 +54,7 @@ describe("ClaimDecisionPanel", () => {
     expect(submit).toBeEnabled();
     await user.click(submit);
     expect(onDecline).toHaveBeenCalledWith(CLAIMANT, "Already covered");
-    expect(screen.queryByText(/requested by/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/asked by/i)).not.toBeInTheDocument();
   });
 
   it("disables every decision while one is pending", () => {

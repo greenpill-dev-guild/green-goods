@@ -650,7 +650,7 @@ describe("CommitmentDialogPanel (W10)", () => {
     expect(within(asks[1]!).queryByRole("button")).not.toBeInTheDocument();
   });
 
-  it("says an ask closed with its canceled promise, not that another ask was approved", () => {
+  it("says an ask closed with its canceled promise, not that someone else was approved", () => {
     const record = commitment({
       onchainState: "CANCELLED",
       derivedState: "CANCELLED",
@@ -682,7 +682,7 @@ describe("CommitmentDialogPanel (W10)", () => {
     expect(ask).toHaveAttribute("data-state", "closed");
     expect(within(ask!).getByText("Closed")).toBeInTheDocument();
     expect(ask).toHaveTextContent(/promise canceled/);
-    expect(ask).not.toHaveTextContent(/Not chosen|another ask was approved/);
+    expect(ask).not.toHaveTextContent(/Not chosen|someone else was approved/);
   });
 
   it("offers Edit Reward and Edit Confirmers on a promise that stands alone, only while nobody has taken it", () => {

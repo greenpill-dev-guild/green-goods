@@ -150,7 +150,7 @@ export function SeedStepProof({
                 }),
                 description: formatMessage({
                   id: "hub.garden.pool.seed.claimMode.gatedAskHint",
-                  defaultMessage: "Each ask waits for your approval",
+                  defaultMessage: "Whoever asks to take one up waits for your approval",
                 }),
               },
             ]}

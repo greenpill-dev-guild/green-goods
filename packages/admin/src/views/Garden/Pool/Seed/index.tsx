@@ -431,7 +431,7 @@ export function SeedCommitmentDialog({
         title={title}
         description={formatMessage({
           id: "hub.garden.pool.seed.promisesDescription",
-          defaultMessage: "Offer or ask for one or many promises on the pool's behalf.",
+          defaultMessage: "Offer or request one or many promises on the pool's behalf.",
         })}
         bodyClassName="flex min-h-0 flex-col !overflow-hidden"
       >

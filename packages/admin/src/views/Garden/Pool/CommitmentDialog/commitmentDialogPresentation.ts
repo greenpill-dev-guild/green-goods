@@ -75,7 +75,7 @@ export function stageLabels(
       direction === "REQUEST"
         ? formatMessage({
             id: "hub.garden.pool.commitment.stage.requested",
-            defaultMessage: "Asked",
+            defaultMessage: "Requested",
           })
         : formatMessage({
             id: "hub.garden.pool.commitment.stage.offered",
@@ -110,7 +110,7 @@ export function eventLabel(event: CommitmentEventRecord, formatMessage: FormatMe
     },
     CLAIM_DECLINED: {
       id: "hub.garden.pool.commitment.event.claimDeclined",
-      defaultMessage: "Request declined",
+      defaultMessage: "Take-up declined",
     },
     ACCEPTED: { id: "hub.garden.pool.commitment.event.accepted", defaultMessage: "Taken up" },
     CONTRIBUTOR_ADDED: {

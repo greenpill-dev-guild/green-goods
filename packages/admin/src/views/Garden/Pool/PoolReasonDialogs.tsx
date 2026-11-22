@@ -179,16 +179,16 @@ export function PoolReasonDialogs({
         tone={tone}
         title={formatMessage({
           id: "hub.garden.pool.declineClaim.title",
-          defaultMessage: "Decline This Request",
+          defaultMessage: "Decline This Take-Up",
         })}
         description={formatMessage({
           id: "hub.garden.pool.declineClaim.description",
           defaultMessage:
-            "Only this request is declined; others stay pending and the promise stays claimable. The person sees your reason and may ask again.",
+            "Only this person is declined; anyone else who asked stays waiting, and the promise stays open to take up. They see your reason and may ask again.",
         })}
         confirmLabel={formatMessage({
           id: "hub.garden.pool.declineClaim.confirm",
-          defaultMessage: "Decline Request",
+          defaultMessage: "Decline",
         })}
         cancelLabel={formatMessage({
           id: "hub.garden.pool.declineClaim.keep",
@@ -233,7 +233,7 @@ export function PoolReasonDialogs({
               party={{
                 label: formatMessage({
                   id: "hub.garden.pool.target.requestFrom",
-                  defaultMessage: "Request from",
+                  defaultMessage: "Asked to take it up",
                 }),
                 value: (
                   <AddressDisplay address={reasonDialog.row.claim.claimant} interactive={false} />
