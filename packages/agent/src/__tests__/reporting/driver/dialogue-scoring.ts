@@ -212,7 +212,7 @@ const INPUTS = new Map<string, (typeof ACTIVITIES)[keyof typeof ACTIVITIES]["inp
  * scored for or against the reader; a value its field cannot take ("12 kg" for a count, ["25"] for
  * a number) is dropped by the report rules, and counted as invalid.
  */
-export function asApplied(scenario: Scenario, reading: Reading) {
+function asApplied(scenario: Scenario, reading: Reading) {
   const { details = {}, minutes } = scenario.situation;
   const held = (field: string) =>
     field === "timeSpentMinutes" ? minutes : details[field.slice("details.".length)];

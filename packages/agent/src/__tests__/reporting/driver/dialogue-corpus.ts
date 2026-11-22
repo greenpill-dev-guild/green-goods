@@ -15,7 +15,7 @@ export type Locale = "en" | "es" | "pt";
 type Wordings = Record<Locale, readonly [string, string]>;
 
 /** The report a message arrives in. */
-export interface Situation {
+interface Situation {
   /** The activity the report has, or null while it has none and both are on offer. */
   activity: "planting" | "milestone" | null;
   details?: Record<string, string | number>;
