@@ -36,6 +36,7 @@ import {
   type TurnExternal,
   type Working,
 } from "./report-work";
+import { answeredActivity } from "./turn-reading";
 import type { TurnWriter } from "./writer";
 
 function invalid(writer: TurnWriter, reason: string, values: CopyValues = {}): void {
@@ -187,13 +188,7 @@ export function handleReportAnswer(
       if (askAnotherGarden(writer, draft, ctx.account?.address ?? null)) return;
       if (page !== null) return askAction(writer, draft, external.catalog, page);
       const actions = external.catalog.result?.ok ? external.catalog.result.actions : [];
-      const uid =
-        option?.value ??
-        presentedKeys(prompt)[Number(text) - 1] ??
-        actions
-          .find((a) => a.definition.title.toLowerCase() === text?.trim().toLowerCase())
-          ?.definition.actionUID.toString();
-      const action = actions.find((candidate) => candidate.definition.actionUID.toString() === uid);
+      const action = answeredActivity(prompt, option, text, actions);
       if (!action) {
         return offChoice(writer, plan, external, () =>
           askAction(writer, draft, external.catalog, prompt.page)
