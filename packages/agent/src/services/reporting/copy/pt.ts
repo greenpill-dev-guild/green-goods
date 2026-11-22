@@ -135,7 +135,6 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "question.seedlingsAndSpecies": "Quantas mudas você plantou, e de quais espécies?",
   "question.participants": "Quantas pessoas participaram?",
   "question.speciesTags": "Quais espécies você plantou?",
-  "report.descriptionRevised": "\nSua descrição também dizia {was}, então mudei para combinar.",
   "report.descriptionStale": "\nSua descrição ainda diz {was}. Envie EDIT para mudar o texto.",
   "suggest.last": "Igual à última vez: {action} em {garden}?",
   "suggest.lastGarden": "O mesmo jardim da última vez: {garden}?",
