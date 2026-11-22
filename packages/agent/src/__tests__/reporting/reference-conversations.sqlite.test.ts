@@ -4,10 +4,14 @@ import { setControl } from "../../services/reporting/controls";
 import { lifecycleState } from "../../services/reporting/coordinator/draft-commit";
 import { reportingText } from "../../services/reporting/copy";
 import { loadDraft } from "../../services/reporting/drafts";
+import { decryptConversationChat } from "../../services/reporting/identity-store";
 import { openPrompt } from "../../services/reporting/prompts";
 import { QUESTION_PROFILES, type QuestionProfile } from "../../services/reporting/questions";
+import { TestBrowser } from "./support/browser";
 import { planting, snapshot, TAS } from "./support/fixtures";
-import { ADA, Harness, type Person } from "./support/harness";
+import { adaAccount, latestLink } from "./support/flows";
+import { shadedPhoto } from "./support/media";
+import { ADA, BOLA, Harness, type Person } from "./support/harness";
 
 /**
  * Reference conversations with every model off, in English, Spanish and Portuguese, checked by
@@ -128,17 +132,30 @@ const LOCALES = Object.keys(WORDS) as Locale[];
 
 const speaker = (locale: Locale): Person => ({ ...ADA, locale });
 
-/** What the report holds, and the question the conversation has open. */
-function report() {
+/** The conversation a person's chat is, as the store names it. */
+function conversationOf(person: Person): string {
+  const rows = harness.core.db.query("SELECT id FROM conversations").all() as Array<{ id: string }>;
+  return (
+    rows.find(({ id }) => decryptConversationChat(harness.core, id)?.chatId === person.chatId)
+      ?.id ?? ""
+  );
+}
+
+/** What a person's newest report holds, and the question their conversation has open. */
+function reportOf(person: Person) {
   const row = harness.core.db
-    .query("SELECT id FROM work_drafts ORDER BY created_at DESC, rowid DESC LIMIT 1")
-    .get() as { id: string };
-  const draft = loadDraft(harness.core, row.id);
+    .query(
+      `SELECT id FROM work_drafts WHERE conversation_id = $conversation
+       ORDER BY created_at DESC, rowid DESC LIMIT 1`
+    )
+    .get({ conversation: conversationOf(person) }) as { id: string } | null;
+  const draft = row ? loadDraft(harness.core, row.id) : null;
   if (!draft) throw new Error("No report was started");
   const prompt = openPrompt(harness.core, draft.conversationId);
   return {
     details: draft.content.details,
     minutes: draft.content.timeSpentMinutes,
+    photos: draft.content.evidence.length,
     revision: draft.revision,
     state: lifecycleState(draft),
     stated: Object.entries(draft.content.provenance)
@@ -149,6 +166,9 @@ function report() {
     token: prompt?.token ?? null,
   };
 }
+
+/** The same for the one person most of these conversations have. */
+const report = () => reportOf(ADA);
 
 /** Sends the opening message, agrees to the notice, and picks TAS and then the activity. */
 async function begin(
@@ -312,6 +332,136 @@ describe.each(LOCALES)("reporting with models off, in %s", (locale) => {
       details: { milestoneType: "Battery kWh added" },
       question: "field:milestoneValue",
     });
+  });
+});
+
+const ASIDES = {
+  en: {
+    login: "I would like to log in",
+    mine: "which one is mine?",
+    caption: "We planted 40 seedlings",
+  },
+  es: {
+    login: "quiero iniciar sesión",
+    mine: "¿cuál es el mío?",
+    caption: "Plantamos 40 plántulas",
+  },
+  pt: { login: "quero fazer login", mine: "qual é o meu?", caption: "Plantamos 40 mudas" },
+} as const;
+
+const drafts = () =>
+  harness.core.db.query("SELECT count(*) AS n FROM work_drafts").get() as { n: number };
+
+describe.each(LOCALES)("interruptions and other people, in %s", (locale) => {
+  const words = WORDS[locale];
+  const asides = ASIDES[locale];
+  const person = speaker(locale);
+  const agree = reportingText(locale, "consent.agree");
+
+  it("answers a hello without starting a report", async () => {
+    await harness.say(person, words.hello);
+    const replies = await harness.press(person, agree);
+
+    expect(drafts()).toEqual({ n: 0 });
+    // The first reply after agreeing invites the story; nothing asks for a garden yet.
+    expect(replies.join("\n")).not.toContain(reportingText(locale, "report.askGarden"));
+    expect(openPrompt(harness.core, conversationOf(person))?.kind).toBe("connect_offer");
+  });
+
+  it("sends the link when someone asks to log in at the garden question, and keeps the report", async () => {
+    await harness.say(person, words.plain);
+    await harness.press(person, agree);
+    const before = report();
+    expect(before.question).toBe("select_garden");
+
+    const replies = await harness.say(person, asides.login);
+    expect(harness.transport.sent.at(-replies.length)?.message.link?.url).toContain("https://");
+    expect(report()).toMatchObject({ revision: before.revision, state: "collecting" });
+    expect(report().details).toEqual({});
+    // The report is still there to carry on with: the garden can be picked next.
+    await harness.say(person, "1");
+    expect(report().question).toBe("select_action");
+  });
+
+  it("explains the garden question when asked which garden is theirs, and asks it again", async () => {
+    await harness.say(person, words.plain);
+    await harness.press(person, agree);
+    const before = report();
+
+    const replies = await harness.say(person, asides.mine);
+    expect(replies).toHaveLength(2);
+    expect(replies[0]).toBe(reportingText(locale, "report.explainGardenUnlinked"));
+    expect(replies[1]).toContain(reportingText(locale, "report.askGarden"));
+    expect(report()).toMatchObject({ revision: before.revision, question: "select_garden" });
+  });
+
+  it("takes a photo sent with no words, then the story that follows it", async () => {
+    harness.mediaFiles.set("photo-1", await shadedPhoto(1));
+    await harness.say(person, "", {
+      text: undefined,
+      media: [{ providerMediaId: "photo-1", declaredMime: "image/jpeg" }],
+    });
+    const replies = await harness.press(person, agree);
+    expect(replies.join("\n")).toContain(reportingText(locale, "media.photoAdded"));
+    expect(report()).toMatchObject({ photos: 1, minutes: null, question: "select_garden" });
+    expect(report().details).toEqual({});
+
+    await harness.say(person, "1");
+    await harness.say(person, plantingEvent.title);
+    await harness.say(person, asides.caption);
+    // The photo proves nothing by itself: the count came from the words, and the photo stays.
+    expect(report()).toMatchObject({ photos: 1, details: { seedlingsPlanted: 40 }, minutes: null });
+    expect(report().stated).toContain("details.seedlingsPlanted");
+  });
+
+  it("keeps the report when the chat switches account, and unlinks the one it had", async () => {
+    harness.chain.grantRole(TAS.address, adaAccount.address, { gardener: true });
+    await begin(locale, words.plain);
+    await harness.say(person, "40");
+    await harness.say(person, "CONNECT");
+    const browser = new TestBrowser(harness.app);
+    await browser.open(latestLink(harness));
+    const proof = await browser.prove(adaAccount);
+    await harness.say(person, `PAIR ${proof.body.pairingCode}`);
+    const linked = report();
+    const active = () =>
+      harness.core.db
+        .query("SELECT count(*) AS n FROM account_bindings WHERE status = 'active'")
+        .get() as { n: number };
+    expect(active()).toEqual({ n: 1 });
+
+    const replies = await harness.say(person, "SWITCH");
+    expect(replies[0]).toContain(adaAccount.address.toLowerCase());
+    expect(active()).toEqual({ n: 0 });
+    // The unfinished report is saved as it was, for whichever account is linked next.
+    expect(report()).toMatchObject({
+      details: linked.details,
+      revision: linked.revision,
+      state: "collecting",
+    });
+  });
+
+  it("keeps two people's reports apart when they report at the same time", async () => {
+    const other: Person = { ...BOLA, locale };
+    await harness.say(person, words.story);
+    await harness.say(other, words.plain);
+    await harness.press(person, agree);
+    await harness.press(other, agree);
+    await harness.say(person, "1");
+    await harness.say(other, "1");
+    await harness.say(person, plantingEvent.title);
+    await harness.say(other, plantingEvent.title);
+
+    expect(reportOf(person)).toMatchObject({
+      details: { seedlingsPlanted: 40, participants: 6 },
+      question: "field:speciesTags",
+    });
+    // The other chat's report holds none of it, and still waits at its own first question.
+    expect(reportOf(other)).toMatchObject({
+      minutes: null,
+      question: "fields:seedlingsPlanted,speciesTags",
+    });
+    expect(reportOf(other).details).toEqual({});
   });
 });
 
