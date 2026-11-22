@@ -329,17 +329,10 @@ function applyModelFacts(
   work: Working,
   result: InterpretationResult,
   sources: FieldProvenance["sources"],
-  only: "empty" | "any" = "any",
-  message: string | null = null
+  only: "empty" | "any" = "any"
 ): void {
-  // A correction the gardener wrote, whose words for the value are there in the message, is the
-  // gardener's own: it replaces an earlier value. Anything else a model reads is a proposal, and
-  // one that disagrees with what the gardener stated becomes a question.
-  const said = message?.toLowerCase().replace(/\s+/gu, " ") ?? "";
-  const corrects = (original: string | undefined) =>
-    result.intent === "correction" &&
-    Boolean(original?.trim()) &&
-    said.includes((original as string).trim().toLowerCase().replace(/\s+/gu, " "));
+  // What a model reads is a proposal: one that disagrees with what the gardener stated becomes a
+  // question, never the value.
   const profile = questionProfileOf(writer.core, draft, work.snapshot);
   const facts = result.facts.filter((fact) => {
     const key = fact.field.startsWith("details.") ? fact.field.slice("details.".length) : null;
@@ -358,10 +351,7 @@ function applyModelFacts(
     facts.map((fact) => ({
       field: fact.field,
       value: fact.value,
-      provenance: {
-        ...modelFact(result, sources, fact.kind, fact.original, fact.unit),
-        ...(corrects(fact.original) ? { origin: "gardener" as const, gardenerStated: true } : {}),
-      },
+      provenance: modelFact(result, sources, fact.kind, fact.original, fact.unit),
     }))
   );
 }
@@ -407,7 +397,7 @@ export function applyInterpretation(
   // they state is theirs and a model's different reading becomes a question, never the value.
   if (said && work.snapshot && work.snapshot.digest !== draft.snapshot?.digest)
     applyStory(writer, draft, work, said);
-  applyModelFacts(writer, draft, work, result, sources, "any", writer.ctx.message.text ?? null);
+  applyModelFacts(writer, draft, work, result, sources);
 }
 
 /**
