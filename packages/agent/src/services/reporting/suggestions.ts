@@ -9,7 +9,7 @@ import type { ReportingCore } from "./runtime";
  * off, and a line in time before which reports are no longer used.
  *
  * The retention rule (RESR-88) lives in this file: a report older than `SUGGESTION_LIFETIME_MS` is
- * not suggested, STOP and DELETE forget everything published before them, and a different linked
+ * not suggested, STOP and DELETE forget every report begun before them, and a different linked
  * account never sees another's.
  */
 const SUGGESTION_LIFETIME_MS = 90 * 24 * 60 * 60 * 1000;
@@ -51,14 +51,17 @@ export function lastReport(core: ReportingCore, owner: Owner): LastReport | null
       `SELECT w.garden_address, w.action_uid FROM work_records w
        JOIN work_drafts d ON d.id = w.draft_id
        WHERE w.chain_id = $chain AND w.attester = $account AND d.participant_id = $participant
-         AND w.observed_at > $since
+         AND w.observed_at > $since AND d.created_at > $forgotten
        ORDER BY w.observed_at DESC LIMIT 1`
     )
+    // STOP and DELETE forget a report by when it began, so one still publishing when they were
+    // sent is forgotten too, though its receipt comes later.
     .get({
       chain: owner.chainId,
       account: owner.account.toLowerCase(),
       participant: owner.participantId,
-      since: Math.max(forgotten, core.clock.now() - SUGGESTION_LIFETIME_MS),
+      since: core.clock.now() - SUGGESTION_LIFETIME_MS,
+      forgotten,
     }) as { garden_address: string; action_uid: string } | null;
   return row
     ? { gardenAddress: row.garden_address.toLowerCase(), actionUID: Number(row.action_uid) }
@@ -90,7 +93,7 @@ export function disableSuggestions(core: ReportingCore, owner: Owner): void {
   save(core, owner, "disable");
 }
 
-/** STOP and DELETE: nothing published before now is suggested again, for any account of theirs. */
+/** STOP and DELETE: no report begun before now is suggested again, for any account of theirs. */
 export function forgetLastReports(core: ReportingCore, participantId: string): void {
   const accounts = core.db
     .query(
