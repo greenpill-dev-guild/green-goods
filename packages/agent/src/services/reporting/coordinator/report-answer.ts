@@ -7,6 +7,7 @@ import {
 import type { CopyValues } from "../copy";
 import { gardenScope } from "../gardens";
 import { type PromptRecord, resolvePrompt, typedChoice } from "../prompts";
+import { disableSuggestions } from "../suggestions";
 import { requestConnection } from "./account-steps";
 import { isGreeting } from "./commands";
 import type { TurnContext, TurnPlan } from "./context";
@@ -36,6 +37,7 @@ import {
   type TurnExternal,
   type Working,
 } from "./report-work";
+import { NO_SUGGESTIONS, SUGGESTION_PROMPT, suggestedGarden, USE_SUGGESTION } from "./last-report";
 import { answeredActivity } from "./turn-reading";
 import type { TurnWriter } from "./writer";
 
@@ -195,6 +197,40 @@ export function handleReportAnswer(
         );
       }
       adoptAction(work, action, gardenerFact(sourceEntryId));
+      break;
+    }
+    case SUGGESTION_PROMPT: {
+      const account = ctx.account?.address ?? null;
+      const choice = picked?.value;
+      // Words that pick none of the three are a message of their own: a story, or another garden.
+      if (!choice)
+        return handleReportMessage(writer, { kind: "message", text, media: [] }, external);
+      if (choice === NO_SUGGESTIONS && account && ctx.binding) {
+        disableSuggestions(core, {
+          participantId: ctx.binding.participantId,
+          chainId: core.settings.chainId,
+          account,
+        });
+        writer.say("suggest.off");
+      }
+      const garden = suggestedGarden(gardenScope(core.gardens, account), prompt);
+      if (choice !== USE_SUGGESTION || !garden) {
+        // Something else: the garden question, or the activity question of a garden already taken.
+        if (!draft.content.garden) return askGarden(writer, draft, account);
+        return askAction(writer, draft, external.catalog);
+      }
+      if (garden.address !== draft.content.garden?.address)
+        apply(work, [
+          { field: "garden", value: gardenRef(garden), provenance: gardenerFact(sourceEntryId) },
+        ]);
+      // The activity is taken only if the garden still offers it; otherwise it is asked.
+      const [, uid] = (prompt.fieldKey ?? "").split("|");
+      const offered =
+        external.catalog.garden?.key === garden.key && external.catalog.result?.ok
+          ? external.catalog.result.actions
+          : [];
+      const activity = offered.find((action) => String(action.definition.actionUID) === uid);
+      if (activity) adoptAction(work, activity, gardenerFact(sourceEntryId));
       break;
     }
     case "fields": {

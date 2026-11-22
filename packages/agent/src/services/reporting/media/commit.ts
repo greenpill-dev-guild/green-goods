@@ -12,12 +12,8 @@ import {
 } from "../coordinator/draft-commit";
 import { announceGarden, readOwnGardens } from "../coordinator/garden-step";
 import { type CatalogView, promptNextStepFor } from "../coordinator/prompting";
-import {
-  keepAcceptedPhotos,
-  keepProfileRules,
-  takeSoleGarden,
-  type Working,
-} from "../coordinator/report-work";
+import { keepProfileRules } from "../coordinator/profile-rules";
+import { keepAcceptedPhotos, takeSoleGarden, type Working } from "../coordinator/report-work";
 import { createLogger } from "../../logger";
 import { inTransaction } from "../database";
 import { DraftContentUnavailableError, type DraftRecord, loadDraft } from "../drafts";
