@@ -22,10 +22,10 @@ import {
   type ReportingGarden,
   soleGarden,
 } from "../gardens";
-import { acceptsAmount, profiledInput } from "../questions";
-import type { ReportingCore } from "../runtime";
+import { profiledInput } from "../questions";
 import { commitContentChange, lifecycleState, questionProfileOf } from "./draft-commit";
 import { announceGarden } from "./garden-step";
+import { keepProfileRules } from "./profile-rules";
 import { type CatalogView, gardenLabel, promptNextStep } from "./prompting";
 import { acknowledgement, alignDescription } from "./read-back";
 import { readStory } from "./story-answers";
@@ -166,40 +166,6 @@ function rereadStory(writer: TurnWriter, draft: DraftRecord, work: Working): voi
       },
     }))
   );
-}
-
-/**
- * The rules a report's question profile puts on its numbers, kept whatever set them: a gardener's
- * answer, a model's reading, a disagreement settled, or a file. A count is a whole number of one or
- * more; a number whose meaning follows another field's choice is taken out when that choice
- * changes without it, so it is asked again in its new unit and never shown in the wrong one.
- */
-export function keepProfileRules(core: ReportingCore, draft: DraftRecord, work: Working): void {
-  const profile = questionProfileOf(core, draft, work.snapshot);
-  if (!profile) return;
-  const before = draft.content.details;
-  const now = work.content.details;
-  for (const [key, question] of Object.entries(profile.fields)) {
-    const value = now[key];
-    if (value === undefined) continue;
-    const chooser = question.by?.field;
-    // A number held before its type was chosen, or under another type, has no meaning in the new
-    // unit: it goes, and is asked again. One given with its type in this turn stays.
-    const rechosen =
-      chooser !== undefined &&
-      before[chooser] !== now[chooser] &&
-      JSON.stringify(before[key]) === JSON.stringify(value);
-    if (!rechosen && acceptsAmount(profile, key, now, value)) continue;
-    const { [key]: _dropped, ...details } = work.content.details;
-    const { [`details.${key}` as const]: _read, ...provenance } = work.content.provenance;
-    work.content = {
-      ...work.content,
-      details,
-      provenance,
-      conflicts: work.content.conflicts.filter((conflict) => conflict.field !== `details.${key}`),
-    };
-    work.changed = true;
-  }
 }
 
 /** Adopts an Action and its frozen definition, keeping only details that definition accepts. */
