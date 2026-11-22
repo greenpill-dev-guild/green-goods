@@ -143,11 +143,11 @@ export interface GardenMemberHistory {
   memberSince: number | null;
   roleSince: Partial<Record<import("../utils/blockchain/garden-roles").GardenRole, number>>;
   /**
-   * Every role with a recorded grant in this garden, held now or not. A missing sub-role outside it
-   * was never minted; one inside it was taken away. Set only when every role event was read;
-   * absent means the history is unknown.
+   * Every role with any recorded grant or revocation in this garden, held now or not. A missing
+   * sub-role outside it was never minted; one inside it was taken away. Set only when every role
+   * event was read; absent means the history is unknown.
    */
-  grantedRoles?: import("../utils/blockchain/garden-roles").GardenRole[];
+  recordedRoles?: import("../utils/blockchain/garden-roles").GardenRole[];
 }
 
 // ============================================

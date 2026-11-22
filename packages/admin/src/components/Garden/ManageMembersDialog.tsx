@@ -449,8 +449,8 @@ export function ManageMembersDialog({
                           <RestoreRolesNotice
                             address={person.address}
                             roles={person.roles}
-                            grantedRoles={
-                              history.isError ? undefined : historyByAccount.get(key)?.grantedRoles
+                            recordedRoles={
+                              history.isError ? undefined : historyByAccount.get(key)?.recordedRoles
                             }
                             allowedRoles={allowedRoles}
                             disabled={busy || picks.length > 0}

@@ -10,13 +10,14 @@ const MEMBER = "0x2222222222222222222222222222222222222222" as Address;
 
 describe("RestoreRolesNotice", () => {
   it("restores only the roles the chain still lacks, in one action that names them", async () => {
-    const check = vi.fn().mockResolvedValue(["evaluator"]);
+    // The chain answers which of the asked roles they lack: not Owner, and only Evaluator.
+    const check = vi.fn().mockResolvedValue(["owner", "evaluator"]);
     const restore = vi.fn().mockResolvedValue(true);
     render(
       <RestoreRolesNotice
         address={MEMBER}
         roles={["steward"]}
-        grantedRoles={["steward"]}
+        recordedRoles={["steward"]}
         check={check}
         restore={restore}
       />
@@ -27,8 +28,8 @@ describe("RestoreRolesNotice", () => {
     ).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Restore Evaluator and Gardener" }));
 
-    // The giving Steward role is read too, so nothing is sent if it is gone.
-    expect(check).toHaveBeenCalledWith(MEMBER, ["steward", "evaluator", "gardener"]);
+    // The giving Steward role and the Owner hat are read too, so nothing goes to an owner.
+    expect(check).toHaveBeenCalledWith(MEMBER, ["steward", "owner", "evaluator", "gardener"]);
     // The indexed list lagged a Gardener grant: only Evaluator goes to the wallet.
     await waitFor(() => expect(restore).toHaveBeenCalledWith(MEMBER, ["evaluator"]));
   });
@@ -40,7 +41,7 @@ describe("RestoreRolesNotice", () => {
       <RestoreRolesNotice
         address={MEMBER}
         roles={["owner", "steward"]}
-        grantedRoles={["owner", "steward"]}
+        recordedRoles={["owner", "steward"]}
         check={vi.fn().mockResolvedValue([])}
         restore={restore}
         onRosterStale={onRosterStale}
@@ -62,7 +63,7 @@ describe("RestoreRolesNotice", () => {
       <RestoreRolesNotice
         address={MEMBER}
         roles={["steward", "evaluator"]}
-        grantedRoles={["steward", "evaluator"]}
+        recordedRoles={["steward", "evaluator"]}
         check={vi.fn().mockResolvedValue(null)}
         restore={restore}
       />
@@ -76,27 +77,27 @@ describe("RestoreRolesNotice", () => {
     expect(restore).not.toHaveBeenCalled();
   });
 
-  it("never offers an owner the Evaluator role, which the Owner grant does not give", () => {
+  it("offers an owner only Gardener, never the Evaluator the Owner grant does not give", () => {
     render(
       <RestoreRolesNotice
         address={MEMBER}
-        roles={["owner", "steward", "gardener"]}
-        grantedRoles={["owner", "steward", "gardener"]}
+        roles={["owner", "steward"]}
+        recordedRoles={["owner", "steward"]}
         check={vi.fn()}
         restore={vi.fn()}
       />
     );
 
-    expect(screen.queryByRole("button")).not.toBeInTheDocument();
-    expect(screen.queryByText(/Missing/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Restore Gardener" })).toBeInTheDocument();
+    expect(screen.queryByText(/Evaluator/)).not.toBeInTheDocument();
   });
 
-  it("points a viewer who cannot grant a missing role to an owner", () => {
+  it("points a viewer who cannot grant a missing role to an owner or steward", () => {
     render(
       <RestoreRolesNotice
         address={MEMBER}
         roles={["owner"]}
-        grantedRoles={["owner"]}
+        recordedRoles={["owner"]}
         allowedRoles={["steward"]}
         check={vi.fn()}
         restore={vi.fn()}
@@ -112,7 +113,7 @@ describe("RestoreRolesNotice", () => {
       <RestoreRolesNotice
         address={MEMBER}
         roles={["steward", "gardener"]}
-        grantedRoles={["steward", "evaluator", "gardener"]}
+        recordedRoles={["steward", "evaluator", "gardener"]}
         check={vi.fn()}
         restore={vi.fn()}
       />
@@ -138,8 +139,8 @@ describe("RestoreRolesNotice", () => {
       <RestoreRolesNotice
         address={MEMBER}
         roles={["steward", "gardener"]}
-        grantedRoles={["steward", "gardener"]}
-        check={vi.fn().mockResolvedValue(["steward", "evaluator"])}
+        recordedRoles={["steward", "gardener"]}
+        check={vi.fn().mockResolvedValue(["steward", "owner", "evaluator"])}
         restore={restore}
         onRosterStale={onRosterStale}
       />
@@ -157,16 +158,16 @@ describe("RestoreRolesNotice", () => {
   it("starts fresh when a different gap appears after a nothing-missing answer", async () => {
     const props = {
       address: MEMBER,
-      check: vi.fn().mockResolvedValue([]),
+      check: vi.fn().mockResolvedValue(["owner"]),
       restore: vi.fn(),
     };
     const { rerender } = render(
-      <RestoreRolesNotice {...props} roles={["steward", "gardener"]} grantedRoles={["steward"]} />
+      <RestoreRolesNotice {...props} roles={["steward", "gardener"]} recordedRoles={["steward"]} />
     );
     await userEvent.click(screen.getByRole("button", { name: "Restore Evaluator" }));
     expect(await screen.findByRole("status")).toBeInTheDocument();
 
-    rerender(<RestoreRolesNotice {...props} roles={["steward"]} grantedRoles={["steward"]} />);
+    rerender(<RestoreRolesNotice {...props} roles={["steward"]} recordedRoles={["steward"]} />);
     expect(screen.getByRole("button", { name: "Restore Evaluator and Gardener" })).toBeEnabled();
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
@@ -176,7 +177,7 @@ describe("RestoreRolesNotice", () => {
       <RestoreRolesNotice
         address={MEMBER}
         roles={["steward", "gardener"]}
-        grantedRoles={["owner", "steward", "gardener"]}
+        recordedRoles={["owner", "steward", "gardener"]}
         check={vi.fn()}
         restore={vi.fn()}
       />
@@ -184,5 +185,26 @@ describe("RestoreRolesNotice", () => {
 
     expect(screen.queryByText(/Missing/)).not.toBeInTheDocument();
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  it("sends nothing to a steward who became an owner after the list was read", async () => {
+    const restore = vi.fn();
+    render(
+      <RestoreRolesNotice
+        address={MEMBER}
+        roles={["steward", "gardener"]}
+        recordedRoles={["steward", "gardener"]}
+        // Owner is no longer missing: someone made them an owner a moment ago.
+        check={vi.fn().mockResolvedValue(["evaluator"])}
+        restore={restore}
+      />
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Restore Evaluator" }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      messages["admin.manageRoles.restore.changed"]
+    );
+    expect(restore).not.toHaveBeenCalled();
   });
 });

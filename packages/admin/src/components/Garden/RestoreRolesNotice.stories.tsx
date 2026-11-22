@@ -19,8 +19,8 @@ const meta: Meta<typeof RestoreRolesNotice> = {
   args: {
     address: MEMBER,
     roles: ["steward", "gardener"],
-    grantedRoles: ["steward", "gardener"],
-    check: fn(async () => ["evaluator" as const]),
+    recordedRoles: ["steward", "gardener"],
+    check: fn(async () => ["owner" as const, "evaluator" as const]),
     restore: fn(async () => true),
   },
 };
@@ -35,14 +35,14 @@ export const MissingEvaluator: Story = {};
 export const OwnerMissingGardener: Story = {
   args: {
     roles: ["owner", "steward"],
-    grantedRoles: ["owner", "steward"],
+    recordedRoles: ["owner", "steward"],
     check: fn(async () => ["gardener" as const]),
   },
 };
 
 /** The indexed list lagged the chain: nothing is sent, and the row says so. */
 export const NothingMissingOnChain: Story = {
-  args: { check: fn(async () => []) },
+  args: { check: fn(async () => ["owner" as const]) },
   play: async ({ args, canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole("button", { name: "Restore Evaluator" }));
@@ -53,7 +53,7 @@ export const NothingMissingOnChain: Story = {
 
 /** This steward's Evaluator was granted once and taken away, so it is never offered back. */
 export const DeliberateRemovalNotOffered: Story = {
-  args: { grantedRoles: ["steward", "evaluator", "gardener"] },
+  args: { recordedRoles: ["steward", "evaluator", "gardener"] },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.queryByRole("button")).toBeNull();
@@ -63,5 +63,5 @@ export const DeliberateRemovalNotOffered: Story = {
 
 /** A viewer who cannot grant a missing role is pointed to an owner instead. */
 export const ViewerCannotRestore: Story = {
-  args: { roles: ["owner"], grantedRoles: ["owner"], allowedRoles: ["steward"] },
+  args: { roles: ["owner"], recordedRoles: ["owner"], allowedRoles: ["steward"] },
 };

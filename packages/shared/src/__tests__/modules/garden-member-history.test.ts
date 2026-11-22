@@ -39,7 +39,7 @@ describe("getGardenMemberHistory", () => {
         joinedAt: 1_700_000_010_000,
         memberSince: 1_700_000_010_000,
         roleSince: { gardener: 1_700_000_010_000, steward: 1_700_000_020_000 },
-        grantedRoles: ["steward", "gardener"],
+        recordedRoles: ["steward", "gardener"],
       },
     ]);
     expect(query).toHaveBeenCalledWith(
@@ -70,16 +70,23 @@ describe("getGardenMemberHistory", () => {
       joinedAt: 1_700_000_010_000,
       memberSince: 1_700_000_040_000,
       roleSince: { gardener: 1_700_000_040_000 },
-      grantedRoles: ["steward", "gardener"],
+      recordedRoles: ["steward", "gardener"],
     });
   });
 
-  it("keeps every role ever granted, revoked or not, so a removal is never offered back (PRD-979)", async () => {
+  it("records every role granted, revoked or not, so a removal is never offered back (PRD-979)", async () => {
     // A Steward grant mints Steward, Evaluator and Gardener; Evaluator is then removed by itself.
     const { reader } = read([event(10, 2), event(10, 1), event(10, 0), event(20, 1, "REVOKED")]);
     const [history] = await getGardenMemberHistory({ garden, chainId: 42161 }, reader);
     expect(history.roleSince).toEqual({ steward: 1_700_000_010_000, gardener: 1_700_000_010_000 });
-    expect(history.grantedRoles).toEqual(["steward", "evaluator", "gardener"]);
+    expect(history.recordedRoles).toEqual(["steward", "evaluator", "gardener"]);
+  });
+
+  it("records a role whose only event is a revocation, so it is never offered back", async () => {
+    // The hat was minted before the indexer's first block; only its removal was recorded.
+    const { reader } = read([event(10, 2), event(20, 1, "REVOKED")]);
+    const [history] = await getGardenMemberHistory({ garden, chainId: 42161 }, reader);
+    expect(history.recordedRoles).toEqual(["steward", "evaluator"]);
   });
 
   it("does not reset membership while another role remains or from repeated grants", async () => {

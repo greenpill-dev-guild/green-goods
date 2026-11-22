@@ -5,7 +5,7 @@ import { getGardenMemberHistory } from "../../modules/data/garden-member-history
 import type { Address } from "../../types/domain";
 
 /**
- * Membership dates, and every role ever granted. The dates are metadata only. `grantedRoles` gates
+ * Membership dates, and every role with a recorded event. The dates are metadata only. `recordedRoles` gates
  * one write: the sub-role repair offers nothing it lists, and nothing at all while it is unread.
  */
 export function useGardenMemberHistory({

@@ -79,9 +79,9 @@ export const GARDEN_ROLE_ORDER: readonly GardenRole[] = [
  */
 function repairableSubRoles(
   roles: readonly GardenRole[],
-  grantedRoles: readonly GardenRole[]
+  recordedRoles: readonly GardenRole[]
 ): readonly GardenRole[] {
-  if (roles.includes("owner") || (roles.includes("steward") && grantedRoles.includes("owner"))) {
+  if (roles.includes("owner") || (roles.includes("steward") && recordedRoles.includes("owner"))) {
     return ["gardener"];
   }
   if (roles.includes("steward")) return ["evaluator", "gardener"];
@@ -89,17 +89,17 @@ function repairableSubRoles(
 }
 
 /**
- * The missing sub-roles a repair may restore: only ones no grant ever minted. A sub-role with any
- * recorded grant was taken away on purpose, or moments ago before its revocation was indexed, so
- * it is never offered back.
+ * The missing sub-roles a repair may restore: only ones with no recorded event at all, so never
+ * minted. A sub-role with a recorded grant or revocation was taken away on purpose, or moments ago
+ * before its revocation was indexed, so it is never offered back.
  */
 export function restorableSubRoles(
   roles: readonly GardenRole[],
-  grantedRoles: readonly GardenRole[]
+  recordedRoles: readonly GardenRole[]
 ): GardenRole[] {
-  const repairable = repairableSubRoles(roles, grantedRoles);
+  const repairable = repairableSubRoles(roles, recordedRoles);
   return GARDEN_ROLE_ORDER.filter(
-    (role) => repairable.includes(role) && !roles.includes(role) && !grantedRoles.includes(role)
+    (role) => repairable.includes(role) && !roles.includes(role) && !recordedRoles.includes(role)
   );
 }
 

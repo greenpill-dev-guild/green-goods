@@ -98,11 +98,8 @@ describe("utils/blockchain/garden-roles restorableSubRoles", () => {
     expect(restorableSubRoles(["steward"], ["owner", "steward"])).toEqual(["gardener"]);
   });
 
-  it("never offers back a role removed moments ago, before its revocation is indexed", () => {
-    // The roster already dropped Evaluator; the history still shows only its grant.
-    expect(
-      restorableSubRoles(["steward", "gardener"], ["steward", "evaluator", "gardener"])
-    ).toEqual([]);
+  it("never offers back a sub-role with only a recorded revocation, such as a hat minted before indexing", () => {
+    expect(restorableSubRoles(["steward", "gardener"], ["steward", "evaluator"])).toEqual([]);
   });
 
   it("finds nothing for roles with no sub-roles", () => {

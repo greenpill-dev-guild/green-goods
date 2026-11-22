@@ -481,13 +481,13 @@ describe("CommunityMembersDialogs: Add Member (DL-140)", () => {
 
 describe("CommunityMembersDialogs: restoring a missing sub-role (PRD-979)", () => {
   const steward = storyRoleMembers.steward[0];
-  const stewardHistory = (grantedRoles: GardenRole[]): GardenMemberHistory => ({
+  const stewardHistory = (recordedRoles: GardenRole[]): GardenMemberHistory => ({
     garden: storyGarden.id as Address,
     account: steward,
     joinedAt: Date.UTC(2026, 3, 4, 12),
     memberSince: Date.UTC(2026, 3, 4, 12),
     roleSince: { steward: Date.UTC(2026, 3, 4, 12) },
-    grantedRoles,
+    recordedRoles,
   });
 
   beforeEach(() => {
@@ -503,7 +503,7 @@ describe("CommunityMembersDialogs: restoring a missing sub-role (PRD-979)", () =
 
   it("grants only what the chain lacks, through the add path, from the person's Manage Roles row", async () => {
     // The indexed list shows the steward with neither sub-role; the chain already has Gardener.
-    checkSubRoles.mockResolvedValue(["evaluator"]);
+    checkSubRoles.mockResolvedValue(["owner", "evaluator"]);
     renderAt(`/community/members?gardenId=${storyGarden.id}&item=manage-members&member=${steward}`);
 
     await userEvent.click(
@@ -511,20 +511,25 @@ describe("CommunityMembersDialogs: restoring a missing sub-role (PRD-979)", () =
     );
 
     await waitFor(() => expect(addEvaluator).toHaveBeenCalledWith(steward));
-    expect(checkSubRoles).toHaveBeenCalledWith(steward, ["steward", "evaluator", "gardener"]);
+    expect(checkSubRoles).toHaveBeenCalledWith(steward, [
+      "steward",
+      "owner",
+      "evaluator",
+      "gardener",
+    ]);
     expect(addGardener).not.toHaveBeenCalled();
     expect(scheduleBackgroundRefetch).toHaveBeenCalled();
   });
 
   it("leaves an Evaluator that was once granted, and offers only the cascade gap", async () => {
     memberHistory.members = [stewardHistory(["steward", "evaluator"])];
-    checkSubRoles.mockResolvedValue(["gardener"]);
+    checkSubRoles.mockResolvedValue(["owner", "gardener"]);
     renderAt(`/community/members?gardenId=${storyGarden.id}&item=manage-members&member=${steward}`);
 
     await userEvent.click(await screen.findByRole("button", { name: "Restore Gardener" }));
 
     await waitFor(() =>
-      expect(checkSubRoles).toHaveBeenCalledWith(steward, ["steward", "gardener"])
+      expect(checkSubRoles).toHaveBeenCalledWith(steward, ["steward", "owner", "gardener"])
     );
     expect(screen.queryByRole("button", { name: /Evaluator/ })).not.toBeInTheDocument();
     expect(addEvaluator).not.toHaveBeenCalled();

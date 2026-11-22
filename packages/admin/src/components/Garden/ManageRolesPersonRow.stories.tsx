@@ -104,8 +104,8 @@ export const MissingSubRole: Story = {
       <RestoreRolesNotice
         address={KWAME}
         roles={["steward", "gardener"]}
-        grantedRoles={["steward", "gardener"]}
-        check={async () => ["evaluator"]}
+        recordedRoles={["steward", "gardener"]}
+        check={async () => ["owner", "evaluator"]}
         restore={async () => true}
       />
     ),

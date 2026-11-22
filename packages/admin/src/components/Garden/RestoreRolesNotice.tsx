@@ -15,10 +15,11 @@ export interface RestoreRolesNoticeProps {
   address: Address;
   roles: readonly GardenRole[];
   /**
-   * Every role the person's history shows was ever granted. A sub-role in it was taken away, so it
-   * is never offered back. Absent while the history is unread or failed: then nothing is offered.
+   * Every role with a recorded grant or revocation in the person's history. A sub-role in it was
+   * taken away, so it is never offered back. Absent while the history is unread or failed: then
+   * nothing is offered.
    */
-  grantedRoles?: readonly GardenRole[];
+  recordedRoles?: readonly GardenRole[];
   /** The roles this viewer may grant; absent when every role is open to them. */
   allowedRoles?: readonly GardenRole[];
   disabled?: boolean;
@@ -32,14 +33,14 @@ export interface RestoreRolesNoticeProps {
 
 /**
  * Says which roles a person's Owner or Steward role gives but no grant ever minted, and restores
- * them in one action that names them. A sub-role that was ever granted is left alone. The chain is
- * read first, the giving role included, so the wallet is asked only for roles still missing, and
- * the steward is told when nothing is.
+ * them in one action that names them. A sub-role with any recorded event is left alone. The chain
+ * is read first, the giving role and a steward's Owner hat included, so the wallet is asked only for
+ * roles still missing, and the steward is told when nothing is.
  */
 export function RestoreRolesNotice({
   address,
   roles,
-  grantedRoles,
+  recordedRoles,
   allowedRoles,
   disabled = false,
   check,
@@ -48,7 +49,7 @@ export function RestoreRolesNotice({
 }: RestoreRolesNoticeProps) {
   const intl = useIntl();
   const { formatMessage } = intl;
-  const missing = grantedRoles ? restorableSubRoles(roles, grantedRoles) : [];
+  const missing = recordedRoles ? restorableSubRoles(roles, recordedRoles) : [];
   const missingKey = missing.join(",");
   // An answer belongs to the roles it was about; a different gap starts fresh.
   const [answer, setAnswer] = useState<{ status: RestoreStatus; key: string }>({
@@ -69,17 +70,20 @@ export function RestoreRolesNotice({
 
   const run = async () => {
     setStatus("working");
-    // The role that gives these sub-roles is read too: if it is gone, nothing is owed.
-    const stillMissing = await check(address, [giver, ...missing]);
-    if (stillMissing === null) {
+    // The giving role is read too, and for a steward the Owner hat: if the giving role is gone, or
+    // the steward became an owner since the list was read, an Evaluator could go to an owner.
+    const guards: GardenRole[] = giver === "steward" ? ["steward", "owner"] : ["owner"];
+    const answer = await check(address, [...guards, ...missing]);
+    if (answer === null) {
       setStatus("unread");
       return;
     }
-    if (stillMissing.includes(giver)) {
+    if (answer.includes(giver) || (giver === "steward" && !answer.includes("owner"))) {
       setStatus("changed");
       onRosterStale?.();
       return;
     }
+    const stillMissing = answer.filter((role) => missing.includes(role));
     if (stillMissing.length === 0) {
       setStatus("nothing");
       onRosterStale?.();
