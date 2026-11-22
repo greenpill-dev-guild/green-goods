@@ -565,4 +565,25 @@ describe("CommunityMembersDialogs: restoring a missing sub-role (PRD-979)", () =
     await screen.findByRole("dialog", { name: "Manage Roles" });
     expect(screen.queryByRole("button", { name: /^Restore/ })).not.toBeInTheDocument();
   });
+
+  it("sends nothing once Manage Roles is gone before the chain answers", async () => {
+    batchState.available = true;
+    let settle: (value: unknown) => void = () => undefined;
+    checkSubRoles.mockReturnValue(new Promise((resolve) => (settle = resolve)));
+    const { unmount } = renderAt(
+      `/community/members?gardenId=${storyGarden.id}&item=manage-members&member=${steward}`
+    );
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Restore Evaluator and Gardener" })
+    );
+    // A garden change remounts the dialog, and leaving the route unmounts it.
+    unmount();
+    settle({ lacking: ["owner", "evaluator", "gardener"], recordedRoles: ["steward"] });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(batchState.add).not.toHaveBeenCalled();
+    expect(addEvaluator).not.toHaveBeenCalled();
+    batchState.available = false;
+  });
 });

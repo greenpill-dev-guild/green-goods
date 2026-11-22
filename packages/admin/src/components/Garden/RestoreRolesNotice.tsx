@@ -65,12 +65,14 @@ export function RestoreRolesNotice({
   const missing = recordedRoles ? restorableSubRoles(roles, recordedRoles) : [];
   const missingKey = missing.join(",");
   // An answer belongs to the roles it was about; a different gap starts fresh.
-  const [answer, setAnswer] = useState<{ status: RestoreStatus; key: string }>({
+  const [answer, setAnswer] = useState<{ status: RestoreStatus; key: string; sent: number }>({
     status: "idle",
     key: missingKey,
+    sent: 0,
   });
   const status = answer.key === missingKey ? answer.status : "idle";
-  const setStatus = (next: RestoreStatus) => setAnswer({ status: next, key: missingKey });
+  const setStatus = (next: RestoreStatus, sent = 0) =>
+    setAnswer({ status: next, key: missingKey, sent });
   if (missing.length === 0) return null;
 
   const list = (names: readonly GardenRole[]) =>
@@ -122,7 +124,7 @@ export function RestoreRolesNotice({
         return false;
       });
       if (!hold.live()) return;
-      setStatus(landed ? "restored" : "failed");
+      setStatus(landed ? "restored" : "failed", stillMissing.length);
       if (landed) onRosterStale?.();
     } finally {
       hold.end();
@@ -131,7 +133,7 @@ export function RestoreRolesNotice({
 
   const outcome =
     status === "restored"
-      ? formatMessage({ id: "admin.manageRoles.restore.done" }, { count: missing.length })
+      ? formatMessage({ id: "admin.manageRoles.restore.done" }, { count: answer.sent })
       : status === "nothing"
         ? formatMessage({ id: "admin.manageRoles.restore.nothing" })
         : status === "changed"
@@ -169,7 +171,7 @@ export function RestoreRolesNotice({
         </Button>
       ) : (
         <p className="type-meta text-text-sub">
-          {formatMessage({ id: "admin.manageRoles.restore.ownerOnly" })}
+          {formatMessage({ id: "admin.manageRoles.restore.ownerOnly" }, { count: missing.length })}
         </p>
       )}
       {outcome ? (

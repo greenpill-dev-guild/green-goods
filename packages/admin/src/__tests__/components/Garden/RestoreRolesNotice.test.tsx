@@ -35,7 +35,8 @@ describe("RestoreRolesNotice", () => {
     expect(check).toHaveBeenCalledWith(MEMBER, ["steward", "owner", "evaluator", "gardener"]);
     // The indexed list lagged a Gardener grant: only Evaluator goes to the wallet.
     await waitFor(() => expect(restore).toHaveBeenCalledWith(MEMBER, ["evaluator"]));
-    expect(await screen.findByRole("status")).toHaveTextContent("Roles restored.");
+    // Only Evaluator was sent, so the line counts one role.
+    expect(await screen.findByRole("status")).toHaveTextContent("Role restored.");
     expect(screen.getByRole("button", { name: "Restore Evaluator and Gardener" })).toBeDisabled();
   });
 
@@ -110,7 +111,9 @@ describe("RestoreRolesNotice", () => {
     );
 
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
-    expect(screen.getByText(messages["admin.manageRoles.restore.ownerOnly"])).toBeInTheDocument();
+    expect(
+      screen.getByText("Ask a garden owner or steward to restore this role.")
+    ).toBeInTheDocument();
   });
 
   it("offers nothing for a sub-role ever granted, or while the history is unread", () => {
@@ -290,5 +293,27 @@ describe("RestoreRolesNotice", () => {
       messages["admin.manageRoles.restore.unread"]
     );
     expect(restore).not.toHaveBeenCalled();
+  });
+
+  it("says not every role landed when the grant fails, and still releases the hold", async () => {
+    const end = vi.fn();
+    render(
+      <RestoreRolesNotice
+        address={MEMBER}
+        roles={["steward"]}
+        recordedRoles={["steward"]}
+        check={vi.fn().mockResolvedValue(answer(["owner", "evaluator", "gardener"], ["steward"]))}
+        restore={vi.fn().mockRejectedValue(new Error("user rejected"))}
+        startRun={() => ({ live: () => true, end })}
+      />
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Restore Evaluator and Gardener" }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      messages["admin.manageRoles.restore.failed"]
+    );
+    expect(end).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button", { name: "Restore Evaluator and Gardener" })).toBeEnabled();
   });
 });

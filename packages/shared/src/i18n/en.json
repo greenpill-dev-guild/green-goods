@@ -558,7 +558,7 @@
   "admin.manageRoles.restore.failed": "Not every role was restored. Try again.",
   "admin.manageRoles.restore.missing": "Missing {roles}, which their {role} role includes.",
   "admin.manageRoles.restore.nothing": "Nothing is missing. The chain already shows these roles, and this list will catch up.",
-  "admin.manageRoles.restore.ownerOnly": "Ask a garden owner or steward to restore these roles.",
+  "admin.manageRoles.restore.ownerOnly": "Ask a garden owner or steward to restore {count, plural, one {this role} other {these roles}}.",
   "admin.manageRoles.restore.unread": "We couldn’t check their roles, so nothing was sent. Try again.",
   "admin.manageRoles.readOnly": "Only owners and stewards can change roles.",
   "admin.manageRoles.showEveryone": "Show Everyone",
