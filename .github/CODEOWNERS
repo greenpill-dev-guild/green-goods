@@ -25,3 +25,34 @@
 
 /packages/indexer/schema.graphql @greenpill-dev-guild/engineering-leads
 /packages/indexer/config.yaml @greenpill-dev-guild/engineering-leads
+
+# Production-affecting paths: an engineering lead reviews before merge, so agents
+# cannot merge them on their own. Merging to develop deploys the Agent and QA apps.
+/packages/agent/** @greenpill-dev-guild/engineering-leads
+/packages/qa/** @greenpill-dev-guild/engineering-leads
+
+# Contracts, deployments and deploy scripts (onchain effects)
+/packages/contracts/** @greenpill-dev-guild/engineering-leads
+
+# Auth, passkeys, wallets, transactions and batching
+/packages/shared/src/hooks/auth/ @greenpill-dev-guild/engineering-leads
+/packages/shared/src/hooks/admin-ui/auth/ @greenpill-dev-guild/engineering-leads
+/packages/shared/src/hooks/client-ui/auth/ @greenpill-dev-guild/engineering-leads
+/packages/shared/src/hooks/client-ui/wallet/ @greenpill-dev-guild/engineering-leads
+/packages/shared/src/hooks/blockchain/ @greenpill-dev-guild/engineering-leads
+/packages/shared/src/modules/auth/ @greenpill-dev-guild/engineering-leads
+/packages/shared/src/modules/wallet/ @greenpill-dev-guild/engineering-leads
+/packages/shared/src/modules/transactions/ @greenpill-dev-guild/engineering-leads
+/packages/shared/src/modules/work/wallet-submission/ @greenpill-dev-guild/engineering-leads
+/packages/shared/src/utils/blockchain/ @greenpill-dev-guild/engineering-leads
+/packages/shared/src/config/passkeyServer.ts @greenpill-dev-guild/engineering-leads
+/packages/client/src/views/Home/WalletSheet/ @greenpill-dev-guild/engineering-leads
+/packages/client/src/routes/WalletRuntimeProviders.tsx @greenpill-dev-guild/engineering-leads
+
+# Filename patterns anywhere (CODEOWNERS has no [Aa] ranges, so both cases are listed)
+*passkey* @greenpill-dev-guild/engineering-leads
+*Passkey* @greenpill-dev-guild/engineering-leads
+*wallet* @greenpill-dev-guild/engineering-leads
+*Wallet* @greenpill-dev-guild/engineering-leads
+*batch* @greenpill-dev-guild/engineering-leads
+*Batch* @greenpill-dev-guild/engineering-leads
