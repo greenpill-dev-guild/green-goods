@@ -96,15 +96,22 @@ export function CommunityMembersDialogs({
     [operations]
   );
   // Restoring a missing sub-role is an add: one grantRoles signature where the rail can batch.
-  const restoreSubRoles = async (address: Address, roles: readonly GardenRole[]) => {
+  const restoreSubRoles = async (
+    address: Address,
+    roles: readonly GardenRole[],
+    live: () => boolean
+  ) => {
     const run = await runAddMembers({
       rows: roles.map((role) => ({ address, role })),
       addOne: (role, member) => addByRole[role](member),
       addBatch: addMembersBatch.available ? addMembersBatch.add : undefined,
       onLanded: scheduleBackgroundRefetch,
+      live,
     });
     return run.remaining.length === 0 && run.thrown === undefined;
   };
+  const restoreSignatures = (count: number) =>
+    addMembersBatch.available ? addMembersBatch.signaturesFor(count) : count;
   const openAddMembers = (prefill?: Address) => {
     setRoleTarget(undefined);
     setAddMembersPrefill(prefill);
@@ -147,7 +154,9 @@ export function CommunityMembersDialogs({
         onRosterStale={scheduleBackgroundRefetch}
         onAddMembers={openAddMembers}
         restoreRoles={
-          canManageMembers ? { check: checkSubRoles, restore: restoreSubRoles } : undefined
+          canManageMembers
+            ? { check: checkSubRoles, restore: restoreSubRoles, signaturesFor: restoreSignatures }
+            : undefined
         }
       />
       {isAddress(gardenAddress) ? (

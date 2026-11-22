@@ -73,7 +73,7 @@ export interface ManageMembersDialogProps {
   /** Opens Add Members, with the person this dialog is showing when it shows one. */
   onAddMembers: (prefill?: Address) => void;
   /** Restores the roles a person's role gives but they lack; absent where the viewer cannot. */
-  restoreRoles?: Pick<RestoreRolesNoticeProps, "check" | "restore">;
+  restoreRoles?: Pick<RestoreRolesNoticeProps, "check" | "restore" | "signaturesFor">;
   /** A route item opened it, so the router guards a selection: browser Back asks first. */
   closesByRoute?: boolean;
   tone?: AdminDialogProps["tone"];

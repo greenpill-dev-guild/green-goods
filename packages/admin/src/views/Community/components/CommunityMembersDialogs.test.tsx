@@ -588,4 +588,28 @@ describe("CommunityMembersDialogs: restoring a missing sub-role (PRD-979)", () =
     expect(batchState.add).not.toHaveBeenCalled();
     expect(addEvaluator).not.toHaveBeenCalled();
   });
+
+  it("asks for no second signature once Manage Roles is gone between grants", async () => {
+    let landEvaluator: (value: { success: boolean }) => void = () => undefined;
+    addEvaluator.mockReturnValue(new Promise((resolve) => (landEvaluator = resolve)));
+    addGardener.mockResolvedValue({ success: true });
+    checkSubRoles.mockResolvedValue({
+      lacking: ["owner", "evaluator", "gardener"],
+      recordedRoles: ["steward"],
+    });
+    const { unmount } = renderAt(
+      `/community/members?gardenId=${storyGarden.id}&item=manage-members&member=${steward}`
+    );
+
+    // Without a batch the restore takes one signature per role, and says so before the press.
+    expect(await screen.findByText("Up to 2 signatures")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Restore Evaluator and Gardener" }));
+    await waitFor(() => expect(addEvaluator).toHaveBeenCalledWith(steward));
+    unmount();
+    await act(async () => {
+      landEvaluator({ success: true });
+    });
+
+    expect(addGardener).not.toHaveBeenCalled();
+  });
 });

@@ -29,12 +29,16 @@ describe("RestoreRolesNotice", () => {
     expect(
       screen.getByText("Missing Evaluator and Gardener, which their Steward role includes.")
     ).toBeInTheDocument();
+    // Without a batch, each role takes its own signature, and the row says so before the press.
+    expect(screen.getByText("Up to 2 signatures")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Restore Evaluator and Gardener" }));
 
     // The giving Steward role and the Owner hat are read too, so nothing goes to an owner.
     expect(check).toHaveBeenCalledWith(MEMBER, ["steward", "owner", "evaluator", "gardener"]);
     // The indexed list lagged a Gardener grant: only Evaluator goes to the wallet.
-    await waitFor(() => expect(restore).toHaveBeenCalledWith(MEMBER, ["evaluator"]));
+    await waitFor(() =>
+      expect(restore).toHaveBeenCalledWith(MEMBER, ["evaluator"], expect.any(Function))
+    );
     // Only Evaluator was sent, so the line counts one role.
     expect(await screen.findByRole("status")).toHaveTextContent("Role restored.");
     expect(screen.getByRole("button", { name: "Restore Evaluator and Gardener" })).toBeDisabled();
@@ -91,8 +95,10 @@ describe("RestoreRolesNotice", () => {
         recordedRoles={["owner", "steward"]}
         check={vi.fn()}
         restore={vi.fn()}
+        signaturesFor={() => 1}
       />
     );
+    expect(screen.getByText("1 signature")).toBeInTheDocument();
 
     expect(screen.getByRole("button", { name: "Restore Gardener" })).toBeInTheDocument();
     expect(screen.queryByText(/Evaluator/)).not.toBeInTheDocument();

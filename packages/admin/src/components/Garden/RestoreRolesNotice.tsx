@@ -31,8 +31,14 @@ export interface RestoreRolesNoticeProps {
     address: Address,
     roles: readonly GardenRole[]
   ) => Promise<{ lacking: GardenRole[]; recordedRoles: GardenRole[] } | null>;
-  /** Grants each role; resolves true when every one landed. */
-  restore: (address: Address, roles: readonly GardenRole[]) => Promise<boolean>;
+  /** Grants each role, stopping before a signature once `live` is false; true when all landed. */
+  restore: (
+    address: Address,
+    roles: readonly GardenRole[],
+    live: () => boolean
+  ) => Promise<boolean>;
+  /** How many signatures granting this many roles takes: one batch, or one per role without it. */
+  signaturesFor?: (count: number) => number;
   /** The chain or the history answered differently from this row, so the roster is behind them. */
   onRosterStale?: () => void;
   /**
@@ -59,6 +65,7 @@ export function RestoreRolesNotice({
   restore,
   onRosterStale,
   startRun,
+  signaturesFor = (count) => count,
 }: RestoreRolesNoticeProps) {
   const intl = useIntl();
   const { formatMessage } = intl;
@@ -119,7 +126,7 @@ export function RestoreRolesNotice({
         onRosterStale?.();
         return;
       }
-      const landed = await restore(address, stillMissing).catch((error: unknown) => {
+      const landed = await restore(address, stillMissing, hold.live).catch((error: unknown) => {
         logger.warn("Restoring missing sub-roles failed", { error, roles: stillMissing });
         return false;
       });
@@ -157,18 +164,27 @@ export function RestoreRolesNotice({
         )}
       </p>
       {canRestore ? (
-        <Button
-          type="button"
-          emphasis="secondary"
-          size="compact"
-          disabled={
-            disabled || status === "restored" || status === "nothing" || status === "changed"
-          }
-          loading={status === "working"}
-          onClick={() => void run()}
-        >
-          {formatMessage({ id: "admin.manageRoles.restore.action" }, { roles: list(missing) })}
-        </Button>
+        // How many signatures the restore takes, beside the button that asks for them.
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            emphasis="secondary"
+            size="compact"
+            disabled={
+              disabled || status === "restored" || status === "nothing" || status === "changed"
+            }
+            loading={status === "working"}
+            onClick={() => void run()}
+          >
+            {formatMessage({ id: "admin.manageRoles.restore.action" }, { roles: list(missing) })}
+          </Button>
+          <span className="type-meta text-text-sub">
+            {formatMessage(
+              { id: "admin.addMember.signatureCount" },
+              { count: signaturesFor(missing.length) }
+            )}
+          </span>
+        </div>
       ) : (
         <p className="type-meta text-text-sub">
           {formatMessage({ id: "admin.manageRoles.restore.ownerOnly" }, { count: missing.length })}
