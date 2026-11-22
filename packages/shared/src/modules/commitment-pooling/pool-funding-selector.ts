@@ -68,6 +68,7 @@ export function selectPoolFundingSnapshot(input: PoolFundingCalculationInput): P
     feeQuotes: input.feeQuotes,
     feePolicy: input.feePolicy,
     executorPaused: input.readiness.executorPaused,
+    commandExecutors: input.commandExecutors,
     available,
     shortfall,
     suggestedTopUp,

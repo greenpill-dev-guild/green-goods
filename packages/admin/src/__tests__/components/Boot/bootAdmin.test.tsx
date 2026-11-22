@@ -421,6 +421,20 @@ describe("bootAdmin", () => {
     await finish();
   });
 
+  // PRD-1493: a choice made in the App reaches the Hub through the shared cookie.
+  it("writes the first frame in the language chosen on another Green Goods site", async () => {
+    window.localStorage.setItem("gg-language", "en");
+    document.cookie = "gg-language=es; Path=/";
+    try {
+      const finish = await bootToFirstFrame();
+      const shell = container.querySelector('[data-component="AdminLoadingScreen"]');
+      expect(shell?.getAttribute("lang")).toBe("es");
+      await finish();
+    } finally {
+      document.cookie = "gg-language=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    }
+  });
+
   it("writes the recovery card in the browser's language when none is stored, and declares it", async () => {
     vi.spyOn(navigator, "languages", "get").mockReturnValue(["fr-FR", "pt-BR"]);
     await boot({

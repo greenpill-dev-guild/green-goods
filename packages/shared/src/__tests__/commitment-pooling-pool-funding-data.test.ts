@@ -12,6 +12,7 @@ const SOURCE = "0xdddddddddddddddddddddddddddddddddddddddd" as const;
 const EXECUTOR = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" as const;
 const TOKEN = "0xffffffffffffffffffffffffffffffffffffffff" as const;
 const RECIPIENT = "0x1111111111111111111111111111111111111111" as const;
+const PREVIOUS_EXECUTOR = "0x2222222222222222222222222222222222222222" as const;
 const KEY = `0x${"12".repeat(32)}` as const;
 const GDOLLAR_UNIT = 10n ** 18n;
 
@@ -235,6 +236,9 @@ function clientFactory(
     periodSpend?: readonly [bigint, bigint];
     allowance?: readonly [bigint, bigint, bigint, bigint, bigint];
     feeProbe?: { active: number; max: number };
+    /** The executor each dispatched command was recorded for. */
+    commandExecutor?: string;
+    pausedContracts?: Set<string>;
   } = {}
 ) {
   const chainIds: number[] = [];
@@ -252,7 +256,10 @@ function clientFactory(
             if (options.failBalance) throw new Error("RPC failed");
             return 1_000n;
           }
-          if (functionName === "paused") return false;
+          if (functionName === "paused") return options.pausedContracts?.has(address) ?? false;
+          if (functionName === "commandRecord") {
+            return { destinationExecutor: options.commandExecutor ?? EXECUTOR };
+          }
           if (functionName === "gardenRouteOf") return [SAFE, ROLES, KEY, KEY, KEY, true] as const;
           if (functionName === "maxFeeBps") return 100;
           if (functionName === "maxFeeAmount") return 50n;
@@ -499,6 +506,41 @@ describe("pool funding hybrid reader", () => {
       expect.objectContaining({ executorChainId: 42220, executionKeys: [KEY] }),
       "getPoolFundingExecutions"
     );
+  });
+
+  it("reads the pause flag of the executor a dispatched transfer's command was recorded for", async () => {
+    // A route change's grace window: the command went to the previous executor, now paused.
+    const now = 2_050;
+    const clients = clientFactory({
+      commandExecutor: PREVIOUS_EXECUTOR,
+      pausedContracts: new Set([PREVIOUS_EXECUTOR]),
+    });
+    const snapshot = await getPoolFundingSnapshot(42161, GARDEN, {
+      reader: reader(now, {
+        disbursements: [
+          {
+            id: "42161-8",
+            disbursementId: "8",
+            commitmentId: null,
+            payoutPlanId: null,
+            fundingId: null,
+            batchId: null,
+            kind: "FUNDING",
+            source: SAFE,
+            recipient: RECIPIENT,
+            amount: "50",
+            state: "DISPATCHED",
+            executionKey: KEY,
+          },
+        ],
+      }),
+      createClient: clients.createClient,
+      now,
+    });
+    expect(snapshot.executorPaused).toBe(false);
+    expect(snapshot.commandExecutors).toEqual([
+      { executionKey: KEY, executor: PREVIOUS_EXECUTOR, paused: true },
+    ]);
   });
 
   it("quotes a payout whose referenced child is absent from the indexed snapshot", async () => {

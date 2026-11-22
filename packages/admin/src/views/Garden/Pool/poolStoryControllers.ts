@@ -65,6 +65,7 @@ export function storyPoolFunding(
       feeQuotes: [],
       feePolicy: { maxFeeBps: 100, maxFeeAmount: 50n * G },
       executorPaused: false,
+      commandExecutors: [],
       available: 2_302n * G,
       shortfall: 0n,
       suggestedTopUp: 0n,
