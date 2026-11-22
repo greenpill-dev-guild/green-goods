@@ -104,7 +104,8 @@ export function bookingPhases(ctx: BookingContext): ServicePhase[] {
         : profile === "minutes" && ctx.reported
           ? t("rd.sub.minutes", { done: Number(ctx.delivered), of: Number(ctx.serviceUnits) })
           : t("rd.who.sunReports");
-  const flagged = stage === "problemReported" || stage === "returnProposed";
+  const flagged =
+    stage === "problemReported" || stage === "returnProposed" || stage === "returnDue";
   return [
     ...phases,
     // A member approves their own bookings; the garden's stewards accept them.

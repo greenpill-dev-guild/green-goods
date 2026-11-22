@@ -252,6 +252,21 @@ describe("the issuer's acts in the Promises console", () => {
     expect(screen.getAllByRole("button", { name: "Propose Return…" }).length).toBeGreaterThan(0);
   });
 
+  // Review of PRD-1462: once the issuer has proposed the whole return, the booking waits on the
+  // member's split, so it no longer asks the steward for anything.
+  it("waits on the member, not the steward, once the whole return is proposed", () => {
+    const proposed: VoucherBooking = {
+      ...endedEarly,
+      stage: { kind: "ended-early", returnLimit: 6n * VOUCHER, returnCeiling: 6n * VOUCHER },
+    };
+    offers([proposed]);
+
+    const row = screen.getByTestId("pool-commitment-51");
+    expect(within(row).getByText("Return proposed")).toBeInTheDocument();
+    expect(within(row).queryByText("Needs you")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Propose Return…" })).not.toBeInTheDocument();
+  });
+
   // A visit that stopped early used to fall through to the visit's own row, with no act
   // (Codex on #1320); its return counts usable hours, not days.
   it("offers Propose Return on a visit that ended early, counting its usable hours", async () => {

@@ -270,7 +270,8 @@ export function voucherBookingAct(
     stage.kind === "transfer-pending"
   )
     return "retry";
-  if (stage.kind === "ended-early") return "propose";
+  // Once a return is proposed the booking waits on its holder's split, not on the steward.
+  if (stage.kind === "ended-early") return stage.returnCeiling === 0n ? "propose" : null;
   return service.kind === "visit" && now >= service.startsAt ? "report" : null;
 }
 
@@ -280,6 +281,9 @@ export function voucherBookingAct(
  */
 export function voucherBookingOptionalAct(booking: VoucherBooking): "propose" | null {
   const { service, stage } = booking;
+  // A return already proposed on a booking that ended early can still be raised to its limit.
+  if (stage.kind === "ended-early")
+    return stage.returnCeiling > 0n && stage.returnCeiling < stage.returnLimit ? "propose" : null;
   return stage.kind === "in-progress" && service.kind === "units" && service.returnLimit !== null
     ? "propose"
     : null;
@@ -355,10 +359,22 @@ function voucherBookingRow(
                 },
                 { done: service.daysUsed, of: service.daysOf }
               ),
-      status: {
-        label: formatMessage({ id: "app.commitments.row.needsYou", defaultMessage: "Needs you" }),
-        tone: "warning",
-      },
+      status:
+        act === "propose"
+          ? {
+              label: formatMessage({
+                id: "app.commitments.row.needsYou",
+                defaultMessage: "Needs you",
+              }),
+              tone: "warning",
+            }
+          : {
+              label: formatMessage({
+                id: "hub.garden.pool.voucher.queue.returnProposed",
+                defaultMessage: "Return proposed",
+              }),
+              tone: "neutral",
+            },
       act,
     };
   }

@@ -777,7 +777,7 @@ describe("CommitmentDialogPanel (W10)", () => {
 
     fireEvent.click(screen.getAllByRole("button", { name: /^cancel promise…$/i })[0]!);
     expect(screen.getByRole("dialog", { name: /cancel this promise/i })).toHaveTextContent(
-      "Canceling doesn’t return the member’s vouchers: they stay in escrow until the issuer proposes a return from Review Promises."
+      "Committed units release, but the member’s vouchers stay in escrow until the issuer proposes a return from Review Promises."
     );
   });
 

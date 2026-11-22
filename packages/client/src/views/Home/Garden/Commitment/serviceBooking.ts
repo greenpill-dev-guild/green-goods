@@ -248,7 +248,10 @@ export function serviceBookingView(
       ? ceiling < units
         ? ceiling
         : units
-      : 0n;
+      : // Nothing was delivered on a promise that ended early, so its steps show a return.
+        stage === "returnDue"
+        ? units
+        : 0n;
   const release = final ? final.allocation.releaseVoucherUnits : units - refund;
   // Whatever is released pays for some service, so a partial one-unit delivery counts as one,
   // never zero: the final split refuses a release with no delivered unit.
@@ -267,7 +270,8 @@ export function serviceBookingView(
   const accessDays = profile === "access" ? Number(serviceUnits) : 0;
   const daysDone = reported ? Number(delivered) : (input.schedule?.accessDay ?? null);
   const kept = stage === "closed" && (coreState === "FULFILLED" || coreState === "RECONCILED");
-  const endedEarly = stage === "closed" && coreState === "CANCELLED";
+  // An expired promise can no longer be kept, so its booking ended early as a canceled one did.
+  const endedEarly = stage === "closed" && (coreState === "CANCELLED" || coreState === "EXPIRED");
   const n = count(units);
   const ctx: BookingContext = {
     input,

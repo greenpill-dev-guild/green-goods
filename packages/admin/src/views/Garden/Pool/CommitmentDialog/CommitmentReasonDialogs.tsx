@@ -69,7 +69,7 @@ export function CommitmentReasonDialogs({
               ? formatMessage({
                   id: "hub.garden.pool.commitment.cancel.descriptionEscrowed",
                   defaultMessage:
-                    "Accepted becomes Canceled with a recorded reason, and the member sees the reason, never “canceled” alone. Canceling doesn’t return the member’s vouchers: they stay in escrow until the issuer proposes a return from Review Promises.",
+                    "Accepted becomes Canceled with a recorded reason, and the member sees the reason, never “canceled” alone. Committed units release, but the member’s vouchers stay in escrow until the issuer proposes a return from Review Promises.",
                 })
               : formatMessage({
                   id: "hub.garden.pool.commitment.cancel.description",

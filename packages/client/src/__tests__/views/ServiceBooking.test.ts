@@ -489,10 +489,20 @@ describe("voucher booking on the promise page", () => {
       tone: "neutral",
     });
     expect(booking.band.sentence).toBe(
-      "This promise ended before its service, so Tech and Sun has been asked to return your voucher. You review the return here before anything moves."
+      "This promise ended without being kept, so Tech and Sun has been asked to propose returning your voucher. You review the return here before anything moves."
     );
     expect(booking.primary).toBeNull();
     expect(booking.tracker?.waiting).toBe("waiting on Tech and Sun");
+  });
+
+  // Review of PRD-1462: an expired promise can't be kept, so its settled booking ended early.
+  it("closes a booking on an expired promise as ended early, as a canceled one", () => {
+    for (const coreState of ["CANCELLED", "EXPIRED"] as const) {
+      expect(view("access", "closed", { coreState }).band.pill).toEqual({
+        labelId: "app.voucher.pp.st.endedEarly",
+        tone: "neutral",
+      });
+    }
   });
 
   it("counts a partial one-unit delivery as one, so its final split stays offered", () => {
