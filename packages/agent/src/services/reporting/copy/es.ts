@@ -28,7 +28,7 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "report.fieldLead": "¿{title}?",
   "report.fieldLeadHint": "{title}: {hint}.",
   "consent.notice":
-    "¡Hola! Soy el asistente de reportes de Green Goods. Para ayudarte a reportar el trabajo del jardín, guardo y leo los mensajes y archivos que envías aquí{processors}. Nada se hace público hasta que confirmes un reporte.\n\nAl aceptar, aceptas las reglas para compartir, versión {version}: https://www.greengoods.app/terms. Comparte solo material propio o que tengas permiso para publicar, con permiso de cada adulto identificable. No envíes menores identificables, información personal sensible, abuso, odio, amenazas, contenido sexual o ilegal, fraude ni spam. Los reportes confirmados se publican en Arbitrum e IPFS; las copias independientes pueden permanecer para siempre.\n\nEnvía STOP en cualquier momento para detenerme, DELETE para borrar tus datos no publicados o HELP para soporte ({support}).\n\n¿Estás de acuerdo?",
+    "¡Hola! Soy el asistente de reportes de Green Goods. Para ayudarte a reportar el trabajo del jardín, guardo y leo los mensajes y archivos que envías aquí{processors}. Nada se hace público hasta que confirmes un reporte. Lo que envíes antes de responder queda guardado sin leer: lo borro de inmediato si dices que no, y a las {hours} horas si no respondes.\n\nAl aceptar, aceptas las reglas para compartir, versión {version}: https://www.greengoods.app/terms. Comparte solo material propio o que tengas permiso para publicar, con permiso de cada adulto identificable. No envíes menores identificables, información personal sensible, abuso, odio, amenazas, contenido sexual o ilegal, fraude ni spam. Los reportes confirmados se publican en Arbitrum e IPFS; las copias independientes pueden permanecer para siempre.\n\nEnvía STOP en cualquier momento para detenerme, DELETE para borrar tus datos no publicados o HELP para soporte ({support}).\n\n¿Estás de acuerdo?",
   "consent.processors": " y puedo usar IA para entenderlos",
   "consent.agree": "Acepto",
   "consent.decline": "No, gracias",
@@ -135,6 +135,13 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "question.speciesTags": "¿Qué especies plantaste?",
   "report.descriptionStale":
     "\nTu descripción todavía dice {was}. Envía EDIT para cambiar el texto.",
+  "suggest.last": "¿Igual que la última vez: {action} en {garden}?",
+  "suggest.lastGarden": "¿El mismo jardín que la última vez: {garden}?",
+  "suggest.lastAction": "¿La misma actividad que la última vez: {action}?",
+  "suggest.use": "Sí",
+  "suggest.change": "Otra cosa",
+  "suggest.never": "No sugerir más",
+  "suggest.off": "De acuerdo, no lo sugeriré más.",
   "report.accepted": "Tengo:{facts}",
   "report.factNew": "\n• {title}: {now}",
   "report.factChanged": "\n• {title}: {now} (antes: {was})",

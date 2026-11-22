@@ -50,6 +50,7 @@ import { answeredGarden, readGardensForTurn } from "./garden-step";
 import { handleReportAnswer, lapsedJoinReply } from "./report-answer";
 import { confirmDraft, handleReportCommand } from "./report-commands";
 import { handleReportMessage } from "./report-message";
+import { SUGGESTION_PROMPT, suggestedGarden, suggestionFor } from "./last-report";
 import { gardenToDrop, type TurnExternal } from "./report-work";
 import { isReviewPrompt, nextReviewStep } from "./review-prompts";
 import { readTurn } from "./turn-reading";
@@ -116,6 +117,11 @@ function reportGarden(
   if (plan.kind === "answer" && plan.prompt.kind === "select_garden") {
     const answered = answeredGarden(scope, plan.prompt, plan.option, plan.text);
     if (answered) return answered;
+  }
+  // "Same as last time": the suggested garden's activities are read in the turn that takes it.
+  if (plan.kind === "answer" && plan.prompt.kind === SUGGESTION_PROMPT) {
+    const suggested = suggestedGarden(scope, plan.prompt);
+    if (suggested) return suggested;
   }
   // Pairing takes a garden the new account does not report to off the report.
   const dropped = commandOf(plan) === "pair" && gardenToDrop(core.gardens, ctx.draft, account);
@@ -227,8 +233,11 @@ async function gatherExternal(
   const answersOther = plan.kind === "answer" && !outside && plan.prompt.kind !== "select_garden";
   const needsCatalog = garden !== null && reportPlan && (choosing || answersOther || changing);
   const result: CatalogResult | null = garden && needsCatalog ? await activitiesOf(garden) : null;
+  const suggestion = reportPlan
+    ? await suggestionFor(core, ctx, account, { garden, result }, activitiesOf)
+    : undefined;
   if (!deps.interpreter || !ctx.modelEnabled || !ctx.binding || reviewText)
-    return { catalog: { garden, result }, interpretation: null };
+    return { catalog: { garden, result }, interpretation: null, suggestion };
   const read = await readTurn({
     core,
     interpreter: deps.interpreter,
@@ -245,6 +254,7 @@ async function gatherExternal(
     catalog: { garden: read.garden, result: read.result },
     interpretation: read.interpretation,
     reread: read.reread,
+    suggestion,
   };
 }
 
