@@ -172,6 +172,19 @@ function withoutPhones(text: string): string {
   return clean;
 }
 
+const NUMBER_PART = /[\d\s().‐-―+-]/u;
+
+/**
+ * Text without the number it ends on, when the cut may have split one: a phone number written in
+ * groups ("+234 800 000 0001") loses more than its last word, so all of it goes. Read from the
+ * end, so a long run of digits costs one pass.
+ */
+function withoutTrailingNumber(text: string): string {
+  let start = text.length;
+  while (start > 0 && NUMBER_PART.test(text[start - 1] as string)) start -= 1;
+  return /\d/u.test(text.slice(start)) ? text.slice(0, start) : text;
+}
+
 /** Text as a model may read it: identifiers removed, then cut to `maxChars`. */
 export function sanitizeModelText(text: string, maxChars: number): string {
   // Nothing past twice the bound can survive the cut, so it is not worth matching against. A word
@@ -182,7 +195,7 @@ export function sanitizeModelText(text: string, maxChars: number): string {
   const long = text.length > limit;
   const head = long ? text.slice(0, limit) : text;
   const cut = /\s\S+$/u.test(head) ? /\S+$/u : /[\w.@:/?#=&%+()-]+$/u;
-  let clean = long ? head.replace(cut, "") : head;
+  let clean = long ? withoutTrailingNumber(head.replace(cut, "")) : head;
   for (const [pattern, replacement] of REDACTIONS) clean = clean.replace(pattern, replacement);
   clean = withoutPhones(clean).trim();
   if (clean.length < maxChars) return long ? `${clean}…` : clean;

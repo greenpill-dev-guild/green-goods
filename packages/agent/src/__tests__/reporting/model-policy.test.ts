@@ -97,6 +97,9 @@ describe("model input sanitizer", () => {
     // A text cut before it is matched loses the word the cut left in half.
     const long = `${"https://example.org/a ".repeat(40)}joao.silva@example.org`;
     expect(sanitizeModelText(long.slice(0, 890), 440)).not.toMatch(/joao|silva/u);
+    // A phone number written in groups across the cut goes whole, not only its last group.
+    const grouped = `https://example.org/${"a".repeat(968)} +234 800 000 0001`;
+    expect(sanitizeModelText(grouped, 500)).not.toMatch(/234|800/u);
     // A redaction that shortens the text does not bring the cut word into the result.
     const shortened = `t.me/${"a".repeat(1979)} alice@example.com`;
     expect(sanitizeModelText(shortened, 500)).not.toMatch(/alice|example/u);
