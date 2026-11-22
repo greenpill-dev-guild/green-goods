@@ -148,13 +148,35 @@ export function rewardLegShares(input: {
     .filter((share) => share.amount > 0n);
 }
 
-/** How many blocks one log query spans; public Arbitrum RPCs refuse much wider ranges. */
+/**
+ * Whether a share needs nothing more: the payer recorded it as paid, or it is the
+ * paying steward's own. The payer refuses a payment to oneself, so a steward the
+ * split also pays leaves their own share unpaid on chain while paying everyone
+ * else's; an unpaid share whose recipient paid another share of the same part is
+ * that steward's.
+ */
+export function rewardShareSettled(
+  share: { recipient: Address; token: Address; paidBy: Address | null | undefined },
+  shares: readonly { token: Address; paidBy: Address | null | undefined }[]
+): boolean {
+  if (share.paidBy) return true;
+  const recipient = share.recipient.toLowerCase();
+  const token = share.token.toLowerCase();
+  return shares.some(
+    (other) => other.token.toLowerCase() === token && other.paidBy?.toLowerCase() === recipient
+  );
+}
+
+/** How many blocks one log query spans at first; public Arbitrum RPCs refuse much wider ranges. */
 const RECEIPT_SCAN_SPAN = 500_000n;
+/** The narrowest span tried when a provider refuses a wider one. */
+const RECEIPT_SCAN_MIN_SPAN = 10_000n;
 
 /**
  * The transaction that paid one share, found from the payer's `RewardSharePaid`
  * event for that share id. It searches back from the latest block in bounded
- * spans, so it keeps working as the chain grows past what one query may span.
+ * spans, so it keeps working as the chain grows past what one query may span,
+ * and halves a span a provider refuses, down to a floor, before giving up.
  * Null when no span from the payer's deployment on holds it.
  */
 export async function readRewardShareTransaction(input: {
@@ -164,19 +186,24 @@ export async function readRewardShareTransaction(input: {
   shareId: Hex;
 }): Promise<Hex | null> {
   const [event] = REWARD_PAYER_ABI.filter((entry) => entry.type === "event");
+  let span = RECEIPT_SCAN_SPAN;
   let toBlock = await input.client.getBlockNumber();
   while (toBlock >= input.fromBlock) {
-    const fromBlock =
-      toBlock - input.fromBlock >= RECEIPT_SCAN_SPAN
-        ? toBlock - RECEIPT_SCAN_SPAN + 1n
-        : input.fromBlock;
-    const logs = await input.client.getLogs({
-      address: input.payer,
-      event: event as Extract<(typeof REWARD_PAYER_ABI)[number], { type: "event" }>,
-      args: { shareId: input.shareId },
-      fromBlock,
-      toBlock,
-    });
+    const fromBlock = toBlock - input.fromBlock >= span ? toBlock - span + 1n : input.fromBlock;
+    let logs: Awaited<ReturnType<typeof input.client.getLogs>>;
+    try {
+      logs = await input.client.getLogs({
+        address: input.payer,
+        event: event as Extract<(typeof REWARD_PAYER_ABI)[number], { type: "event" }>,
+        args: { shareId: input.shareId },
+        fromBlock,
+        toBlock,
+      });
+    } catch (error) {
+      if (span <= RECEIPT_SCAN_MIN_SPAN) throw error;
+      span = span / 2n > RECEIPT_SCAN_MIN_SPAN ? span / 2n : RECEIPT_SCAN_MIN_SPAN;
+      continue;
+    }
     const found = logs.find((log) => log.transactionHash);
     if (found?.transactionHash) return found.transactionHash;
     if (fromBlock === input.fromBlock) break;

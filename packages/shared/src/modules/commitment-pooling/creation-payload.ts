@@ -14,7 +14,7 @@
 import type { CommitmentComposerValues } from "../../hooks/commitment-pooling/useCommitmentComposerForm";
 import { SETTLEMENT_ENABLED } from "../../config/app";
 import type { Address } from "../../types/domain";
-import { parseUsdCents } from "../wallet/good-dollar-price";
+import { parseUsdCents, usdCentsToGoodDollarWei } from "../wallet/good-dollar-price";
 import { CONSIDERATION_RAIL_ORDINAL, type CommitmentCreationPayload } from "./job-types";
 import { rewardLegAmountMatchesDollars } from "./reward-legs";
 import {
@@ -141,14 +141,18 @@ export function buildCommitmentCreationPayload(input: {
   };
   const reward = rewardRecordOf(values, input.goodDollarPrice);
   // A part paid from the steward's wallet is balanced 1:1 in dollars with the G$
-  // part at the price read for this Create (PRD-1556), and its amount is exactly
-  // those dollars in its token. A Create where either differs is refused rather than sent.
-  if (
-    input.rewardLegs?.some(
-      (leg) => !reward || leg.usdCents !== reward.usdCents || !rewardLegAmountMatchesDollars(leg)
-    )
-  ) {
-    throw new Error("A reward's USDC part must equal its G$ part in dollars");
+  // part at the price read for this Create (PRD-1556): the G$ amount is exactly
+  // the dollars at that recorded price, and the part's amount is exactly the same
+  // dollars in its token. A Create where any of this differs is refused rather than sent.
+  if (input.rewardLegs?.length) {
+    const balanced =
+      reward?.goodDollarPrice !== undefined &&
+      BigInt(reward.goodDollarWei) ===
+        usdCentsToGoodDollarWei(BigInt(reward.usdCents), BigInt(reward.goodDollarPrice)) &&
+      input.rewardLegs.every(
+        (leg) => leg.usdCents === reward.usdCents && rewardLegAmountMatchesDollars(leg)
+      );
+    if (!balanced) throw new Error("A reward's USDC part must equal its G$ part in dollars");
   }
 
   return {

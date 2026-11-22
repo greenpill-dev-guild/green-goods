@@ -99,7 +99,7 @@ export function SeedRewardSection({
           defaultMessage: "Paid in G$ at today's rate. The G$ amount is fixed when you create.",
         }));
 
-  const matched = wanted && values.rewardMatchedUsdc === true;
+  const matched = wanted && usdcMatchAvailable && values.rewardMatchedUsdc === true;
   const paidInLabel = formatMessage({
     id: "hub.garden.pool.seed.rewardPaidIn",
     defaultMessage: "Paid in",

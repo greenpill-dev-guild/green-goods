@@ -1629,6 +1629,7 @@
   "app.commitment.reward.part.afterKept": "{amount} na {network}, quando for cumprida",
   "app.commitment.reward.part.notPaidYet": "{amount} na {network}, ainda não paga",
   "app.commitment.reward.part.paid": "{amount} na {network}, paga",
+  "app.commitment.reward.part.own": "{amount} na {network}, sua própria parte",
   "app.commitment.reward.part.viewTransaction": "Ver transação",
   "app.commitment.people.takes": "Custa",
   "app.commitment.people.team": "Equipe",

@@ -146,6 +146,8 @@ export function rewardFacts(input: {
   price: GoodDollarPriceState;
   locale: string;
   formatMessage: FormatMessage;
+  /** A USDC match reads as promised only where Create would declare it. */
+  usdcMatchAvailable: boolean;
 }): Array<[string, string]> {
   const { values, count, price, locale, formatMessage } = input;
   if (values.considerationRail === "NONE") {
@@ -172,7 +174,7 @@ export function rewardFacts(input: {
       ],
     ];
   }
-  const matched = values.rewardMatchedUsdc === true;
+  const matched = input.usdcMatchAvailable && values.rewardMatchedUsdc === true;
   const rows: Array<[string, string]> = [
     [
       formatMessage({ id: "hub.garden.pool.seed.review.rewardEach", defaultMessage: "Each" }),

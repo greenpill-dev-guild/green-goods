@@ -121,6 +121,7 @@ export function CommitmentIdentity({
       chainId={commitment.chainId}
       commitmentId={commitment.commitmentId}
       viewer={viewer}
+      stewards={stewards}
       payout={payout}
     />
   ) : null;

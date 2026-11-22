@@ -1,14 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { sendRewardSharePayment } from "../modules/commitment-pooling/reward-pay-send";
-import type { TransactionSender } from "../modules/transactions/types";
+import { ReceiptWaitLimitError, type TransactionSender } from "../modules/transactions/types";
 
 import {
   readRewardShareTransaction,
   rewardLegShares,
   rewardPayerShareId,
+  rewardShareSettled,
 } from "../modules/commitment-pooling/reward-payer";
-import { ReceiptWaitLimitError } from "../modules/transactions/types";
 import type { Address } from "../types/domain";
 
 const MODULE = "0x6BB5b0fd70b6771B0E955Fef37f8Bd2ce911470a" as Address;
@@ -51,6 +51,19 @@ describe("reward payer shares", () => {
       [C, 3n],
     ]);
     expect(thirds.reduce((sum, share) => sum + share.amount, 0n)).toBe(10n);
+  });
+
+  it("counts the paying steward's own unpaid share as settled, and nobody else's", () => {
+    const parts = [
+      { recipient: A, token: USDC, paidBy: null },
+      { recipient: B, token: USDC, paidBy: A },
+      { recipient: C, token: USDC, paidBy: null },
+    ];
+    // A paid B's share, so A's own unpaid share is A's to keep.
+    expect(rewardShareSettled(parts[0]!, parts)).toBe(true);
+    expect(rewardShareSettled(parts[1]!, parts)).toBe(true);
+    // C paid nobody, so C's share is still owed.
+    expect(rewardShareSettled(parts[2]!, parts)).toBe(false);
   });
 
   it("offers nothing to pay when the split can't be stated exactly", () => {
@@ -240,5 +253,41 @@ describe("finding the transaction that paid a share", () => {
       [1_100_001n, 1_600_000n],
       [900_000n, 1_100_000n],
     ]);
+  });
+
+  it("narrows a span the provider refuses, and gives up only at the floor", async () => {
+    const spans: bigint[] = [];
+    const client = {
+      getBlockNumber: vi.fn(async () => 1_000_000n),
+      getLogs: vi.fn(async ({ fromBlock, toBlock }: { fromBlock: bigint; toBlock: bigint }) => {
+        spans.push(toBlock - fromBlock + 1n);
+        if (toBlock - fromBlock + 1n > 100_000n) throw new Error("block range too wide");
+        return [{ transactionHash: "0xfound" }];
+      }),
+    };
+    await expect(
+      readRewardShareTransaction({
+        client: client as never,
+        payer: "0x4444444444444444444444444444444444444444" as Address,
+        fromBlock: 0n,
+        shareId: `0x${"cd".repeat(32)}`,
+      })
+    ).resolves.toBe("0xfound");
+    expect(spans).toEqual([500_000n, 250_000n, 125_000n, 62_500n]);
+
+    const refusing = {
+      getBlockNumber: vi.fn(async () => 1_000_000n),
+      getLogs: vi.fn(async () => {
+        throw new Error("down");
+      }),
+    };
+    await expect(
+      readRewardShareTransaction({
+        client: refusing as never,
+        payer: "0x4444444444444444444444444444444444444444" as Address,
+        fromBlock: 0n,
+        shareId: `0x${"cd".repeat(32)}`,
+      })
+    ).rejects.toThrow("down");
   });
 });

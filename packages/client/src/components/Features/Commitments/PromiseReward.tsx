@@ -3,6 +3,7 @@ import {
   promiseRewardLegsOf,
   type RewardLeg,
   type RewardShareState,
+  rewardShareSettled,
   usePromiseRewardShares,
   useRewardShareTransaction,
 } from "@green-goods/shared/commitment-pooling";
@@ -277,6 +278,8 @@ const PART_MESSAGE_ID = {
   afterKept: "app.commitment.reward.part.afterKept",
   notPaidYet: "app.commitment.reward.part.notPaidYet",
   paid: "app.commitment.reward.part.paid",
+  own: "app.commitment.reward.part.own",
+  unknown: "app.commitment.reward.part.goodDollars",
 } as const;
 
 /**
@@ -293,21 +296,29 @@ export function rewardLinePayout(
 
 /**
  * One wallet-paid part's row: its amount, network and where it stands. A reader
- * the split pays sees their own share and its transaction once paid; anyone else
- * sees the part as paid only when every share of it is.
+ * the split pays sees their own share and its transaction once paid; a steward
+ * reads their own share as theirs, since the payer never pays one to oneself.
+ * Anyone else sees the part as paid only when every share is settled. Until the
+ * plan and the payer have answered, or when either read fails, the row names
+ * the amount and network only.
  */
 function RewardPartRow({
   leg,
   shares,
   viewer,
+  stewards,
   payout,
   network,
+  unknown,
 }: {
   leg: RewardLeg;
   shares: readonly RewardShareState[];
   viewer: Address | null;
+  stewards: readonly Address[];
   payout: RewardPayout;
   network: string;
+  /** The reads behind the state haven't answered, or failed. */
+  unknown: boolean;
 }) {
   const intl = useIntl();
   const { formatMessage, locale } = intl;
@@ -315,14 +326,27 @@ function RewardPartRow({
   const own = viewer
     ? ofLeg.find((share) => share.recipient.toLowerCase() === viewer.toLowerCase())
     : undefined;
+  const ownIsStewards =
+    Boolean(own) &&
+    !own?.paidBy &&
+    stewards.some((steward) => steward.toLowerCase() === viewer?.toLowerCase());
   const paid = own
-    ? Boolean(own.paidBy)
-    : ofLeg.length > 0 && ofLeg.every((share) => Boolean(share.paidBy));
+    ? rewardShareSettled(own, ofLeg)
+    : ofLeg.length > 0 && ofLeg.every((share) => rewardShareSettled(share, ofLeg));
   const transaction = useRewardShareTransaction({
     chainId: leg.chainId,
     shareId: own?.paidBy ? own.shareId : null,
   });
-  const state = paid ? "paid" : payout === "afterKept" ? "afterKept" : "notPaidYet";
+  const state =
+    payout === "afterKept"
+      ? "afterKept"
+      : unknown
+        ? "unknown"
+        : ownIsStewards && !paid
+          ? "own"
+          : paid
+            ? "paid"
+            : "notPaidYet";
   const amount = formatMessage(
     { id: "app.commitment.reward.tokenAmount" },
     {
@@ -364,18 +388,21 @@ export function PromiseRewardParts({
   chainId,
   commitmentId,
   viewer,
+  stewards = [],
   payout,
 }: {
   reward: PromiseReward;
   chainId: number;
   commitmentId: bigint;
   viewer: Address | null;
+  /** The paying garden's stewards, whose own share is never sent to them. */
+  stewards?: readonly Address[];
   payout: RewardPayout;
 }) {
   const intl = useIntl();
   const { formatMessage } = intl;
   const others = reward.others ?? [];
-  const { shares } = usePromiseRewardShares({
+  const { shares, isReading, readFailed } = usePromiseRewardShares({
     chainId,
     commitmentId,
     legs: others,
@@ -405,8 +432,10 @@ export function PromiseRewardParts({
           leg={leg}
           shares={shares}
           viewer={viewer}
+          stewards={stewards}
           payout={payout}
           network={network(leg.chainId)}
+          unknown={isReading || readFailed}
         />
       ))}
     </>

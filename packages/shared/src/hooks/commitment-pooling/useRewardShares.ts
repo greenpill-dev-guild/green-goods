@@ -53,8 +53,8 @@ interface RewardSharesInput {
 function useRewardShareStates(input: RewardSharesInput) {
   const { chainId, commitmentId } = input;
   const contracts = getNetworkContracts(chainId);
-  const payer =
-    contracts.rewardPayer && !isZeroAddress(contracts.rewardPayer) ? contracts.rewardPayer : null;
+  // The payer counts as deployed only once verify has recorded its address and deploy block.
+  const payer = getRewardPayerDeployment(chainId)?.address ?? null;
   const shares = input.legs.flatMap((leg) =>
     leg.chainId === chainId
       ? rewardLegShares({
@@ -167,13 +167,19 @@ export function usePromiseRewardShares(input: {
     enabled: (input.enabled ?? true) && payerDeployed && input.legs.length > 0,
   });
   const plan = recipientsRead.data ?? null;
-  const shares = useRewardShareStates({
+  const read = useRewardShareStates({
     chainId: input.chainId,
     commitmentId: input.commitmentId,
     legs: input.legs,
     recipients: plan?.finalized ? plan.recipients : [],
   });
-  return { ...shares, splitFixed: plan?.finalized === true };
+  return {
+    ...read,
+    splitFixed: plan?.finalized === true,
+    /** Either read still to answer: no part's state can be told yet. */
+    isReading: recipientsRead.isLoading || read.isReading,
+    readFailed: recipientsRead.isError || read.readFailed,
+  };
 }
 
 /** The transaction that paid one share, once the payer has recorded it as paid. */

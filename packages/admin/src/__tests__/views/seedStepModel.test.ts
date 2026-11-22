@@ -225,6 +225,19 @@ describe("a G$ reward matched in USDC (PRD-1556)", () => {
     ).toBeUndefined();
   });
 
+  it("never reads a match as promised where Create wouldn't declare it", () => {
+    const rows = rewardFacts({
+      values: matched,
+      count: 10,
+      price: { status: "ready", price: PRICE, readAt: 0 },
+      locale: "en",
+      formatMessage,
+      usdcMatchAvailable: false,
+    });
+    expect(rows.some(([label]) => label === "In USDC")).toBe(false);
+    expect(rows[0]?.[1]).toBe("{amount}, paid in G$ once it's kept");
+  });
+
   it("names both parts in the review, and counts both in the most it could total", () => {
     const intl = createIntl({ locale: "en", messages: en });
     const rows = rewardFacts({
@@ -233,6 +246,7 @@ describe("a G$ reward matched in USDC (PRD-1556)", () => {
       price: { status: "ready", price: PRICE, readAt: 0 },
       locale: "en",
       formatMessage: intl.formatMessage as unknown as typeof formatMessage,
+      usdcMatchAvailable: true,
     });
     expect(rows).toEqual(
       expect.arrayContaining([

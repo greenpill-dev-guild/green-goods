@@ -1629,6 +1629,7 @@
   "app.commitment.reward.part.afterKept": "{amount} on {network}, after it's kept",
   "app.commitment.reward.part.notPaidYet": "{amount} on {network}, not paid yet",
   "app.commitment.reward.part.paid": "{amount} on {network}, paid",
+  "app.commitment.reward.part.own": "{amount} on {network}, your own share",
   "app.commitment.reward.part.viewTransaction": "View Transaction",
   "app.commitment.people.takes": "Takes",
   "app.commitment.people.team": "Team",

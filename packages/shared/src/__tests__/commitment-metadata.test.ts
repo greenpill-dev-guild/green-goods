@@ -274,7 +274,7 @@ describe("commitment reward legs, declared at Create", () => {
     version: 1 as const,
     usdCents: "500",
     goodDollarWei: wei.toString(),
-    goodDollarPrice: "128648000000000",
+    goodDollarPrice: "128647930734508",
   };
   const usdcLeg = {
     version: 1 as const,
@@ -315,7 +315,7 @@ describe("commitment reward legs, declared at Create", () => {
       creator: "0x1111111111111111111111111111111111111111" as Address,
       gardenAddress: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as Address,
       nowSeconds: 1_700_000_000,
-      goodDollarPrice: 128_648_000_000_000n,
+      goodDollarPrice: 128_647_930_734_508n,
       rewardLegs: [usdcLeg],
     });
     expect(built.metadata?.reward).toEqual(reward);
@@ -343,6 +343,8 @@ describe("commitment reward legs, declared at Create", () => {
     expect(() => build([{ ...usdcLeg, usdCents: "600", amount: "6000000" }])).toThrow("equal");
     // The amount paid is exactly the dollars it stands for: $5.00 is never 5,000 USDC.
     expect(() => build([{ ...usdcLeg, amount: "5000000000" }])).toThrow("equal");
+    // Without the price the G$ amount came from, nothing shows the two parts balance.
+    expect(() => build([usdcLeg])).toThrow("equal");
     // With no G$ part set in dollars there is nothing to balance it against.
     expect(() => build([usdcLeg], "")).toThrow();
   });

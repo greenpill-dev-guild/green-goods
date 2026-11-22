@@ -6,6 +6,7 @@ import { toastService } from "@green-goods/shared/components/Toast/toast.service
 import {
   promiseRewardLegsOf,
   type RewardPayOutcome,
+  rewardShareSettled,
   type RewardShareState,
   useCommitmentMetadataFor,
   useRewardShares,
@@ -67,8 +68,9 @@ export function CommitmentUsdcShares({
     Boolean(viewer) && share.recipient.toLowerCase() === viewer?.toLowerCase();
   const owed = shares.filter((share) => share.paidBy === null && !isOwn(share));
   const owedTotal = owed.reduce((sum, share) => sum + share.amount, 0n);
+  // Paid once every share is, the paying steward's own counting as settled.
   const allPaid =
-    shares.length > 0 && shares.every((share) => Boolean(share.paidBy) || isOwn(share));
+    shares.length > 0 && shares.every((share) => isOwn(share) || rewardShareSettled(share, shares));
   const title = formatMessage(
     { id: "hub.garden.pool.walletShares.title", defaultMessage: "{symbol} from Your Wallet" },
     { symbol }
@@ -140,25 +142,29 @@ export function CommitmentUsdcShares({
               label={
                 <span title={share.recipient}>{shortAddress(share.recipient as Address)}</span>
               }
-              value={formatMessage(
-                {
-                  id: share.paidBy
-                    ? "hub.garden.pool.walletShares.sharePaid"
-                    : isOwn(share)
-                      ? "hub.garden.pool.walletShares.shareOwn"
-                      : share.paidBy === undefined
-                        ? "hub.garden.pool.walletShares.shareChecking"
-                        : "hub.garden.pool.walletShares.shareOwed",
-                  defaultMessage: share.paidBy
-                    ? "{amount}, paid"
-                    : isOwn(share)
-                      ? "{amount}, your own share, nothing to send"
-                      : share.paidBy === undefined
-                        ? "{amount}, checking"
-                        : "{amount}, not paid yet",
-                },
-                { amount: amountText(share.amount) }
-              )}
+              value={
+                readFailed
+                  ? amountText(share.amount)
+                  : formatMessage(
+                      {
+                        id: share.paidBy
+                          ? "hub.garden.pool.walletShares.sharePaid"
+                          : isOwn(share)
+                            ? "hub.garden.pool.walletShares.shareOwn"
+                            : share.paidBy === undefined
+                              ? "hub.garden.pool.walletShares.shareChecking"
+                              : "hub.garden.pool.walletShares.shareOwed",
+                        defaultMessage: share.paidBy
+                          ? "{amount}, paid"
+                          : isOwn(share)
+                            ? "{amount}, your own share, nothing to send"
+                            : share.paidBy === undefined
+                              ? "{amount}, checking"
+                              : "{amount}, not paid yet",
+                      },
+                      { amount: amountText(share.amount) }
+                    )
+              }
             />
           ))}
         </FactList>
