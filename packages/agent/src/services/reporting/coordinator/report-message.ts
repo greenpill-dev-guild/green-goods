@@ -143,7 +143,8 @@ export function handleReportMessage(
       external,
       sourceEntryId,
       scope,
-      fill
+      fill,
+      plan.media.length === 0 ? text : null
     );
   } else {
     if (text && ctx.draft && !work.content.feedback)
