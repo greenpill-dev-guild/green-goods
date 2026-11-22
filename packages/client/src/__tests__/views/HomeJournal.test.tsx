@@ -1006,7 +1006,9 @@ describe("Home journal", () => {
       expect(within(sheet).getByTestId("garden-section")).toHaveAttribute("data-requests", "true");
       // Check Who's Asking is the queue's own control; no count stands beside the row (every read
       // of the queue needs a signed proof, so no count exists).
-      expect(within(sheet).queryByText(/\d+\s+(asking|requests?)\b/i)).toBeNull();
+      expect(
+        within(sheet).queryByText(/\d+\s+(?:(?:people|person)\s+)?(?:asking|requests?)\b/i)
+      ).toBeNull();
       unmount();
       useUIStore.getState().closeGardenSheet();
 

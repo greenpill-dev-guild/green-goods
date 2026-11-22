@@ -245,8 +245,8 @@ export const ForAPromiseOrAnAsk: Story = {
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText("Step 3 of 4 · 1 photo")).toBeVisible();
-    await expect(canvas.getByText("Takes up a request · Step 3 of 4 · 1 photo")).toBeVisible();
+    await expect(canvas.getByText("Step 3 of 4 · 1 attachment")).toBeVisible();
+    await expect(canvas.getByText("Takes up a request · Step 3 of 4 · 1 attachment")).toBeVisible();
   },
 };
 
