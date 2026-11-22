@@ -130,6 +130,7 @@ export class Harness {
     ensureControls(this.core, {
       intake: true,
       model_processing: false,
+      dialogue_planner: false,
       documents: true,
       voice: false,
       publication: true,

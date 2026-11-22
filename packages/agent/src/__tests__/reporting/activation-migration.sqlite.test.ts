@@ -46,6 +46,8 @@ beforeEach(async () => {
       string,
       SQLQueryBindings
     >[]) {
+      // The historical switch list had no dialogue planner: that row came with a later migration.
+      if (name === "operating_controls" && row.name === "dialogue_planner") continue;
       // The historical schema has only the columns it had: later ones are left out of the copy.
       const known = new Set(
         (old.query(`PRAGMA table_info("${name}")`).all() as Array<{ name: string }>).map(

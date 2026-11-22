@@ -367,9 +367,9 @@ function applyModelFacts(
 }
 
 /**
- * Takes what a model read in this turn's message: the garden and the activity it named, then the
- * activity the chat's gardens leave no doubt about, then the values, so a detail is applied once
- * its activity is the report's. `scope` is what the chat may choose from: a garden the model
+ * Takes what a model read in this turn's message: the garden it named, then the garden and
+ * activity the chat's gardens leave no doubt about, then the activity it named, then the values,
+ * so a detail is applied once its activity is the report's. `scope` is what the chat may choose from: a garden the model
  * reads outside it is not taken.
  */
 export function applyInterpretation(
@@ -392,13 +392,15 @@ export function applyInterpretation(
         provenance: modelFact(result, sources, "reported"),
       },
     ]);
+  // The chat's only garden is taken before the activity: naming a garden asks for the activity
+  // again, so taking it afterwards would drop the one the model had just named.
+  fill();
   const candidates = external.catalog.result?.ok ? external.catalog.result.actions : [];
   const action = candidates.find(
     (candidate) => candidate.definition.actionUID === result.actionUID
   );
   if (action && work.content.actionUID === null)
     adoptAction(work, action, modelFact(result, sources, "reported"));
-  fill();
   applyModelFacts(writer, draft, work, result, sources, "any", writer.ctx.message.text ?? null);
 }
 
@@ -461,7 +463,14 @@ export function finish(
     ? acknowledgement(writer, draft, next, work.answered, aligned.notes)
     : null;
   if (understood) writer.preface(understood);
-  if (ask) promptNextStep(writer, next, external.catalog, external.suggestion);
+  if (ask)
+    promptNextStep(
+      writer,
+      next,
+      external.catalog,
+      external.suggestion,
+      external.interpretation?.ask
+    );
   writer.flushPreface();
   return next;
 }

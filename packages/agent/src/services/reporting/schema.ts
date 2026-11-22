@@ -183,4 +183,13 @@ export const REPORTING_MIGRATIONS: readonly ReportingMigration[] = [
       )`,
     ],
   },
+  {
+    version: 11,
+    name: "dialogue planner switch",
+    // The switch list's CHECK cannot change in place, so it is rebuilt once more, keeping every
+    // operator decision and version. The new switch is seeded off by the runtime.
+    statements: DOCUMENT_VOICE_AND_CHANNEL_CONTROLS.map((statement) =>
+      statement.replace("'model_processing',", "'model_processing','dialogue_planner',")
+    ),
+  },
 ];

@@ -5,13 +5,14 @@ import {
 } from "@green-goods/shared/modules/agent-reporting";
 import type { WorkInput } from "@green-goods/shared/types/domain";
 import { pendingGoal } from "../dialogue-goal";
+import { validateProposal } from "../dialogue-proposal";
 import type { ReportingGarden } from "../gardens";
 import {
   type DialogueGoal,
   type DialogueSnapshot,
   type InterpretationRequest,
   type InterpretationResult,
-  interpretWithDeadline,
+  proposeWithDeadline,
   type ReportInterpreter,
 } from "../interpretation";
 import { createLogger } from "../../logger";
@@ -248,6 +249,19 @@ export async function interpretTurn(
     );
     return null;
   }
-  const read = await interpretWithDeadline(interpreter, view.request, timeoutMs, modelMeter(core));
-  return read && view.resolve(read);
+  const proposal = await proposeWithDeadline(
+    interpreter,
+    view.request,
+    timeoutMs,
+    modelMeter(core)
+  );
+  if (!proposal) return null;
+  // Every reading is a proposal, checked against the snapshot it answers before anything is done.
+  const validated = validateProposal(proposal, view.request);
+  if (!validated || validated.refused.length > 0)
+    log.warn(
+      { refused: validated ? validated.refused : "another revision or language" },
+      "A model proposed something the conversation did not offer; it was left out"
+    );
+  return validated ? view.resolve({ ...validated.interpretation, ask: validated.ask }) : null;
 }
