@@ -293,6 +293,30 @@ describe("what a model is given", () => {
     expect(JSON.stringify(request)).not.toMatch(/Ada|fence|baobab/);
   });
 
+  it("starts a report's context at its story, even in the same millisecond", async () => {
+    await harness.say(ADA, "hi");
+    await harness.press(ADA, "I agree");
+    await harness.say(ADA, "hello");
+    // The story begins a report with no time passing, as in one worker pass.
+    await harness.say(ADA, "Today I planted twelve baobab seedlings by the fence");
+    const request = await heard(ADA, "is the fence side part of TAS?");
+    expect(request.turns.map((turn) => turn.text)).toContain(
+      "Today I planted twelve baobab seedlings by the fence"
+    );
+    expect(request.turns.map((turn) => turn.text)).not.toContain("hello");
+  });
+
+  it("keeps a message from before an account link out, even in the same millisecond", async () => {
+    await consented(ADA, "Today I planted twelve baobab seedlings by the fence");
+    harness.clock.advance(10_000);
+    await heard(ADA, "do the north beds count?");
+    await harness.say(ADA, "CONNECT");
+    // The link lands in the same millisecond as the message before it, as in one worker pass.
+    await link(ADA);
+    const afterLink = await heard(ADA, "and the south beds?");
+    expect(afterLink.turns.filter((turn) => turn.role === "person")).toEqual([]);
+  });
+
   it("starts again after consent is withdrawn, and after the account changes", async () => {
     await consented(ADA, "Today I planted twelve baobab seedlings by the fence");
     await heard(ADA, "is the fence side part of TAS?");

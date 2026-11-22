@@ -69,6 +69,10 @@ describe("model input sanitizer", () => {
     ["photos.example.org:8443/private?token=secret", "[link]"],
     ["Photos.Example.Mx/private?token=secret", "[link]"],
     ["PHOTOS.EXAMPLE.MX/private/token or PHOTOS.EXAMPLE.CO.UK/private/token", "[link] or [link]"],
+    ["192.168.1.2/private?token=secret and 10.0.0.5:8080/admin", "[link] and [link]"],
+    ["Done.192.168.1.2:8080/admin?token=s3cr3t", "Done.[link]"],
+    ["[fe80::1%eth0]:8080/x?token=s and [::ffff:192.168.1.2]:8080/y", "[link] and [link]"],
+    ["localhost:3000/private?token=secret and [fe80::1]:8080/x", "[link] and [link]"],
     ["I am vitalik.eth and @ada_gardens on Telegram", "I am [account] and [handle] on Telegram"],
     ["sou joão.eth, garden 0x7099…79C8", "sou [account], garden [address]"],
     [`token ${"a1B2".repeat(10)} was in the link`, "token [token] was in the link"],
@@ -91,6 +95,7 @@ describe("model input sanitizer", () => {
     // A full stop with no space after it, in Portuguese and Spanish, is not a link.
     "Plantamos 20 mudas.Certo? Sembramos 30 árboles.Bien? Pronto.Ok?",
     "1.Plantio/rega 2.Colheita, compostagem.Rega/poda feitas, Sr.Silva/Sra.Souza",
+    "version 1.2.3, 2026.11.21 and 999.1.1.1, section 1.2.3.4 of the guide, at [10:30] we met",
     "three-hundred-and-forty-five-thousand-six-hundred seedlings",
     // A full stop with no space after it is not a link.
     "We cleared the garden.We planted 12 trees.Me and Ada",
@@ -123,6 +128,10 @@ describe("model input sanitizer", () => {
     expect(sanitizeModelText(`${"ก".repeat(990)}alice@example.com`, 500)).not.toMatch(/alice/u);
     expect(sanitizeModelText(`0x${"a".repeat(980)},joséphine.dupont@example.org`, 500)).not.toMatch(
       /jos/u
+    );
+    // In any script written with spaces, a cut word with no space before it goes whole.
+    expect(sanitizeModelText(`0x${"a".repeat(980)},иван.petrov@example.org`, 500)).not.toMatch(
+      /иван/u
     );
   });
 
