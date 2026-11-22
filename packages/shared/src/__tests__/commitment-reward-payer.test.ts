@@ -120,10 +120,17 @@ describe("paying reward shares from the steward's wallet", () => {
     expect((payAll?.args[0] as unknown[]).length).toBe(2);
   });
 
-  it("skips the approval the allowance already covers", async () => {
-    const { sendContractCall, pay } = setup({ allowance: 20_000_000n });
-    await expect(pay()).resolves.toMatchObject({ status: "paid" });
-    expect(sendContractCall.mock.calls.map(([call]) => call.functionName)).toEqual(["payAll"]);
+  it("approves exactly what the payment moves, even over a larger allowance", async () => {
+    const exact = setup({ allowance: 20_000_000n });
+    await expect(exact.pay()).resolves.toMatchObject({ status: "paid" });
+    expect(exact.sendContractCall.mock.calls.map(([call]) => call.functionName)).toEqual([
+      "payAll",
+    ]);
+    // A larger allowance left from elsewhere is brought down to the total first.
+    const larger = setup({ allowance: 1_000_000_000n });
+    await expect(larger.pay()).resolves.toMatchObject({ status: "paid" });
+    const [approve] = larger.sendContractCall.mock.calls.map(([call]) => call);
+    expect(approve).toMatchObject({ functionName: "approve", args: [PAYER, 20_000_000n] });
   });
 
   it("asks for nothing when a share is paid or the wallet can't cover the total", async () => {

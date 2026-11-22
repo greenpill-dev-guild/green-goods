@@ -139,6 +139,12 @@ export function buildCommitmentCreationPayload(input: {
     amount: rail === "NONE" ? 0n : BigInt(values.considerationAmount || "0"),
   };
   const reward = rewardRecordOf(values, input.goodDollarPrice);
+  // A part paid from the steward's wallet is balanced 1:1 in dollars with the G$
+  // part at the price read for this Create (PRD-1556); a Create where they differ
+  // is refused rather than sent.
+  if (input.rewardLegs?.some((leg) => !reward || leg.usdCents !== reward.usdCents)) {
+    throw new Error("A reward's USDC part must equal its G$ part in dollars");
+  }
 
   return {
     clientCommitmentId,

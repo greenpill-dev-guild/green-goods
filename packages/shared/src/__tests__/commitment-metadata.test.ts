@@ -322,6 +322,29 @@ describe("commitment reward legs, declared at Create", () => {
     expect(built.metadata?.rewardLegs).toEqual([usdcLeg]);
   });
 
+  it("refuses a Create whose USDC part isn't the G$ part's dollars", () => {
+    const build = (rewardLegs: (typeof usdcLeg)[], considerationUsd = "$5.00") =>
+      buildCommitmentCreationPayload({
+        values: {
+          ...COMMITMENT_COMPOSER_DEFAULTS,
+          title: "Survey",
+          unitLabel: "survey",
+          considerationRail: "CELO_SETTLEMENT",
+          considerationUsd,
+          considerationAmount: wei.toString(),
+        },
+        clientCommitmentId: "copy-1",
+        poolId: 7n,
+        creator: "0x1111111111111111111111111111111111111111" as Address,
+        gardenAddress: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as Address,
+        nowSeconds: 1_700_000_000,
+        rewardLegs,
+      });
+    expect(() => build([{ ...usdcLeg, usdCents: "600", amount: "6000000" }])).toThrow("equal");
+    // With no G$ part set in dollars there is nothing to balance it against.
+    expect(() => build([usdcLeg], "")).toThrow();
+  });
+
   it("reads a G$-only reward as one part, as before there were parts", () => {
     const read = promiseRewardLegsOf(
       goodDollarPromise,

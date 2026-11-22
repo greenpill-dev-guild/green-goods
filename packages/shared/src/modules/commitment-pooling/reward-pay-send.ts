@@ -6,7 +6,8 @@
  * has to show that no share is paid yet and that the wallet holds the whole
  * amount: the payer refuses a paid share, and the token refuses an amount the
  * wallet doesn't hold, so either would only cost a signature. Then it is one
- * approval for exactly the total, skipped when the allowance already covers it,
+ * approval for exactly the total, skipped only when the allowance already is
+ * exactly that, so a steward never leaves more approved than a payment moves;
  * and one call that pays every share or none.
  *
  * These go as two sends. A passkey can join them into one only once its rail is
@@ -150,7 +151,9 @@ export async function sendRewardSharePayment(input: {
   };
 
   let approved = false;
-  if ((await chain.allowance(token, account, payer)) < total) {
+  // The steward approves exactly what this payment moves, never more (the 2.1.0 waiver's
+  // condition): an allowance left at any other amount is set to the total first.
+  if ((await chain.allowance(token, account, payer)) !== total) {
     step("approving");
     let crossed = false;
     try {
