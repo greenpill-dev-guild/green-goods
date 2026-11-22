@@ -80,6 +80,7 @@ function snapshot(
     feeQuotes: [{ id: "42161-8", amount: 2n, fee: 0n, senderPays: false, recipient: TARGET_SAFE }],
     feePolicy: { maxFeeBps: 10_000, maxFeeAmount: 100n },
     executorPaused: false,
+    commandExecutors: [],
     available: 0n,
     shortfall: 0n,
     suggestedTopUp: 0n,
@@ -263,6 +264,15 @@ describe("useProtocolFundingOperationsController", () => {
     expect(result.current.lastAct?.phase).toBe("proposed");
     expect(result.current.rows.find((row) => row.disbursementId === 8n)?.canDispatch).toBe(false);
 
+    // The wallet says it ran, but the read still lists #8 queued and would offer it again.
+    mocks.reconcile.mockResolvedValue({ status: "confirmed", transactionHash: "0xexecuted" });
+    await act(async () => {
+      await result.current.refetch();
+    });
+    await waitFor(() => expect(mocks.reconcile).toHaveBeenCalled());
+    expect(result.current.lastAct?.phase).toBe("proposed");
+    expect(result.current.rows.find((row) => row.disbursementId === 8n)?.canDispatch).toBe(false);
+
     mocks.sourceSnapshot = transfers(
       { disbursementId: 8n, state: "DISPATCHED" },
       { disbursementId: 9n, state: "DISPATCHED" }
@@ -346,6 +356,7 @@ describe("useProtocolFundingOperationsController", () => {
     const failedOnCelo = (acknowledgmentSent: boolean) => {
       const read = transfers({ disbursementId: 8n, state: "DISPATCHED", executionKey: key });
       read.executions = [{ executionKey: key, status: "FAILED", createdAt: 1, acknowledgmentSent }];
+      read.commandExecutors = [{ executionKey: key, executor: TARGET_SAFE, paused: false }];
       return read;
     };
     mocks.sourceSnapshot = failedOnCelo(false);
@@ -401,6 +412,13 @@ describe("useProtocolFundingOperationsController", () => {
     mocks.sourceSnapshot = failed(true, "QUEUED");
     rerender();
     expect(result.current.lastAct?.phase).toBe("submitted");
+
+    // The new attempt fails too while the wallet still hasn't answered: the proposal stays
+    // settled, so the transfer back in Failed doesn't close every send again.
+    mocks.sourceSnapshot = failed(true);
+    rerender();
+    expect(result.current.lastAct?.phase).toBe("submitted");
+    expect(result.current.rows[0]?.canRequeue).toBe(true);
   });
 
   it("reopens sends when the Safe runs the proposal and it reverts", async () => {

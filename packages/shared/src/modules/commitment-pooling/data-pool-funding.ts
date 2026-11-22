@@ -83,6 +83,7 @@ export async function getPoolFundingSnapshot(
     fundings: ledger.fundings,
     disbursements: ledger.disbursements,
     executions: ledger.executions,
+    commandExecutors: direct.commandExecutors,
     readiness: {
       accountConfigured: ledger.account !== null,
       accountActive: ledger.account?.active ?? false,
