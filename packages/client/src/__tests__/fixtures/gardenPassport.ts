@@ -20,7 +20,29 @@ export function gardenPassportFixture(
     poolId: 7n,
     readAt: 1_795_000_000,
     partialData: false,
-    unavailableSources: { promises: false, vouchers: false, settlement: false },
+    unavailableSources: { promises: false, vouchers: false, settlement: false, supply: false },
+    supply: {
+      status: "available",
+      asOf: 1_794_900_000,
+      value: [
+        {
+          token: VOUCHER,
+          symbol: "GGV",
+          decimals: 6,
+          pools: [
+            {
+              id: "riverside",
+              name: "Riverside",
+              listed: true,
+              holding: 10_000_000n,
+              holdingLimit: 40_000_000n,
+            },
+          ],
+          outstanding: 10_000_000n,
+          heldBack: false,
+        },
+      ],
+    },
     promises: {
       status: "available",
       asOf: 1_794_000_000,
