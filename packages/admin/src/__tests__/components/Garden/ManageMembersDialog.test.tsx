@@ -371,6 +371,34 @@ describe("components/Garden/ManageMembersDialog (Manage Roles)", () => {
     await waitFor(() => expect(screen.getByText("1 role removed")).toBeInTheDocument());
   });
 
+  it("keeps a Safe proposal waiting through Check Again, and never offers to send it twice", async () => {
+    const user = userEvent.setup();
+    let executed = false;
+    const removal = fakeRemoval({
+      held: () => !executed,
+      settle: () => ({ status: "proposed" }),
+    });
+    renderDialog({ removal });
+
+    await pick(user, "Evaluator", "chidinma");
+    await user.click(screen.getByRole("button", { name: "Review Removal" }));
+    await user.click(await screen.findByRole("button", { name: "Remove 1 Role" }));
+
+    expect(await screen.findByText("A removal is waiting to run")).toBeInTheDocument();
+    expect(screen.getByText("Waiting to run")).toBeInTheDocument();
+    // Its signers have not approved yet, so the read still finds the role held.
+    await user.click(screen.getByRole("button", { name: "Check Again" }));
+    expect(await screen.findByText("Waiting to run")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Remove/ })).toBeNull();
+    expect(removal.remove).toHaveBeenCalledTimes(1);
+
+    // The Safe ran it: the next read finds the role gone.
+    executed = true;
+    await user.click(screen.getByRole("button", { name: "Check Again" }));
+    await waitFor(() => expect(screen.getByText("1 role removed")).toBeInTheDocument());
+    expect(removal.remove).toHaveBeenCalledTimes(1);
+  });
+
   it("starts over when the signing account changes, so no account signs a review it did not make", async () => {
     const user = userEvent.setup();
     const dialog = renderDialog();
