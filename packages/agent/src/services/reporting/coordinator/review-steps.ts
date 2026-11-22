@@ -187,7 +187,7 @@ export function correctReview(writer: TurnWriter, review: ReviewRecord, text: st
   if (read.decision) content = decide(content, read.decision);
   if (read.confidence !== undefined) content = withConfidence(content, read.confidence) ?? content;
   if (read.feedback !== undefined) content = withFeedback(content, read.feedback) ?? content;
-  // Saying again what the summary shows changes nothing, so its code still confirms it.
+  // Saying again what the summary shows makes no new revision: the summary is shown again.
   if (JSON.stringify(content) === JSON.stringify(review.content))
     return nextReviewStep(writer, review, account.address);
   applyReviewContent(writer, review, content, account.address);
