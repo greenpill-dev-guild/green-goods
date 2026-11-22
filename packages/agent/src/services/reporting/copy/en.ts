@@ -131,7 +131,6 @@ export const EN_REPORTING_COPY = {
   "question.seedlingsAndSpecies": "How many seedlings did you plant, and which species?",
   "question.participants": "How many people took part?",
   "question.speciesTags": "Which species did you plant?",
-  "report.descriptionRevised": "\nYour description said {was} too, so I changed it to match.",
   "report.descriptionStale":
     "\nYour description still says {was}. Send EDIT to change its wording.",
   "report.accepted": "I have:{facts}",

@@ -68,10 +68,9 @@ export function acknowledgement(
 }
 
 /**
- * Brings the description in step with the values this turn replaced. A count, a choice or a time
- * the description states is changed where it stands; where it cannot be found for certain, the
- * description is left and a note says it still states the old value. A description the turn itself
- * rewrote is left alone. Returns the description to keep and what to tell the gardener.
+ * Notes for the reply when the gardener changed, in this turn, a value their own description
+ * also states: the description is the gardener's words and is never rewritten, so the reply says
+ * it may still say the old value and how to change it. A model's reading changes nothing here.
  */
 export function alignDescription(
   writer: TurnWriter,
@@ -81,55 +80,30 @@ export function alignDescription(
   snapshot: DraftRecord["snapshot"]
 ): { feedback: string | null; notes: string[] } {
   const notes: string[] = [];
-  let description = content.feedback;
+  const description = content.feedback;
   if (!description || description !== before.feedback) return { feedback: null, notes };
+  const turn = writer.sourceEntryId();
+  const statedNow = (field: ReportField) => {
+    const read = content.provenance[field];
+    return Boolean(
+      read?.gardenerStated && read.sources.some((source) => source.sourceEntryId === turn)
+    );
+  };
   const profile = questionProfileOf(writer.core, draft, snapshot);
-  const changes: Array<{ change: DescriptionChange; was: string }> = [];
   for (const definition of snapshot?.definition.inputs ?? []) {
     const was = before.details[definition.key];
     const now = content.details[definition.key];
+    const field = `details.${definition.key}` as const;
     if (was === undefined || now === undefined || JSON.stringify(was) === JSON.stringify(now))
       continue;
-    const shown = (value: unknown, details: ReportContent["details"]) =>
-      formatDetail(profiledInput(profile, definition, details), value);
-    if (typeof was === "number" && typeof now === "number") {
-      const beforeWords = before.provenance[`details.${definition.key}`]?.original;
-      changes.push({
-        change: {
-          kind: "number",
-          before: was,
-          after: now,
-          ...(beforeWords ? { beforeWords } : {}),
-        },
-        was: shown(was, before.details),
-      });
-    } else if (typeof was === "string" && typeof now === "string") {
-      changes.push({
-        change: {
-          kind: "words",
-          before: shown(was, before.details),
-          after: shown(now, content.details),
-        },
-        was: shown(was, before.details),
-      });
-    }
-  }
-  const timeWas = before.provenance.timeSpentMinutes?.original;
-  const timeNow = content.provenance.timeSpentMinutes?.original;
-  if (
-    before.timeSpentMinutes !== null &&
-    content.timeSpentMinutes !== before.timeSpentMinutes &&
-    timeWas &&
-    timeNow
-  )
-    changes.push({ change: { kind: "words", before: timeWas, after: timeNow }, was: timeWas });
-  for (const { change, was } of changes) {
+    if (!statedNow(field)) continue;
+    const shown = formatDetail(profiledInput(profile, definition, before.details), was);
+    const change: DescriptionChange =
+      typeof was === "number" && typeof now === "number"
+        ? { kind: "number", before: was, after: now }
+        : { kind: "words", before: shown, after: shown };
     const { revised, stale } = reviseDescription(description, change);
-    if (revised) description = revised;
-    if (revised || stale)
-      notes.push(
-        writer.text(revised ? "report.descriptionRevised" : "report.descriptionStale", { was })
-      );
+    if (revised || stale) notes.push(writer.text("report.descriptionStale", { was: shown }));
   }
-  return { feedback: description === content.feedback ? null : description, notes };
+  return { feedback: null, notes };
 }
