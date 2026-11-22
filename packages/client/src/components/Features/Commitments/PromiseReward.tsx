@@ -297,7 +297,7 @@ export function rewardLinePayout(
 /**
  * One wallet-paid part's row: its amount, network and where it stands. A reader
  * the split pays sees their own share and its transaction once paid; a steward
- * reads their own share as theirs, since the payer never pays one to oneself.
+ * reads their own unpaid share as theirs, since the payer never pays one to oneself.
  * Anyone else sees the part as paid only when every share is settled. Until the
  * plan and the payer have answered, or when either read fails, the row names
  * the amount and network only.
@@ -326,12 +326,14 @@ function RewardPartRow({
   const own = viewer
     ? ofLeg.find((share) => share.recipient.toLowerCase() === viewer.toLowerCase())
     : undefined;
-  const ownIsStewards =
-    Boolean(own) &&
-    !own?.paidBy &&
-    stewards.some((steward) => steward.toLowerCase() === viewer?.toLowerCase());
+  // A steward's unpaid share is theirs to keep, before and after they pay everyone else's.
+  const ownKept =
+    own !== undefined &&
+    !own.paidBy &&
+    (stewards.some((steward) => steward.toLowerCase() === viewer?.toLowerCase()) ||
+      rewardShareSettled(own, ofLeg));
   const paid = own
-    ? rewardShareSettled(own, ofLeg)
+    ? Boolean(own.paidBy)
     : ofLeg.length > 0 && ofLeg.every((share) => rewardShareSettled(share, ofLeg));
   const transaction = useRewardShareTransaction({
     chainId: leg.chainId,
@@ -342,7 +344,7 @@ function RewardPartRow({
       ? "afterKept"
       : unknown
         ? "unknown"
-        : ownIsStewards && !paid
+        : ownKept
           ? "own"
           : paid
             ? "paid"

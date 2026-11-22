@@ -393,12 +393,24 @@ describe("commitment reward legs, declared at Create", () => {
         })
       )?.incomplete
     ).toBe(true);
-    // A total never mixes dollars as set with a part that reads only in G$.
+    // A part on another chain than the promise, or whose dollars aren't the G$ part's, can't be
+    // paid as declared, so a CID written outside the app can't put another amount on Pay.
+    for (const [promise, leg] of [
+      [{ ...goodDollarPromise, chainId: 11155111 }, usdcLeg],
+      [goodDollarPromise, { ...usdcLeg, usdCents: "600", amount: "6000000" }],
+    ] as const) {
+      const metadata = buildCommitmentMetadata({ title: "Survey", reward, rewardLegs: [leg] });
+      expect(promiseRewardLegsOf(promise, metadata)).toMatchObject({
+        incomplete: true,
+        legs: [expect.objectContaining({ symbol: "G$" })],
+      });
+    }
+    // A total never mixes dollars as set with a G$ part an Edit Reward has since changed.
     expect(
       rewardCentsAsSetTotal(
         promiseRewardLegsOf(
-          goodDollarPromise,
-          buildCommitmentMetadata({ title: "Survey", rewardLegs: [usdcLeg] })
+          { ...goodDollarPromise, considerationAmount: wei * 2n },
+          buildCommitmentMetadata({ title: "Survey", reward, rewardLegs: [usdcLeg] })
         )!
       )
     ).toBeNull();

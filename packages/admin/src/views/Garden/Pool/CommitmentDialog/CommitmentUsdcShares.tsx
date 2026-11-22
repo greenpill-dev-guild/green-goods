@@ -7,6 +7,7 @@ import {
   promiseRewardLegsOf,
   type RewardPayOutcome,
   rewardShareSettled,
+  rewardSharesOwed,
   type RewardShareState,
   useCommitmentMetadataFor,
   useRewardShares,
@@ -26,8 +27,8 @@ export interface CommitmentUsdcSharesProps {
   decimals: number;
   /** The reward payer is deployed on this chain. */
   payerAvailable: boolean;
-  /** The G$ payout plan is finalized, which fixes who gets what share. */
-  splitFixed: boolean;
+  /** The G$ payout plan is finalized, which fixes who gets what share; null until it reads. */
+  splitFixed: boolean | null;
   /** The viewer stewards the garden that pays. */
   canPay: boolean;
   /** Whoever is reading: a share of their own is theirs to keep, never sent. */
@@ -37,6 +38,24 @@ export interface CommitmentUsdcSharesProps {
   isPaying: boolean;
   onPay: () => void;
 }
+
+/** Where one share stands, as its row reads. */
+const SHARE_MESSAGE = {
+  paid: { id: "hub.garden.pool.walletShares.sharePaid", defaultMessage: "{amount}, paid" },
+  own: {
+    id: "hub.garden.pool.walletShares.shareOwn",
+    defaultMessage: "{amount}, your own share, nothing to send",
+  },
+  checking: {
+    id: "hub.garden.pool.walletShares.shareChecking",
+    defaultMessage: "{amount}, checking",
+  },
+  kept: {
+    id: "hub.garden.pool.walletShares.shareKept",
+    defaultMessage: "{amount}, kept by the steward who paid the others",
+  },
+  owed: { id: "hub.garden.pool.walletShares.shareOwed", defaultMessage: "{amount}, not paid yet" },
+} as const;
 
 /**
  * The USDC part of a kept promise's reward, paid from the steward's own wallet
@@ -66,11 +85,22 @@ export function CommitmentUsdcShares({
     );
   const isOwn = (share: RewardShareState) =>
     Boolean(viewer) && share.recipient.toLowerCase() === viewer?.toLowerCase();
-  const owed = shares.filter((share) => share.paidBy === null && !isOwn(share));
+  // What the viewer would pay: never their own share, nor one a steward kept while paying the rest.
+  const owed = rewardSharesOwed(shares, viewer);
   const owedTotal = owed.reduce((sum, share) => sum + share.amount, 0n);
   // Paid once every share is, the paying steward's own counting as settled.
   const allPaid =
     shares.length > 0 && shares.every((share) => isOwn(share) || rewardShareSettled(share, shares));
+  const shareState = (share: RewardShareState) =>
+    share.paidBy
+      ? "paid"
+      : isOwn(share)
+        ? "own"
+        : share.paidBy === undefined
+          ? "checking"
+          : rewardShareSettled(share, shares)
+            ? "kept"
+            : "owed";
   const title = formatMessage(
     { id: "hub.garden.pool.walletShares.title", defaultMessage: "{symbol} from Your Wallet" },
     { symbol }
@@ -82,13 +112,13 @@ export function CommitmentUsdcShares({
       id: "hub.garden.pool.walletShares.payerUnavailable",
       defaultMessage: "Paying this part from the app isn't available on this network yet.",
     });
-  } else if (!splitFixed) {
+  } else if (splitFixed === false) {
     notice = formatMessage({
       id: "hub.garden.pool.walletShares.waitsForPlan",
       defaultMessage:
         "This part is split the same way as the G$ payout. Create and finalize the G$ payout plan first.",
     });
-  } else if (shares.length === 0) {
+  } else if (splitFixed === true && shares.length === 0) {
     notice = formatMessage({
       id: "hub.garden.pool.walletShares.nobodyToPay",
       defaultMessage:
@@ -145,32 +175,16 @@ export function CommitmentUsdcShares({
               value={
                 readFailed
                   ? amountText(share.amount)
-                  : formatMessage(
-                      {
-                        id: share.paidBy
-                          ? "hub.garden.pool.walletShares.sharePaid"
-                          : isOwn(share)
-                            ? "hub.garden.pool.walletShares.shareOwn"
-                            : share.paidBy === undefined
-                              ? "hub.garden.pool.walletShares.shareChecking"
-                              : "hub.garden.pool.walletShares.shareOwed",
-                        defaultMessage: share.paidBy
-                          ? "{amount}, paid"
-                          : isOwn(share)
-                            ? "{amount}, your own share, nothing to send"
-                            : share.paidBy === undefined
-                              ? "{amount}, checking"
-                              : "{amount}, not paid yet",
-                      },
-                      { amount: amountText(share.amount) }
-                    )
+                  : formatMessage(SHARE_MESSAGE[shareState(share)], {
+                      amount: amountText(share.amount),
+                    })
               }
             />
           ))}
         </FactList>
       ) : null}
 
-      {canPay && payerAvailable && splitFixed && owed.length > 0 ? (
+      {canPay && payerAvailable && splitFixed === true && owed.length > 0 ? (
         <div className="space-y-2">
           <Button
             type="button"
@@ -211,17 +225,19 @@ export function CommitmentUsdcSharesSection({
   const legs = (promiseRewardLegsOf(commitment, metadata)?.legs ?? []).filter(
     (leg) => leg.rail === "steward-wallet"
   );
-  const splitFixed = settlement.plan?.finalized === true;
+  // Until the settlement read answers, nobody can tell whether the plan is finalized.
+  const splitFixed = settlement.chainRead === "ready" ? settlement.plan?.finalized === true : null;
   const rewardShares = useRewardShares({
     chainId: settlement.chainId,
     commitmentId: commitment.commitmentId,
     legs,
-    recipients: splitFixed
-      ? settlement.rows.map((row) => ({
-          recipient: row.contributor,
-          weightBps: row.paymentWeightBps,
-        }))
-      : [],
+    recipients:
+      splitFixed === true
+        ? settlement.rows.map((row) => ({
+            recipient: row.contributor,
+            weightBps: row.paymentWeightBps,
+          }))
+        : [],
   });
   const [leg] = legs;
   if (!leg) return null;

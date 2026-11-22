@@ -167,6 +167,23 @@ export function rewardShareSettled(
   );
 }
 
+/**
+ * The shares one account would still pay: read as unpaid, not settled as another
+ * steward's own, and not the account's own. One list for the Hub's Pay button and
+ * the payment, so a co-steward is never asked to pay a share a steward already kept.
+ */
+export function rewardSharesOwed<
+  Share extends { recipient: Address; token: Address; paidBy: Address | null | undefined },
+>(shares: readonly Share[], payingAccount: Address | null | undefined): Share[] {
+  const account = payingAccount?.toLowerCase();
+  return shares.filter(
+    (share) =>
+      share.paidBy === null &&
+      share.recipient.toLowerCase() !== account &&
+      !rewardShareSettled(share, shares)
+  );
+}
+
 /** How many blocks one log query spans at first; public Arbitrum RPCs refuse much wider ranges. */
 const RECEIPT_SCAN_SPAN = 500_000n;
 /** The narrowest span tried when a provider refuses a wider one. */

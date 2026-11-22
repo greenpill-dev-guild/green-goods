@@ -24,7 +24,11 @@ export * from "./pool-setup";
 export * from "./proof-draft-repository";
 export * from "./reasons";
 export * from "./reward-legs";
-export { rewardShareSettled, type RewardShareRecipient } from "./reward-payer";
+export {
+  rewardShareSettled,
+  rewardSharesOwed,
+  type RewardShareRecipient,
+} from "./reward-payer";
 export type { RewardPayOutcome } from "./reward-pay-send";
 export * from "./selectors";
 export * from "./service-access";

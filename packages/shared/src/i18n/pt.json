@@ -5628,6 +5628,7 @@
   "hub.garden.pool.walletShares.allPaid": "Pago",
   "hub.garden.pool.walletShares.readError": "Não foi possível ler quais partes estão pagas. Nada pode ser pago até que seja lido.",
   "hub.garden.pool.walletShares.shareChecking": "{amount}, verificando",
+  "hub.garden.pool.walletShares.shareKept": "{amount}, fica com a pessoa responsável que pagou as demais partes",
   "hub.garden.pool.walletShares.sharePaid": "{amount}, pago",
   "hub.garden.pool.walletShares.shareOwed": "{amount}, ainda não pago",
   "hub.garden.pool.walletShares.pay": "Pagar {amount}",

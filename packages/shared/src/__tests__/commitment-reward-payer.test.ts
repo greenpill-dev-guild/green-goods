@@ -8,6 +8,7 @@ import {
   rewardLegShares,
   rewardPayerShareId,
   rewardShareSettled,
+  rewardSharesOwed,
 } from "../modules/commitment-pooling/reward-payer";
 import type { Address } from "../types/domain";
 
@@ -64,6 +65,12 @@ describe("reward payer shares", () => {
     expect(rewardShareSettled(parts[1]!, parts)).toBe(true);
     // C paid nobody, so C's share is still owed.
     expect(rewardShareSettled(parts[2]!, parts)).toBe(false);
+    // A co-steward who opens the promise after A paid owes C's share, never A's own.
+    const coSteward = "0x4444444444444444444444444444444444444444" as Address;
+    expect(rewardSharesOwed(parts, coSteward).map((share) => share.recipient)).toEqual([C]);
+    // C never pays their own share, and a share still being read is never offered.
+    expect(rewardSharesOwed(parts, C)).toEqual([]);
+    expect(rewardSharesOwed([{ ...parts[2]!, paidBy: undefined }], coSteward)).toEqual([]);
   });
 
   it("offers nothing to pay when the split can't be stated exactly", () => {

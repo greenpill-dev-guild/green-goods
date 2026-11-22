@@ -52,7 +52,10 @@ export interface PromiseRewardLegs {
   incomplete: boolean;
 }
 
-type RewardRecord = Pick<CommitmentReadModel, "considerationRail" | "considerationAmount">;
+type RewardRecord = Pick<CommitmentReadModel, "considerationRail" | "considerationAmount"> & {
+  /** The promise's chain; a declared part elsewhere can't be paid through its payer. */
+  chainId?: number;
+};
 type RewardMetadata =
   | Pick<CommitmentMetadataV1, "reward" | "rewardLegs" | "rewardLegsUnreadable">
   | null
@@ -99,7 +102,12 @@ export function rewardLegAmountMatchesDollars(
   return BigInt(leg.amount) === BigInt(leg.usdCents) * 10n ** BigInt(token.decimals - 2);
 }
 
-/** A promise's reward as its parts, or null when it carries none. */
+/**
+ * A promise's reward as its parts, or null when it carries none. A declared part
+ * is shown only as the app declares one: on the promise's chain, in a listed
+ * stable token, its amount exactly its dollars, and those the G$ part's dollars
+ * as set when the promise has a G$ part.
+ */
 export function promiseRewardLegsOf(
   commitment: RewardRecord,
   metadata: RewardMetadata
@@ -110,7 +118,12 @@ export function promiseRewardLegsOf(
   let incomplete = metadata?.rewardLegsUnreadable === true;
   for (const declared of metadata?.rewardLegs ?? []) {
     const token = stewardWalletRewardToken(declared.chainId, declared.token);
-    if (!token || !rewardLegAmountMatchesDollars(declared)) {
+    if (
+      !token ||
+      !rewardLegAmountMatchesDollars(declared) ||
+      (goodDollar !== null && declared.usdCents !== metadata?.reward?.usdCents) ||
+      (commitment.chainId !== undefined && declared.chainId !== commitment.chainId)
+    ) {
       incomplete = true;
       continue;
     }

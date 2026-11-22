@@ -20,6 +20,7 @@ import {
   readRewardShareTransaction,
   rewardLegShares,
   rewardPayerShareId,
+  rewardSharesOwed,
 } from "../../modules/commitment-pooling/reward-payer";
 import {
   createRewardPayChain,
@@ -67,13 +68,14 @@ function useRewardShareStates(input: RewardSharesInput) {
       : []
   );
   const ids = shares.map(rewardPayerShareId);
+  const enabled = Boolean(payer) && ids.length > 0;
   const read = useQuery({
     queryKey: commitmentPoolingKeys.rewardShares(chainId, commitmentId, ids.join(",")),
     queryFn: async () => {
       const chain = createRewardPayChain(chainId);
       return Promise.all(ids.map((id) => chain.paidBy(payer as Address, id)));
     },
-    enabled: Boolean(payer) && ids.length > 0,
+    enabled,
   });
   const states: RewardShareState[] = shares.map((share, index) => {
     const who = read.data?.[index];
@@ -87,9 +89,17 @@ function useRewardShareStates(input: RewardSharesInput) {
     payer,
     shares: states,
     queryKey: commitmentPoolingKeys.rewardShares(chainId, commitmentId, ids.join(",")),
-    isReading: read.isLoading,
+    isReading: unanswered(enabled, read),
     readFailed: read.isError,
   };
+}
+
+/**
+ * A read that should answer and hasn't: loading, or paused while offline or
+ * waiting to try again, when TanStack reports neither loading nor an error.
+ */
+function unanswered(enabled: boolean, read: { data: unknown }): boolean {
+  return enabled && read.data === undefined;
 }
 
 /** A promise's wallet-paid shares, and paying what is owed from the steward's wallet. */
@@ -104,18 +114,16 @@ export function useRewardShares(input: RewardSharesInput) {
 
   /**
    * Pay every share still owed in one part's token; reads again before any
-   * signature. A share of the paying steward's own is left out: the payer
-   * refuses a payment to oneself, and what a steward owes themself needs no send.
+   * signature. A share of the paying steward's own is left out, since the payer
+   * refuses a payment to oneself, and so is one another steward already kept.
    */
   const payOwed = async (token: Address): Promise<RewardPayOutcome> => {
     if (!payer || !sender || !account) {
       return { status: "refused-before-asking", refusal: "no-shares" };
     }
-    const owed = states.filter(
-      (share) =>
-        share.token.toLowerCase() === token.toLowerCase() &&
-        share.paidBy === null &&
-        share.recipient.toLowerCase() !== account.toLowerCase()
+    const owed = rewardSharesOwed(
+      states.filter((share) => share.token.toLowerCase() === token.toLowerCase()),
+      account
     );
     setIsPaying(true);
     try {
@@ -160,11 +168,12 @@ export function usePromiseRewardShares(input: {
   enabled?: boolean;
 }) {
   const payerDeployed = getRewardPayerDeployment(input.chainId) !== null;
+  const recipientsEnabled = (input.enabled ?? true) && payerDeployed && input.legs.length > 0;
   const recipientsRead = useQuery({
     queryKey: commitmentPoolingKeys.rewardShareRecipients(input.chainId, input.commitmentId),
     queryFn: () =>
       readPayoutShareRecipients({ chainId: input.chainId, commitmentId: input.commitmentId }),
-    enabled: (input.enabled ?? true) && payerDeployed && input.legs.length > 0,
+    enabled: recipientsEnabled,
   });
   const plan = recipientsRead.data ?? null;
   const read = useRewardShareStates({
@@ -177,7 +186,7 @@ export function usePromiseRewardShares(input: {
     ...read,
     splitFixed: plan?.finalized === true,
     /** Either read still to answer: no part's state can be told yet. */
-    isReading: recipientsRead.isLoading || read.isReading,
+    isReading: unanswered(recipientsEnabled, recipientsRead) || read.isReading,
     readFailed: recipientsRead.isError || read.readFailed,
   };
 }
@@ -201,5 +210,7 @@ export function useRewardShareTransaction(input: {
     },
     enabled: deployment !== null && input.shareId !== null,
     staleTime: Number.POSITIVE_INFINITY,
+    // The scan can run many log reads; a failed one isn't repeated whole.
+    retry: false,
   });
 }

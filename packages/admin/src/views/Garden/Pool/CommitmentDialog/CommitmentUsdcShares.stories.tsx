@@ -100,6 +100,37 @@ export const StewardAlsoAContributor: Story = {
   },
 };
 
+/**
+ * A co-steward opens the promise after the other steward paid everyone else: that steward's
+ * own share is settled, so it is never offered to pay again.
+ */
+export const ACoStewardAfterTheOtherPaid: Story = {
+  args: {
+    shares: [
+      share(STEWARD, 5_000_000n, null),
+      ...owed.map((entry) => ({ ...entry, paidBy: STEWARD })),
+    ],
+    viewer: "0x3333333333333333333333333333333333333333",
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("5 USDC, kept by the steward who paid the others")).toBeVisible();
+    await expect(canvas.getByText("Paid")).toBeVisible();
+    await expect(canvas.queryByRole("button")).toBeNull();
+  },
+};
+
+/** Until the settlement read answers, the section doesn't ask for a plan that may already exist. */
+export const WhileThePlanReads: Story = {
+  args: { shares: [], splitFixed: null },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.queryByText(/Create and finalize the G\$ payout plan/)).toBeNull();
+    await expect(canvas.queryByText(/gives no one a share/)).toBeNull();
+    await expect(canvas.queryByRole("button")).toBeNull();
+  },
+};
+
 /** A plan that gives no one a share leaves nothing to pay, and says so. */
 export const NobodyToPay: Story = {
   args: { shares: [] },

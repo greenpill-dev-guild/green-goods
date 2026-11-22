@@ -5628,6 +5628,7 @@
   "hub.garden.pool.walletShares.allPaid": "Paid",
   "hub.garden.pool.walletShares.readError": "Couldn't read which shares are paid. Nothing can be paid until it reads.",
   "hub.garden.pool.walletShares.shareChecking": "{amount}, checking",
+  "hub.garden.pool.walletShares.shareKept": "{amount}, kept by the steward who paid the others",
   "hub.garden.pool.walletShares.sharePaid": "{amount}, paid",
   "hub.garden.pool.walletShares.shareOwed": "{amount}, not paid yet",
   "hub.garden.pool.walletShares.pay": "Pay {amount}",
