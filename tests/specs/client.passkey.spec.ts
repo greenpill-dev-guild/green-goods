@@ -37,7 +37,7 @@ test.use({
 test.describe.configure({ timeout: 150_000 });
 const FIRST_PAINT = { timeout: 60_000 };
 
-test("a different username can create a passkey; rejection preserves the remembered account", async ({
+test("a different username creates a passkey once confirmed as new; rejection preserves the remembered account", async ({
   page,
 }) => {
   const cdp = await page.context().newCDPSession(page);
@@ -118,8 +118,17 @@ test("a different username can create a passkey; rejection preserves the remembe
     await expect(page.getByTestId("username-input")).toBeVisible();
     await page.getByTestId("username-input").fill(username);
     await page.getByTestId("login-button").click();
+    // Another account is saved here, so a name nobody holds is asked about before it is created.
+    await expect(
+      page.getByText(
+        `No account is named ${username}. This phone has the account ${rememberedUsername}. Create a new account?`
+      )
+    ).toBeFocused();
+    await page.getByRole("button", { name: "Create New Account" }).click();
     await expect(page.getByRole("alert")).toHaveText("Error:We couldn't verify your passkey.");
     expect(calls).toEqual([
+      // The sign-in-only lookup that found nobody, then the confirmed create's own lookups.
+      "pks_getCredentials",
       "pks_getCredentials",
       "pks_getCredentials",
       "pks_startRegistration",

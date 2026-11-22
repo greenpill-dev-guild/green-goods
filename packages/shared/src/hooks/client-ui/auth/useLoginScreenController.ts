@@ -188,6 +188,9 @@ export function useLoginScreenController(routes: { login: string; home: string }
         setScreen("confirmNewAccount");
         return;
       }
+      // A create the question confirmed failed or was cancelled: back to the form with the name,
+      // so trying again asks again rather than leaving the error over the question.
+      setScreen((current) => (current === "confirmNewAccount" ? "username" : current));
       setLoginError(
         getFriendlyLoginErrorMessage(auth.error, intl, { creating: creatingRef.current })
       );

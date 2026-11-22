@@ -210,7 +210,7 @@ describe("useLoginScreenController", () => {
       expect(result.current.username).toBe("marja");
     });
 
-    it("creates the named account only on a yes, and says none was made if the prompt closes", async () => {
+    it("creates the named account only on a yes, and returns to the form if the prompt closes", async () => {
       const { result, rerender } = await askAbout("marja");
 
       await act(async () => result.current.createNamedAccount());
@@ -225,6 +225,9 @@ describe("useLoginScreenController", () => {
       };
       rerender();
       expect(result.current.loginError).toBe("No account was created. Try again.");
+      // Back on the form with the name, so trying again asks again.
+      expect(result.current.screen).toBe("username");
+      expect(result.current.username).toBe("marja");
     });
 
     it("signs the saved name in without asking, however it was typed", async () => {
