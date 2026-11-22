@@ -31,6 +31,7 @@ import {
   mapRow,
   ordinal,
 } from "./data-settlement-chain-mappers";
+import { rewardShareRecipientsOf } from "./reward-payer";
 import { hashRecognitionSnapshot, type RecognitionEntryInput } from "./settlement";
 import type {
   SettlementChainDisbursement,
@@ -198,4 +199,46 @@ export async function readCommitmentSettlementChainState(
     recognitionReady,
     readAt: Math.floor(Date.now() / 1000),
   };
+}
+
+/**
+ * Who a promise's G$ payout plan pays and in what proportions, for splitting a
+ * part paid from the steward's wallet the same way (PRD-1556): each contributor
+ * and their payment weight, and whether the plan is finalized, which fixes them.
+ * Null while the promise has no plan. A lighter read than the steward's whole
+ * settlement state, for the gardener's view of their reward.
+ */
+export async function readPayoutShareRecipients(input: {
+  chainId: number;
+  commitmentId: bigint;
+}): Promise<{
+  finalized: boolean;
+  recipients: { recipient: Address; weightBps: number }[];
+} | null> {
+  const settlement = getNetworkContracts(input.chainId).settlementModule;
+  const settle = (functionName: string, args?: readonly unknown[]) =>
+    readSettlementFunction({
+      chainId: input.chainId,
+      address: settlement,
+      abi: SettlementModuleABI,
+      functionName,
+      args,
+    });
+  const payoutPlanId = big(await settle("payoutPlanOfCommitment", [input.commitmentId]));
+  if (payoutPlanId === 0n) return null;
+  const [rawPlan, rawStatus, rawContributors] = await Promise.all([
+    settle("getPayoutPlan", [payoutPlanId]),
+    settle("payoutPlanStatus", [payoutPlanId]),
+    settle("payoutContributors", [payoutPlanId]),
+  ]);
+  const plan = mapPlan(payoutPlanId, rawPlan, rawStatus);
+  const contributors = (Array.isArray(rawContributors) ? rawContributors : [])
+    .map(addressOrNull)
+    .filter((value): value is Address => value !== null);
+  const rows = await Promise.all(
+    contributors.map(async (contributor) =>
+      mapRow(contributor, await settle("contributorPayoutOf", [payoutPlanId, contributor]))
+    )
+  );
+  return { finalized: plan.finalized, recipients: rewardShareRecipientsOf(plan, rows) };
 }

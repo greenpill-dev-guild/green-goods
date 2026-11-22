@@ -24,6 +24,8 @@ export interface SeedStepProofProps {
   protocolRegistered: boolean;
   /** G$ rewards wait until the garden's settlement account is active. */
   settlementActive: boolean;
+  /** Whether a G$ reward can be matched in USDC on this chain (PRD-1556). */
+  usdcMatchAvailable: boolean;
   price: GoodDollarPriceState;
 }
 
@@ -41,6 +43,7 @@ export function SeedStepProof({
   members,
   protocolRegistered,
   settlementActive,
+  usdcMatchAvailable,
   price,
 }: SeedStepProofProps) {
   const { formatMessage } = useIntl();
@@ -162,6 +165,7 @@ export function SeedStepProof({
           busy={busy}
           errorOf={errorOf}
           settlementActive={settlementActive}
+          usdcMatchAvailable={usdcMatchAvailable}
           price={price}
           count={count}
         />
