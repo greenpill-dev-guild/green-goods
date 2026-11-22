@@ -17,34 +17,40 @@ export function CommunityYieldStatus({
   onRereadPools?: () => void;
 }) {
   const { formatMessage } = useIntl();
-  const { wiringState, wiringStatus, repairHref, refetch } = useGardenYieldWiringState(gardenId, {
-    enabled,
-  });
+  const { wiringState, wiringStatus, repairHref, refetch, isFetching } = useGardenYieldWiringState(
+    gardenId,
+    { enabled }
+  );
   const canShowReconnectLink =
     Boolean(wiringState?.expectedHypercertPoolAddress) && Boolean(repairHref);
-  const poolReadError = onRereadPools ? (
-    <Alert
-      variant="error"
-      className="p-3"
-      title={formatMessage({ id: "hub.community.yield.readError.title" })}
-      action={
-        <Button
-          type="button"
-          emphasis="secondary"
-          size="compact"
-          onClick={() => {
-            onRereadPools();
-            // The wiring check reads separately and keeps a failed answer until asked again.
-            void refetch();
-          }}
-        >
-          {formatMessage({ id: "app.common.retry" })}
-        </Button>
-      }
-    >
-      {formatMessage({ id: "hub.community.yield.readError.description" })}
-    </Alert>
-  ) : null;
+  // An unread pool list matters here only while the wiring check has no answer either: once it
+  // answers, the rail shows that answer, and an error above it would contradict it.
+  const wiringUnanswered = !enabled || (wiringStatus === undefined && !isFetching);
+  const poolReadError =
+    onRereadPools && wiringUnanswered ? (
+      <Alert
+        variant="error"
+        className="p-3"
+        title={formatMessage({ id: "hub.community.yield.readError.title" })}
+        action={
+          <Button
+            type="button"
+            emphasis="secondary"
+            size="compact"
+            onClick={() => {
+              onRereadPools();
+              // The wiring check reads separately and keeps a failed answer until asked again. Without
+              // a community it is switched off, so there is nothing of its to read again.
+              if (enabled) void refetch();
+            }}
+          >
+            {formatMessage({ id: "app.common.retry" })}
+          </Button>
+        }
+      >
+        {formatMessage({ id: "hub.community.yield.readError.description" })}
+      </Alert>
+    ) : null;
   if (!enabled) return poolReadError;
   return (
     <>

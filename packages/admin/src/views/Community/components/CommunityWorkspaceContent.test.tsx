@@ -198,6 +198,19 @@ describe("Coordination funding status with governance disabled", () => {
       enabled: true,
     });
     expect(screen.getByText(messages["app.community.yield.notConnected"])).toBeInTheDocument();
+    // The wiring check answered, so an error about it would contradict the answer.
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("shows no read error when the wiring check answered connected, though the pool list is unread", () => {
+    vi.mocked(useGardenYieldWiringState).mockReturnValue({
+      wiringStatus: "connected",
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof useGardenYieldWiringState>);
+    renderWorkspace({ mode: "coordination", pools: [], poolsRead: false, poolsUnread: true });
+
+    expect(screen.getByText(messages["app.community.yield.connected"])).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
   it("offers a retry outside the governance tab when the pool list and the wiring check both fail", () => {
     const rereadPools = vi.fn();
@@ -221,5 +234,26 @@ describe("Coordination funding status with governance disabled", () => {
     fireEvent.click(screen.getByRole("button", { name: messages["app.common.retry"] }));
     expect(rereadPools).toHaveBeenCalledTimes(1);
     expect(refetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("rereads only the pool list when no community is known, since the wiring check is off", () => {
+    const rereadPools = vi.fn();
+    const refetch = vi.fn();
+    vi.mocked(useGardenYieldWiringState).mockReturnValue({
+      wiringStatus: undefined,
+      refetch,
+    } as unknown as ReturnType<typeof useGardenYieldWiringState>);
+    renderWorkspace({
+      mode: "coordination",
+      community: null,
+      pools: [],
+      poolsRead: false,
+      poolsUnread: true,
+      rereadPools,
+    } as unknown as Partial<CommunityWorkspace>);
+
+    fireEvent.click(screen.getByRole("button", { name: messages["app.common.retry"] }));
+    expect(rereadPools).toHaveBeenCalledTimes(1);
+    expect(refetch).not.toHaveBeenCalled();
   });
 });
