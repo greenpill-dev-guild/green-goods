@@ -97,11 +97,12 @@ describe("PromiseRewardParts", () => {
     expect(screen.getByText(text)).toBeInTheDocument();
   });
 
-  // The reward's one line leaves where it stands to the part rows, so the G$ row says it too.
+  // The promise never records a Celo settlement as paid, so once kept the G$ row claims no state:
+  // it would otherwise read "not paid yet" after settlement delivered it.
   it.each([
-    { payout: "paid" as const, text: "160,000 G$ on Celo, paid" },
-    { payout: "notPaidYet" as const, text: "160,000 G$ on Celo, not paid yet" },
-  ])("says whether the G$ part is $payout", ({ payout, text }) => {
+    { payout: "afterKept" as const, text: "160,000 G$ on Celo, after it's kept" },
+    { payout: "notPaidYet" as const, text: "160,000 G$ on Celo" },
+  ])("reads the G$ part when the payout is $payout", ({ payout, text }) => {
     mocks.shares = [];
     mocks.isReading = false;
     renderWithProviders(

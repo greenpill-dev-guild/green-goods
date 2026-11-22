@@ -385,8 +385,9 @@ function RewardPartRow({
  * Each part of a reward paid in more than one token, as its own row: the token,
  * the network it is paid on, and where it stands (PRD-1556). Wallet-paid shares
  * are computed from the promise's G$ payout plan, the same way the steward's Hub
- * computes them, and read from the reward payer. The G$ part's delivery is shown
- * by the wallet's settlement receipts, so its row names the amount and network.
+ * computes them, and read from the reward payer. The G$ part's row says it is due
+ * once kept; after that its delivery is shown by the wallet's settlement receipts,
+ * so the row names the amount and network.
  */
 export function PromiseRewardParts({
   reward,
@@ -423,8 +424,9 @@ export function PromiseRewardParts({
           icon={<RiCoinsLine />}
           label={formatMessage({ id: "app.commitment.reward.part.label" }, { symbol: "G$" })}
           value={formatMessage(
-            // Settlement says whether the G$ part was paid, so its row says so too.
-            { id: PART_MESSAGE_ID[payout === "unstated" ? "unknown" : payout] },
+            // Due once kept; after that, settlement's own receipts say where the G$ stands, since
+            // the promise records a payment only on the Arbitrum rail, never for Celo settlement.
+            { id: PART_MESSAGE_ID[payout === "afterKept" ? "afterKept" : "unknown"] },
             {
               amount: tokensAmountText(intl, { wei: reward.wei, centsAsSet: null }),
               network: network(42220),
