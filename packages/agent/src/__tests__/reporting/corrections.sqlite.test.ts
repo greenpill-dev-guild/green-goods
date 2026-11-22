@@ -69,7 +69,7 @@ function firstSummaryButton(label: string): string {
 }
 
 describe("a correction after the summary", () => {
-  it("changes the value and the description that stated it, and the old summary confirms nothing", async () => {
+  it("changes the value, says the description still states the old one, and the old summary confirms nothing", async () => {
     await summarized();
     const shown = report();
     const confirmButton = firstSummaryButton("Confirm");
@@ -77,15 +77,13 @@ describe("a correction after the summary", () => {
     const replies = await harness.say(ADA, "Actually it was 14 seedlings, not 12.");
     const corrected = report();
     expect(corrected.details).toEqual({ seedlings: 14, species: "baobab" });
+    // The description is the gardener's own words: it is not rewritten, and the reply says so.
     expect(corrected.description).toBe(
-      "At TAS today I planted 14 baobab seedlings by the fence. It took 3 hours."
+      "At TAS today I planted 12 baobab seedlings by the fence. It took 3 hours."
     );
     expect(replies).toHaveLength(1);
     expect(replies[0]).toContain("Seedlings planted: 14 seedlings (was 12 seedlings)");
-    expect(replies[0]).toContain(
-      "Your description said 12 seedlings too, so I changed it to match."
-    );
-    expect(replies[0]).toContain("Description: At TAS today I planted 14 baobab seedlings");
+    expect(replies[0]).toContain("Your description still says 12 seedlings.");
     expect(corrected.token).not.toBe(shown.token);
 
     // Neither the old summary's button nor its code confirms the report as it now stands.
@@ -95,14 +93,14 @@ describe("a correction after the summary", () => {
     expect(liveConfirmations()).toBe(0);
   });
 
-  it("changes a choice and the time in the description too", async () => {
+  it("changes a choice and the time, and leaves the gardener's description as written", async () => {
     await summarized();
     await harness.say(ADA, "it took 2 hours and the species: neem");
 
     expect(report()).toMatchObject({
       details: { seedlings: 12, species: "neem" },
       minutes: 120,
-      description: "At TAS today I planted 12 Neem seedlings by the fence. It took 2 hours.",
+      description: "At TAS today I planted 12 baobab seedlings by the fence. It took 3 hours.",
     });
   });
 
@@ -125,7 +123,7 @@ describe("a correction after the summary", () => {
     );
   });
 
-  it("takes a correction a model read in the gardener's own words, and questions any other reading", async () => {
+  it("asks about a model's correction instead of taking it, whatever words it quotes", async () => {
     await harness.say(ADA, "Today I planted twelve baobab seedlings by the fence");
     await harness.press(ADA, "I agree");
     await harness.press(ADA, "TAS");
@@ -144,24 +142,13 @@ describe("a correction after the summary", () => {
       models: ["fixture-model"],
     });
 
-    // The words the model read the value from are in the message: it is the gardener's correction.
+    // Even with its words in the message, a model's reading is a proposal: it is asked about.
     harness.interpreter.responses = [reading("fourteen seedlings")];
     await harness.say(ADA, "Actually it was fourteen seedlings");
     expect(report()).toMatchObject({
-      details: { seedlings: 14 },
-      stated: true,
-      conflicts: [],
-      description: "Today I planted 14 baobab seedlings by the fence",
-    });
-
-    // A value the message does not state in those words is only a proposal: it is asked about.
-    harness.interpreter.responses = [
-      { ...reading("20"), facts: reading("20").facts.map((fact) => ({ ...fact, value: 20 })) },
-    ];
-    await harness.say(ADA, "the photo shows more of them I think");
-    expect(report()).toMatchObject({
-      details: { seedlings: 14 },
+      details: { seedlings: 12 },
       conflicts: ["details.seedlings"],
+      description: "Today I planted twelve baobab seedlings by the fence",
     });
   });
 });
