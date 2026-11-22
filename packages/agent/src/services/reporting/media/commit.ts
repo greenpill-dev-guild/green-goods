@@ -12,7 +12,12 @@ import {
 } from "../coordinator/draft-commit";
 import { announceGarden, readOwnGardens } from "../coordinator/garden-step";
 import { type CatalogView, promptNextStepFor } from "../coordinator/prompting";
-import { keepAcceptedPhotos, takeSoleGarden, type Working } from "../coordinator/report-work";
+import {
+  keepAcceptedPhotos,
+  keepProfileRules,
+  takeSoleGarden,
+  type Working,
+} from "../coordinator/report-work";
 import { createLogger } from "../../logger";
 import { inTransaction } from "../database";
 import { DraftContentUnavailableError, type DraftRecord, loadDraft } from "../drafts";
@@ -288,6 +293,8 @@ function commitInTransaction(
     gardenScope(core.gardens, account?.address ?? null),
     () => asset.sourceEntryId
   );
+  // A file's reading keeps the profile's rules too: a count read as 1.5 is asked again.
+  keepProfileRules(core, draft, work);
   const next =
     work.content === draft.content
       ? draft

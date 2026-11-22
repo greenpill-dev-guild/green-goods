@@ -4,6 +4,7 @@ import { REPORTING_SUPPORT_CONTACT } from "@green-goods/shared/modules/agent-rep
 import { WORK_UPLOAD_POLICY_VERSION } from "@green-goods/shared/modules/work/upload-policy";
 import type { GardenDirectory } from "./gardens";
 import type { ReportingKeyring } from "./keyring";
+import type { QuestionProfile } from "./questions";
 
 /** Time and identity sources are injected so tests replay exact schedules and identifiers. */
 export interface ReportingClock {
@@ -72,6 +73,8 @@ export interface ReportingCore {
   clock: ReportingClock;
   ids: ReportingIds;
   settings: ReportingSettings;
+  /** How activities' fields are asked; the built-in profiles when left out. */
+  questions?: readonly QuestionProfile[];
   /** Every garden that accepts chat reports, refreshed from the indexer by the worker. */
   gardens: GardenDirectory;
 }

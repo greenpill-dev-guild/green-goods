@@ -30,6 +30,7 @@ export type ServiceBookingStage =
   | "inProgress"
   | "readyToClose"
   | "returnProposed"
+  | "returnDue"
   | "transfersPending"
   | "returnFailed"
   | "closed"

@@ -106,11 +106,11 @@ describe("stale work", () => {
     expect(revisions).toEqual([before?.revision, (before?.revision ?? 0) + 1]);
     const after = currentDraft();
     expect(after?.content.title).toBe("Fence planting");
-    // The gardener stated 12 earlier; a model reading never silently replaces it.
-    expect(after?.content.details.seedlings).toBe(12);
-    expect(after?.content.conflicts.map((conflict) => conflict.field)).toEqual([
-      "details.seedlings",
-    ]);
+    // The correction is the gardener's own words, read on the replanned revision; the model's
+    // matching reading adds nothing and disputes nothing.
+    expect(after?.content.details.seedlings).toBe(14);
+    expect(after?.content.provenance["details.seedlings"]?.gardenerStated).toBe(true);
+    expect(after?.content.conflicts).toEqual([]);
     expect(replies.at(-1)).toContain("14");
     expect(
       one<{ n: number }>(
@@ -205,9 +205,8 @@ describe("shutdown", () => {
       jobs: 0,
       sent: 0,
     });
-    expect(currentDraft()?.content.conflicts.map((conflict) => conflict.field)).toEqual([
-      "details.seedlings",
-    ]);
+    // The turn in hand was finished, with the gardener's correction.
+    expect(currentDraft()?.content.details.seedlings).toBe(14);
     expect(pending()).toBe(1);
     expect(
       one("SELECT state, lease_holder FROM processing_jobs WHERE dedupe_key = 'retention:shutdown'")

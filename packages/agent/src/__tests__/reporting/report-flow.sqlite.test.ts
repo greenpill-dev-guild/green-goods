@@ -120,8 +120,7 @@ describe("story-first reporting", () => {
     const adopted = await harness.press(ADA, "Tree planting");
     // The story gave the description, so three questions are left, and each is numbered against them.
     expect(adopted).toEqual([
-      "Got it: Tree planting at TAS. 3 quick questions, then a summary to check.",
-      "1 of 3 · Seedlings planted? Send just the number (seedlings).",
+      "Got it: Tree planting at TAS. 3 quick questions, then a summary to check.\n\n1 of 3 · Seedlings planted? Send just the number (seedlings).",
     ]);
     expect(await harness.say(ADA, "twelve")).toEqual([
       "Seedlings planted is a number (seedlings). For example, 12.",
@@ -250,8 +249,7 @@ describe("an amount that needs a choice to mean anything", () => {
     await harness.say(ADA, "1");
     // The activity's choice comes before its unit-less amount, and both are numbered as asked.
     expect(await harness.press(ADA, "Infrastructure Milestone")).toEqual([
-      "Got it: Infrastructure Milestone at TAS. 3 quick questions, then a summary to check.",
-      "1 of 3 · Milestone Type: Select the type of milestone.\n1. Solar kW installed\n2. Battery kWh added",
+      "Got it: Infrastructure Milestone at TAS. 3 quick questions, then a summary to check.\n\n1 of 3 · Milestone Type: Select the type of milestone.\n1. Solar kW installed\n2. Battery kWh added",
     ]);
     expect(await harness.say(ADA, "1")).toEqual([
       "2 of 3 · Milestone Value: Enter the numeric value for this milestone. Send just the number.",
@@ -344,8 +342,7 @@ describe("a reply that is not one of the choices", () => {
     ]);
     harness.interpreter.responses = [read("report_content", "g2")];
     expect(await harness.say(ADA, "the family garden")).toEqual([
-      "Got it: Tree planting at Aiyeloja Family Garden. 3 quick questions, then a summary to check.",
-      "1 of 3 · Seedlings planted? Send just the number (seedlings).",
+      "Got it: Tree planting at Aiyeloja Family Garden. 3 quick questions, then a summary to check.\n\n1 of 3 · Seedlings planted? Send just the number (seedlings).",
     ]);
     expect(harness.interpreter.requests.at(-1)?.message.text).toBe("the family garden");
     // Numbers and a choice's own label never go to the model.
@@ -402,8 +399,7 @@ describe("linking an account before reporting", () => {
     // The account's only garden is taken without a question, and so is that garden's one activity.
     expect(await harness.say(ADA, STORY)).toEqual([
       `Aiyeloja Family Garden ${ONLY_GARDEN}`,
-      "Got it: Tree planting at Aiyeloja Family Garden. 3 quick questions, then a summary to check.",
-      "1 of 3 · Seedlings planted? Send just the number (seedlings).",
+      "Got it: Tree planting at Aiyeloja Family Garden. 3 quick questions, then a summary to check.\n\n1 of 3 · Seedlings planted? Send just the number (seedlings).",
     ]);
     // START no longer offers linking, and must not replace the report's open question.
     expect((await harness.say(ADA, "START"))[0]).toContain("Green Goods reporting:");
