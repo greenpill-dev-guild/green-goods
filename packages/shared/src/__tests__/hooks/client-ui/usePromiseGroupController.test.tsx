@@ -180,6 +180,8 @@ describe("usePromiseGroupController", () => {
   it("takes up one on a garden pool as the person, through the route garden", async () => {
     const { result } = render();
     expect(result.current.claimNeedsContext).toBe(false);
+    // The copy it would choose, which a group of voucher offers opens to book instead.
+    await waitFor(() => expect(result.current.choice).toBe(11n));
 
     await act(async () => result.current.takeUp.start());
 
