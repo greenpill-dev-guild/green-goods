@@ -206,7 +206,7 @@ export const OneGarden: Story = {
 
 /**
  * A gardener of the fictional Riverside Commons Garden, whose pool is open, on a Home with its
- * journal read: the state the Offer or Ask stories and the Make a Promise guide's capture share.
+ * journal read: the state the Offer or Request stories and the Make a Promise guide's capture share.
  */
 function offerOrAskState() {
   const resetHome = homeState(
@@ -260,7 +260,7 @@ function HomeWithAppBar() {
 }
 
 /**
- * Offer or Ask at rest (DL-181): a gardener whose garden has an open pool gets the garden page's
+ * Offer or Request at rest (DL-181): a gardener whose garden has an open pool gets the garden page's
  * + over the journal, 16px above the bottom bar.
  */
 export const OfferOrAsk: Story = {
@@ -268,19 +268,19 @@ export const OfferOrAsk: Story = {
   render: () => <HomeWithAppBar />,
   play: async ({ canvasElement }) => {
     await expect(
-      await within(canvasElement).findByRole("button", { name: "Offer or Ask" })
+      await within(canvasElement).findByRole("button", { name: "Offer or Request" })
     ).toBeVisible();
   },
 };
 
-/** Offer or Ask open: the + opens the garden page's own sheet with its Offer and Ask doors. */
+/** Offer or Request open: the + opens the garden page's own sheet with its Offer and Ask doors. */
 export const OfferOrAskOpen: Story = {
   beforeEach: offerOrAskState,
   render: () => <HomeWithAppBar />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await userEvent.click(await canvas.findByRole("button", { name: "Offer or Ask" }));
-    const sheet = within(await screen.findByRole("dialog", { name: "Offer or Ask" }));
+    await userEvent.click(await canvas.findByRole("button", { name: "Offer or Request" }));
+    const sheet = within(await screen.findByRole("dialog", { name: "Offer or Request" }));
     await expect(sheet.getByRole("button", { name: /^Offer/ })).toBeVisible();
     await expect(sheet.getByRole("button", { name: /^Ask/ })).toBeVisible();
   },
@@ -320,7 +320,7 @@ export const NoGardenYet: Story = {
     await expect(canvas.getByRole("button", { name: "Profile" })).toBeVisible();
     await expect(canvas.queryByRole("button", { name: "Notifications" })).toBeNull();
     await expect(canvas.getByRole("button", { name: /Explore Gardens/ })).toBeVisible();
-    await expect(canvas.getByRole("region", { name: "Your Requests" })).toHaveTextContent(
+    await expect(canvas.getByRole("region", { name: "Waiting to Join" })).toHaveTextContent(
       "Waiting for approval"
     );
     await expect(canvas.queryByText("Green Goods Community Garden")).toBeNull();

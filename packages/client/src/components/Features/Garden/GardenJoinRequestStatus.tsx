@@ -41,28 +41,28 @@ export function GardenJoinRequestStatus({
     activity === "checking"
       ? { id: "app.garden.joinRequest.checking", defaultMessage: "Checking for updates…" }
       : activity === "sending"
-        ? { id: "app.garden.joinRequest.sending", defaultMessage: "Sending your request…" }
+        ? { id: "app.garden.joinRequest.sending", defaultMessage: "Asking to join…" }
         : activity === "withdrawing"
           ? {
               id: "app.garden.joinRequest.withdrawing",
-              defaultMessage: "Withdrawing your request…",
+              defaultMessage: "Withdrawing…",
             }
           : activity === "updating"
-            ? { id: "app.garden.joinRequest.updating", defaultMessage: "Updating your request…" }
+            ? { id: "app.garden.joinRequest.updating", defaultMessage: "Updating…" }
             : problem
               ? {
                   id: "app.garden.joinRequest.attentionTitle",
-                  defaultMessage: "Let’s check your request",
+                  defaultMessage: "Let’s check where this stands",
                 }
               : receipt?.kind === "withdrawn"
                 ? {
                     id: "app.garden.joinRequest.withdrawnTitle",
-                    defaultMessage: "Request withdrawn",
+                    defaultMessage: "Withdrawn",
                   }
                 : request?.state === "pending"
                   ? {
                       id: "app.garden.joinRequest.pendingTitle",
-                      defaultMessage: "Request waiting for approval",
+                      defaultMessage: "Waiting for a steward",
                     }
                   : request?.state === "welcomed"
                     ? {
@@ -72,7 +72,7 @@ export function GardenJoinRequestStatus({
                     : request?.state === "declined"
                       ? {
                           id: "app.garden.joinRequest.declinedTitle",
-                          defaultMessage: "This request was declined",
+                          defaultMessage: "A steward declined this",
                         }
                       : {
                           id: "app.garden.joinRequest.readyTitle",
@@ -81,14 +81,13 @@ export function GardenJoinRequestStatus({
   const description = busy
     ? formatMessage({
         id: "app.garden.joinRequest.progressDescription",
-        defaultMessage:
-          "We’re updating your request. Confirm with your wallet or passkey if asked.",
+        defaultMessage: "We’re updating this. Confirm with your wallet or passkey if asked.",
       })
     : uncertain
       ? formatMessage({
           id: "app.garden.joinRequest.outcomeUnknown",
           defaultMessage:
-            "We could not confirm whether your request was saved. Check its status before trying again.",
+            "We couldn’t confirm whether that was saved. Check its status before trying again.",
         })
       : error
         ? formatMessage(gardenJoinRequestErrorMessage(error))
@@ -97,7 +96,7 @@ export function GardenJoinRequestStatus({
           : request?.state === "pending"
             ? formatMessage({
                 id: "app.garden.joinRequest.pendingDescription",
-                defaultMessage: "A garden steward will review your request.",
+                defaultMessage: "A garden steward will review it.",
               })
             : request?.state === "welcomed"
               ? formatMessage({
@@ -109,11 +108,11 @@ export function GardenJoinRequestStatus({
                 : hasCheckedStatus
                   ? formatMessage({
                       id: "app.garden.joinRequest.none",
-                      defaultMessage: "You do not have a request for this garden yet.",
+                      defaultMessage: "You haven’t asked to join this garden yet.",
                     })
                   : formatMessage({
                       id: "app.garden.joinRequest.description",
-                      defaultMessage: "Introduce yourself. A steward will review your request.",
+                      defaultMessage: "Introduce yourself. A steward will review it.",
                     });
 
   return (

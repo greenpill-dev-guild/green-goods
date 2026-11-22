@@ -39,7 +39,7 @@ export function gardenJoinRequestErrorMessage(error: unknown): {
     case "request_not_saved":
       return {
         id: "app.garden.joinRequest.error.notSaved",
-        defaultMessage: "This attempt did not save a request. Please try again.",
+        defaultMessage: "That didn’t go through. Please try again.",
       };
     case "already_member":
       return {
@@ -61,17 +61,17 @@ export function gardenJoinRequestErrorMessage(error: unknown): {
     case "resolution_conflict":
       return {
         id: "app.garden.joinRequest.error.conflict",
-        defaultMessage: "This request changed or was already used. Check its status and try again.",
+        defaultMessage: "This changed or was already used. Check its status and try again.",
       };
     case "request_expired":
       return {
         id: "app.garden.joinRequest.error.expired",
-        defaultMessage: "This request expired. You can send a new one.",
+        defaultMessage: "This expired. You can ask again.",
       };
     case "request_not_found":
       return {
         id: "app.garden.joinRequest.error.notFound",
-        defaultMessage: "We could not find this join request.",
+        defaultMessage: "We couldn’t find you among the people asking to join this garden.",
       };
     case "open_joining_enabled":
       return {
@@ -81,12 +81,13 @@ export function gardenJoinRequestErrorMessage(error: unknown): {
     case "garden_role_required":
       return {
         id: "app.garden.joinRequest.error.permission",
-        defaultMessage: "You do not have permission to manage this request.",
+        defaultMessage: "You don’t have permission to change this.",
       };
     case "queue_full":
       return {
         id: "app.garden.joinRequest.error.queueFull",
-        defaultMessage: "This garden's request queue is full right now. Please try again later.",
+        defaultMessage:
+          "Too many people are asking to join this garden right now. Please try again later.",
       };
     case "rate_limited":
       return {
@@ -96,19 +97,19 @@ export function gardenJoinRequestErrorMessage(error: unknown): {
     case "chain_unsupported":
       return {
         id: "app.garden.joinRequest.error.unsupportedChain",
-        defaultMessage: "Garden join requests are not available on this network.",
+        defaultMessage: "Asking to join isn’t available on this network.",
       };
     case "request_withdrawn":
       return {
         id: "app.garden.joinRequest.error.withdrawn",
-        defaultMessage: "This request was already withdrawn.",
+        defaultMessage: "This was already withdrawn.",
       };
     case "provider_unavailable":
     case "internal_error":
     case "origin_not_allowed":
       return {
         id: "app.garden.joinRequest.error.unavailable",
-        defaultMessage: "Garden join requests are unavailable right now. Please try again later.",
+        defaultMessage: "Asking to join is unavailable right now. Please try again later.",
       };
     default:
       if (
@@ -117,12 +118,12 @@ export function gardenJoinRequestErrorMessage(error: unknown): {
       ) {
         return {
           id: "app.garden.joinRequest.error.unavailable",
-          defaultMessage: "Garden join requests are unavailable right now. Please try again later.",
+          defaultMessage: "Asking to join is unavailable right now. Please try again later.",
         };
       }
       return {
         id: "app.garden.joinRequest.error.generic",
-        defaultMessage: "We could not complete the request. Please try again.",
+        defaultMessage: "That didn’t go through. Please try again.",
       };
   }
 }

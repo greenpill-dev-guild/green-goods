@@ -160,7 +160,7 @@ const withSectionReads = () => {
     records: ASSESSMENTS,
     status: "success",
   } as unknown as ReturnType<typeof useGardenAssessmentRecords>);
-  // The join-request service is on and its queue is unread: Check Requests is the queue's control.
+  // The join-request service is on and its queue is unread: Check Who's Asking is the queue's control.
   mocked(useGardenJoinRequestAvailability).mockReturnValue(true);
   mocked(useGardenJoinRequests).mockReturnValue({
     queue: [],
@@ -228,7 +228,7 @@ const withLocale: Decorator = (Story, context) => {
  * The garden's sections as full sheets over Home (PWA Home step 10, DL-128, DL-164): the section's
  * content under the one shared sheet header, the garden named beneath the title. Insights opens
  * with the garden's banner when it has one and keeps the assessments as read-only rows; the
- * Gardeners sheet puts a steward's join-request queue first, with Check Requests and no count;
+ * Gardeners sheet puts a steward's join-request queue first, with Check Who's Asking and no count;
  * the Work sheet lists the garden's work pending first, as the Work tab does. The sections are
  * the garden page's own components. Fictional data from the client journeys.
  */
@@ -293,7 +293,7 @@ const readAsSteward = readAs(JOURNEY_NEIGHBOUR);
 const readAsGardener = readAs(JOURNEY_VIEWER);
 
 /**
- * A steward's Gardeners: the join-request queue first, with Check Requests and no count, then the
+ * A steward's Gardeners: the join-request queue first, with Check Who's Asking and no count, then the
  * people. The garden's only steward has nobody to ask, so no line says how to leave.
  */
 export const GardenersForSteward: Story = {
@@ -301,8 +301,8 @@ export const GardenersForSteward: Story = {
   beforeEach: readAsSteward,
   play: async () => {
     const sheet = await findSheet("Gardeners");
-    await expect(sheet.getByRole("heading", { name: "Join Requests" })).toBeVisible();
-    await expect(sheet.getByRole("button", { name: "Check Requests" })).toBeVisible();
+    await expect(sheet.getByRole("heading", { name: "Asking to Join" })).toBeVisible();
+    await expect(sheet.getByRole("button", { name: "Check Who's Asking" })).toBeVisible();
     await expect(sheet.queryByText(/To leave this garden/)).toBeNull();
     await expect(sheet.getAllByRole("button", { name: /tomas|amara|dele/ })).toHaveLength(3);
   },
@@ -332,7 +332,7 @@ export const GardenersForGardener: Story = {
   beforeEach: readAsGardener,
   play: async () => {
     const sheet = await findSheet("Gardeners");
-    await expect(sheet.queryByRole("heading", { name: "Join Requests" })).toBeNull();
+    await expect(sheet.queryByRole("heading", { name: "Asking to Join" })).toBeNull();
     await expect(sheet.getByText(/To leave this garden/)).toHaveTextContent(
       "To leave this garden, ask a steward like tomas to remove you."
     );

@@ -88,7 +88,7 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
           ? caught.message
           : formatMessage({
               id: "app.garden.joinQueue.updateFailed",
-              defaultMessage: "The request could not be updated.",
+              defaultMessage: "That didn't go through. Try again.",
             })
       );
     } finally {
@@ -114,7 +114,7 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
       setNotice(
         formatMessage({
           id: "app.garden.joinQueue.declined",
-          defaultMessage: "The request was declined.",
+          defaultMessage: "They were declined.",
         })
       );
     } catch {
@@ -137,7 +137,7 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
           <h2 id="garden-join-requests-title" className="type-title-md text-text-strong-950">
             {formatMessage({
               id: "app.garden.joinQueue.title",
-              defaultMessage: "Join Requests",
+              defaultMessage: "Asking to Join",
             })}
           </h2>
           <Button
@@ -150,7 +150,7 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
           >
             {formatMessage({
               id: loaded ? "app.common.refresh" : "app.garden.joinQueue.load",
-              defaultMessage: loaded ? "Refresh" : "Check Requests",
+              defaultMessage: loaded ? "Refresh" : "Check Who's Asking",
             })}
           </Button>
         </div>
@@ -173,7 +173,8 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
           >
             {formatMessage({
               id: "app.garden.joinQueue.rateLimitedNotice",
-              defaultMessage: "Some join requests were rate-limited recently.",
+              defaultMessage:
+                "Some people couldn't ask to join recently because of the rate limit.",
             })}
           </p>
         ) : null}
@@ -193,7 +194,7 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
           icon={<RiGroupLine />}
           title={formatMessage({
             id: "app.garden.joinQueue.empty",
-            defaultMessage: "There are no pending join requests.",
+            defaultMessage: "Nobody is asking to join right now.",
           })}
         />
       ) : null}
@@ -235,7 +236,7 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
                   >
                     {formatMessage({
                       id: "app.garden.joinQueue.confirmDecline",
-                      defaultMessage: "Decline Request",
+                      defaultMessage: "Decline",
                     })}
                   </Button>
                   <Button
@@ -356,7 +357,7 @@ function JoinRequestPerson({ request }: { request: GardenJoinRequestQueueItem })
           className="truncate type-meta text-text-sub-600"
         >
           {formatMessage(
-            { id: "app.garden.joinQueue.requestedAt", defaultMessage: "Requested {date}" },
+            { id: "app.garden.joinQueue.requestedAt", defaultMessage: "Asked {date}" },
             { date: formatDate(requestedAt, { dateStyle: "medium" }) }
           )}
         </time>

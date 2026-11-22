@@ -65,7 +65,7 @@ vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   useCommitmentCycle: () => mocks.cycleDetail(),
 }));
 
-// Needs Your Attention (step 19), Continue (step 8) and the Offer or Ask + (DL-181), each with
+// Needs Your Attention (step 19), Continue (step 8) and the Offer or Request + (DL-181), each with
 // its own tests, stand in as markers here.
 vi.mock("@green-goods/shared/hooks/garden/useStewardDuties", () => ({
   useStewardDuties: () => ({ duties: [], isLoading: false, isError: false, refetch: () => {} }),
@@ -455,8 +455,8 @@ describe("Home journal", () => {
       expect(screen.getByRole("heading", { level: 2, name: "Take Part" })).toBeVisible();
       const ask = screen.getByRole("button", { name: /Two hours sorting the seed library/ });
       expect(ask).toHaveAttribute("data-component", "CommitmentRow");
-      expect(within(ask).getByRole("img", { name: "Ask" })).toBeInTheDocument();
-      expect(within(ask).getByRole("status")).toHaveTextContent("Ask");
+      expect(within(ask).getByRole("img", { name: "Request" })).toBeInTheDocument();
+      expect(within(ask).getByRole("status")).toHaveTextContent("Request");
 
       await user.click(ask);
       expect(mocks.navigate).toHaveBeenCalledWith(`/home/${GARDEN}/commitments/20`);
@@ -894,7 +894,7 @@ describe("Home journal", () => {
       expect(read).toHaveBeenCalledWith(GARDEN);
     }
     expect(mocks.cycles).toHaveBeenCalledWith(GARDEN, { shown: true });
-    // The Offer or Ask + floats over the journal in the active garden (DL-181).
+    // The Offer or Request + floats over the journal in the active garden (DL-181).
     expect(container.querySelector("[data-component='OfferOrAsk']")).toHaveAttribute(
       "data-garden",
       GARDEN
@@ -1004,9 +1004,9 @@ describe("Home journal", () => {
       await user.click(screen.getByRole("button", { name: /Gardeners/ }));
       let sheet = await screen.findByRole("dialog", { name: "Gardeners" });
       expect(within(sheet).getByTestId("garden-section")).toHaveAttribute("data-requests", "true");
-      // Check Requests is the queue's own control; no count stands beside the row (every read
+      // Check Who's Asking is the queue's own control; no count stands beside the row (every read
       // of the queue needs a signed proof, so no count exists).
-      expect(screen.queryByText(/request/i)).toBeNull();
+      expect(within(sheet).queryByText(/\d+\s+(asking|requests?)\b/i)).toBeNull();
       unmount();
       useUIStore.getState().closeGardenSheet();
 

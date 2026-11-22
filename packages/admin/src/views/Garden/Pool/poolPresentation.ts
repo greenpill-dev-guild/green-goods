@@ -192,7 +192,7 @@ export function commitmentStateChip(
       return {
         label: formatMessage({
           id: "hub.garden.pool.row.state.requested",
-          defaultMessage: "Asked",
+          defaultMessage: "Requested",
         }),
         variant: "info",
       };
@@ -267,7 +267,7 @@ export function directionLabel(
   formatMessage: FormatMessage
 ): string {
   return direction === "REQUEST"
-    ? formatMessage({ id: "hub.garden.pool.row.request", defaultMessage: "Ask" })
+    ? formatMessage({ id: "hub.garden.pool.row.request", defaultMessage: "Request" })
     : formatMessage({ id: "hub.garden.pool.row.offer", defaultMessage: "Offer" });
 }
 

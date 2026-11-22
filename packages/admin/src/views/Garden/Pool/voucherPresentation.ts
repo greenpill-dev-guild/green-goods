@@ -428,7 +428,7 @@ export function voucherOfferRow(
         })
       : intl.formatMessage({
           id: "hub.garden.pool.voucher.row.asked",
-          defaultMessage: "Booking asked",
+          defaultMessage: "Asked to book",
         }),
     status: null,
     act: null,

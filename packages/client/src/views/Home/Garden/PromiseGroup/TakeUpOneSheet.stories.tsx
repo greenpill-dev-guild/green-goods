@@ -72,11 +72,11 @@ export const Checking: Story = {
 export const AskInAReviewedGroup: Story = {
   args: { approvalGated: true, actLabelId: "app.pool.group.act.askToTakeUpOne" },
   play: async () => {
-    await expect(await screen.findByText("Request to Take Up One of These Promises")).toBeVisible();
+    await expect(await screen.findByText("Ask to Take Up One of These Promises")).toBeVisible();
     await expect(
       screen.getByText("Requesting holds nothing for you.", { exact: false })
     ).toBeVisible();
-    await expect(screen.getByRole("button", { name: "Request to Take Up One" })).toBeEnabled();
+    await expect(screen.getByRole("button", { name: "Ask to Take Up One" })).toBeEnabled();
   },
 };
 

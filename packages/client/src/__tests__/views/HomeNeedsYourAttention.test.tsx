@@ -137,8 +137,8 @@ describe("Home Needs Your Attention", () => {
 
     expect(rows().map(titleOf)).toEqual([
       "2 submissions to review",
-      "3 join requests",
-      "1 take-up request",
+      "3 asking to join",
+      "1 asking to take up a promise",
       "1 promise to confirm",
     ]);
     // The work waiting longest leads its row's details; each promise row names its promise.

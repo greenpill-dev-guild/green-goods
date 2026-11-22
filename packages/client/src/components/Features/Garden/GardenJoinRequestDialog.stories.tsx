@@ -81,8 +81,8 @@ function withJoinRequests(overrides: Partial<JoinRequests> = {}, accountName?: s
 }
 
 async function openSheet() {
-  await userEvent.click(await screen.findByRole("button", { name: "Request to Join" }));
-  return within(await screen.findByRole("dialog", { name: "Request to Join This Garden" }));
+  await userEvent.click(await screen.findByRole("button", { name: "Ask to Join" }));
+  return within(await screen.findByRole("dialog", { name: "Ask to Join This Garden" }));
 }
 
 /**
@@ -93,7 +93,7 @@ async function openSheet() {
  * form asks for a display name unless a story gives the account a name.
  */
 const meta: Meta<typeof GardenJoinRequestDialog> = {
-  title: "Client/Sheets/Request to Join",
+  title: "Client/Sheets/Ask to Join",
   component: GardenJoinRequestDialog,
   tags: ["autodocs", "storybook-ci"],
   parameters: { layout: "fullscreen" },
@@ -118,8 +118,8 @@ export const RequestForm: Story = {
   beforeEach: withJoinRequests(),
   play: async () => {
     const sheet = await openSheet();
-    const send = sheet.getByRole("button", { name: "Send Request" });
-    const check = sheet.getByRole("button", { name: "Check Request Status" });
+    const send = sheet.getByRole("button", { name: "Ask to Join" });
+    const check = sheet.getByRole("button", { name: "Check Status" });
     await expect(send).toBeDisabled();
     await expect(send.getBoundingClientRect().bottom).toBeLessThanOrEqual(
       check.getBoundingClientRect().top
@@ -135,7 +135,7 @@ export const RequestingAsAccountName: Story = {
     const sheet = await openSheet();
     await expect(sheet.getByText("ana.greengoods.eth")).toBeVisible();
     await expect(sheet.queryByRole("textbox", { name: "Display name" })).not.toBeInTheDocument();
-    await expect(sheet.getByRole("button", { name: "Send Request" })).toBeEnabled();
+    await expect(sheet.getByRole("button", { name: "Ask to Join" })).toBeEnabled();
   },
 };
 
@@ -143,9 +143,9 @@ export const Sending: Story = {
   beforeEach: withJoinRequests({ mutationState: { isLoading: true, error: null } }),
   play: async () => {
     const sheet = await openSheet();
-    const send = sheet.getByRole("button", { name: "Send Request" });
+    const send = sheet.getByRole("button", { name: "Ask to Join" });
     await expect(send).toHaveAttribute("aria-busy", "true");
-    await expect(sheet.getByRole("button", { name: "Check Request Status" })).toBeDisabled();
+    await expect(sheet.getByRole("button", { name: "Check Status" })).toBeDisabled();
   },
 };
 
@@ -159,15 +159,15 @@ export const CouldNotConfirm: Story = {
   play: async () => {
     const sheet = await openSheet();
     await userEvent.type(sheet.getByRole("textbox", { name: "Display name" }), "Ana");
-    await userEvent.click(sheet.getByRole("button", { name: "Send Request" }));
+    await userEvent.click(sheet.getByRole("button", { name: "Ask to Join" }));
     await expect(
       await sheet.findByText(
-        "We could not confirm whether your request was saved. Check its status before trying again."
+        "We couldn’t confirm whether that was saved. Check its status before trying again."
       )
     ).toBeVisible();
-    await expect(sheet.getByRole("button", { name: "Send Request" })).toBeDisabled();
+    await expect(sheet.getByRole("button", { name: "Ask to Join" })).toBeDisabled();
     await expect(
-      sheet.queryByText("You do not have a request for this garden yet.")
+      sheet.queryByText("You haven’t asked to join this garden yet.")
     ).not.toBeInTheDocument();
   },
 };
@@ -183,9 +183,9 @@ export const NotSaved: Story = {
     const sheet = await openSheet();
     await userEvent.type(sheet.getByRole("textbox", { name: "Display name" }), "Ana");
     await expect(sheet.getByRole("alert")).toHaveTextContent(
-      "This attempt did not save a request. Please try again."
+      "That didn’t go through. Please try again."
     );
-    await expect(sheet.getByRole("button", { name: "Send Request" })).toBeEnabled();
+    await expect(sheet.getByRole("button", { name: "Ask to Join" })).toBeEnabled();
     await expect(sheet.getByText(/Confirm with your wallet or passkey/)).toBeVisible();
   },
 };
@@ -207,7 +207,7 @@ export const NoRequestYet: Story = {
   beforeEach: withJoinRequests({ hasCheckedStatus: true }),
   play: async () => {
     const sheet = await openSheet();
-    await expect(sheet.getByText("You do not have a request for this garden yet.")).toBeVisible();
+    await expect(sheet.getByText("You haven’t asked to join this garden yet.")).toBeVisible();
   },
 };
 
@@ -223,8 +223,8 @@ export const Declined: Story = {
   }),
   play: async () => {
     const sheet = await openSheet();
-    await expect(sheet.getByText("This request was declined")).toBeVisible();
-    await expect(sheet.getByRole("button", { name: "Send Request" })).toBeVisible();
+    await expect(sheet.getByText("A steward declined this")).toBeVisible();
+    await expect(sheet.getByRole("button", { name: "Ask to Join" })).toBeVisible();
   },
 };
 
@@ -232,10 +232,10 @@ export const Pending: Story = {
   beforeEach: withJoinRequests({ hasCheckedStatus: true, request: selfRequest() }),
   play: async () => {
     const sheet = await openSheet();
-    await expect(sheet.getByText("Request waiting for approval")).toBeVisible();
-    await expect(sheet.getByRole("button", { name: "Withdraw Request" })).toBeVisible();
-    await expect(sheet.queryByRole("button", { name: "Send Request" })).not.toBeInTheDocument();
-    await userEvent.click(sheet.getByRole("button", { name: "Check Request Status" }));
+    await expect(sheet.getByText("Waiting for a steward")).toBeVisible();
+    await expect(sheet.getByRole("button", { name: "Withdraw" })).toBeVisible();
+    await expect(sheet.queryByRole("button", { name: "Ask to Join" })).not.toBeInTheDocument();
+    await userEvent.click(sheet.getByRole("button", { name: "Check Status" }));
     await expect(await sheet.findByText("Checked just now.")).toBeVisible();
   },
 };
@@ -262,12 +262,12 @@ export const WithdrawalFailedAfterRefresh: Story = {
     ).toHaveBeenCalledWith({
       allowSignature: false,
     });
-    await userEvent.click(sheet.getByRole("button", { name: "Withdraw Request" }));
+    await userEvent.click(sheet.getByRole("button", { name: "Withdraw" }));
     await expect(await sheet.findByRole("alert")).toHaveTextContent(
-      "Garden join requests are unavailable right now. Please try again later."
+      "Asking to join is unavailable right now. Please try again later."
     );
-    await expect(sheet.getByRole("button", { name: "Withdraw Request" })).toBeEnabled();
-    await expect(sheet.queryByText(/Your request was withdrawn/)).not.toBeInTheDocument();
+    await expect(sheet.getByRole("button", { name: "Withdraw" })).toBeEnabled();
+    await expect(sheet.queryByText(/Withdrawn\. You can ask again/)).not.toBeInTheDocument();
   },
 };
 

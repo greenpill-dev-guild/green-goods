@@ -282,7 +282,7 @@ const messages = {
   "app.garden.submit.tab.details.label": "Review Work",
   "app.garden.submit.tab.review.label": "Upload Work",
   "app.garden.submit.takeUpPrompts":
-    "{count, plural, one {Uploading takes up the ask first. It opens # wallet or passkey prompt.} other {Uploading takes up the ask first. It opens # wallet or passkey prompts: the take-up, the work and its link.}}",
+    "{count, plural, one {Uploading takes up the request first. It opens # wallet or passkey prompt.} other {Uploading takes up the request first. It opens # wallet or passkey prompts: the take-up, the work and its link.}}",
   "app.garden.unknown": "Unknown Garden",
   "app.action.selected": "Selected Action",
   "app.commitment.pinned.workFor": "Work for",
@@ -569,7 +569,7 @@ describe("Garden (Work) View", () => {
     renderWithProviders();
 
     const note =
-      "Uploading takes up the ask first. It opens 3 wallet or passkey prompts: the take-up, the work and its link.";
+      "Uploading takes up the request first. It opens 3 wallet or passkey prompts: the take-up, the work and its link.";
     expect(screen.getByText(note)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Upload Work" })).toHaveAccessibleDescription(note);
     cleanup();
