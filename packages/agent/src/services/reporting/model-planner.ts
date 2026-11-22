@@ -35,7 +35,8 @@ const PLANNER_RULES = [
   "You cannot confirm, publish, consent, delete or report a result. Never try to say that any of those happened.",
 ].join("\n");
 
-const outputSchema = z.object({
+// A key outside this shape refuses the whole reply, as OpenAI's strict schema would.
+const outputSchema = z.strictObject({
   garden: z.string().nullable(),
   activity: z.number().int().nullable(),
   corrects: z.boolean(),

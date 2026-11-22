@@ -4,6 +4,7 @@ import {
   type FieldChange,
   type FieldProvenance,
   outstandingFieldQuestions,
+  parseDurationAnswer,
   reconcileDetailsWithAction,
   type ReportContent,
   type ReportField,
@@ -341,6 +342,11 @@ function applyModelFacts(
       : null;
     const input = definition ? profiledInput(profile, definition, work.content.details) : null;
     if (input?.unit && fact.unit && !sameUnit(input.unit, fact.unit)) return false;
+    // A time is kept in minutes: one whose quoted words come to another number ("3 hours" read
+    // as 3) was not converted, and is asked instead.
+    const said =
+      fact.field === "timeSpentMinutes" ? parseDurationAnswer(fact.original ?? "") : null;
+    if (said?.ok && said.minutes !== fact.value) return false;
     if (only === "any") return true;
     return key
       ? work.content.details[key] === undefined
