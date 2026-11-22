@@ -34,6 +34,7 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "consent.decline": "No, gracias",
   "consent.declined":
     "De acuerdo. No procesaré tus mensajes y eliminé lo que enviaste. Escribe a {support} si cambias de opinión.",
+  "consent.grantedPlain": "¡Gracias!",
   "consent.granted": "¡Gracias! Cuéntame el trabajo que hiciste. Puedes enviar texto y fotos.",
   "consent.stopped":
     "Detuviste el asistente. No leeré mensajes nuevos hasta que envíes START. Los reportes publicados siguen siendo públicos; los borradores sin publicar se están eliminando. Soporte: {support}",
@@ -319,7 +320,8 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "review.none": "No hay trabajo esperando tu revisión.",
   "review.resumeFirst":
     "Tienes una revisión en curso. Envía CANCEL para descartarla o continúa con ella.",
-  "review.askDecision": "¿Apruebas o rechazas «{title}» de {gardener}?",
+  "review.askDecision":
+    "¿Apruebas o rechazas «{title}» de {gardener}? Puedes dar tu confianza y tu comentario en la misma respuesta.",
   "review.approve": "Aprobar",
   "review.reject": "Rechazar",
   "review.askConfidence": "¿Qué tanta confianza tienes en este trabajo?",

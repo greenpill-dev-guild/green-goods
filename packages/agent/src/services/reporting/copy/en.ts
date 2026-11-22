@@ -36,6 +36,7 @@ export const EN_REPORTING_COPY = {
   "consent.decline": "No thanks",
   "consent.declined":
     "Okay. I won't process your messages, and I've removed what you sent. Contact {support} if you change your mind.",
+  "consent.grantedPlain": "Thank you!",
   "consent.granted": "Thank you! Tell me about the work you did. You can send text and photos.",
   "consent.stopped":
     "You've stopped the assistant. I won't read new messages until you send START. Published reports stay public; unpublished drafts are being removed. Support: {support}",
@@ -315,7 +316,8 @@ export const EN_REPORTING_COPY = {
   "review.none": "There's no work waiting for your review.",
   "review.resumeFirst":
     "You have a review in progress. Send CANCEL to discard it or keep going with it.",
-  "review.askDecision": "Do you approve or reject “{title}” by {gardener}?",
+  "review.askDecision":
+    "Do you approve or reject “{title}” by {gardener}? You can give your confidence and feedback in the same reply.",
   "review.approve": "Approve",
   "review.reject": "Reject",
   "review.askConfidence": "How confident are you in this work?",

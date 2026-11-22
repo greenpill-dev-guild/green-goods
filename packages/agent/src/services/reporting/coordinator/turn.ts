@@ -52,11 +52,12 @@ import { confirmDraft, handleReportCommand } from "./report-commands";
 import { handleReportMessage } from "./report-message";
 import { SUGGESTION_PROMPT, suggestedGarden, suggestionFor } from "./last-report";
 import { gardenToDrop, type TurnExternal } from "./report-work";
-import { isReviewPrompt, nextReviewStep } from "./review-prompts";
+import { isReviewPrompt } from "./review-prompts";
 import { readTurn } from "./turn-reading";
 import {
   answerReviewPrompt,
   answerReviewSelection,
+  correctReview,
   handleReviewCommand,
   requestReview,
   reviewOwnsCommand,
@@ -320,7 +321,7 @@ function applyTurn(
     case "message": {
       const { review, account } = writer.ctx;
       if (review && account && reasksReview(writer.ctx, plan)) {
-        nextReviewStep(writer, review, account.address);
+        correctReview(writer, review, plan.text);
         return "consume";
       }
       handleReportMessage(writer, plan, external);
