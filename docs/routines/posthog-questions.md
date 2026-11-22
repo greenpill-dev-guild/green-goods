@@ -131,6 +131,7 @@ lands.
 | `offline_job_receipt_wait_limit` | A queued send went out but its receipt did not come within the queue's limit (`limit_ms`), so the job waits as still confirming. `job_kind`, `explicit` and `auth_mode` say what was sent and how. |
 | `offline_job_processed` | A queued job reached the chain. |
 | `offline_job_failed` | A try failed and will be retried; `offline_job_permanently_failed` when it will not be. |
+| `offline_job_discarded` | A job left the queue unsent because it was thrown away. `reason` is `discarded` for the job a discard was called on (a person's tap, or the app rolling back an act that didn't go) or `with-another` for one that went with it; `attempts` and `parsed_error_family` say after what. Recorded from builds after 2026-11-21 (PRD-1478). |
 | `queued_upload_started`, `queued_upload_finished` | An Upload all or Upload now tap, and how it ended (`status`, `sent`, `flagged`). |
 
 Builds made after 2026-11-15 record `work_submission_offline`, `work_submission_queued`,

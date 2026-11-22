@@ -564,6 +564,39 @@ describe("a work for a promise taken up in the same tap (decision 18)", () => {
     expect(await store.getJob("take-up")).toBeDefined();
   });
 
+  // PRD-1478: a request the member made left the queue with no record of landing, failing or
+  // being thrown away. Every job a discard takes says so, and so does each job taken with it.
+  it("records every job a discard throws away, and each one taken with it", async () => {
+    const request = queuedJob({
+      id: "request",
+      kind: "commitment",
+      attempts: 1,
+      lastError: "TimeoutError",
+    });
+    const chain = queuedTakeUpChain();
+    const store = createInMemoryJobQueueStore([request, chain.claim, chain.work, chain.link]);
+    const { deps, queue } = setup({ store });
+
+    await expect(queue.discardJob("request")).resolves.toBe(true);
+    expect(deps.analytics.jobDiscarded).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ id: "request", kind: "commitment", attempts: 1 }),
+      "discarded"
+    );
+
+    await expect(queue.discardJob("take-up")).resolves.toBe(true);
+    expect(deps.analytics.jobDiscarded).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "its-link", kind: "workLink" }),
+      "with-another"
+    );
+    expect(deps.analytics.jobDiscarded).toHaveBeenLastCalledWith(
+      expect.objectContaining({ id: "take-up", kind: "claim" }),
+      "discarded"
+    );
+    // A job the discard refuses leaves no trace of being thrown away.
+    await expect(queue.discardJob("missing")).resolves.toBe(false);
+    expect(deps.analytics.jobDiscarded).toHaveBeenCalledTimes(3);
+  });
+
   it("discards a take-up with the links that waited on it, and keeps the work as work on its own", async () => {
     const chain = queuedTakeUpChain();
     const store = createInMemoryJobQueueStore([chain.claim, chain.work, chain.link]);

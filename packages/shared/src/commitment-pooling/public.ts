@@ -15,6 +15,7 @@ export type {
   PassportMoneyLine,
   PassportPaymentCounts,
   PassportPeopleGroup,
+  PassportPoolHolding,
   PassportPromises,
   PassportSection,
   PassportServiceLine,
@@ -22,6 +23,7 @@ export type {
   PassportUnitLine,
   PassportVoucherLine,
   PassportVouchers,
+  PassportVoucherSupply,
   PublicGardenPassportRecord,
 } from "../modules/commitment-pooling/public-passport-types";
 export {

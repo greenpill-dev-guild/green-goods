@@ -1,6 +1,7 @@
 import type {
   PassportSection,
   PassportVouchers,
+  PassportVoucherSupply,
 } from "@green-goods/shared/commitment-pooling/public";
 import { useIntl } from "react-intl";
 import {
@@ -14,6 +15,7 @@ import {
   PassportUnitRows,
 } from "./GardenPassportAtoms";
 import { PassportBookings } from "./GardenPassportBookings";
+import { PassportExchangePool } from "./GardenPassportExchangePool";
 import { Section } from "./GardenDetailSections";
 
 /**
@@ -23,9 +25,12 @@ import { Section } from "./GardenDetailSections";
  */
 export function PassportVouchersSection({
   vouchers,
+  supply,
   onRetry,
 }: {
   vouchers: PassportSection<PassportVouchers>;
+  /** The vouchers the garden issues, read from the voucher chain apart from the lines above. */
+  supply: PassportSection<PassportVoucherSupply[]>;
   onRetry: () => void;
 }) {
   const { formatMessage, formatNumber } = useIntl();
@@ -135,21 +140,7 @@ export function PassportVouchersSection({
           )}
         </PassportLine>
 
-        <PassportLine
-          id="passport-vouchers-pool"
-          label={formatMessage({
-            id: "public.passport.vouchers.pool.label",
-            defaultMessage: "In the exchange pool",
-          })}
-        >
-          <PassportNothingYet>
-            {formatMessage({
-              id: "public.passport.vouchers.pool.none",
-              defaultMessage: "Not published here yet.",
-            })}
-          </PassportNothingYet>
-          <PassportNote>{formatMessage({ id: "public.passport.vouchers.pool.note" })}</PassportNote>
-        </PassportLine>
+        <PassportExchangePool supply={supply} onRetry={onRetry} />
       </div>
     </Section>
   );
