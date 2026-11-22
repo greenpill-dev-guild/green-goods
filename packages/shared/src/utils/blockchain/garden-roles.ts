@@ -70,6 +70,40 @@ export const GARDEN_ROLE_ORDER: readonly GardenRole[] = [
 ] as const;
 
 /**
+ * The sub-roles a repair may grant for a person. An Owner grant gives Steward and Gardener but never
+ * Evaluator (the PRD-1554 ruling), and a Steward grant mints Evaluator too, so an owner may be given
+ * back only Gardener. Anyone whose Steward came from an Owner grant, a former owner included, is
+ * never offered Evaluator (PRD-979 ruling): a Steward granted directly before Owner already minted
+ * Evaluator, so any Owner grant on record settles it. Otherwise a steward's own grant gives
+ * Evaluator and Gardener; granting either has no cascade.
+ */
+function repairableSubRoles(
+  roles: readonly GardenRole[],
+  recordedRoles: readonly GardenRole[]
+): readonly GardenRole[] {
+  if (roles.includes("owner") || (roles.includes("steward") && recordedRoles.includes("owner"))) {
+    return ["gardener"];
+  }
+  if (roles.includes("steward")) return ["evaluator", "gardener"];
+  return [];
+}
+
+/**
+ * The missing sub-roles a repair may restore: only ones with no recorded event at all, so never
+ * minted. A sub-role with a recorded grant or revocation was taken away on purpose, or moments ago
+ * before its revocation was indexed, so it is never offered back.
+ */
+export function restorableSubRoles(
+  roles: readonly GardenRole[],
+  recordedRoles: readonly GardenRole[]
+): GardenRole[] {
+  const repairable = repairableSubRoles(roles, recordedRoles);
+  return GARDEN_ROLE_ORDER.filter(
+    (role) => repairable.includes(role) && !roles.includes(role) && !recordedRoles.includes(role)
+  );
+}
+
+/**
  * Color scheme names for role-based styling.
  * Maps to design system color tokens (e.g., bg-warning-lighter, text-warning-base)
  */

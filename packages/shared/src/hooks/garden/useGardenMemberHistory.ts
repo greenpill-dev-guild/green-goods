@@ -4,7 +4,10 @@ import { gardensKeys } from "../../config/query-keys/garden";
 import { getGardenMemberHistory } from "../../modules/data/garden-member-history";
 import type { Address } from "../../types/domain";
 
-/** Optional metadata only; these dates never grant or revoke membership. */
+/**
+ * Membership dates, and every role with a recorded event. The dates are metadata only. `recordedRoles` gates
+ * one write: the sub-role repair offers nothing it lists, and nothing at all while it is unread.
+ */
 export function useGardenMemberHistory({
   garden,
   account,
