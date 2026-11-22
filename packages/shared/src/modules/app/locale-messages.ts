@@ -38,6 +38,79 @@ export function resolveRequestedLocale(
   return "en";
 }
 
+const LANGUAGE_KEY = "gg-language";
+/** The App, the Hub and the website share this parent domain, and so one language choice. */
+const SHARED_LANGUAGE_DOMAIN = "greengoods.app";
+const LANGUAGE_COOKIE_MAX_AGE_SECONDS = 400 * 24 * 60 * 60;
+
+function sharedCookieDomain(hostname: string): string | null {
+  return hostname === SHARED_LANGUAGE_DOMAIN || hostname.endsWith(`.${SHARED_LANGUAGE_DOMAIN}`)
+    ? SHARED_LANGUAGE_DOMAIN
+    : null;
+}
+
+function readLanguageCookie(): string | null {
+  for (const part of document.cookie.split(";")) {
+    const [name, ...value] = part.trim().split("=");
+    if (name === LANGUAGE_KEY) return decodeURIComponent(value.join("=")) || null;
+  }
+  return null;
+}
+
+/**
+ * The language the reader chose on any Green Goods site of this browser (PRD-1493). Each site
+ * keeps its choice in its own storage, which no other site can read, so a choice also goes into a
+ * cookie on the shared parent domain: one made in the App opens the Hub in it, and the reverse.
+ * The cookie wins, as the latest choice on any site, and is copied into this site's storage,
+ * which the loading screens read before the app runs. Storage the browser blocks reads as none.
+ */
+export function readStoredLanguage(): string | null {
+  let shared: string | null = null;
+  let own: string | null = null;
+  try {
+    shared = readLanguageCookie();
+  } catch {
+    // Cookies can be blocked; this site's own choice still applies.
+  }
+  try {
+    own = window.localStorage.getItem(LANGUAGE_KEY);
+    if (shared && shared !== own) window.localStorage.setItem(LANGUAGE_KEY, shared);
+  } catch {
+    // Storage can be blocked; the shared choice still applies.
+  }
+  // A choice made before the cookie existed lives in this site's storage only: share it.
+  const ownLocale = supportedLanguages.find((locale) => locale === own);
+  if (!shared && ownLocale) writeLanguageCookie(ownLocale);
+  return shared ?? own;
+}
+
+/** Keep the reader's choice for this site and, on a Green Goods domain, for the others. */
+export function storeLanguage(locale: Locale): void {
+  try {
+    window.localStorage.setItem(LANGUAGE_KEY, locale);
+  } catch {
+    // Storage can be blocked; the choice holds for this visit.
+  }
+  writeLanguageCookie(locale);
+}
+
+function writeLanguageCookie(locale: Locale): void {
+  try {
+    const domain = sharedCookieDomain(window.location.hostname);
+    const attributes = [
+      `${LANGUAGE_KEY}=${encodeURIComponent(locale)}`,
+      "Path=/",
+      `Max-Age=${LANGUAGE_COOKIE_MAX_AGE_SECONDS}`,
+      "SameSite=Lax",
+      ...(domain ? [`Domain=${domain}`] : []),
+      ...(window.location.protocol === "https:" ? ["Secure"] : []),
+    ];
+    document.cookie = attributes.join("; ");
+  } catch {
+    // Cookies can be blocked; this site still keeps the choice.
+  }
+}
+
 async function importLocaleCatalogue(locale: Locale): Promise<LocaleCatalogue> {
   switch (locale) {
     case "es":

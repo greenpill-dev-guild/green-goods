@@ -1,5 +1,6 @@
 import type { Address } from "../../types/domain";
 import { BOOLEAN_PAUSED_ABI } from "../../utils/blockchain/abis/goodDollar";
+import { ZERO_ADDRESS } from "../../utils/blockchain/address";
 import { address, integer } from "./data-core";
 import type { ZodiacAllowance } from "./pool-funding";
 
@@ -113,6 +114,34 @@ export const EXECUTOR_ABI = [
   },
 ] as const;
 
+/** The Arbitrum settlement module's record of a dispatched command, read for its executor. */
+export const SETTLEMENT_COMMAND_RECORD_ABI = [
+  {
+    type: "function",
+    name: "commandRecord",
+    stateMutability: "view",
+    inputs: [{ name: "executionKey", type: "bytes32" }],
+    outputs: [
+      {
+        name: "",
+        type: "tuple",
+        components: [
+          { name: "isBatch", type: "bool" },
+          { name: "subjectId", type: "uint256" },
+          { name: "attempt", type: "uint32" },
+          { name: "destinationChainSelector", type: "uint64" },
+          { name: "destinationExecutor", type: "address" },
+          { name: "destinationGasLimit", type: "uint32" },
+          { name: "protocolVersion", type: "uint8" },
+          { name: "commandPayloadHash", type: "bytes32" },
+          { name: "latestCommandMessageId", type: "bytes32" },
+          { name: "acknowledged", type: "bool" },
+        ],
+      },
+    ],
+  },
+] as const;
+
 export const ROLES_ALLOWANCE_ABI = [
   {
     type: "function",
@@ -185,6 +214,14 @@ export function periodSpendTuple(
     periodStartedAt: integer(row.periodStartedAt ?? row[0]),
     amount: integer(row.amount ?? row[1]),
   };
+}
+
+/** The executor a command record names; null for a record the module doesn't hold. */
+export function commandRecordExecutor(value: unknown): Address | null {
+  if (!value || (!Array.isArray(value) && typeof value !== "object")) return null;
+  const record = value as { destinationExecutor?: unknown; 4?: unknown };
+  const executor = address(record.destinationExecutor ?? record[4]);
+  return executor && executor !== ZERO_ADDRESS ? executor : null;
 }
 
 export async function settledRead<T>(read: Promise<T>): Promise<T | null> {

@@ -201,6 +201,7 @@ describe("useCommitmentSettlementController", () => {
       ],
       feePolicy: { maxFeeBps: 100, maxFeeAmount: 50n * G },
       executorPaused: false,
+      commandExecutors: [],
       executions: [],
       settlementUnavailableReasons: [],
     }) as unknown as PoolFundingSnapshot;
