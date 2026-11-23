@@ -95,6 +95,11 @@ export interface PoolFundingDisbursement {
   amount: bigint;
   state: PoolFundingDisbursementState;
   executionKey: `0x${string}` | null;
+  /**
+   * Which send of the transfer the index has reached: a requeue starts the next attempt, with
+   * its own command. Null when the index row didn't carry it.
+   */
+  attempt: number | null;
 }
 
 export interface PoolFundingPayoutRow {

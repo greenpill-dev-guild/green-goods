@@ -83,13 +83,14 @@ export function ReviewHealthCard({
           },
           countArgs(week)
         );
+  // Where the chain records no decisions, a week has only a submitted count to say.
   const columnLabel = (week: ReviewHealthWeek) =>
-    formatMessage(
-      {
-        id: "hub.garden.reviewHealth.weekColumn",
-      },
-      countArgs(week)
-    );
+    week.reviewedAvailable
+      ? formatMessage({ id: "hub.garden.reviewHealth.weekColumn" }, countArgs(week))
+      : countLabel(week, "submitted");
+  const lists = health.reviewedAvailable
+    ? (["submitted", "reviewed"] as const)
+    : (["submitted"] as const);
   const oldestDays =
     waiting.oldestPendingAt === null
       ? null
@@ -173,6 +174,34 @@ export function ReviewHealthCard({
                 {formatMessage({ id: "hub.garden.reviewHealth.offline" })}
               </Alert>
             ) : null}
+            {/* Online, a reread that failed keeps the last weeks, says so and offers a retry. */}
+            {health.refreshFailed ? (
+              <Alert
+                variant="warning"
+                title={formatMessage({ id: "hub.garden.reviewHealth.stale" })}
+              >
+                <p>{formatMessage({ id: "hub.garden.reviewHealth.refreshFailed" })}</p>
+                <Button
+                  type="button"
+                  size="sm"
+                  emphasis="secondary"
+                  className="mt-2"
+                  loading={health.isFetching}
+                  onClick={() => void health.retry()}
+                >
+                  {formatMessage({ id: "app.common.tryAgain" })}
+                </Button>
+              </Alert>
+            ) : null}
+            {/* A chain with no decision schema has no reviewed counts: none, never zero. */}
+            {health.reviewedAvailable ? null : (
+              <Alert
+                variant="info"
+                title={formatMessage({ id: "hub.garden.reviewHealth.reviewedUnavailable.title" })}
+              >
+                {formatMessage({ id: "hub.garden.reviewHealth.reviewedUnavailable.description" })}
+              </Alert>
+            )}
             <figure className="flex min-w-0 flex-col gap-2">
               <figcaption className="flex flex-wrap items-center justify-between gap-2">
                 <span className="type-label text-text-strong">
@@ -186,13 +215,15 @@ export function ReviewHealthCard({
                     />
                     {formatMessage({ id: "hub.garden.reviewHealth.submitted" })}
                   </span>
-                  <span className="inline-flex items-center gap-1">
-                    <span
-                      aria-hidden
-                      className="h-2.5 w-2.5 rounded-(--admin-radius-xs) bg-information-base"
-                    />
-                    {formatMessage({ id: "hub.garden.reviewHealth.reviewed" })}
-                  </span>
+                  {health.reviewedAvailable ? (
+                    <span className="inline-flex items-center gap-1">
+                      <span
+                        aria-hidden
+                        className="h-2.5 w-2.5 rounded-(--admin-radius-xs) bg-information-base"
+                      />
+                      {formatMessage({ id: "hub.garden.reviewHealth.reviewed" })}
+                    </span>
+                  ) : null}
                 </span>
               </figcaption>
               {/* One tall link per week, the week's two bars drawn inside it, so a phone's
@@ -212,7 +243,7 @@ export function ReviewHealthCard({
                         week.isCurrent && "bg-bg-weak"
                       )}
                     >
-                      {(["submitted", "reviewed"] as const).map((list) => {
+                      {lists.map((list) => {
                         const count = (list === "submitted" ? week.submitted : week.reviewed)
                           .length;
                         return (
@@ -261,12 +292,15 @@ export function ReviewHealthCard({
                       <th scope="col" className="py-1 pr-3 font-medium">
                         {formatMessage({ id: "hub.garden.reviewHealth.week" })}
                       </th>
-                      <th scope="col" className="py-1 pr-3 text-right font-medium">
-                        {formatMessage({ id: "hub.garden.reviewHealth.submitted" })}
-                      </th>
-                      <th scope="col" className="py-1 text-right font-medium">
-                        {formatMessage({ id: "hub.garden.reviewHealth.reviewed" })}
-                      </th>
+                      {lists.map((list) => (
+                        <th
+                          key={list}
+                          scope="col"
+                          className="py-1 pr-3 text-right font-medium last:pr-0"
+                        >
+                          {formatMessage({ id: `hub.garden.reviewHealth.${list}` })}
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
@@ -278,7 +312,7 @@ export function ReviewHealthCard({
                         <th scope="row" className="py-1 pr-3 text-left font-normal text-text-sub">
                           {namedWeek(week)}
                         </th>
-                        {(["submitted", "reviewed"] as const).map((list) => (
+                        {lists.map((list) => (
                           <td key={list} className="py-1 pr-3 text-right tabular-nums last:pr-0">
                             <Link
                               to={health.weekHref(week, list)}

@@ -7,6 +7,7 @@
  *   bun run --cwd packages/agent reporting:walkthrough
  *   bun --env-file=.env packages/agent/src/__tests__/reporting/driver/walkthrough.ts --models
  *   bun --env-file=.env packages/agent/src/__tests__/reporting/driver/walkthrough.ts --media-models
+ *   bun --env-file=.env packages/agent/src/__tests__/reporting/driver/walkthrough.ts --dialogue out.json
  * Evaluation modes send only synthetic cases to pinned providers and print acceptance metrics.
  * They never start this HTTP driver or send anything to a chat or a chain.
  */
@@ -289,8 +290,41 @@ if (import.meta.main) {
       );
       process.exitCode = 1;
     }
+  } else if (args[0] === "--dialogue" && args[1]) {
+    // --dialogue <results.json> [--cap <usd>] [scenario-id ...]
+    const capAt = args.indexOf("--cap");
+    const capUsd = capAt > 0 ? Number(args[capAt + 1]) : 2;
+    const only = args
+      .slice(2)
+      .filter((_, index) => capAt < 0 || (index !== capAt - 2 && index !== capAt - 1));
+    if (!(capUsd > 0 && capUsd <= 2)) {
+      console.error("The cap must be more than 0 and at most 2 USD");
+      process.exitCode = 1;
+    } else {
+      const { runDialogueEvaluation } = await import("./dialogue-evaluation");
+      const report = await runDialogueEvaluation(process.env, {
+        capUsd,
+        only,
+        onSample: (sample) =>
+          console.error(
+            `${sample.system} ${sample.scenario} ${sample.locale}${sample.wording} ${sample.failure ?? "ok"} ${sample.latencyMs}ms`
+          ),
+      });
+      await Bun.write(args[1], JSON.stringify(report, null, 2));
+      const { samples: _samples, ...summary } = report;
+      console.log(JSON.stringify(summary, null, 2));
+    }
+  } else if (args[0] === "--dialogue-summary" && args[1]) {
+    // Scores stored samples again, reading the deterministic reader's part with the code as it is.
+    const { summarize } = await import("./dialogue-summary");
+    const stored = JSON.parse(await Bun.file(args[1]).text()) as {
+      samples: Parameters<typeof summarize>[0];
+    };
+    console.log(JSON.stringify(summarize(stored.samples), null, 2));
   } else if (args.length) {
-    console.error("Usage: reporting:walkthrough [--models|--media-models [case-id ...]]");
+    console.error(
+      "Usage: reporting:walkthrough [--models|--media-models [case-id ...]|--dialogue <out.json> [--cap <usd>] [scenario-id ...]|--dialogue-summary <out.json>]"
+    );
     process.exitCode = 1;
   } else {
     const { startDriver } = await import("./server");
