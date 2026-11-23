@@ -46,6 +46,11 @@ vi.mock("../../config/blockchain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
 
+// The sub-role check this module re-exports reads member history from the indexer: an edge here.
+vi.mock("../../modules/data/garden-member-history", () => ({
+  getGardenMemberHistory: vi.fn(),
+}));
+
 vi.mock("../../config/default-chain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));

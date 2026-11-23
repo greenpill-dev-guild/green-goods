@@ -54,7 +54,7 @@ export const Default: Story = {
 
 export const LongTitleWraps: Story = {
   args: {
-    title: "Request to Join This Garden and Introduce Yourself to Its Stewards",
+    title: "Ask to Join This Garden and Introduce Yourself to Its Stewards",
     description:
       "A long title wraps onto a second line instead of clipping; the close button stays on the first line.",
   },

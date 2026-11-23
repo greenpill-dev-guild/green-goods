@@ -254,3 +254,18 @@ export function commitDraft(
   }
   return loadDraft(core, input.draftId) as DraftRecord;
 }
+
+/** The question profile a report asks with, as `slug@version`; null for the activity's own words. */
+export function pinnedQuestionProfile(core: ReportingCore, draftId: string): string | null {
+  const row = core.db
+    .query("SELECT question_profile FROM work_drafts WHERE id = $id")
+    .get({ id: draftId }) as { question_profile: string | null } | null;
+  return row?.question_profile ?? null;
+}
+
+/** Set when a report takes an activity, and kept until it takes another. */
+export function pinQuestionProfile(core: ReportingCore, draftId: string, ref: string | null): void {
+  core.db
+    .query("UPDATE work_drafts SET question_profile = $ref WHERE id = $id")
+    .run({ id: draftId, ref });
+}

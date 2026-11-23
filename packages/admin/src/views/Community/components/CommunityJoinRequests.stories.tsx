@@ -14,7 +14,7 @@ import { resetHookMocks } from "../../../../../shared/.storybook/moduleMocks";
 import { CommunityJoinRequests } from "./CommunityJoinRequests";
 
 const meta = {
-  title: "Admin/Workflows/Community/Join Requests",
+  title: "Admin/Workflows/Community/Asking to Join",
   component: CommunityJoinRequests,
   tags: ["autodocs"],
   decorators: [
@@ -45,7 +45,7 @@ export const ReadyToCheck: Story = {};
 type JoinRequests = ReturnType<typeof useGardenJoinRequests>;
 const IDLE = { isLoading: false, error: null };
 
-/** The steward's queue after Check Requests, with every write a no-op. */
+/** The steward's queue after Check Who's Asking, with every write a no-op. */
 function joinRequests(overrides: Partial<JoinRequests> = {}): JoinRequests {
   return {
     accountAddress: "0x2222222222222222222222222222222222222222",
@@ -107,7 +107,7 @@ async function checkRequests(
       kind === "steward_access" ? "community-steward-requests" : "community-join-requests"
     )
   );
-  await userEvent.click(await queue.findByRole("button", { name: "Check Requests" }));
+  await userEvent.click(await queue.findByRole("button", { name: "Check Who's Asking" }));
   return canvas;
 }
 
@@ -117,7 +117,7 @@ export const NoPendingRequests: Story = {
   beforeEach: withJoinRequests(),
   play: async ({ canvasElement }) => {
     const canvas = await checkRequests(canvasElement);
-    await expect(await canvas.findByText("There are no pending join requests.")).toBeVisible();
+    await expect(await canvas.findByText("Nobody is asking to join right now.")).toBeVisible();
   },
 };
 
@@ -168,7 +168,9 @@ export const RateLimitedRecently: Story = {
   play: async ({ canvasElement }) => {
     const canvas = await checkRequests(canvasElement);
     await expect(
-      await canvas.findByText("Some join requests were rate-limited recently.")
+      await canvas.findByText(
+        "Some people couldn't ask to join recently because of the rate limit."
+      )
     ).toBeVisible();
   },
 };

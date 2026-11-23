@@ -235,7 +235,15 @@ export async function readLiveVoucherConsole(
                   (releaseNeedsExecution ? final!.allocation.releaseVoucherUnits : 0n) +
                   (refundNeedsExecution ? final!.allocation.refundVoucherUnits : 0n),
               }
-            : { kind: "in-progress" },
+            : !final && (source.coreState === "CANCELLED" || source.coreState === "EXPIRED")
+              ? // The promise ended before its service: the vouchers wait in escrow until the
+                // issuer proposes a return (PRD-1462, the PRD-1404 remedy).
+                {
+                  kind: "ended-early",
+                  returnLimit: a.voucherUnits,
+                  returnCeiling: d.issuerReturnCeiling ?? 0n,
+                }
+              : { kind: "in-progress" },
       });
     }
     snapshot.asks = asks;

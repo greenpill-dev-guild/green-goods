@@ -3,8 +3,10 @@ import {
   resolveCommunityMode,
 } from "@green-goods/shared/hooks/admin-ui/community/community.utils";
 import type { useAddMembersBatch } from "@green-goods/shared/hooks/garden/useGardenOperations";
+import type { Address, GardenMemberHistory } from "@green-goods/shared/types/domain";
+import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
 import { createMemoryRouter, RouterProvider, useLocation, useNavigate } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   act,
   fireEvent,
@@ -20,6 +22,9 @@ import { storyGarden, storyRoleMembers } from "./communityStoryFixtures";
 
 const addGardener = vi.hoisted(() => vi.fn());
 const addSteward = vi.hoisted(() => vi.fn());
+const addEvaluator = vi.hoisted(() => vi.fn());
+const checkSubRoles = vi.hoisted(() => vi.fn());
+const memberHistory = vi.hoisted(() => ({ members: [] as GardenMemberHistory[], isError: false }));
 const removeOwner = vi.hoisted(() => vi.fn());
 const scheduleBackgroundRefetch = vi.hoisted(() => vi.fn());
 type AddMembersBatch = ReturnType<typeof useAddMembersBatch>;
@@ -27,7 +32,13 @@ const batchState = vi.hoisted(() => ({ available: false, add: vi.fn<AddMembersBa
 
 // The chain and the wallet are this suite's edges; the action, the URL and the dialogs are real.
 vi.mock("@green-goods/shared/hooks/garden/useGardenOperations", () => ({
-  useGardenOperations: () => ({ isLoading: false, addGardener, addSteward, removeOwner }),
+  useGardenOperations: () => ({
+    isLoading: false,
+    addGardener,
+    addSteward,
+    addEvaluator,
+    removeOwner,
+  }),
   useAddMembersBatch: () => ({
     hold: null,
     saved: [],
@@ -38,6 +49,7 @@ vi.mock("@green-goods/shared/hooks/garden/useGardenOperations", () => ({
     signaturesFor: (count: number) => Math.ceil(count / 10),
   }),
   useRemoveMemberRoles: () => ({ account: null, check: vi.fn(), remove: vi.fn() }),
+  useSubRoleCheck: () => checkSubRoles,
 }));
 vi.mock("@green-goods/shared/hooks/profile/useProfileAvatar", async (importOriginal) => ({
   ...(await importOriginal()),
@@ -47,7 +59,12 @@ vi.mock("@green-goods/shared/hooks/garden/useGardenMemberContributions", () => (
   useGardenMemberContributions: () => ({ canView: false, byAccount: {} }),
 }));
 vi.mock("@green-goods/shared/hooks/garden/useGardenMemberHistory", () => ({
-  useGardenMemberHistory: () => ({ members: [], isLoading: false, isError: false }),
+  useGardenMemberHistory: () => ({
+    members: memberHistory.members,
+    isLoading: false,
+    isError: memberHistory.isError,
+    refetch: vi.fn(),
+  }),
 }));
 vi.mock("@green-goods/shared/hooks/blockchain/useEnsAddress", () => ({
   useEnsAddress: () => ({ data: null, isFetching: false }),
@@ -460,5 +477,139 @@ describe("CommunityMembersDialogs: Add Member (DL-140)", () => {
       expect(screen.queryByRole("dialog", { name: "Manage Roles" })).not.toBeInTheDocument()
     );
     expect(currentUrl()).toBe(TAB_URL);
+  });
+});
+
+describe("CommunityMembersDialogs: restoring a missing sub-role (PRD-979)", () => {
+  const steward = storyRoleMembers.steward[0];
+  const stewardHistory = (recordedRoles: GardenRole[]): GardenMemberHistory => ({
+    garden: storyGarden.id as Address,
+    account: steward,
+    joinedAt: Date.UTC(2026, 3, 4, 12),
+    memberSince: Date.UTC(2026, 3, 4, 12),
+    roleSince: { steward: Date.UTC(2026, 3, 4, 12) },
+    recordedRoles,
+  });
+
+  beforeEach(() => {
+    addEvaluator.mockReset().mockResolvedValue({ success: true });
+    addGardener.mockReset();
+    checkSubRoles.mockReset();
+    scheduleBackgroundRefetch.mockClear();
+    memberHistory.members = [stewardHistory(["steward"])];
+  });
+  afterEach(() => {
+    memberHistory.members = [];
+    memberHistory.isError = false;
+    batchState.available = false;
+    batchState.add.mockReset();
+  });
+
+  it("grants only what the chain lacks, through the add path, from the person's Manage Roles row", async () => {
+    // The indexed list shows the steward with neither sub-role; the chain already has Gardener.
+    checkSubRoles.mockResolvedValue({
+      lacking: ["owner", "evaluator"],
+      recordedRoles: ["steward"],
+    });
+    renderAt(`/community/members?gardenId=${storyGarden.id}&item=manage-members&member=${steward}`);
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Restore Evaluator and Gardener" })
+    );
+
+    await waitFor(() => expect(addEvaluator).toHaveBeenCalledWith(steward));
+    expect(checkSubRoles).toHaveBeenCalledWith(steward, [
+      "steward",
+      "owner",
+      "evaluator",
+      "gardener",
+    ]);
+    expect(addGardener).not.toHaveBeenCalled();
+    expect(scheduleBackgroundRefetch).toHaveBeenCalled();
+  });
+
+  it("leaves an Evaluator that was once granted, and offers only the cascade gap", async () => {
+    memberHistory.members = [stewardHistory(["steward", "evaluator"])];
+    checkSubRoles.mockResolvedValue({
+      lacking: ["owner", "gardener"],
+      recordedRoles: ["steward", "evaluator"],
+    });
+    renderAt(`/community/members?gardenId=${storyGarden.id}&item=manage-members&member=${steward}`);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Restore Gardener" }));
+
+    await waitFor(() =>
+      expect(checkSubRoles).toHaveBeenCalledWith(steward, ["steward", "owner", "gardener"])
+    );
+    expect(screen.queryByRole("button", { name: /Evaluator/ })).not.toBeInTheDocument();
+    expect(addEvaluator).not.toHaveBeenCalled();
+  });
+
+  it("holds Manage Roles while a restore reads the chain", async () => {
+    let settle: (value: unknown) => void = () => undefined;
+    checkSubRoles.mockReturnValue(new Promise((resolve) => (settle = resolve)));
+    renderAt(`/community/members?gardenId=${storyGarden.id}&item=manage-members&member=${steward}`);
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Restore Evaluator and Gardener" })
+    );
+    expect(screen.getByRole("button", { name: "Add Members" })).toBeDisabled();
+
+    settle({ lacking: ["owner"], recordedRoles: ["steward"] });
+    await waitFor(() => expect(screen.getByRole("button", { name: "Add Members" })).toBeEnabled());
+    expect(addEvaluator).not.toHaveBeenCalled();
+  });
+
+  it("offers nothing while the member history could not be read", async () => {
+    memberHistory.isError = true;
+    renderAt(`/community/members?gardenId=${storyGarden.id}&item=manage-members&member=${steward}`);
+
+    await screen.findByRole("dialog", { name: "Manage Roles" });
+    expect(screen.queryByRole("button", { name: /^Restore/ })).not.toBeInTheDocument();
+  });
+
+  it("sends nothing once Manage Roles is gone before the chain answers", async () => {
+    batchState.available = true;
+    let settle: (value: unknown) => void = () => undefined;
+    checkSubRoles.mockReturnValue(new Promise((resolve) => (settle = resolve)));
+    const { unmount } = renderAt(
+      `/community/members?gardenId=${storyGarden.id}&item=manage-members&member=${steward}`
+    );
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Restore Evaluator and Gardener" })
+    );
+    // A garden change remounts the dialog, and leaving the route unmounts it.
+    unmount();
+    await act(async () => {
+      settle({ lacking: ["owner", "evaluator", "gardener"], recordedRoles: ["steward"] });
+    });
+
+    expect(batchState.add).not.toHaveBeenCalled();
+    expect(addEvaluator).not.toHaveBeenCalled();
+  });
+
+  it("asks for no second signature once Manage Roles is gone between grants", async () => {
+    let landEvaluator: (value: { success: boolean }) => void = () => undefined;
+    addEvaluator.mockReturnValue(new Promise((resolve) => (landEvaluator = resolve)));
+    addGardener.mockResolvedValue({ success: true });
+    checkSubRoles.mockResolvedValue({
+      lacking: ["owner", "evaluator", "gardener"],
+      recordedRoles: ["steward"],
+    });
+    const { unmount } = renderAt(
+      `/community/members?gardenId=${storyGarden.id}&item=manage-members&member=${steward}`
+    );
+
+    // Without a batch the restore takes one signature per role, and says so before the press.
+    expect(await screen.findByText("Up to 2 signatures")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Restore Evaluator and Gardener" }));
+    await waitFor(() => expect(addEvaluator).toHaveBeenCalledWith(steward));
+    unmount();
+    await act(async () => {
+      landEvaluator({ success: true });
+    });
+
+    expect(addGardener).not.toHaveBeenCalled();
   });
 });

@@ -1,5 +1,6 @@
 import type { Address } from "../../types/domain";
 import { isZeroAddress } from "../blockchain/address";
+import type { ReviewWaitingBand } from "../garden-detail";
 
 export type AdminWorkspaceId =
   | "home"
@@ -36,6 +37,8 @@ export interface AdminReviewRouteContext {
   scope?: AdminReviewWorkScope;
   /** One calendar day (`YYYY-MM-DD`, the reader's clock) the Work tab is narrowed to. */
   day?: string;
+  /** How long pending work has waited, the band the Work tab is narrowed to. */
+  waiting?: ReviewWaitingBand;
   /** A create flow that opens over the stage (DL-140). A Review URL's item holds nothing else. */
   item?: AdminReviewFlowItem;
 }
@@ -48,6 +51,9 @@ export interface AdminGardenRouteContext {
   /** The Activity calendar's month (`YYYY-MM`) and its open day (`YYYY-MM-DD`). */
   month?: string;
   day?: string;
+  /** Review Health's open week (its Monday, `YYYY-MM-DD`) and which of its lists is open. */
+  week?: string;
+  list?: "submitted" | "reviewed";
   section?: string;
   item?: string;
 }
@@ -109,6 +115,7 @@ function buildReviewContextSearch(
         ? context.scope
         : undefined,
     day: context.day,
+    waiting: context.waiting,
     item: parseReviewFlowItem(context.item),
   };
 }
@@ -133,6 +140,8 @@ function buildGardenContextSearch(
     range: context.range,
     month: context.month,
     day: context.day,
+    week: context.week,
+    list: context.list,
     section: context.section,
     item: context.item,
   };

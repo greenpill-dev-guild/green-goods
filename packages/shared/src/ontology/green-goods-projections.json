@@ -1153,7 +1153,7 @@
     {
       "id": "request",
       "label": "Request",
-      "meaning": "A promise asking someone else to provide help. The person who asked normally confirms it. A request to take a promise up is a separate participation decision.",
+      "meaning": "A promise asking someone else to provide help. The person who asked normally confirms it. Asking to take a promise up is a separate participation decision.",
       "example": "You request a repair session; the neighbor taking it up provides the help.",
       "guide": "/community/gardener-guide/make-a-promise",
       "source_of_truth": [
@@ -1164,7 +1164,7 @@
     {
       "id": "take-up",
       "label": "Take up",
-      "meaning": "Agree to the part described by a promise. Some promises allow direct take-up; others wait for a steward to accept the request.",
+      "meaning": "Agree to the part described by a promise. Some promises allow direct take-up; others wait until a steward says yes.",
       "example": "Taking up a request makes you its provider. Taking up an offer makes you its recipient.",
       "guide": "/community/gardener-guide/keep-a-promise",
       "source_of_truth": [

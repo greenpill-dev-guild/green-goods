@@ -1,3 +1,4 @@
+import type { Address } from "../types/domain";
 import type { EASWork } from "../types/eas-responses";
 
 /** Reviewed production rehearsals. Operational history and settlement stay intact. */
@@ -11,6 +12,32 @@ export function publicRehearsalCycles(chainId: number, poolId?: bigint) {
   return REHEARSAL_CYCLES.filter(
     (cycle) => cycle.chainId === chainId && (poolId === undefined || cycle.poolId === poolId)
   );
+}
+
+// Single promises that review found to be tests. They were made outside any cycle, so the cycle
+// rule above cannot reach them. Each is named by its own id, never by its garden, author or label.
+const REHEARSAL_COMMITMENTS = [
+  // A QA check in the Aiyeloja Family Garden pool, kept on 8 November 2026 (PRD-1097).
+  { chainId: 42161, poolId: 2n, commitmentId: 85n },
+] as const;
+
+export function publicRehearsalCommitments(chainId: number, poolId?: bigint) {
+  return REHEARSAL_COMMITMENTS.filter(
+    (commitment) =>
+      commitment.chainId === chainId && (poolId === undefined || commitment.poolId === poolId)
+  );
+}
+
+// Gardens whose stewards agreed to publish a passport. Taking part in a pool is not consent to
+// public reporting, so a garden joins this list only on its stewards' recorded yes, and leaves it
+// on their no. Nothing is inferred from an open pool, a listing or a kept promise.
+const PASSPORT_GARDENS: Readonly<Record<number, readonly string[]>> = {
+  // The garden's owner agreed on 21 November 2026 (PRD-1097).
+  42161: [AIYELOJA_FAMILY_GARDEN],
+};
+
+export function isPublicPassportPublished(chainId: number, garden: Address): boolean {
+  return (PASSPORT_GARDENS[chainId] ?? []).includes(garden.toLowerCase());
 }
 
 // Explicitly reviewed records only, keyed by garden then work UID: never infer rehearsal status

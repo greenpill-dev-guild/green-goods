@@ -415,10 +415,10 @@ describe("GardenCommitment", () => {
     mockUseServiceAccess.mockReturnValue({ data: state, refetch: vi.fn() });
     render();
     if (kind === "unknown") {
-      expect(screen.getByRole("button", { name: "Request to Take Up" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Ask to Take Up" })).toBeInTheDocument();
       expect(screen.queryByRole("region", { name: "Service Access" })).not.toBeInTheDocument();
     } else {
-      expect(screen.queryByRole("button", { name: "Request to Take Up" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Ask to Take Up" })).not.toBeInTheDocument();
       expect(screen.getByText("Earned voucher consent")).toBeInTheDocument();
     }
   });
@@ -561,7 +561,7 @@ describe("GardenCommitment", () => {
     });
     render();
     expect(screen.getByRole("region", { name: "Service Access" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Request to Take Up" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Ask to Take Up" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Accept/ })).not.toBeInTheDocument();
     expect(mockActs.claimPersonal).not.toHaveBeenCalled();
     expect(mockActs.acceptClaim).not.toHaveBeenCalled();
@@ -822,7 +822,7 @@ describe("GardenCommitment", () => {
     );
     render();
 
-    await userEvent.click(screen.getByRole("button", { name: "Ask Again" }));
+    await userEvent.click(screen.getByRole("button", { name: "Request It Again" }));
 
     expect(screen.getByTestId("composer-route")).toHaveTextContent(
       `/home/${PROTOCOL_GARDEN}/commitments/new?direction=request&from=9`
@@ -889,7 +889,7 @@ describe("GardenCommitment", () => {
     render();
 
     expect(screen.getByText("Waiting for a steward")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Request to Take Up" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Ask to Take Up" })).not.toBeInTheDocument();
   });
 
   it("opens provider context and delegates the chosen claim", async () => {
@@ -1389,7 +1389,7 @@ describe("GardenCommitment", () => {
     });
     mockUseController.mockReturnValue(visitor);
     const view = render();
-    expect(screen.getByRole("button", { name: "Request to Join" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Ask to Join" })).toBeInTheDocument();
 
     mockUseController.mockReturnValue(
       controller({
@@ -2207,7 +2207,7 @@ describe("a voucher booking on the promise page", () => {
     );
     await userEvent.click(decisions.getByRole("button", { name: /^Decline$/ }));
     expect(mockActs.declineClaim).toHaveBeenCalledWith(OTHER, "Try next week");
-    expect(screen.queryByRole("button", { name: /^Request Again$/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Ask Again$/ })).not.toBeInTheDocument();
     expect(mockActs.claimPersonal).not.toHaveBeenCalled();
     expect(mockActs.claim).not.toHaveBeenCalled();
   });
@@ -2232,7 +2232,7 @@ describe("a voucher booking on the promise page", () => {
   it("keeps earned member retries behind consent and hides decisions from non-stewards", () => {
     showEarnedClaimRequests(false);
     expect(screen.queryByRole("region", { name: "Waiting on you" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /^Request Again$/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Ask Again$/ })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Agree and Take It Up" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Take It Up$/ })).not.toBeInTheDocument();
     expect(mockActs.claimPersonal).not.toHaveBeenCalled();
@@ -2347,7 +2347,7 @@ describe("a voucher booking on the promise page", () => {
       within(sheet).getByText(
         claimMode === "OPEN"
           ? "Agreeing records these exact rewards. Then you take the promise up, and it's yours right away."
-          : /Agreeing records these exact rewards with your request\./
+          : /Agreeing records these exact rewards as you ask to take this up\./
       )
     ).toBeInTheDocument();
     // Once the agreement lands, the read no longer offers it.
@@ -2396,7 +2396,7 @@ describe("a promise whose service read hasn't answered", () => {
       refetch: vi.fn(),
     });
     render();
-    expect(screen.queryByRole("button", { name: "Request to Take Up" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Ask to Take Up" })).toBeNull();
     expect(screen.queryByText(/couldn't check how this promise/i)).toBeNull();
   });
 
@@ -2410,7 +2410,7 @@ describe("a promise whose service read hasn't answered", () => {
       refetch,
     });
     render();
-    expect(screen.queryByRole("button", { name: "Request to Take Up" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Ask to Take Up" })).toBeNull();
     expect(screen.getByText(/couldn't check how this promise is taken up/i)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Try Again" }));
     expect(refetch).toHaveBeenCalledTimes(1);

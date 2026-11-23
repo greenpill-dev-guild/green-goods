@@ -24,6 +24,8 @@ interface ReviewStageContentProps {
   /** The Work tab's list for its current scope. */
   works: Work[];
   workScope: ReviewWorkScope;
+  /** Clears the chosen waiting-time band, when one narrows the Work list. */
+  onClearWaitingBand?: () => void;
   assessments: ReviewAssessmentListItem[];
   hypercerts: ReviewHypercertListItem[];
   worksLoading: boolean;
@@ -60,6 +62,7 @@ export function ReviewStageContent({
   stage,
   works,
   workScope,
+  onClearWaitingBand,
   assessments,
   hypercerts,
   worksLoading,
@@ -106,6 +109,7 @@ export function ReviewStageContent({
         onClearSearch={onClearSearch}
         reviewBatch={reviewBatch}
         older={olderWork}
+        onClearWaitingBand={onClearWaitingBand}
       />
     );
   }

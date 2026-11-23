@@ -304,7 +304,7 @@ export const JoinRequests: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const heading = canvas.getByRole("heading", { level: 2, name: "Join Requests" });
+    const heading = canvas.getByRole("heading", { level: 2, name: "Asking to Join" });
     const name = canvas.getByRole("heading", { level: 3, name: "ana" });
     await expect(parseFloat(getComputedStyle(name).fontSize)).toBeLessThan(
       parseFloat(getComputedStyle(heading).fontSize)

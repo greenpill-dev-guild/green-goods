@@ -103,6 +103,8 @@ function stateFor(request: InterpretationRequest) {
     draftRevision: request.draftRevision,
     locale: request.locale,
     message: request.message.text,
+    openQuestion: request.question?.kind ?? null,
+    earlierTurns: request.turns,
     confirmedFields: {
       title: request.content.title,
       timeSpentMinutes: request.content.timeSpentMinutes,

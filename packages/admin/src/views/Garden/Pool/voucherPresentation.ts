@@ -13,6 +13,7 @@ import {
 import type { IntlShape } from "react-intl";
 import { formatUnits } from "viem";
 import { clockTime, dayText, dueDateText, exactTime, isoTime } from "./poolTime";
+import { type VoucherBookingAct, voucherBookingAct } from "./voucherBookingActs";
 
 type Intl = Pick<IntlShape, "formatMessage" | "formatDate" | "formatTime" | "formatDateToParts">;
 type FormatMessage = IntlShape["formatMessage"];
@@ -251,38 +252,7 @@ interface VoucherBookingRowView {
   note: ItemRowDetail;
   /** A pill that replaces the promise's state while the booking needs someone. */
   status: { label: string; tone: ItemRowTone } | null;
-  act: "report" | "propose" | "retry" | null;
-}
-
-/**
- * The act a booking under way waits on the steward for, in Review Promises: the same transfer
- * again after a return failed, a proposed return once the service stopped early, and a visit's
- * report once the visit has begun. `now` is the chain's time, in seconds.
- */
-export function voucherBookingAct(
-  booking: VoucherBooking,
-  now: number
-): VoucherBookingRowView["act"] {
-  const { service, stage } = booking;
-  if (
-    stage.kind === "return-failed" ||
-    stage.kind === "transfer-failed" ||
-    stage.kind === "transfer-pending"
-  )
-    return "retry";
-  if (stage.kind === "ended-early") return "propose";
-  return service.kind === "visit" && now >= service.startsAt ? "report" : null;
-}
-
-/**
- * A return the issuer may propose while a units booking still runs (the live read gives each one
- * a ceiling before the final split): optional, so it waits on no one and stays on the offer's row.
- */
-export function voucherBookingOptionalAct(booking: VoucherBooking): "propose" | null {
-  const { service, stage } = booking;
-  return stage.kind === "in-progress" && service.kind === "units" && service.returnLimit !== null
-    ? "propose"
-    : null;
+  act: VoucherBookingAct | null;
 }
 
 /** How a booking under way reads on its offer's row, and the act it waits on. */
@@ -343,8 +313,8 @@ function voucherBookingRow(
           : service.kind === "units"
             ? formatMessage(
                 {
-                  id: "hub.garden.pool.voucher.live.units",
-                  defaultMessage: "{units} {label} booked",
+                  id: "hub.garden.pool.voucher.row.endedEarlyUnits",
+                  defaultMessage: "Ended early · {units} {label} booked",
                 },
                 { units: service.units.toString(), label: service.label }
               )
@@ -355,10 +325,22 @@ function voucherBookingRow(
                 },
                 { done: service.daysUsed, of: service.daysOf }
               ),
-      status: {
-        label: formatMessage({ id: "app.commitments.row.needsYou", defaultMessage: "Needs you" }),
-        tone: "warning",
-      },
+      status:
+        act === "propose"
+          ? {
+              label: formatMessage({
+                id: "app.commitments.row.needsYou",
+                defaultMessage: "Needs you",
+              }),
+              tone: "warning",
+            }
+          : {
+              label: formatMessage({
+                id: "hub.garden.pool.voucher.queue.returnProposed",
+                defaultMessage: "Return proposed",
+              }),
+              tone: "neutral",
+            },
       act,
     };
   }
@@ -428,7 +410,7 @@ export function voucherOfferRow(
         })
       : intl.formatMessage({
           id: "hub.garden.pool.voucher.row.asked",
-          defaultMessage: "Booking asked",
+          defaultMessage: "Asked to book",
         }),
     status: null,
     act: null,

@@ -41,6 +41,7 @@ import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { runGardenRoleWrites } from "./gardenRoleWriteQueue";
 
 export { useAddMembersBatch } from "./useAddMembersBatch";
+export { useSubRoleCheck } from "./useSubRoleCheck";
 export type { AddMembersOutcome } from "../../modules/garden/members-batch";
 export type {
   RoleRemovalApi,

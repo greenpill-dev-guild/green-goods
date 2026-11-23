@@ -194,6 +194,18 @@ export type PoolFundingTransferBlock =
   | PoolFundingTransferLimit
   | "limits_unread";
 
+/**
+ * The Celo executor a dispatched transfer's command was recorded for, and whether
+ * it is paused. A resend goes to that executor, which during a route change's grace
+ * window can be the previous one rather than the executor the rest of the read
+ * describes. Either is null when it couldn't be read.
+ */
+export interface PoolFundingCommandExecutor {
+  executionKey: `0x${string}`;
+  executor: Address | null;
+  paused: boolean | null;
+}
+
 export interface PoolFundingReadinessInput {
   accountConfigured: boolean;
   accountActive: boolean;
@@ -225,6 +237,7 @@ export interface PoolFundingCalculationInput {
   disbursements: PoolFundingDisbursement[];
   executions: PoolFundingExecution[];
   readiness: PoolFundingReadinessInput;
+  commandExecutors: PoolFundingCommandExecutor[];
   limits: PoolFundingLimits;
   nativeFeeBalance: bigint | null;
   acknowledgmentFeeReserveLow: boolean | null;
@@ -250,10 +263,12 @@ export interface PoolFundingSnapshot {
   /** The Celo executor's fee ceiling, which each sent transfer's own quote has to fit under. */
   feePolicy: PoolFundingFeePolicy | null;
   /**
-   * Whether the Celo executor is paused, as read; null when it couldn't be read. It is
-   * all that refuses a resend of a command Celo has already recorded.
+   * Whether the current Celo executor is paused, as read; null when it couldn't be read.
+   * A resend goes to its command's recorded executor instead, in `commandExecutors`.
    */
   executorPaused: boolean | null;
+  /** Each dispatched transfer's recorded executor, which is the one a resend goes to. */
+  commandExecutors: PoolFundingCommandExecutor[];
   available: bigint | null;
   shortfall: bigint | null;
   suggestedTopUp: bigint | null;

@@ -507,6 +507,27 @@
     },
     {
       "page": "docs/docs/community/steward-guide/managing-members.mdx",
+      "images": ["/img/screenshots/admin-manage-roles.webp"],
+      "capture_note": "Manage Roles as an owner sees it: locks with their reason on the owner's own Owner and Steward roles, check boxes on the rest, and Review Removal disabled until a role is checked. No account or transaction proof.",
+      "recorded_at": "2026-11-21",
+      "proof_class": "Storybook",
+      "engine": "Headless Chromium 158 (Playwright), Storybook 10.6.6 dev server",
+      "data": "Fictional garden and member records from the Manage Roles story fixtures.",
+      "capture_name": "admin-manage-roles",
+      "width": 1344,
+      "height": 1344,
+      "sha256": "00b5d2529d503a90fe3cced373fb2acadf527380279c6b11cbe7c5d0684698be",
+      "source_revision": "851c89fff",
+      "status": "current",
+      "story_id": "admin-workflows-garden-managemembersdialog--owner-choosing",
+      "viewport": {
+        "width": 1000,
+        "height": 900
+      },
+      "framing": "The dialog element only, at 2x; no UI compositing"
+    },
+    {
+      "page": "docs/docs/community/steward-guide/managing-members.mdx",
       "images": ["/img/screenshots/admin-edit-garden.webp"],
       "capture_note": "Open joining and Limit gardeners are in Edit Garden. In this fixture the garden's limit has not loaded, so that switch cannot be changed yet. Source: deployed Storybook fixture, captured 12 October 2026. Build revision unavailable; fictional example data."
     },

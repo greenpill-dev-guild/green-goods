@@ -15,7 +15,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Proposed, Storybook only: Garden's Promises tab with the season drawn as a timeline in the season card's place. What needs you, Offers and Asks, Review Promises and Pool Status follow the shipped tab, filled from sample promises; a promise opens the work it links. Sample data fixed at Jan 16, 2026.",
+          "Proposed, Storybook only: Garden's Promises tab with the season drawn as a timeline in the season card's place. What needs you, Offers and Requests, Review Promises and Pool Status follow the shipped tab, filled from sample promises; a promise opens the work it links. Sample data fixed at Jan 16, 2026.",
       },
     },
   },

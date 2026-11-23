@@ -13,6 +13,7 @@ import {
 } from "@green-goods/shared/utils/blockchain/garden-roles";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiUserLine } from "@remixicon/react";
+import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { getRoleLabel } from "./gardenUtils";
 import type { MemberPerson } from "./manageRoles";
@@ -96,6 +97,8 @@ interface ManageRolesPersonRowProps {
   historyError?: boolean;
   onAddRole?: () => void;
   addRoleDisabled?: boolean;
+  /** Says which roles the person's role gives but they lack, and restores them. */
+  restoreNotice?: ReactNode;
 }
 
 /**
@@ -118,6 +121,7 @@ export function ManageRolesPersonRow({
   contribution,
   onAddRole,
   addRoleDisabled = false,
+  restoreNotice,
 }: ManageRolesPersonRowProps) {
   const intl = useIntl();
   const { formatMessage } = intl;
@@ -216,6 +220,7 @@ export function ManageRolesPersonRow({
                 </li>
               ))}
             </ul>
+            {readOnly ? null : restoreNotice}
             {!readOnly
               ? reasons.map((reason) => (
                   <p key={reason} className="type-meta text-text-sub">
