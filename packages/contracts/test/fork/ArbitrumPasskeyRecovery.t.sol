@@ -309,7 +309,8 @@ contract ArbitrumPasskeyRecoveryForkTest is Test {
             abi.encodeCall(IKernel033.uninstallValidation, (_permissionValidation(permissionId), abi.encode(disable), ""))
         );
         PackedUserOperation memory refused = _permissionOperation(agentKey, permissionId);
-        vm.expectRevert();
+        // The account's validation of the removed grant reverts, with no data of its own.
+        vm.expectRevert(abi.encodeWithSignature("FailedOpWithRevert(uint256,string,bytes)", 0, "AA23 reverted", ""));
         _handle(refused);
         assertEq(target.calls(address(account)), 4, "the removed grant can no longer act");
 
@@ -328,7 +329,11 @@ contract ArbitrumPasskeyRecoveryForkTest is Test {
         // Revoking everything at once by raising the account's validation nonce.
         _sendAsOwner(REPLACEMENT_PASSKEY, abi.encodeCall(IKernel033.invalidateNonce, (account.currentNonce() + 1)));
         PackedUserOperation memory refused = _permissionOperation(agentKey, permissionId);
-        vm.expectRevert();
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FailedOpWithRevert(uint256,string,bytes)", 0, "AA23 reverted", abi.encodeWithSignature("InvalidNonce()")
+            )
+        );
         _handle(refused);
 
         _assertOwnerCanAct(REPLACEMENT_PASSKEY, "the owner still sends operations after a sweep");

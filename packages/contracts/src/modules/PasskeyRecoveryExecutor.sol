@@ -71,10 +71,6 @@ contract PasskeyRecoveryExecutor is IPasskeyRecoveryExecutor {
         ROOT_VALIDATION_ID = bytes21(abi.encodePacked(bytes1(0x01), passkeyValidator));
     }
 
-    // ═══════════════════════════════════════════════════════
-    // Enrollment (the account itself, signed by its current passkey)
-    // ═══════════════════════════════════════════════════════
-
     /// @notice Kernel calls this when the account installs the executor.
     /// @param data `abi.encode(address guardian, uint48 delay)`
     function onInstall(bytes calldata data) external payable {
@@ -104,10 +100,6 @@ contract PasskeyRecoveryExecutor is IPasskeyRecoveryExecutor {
     function isInitialized(address account) external view returns (bool) {
         return enrollments[account].guardian != address(0);
     }
-
-    // ═══════════════════════════════════════════════════════
-    // Recovery
-    // ═══════════════════════════════════════════════════════
 
     /// @notice Start replacing an account's passkey. With no delay the key is replaced at once.
     /// @param signature The guardian's EIP-712 approval of exactly this account, key, generation
@@ -168,10 +160,6 @@ contract PasskeyRecoveryExecutor is IPasskeyRecoveryExecutor {
         emit RecoveryCancelled(account, generation, msg.sender);
     }
 
-    // ═══════════════════════════════════════════════════════
-    // Views
-    // ═══════════════════════════════════════════════════════
-
     function enrollmentOf(address account) external view returns (Enrollment memory) {
         return enrollments[account];
     }
@@ -213,10 +201,6 @@ contract PasskeyRecoveryExecutor is IPasskeyRecoveryExecutor {
             )
         );
     }
-
-    // ═══════════════════════════════════════════════════════
-    // Internal
-    // ═══════════════════════════════════════════════════════
 
     function _enroll(address account, address guardian, uint48 delay) private {
         if (guardian == address(0) || guardian == account) revert InvalidGuardian();
