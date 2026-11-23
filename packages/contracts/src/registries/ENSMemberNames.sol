@@ -140,14 +140,15 @@ contract GreenGoodsENSMemberNames is IGreenGoodsENSMemberNames, GreenGoodsENSReg
         emit SponsorshipUpdated(memberSendsPerDay, gardenSendsPerDay, maxFee);
     }
 
-    /// @dev One more registration paid from this contract's balance today, or a revert at that
-    /// group's limit. Returns the most the balance may pay for it.
+    /// @dev Whether the gardens' daily limit has room for one more registration today.
     function _sponsorsAGardenToday() private view returns (bool) {
         Sponsorship memory limits = sponsorship;
         uint256 used = limits.day == uint32(block.timestamp / 1 days) ? limits.gardenSendsToday : 0;
         return used < limits.gardenSendsPerDay;
     }
 
+    /// @dev One more registration paid from this contract's balance today, or a revert at that
+    /// group's limit. Returns the most the balance may pay for it.
     function _countSponsoredSend(bool garden) internal returns (uint256 balanceFeeCap) {
         Sponsorship memory limits = sponsorship;
         uint32 today = uint32(block.timestamp / 1 days);
