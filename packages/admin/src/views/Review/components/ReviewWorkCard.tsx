@@ -20,12 +20,23 @@ export type ReviewWorkCardStatusTone = "neutral" | "success" | "warning" | "erro
 /**
  * What a work's own status reads as in Review. A waiting work is a neutral Pending, since its
  * age is metadata and never an alarm (DL-044). A day's list shows every status, so a rejected
- * work says Rejected rather than passing for one still waiting.
+ * work says Rejected rather than passing for one still waiting, and a work whose decisions
+ * could not be read says so, as the Activity calendar counted it, rather than Pending.
  */
 export function reviewWorkStatus(
   status: Work["status"],
-  formatMessage: IntlShape["formatMessage"]
+  formatMessage: IntlShape["formatMessage"],
+  unread = false
 ): { label: string; tone: ReviewWorkCardStatusTone } {
+  if (unread) {
+    return {
+      label: formatMessage({
+        id: "hub.garden.calendar.status.unknown",
+        defaultMessage: "Status unread",
+      }),
+      tone: "neutral",
+    };
+  }
   if (status === "approved") {
     return {
       label: formatMessage({ id: "app.admin.work.filter.approved", defaultMessage: "Approved" }),

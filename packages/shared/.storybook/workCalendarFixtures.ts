@@ -50,15 +50,23 @@ export function storyBusyDay(): string {
   return `${day.getFullYear()}-${pad(day.getMonth() + 1)}-${pad(day.getDate())}`;
 }
 
+/** The day `days` before Storybook's clock, as the calendar keys it. */
+export function storyDayKey(days: number): string {
+  const day = new Date((daysAgo(days) + 10 * 3600) * 1000);
+  return `${day.getFullYear()}-${pad(day.getMonth() + 1)}-${pad(day.getDate())}`;
+}
+
 /** What `useGardenWorkCalendar` hands the Activity tab, built from fixture works. */
 export function storyWorkCalendar(
   works: Work[] = STORY_CALENDAR_WORKS,
   overrides: Partial<GardenWorkCalendar> = {},
-  openDay?: string
+  openDay?: string,
+  /** Where a cut read stopped (seconds); null for a month read in full. */
+  readThrough: number | null = null
 ): GardenWorkCalendar {
   const now = new Date();
   const month = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
-  const built = buildWorkCalendar(works, UNREAD, month, now);
+  const built = buildWorkCalendar(works, UNREAD, month, now, readThrough);
   return {
     month,
     monthDate: new Date(now.getFullYear(), now.getMonth(), 1),
@@ -66,7 +74,9 @@ export function storyWorkCalendar(
     counts: built.counts,
     daysWithWork: built.daysWithWork,
     state: "ready",
-    complete: true,
+    stale: false,
+    refreshFailed: false,
+    complete: readThrough === null,
     isFetching: false,
     isCurrentMonth: true,
     showPreviousMonth: fn(),
@@ -80,4 +90,18 @@ export function storyWorkCalendar(
     openDayWorkHref: openDay ? `/review/work?gardenId=${GARDEN}&day=${openDay}` : null,
     ...overrides,
   } as GardenWorkCalendar;
+}
+
+/**
+ * A month too busy for one read, cut on the day four days back: that day holds only what was
+ * read, and every later day is not read.
+ */
+export function storyCutCalendar(openDay?: string): GardenWorkCalendar {
+  const readThrough = daysAgo(4) + 10 * 3600;
+  return storyWorkCalendar(
+    STORY_CALENDAR_WORKS.filter((item) => item.createdAt <= readThrough),
+    {},
+    openDay,
+    readThrough
+  );
 }

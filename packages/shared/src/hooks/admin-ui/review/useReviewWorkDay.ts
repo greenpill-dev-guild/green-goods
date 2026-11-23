@@ -58,6 +58,8 @@ export function useReviewWorkDay({
     workDayDate: useMemo(() => (day ? dateOfDay(day) : null), [day]),
     /** The day's submissions, every status. Empty while the tab shows its usual queue. */
     workDayWorks: read.works,
+    /** The day's works whose status could not be read: status unread, never Pending. */
+    workDayUnknownIds: read.unknownIds,
     workDayLoading: day !== null && read.isLoading,
     /** The day could not be read, so its list is unknown, not empty. */
     workDayUnread: day !== null && !read.hasRead && (read.isError || read.isPaused),

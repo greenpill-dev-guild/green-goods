@@ -255,6 +255,7 @@ export function useReviewWorkbenchController() {
     useReviewStageQueues({
       works: workDay ? dayView.workDayWorks : waitingView.bandWorks,
       selectableWorks: workDay ? dayView.workDayWorks : works,
+      unknownIds: workDay ? dayView.workDayUnknownIds : undefined,
       workScope,
       actionsMap,
       normalizedSearch,

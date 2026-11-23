@@ -24,6 +24,7 @@ const rangeRead = vi.hoisted(() => ({
     works: [] as unknown[],
     unknownIds: new Set<string>(),
     complete: true,
+    readThrough: null as number | null,
     hasRead: true,
     isLoading: false,
     isFetching: false,
@@ -70,6 +71,23 @@ describe("the Activity calendar's month", () => {
     expect(calendar.weeks.at(-1)?.at(-1)?.day).toBe("2026-12-06");
     expect(cell("2026-11-19")).toMatchObject({ isToday: true, isFuture: false });
     expect(cell("2026-11-20")).toMatchObject({ isToday: false, isFuture: true });
+  });
+
+  it("reads the days after a cut read as not read, and the day it stopped in as a minimum", () => {
+    // The read stopped at 08:00 on the 19th, partway through the day.
+    const cut = buildWorkCalendar(works, new Set(), "2026-11", NOW, at(2026, 11, 19, 8));
+    const cutCell = (day: string) => cut.weeks.flat().find((item) => item.day === day);
+    expect(cutCell("2026-11-01")?.coverage).toBe("whole");
+    expect(cutCell("2026-11-19")).toMatchObject({ coverage: "partial" });
+    // A read that stopped on the 10th leaves every later day that has begun unread, never empty.
+    expect(
+      buildWorkCalendar(works, new Set(), "2026-11", NOW, at(2026, 11, 10, 8))
+        .weeks.flat()
+        .filter((item) => item.inMonth && item.day > "2026-11-10" && !item.isFuture)
+        .every((item) => item.coverage === "unread")
+    ).toBe(true);
+    expect(cutCell("2026-11-20")?.coverage).toBe("whole");
+    expect(calendar.weeks.flat().every((item) => item.coverage === "whole")).toBe(true);
   });
 
   it("reads a month and a day as half-open ranges that meet without a gap", () => {
@@ -176,7 +194,7 @@ describe("a decision made from the calendar's day", () => {
 describe("the calendar's URL", () => {
   afterEach(() => {
     vi.useRealTimers();
-    rangeRead.current = { ...rangeRead.current, hasRead: true, isPaused: false };
+    rangeRead.current = { ...rangeRead.current, hasRead: true, isPaused: false, isError: false };
   });
 
   function renderCalendar(entry: string) {
@@ -223,5 +241,14 @@ describe("the calendar's URL", () => {
     const { result } = renderCalendar("/garden/activity");
     expect(result.current.calendar.state).toBe("ready");
     expect(result.current.calendar.stale).toBe(true);
+    expect(result.current.calendar.refreshFailed).toBe(false);
+  });
+
+  it("keeps a month whose reread failed online, and says the refresh failed", () => {
+    rangeRead.current = { ...rangeRead.current, hasRead: true, isError: true };
+    const { result } = renderCalendar("/garden/activity");
+    expect(result.current.calendar.state).toBe("ready");
+    expect(result.current.calendar.refreshFailed).toBe(true);
+    expect(result.current.calendar.stale).toBe(false);
   });
 });
