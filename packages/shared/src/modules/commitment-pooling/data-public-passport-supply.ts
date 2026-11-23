@@ -183,7 +183,10 @@ export async function readPassportVoucherSupply(
   // Each contract is checked once per reading, however many vouchers or pools share it.
   const checks = new Map<string, Promise<void>>();
   const reviewed = (proxy: Pick<ServiceDeploymentPin, "address" | "implementation">) => {
-    const key = proxy.address.toLowerCase();
+    // Keyed on the whole pin, so two pins that disagree about one proxy are both checked.
+    const key = [proxy.address, proxy.implementation.address, proxy.implementation.runtimeCodeHash]
+      .join(":")
+      .toLowerCase();
     let check = checks.get(key);
     if (!check) {
       check = Promise.all([
