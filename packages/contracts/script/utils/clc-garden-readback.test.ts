@@ -152,7 +152,16 @@ describe("adopted garden governance", () => {
       "function hasRole(bytes32,address) view returns(bool)",
       "function getMinDelay() view returns(uint256)",
     ]);
-    const state = { threshold: 1, locked: false, minimum: 1, safeRole: true };
+    const state = {
+      threshold: 2,
+      locked: true,
+      mode: 0,
+      minimum: 2,
+      target: 2,
+      safeRole: true,
+      boundSafe: undefined as string | undefined,
+      modules: [guard],
+    };
     const provider = {
       getStorage: async () => zeroPadValue(guard, 32),
       getCode: async () => "0x6000",
@@ -164,11 +173,11 @@ describe("adopted garden governance", () => {
         let result: unknown[];
         if (parsed.name === "getThreshold") result = [target === local.owner.toLowerCase() ? state.threshold : 2];
         else if (parsed.name === "getOwners") result = [[guard, other]];
-        else if (parsed.name === "safe") result = [local.owner];
+        else if (parsed.name === "safe") result = [state.boundSafe ?? local.owner];
         else if (parsed.name === "locked") result = [state.locked];
-        else if (parsed.name === "thresholdConfig") result = [0, state.minimum, state.minimum];
+        else if (parsed.name === "thresholdConfig") result = [state.mode, state.minimum, state.target];
         else if (parsed.name === "getModulesPaginated")
-          result = [[guard], "0x0000000000000000000000000000000000000001"];
+          result = [state.modules, "0x0000000000000000000000000000000000000001"];
         else if (parsed.name === "TIMELOCK_ADMIN_ROLE") result = [id("TIMELOCK_ADMIN_ROLE")];
         else if (parsed.name === "getMinDelay") result = [pool?.id === "green-goods" ? 86400 : 0];
         else if (parsed.name === "hasRole")
@@ -183,20 +192,34 @@ describe("adopted garden governance", () => {
     } as unknown as JsonRpcProvider;
     return { plan, provider, state };
   }
-  it("preserves the existing nonzero GG delay and selected TAS one-approval policy", async () => {
+  it("preserves the existing nonzero GG delay and the locked TAS two-signature policy", async () => {
     const f = authorityFixture();
     const result = await verifyCLCGardenAuthorities(f.provider, f.plan);
     expect(result.map((row) => [row.poolId, row.threshold, row.minDelay])).toEqual([
       ["green-goods", 2, "86400"],
-      ["tech-and-sun", 1, "0"],
+      ["tech-and-sun", 2, "0"],
     ]);
   });
-  it.each(["threshold", "locked", "minimum", "safe-role"])("rejects a changed %s policy", async (fault) => {
+  type AuthorityState = ReturnType<typeof authorityFixture>["state"];
+  it.each<[string, Partial<AuthorityState>, RegExp]>([
+    ["a one-signature threshold", { threshold: 1 }, /TAS two-signature policy mismatch/],
+    ["a threshold above the owner count", { threshold: 3 }, /Invalid pool Safe authority/],
+    ["an unlocked guard", { locked: false }, /TAS guard locked mismatch/],
+    ["a proportional threshold", { mode: 1 }, /TAS absolute threshold mismatch/],
+    ["a lowered minimum", { minimum: 1 }, /TAS minimum mismatch/],
+    ["a raised target", { target: 3 }, /TAS target mismatch/],
+    ["a guard bound to another Safe", { boundSafe: other }, /TAS guard binding mismatch/],
+    ["a second module", { modules: [other, other] }, /TAS sole module count mismatch/],
+    ["a module that is not the guard", { modules: [other] }, /TAS sole guard module mismatch/],
+    ["a missing Safe role", { safeRole: false }, /pool Safe timelock authority mismatch/],
+    [
+      "the old one-approval bootstrap",
+      { threshold: 1, locked: false, minimum: 1, target: 1 },
+      /TAS two-signature policy mismatch/,
+    ],
+  ])("rejects %s", async (_fault, change, reason) => {
     const f = authorityFixture();
-    if (fault === "threshold") f.state.threshold = 2;
-    if (fault === "locked") f.state.locked = true;
-    if (fault === "minimum") f.state.minimum = 2;
-    if (fault === "safe-role") f.state.safeRole = false;
-    await expect(verifyCLCGardenAuthorities(f.provider, f.plan)).rejects.toThrow();
+    Object.assign(f.state, change);
+    await expect(verifyCLCGardenAuthorities(f.provider, f.plan)).rejects.toThrow(reason);
   });
 });

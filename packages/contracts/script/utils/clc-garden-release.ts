@@ -202,7 +202,7 @@ export function inspectCLCGardenManifest(value: unknown) {
   if (typeof m.nonce === "number" && m.nonce > Number.MAX_SAFE_INTEGER - 6 - (m.members as unknown[]).length)
     throw new Error("Garden deployment nonce overflow");
   activationMissing.push(
-    "live.techAndSunOneApprovalPolicy",
+    "live.techAndSunTwoSignaturePolicy",
     "live.currentAuthorityInventoryAndSourceReadback",
     "live.explicitActivationAuthorization",
   );
