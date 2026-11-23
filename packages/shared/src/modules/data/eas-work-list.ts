@@ -218,6 +218,11 @@ export interface WorkRangePage {
   works: EASWork[];
   /** The range holds more works than one read lists, so its latest works are missing. */
   truncated: boolean;
+  /**
+   * When cut, the moment (seconds) of the last row read: works after it are missing, and so may
+   * be more works at that moment. Null when the whole range was read.
+   */
+  readThrough: number | null;
 }
 
 /**
@@ -255,7 +260,9 @@ export const getWorksInRange = async (
     }
   `);
   const easConfig = getEASConfig(chainId);
-  if (isZeroBytes32(easConfig.WORK.uid) || to <= from) return { works: [], truncated: false };
+  if (isZeroBytes32(easConfig.WORK.uid) || to <= from) {
+    return { works: [], truncated: false, readThrough: null };
+  }
   const where = {
     schemaId: { equals: easConfig.WORK.uid },
     revoked: { equals: false },
@@ -294,8 +301,11 @@ export const getWorksInRange = async (
       seen.add(key);
       works.push(work);
     }
-    if (data.attestations.length <= wanted) return { works, truncated: false };
-    if (read >= limit) return { works, truncated: true };
+    if (data.attestations.length <= wanted) return { works, truncated: false, readThrough: null };
+    // Taken from the raw row, so a malformed last row still marks how far the read got.
+    if (read >= limit) {
+      return { works, truncated: true, readThrough: Number(page[page.length - 1].timeCreated) };
+    }
   }
 };
 

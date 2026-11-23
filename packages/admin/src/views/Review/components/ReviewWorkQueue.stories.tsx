@@ -320,6 +320,26 @@ export const ApprovedScope: Story = {
   },
 };
 
+/**
+ * One day's list from the Activity calendar: every status, and a work whose decisions could not
+ * be read says so instead of passing for Pending.
+ */
+export const DayWithUnreadStatus: Story = {
+  tags: ["storybook-ci"],
+  args: {
+    scope: "all",
+    items: [{ ...PENDING_WORK[0], status: "approved" as const }, PENDING_WORK[1], PENDING_WORK[2]],
+    unknownIds: new Set([PENDING_WORK[2].id]),
+    worksLoading: false,
+    hasDataError: false,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getAllByText("Status unread")).toHaveLength(1);
+    await expect(canvas.getAllByText("Pending")).toHaveLength(1);
+  },
+};
+
 export const NoApprovedWork: Story = {
   args: {
     scope: "approved",

@@ -210,6 +210,8 @@ describe("getWorksInRange", () => {
     );
     expect(cut.works).toHaveLength(300);
     expect(cut.truncated).toBe(true);
+    // The 300th work was sent at 1299: anything after it is missing.
+    expect(cut.readThrough).toBe(1299);
     const exact = await getWorksInRange(
       GARDEN,
       { chainId: 42161, from: 1000, to: 1300, limit: 300 },
@@ -217,6 +219,7 @@ describe("getWorksInRange", () => {
     );
     expect(exact.works).toHaveLength(300);
     expect(exact.truncated).toBe(false);
+    expect(exact.readThrough).toBeNull();
   });
 
   it("lists a work once when a late attestation shifts the next page back over it", async () => {

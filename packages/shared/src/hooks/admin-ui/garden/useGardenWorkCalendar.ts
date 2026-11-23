@@ -60,8 +60,8 @@ export function useGardenWorkCalendar({
   const read = useGardenWorkRange(active ? gardenId : undefined, active ? range : null);
 
   const calendar = useMemo(
-    () => buildWorkCalendar(read.works, read.unknownIds, month, now),
-    [read.works, read.unknownIds, month, now]
+    () => buildWorkCalendar(read.works, read.unknownIds, month, now, read.readThrough),
+    [read.works, read.unknownIds, month, now, read.readThrough]
   );
   const openDay: WorkCalendarDay | null = useMemo(
     () =>
@@ -78,6 +78,8 @@ export function useGardenWorkCalendar({
         ? "offline"
         : "loading";
   const stale = read.hasRead && read.isPaused;
+  // Online, a month on screen whose reread failed keeps its grid and says it is the last read.
+  const refreshFailed = read.hasRead && read.isError && !read.isPaused;
 
   const showMonth = useCallback(
     (next: string) =>
@@ -117,6 +119,8 @@ export function useGardenWorkCalendar({
     state,
     /** A month read earlier, shown while offline: its statuses may have moved on since. */
     stale,
+    /** A month read earlier whose reread failed while online: the grid is the last read. */
+    refreshFailed,
     /** False when the month holds more work than one read lists: its counts are a minimum. */
     complete: read.complete,
     isFetching: read.isFetching,

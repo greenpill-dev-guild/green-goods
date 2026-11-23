@@ -41,13 +41,25 @@ export const WORK_CALENDAR_STATUS_LABEL: Record<
   unknown: { id: "hub.garden.calendar.status.unknown", defaultMessage: "Status unread" },
 };
 
-/** "14 submissions: 9 approved, 3 pending, 2 rejected", leaving out the zeros. */
-export function describeWorkCounts(counts: WorkStatusCounts, intl: IntlShape): string {
+/**
+ * "14 submissions: 9 approved, 3 pending, 2 rejected", leaving out the zeros. `atLeast` says the
+ * counts are a minimum, for the day a cut read stopped in.
+ */
+export function describeWorkCounts(
+  counts: WorkStatusCounts,
+  intl: IntlShape,
+  atLeast = false
+): string {
   const head = intl.formatMessage(
-    {
-      id: "hub.garden.calendar.counts",
-      defaultMessage: "{count, plural, one {# submission} other {# submissions}}",
-    },
+    atLeast
+      ? {
+          id: "hub.garden.calendar.countsAtLeast",
+          defaultMessage: "at least {count, plural, one {# submission} other {# submissions}}",
+        }
+      : {
+          id: "hub.garden.calendar.counts",
+          defaultMessage: "{count, plural, one {# submission} other {# submissions}}",
+        },
     { count: counts.total }
   );
   const parts = STATUS_ORDER.filter((status) => counts[status] > 0).map((status) =>

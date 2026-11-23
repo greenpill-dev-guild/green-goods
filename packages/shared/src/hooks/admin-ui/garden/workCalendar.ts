@@ -24,6 +24,13 @@ export interface WorkStatusCounts {
   unknown: number;
 }
 
+/**
+ * How much of a day the month's read covered. A read cut at its limit stops partway through a
+ * day: that day is "partial" and every later day is "unread", never empty. Days still to come
+ * are "whole", since nothing of theirs can be missing.
+ */
+export type WorkDayCoverage = "whole" | "partial" | "unread";
+
 export interface WorkCalendarDay {
   day: WorkDayKey;
   /** False for the days of neighbouring months that fill the grid's first and last weeks. */
@@ -34,6 +41,8 @@ export interface WorkCalendarDay {
   counts: WorkStatusCounts;
   /** The day's submissions, oldest first. */
   works: Work[];
+  /** Whether `counts` and `works` are the whole day, a minimum, or not read at all. */
+  coverage: WorkDayCoverage;
 }
 
 export interface WorkCalendarMonth {
@@ -149,12 +158,14 @@ function countWorkStatuses(
 /**
  * Lay a month's submissions out by the day each was sent. `works` may hold other months'
  * work: only the month's own days count. Statuses are today's, not the month's end.
+ * `readThrough` is where a cut read stopped (seconds), oldest first; null when it was whole.
  */
 export function buildWorkCalendar(
   works: readonly Work[],
   unknownIds: ReadonlySet<string>,
   month: WorkMonthKey,
-  now: Date
+  now: Date,
+  readThrough: number | null = null
 ): WorkCalendarMonth {
   const byDay = new Map<WorkDayKey, Work[]>();
   for (const work of [...works].sort((a, b) => a.createdAt - b.createdAt)) {
@@ -163,6 +174,12 @@ export function buildWorkCalendar(
     byDay.set(day, [...(byDay.get(day) ?? []), work]);
   }
   const today = dayKeyOfDate(now);
+  const cutDay = readThrough === null ? null : toCalendarDateKey(readThrough);
+  const coverageOf = (day: WorkDayKey, dayWorks: readonly Work[]): WorkDayCoverage => {
+    if (cutDay === null || day > today || day < cutDay) return "whole";
+    // The day the read stopped in holds at least what was read; with nothing read it is unread.
+    return day === cutDay && dayWorks.length > 0 ? "partial" : "unread";
+  };
   const weeks = monthGrid(month).map((week) =>
     week.map((day): WorkCalendarDay => {
       const inMonth = monthOfDay(day) === month;
@@ -174,6 +191,7 @@ export function buildWorkCalendar(
         isFuture: day > today,
         counts: countWorkStatuses(dayWorks, unknownIds),
         works: dayWorks,
+        coverage: coverageOf(day, dayWorks),
       };
     })
   );

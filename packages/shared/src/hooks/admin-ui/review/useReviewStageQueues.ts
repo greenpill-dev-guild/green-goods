@@ -18,6 +18,8 @@ export function useReviewStageQueues<
   actionsMap: Parameters<typeof filterWorksByScope>[2];
   normalizedSearch: string;
   sortDirection: Parameters<typeof filterWorksByScope>[4];
+  /** Works whose status could not be read: left out of Pending and Approved. */
+  unknownIds?: Parameters<typeof filterWorksByScope>[5];
   assessments: TAssessment[];
   hypercerts: THypercert[];
   routeWorkId?: string | null;
@@ -32,6 +34,7 @@ export function useReviewStageQueues<
     actionsMap,
     normalizedSearch,
     sortDirection,
+    unknownIds,
     assessments,
     hypercerts,
     routeWorkId,
@@ -41,8 +44,9 @@ export function useReviewStageQueues<
   } = input;
 
   const scopedWorks = useMemo(
-    () => filterWorksByScope(works, workScope, actionsMap, normalizedSearch, sortDirection),
-    [actionsMap, normalizedSearch, sortDirection, workScope, works]
+    () =>
+      filterWorksByScope(works, workScope, actionsMap, normalizedSearch, sortDirection, unknownIds),
+    [actionsMap, normalizedSearch, sortDirection, unknownIds, workScope, works]
   );
 
   const assessmentList = useMemo(

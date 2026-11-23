@@ -34,12 +34,14 @@ function dayAriaLabel(cell: WorkCalendarDay, intl: IntlShape) {
     );
   }
   const what =
-    cell.counts.total === 0
-      ? intl.formatMessage({
-          id: "hub.garden.calendar.day.nothing",
-          defaultMessage: "nothing submitted",
-        })
-      : describeWorkCounts(cell.counts, intl);
+    cell.coverage === "unread"
+      ? intl.formatMessage({ id: "hub.garden.calendar.day.unread", defaultMessage: "not read" })
+      : cell.counts.total === 0
+        ? intl.formatMessage({
+            id: "hub.garden.calendar.day.nothing",
+            defaultMessage: "nothing submitted",
+          })
+        : describeWorkCounts(cell.counts, intl, cell.coverage === "partial");
   return cell.isToday
     ? intl.formatMessage(
         { id: "hub.garden.calendar.day.today", defaultMessage: "{date}, today: {what}" },
@@ -48,18 +50,33 @@ function dayAriaLabel(cell: WorkCalendarDay, intl: IntlShape) {
     : `${date}: ${what}`;
 }
 
-/** Runs of days with no work are said once in the phone list, not once a day. */
+/**
+ * Runs of days with no work, and runs a cut read never reached, are said once in the phone
+ * list, not once a day.
+ */
 function agendaItems(weeks: WorkCalendarDay[][]) {
   const items: Array<
-    { kind: "day"; cell: WorkCalendarDay } | { kind: "gap"; from: string; to: string }
+    { kind: "day"; cell: WorkCalendarDay } | { kind: "gap" | "unread"; from: string; to: string }
   > = [];
   for (const cell of weeks.flat().filter(opens).reverse()) {
     const last = items[items.length - 1];
+    const kind = cell.coverage === "unread" ? "unread" : "gap";
     if (cell.works.length > 0) items.push({ kind: "day", cell });
-    else if (last?.kind === "gap") last.from = cell.day;
-    else items.push({ kind: "gap", from: cell.day, to: cell.day });
+    else if (last?.kind === kind) last.from = cell.day;
+    else items.push({ kind, from: cell.day, to: cell.day });
   }
   return items;
+}
+
+/** A day's total, with "+" where it is only a minimum. */
+function dayTotal(cell: WorkCalendarDay, intl: IntlShape) {
+  const total = intl.formatNumber(cell.counts.total);
+  return cell.coverage === "partial"
+    ? intl.formatMessage(
+        { id: "hub.garden.calendar.day.atLeastCount", defaultMessage: "{count}+" },
+        { count: total }
+      )
+    : total;
 }
 
 export function WorkCalendarGrid({
@@ -87,6 +104,10 @@ export function WorkCalendarGrid({
   const todayLabel = intl.formatMessage({
     id: "hub.garden.calendar.today",
     defaultMessage: "Today",
+  });
+  const notReadLabel = intl.formatMessage({
+    id: "hub.garden.calendar.day.unreadShort",
+    defaultMessage: "Not read",
   });
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -168,12 +189,15 @@ export function WorkCalendarGrid({
                     </span>
                     {opens(cell) ? (
                       <span aria-hidden className="flex flex-1 flex-col gap-1">
-                        {cell.counts.total === 0 ? (
+                        {/* A day a cut read never reached is not read, never a 0. */}
+                        {cell.coverage === "unread" ? (
+                          <span className="type-meta text-text-soft">{notReadLabel}</span>
+                        ) : cell.counts.total === 0 ? (
                           <span className="type-meta text-text-soft">0</span>
                         ) : (
                           <>
                             <span className="type-title-sm font-semibold tabular-nums text-text-strong">
-                              {intl.formatNumber(cell.counts.total)}
+                              {dayTotal(cell, intl)}
                             </span>
                             <StatusMarks counts={cell.counts} className="type-meta-sm" />
                             <StatusBar
@@ -203,13 +227,12 @@ export function WorkCalendarGrid({
         className="flex flex-col gap-(--gg-list-gap) @[34rem]:hidden"
       >
         {agendaItems(weeks).map((item) =>
-          item.kind === "gap" ? (
-            <li key={`gap-${item.to}`} className="px-3 type-meta text-text-soft">
+          item.kind !== "day" ? (
+            <li key={`${item.kind}-${item.to}`} className="px-3 type-meta text-text-soft">
               {intl.formatMessage(
-                {
-                  id: "hub.garden.calendar.gap",
-                  defaultMessage: "{range}: nothing submitted",
-                },
+                item.kind === "unread"
+                  ? { id: "hub.garden.calendar.unreadRun", defaultMessage: "{range}: not read" }
+                  : { id: "hub.garden.calendar.gap", defaultMessage: "{range}: nothing submitted" },
                 {
                   range:
                     item.from === item.to
@@ -242,7 +265,7 @@ export function WorkCalendarGrid({
                     {item.cell.isToday ? ` (${todayLabel})` : ""}
                   </span>
                   <span className="type-title-sm font-semibold tabular-nums text-text-strong">
-                    {intl.formatNumber(item.cell.counts.total)}
+                    {dayTotal(item.cell, intl)}
                   </span>
                 </span>
                 <span aria-hidden className="flex flex-col gap-1">

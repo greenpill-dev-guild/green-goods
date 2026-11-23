@@ -52,7 +52,8 @@ export function WorkCalendarCard({ calendar }: { calendar: GardenWorkCalendar })
                       defaultMessage: "{summary}, on {days, plural, one {# day} other {# days}}.",
                     },
                     {
-                      summary: describeWorkCounts(calendar.counts, intl),
+                      // A cut month's totals are only a minimum.
+                      summary: describeWorkCounts(calendar.counts, intl, !calendar.complete),
                       days: calendar.daysWithWork,
                     }
                   )}
@@ -155,6 +156,34 @@ export function WorkCalendarCard({ calendar }: { calendar: GardenWorkCalendar })
                 })}
               </Alert>
             ) : null}
+            {/* Online, a reread that failed keeps the last grid, says so and offers a retry. */}
+            {calendar.refreshFailed ? (
+              <Alert
+                variant="warning"
+                title={formatMessage({
+                  id: "hub.garden.calendar.refreshFailed.title",
+                  defaultMessage: "This month could not be refreshed",
+                })}
+              >
+                <p>
+                  {formatMessage({
+                    id: "hub.garden.calendar.refreshFailed.description",
+                    defaultMessage:
+                      "The calendar shows the month as last read, so its statuses may have changed since.",
+                  })}
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  emphasis="secondary"
+                  className="mt-2"
+                  loading={calendar.isFetching}
+                  onClick={() => void calendar.retry()}
+                >
+                  {formatMessage({ id: "app.common.tryAgain", defaultMessage: "Try Again" })}
+                </Button>
+              </Alert>
+            ) : null}
             {calendar.complete ? null : (
               <Alert
                 variant="warning"
@@ -172,23 +201,32 @@ export function WorkCalendarCard({ calendar }: { calendar: GardenWorkCalendar })
             )}
             <WorkCalendarGrid calendar={calendar} monthLabel={monthLabel} />
             <p className="type-meta text-text-soft">
-              {calendar.stale
+              {calendar.refreshFailed
                 ? formatMessage(
                     {
-                      id: "hub.garden.calendar.basisStale",
+                      id: "hub.garden.calendar.basisLastRead",
                       defaultMessage:
-                        "Work counts on the day it was sent, by your device's clock ({zone}). Statuses are as last read, before you went offline.",
+                        "Work counts on the day it was sent, by your device's clock ({zone}). Statuses are as last read.",
                     },
                     { zone }
                   )
-                : formatMessage(
-                    {
-                      id: "hub.garden.calendar.basis",
-                      defaultMessage:
-                        "Work counts on the day it was sent, by your device's clock ({zone}). Statuses are as they stand today.",
-                    },
-                    { zone }
-                  )}
+                : calendar.stale
+                  ? formatMessage(
+                      {
+                        id: "hub.garden.calendar.basisStale",
+                        defaultMessage:
+                          "Work counts on the day it was sent, by your device's clock ({zone}). Statuses are as last read, before you went offline.",
+                      },
+                      { zone }
+                    )
+                  : formatMessage(
+                      {
+                        id: "hub.garden.calendar.basis",
+                        defaultMessage:
+                          "Work counts on the day it was sent, by your device's clock ({zone}). Statuses are as they stand today.",
+                      },
+                      { zone }
+                    )}
             </p>
           </>
         )}
