@@ -4,10 +4,13 @@ import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import { worksKeys } from "../../../config/query-keys/work";
 import { GC_TIMES, STALE_TIMES } from "../../../config/react-query";
 import {
+  isConfirmedLocalDecision,
+  isIndexedWork,
   type OverlayWork,
   resolveGardenWorkRows,
 } from "../../../modules/work/local-status-overlay";
 import { readGardenReviewFlow } from "../../../modules/work/work-list";
+import { isWorkVisible } from "../../../modules/work/work-visibility";
 import type { Address, Work } from "../../../types/domain";
 import { toCalendarDateKey } from "../../../utils/calendar-date";
 import { adminRoutes } from "../../../utils/navigation/admin-routes";
@@ -30,6 +33,8 @@ export interface ReviewHealthWeek {
   submittedComplete: boolean;
   /** False when the week's decisions could not all be read: its count is a minimum. */
   reviewedComplete: boolean;
+  /** False on a chain that records no review decisions: the week has no reviewed count. */
+  reviewedAvailable: boolean;
   /** The week still under way. */
   isCurrent: boolean;
 }
@@ -39,6 +44,7 @@ export type ReviewHealthReadState = "loading" | "ready" | "error" | "offline";
 export type ReviewHealthList = "submitted" | "reviewed";
 
 const NO_ROWS: never[] = [];
+const NO_TIMES: number[] = [];
 
 function mondayOf(date: Date): Date {
   const daysSinceMonday = (date.getDay() + 6) % 7;
@@ -83,6 +89,13 @@ export function useGardenReviewHealth(gardenId: Address | undefined, active: boo
     queryFn: async () => {
       // Disabled without a garden, so it is never missing when this runs.
       if (!gardenId) throw new Error("No garden to read");
+      // A decision this device saw confirmed rereads the weeks, so it is named here: the read
+      // tells one the index already holds from one it does not hold yet.
+      const decidedHere = (
+        queryClient.getQueryData<OverlayWork[]>(worksKeys.merged(gardenId, chainId)) ?? []
+      )
+        .filter(isConfirmedLocalDecision)
+        .map((work) => work.id);
       try {
         return await readGardenReviewFlow({
           garden: gardenId,
@@ -90,6 +103,7 @@ export function useGardenReviewHealth(gardenId: Address | undefined, active: boo
           from,
           to,
           visibility: await queryClient.fetchQuery(workVisibilityQuery(chainId)),
+          decidedHere,
         });
       } catch (error) {
         void reportConnectivityFailure();
@@ -101,13 +115,15 @@ export function useGardenReviewHealth(gardenId: Address | undefined, active: boo
     staleTime: STALE_TIMES.works,
     gcTime: GC_TIMES.works,
   });
-  // Decisions made on this device, which the indexer may not report yet.
+  // The garden's works as this device last resolved them, decisions and sends it saw confirmed
+  // included, which the indexer may not report yet.
   const overlay = useQuery<OverlayWork[]>({
     queryKey: worksKeys.merged(gardenId ?? "", chainId),
     queryFn: () =>
       queryClient.getQueryData<OverlayWork[]>(worksKeys.merged(gardenId ?? "", chainId)) ?? [],
     enabled: false,
   });
+  const visibility = useQuery({ ...workVisibilityQuery(chainId), enabled });
 
   const weeks = useMemo<ReviewHealthWeek[]>(() => {
     const weekStartsNow = weekStarts(now);
@@ -115,11 +131,30 @@ export function useGardenReviewHealth(gardenId: Address | undefined, active: boo
     const resolve = (rows: Parameters<typeof resolveGardenWorkRows>[0]["remote"]) =>
       resolveGardenWorkRows({ remote: rows, saved: undefined, overlay: overlay.data })
         .rows as Work[];
-    const submitted = resolve(flow?.submitted ?? NO_ROWS);
+    const listed = new Set((flow?.submitted ?? []).map((row) => row.id.toLowerCase()));
+    // Work this device sent and saw confirmed, which the Review queue lists before the index
+    // does. A weeks read that already lists it counts it there instead.
+    const sentHere = flow
+      ? (overlay.data ?? []).filter(
+          (work) =>
+            isIndexedWork(work) &&
+            work.createdAt >= from &&
+            work.createdAt < to &&
+            !listed.has(work.id.toLowerCase()) &&
+            (!visibility.data || isWorkVisible(work.id, visibility.data))
+        )
+      : NO_ROWS;
+    const submitted = [...resolve(flow?.submitted ?? NO_ROWS), ...(sentHere as Work[])];
     const reviewedWorks = resolve(flow?.reviewed.map((entry) => entry.work) ?? NO_ROWS);
     const firstDecided = new Map(
       (flow?.reviewed ?? []).map((entry) => [entry.work.id, entry.firstDecidedAt])
     );
+    // Decisions this device saw confirmed that the index does not hold yet landed just now.
+    const decidedNow = resolve(flow?.decidedUnindexed ?? NO_ROWS);
+    const reviewedAvailable = flow?.reviewedAvailable ?? true;
+    // A submission left out as malformed leaves its week short; one with no readable time,
+    // every week.
+    const droppedAt = flow?.submittedDroppedAt ?? NO_TIMES;
     // Past the read's limit the latest submissions are missing, from the last one read on.
     // Past the decision read's limit, the period's decisions before this moment are missing.
     const decisionsCutAt = flow?.reviewedReadFrom ?? null;
@@ -132,28 +167,40 @@ export function useGardenReviewHealth(gardenId: Address | undefined, active: boo
       const weekFrom = seconds(start);
       const weekTo = seconds(weekStartsNow[index + 1]);
       const inWeek = (at: number | undefined) => at !== undefined && at >= weekFrom && at < weekTo;
+      const isCurrent = index === REVIEW_HEALTH_WEEKS - 1;
       return {
         start,
         submitted: submitted.filter((work) => inWeek(work.createdAt)),
-        reviewed: reviewedWorks.filter((work) => inWeek(firstDecided.get(work.id))),
-        submittedComplete: (flow?.submittedComplete ?? true) || weekTo <= lastSubmitted,
+        reviewed: reviewedAvailable
+          ? [
+              ...reviewedWorks.filter((work) => inWeek(firstDecided.get(work.id))),
+              ...(isCurrent ? decidedNow : NO_ROWS),
+            ]
+          : NO_ROWS,
+        submittedComplete:
+          ((flow?.submittedComplete ?? true) || weekTo <= lastSubmitted) &&
+          !droppedAt.some((at) => Number.isNaN(at) || inWeek(at)),
         reviewedComplete:
           (flow?.reviewedComplete ?? true) &&
           (decisionsCutAt === null || decisionsCutAt <= weekFrom),
-        isCurrent: index === REVIEW_HEALTH_WEEKS - 1,
+        reviewedAvailable,
+        isCurrent,
       };
     });
-  }, [from, now, overlay.data, read.data]);
+  }, [from, to, now, overlay.data, read.data, visibility.data]);
 
+  const offline = !isOnline || read.isPaused;
   const state: ReviewHealthReadState = read.data
     ? "ready"
     : read.isError
       ? "error"
-      : !isOnline || read.isPaused
+      : offline
         ? "offline"
         : "loading";
-  // Weeks read before going offline or before a refresh failed: shown, but as the last read.
-  const stale = Boolean(read.data) && (!isOnline || read.isPaused || read.isError);
+  // Weeks read before going offline: shown, but as the last read.
+  const stale = Boolean(read.data) && offline;
+  // Weeks read before a refresh failed online: shown as the last read, with a way to retry.
+  const refreshFailed = Boolean(read.data) && read.isError && !offline;
 
   // The open week lives in the URL, so a reload, a shared link and Back land on it.
   const { searchParams } = useCanvasSearchParams();
@@ -178,8 +225,12 @@ export function useGardenReviewHealth(gardenId: Address | undefined, active: boo
   return {
     weeks,
     state,
-    /** The weeks shown are the last successful read, not a current one. */
+    /** Offline: the weeks shown are the last successful read, not a current one. */
     stale,
+    /** Online, a reread failed: the weeks shown are the last successful read. */
+    refreshFailed,
+    /** False on a chain that records no review decisions: there are no reviewed counts. */
+    reviewedAvailable: read.data?.reviewedAvailable ?? true,
     isFetching: read.isFetching,
     retry: read.refetch,
     openWeek,
