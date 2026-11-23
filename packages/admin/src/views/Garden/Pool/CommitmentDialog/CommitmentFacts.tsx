@@ -34,7 +34,8 @@ export function CommitmentFacts({
     targets.map((target) => Number(target.actionUID)),
     commitment.chainId
   );
-  // Work sent toward a target: linked works, any decision. Reviewed is the approved count.
+  // Work sent toward a target: linked works, whatever their decision. Approved counts the linked
+  // works whose approval stands.
   const reported = (index: number) =>
     (detail?.workAttributions ?? []).filter((row) => row.linked && row.requirementIndex === index)
       .length;
@@ -114,7 +115,7 @@ export function CommitmentFacts({
               value={formatMessage(
                 { id: "hub.garden.pool.commitment.target.progress" },
                 {
-                  reviewed: target.approvedCount,
+                  approved: target.approvedCount,
                   reported: reported(target.requirementIndex),
                   target: target.requiredCount,
                 }

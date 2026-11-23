@@ -85,8 +85,8 @@ export const ConfirmedByGardenFallback: Story = {
 };
 
 /**
- * A promise with a target is the goal (PRD-1538): 120 waste pickups, 40 sent toward it and 34
- * reviewed, in the action's own count. A second target in another action keeps its own line.
+ * A promise with a target is the goal (PRD-1538): 30 waste pickups, 26 sent toward it and 24
+ * approved, in the action's own count. A second target in another action keeps its own line.
  */
 const storyAction = (uid: number, slug: string, title: string): Action => ({
   id: `${STORY_CHAIN}-${uid}`,
@@ -120,8 +120,8 @@ export const WasteTargets: Story = {
     detail: {
       ...(dialog.detail as NonNullable<CommitmentDialogController["detail"]>),
       requirements: [
-        { requirementIndex: 0, actionUID: 1n, requiredCount: 120, approvedCount: 34 },
-        { requirementIndex: 1, actionUID: 2n, requiredCount: 12, approvedCount: 3 },
+        { requirementIndex: 0, actionUID: 1n, requiredCount: 30, approvedCount: 24 },
+        { requirementIndex: 1, actionUID: 2n, requiredCount: 10, approvedCount: 3 },
       ].map((row) => ({
         ...row,
         id: `42161-7-${row.requirementIndex}`,
@@ -132,14 +132,14 @@ export const WasteTargets: Story = {
         createdAt: 0,
         updatedAt: 0,
       })),
-      workAttributions: Array.from({ length: 44 }, (_, index) => ({
+      workAttributions: Array.from({ length: 30 }, (_, index) => ({
         id: `42161-work-${index}`,
         chainId: 42161,
         workUID: `0x${index.toString(16).padStart(64, "0")}` as `0x${string}`,
         commitmentId: 7n,
         linkSeen: true as const,
         contributor: STORY_ANA,
-        requirementIndex: index < 40 ? 0 : 1,
+        requirementIndex: index < 26 ? 0 : 1,
         operationKey: null,
         linked: true,
         creditActive: true,
@@ -153,7 +153,7 @@ export const WasteTargets: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText("34 reviewed, 40 reported, of 120")).toBeVisible();
-    await expect(canvas.getByText("3 reviewed, 4 reported, of 12")).toBeVisible();
+    await expect(canvas.getByText("24 approved, 26 reported, of 30")).toBeVisible();
+    await expect(canvas.getByText("3 approved, 4 reported, of 10")).toBeVisible();
   },
 };

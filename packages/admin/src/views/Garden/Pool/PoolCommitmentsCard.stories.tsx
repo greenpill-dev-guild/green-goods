@@ -103,8 +103,8 @@ export const Open: Story = {
 };
 
 /**
- * A promise with one target leads its row with how far that target is reviewed (PRD-1538): the
- * waste pickups promise, 34 of 120 reviewed.
+ * A promise with one target leads its row with how much of that target is approved (PRD-1538):
+ * the waste pickups promise, 34 of 40 approved.
  */
 export const TargetProgress: Story = {
   tags: ["storybook-ci"],
@@ -113,7 +113,7 @@ export const TargetProgress: Story = {
       commitments: [
         {
           ...STORY_COMMITMENTS[0],
-          requirements: [{ actionUID: 1n, requiredCount: 120 }],
+          requirements: [{ actionUID: 1n, requiredCount: 40 }],
           requirementsApproved: [34],
         },
         ...STORY_COMMITMENTS.slice(1),
@@ -122,7 +122,7 @@ export const TargetProgress: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByText("34 of 120 reviewed")).toBeVisible();
+    await expect(await canvas.findByText("34 of 40 approved")).toBeVisible();
   },
 };
 

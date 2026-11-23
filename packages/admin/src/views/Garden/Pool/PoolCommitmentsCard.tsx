@@ -116,17 +116,17 @@ export function PoolCommitmentsCard({
       { id: "hub.garden.pool.row.untitled", defaultMessage: "Promise {id}" },
       { id: commitment.commitmentId.toString() }
     );
-  // A promise with one target says how far it is reviewed, in its action's own count; one with
+  // A promise with one target says how much of it is approved, in its action's own count; one with
   // several opens its inspector for each, since different actions are never summed (PRD-1538).
   const progressNote = (commitment: CommitmentReadModel) => {
     const [target] = commitment.requirements ?? [];
-    const [reviewed] = commitment.requirementsApproved ?? [];
-    if (commitment.requirements?.length !== 1 || target === undefined || reviewed === undefined) {
+    const [approved] = commitment.requirementsApproved ?? [];
+    if (commitment.requirements?.length !== 1 || target === undefined || approved === undefined) {
       return undefined;
     }
     return formatMessage(
       { id: "hub.garden.pool.row.progress" },
-      { reviewed, target: target.requiredCount }
+      { approved, target: target.requiredCount }
     );
   };
   const titleById = (commitmentId: bigint) => {
