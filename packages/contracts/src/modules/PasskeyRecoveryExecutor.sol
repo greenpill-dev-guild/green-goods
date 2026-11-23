@@ -115,7 +115,12 @@ contract PasskeyRecoveryExecutor is IPasskeyRecoveryExecutor {
         Enrollment memory enrollment = enrollments[account];
         if (enrollment.guardian == address(0)) revert NotEnrolled();
         _requireValidKey(key);
-        if (pendingRecoveries[account].generation == enrollment.generation) revert RecoveryAlreadyPending();
+        // A request nobody executed in its window no longer blocks a new one, so a relayed approval
+        // can start over without the guardian paying for a cancel.
+        PendingRecovery memory current = pendingRecoveries[account];
+        if (current.generation == enrollment.generation && block.timestamp <= current.expiresAt) {
+            revert RecoveryAlreadyPending();
+        }
         _requireGuardianApproval(account, enrollment, key, deadline, signature);
 
         bytes32 keyHash = _keyHash(key);
@@ -164,11 +169,15 @@ contract PasskeyRecoveryExecutor is IPasskeyRecoveryExecutor {
         return enrollments[account];
     }
 
-    /// @notice The pending request, or an empty one when none is waiting on the current generation.
+    /// @notice The pending request, or an empty one when none is waiting on the current generation
+    /// or the last one lapsed unexecuted.
     function pendingRecoveryOf(address account) external view returns (PendingRecovery memory pending) {
         Enrollment memory enrollment = enrollments[account];
         pending = pendingRecoveries[account];
-        if (enrollment.guardian == address(0) || pending.generation != enrollment.generation) {
+        if (
+            enrollment.guardian == address(0) || pending.generation != enrollment.generation
+                || block.timestamp > pending.expiresAt
+        ) {
             delete pending;
         }
     }

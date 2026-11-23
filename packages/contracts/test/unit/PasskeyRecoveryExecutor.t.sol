@@ -115,6 +115,20 @@ contract ContractGuardian {
     }
 }
 
+/// @dev A contract guardian that does not say yes: it answers the wrong value, or reverts.
+contract FaultyGuardian {
+    bool internal immutable reverts;
+
+    constructor(bool reverts_) {
+        reverts = reverts_;
+    }
+
+    function isValidSignature(bytes32, bytes calldata) external view returns (bytes4) {
+        if (reverts) revert("refused");
+        return bytes4(0x1626ba7f);
+    }
+}
+
 contract PasskeyRecoveryExecutorTest is Test {
     // Two points on P-256: the generator and its double.
     uint256 internal constant GX = 0x6B17D1F2E12C4247F8BCE6E563A440F277037D812DEB33A0F4A13945D898C296;
@@ -433,7 +447,7 @@ contract PasskeyRecoveryExecutorTest is Test {
 
     // ───────────── Expiry ─────────────
 
-    function testExecute_refusesARequestNobodyActedOnInTime() public {
+    function testExecute_refusesALapsedRequestButAFreshApprovalStartsOver() public {
         IPasskeyRecoveryExecutor.PasskeyKey memory key = _replacement();
         uint256 deadline = block.timestamp + 60 days;
         bytes memory approval = _approval(key, 1, deadline, guardianKey);
@@ -448,12 +462,52 @@ contract PasskeyRecoveryExecutorTest is Test {
         executor.executeRecovery(address(account), key);
         assertEq(_currentKeyX(), GX);
 
-        // The lapsed approval cannot start over; the guardian has to clear it and approve again.
-        vm.expectRevert(IPasskeyRecoveryExecutor.RecoveryAlreadyPending.selector);
-        executor.requestRecovery(address(account), key, deadline, approval);
-        vm.prank(guardian);
+        // The lapsed request no longer counts as pending, and it blocks nothing: a fresh approval,
+        // relayed by anyone, starts over without the guardian sending a transaction.
+        assertEq(executor.pendingRecoveryOf(address(account)).generation, 0, "a lapsed request is not pending");
+        uint256 freshDeadline = block.timestamp + 1 hours;
+        bytes memory fresh = _approval(key, 1, freshDeadline, guardianKey);
+        vm.prank(stranger);
+        executor.requestRecovery(address(account), key, freshDeadline, fresh);
+        IPasskeyRecoveryExecutor.PendingRecovery memory restarted = executor.pendingRecoveryOf(address(account));
+        assertEq(restarted.generation, 1);
+        assertEq(restarted.executeAfter, block.timestamp + DELAY, "the new request waits the full delay again");
+        // The account, with its passkey, can still cancel it.
+        vm.prank(address(account));
         executor.cancelRecovery(address(account));
-        executor.requestRecovery(address(account), key, deadline, _approval(key, 2, deadline, guardianKey));
+        assertEq(executor.pendingRecoveryOf(address(account)).generation, 0);
+    }
+
+    function testRequest_refusesAContractGuardianThatDoesNotSayYes() public {
+        IPasskeyRecoveryExecutor.PasskeyKey memory key = _replacement();
+        uint256 deadline = block.timestamp + 1 hours;
+        bool[2] memory reverts = [false, true];
+        for (uint256 i = 0; i < reverts.length; i++) {
+            FaultyGuardian faulty = new FaultyGuardian(reverts[i]);
+            vm.prank(address(account));
+            executor.setGuardian(address(faulty), DELAY);
+            uint32 generation = executor.enrollmentOf(address(account)).generation;
+            bytes memory approval = _approval(key, generation, deadline, guardianKey);
+            vm.expectRevert(IPasskeyRecoveryExecutor.NotGuardian.selector);
+            executor.requestRecovery(address(account), key, deadline, approval);
+        }
+    }
+
+    function testRequest_refusesAnApprovalSignedForAnotherExecutorOrChain() public {
+        IPasskeyRecoveryExecutor.PasskeyKey memory key = _replacement();
+        uint256 deadline = block.timestamp + 1 hours;
+
+        PasskeyRecoveryExecutor other = new PasskeyRecoveryExecutor(address(validator));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(guardianKey, other.recoveryDigest(address(account), key, 1, deadline));
+        vm.expectRevert(IPasskeyRecoveryExecutor.NotGuardian.selector);
+        executor.requestRecovery(address(account), key, deadline, abi.encodePacked(r, s, v));
+
+        uint256 home = block.chainid;
+        vm.chainId(10);
+        bytes memory otherChain = _approval(key, 1, deadline, guardianKey);
+        vm.chainId(home);
+        vm.expectRevert(IPasskeyRecoveryExecutor.NotGuardian.selector);
+        executor.requestRecovery(address(account), key, deadline, otherChain);
     }
 
     function testGuardian_replacingOrRemovingItDropsThePendingRequest() public {
