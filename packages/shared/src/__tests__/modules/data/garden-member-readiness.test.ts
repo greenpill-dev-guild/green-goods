@@ -112,9 +112,13 @@ describe("getGardenMemberReadiness", () => {
   });
 
   it("reads a member as unavailable when a decision row on their work could not be read", async () => {
+    // The unreadable row could reverse the approval that was read.
     const readiness = await getGardenMemberReadiness(
       { ...scope, accounts: [sender] },
-      reader({ works: { [sender]: [workRow(1, 1_000)] }, decisions: [{ id: uid(12) }] })
+      reader({
+        works: { [sender]: [workRow(1, 1_000)] },
+        decisions: [decisionRow(10, 1, 1_500, true), { id: uid(12) }],
+      })
     );
     expect(readiness[sender]).toEqual({ status: "unavailable" });
   });

@@ -142,9 +142,11 @@ async function readOne(
     return latest?.approved ? [latest.createdAt * 1000] : [];
   });
   const firstApprovedAt = approvedAt.length > 0 ? Math.min(...approvedAt) : null;
-  // A decision row that could not be read, or a work past the read's limit, may hide the
-  // approval that would make this member contributing.
-  if (firstApprovedAt === null && (!whole || dropped > 0)) return { status: "unavailable" };
+  // A decision row that could not be read may be the approval, or a later decision reversing
+  // one, so with any of them unread the stage is unknown.
+  if (dropped > 0) return { status: "unavailable" };
+  // Past the read's limit, a member with no approval found may still have one.
+  if (firstApprovedAt === null && !whole) return { status: "unavailable" };
   return {
     status: "read",
     stage: readinessStage(firstSentAt, firstApprovedAt),
