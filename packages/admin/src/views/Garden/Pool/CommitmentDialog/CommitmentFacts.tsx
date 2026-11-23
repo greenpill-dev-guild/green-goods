@@ -2,8 +2,11 @@ import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow"
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import type { CommitmentDialogController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment-pooling/types-core";
+import { useActionsByUID } from "@green-goods/shared/hooks/action/useAction";
+import { findActionByUID } from "@green-goods/shared/utils/action/parsers";
 import type { ReactNode } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
+import { localizeActionForDisplay } from "@/components/Action/actionDisplay";
 import { exactTime, isoTime } from "../poolTime";
 import { railLabel } from "./commitmentDialogPresentation";
 
@@ -26,6 +29,15 @@ export function CommitmentFacts({
   const intl = useIntl();
   const { formatMessage } = intl;
   const rail = railLabel(commitment.considerationRail, formatMessage);
+  const targets = detail?.requirements ?? [];
+  const actions = useActionsByUID(
+    targets.map((target) => Number(target.actionUID)),
+    commitment.chainId
+  );
+  // Work sent toward a target: linked works, any decision. Reviewed is the approved count.
+  const reported = (index: number) =>
+    (detail?.workAttributions ?? []).filter((row) => row.linked && row.requirementIndex === index)
+      .length;
 
   return (
     <section
@@ -85,17 +97,31 @@ export function CommitmentFacts({
             { count: commitment.evidenceCount }
           )
         )}
-        {(detail?.requirements.length ?? 0) > 0
-          ? fact(
-              formatMessage({
-                id: "hub.garden.pool.commitment.fact.work",
-                defaultMessage: "Work",
-              }),
-              detail!.requirements
-                .map((row) => `${row.approvedCount}/${row.requiredCount}`)
-                .join(" · ")
-            )
-          : null}
+        {/* Each target in its own action's count, never summed across actions (PRD-1538). */}
+        {targets.map((target) => {
+          const action = findActionByUID(actions, Number(target.actionUID));
+          return (
+            <FactRow
+              key={`target-${target.requirementIndex}`}
+              label={
+                action
+                  ? localizeActionForDisplay(action, intl).title
+                  : formatMessage(
+                      { id: "hub.garden.pool.commitment.target.action" },
+                      { uid: target.actionUID.toString() }
+                    )
+              }
+              value={formatMessage(
+                { id: "hub.garden.pool.commitment.target.progress" },
+                {
+                  reviewed: target.approvedCount,
+                  reported: reported(target.requirementIndex),
+                  target: target.requiredCount,
+                }
+              )}
+            />
+          );
+        })}
         {fact(
           formatMessage({
             id: "hub.garden.pool.commitment.fact.provider",
