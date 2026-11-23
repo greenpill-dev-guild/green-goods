@@ -120,16 +120,14 @@ contract GreenGoodsENSMemberNamesTest is Test {
 
     function testUpgrade_MemberNames_keepsEveryNameAndStartsWithClaimsAndSponsorshipOff() public {
         GreenGoodsENSRegistrar plain = GreenGoodsENSRegistrar(
-            payable(
-                address(
+            payable(address(
                     new ERC1967Proxy(
                         address(new GreenGoodsENSRegistrar()),
                         abi.encodeCall(
                             GreenGoodsENSRegistrar.initialize, (address(router), ETH_CHAIN_SELECTOR, l1Receiver, owner)
                         )
                     )
-                )
-            )
+                ))
         );
         IGreenGoodsENSRegistrar.ImportedName[] memory names = new IGreenGoodsENSRegistrar.ImportedName[](2);
         names[0] = IGreenGoodsENSRegistrar.ImportedName("maya", lostAccount, IGreenGoodsENSRegistrar.NameType.Gardener);
@@ -147,9 +145,7 @@ contract GreenGoodsENSMemberNamesTest is Test {
         assertEq(upgraded.l1Receiver(), l1Receiver);
         assertEq(upgraded.ownerToSlug(lostAccount), "maya");
         assertEq(upgraded.slugOwner(keccak256("miyawaki-park")), garden);
-        assertEq(
-            uint8(upgraded.slugNameType(keccak256("miyawaki-park"))), uint8(IGreenGoodsENSRegistrar.NameType.Garden)
-        );
+        assertEq(uint8(upgraded.slugNameType(keccak256("miyawaki-park"))), uint8(IGreenGoodsENSRegistrar.NameType.Garden));
         assertEq(upgraded.nameChangeCooldown(), 7 days);
         assertTrue(upgraded.authorizedCallers(gardenToken));
         assertTrue(upgraded.importOpen());

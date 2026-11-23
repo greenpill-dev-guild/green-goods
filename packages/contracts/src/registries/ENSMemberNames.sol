@@ -85,8 +85,7 @@ contract GreenGoodsENSMemberNames is IGreenGoodsENSMemberNames, GreenGoodsENSReg
         ENSSlug.validate(slug);
         _recordName(slug, gardenAccount, NameType.Garden, false);
         uint256 fee = this.getRegistrationFee(slug, gardenAccount, NameType.Garden);
-        if (!_sponsorsAGardenToday() || fee > sponsorship.maxFee || address(this).balance < fee + totalPendingRefunds)
-        {
+        if (!_sponsorsAGardenToday() || fee > sponsorship.maxFee || address(this).balance < fee + totalPendingRefunds) {
             emit GardenRegistrationDeferred(gardenAccount, fee, slug);
             return;
         }
