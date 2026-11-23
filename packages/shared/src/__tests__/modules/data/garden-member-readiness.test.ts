@@ -87,17 +87,31 @@ describe("getGardenMemberReadiness", () => {
     });
   });
 
-  it("counts sent work with no approval as getting started, leaving hidden decisions out", async () => {
-    visibility.current = { ...visibility.current, excludedApprovalUIDs: [uid(11)] };
-    const readiness = await getGardenMemberReadiness(
-      { ...scope, accounts: [sender] },
-      reader({
-        works: { [sender]: [workRow(1, 1_000)] },
-        decisions: [decisionRow(11, 1, 1_200, true)],
-      })
-    );
-    visibility.current = { ...visibility.current, excludedApprovalUIDs: [] };
-    expect(readiness[sender]).toMatchObject({ stage: "gettingStarted", firstApprovedAt: null });
+  it("counts hidden work as sent but never as approved", async () => {
+    // A work hidden from the garden's record, with its approval hidden alongside it (Afo, 23 Nov
+    // 2026: a member whose only work is hidden has still sent work).
+    visibility.current = {
+      ...visibility.current,
+      excludedWorkUIDs: [uid(1)],
+      excludedApprovalUIDs: [uid(11)],
+    };
+    const read = reader({
+      works: { [sender]: [workRow(1, 1_000)] },
+      decisions: [decisionRow(11, 1, 1_200, true)],
+    });
+    const readiness = await getGardenMemberReadiness({ ...scope, accounts: [sender] }, read);
+    visibility.current = { ...visibility.current, excludedWorkUIDs: [], excludedApprovalUIDs: [] };
+
+    expect(readiness[sender]).toEqual({
+      status: "read",
+      stage: "gettingStarted",
+      firstSentAt: 1_000_000,
+      firstApprovedAt: null,
+    });
+    // Hidden work is read, and only shown work has its decisions read.
+    const calls = vi.mocked(read.query).mock.calls;
+    expect(calls.every(([, variables]) => !(variables as any).where?.id)).toBe(true);
+    expect(calls.map(([, , operation]) => operation)).toEqual(["getMemberReadinessWorks"]);
   });
 
   it("counts a work by the decision that stands, so a reversed approval does not count", async () => {

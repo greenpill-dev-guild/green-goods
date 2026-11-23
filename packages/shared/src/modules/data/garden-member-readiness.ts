@@ -74,14 +74,12 @@ async function readOne(
   signal?: AbortSignal
 ): Promise<GardenMemberReadiness> {
   const config = getEASConfig(scope.chainId);
+  // Hidden work is read too: it was still sent (Afo, 23 Nov 2026), though it is never approved here.
   const where = {
     schemaId: { equals: config.WORK.uid },
     recipient: { equals: easStoredAddress(scope.garden) },
     attester: { equals: easStoredAddress(account) },
     revoked: { equals: false },
-    ...(visibility.excludedWorkUIDs.length
-      ? { id: { notIn: [...visibility.excludedWorkUIDs] } }
-      : {}),
   };
   const works: { id: string; at: number; row: Parameters<typeof withLatestApproval>[0] }[] = [];
   let whole = false;
@@ -120,10 +118,18 @@ async function readOne(
   if (works.length === 0) {
     return { status: "read", stage: "registered", firstSentAt: null, firstApprovedAt: null };
   }
+  const hidden = new Set(visibility.excludedWorkUIDs.map((uid) => uid.toLowerCase()));
+  const shown = works.filter((work) => !hidden.has(work.id.toLowerCase()));
+  // A member whose work is all hidden has sent work and has none approved, once every work is read.
+  if (shown.length === 0) {
+    return whole
+      ? { status: "read", stage: "gettingStarted", firstSentAt, firstApprovedAt: null }
+      : { status: "unavailable" };
+  }
   // On a chain with no decision schema whether work is approved is unknown, not "no".
   if (isZeroBytes32(config.WORK_APPROVAL.uid)) return { status: "unavailable" };
   const { approvals, failedWorkUIDs, dropped } = await readWorkApprovalsForWorks(
-    works.map((work) => work.id),
+    shown.map((work) => work.id),
     scope.chainId,
     reader
   );
@@ -137,7 +143,7 @@ async function readOne(
   }
   // A work counts as approved by the decision that stands, its latest, as Review reads it: an
   // approval a later decision reversed does not count.
-  const approvedAt = works.flatMap((work) => {
+  const approvedAt = shown.flatMap((work) => {
     const latest = withLatestApproval(work.row, byWork.get(work.id.toLowerCase()) ?? []).approval;
     return latest?.approved ? [latest.createdAt * 1000] : [];
   });
@@ -157,8 +163,8 @@ async function readOne(
 
 /**
  * Each member's readiness evidence in one garden: their first work sent and the first decision
- * approving their work, from the garden's own records, leaving out hidden work and decisions. A
- * member whose evidence cannot be read in full is unavailable, never "registered".
+ * approving their work, from the garden's own records. Hidden work counts as sent but never as
+ * approved. A member whose evidence cannot be read in full is unavailable, never "registered".
  */
 export async function getGardenMemberReadiness(
   scope: Scope,
