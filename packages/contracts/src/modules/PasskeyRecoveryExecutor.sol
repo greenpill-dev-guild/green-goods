@@ -62,6 +62,9 @@ contract PasskeyRecoveryExecutor is IPasskeyRecoveryExecutor {
 
     mapping(address account => Enrollment enrollment) private enrollments;
     mapping(address account => PendingRecovery pending) private pendingRecoveries;
+    /// @notice Signed approvals that have started a request. Each starts at most one, so one taken
+    /// from a lapsed request's calldata cannot re-arm it.
+    mapping(bytes32 digest => bool used) public approvalUsed;
     /// @notice How many times an account's passkey has been replaced through this executor.
     mapping(address account => uint64 count) public recoveryCount;
 
@@ -250,7 +253,6 @@ contract PasskeyRecoveryExecutor is IPasskeyRecoveryExecutor {
         bytes calldata signature
     )
         private
-        view
     {
         if (signature.length == 0) {
             if (msg.sender != enrollment.guardian) revert NotGuardian();
@@ -258,7 +260,9 @@ contract PasskeyRecoveryExecutor is IPasskeyRecoveryExecutor {
         }
         if (block.timestamp > deadline) revert ApprovalExpired();
         bytes32 digest = recoveryDigest(account, key, enrollment.generation, deadline);
+        if (approvalUsed[digest]) revert ApprovalAlreadyUsed();
         if (!_guardianSigned(enrollment.guardian, digest, signature)) revert NotGuardian();
+        approvalUsed[digest] = true;
     }
 
     /// @dev A plain wallet's signature, or a contract guardian's own answer (ERC-1271), as a Safe gives.

@@ -33,6 +33,7 @@ interface IPasskeyRecoveryExecutor {
     error NotEnrolled();
     error NotGuardian();
     error ApprovalExpired();
+    error ApprovalAlreadyUsed();
     error RecoveryAlreadyPending();
     error NoPendingRecovery();
     error RecoveryNotReady(uint48 executeAfter);

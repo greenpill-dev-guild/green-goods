@@ -462,9 +462,14 @@ contract PasskeyRecoveryExecutorTest is Test {
         executor.executeRecovery(address(account), key);
         assertEq(_currentKeyX(), GX);
 
-        // The lapsed request no longer counts as pending, and it blocks nothing: a fresh approval,
-        // relayed by anyone, starts over without the guardian sending a transaction.
+        // The lapsed request no longer counts as pending. Its approval sits in public calldata, but it
+        // started one request and cannot start another, whoever resubmits it.
         assertEq(executor.pendingRecoveryOf(address(account)).generation, 0, "a lapsed request is not pending");
+        vm.prank(stranger);
+        vm.expectRevert(IPasskeyRecoveryExecutor.ApprovalAlreadyUsed.selector);
+        executor.requestRecovery(address(account), key, deadline, approval);
+
+        // A fresh approval, relayed by anyone, starts over without the guardian sending a transaction.
         uint256 freshDeadline = block.timestamp + 1 hours;
         bytes memory fresh = _approval(key, 1, freshDeadline, guardianKey);
         vm.prank(stranger);
