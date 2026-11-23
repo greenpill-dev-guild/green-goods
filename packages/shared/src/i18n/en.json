@@ -5878,6 +5878,8 @@
   "hub.notifications.change.roleRevoked": "{name} no longer has the {role} role",
   "hub.notifications.change.workDecided": "{name} {approved, select, yes {approved} other {rejected}} {title}",
   "hub.notifications.change.promiseDecided": "{name} {decision, select, confirmed {confirmed a promise was kept} other {canceled a promise}}",
+  "hub.notifications.changesUnread.title": "Some changes could not be read",
+  "hub.notifications.changesUnread.description": "This list may be missing changes. Select this to read them again.",
   "hub.notifications.scope": "Updates for {garden}",
   "hub.notifications.title": "Notifications",
   "hub.notifications.unread": "Unread",

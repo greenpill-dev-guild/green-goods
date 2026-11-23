@@ -10,7 +10,7 @@ import type { EASWorkListRow } from "@green-goods/shared/types/eas-responses";
 import pt from "@green-goods/shared/i18n/pt.json";
 import type { Meta, StoryObj } from "@storybook/react";
 import { IntlProvider } from "react-intl";
-import { expect, fn, mocked, within } from "storybook/test";
+import { expect, fn, mocked, userEvent, within } from "storybook/test";
 import {
   STORYBOOK_ADMIN_SHELL_SEEDS,
   STORYBOOK_PRIMARY_ADMIN_GARDEN,
@@ -103,13 +103,16 @@ function storyChanges(title = WAITING_WORK.title): HubGardenChangeRow[] {
   ];
 }
 
-function mockHubChanges(title?: string) {
+const retryChanges = fn();
+
+function mockHubChanges(title?: string, isError = false) {
   mocked(useHubGardenChanges).mockReturnValue({
     changes: storyChanges(title),
     canManage: true,
     joinRequestsWaiting: 2,
     isLoading: false,
-    isError: false,
+    isError,
+    retry: retryChanges,
     markSeen: fn(),
   });
   return resetHookMocks(useHubGardenChanges);
@@ -167,6 +170,21 @@ export const SelectedGardenUpdatesPortuguese: Story = {
     await expect(await canvas.findByText("Desde sua última visita")).toBeVisible();
     await expect(await canvas.findByText(/aprovou Registro de colheita/)).toBeVisible();
     await expect(canvas.queryByText(/Harvest & Yield Record/)).not.toBeInTheDocument();
+  },
+};
+
+/** A change read failed: the sheet says so and offers to read it again, beside what it did read. */
+export const ChangesUnread: Story = {
+  beforeEach: () => {
+    retryChanges.mockClear();
+    return mockHubChanges(undefined, true);
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByText("Some changes could not be read")).toBeVisible();
+    await expect(await canvas.findByText(/joined as Gardener/)).toBeVisible();
+    await userEvent.click(canvas.getByRole("button", { name: /Some changes could not be read/ }));
+    await expect(retryChanges).toHaveBeenCalledTimes(1);
   },
 };
 

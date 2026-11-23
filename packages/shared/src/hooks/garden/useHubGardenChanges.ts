@@ -21,8 +21,9 @@ import { useGardenNotificationsSeenStore } from "../../stores/useGardenNotificat
 import type { Address, Garden } from "../../types/domain";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { getPromiseDecisions } from "../../modules/commitment-pooling/data-activity";
+import { isPoolSteward } from "../../modules/commitment-pooling/steward-selectors";
 import { useCommitmentPools, useCommitments } from "../commitment-pooling/useCommitmentPooling";
-import { useHasRole } from "../roles/useHasRole";
+import { useGardenRoles } from "../roles/useGardenRoles";
 import { workVisibilityQuery } from "../work/useWorkVisibility";
 import { useGardenPermissions } from "./useGardenPermissions";
 import { useJoinRequestCount } from "./useJoinRequestCount";
@@ -48,13 +49,13 @@ export function useHubGardenChanges(garden: Garden | undefined) {
   const permissions = useGardenPermissions();
   // Answering join requests, changing roles and reviewing work all follow Garden management.
   const canManage = garden ? permissions.canManageGarden(garden) : false;
-  const stewardRead = useHasRole(
+  // A pool's steward is its garden's steward or owner, and either may decide its promises.
+  const rolesRead = useGardenRoles(
     gardenId as Address | undefined,
     (account ?? undefined) as Address | undefined,
-    "steward",
     chainId
   );
-  const canDecidePromises = stewardRead.hasRole;
+  const canDecidePromises = isPoolSteward(rolesRead.roles);
 
   const joinRequestRead = useJoinRequestCount(gardenId ?? "", {
     enabled: canManage && Boolean(gardenId),
@@ -83,7 +84,10 @@ export function useHubGardenChanges(garden: Garden | undefined) {
     staleTime: STALE_TIMES.works,
     gcTime: GC_TIMES.works,
   });
-  const poolsRead = useCommitmentPools({ chainId, garden: gardenId as Address });
+  const poolsRead = useCommitmentPools(
+    { chainId, garden: gardenId as Address },
+    { enabled: canDecidePromises }
+  );
   const poolId = poolsRead.pools[0]?.poolId;
   const readsPromises = canDecidePromises && poolId !== undefined;
   // The pool's promises, the Promises tab's own read; without the pool's id it would read every
@@ -167,6 +171,13 @@ export function useHubGardenChanges(garden: Garden | undefined) {
     roleChanges,
   ]);
 
+  // Only a read that failed is read again: a refetch runs even a read that is switched off.
+  const reads = [roleRead, activityRead, poolsRead, promisesRead, promiseRead];
+  const failedReads = reads.filter((read) => read.isError).map((read) => read.refetch);
+  const retry = () => {
+    for (const refetch of failedReads) void refetch();
+  };
+
   const markSeen = useCallback(
     (shown: readonly SeenNotification[]) => {
       if (hubScope && shown.length > 0) writeSeen(hubScope, shown, nowInSeconds());
@@ -181,9 +192,18 @@ export function useHubGardenChanges(garden: Garden | undefined) {
     canManage,
     /** The garden's waiting join requests, when this browser holds the grant to count them. */
     joinRequestsWaiting: canManage ? joinRequestsWaiting : undefined,
-    isLoading: roleRead.isLoading || activityRead.isLoading,
+    /** Every read the list is built from, so a list never shows before its sources settle. */
+    isLoading:
+      roleRead.isLoading ||
+      activityRead.isLoading ||
+      rolesRead.isLoading ||
+      poolsRead.isLoading ||
+      promisesRead.isLoading ||
+      promiseRead.isLoading,
     /** A read failed, so some changes may be missing. */
-    isError: roleRead.isError || activityRead.isError || promiseRead.isError,
+    isError: failedReads.length > 0,
+    /** Reads again whatever failed. */
+    retry,
     /** Count these changes as shown on this device: they leave the list from the next visit. */
     markSeen,
   };

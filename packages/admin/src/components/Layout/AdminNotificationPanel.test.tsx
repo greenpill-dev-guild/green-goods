@@ -1,7 +1,7 @@
 import { MemoryRouter } from "react-router-dom";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { renderWithProviders, screen } from "@/__tests__/test-utils";
+import { fireEvent, renderWithProviders, screen } from "@/__tests__/test-utils";
 import pt from "@green-goods/shared/i18n/pt.json";
 import { AdminNotificationPanel } from "./AdminNotificationPanel";
 
@@ -34,10 +34,12 @@ const mockHub = vi.hoisted(() => ({
   canManage: true,
   joinRequestsWaiting: undefined as number | undefined,
   markSeen: vi.fn(),
+  retry: vi.fn(),
   isLoading: false,
+  isError: false,
 }));
 vi.mock("@green-goods/shared/hooks/garden/useGardenNotifications", () => ({
-  useHubGardenChanges: () => ({ isError: false, ...mockHub }),
+  useHubGardenChanges: () => mockHub,
 }));
 
 vi.mock("@green-goods/shared/hooks/roles/useEffectiveToolbarPermissions", () => ({
@@ -104,6 +106,8 @@ describe("AdminNotificationPanel", () => {
     mockHub.canManage = true;
     mockHub.joinRequestsWaiting = undefined;
     mockHub.markSeen.mockClear();
+    mockHub.retry.mockClear();
+    mockHub.isError = false;
   });
 
   it("offers Community alerts and links only to viewers who can open Community", () => {
@@ -196,6 +200,17 @@ describe("AdminNotificationPanel", () => {
     panel.unmount();
     expect(mockHub.markSeen).toHaveBeenCalledWith([]);
     mockHub.isLoading = false;
+  });
+
+  it("says when a change could not be read, never that nothing changed, and reads it again", () => {
+    mockWorks.works = [];
+    mockHub.isError = true;
+    renderPanel();
+
+    expect(screen.queryByText("No notifications")).not.toBeInTheDocument();
+    // The whole row is the button.
+    fireEvent.click(screen.getByRole("button", { name: /Some changes could not be read/ }));
+    expect(mockHub.retry).toHaveBeenCalledTimes(1);
   });
 
   it("counts join requests and long waits, each opening its filtered list, only for who can act", () => {

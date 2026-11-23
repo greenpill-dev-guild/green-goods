@@ -249,6 +249,17 @@ export function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => v
         ),
     }));
 
+    // A read that failed is said, so a short or empty list is never taken for a quiet week.
+    if (hub.isError) {
+      changeItems.push({
+        id: "changes-unread",
+        title: formatMessage({ id: "hub.notifications.changesUnread.title" }),
+        description: formatMessage({ id: "hub.notifications.changesUnread.description" }),
+        tone: "warn",
+        onSelect: hub.retry,
+      });
+    }
+
     return [
       {
         id: "needs-attention",
@@ -268,7 +279,9 @@ export function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => v
     formatEventTime,
     formatMessage,
     hub.canManage,
+    hub.isError,
     hub.joinRequestsWaiting,
+    hub.retry,
     intl,
     names,
     navigateFromNotification,
