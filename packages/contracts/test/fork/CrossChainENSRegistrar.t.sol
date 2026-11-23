@@ -60,7 +60,8 @@ interface ILogCheats {
 /// L1 receiver are re-pointed, and an operator release and reassignment change the real ENS records.
 /// @dev Owner actions are pranked as the live owners; nothing is signed or broadcast. The CCIP
 /// hop is simulated the way CrossChainENS.t.sol does it: the Arbitrum side sends through the real
-/// router, and the same payload is handed to the L1 receiver as its router.
+/// router, and a payload of the same encoding, built by the test, is handed to the L1 receiver as
+/// its router. The registrar's own message bytes do not reach the receiver here.
 contract CrossChainENSRegistrarForkTest is Test {
     address internal constant LIVE_SENDER = 0x4fAD8Db8e04005884D484eC730aDae10d7A2e491;
     address internal constant LIVE_RECEIVER = 0x742c8935d314363e8c16df5b0791525109Fb9387;
