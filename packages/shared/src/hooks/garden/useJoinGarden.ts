@@ -30,7 +30,7 @@ import {
   trackNetworkError,
 } from "../../modules/app/error-tracking";
 import { logger } from "../../modules/app/logger";
-import { recordSendAct, sendActEnding } from "../../modules/app/sendActAnalytics";
+import { newAttemptId, recordSendAct, sendActEnding } from "../../modules/app/sendActAnalytics";
 import { refuseWithoutWallet } from "../../modules/auth/wallet-reconnect";
 import { activeGardenScope } from "../../modules/garden/active-garden";
 import {
@@ -230,9 +230,12 @@ export function useJoinGarden() {
       const sendsByWallet = !client?.account;
       const authMode = sendsByWallet ? (signIn === "embedded" ? "embedded" : "wallet") : "passkey";
       addBreadcrumb("garden_join_started", { gardenAddress, authMode });
+      // One id for this press: the join's own events and its send act share it (PRD-1561).
+      const attemptId = newAttemptId();
       trackGardenJoinStarted({
         gardenAddress,
         authMode,
+        attemptId,
       });
 
       setState((prev) => ({
@@ -249,7 +252,7 @@ export function useJoinGarden() {
         // A wallet join returns once it is broadcast, before its receipt: it may still land.
         const joinEnding = () => (sendsByWallet ? "confirming" : "confirmed");
         const txHash = await recordSendAct(
-          { act: "garden_join", authMode, chainId },
+          { act: "garden_join", authMode, chainId, attemptId },
           () =>
             submitJoinGarden(
               {
@@ -308,6 +311,7 @@ export function useJoinGarden() {
           gardenAddress,
           txHash,
           authMode,
+          attemptId,
         });
 
         isJoiningRef.current = false;
@@ -323,7 +327,7 @@ export function useJoinGarden() {
         // Special handling for AlreadyGardener error - not actually an error
         if (isAlreadyGardenerError(error)) {
           isJoiningRef.current = false;
-          trackGardenJoinAlreadyMember({ gardenAddress });
+          trackGardenJoinAlreadyMember({ gardenAddress, attemptId });
           addPendingJoin(gardenAddress, targetAddress);
           activateJoinedGarden(gardenAddress, targetAddress);
           setState((prev) => ({
@@ -350,7 +354,7 @@ export function useJoinGarden() {
         // records it as still confirming (PRD-1553).
         const { outcome } = sendActEnding(error);
         if (outcome === "cancelled") {
-          trackGardenJoinCancelled({ gardenAddress, authMode });
+          trackGardenJoinCancelled({ gardenAddress, authMode, attemptId });
         } else if (outcome === "failed") {
           // Telemetry carries the parsed error family only — viem embeds the
           // signer address in raw wallet messages, and these values are quoted
@@ -363,6 +367,7 @@ export function useJoinGarden() {
             error: parsedErrorFamily,
             parsedErrorFamily,
             authMode,
+            attemptId,
           });
 
           // Also track as structured exception for PostHog error dashboard

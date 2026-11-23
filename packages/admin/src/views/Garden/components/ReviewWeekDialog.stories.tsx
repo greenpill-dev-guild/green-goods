@@ -32,6 +32,7 @@ const WEEK: ReviewHealthWeek = {
   reviewed: [storyWork("Rain barrel fitted", "approved"), storyWork("Path mulched", "rejected")],
   submittedComplete: true,
   reviewedComplete: true,
+  reviewedAvailable: true,
   isCurrent: false,
 };
 
@@ -40,6 +41,8 @@ function storyHealth(overrides: Partial<GardenReviewHealth>): GardenReviewHealth
     weeks: [WEEK],
     state: "ready",
     stale: false,
+    refreshFailed: false,
+    reviewedAvailable: true,
     isFetching: false,
     retry: fn() as unknown as GardenReviewHealth["retry"],
     openWeek: WEEK,

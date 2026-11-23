@@ -29,7 +29,8 @@ export function useGardenWorkRange(
     queryKey: worksKeys.range(gardenId ?? "", chainId, range?.from ?? 0, range?.to ?? 0),
     queryFn: async () => {
       // Disabled without a garden and a range, so neither is missing when this runs.
-      if (!gardenId || !range) return { rows: [], complete: true, readThrough: null };
+      if (!gardenId || !range)
+        return { rows: [], complete: true, readThrough: null, droppedAt: [] };
       try {
         return await readGardenWorkRange({
           garden: gardenId,

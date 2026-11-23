@@ -530,6 +530,7 @@ describe("pool funding hybrid reader", () => {
             recipient: RECIPIENT,
             amount: "50",
             state: "DISPATCHED",
+            attempt: 2,
             executionKey: KEY,
           },
         ],
@@ -541,6 +542,8 @@ describe("pool funding hybrid reader", () => {
     expect(snapshot.commandExecutors).toEqual([
       { executionKey: KEY, executor: PREVIOUS_EXECUTOR, paused: true },
     ]);
+    // The send check compares this attempt with the caller's own read before a resend.
+    expect(snapshot.disbursements[0]?.attempt).toBe(2);
   });
 
   it("quotes a payout whose referenced child is absent from the indexed snapshot", async () => {

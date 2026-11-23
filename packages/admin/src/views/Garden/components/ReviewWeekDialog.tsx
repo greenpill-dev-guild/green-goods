@@ -61,7 +61,9 @@ export function ReviewWeekDialog({
 }) {
   const intl = useIntl();
   const navigate = useNavigate();
-  const { openWeek, openList } = health;
+  const { openWeek } = health;
+  // Where the chain records no decisions, a week has only what was submitted.
+  const openList = health.reviewedAvailable ? health.openList : "submitted";
   const works = openWeek ? (openList === "submitted" ? openWeek.submitted : openWeek.reviewed) : [];
   const complete = openWeek
     ? openList === "submitted"
@@ -95,7 +97,7 @@ export function ReviewWeekDialog({
       size="md"
       tone="garden"
     >
-      {openWeek ? (
+      {openWeek && health.reviewedAvailable ? (
         <div
           className="flex flex-wrap gap-1.5"
           role="group"

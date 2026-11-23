@@ -124,6 +124,19 @@ export function carryOverlayMarkers(
   return markers;
 }
 
+/**
+ * A decision this device saw confirmed on chain, held with no deadline until the indexer
+ * reports it. Once the indexer does, a fresh read drops the markers from the row.
+ */
+export function isConfirmedLocalDecision(work: OverlayWork): boolean {
+  return (
+    (work.status === "approved" || work.status === "rejected") &&
+    work._txHash !== undefined &&
+    work._pendingUntilMs === undefined &&
+    work._isPending !== true
+  );
+}
+
 /** Statuses that only exist on this device, never in a garden's indexed read. */
 const LOCAL_ONLY_STATUSES: readonly WorkDisplayStatus[] = [
   "syncing",
@@ -141,7 +154,7 @@ const LOCAL_ONLY_STATUSES: readonly WorkDisplayStatus[] = [
  */
 const LOCAL_ONLY_ID = /^(0xoffline_|optimistic-)/;
 
-function isIndexedWork(work: OverlayWork): boolean {
+export function isIndexedWork(work: OverlayWork): boolean {
   return !LOCAL_ONLY_STATUSES.includes(work.status) && !LOCAL_ONLY_ID.test(work.id);
 }
 

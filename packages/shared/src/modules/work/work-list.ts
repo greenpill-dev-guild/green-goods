@@ -200,6 +200,8 @@ export interface GardenWorkRange {
    * missing, and so may be more works at that moment. Null when the period was read in full.
    */
   readThrough: number | null;
+  /** When each work left out as malformed was sent (seconds; NaN when that is unreadable too). */
+  droppedAt: number[];
 }
 
 /**
@@ -223,13 +225,13 @@ export function readGardenWorkRange({
 }): Promise<GardenWorkRange> {
   return inTurn(async () => {
     const exclusions = visibility ?? (await readWorkVisibility(chainId));
-    const { works, truncated, readThrough } = await getWorksInRange(garden, {
+    const { works, truncated, readThrough, droppedAt } = await getWorksInRange(garden, {
       ...exclusions,
       chainId,
       from,
       to,
     });
-    if (works.length === 0) return { rows: [], complete: !truncated, readThrough };
+    if (works.length === 0) return { rows: [], complete: !truncated, readThrough, droppedAt };
     let approvals: EASWorkApproval[];
     let unread: Set<string>;
     try {
@@ -244,7 +246,7 @@ export function readGardenWorkRange({
         error,
         garden,
       });
-      return { rows: works, complete: !truncated, readThrough };
+      return { rows: works, complete: !truncated, readThrough, droppedAt };
     }
     const byWork = groupByWork(approvals);
     return {
@@ -254,6 +256,7 @@ export function readGardenWorkRange({
       }),
       complete: !truncated,
       readThrough,
+      droppedAt,
     };
   });
 }
@@ -269,20 +272,37 @@ export interface GardenReviewFlow {
   reviewed: { work: EASWorkListRow; firstDecidedAt: number }[];
   /** False when the period held more submissions than one read lists: its latest are missing. */
   submittedComplete: boolean;
+  /** When each submission left out as malformed was sent (seconds; NaN when unreadable too). */
+  submittedDroppedAt: number[];
   /**
    * When the period's earliest decisions are missing, the moment (seconds) before which they
    * are; null when every decision of the period was read.
    */
   reviewedReadFrom: number | null;
-  /** False when a decided work's earlier decisions could not be read, so none is placed. */
+  /** False when a decided work's decisions could not all be read, so some may be misplaced. */
   reviewedComplete: boolean;
+  /** False on a chain that records no review decisions: reviewed counts do not exist there. */
+  reviewedAvailable: boolean;
+  /**
+   * Works this device decided, confirmed on chain, that the index holds no decision for yet:
+   * each is a first decision that landed just now.
+   */
+  decidedUnindexed: EASWorkListRow[];
 }
+
+const unique = (ids: readonly string[]) => [...new Set(ids.map((id) => id.toLowerCase()))];
 
 /**
  * What a garden received and what it reviewed since `from` (seconds): the submissions of the
  * period, as a calendar month reads them, and each work whose first decision fell in it,
  * however long before the period it was sent. A decision's own read lists the newest first,
  * so past its limit the period's earliest decisions are the missing ones.
+ *
+ * The reads follow one another, and work can be sent or decided between them. The activity
+ * read comes after the range read, so a work it lists that the range read missed was sent in
+ * between; and every decided work's history is read last, so its status there is the newest.
+ * `decidedHere` names works this device decided and saw confirmed, which the index may not
+ * hold yet.
  */
 export async function readGardenReviewFlow({
   garden,
@@ -290,63 +310,92 @@ export async function readGardenReviewFlow({
   from,
   to,
   visibility,
+  decidedHere = [],
 }: {
   garden: Address;
   chainId: number;
   from: number;
   to: number;
   visibility?: WorkVisibilitySnapshot;
+  decidedHere?: readonly string[];
 }): Promise<GardenReviewFlow> {
   const exclusions = visibility ?? (await readWorkVisibility(chainId));
   const range = await readGardenWorkRange({ garden, chainId, from, to, visibility: exclusions });
+  const reviewedAvailable = !isZeroBytes32(getEASConfig(chainId).WORK_APPROVAL.uid);
   return inTurn(async () => {
     // A second before the period, since the read lists decisions after its moment, not at it.
-    const { decisions, decisionsTruncated, decisionsDropped } = await getGardenActivitySince(
-      garden,
-      {
-        ...exclusions,
-        chainId,
-        since: from - 1,
-      }
+    const {
+      works: recent,
+      decisions,
+      decisionsTruncated,
+      decisionsDropped,
+    } = await getGardenActivitySince(garden, {
+      ...exclusions,
+      chainId,
+      since: from - 1,
+    });
+    const listed = new Map<string, EASWorkListRow>(
+      range.rows.map((row) => [row.id.toLowerCase(), row])
     );
-    const decidedIds = [...new Set(decisions.map((decision) => decision.workUID.toLowerCase()))];
+    // Sent after the range read. Only beside a whole range read: past a cut, a later work
+    // would hide where the read stopped.
+    const sentSince = range.complete
+      ? recent.filter(
+          (work) =>
+            work.createdAt >= from && work.createdAt < to && !listed.has(work.id.toLowerCase())
+        )
+      : [];
+    const decidedIds = unique(decisions.map((decision) => decision.workUID));
+    const localIds = unique(decidedHere).filter((id) => !decidedIds.includes(id));
     // Only a cut decisions list hides decisions; a long submissions list beside it does not.
     const reviewedReadFrom =
       decisionsTruncated && decisions.length > 0
         ? Math.min(...decisions.map((decision) => decision.createdAt))
         : null;
-    if (decidedIds.length === 0) {
-      return {
-        submitted: range.rows,
-        reviewed: [],
-        submittedComplete: range.complete,
-        reviewedReadFrom,
-        reviewedComplete: !decisionsDropped,
-      };
-    }
 
-    // A work's first decision may predate the period, so each decided work's whole history counts.
-    let approvals: EASWorkApproval[] = [];
-    // A decision row that could not be read leaves its week's reviewed count short.
-    let reviewedComplete: boolean;
-    try {
-      const result = await readWorkApprovalsForWorks(decidedIds, chainId);
-      approvals = result.approvals;
-      reviewedComplete = result.failedWorkUIDs.length === 0 && !decisionsDropped;
-    } catch (error) {
-      logger.warn("[readGardenReviewFlow] Decision histories could not be read", { error, garden });
-      reviewedComplete = false;
+    // Each history read here, by work; a work whose history could not be read has none.
+    const histories = new Map<string, EASWorkApproval[]>();
+    let reviewedComplete = !decisionsDropped;
+    const historyIds = unique([...decidedIds, ...localIds, ...sentSince.map((work) => work.id)]);
+    if (reviewedAvailable && historyIds.length > 0) {
+      try {
+        const result = await readWorkApprovalsForWorks(historyIds, chainId);
+        const failed = new Set(result.failedWorkUIDs.map((uid) => uid.toLowerCase()));
+        const byWork = groupByWork(result.approvals);
+        for (const id of historyIds) if (!failed.has(id)) histories.set(id, byWork.get(id) ?? []);
+        // A decision row that could not be read leaves its week's reviewed count short.
+        reviewedComplete = reviewedComplete && failed.size === 0 && result.dropped === 0;
+      } catch (error) {
+        logger.warn("[readGardenReviewFlow] Decision histories could not be read", {
+          error,
+          garden,
+        });
+        reviewedComplete = false;
+      }
     }
-    const byWork = groupByWork(approvals);
-    const listed = new Map(range.rows.map((row) => [row.id.toLowerCase(), row]));
-    const olderIds = decidedIds.filter((id) => !listed.has(id) && byWork.has(id));
+    // A history read after the range read is the newer status.
+    const restate = (row: EASWork | EASWorkListRow): EASWorkListRow => {
+      // A chain with no decision schema can hold no decision, as the range read reads it.
+      const history = reviewedAvailable ? histories.get(row.id.toLowerCase()) : [];
+      if (!history) return row;
+      const { approval: _earlier, ...work } = row as EASWorkListRow;
+      return withLatestApproval(work, history);
+    };
+    const submitted = [...range.rows, ...sentSince]
+      .map(restate)
+      .sort((left, right) => left.createdAt - right.createdAt);
+    for (const row of submitted) listed.set(row.id.toLowerCase(), row);
+
+    const olderIds = [...decidedIds, ...localIds].filter(
+      (id) =>
+        !listed.has(id) &&
+        histories.has(id) &&
+        ((histories.get(id)?.length ?? 0) > 0 || localIds.includes(id))
+    );
     if (olderIds.length > 0) {
       try {
         for (const work of await getWorksByUIDs(olderIds, chainId)) {
-          listed.set(
-            work.id.toLowerCase(),
-            withLatestApproval(work, byWork.get(work.id.toLowerCase()) ?? [])
-          );
+          listed.set(work.id.toLowerCase(), restate(work));
         }
       } catch (error) {
         logger.warn("[readGardenReviewFlow] Older decided works could not be read", {
@@ -358,20 +407,28 @@ export async function readGardenReviewFlow({
     }
 
     const reviewed: GardenReviewFlow["reviewed"] = [];
-    for (const id of decidedIds) {
-      const history = byWork.get(id);
+    const decidedUnindexed: EASWorkListRow[] = [];
+    for (const id of [...decidedIds, ...localIds]) {
+      const history = histories.get(id);
       const work = listed.get(id);
       if (!history || !work) continue;
+      if (history.length === 0) {
+        if (localIds.includes(id)) decidedUnindexed.push(work);
+        continue;
+      }
       const firstDecidedAt = Math.min(...history.map((approval) => approval.createdAt));
       if (firstDecidedAt >= from && firstDecidedAt < to) reviewed.push({ work, firstDecidedAt });
     }
     reviewed.sort((left, right) => left.firstDecidedAt - right.firstDecidedAt);
     return {
-      submitted: range.rows,
+      submitted,
       reviewed,
       submittedComplete: range.complete,
+      submittedDroppedAt: range.droppedAt,
       reviewedReadFrom,
       reviewedComplete,
+      reviewedAvailable,
+      decidedUnindexed,
     };
   });
 }
