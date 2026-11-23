@@ -4,13 +4,47 @@
 **Linear Source**: source:plans
 **Feature Slug**: `green-goods-name-reservation`
 **Stage**: `backlog`
-**Status**: `BLOCKED — enforcement, expiry and normalization decisions remain open`
+**Status**: `Direction set on 21 Nov 2026; the on-chain claim is on a pull request, the directory and app halves are not started`
 **Created**: `2026-09-22T00:26:22Z`
-**Last Updated**: `2026-10-06`
+**Last Updated**: `2026-11-21`
 
 ## Status reconciliation (2026-10-06)
 
 PRD-949 is Todo in Linear, but the first three founder decisions in `spec.md` are still unanswered here: app-level versus onchain enforcement, reservation lifetime/refresh, and username normalization. Scheduling remains blocked despite the Linear Todo label. Keep garden-name collision and reserved-name decisions visible; this review does not decide them.
+
+## Direction set on 21 November 2026 (Afo, PRD-1402)
+
+PRD-1402 owns these decisions; this hub carries them because it holds the evidence they rest on. They replace the off-chain reservation this plan proposed: a name is not held for an account, it is the account's username, and the chain refuses any other.
+
+| # | Decision | What it replaces here |
+|---|---|---|
+| 13 | The contract learns a member's username from a short-lived grant the passkey directory signs. The member's own account submits it. | Human judgment point 1 (app-level hold or on-chain): on-chain, with the directory vouching. Decision 7 (reuse the join-request store for reservations) no longer applies. |
+| 14 | The registrar is upgradeable on Arbitrum; the L1 receiver is re-pointed. | Decision 12 stands: it rides the sender v2. |
+| 15 | Strict equality: the Green Goods name is exactly the username. New sign-ups confirm the normalized name, checked free on both chains, before the passkey is made. An existing account whose username cannot be a name, or is taken, gets one rename proven with its passkey; the old name keeps working for sign-in as an alias (one new directory table). | Human judgment point 3: normalize and confirm. Decision 8 changes: an existing username is rewritten only by its owner, once, and the old name still signs in. Human judgment point 2 (expiry) is moot: nothing is held, so nothing expires. |
+| 16 | Every existing registration is carried over unchanged, including names that differ from the username. No new wallet claims in this version: a wallet shows its mainnet ENS name, else its address. | Decision 10 stands. Human judgment point 5 (reserve matching names for ENS holders) is not taken up. |
+| 17 | The garden-member hat stays the gate, on chain. The contract's reserve pays one registration per account, under a daily limit, and pays for garden mints again. No self-service release. As built, members and gardens each have their own daily limit and there is a per-registration fee cap; Afo accepted that refinement of "one shared limit" on 21 November 2026. | Decision 2 changes: registration is no longer "exactly as it is". |
+| 18 | The pull request for this layer is stacked on the registrar's branch. | Not a plan decision before. |
+
+Still open:
+
+- Garden names against member usernames (human judgment point 4). A garden mint and a member's username can want the same name; first to register wins, and a garden name cannot be released, so a member whose username a garden took cannot register it. The directory should refuse a new username that a garden already holds.
+- A carried-over name can differ from its holder's username, and can equal another account's username. The carry-over manifest has to be reconciled against the directory before the directory's signer is set.
+- A member account is not a person. One sponsored registration per account bounds an account, not someone who makes many; the directory and the garden-member hat are the only limits on that, and the daily limit and fee cap bound the cost.
+- A reserved-name list (point 6), and where the public name directory lives (point 7).
+
+**The claim prompt (PRD-1207) folds in.** The app never asks a member to choose or claim a name. It shows the username the directory holds and one state for it: not yet a garden member, ready to register, registering, registered. The old prompt read "has no ENS name" alone and so asked members who already had a username; the new section reads the directory username and that account's registration together.
+
+## Progress (2026-11-21)
+
+| Part | State |
+|---|---|
+| On-chain claim, hat gate, sponsorship limits | Done on the pull request, with [handoff](handoffs/claude-contracts.md) and [fork report](reports/2026-11-21-live-state-fork.md). |
+| Directory: grant endpoint and signing key | Not started. Follow-up pull request. |
+| Directory: one-time rename with alias | Not started. Same follow-up. |
+| Sign-up: normalize, check, confirm | Not started. Same follow-up; touches Shared auth, which is critical tier. |
+| App: username section and its four states | Not started. Same follow-up. |
+
+The steps below were written for the off-chain reservation and need re-cutting against decisions 13 to 18 before the follow-up starts.
 
 ## Decision Log
 

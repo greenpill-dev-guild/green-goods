@@ -10,13 +10,14 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-09-22T00:26:22.875Z",
-    "updated_at": "2026-10-06T21:01:43Z"
+    "updated_at": "2026-11-21T22:11:44.925Z"
   },
   "links": {
     "brief": "brief.md",
     "spec": "spec.md",
     "plan": "plan.todo.md",
-    "eval": "eval.md"
+    "eval": "eval.md",
+    "fork_report_2026_11_21": "reports/2026-11-21-live-state-fork.md"
   },
   "linear": {
     "parentIssue": "PRD-949",
@@ -36,11 +37,12 @@
     "depends_on_features": ["ens-l2-sender-admin-recovery"]
   },
   "notes": [
-    "Blocked on founder decisions 1, 2, and 3 in spec.md § Human Judgment Points; steps 3 onward cannot be sequenced until they are answered.",
+    "Blocked on founder decisions 1, 2, and 3 in spec.md \u00a7 Human Judgment Points; steps 3 onward cannot be sequenced until they are answered.",
     "The contracts lane activates only if decision 1 is answered on-chain, and then it belongs to the sender v2 in ens-l2-sender-admin-recovery rather than a second deployment.",
     "Sign-up and auth are critical surfaces: any check added there must never block account creation.",
     "status.json is authoritative; set a concrete <type>/<work-description> branch only when work begins.",
-    "2026-10-06 reconciliation: PRD-949 is Todo in Linear, but the first three founder decisions in `spec.md` are still unanswered here: app-level versus onchain enforcement, reservation lifetime/refresh, and username normalization. Scheduling remains blocked despite the Linear Todo label. Keep garden-name collision and reserved-name decisions visible; this review does not decide them."
+    "2026-10-06 reconciliation: PRD-949 is Todo in Linear, but the first three founder decisions in `spec.md` are still unanswered here: app-level versus onchain enforcement, reservation lifetime/refresh, and username normalization. Scheduling remains blocked despite the Linear Todo label. Keep garden-name collision and reserved-name decisions visible; this review does not decide them.",
+    "2026-11-21: Afo set the direction for usernames (PRD-1402): the Green Goods name is exactly the passkey directory's username, vouched by a directory-signed grant the member's own account submits; garden-member hat gate; one sponsored registration per account under a daily limit; no self-service release; existing registrations carried over; no new wallet claims. This replaces the off-chain reservation this hub proposed. The on-chain half is on a pull request stacked on the registrar; nothing is deployed."
   ],
   "lanes": {
     "ui": {
@@ -86,25 +88,26 @@
       "skill_tags": ["react", "tanstack-query", "data-layer"]
     },
     "contracts": {
-      "owner": "codex",
-      "status": "todo",
-      "branch": null,
+      "owner": "claude",
+      "status": "in_progress",
+      "branch": "feature/ens-member-names",
       "depends_on": [],
-      "handoff": "handoffs/codex-contracts.md",
+      "handoff": "handoffs/claude-contracts.md",
       "tdd": {
-        "mode": "required",
-        "status": "pending",
+        "mode": "proof_limit",
+        "status": "green_recorded",
         "red": {
           "command": "",
           "evidence": ""
         },
         "green": {
-          "command": "",
-          "evidence": ""
+          "command": "bun run test --suite solidity --profile match -- test/unit/GreenGoodsENSMemberNames.t.sol; test/fork/CrossChainENSRegistrar.t.sol with both fork RPCs and its two block pins set; bash script/check-storage-layout.sh --contract GreenGoodsENSMemberNames",
+          "evidence": "Unit 16 passed, 0 failed; fork 1 passed, 0 skipped; storage layout matches its baseline; at b9501ba36ef55bea943638a99fb9eb3f486c5587 on 2026-11-23."
         },
-        "note": ""
+        "note": "The claim was written before its tests, so no failing-first run was recorded. Fallback proof: the unit suite and the live-state fork run at the tested commit."
       },
-      "skill_tags": ["contracts"]
+      "skill_tags": ["contracts"],
+      "manual_blocked": false
     },
     "qa_pass_1": {
       "owner": "claude",
@@ -167,6 +170,14 @@
       "status": "linear_state_preservation_enabled",
       "branch": null,
       "note": "Existing Linear states are preserved during manifest updates; local Backlog placement does not demote a Todo or later mirror state. This records no external write or sync confirmation."
+    },
+    {
+      "timestamp": "2026-11-21T22:11:44.926Z",
+      "actor": "claude",
+      "lane": "contracts",
+      "status": "in_progress",
+      "branch": "feature/ens-member-names",
+      "note": "Directory-vouched member claim with the hat gate and sponsorship limits, stacked on the registrar branch, with unit tests and live-state fork proof on a pull request. The directory's grant endpoint, the rename with alias, sign-up confirmation and the app's username section are follow-up pull requests."
     }
   ]
 }
