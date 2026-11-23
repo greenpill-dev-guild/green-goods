@@ -973,8 +973,30 @@ describe("selectExceededTransferLimit", () => {
         amount: 900n,
         state: "QUEUED",
         attempt: 1,
+        batchId: 3n,
       })
     ).toBe(null);
+  });
+
+  it("selectQueuedTransferBlock: compares attempts for a transfer the chain shows out of its old batch", () => {
+    // A requeue takes a transfer out of its batch on chain, but the index keeps the old batch id.
+    // Batch membership comes from the caller's read, so a lagging row still gets compared.
+    const read = queuedRead({
+      dispatched: true,
+      recordedOnCelo: true,
+      commandExecutor: { paused: false },
+      batchId: 3n,
+      indexAttempt: 1,
+    });
+    expect(
+      selectQueuedTransferBlock(read, {
+        disbursementId: 8n,
+        amount: 900n,
+        state: "DISPATCHED",
+        attempt: 2,
+        batchId: null,
+      })
+    ).toBe("limits_unread");
   });
 
   it("selectQueuedTransferBlock: holds a transfer the read doesn't list", () => {

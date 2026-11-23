@@ -260,7 +260,9 @@ const SAFE_WIDE_UNREAD = [
  * earlier attempt: a transfer requeued, and maybe dispatched again, from outside the
  * panel carries the next attempt's command. Until the index reaches the caller's
  * attempt, the send waits. A batch member is the exception: the index gives it the
- * batch's attempt, not its own, and it is never resent on its own.
+ * batch's attempt, not its own, and it is never resent on its own. Membership comes
+ * from the caller's read, since a requeue takes a transfer out of its batch on chain
+ * while the index keeps the old batch id.
  */
 export function selectQueuedTransferBlock(
   funding: Omit<TransferFundingRead, "snapshot"> & {
@@ -277,7 +279,13 @@ export function selectQueuedTransferBlock(
       | "settlementUnavailableReasons"
     > | null;
   },
-  transfer: { disbursementId: bigint; amount: bigint; state?: string; attempt?: number | null }
+  transfer: {
+    disbursementId: bigint;
+    amount: bigint;
+    state?: string;
+    attempt?: number | null;
+    batchId?: bigint | null;
+  }
 ): PoolFundingTransferBlock | null {
   const { snapshot } = funding;
   // A snapshot kept from a failed refresh is not current, so it shows nothing.
@@ -289,7 +297,12 @@ export function selectQueuedTransferBlock(
   if (resend && transfer.state !== undefined && transfer.state !== "DISPATCHED") {
     return "limits_unread";
   }
-  if (row && !row.batchId && transfer.attempt !== undefined && row.attempt !== transfer.attempt) {
+  if (
+    row &&
+    !transfer.batchId &&
+    transfer.attempt !== undefined &&
+    row.attempt !== transfer.attempt
+  ) {
     return "limits_unread";
   }
   const commandPaused = resend ? recordedExecutorPaused(snapshot, resend) : undefined;
