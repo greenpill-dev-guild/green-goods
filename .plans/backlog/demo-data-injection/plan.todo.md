@@ -2,9 +2,9 @@
 
 **Feature Slug**: `demo-data-injection`
 **Stage**: `backlog`
-**Status**: `BACKLOG — reassess remaining fixture gaps before dispatch`
+**Status**: `CLOSED: idle since 6 Oct with no Linear parent`
 **Created**: `2026-08-23T02:07:14.633Z`
-**Last Updated**: `2026-10-06`
+**Last Updated**: `2026-11-22`
 
 Deferred behind the module optimization and test work. Nothing here is claimed by automation while
 the hub sits in `backlog`. The seam map in `spec.md` is the reference for every rung below.
@@ -155,3 +155,10 @@ the plan it renders. The Ship Gate below applies to any rung that touches produc
 - [ ] `bun format && bun lint`
 - [ ] `bun run test`
 - [ ] `VITE_CHAIN_ID=11155111 bun run build`
+
+## Closeout (2026-11-22)
+
+Closed as `closed_stale` in the agent trust programme's plan purge (PRD-1507). Untouched since 6 October, with no Linear parent. Its open items are the template's TDD checklist plus fixture gaps that need reassessment.
+
+Still open:
+- Fixture gaps: dropped; the Playwright mock backend in tests/helpers now owns demo data

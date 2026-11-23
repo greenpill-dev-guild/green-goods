@@ -4,9 +4,9 @@
 **Linear Source**: source:plans
 **Feature Slug**: `green-goods-name-reservation`
 **Stage**: `backlog`
-**Status**: `BLOCKED — enforcement, expiry and normalization decisions remain open`
+**Status**: `CLOSED: PRD-949 is Canceled`
 **Created**: `2026-09-22T00:26:22Z`
-**Last Updated**: `2026-10-06`
+**Last Updated**: `2026-11-22`
 
 ## Status reconciliation (2026-10-06)
 
@@ -192,3 +192,10 @@ expiry, and interaction with the 30-day cooldown.
 - [ ] `VITE_CHAIN_ID=11155111 bun run build`
 - [ ] Sign-up and auth changes are `critical` (`values.md § Criticality Matrix`): full local
       override plus current-head CI before any readiness claim
+
+## Closeout (2026-11-22)
+
+Closed as `cancelled` in the agent trust programme's plan purge (PRD-1507). PRD-949 (the Linear parent) was canceled on 8 November; the founder questions it waited on were never answered in scope.
+
+Still open:
+- All implementation items: dropped with PRD-949

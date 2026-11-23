@@ -2,9 +2,9 @@
 
 **Feature Slug**: `ens-operations-optimizations`
 **Stage**: `backlog`
-**Status**: `BACKLOG — revalidate remaining ENS operational gaps`
+**Status**: `CLOSED: idle since 6 Oct with no Linear parent`
 **Created**: `2026-04-25`
-**Last Updated**: `2026-10-06`
+**Last Updated**: `2026-11-22`
 
 ## Status reconciliation (2026-10-06)
 
@@ -90,3 +90,10 @@ Add user-facing states for release pending, cooldown active, claim-eligible date
 ### Step 6: Add Alerting and RPC Fallbacks
 
 Make monitor output suitable for automation and add explicit provider fallback reporting so rate limits are diagnosable.
+
+## Closeout (2026-11-22)
+
+Closed as `closed_stale` in the agent trust programme's plan purge (PRD-1507). Untouched since 6 October, with no Linear parent or accepted scope.
+
+Still open:
+- ENS ops status surface, claim counts, live smoke sample, RPC fallback reporting: dropped until an ENS issue is filed in Linear

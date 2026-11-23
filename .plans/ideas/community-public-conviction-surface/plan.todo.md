@@ -2,8 +2,8 @@
 
 **Feature Slug**: community-public-conviction-surface
 **Stage**: `ideas`
-**Status**: `IDEA — parked pending a concrete allocation need`
-**Last Updated**: `2026-10-06`
+**Status**: `CLOSED: idea parked since 6 Oct pending an allocation need`
+**Last Updated**: `2026-11-22`
 
 ## Status reconciliation (2026-10-06)
 
@@ -17,3 +17,9 @@ The original public conviction proposal remains parked. Confirm an actual commun
 4. [ ] If promoted, create current acceptance criteria, affected paths, lane ownership, and validation evidence.
 
 No implementation should start from the historical branch names or timelines in brief.md.
+
+## Closeout (2026-11-22)
+
+Closed as `closed_stale` in the agent trust programme's plan purge (PRD-1507). Parked since 6 October pending a concrete allocation need, with no Linear parent.
+
+Still open: nothing.

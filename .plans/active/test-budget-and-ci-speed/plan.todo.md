@@ -2,9 +2,9 @@
 
 **Feature Slug**: `test-budget-and-ci-speed`
 **Stage**: `active`
-**Status**: `ACTIVE — Software Factory locally implemented through batch 5; live observations and snapshot 09 pending`
+**Status**: `CLOSED: every plan item checked off; the selector, push gate and test budget it planned are on develop`
 **Created**: 2026-09-19
-**Last Updated**: `2026-10-15`
+**Last Updated**: `2026-11-22`
 
 The user selected local implementation beginning with step 1 and later authorized a commit of completed slices. Item numbers below refer to the supplied twelve-item test-audit prompt. The closeout pass may push to `origin/develop` (D4); a PR, a merge to `main`, a deploy and Linear writes remain unauthorized.
 
@@ -718,3 +718,9 @@ Resolved by slice 5 of the velocity follow-through: the table refactor landed in
 ### Original record (2026-09-27)
 
 Full Client runs with two and one workers hit `DetailsGate.test.tsx`'s unchanged 10-second deadline (one and two failing cases respectively). A focused run passed with both original and restored runtime source, so this is timing-sensitive rather than a consistently reproduced behavioral regression. The proposed repair parameterizes the existing 23-template loop while preserving assertions and the deadline. This file is outside the accepted target list: scope expansion was requested and no Client edit has been made. Do not mark the Client gate or this hub complete while that obligation remains.
+
+## Closeout (2026-11-22)
+
+Closed as `closed` in the agent trust programme's plan purge (PRD-1507). Every plan item is checked off; the validation selector, the thin push gate and the critical push override it planned are on develop and owned by the validation pipeline guide. No lane receipts were certified.
+
+Still open: nothing.

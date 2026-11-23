@@ -2,10 +2,10 @@
 
 **Feature Slug**: `passkey-account-continuity`
 **Stage**: `active`
-**Status**: `ACTIVE — steps 1 to 3 implemented on feature/passkey-account-continuity; step 4 next`
+**Status**: `CLOSED: PRD-1154 is Done; idle since 17 Oct`
 **Linear Issue**: `PRD-1154` (read-only mirror; COM-39 owns community outreach)
 **Created**: `2026-10-16T19:35:57.040Z`
-**Last Updated**: `2026-10-17`
+**Last Updated**: `2026-11-22`
 
 Read [brief.md](brief.md) for the problem and [spec.md](spec.md) for the current behaviour and
 evidence. The clean-room proof behind this plan is
@@ -551,3 +551,10 @@ it changes.
   critical override retained for shared auth and the agent directory.
 - Rendered proof follows AGENTS.md Browser Evidence: clean-room Chromium for the rig, authenticated
   device proof for signing.
+
+## Closeout (2026-11-22)
+
+Closed as `closed` in the agent trust programme's plan purge (PRD-1507). PRD-1154 (the Linear parent) is Done. The hub has been idle since 17 October and its lanes were never certified.
+
+Still open:
+- Per-step validation choice: dropped, the selector picks checks per change

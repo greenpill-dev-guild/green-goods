@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-09-22T00:26:22.875Z",
-    "updated_at": "2026-10-06T21:01:43Z"
+    "updated_at": "2026-11-22T00:00:00.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -36,7 +36,7 @@
     "depends_on_features": ["ens-l2-sender-admin-recovery"]
   },
   "notes": [
-    "Blocked on founder decisions 1, 2, and 3 in spec.md § Human Judgment Points; steps 3 onward cannot be sequenced until they are answered.",
+    "Blocked on founder decisions 1, 2, and 3 in spec.md \u00a7 Human Judgment Points; steps 3 onward cannot be sequenced until they are answered.",
     "The contracts lane activates only if decision 1 is answered on-chain, and then it belongs to the sender v2 in ens-l2-sender-admin-recovery rather than a second deployment.",
     "Sign-up and auth are critical surfaces: any check added there must never block account creation.",
     "status.json is authoritative; set a concrete <type>/<work-description> branch only when work begins.",
@@ -167,6 +167,14 @@
       "status": "linear_state_preservation_enabled",
       "branch": null,
       "note": "Existing Linear states are preserved during manifest updates; local Backlog placement does not demote a Todo or later mirror state. This records no external write or sync confirmation."
+    },
+    {
+      "timestamp": "2026-11-22T00:00:00.000Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "closeout_recorded",
+      "branch": null,
+      "note": "Closeout recorded as cancelled in the PRD-1507 plan purge: PRD-949 is Canceled."
     }
   ]
 }

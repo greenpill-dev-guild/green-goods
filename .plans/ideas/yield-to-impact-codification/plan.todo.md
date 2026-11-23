@@ -2,8 +2,8 @@
 
 **Feature Slug**: yield-to-impact-codification
 **Stage**: `ideas`
-**Status**: `IDEA — measurement proposal; funder-language research is a separate boundary`
-**Last Updated**: `2026-10-06`
+**Status**: `CLOSED: measurement proposal idle since 6 Oct`
+**Last Updated**: `2026-11-22`
 
 ## Status reconciliation (2026-10-06)
 
@@ -17,3 +17,9 @@
 4. [ ] If promoted, create current acceptance criteria, affected paths, lane ownership, and validation evidence.
 
 No implementation should start from the historical branch names or timelines in brief.md.
+
+## Closeout (2026-11-22)
+
+Closed as `closed_stale` in the agent trust programme's plan purge (PRD-1507). A measurement proposal untouched since 6 October, with no Linear parent.
+
+Still open: nothing.

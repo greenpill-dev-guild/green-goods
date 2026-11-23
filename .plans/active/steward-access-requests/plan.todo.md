@@ -1,7 +1,9 @@
 # Steward Access Requests Plan
 
 **Feature Slug**: `steward-access-requests`
-**Status**: ACTIVE
+**Status**: `CLOSED: every plan item checked off; idle since 8 Oct`
+
+**Last Updated**: `2026-11-22`
 **Created**: 2026-10-07
 
 ## Decisions
@@ -24,3 +26,9 @@
 ## Validation
 
 The selector owns gates. Focused tests exercise legacy and new requests, negative authorization, scope changes, role confirmation and SQLite migration. Run package typechecks for changed public contracts and root cross-package/release checks. No real request submissions or role transactions during proof. Fresh committed evidence goes in lane handoffs; dirty-tree proof is explicitly provisional.
+
+## Closeout (2026-11-22)
+
+Closed as `closed` in the agent trust programme's plan purge (PRD-1507). Every plan item is checked off and the work is on develop. No lane receipts were certified, so it closes as closed rather than completed.
+
+Still open: nothing.

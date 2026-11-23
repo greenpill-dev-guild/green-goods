@@ -2,9 +2,9 @@
 
 **Feature Slug**: `karma-gap-release`
 **Stage**: `backlog`
-**Status**: `BLOCKED — legacy GardenAccount compatibility design required`
+**Status**: `CLOSED: idle since 6 Oct; blocked on a GardenAccount compatibility design`
 **Created**: `2026-09-10`
-**Last Updated**: `2026-10-06`
+**Last Updated**: `2026-11-22`
 
 ## Status reconciliation (2026-10-06)
 
@@ -55,3 +55,10 @@ Record authenticated Brave proof of the `/garden` Karma panel for the states rea
 - [ ] Read-only inventory with no release blockers before each broadcast
 - [ ] Live post-state verification of the canary before expansion
 - [ ] Authenticated Brave `/garden` proof
+
+## Closeout (2026-11-22)
+
+Closed as `closed_stale` in the agent trust programme's plan purge (PRD-1507). Untouched since 6 October and blocked on a legacy GardenAccount compatibility design that nobody has started.
+
+Still open:
+- Compatibility options, review, inventory, fork proof: dropped until a Karma GAP release is filed in Linear

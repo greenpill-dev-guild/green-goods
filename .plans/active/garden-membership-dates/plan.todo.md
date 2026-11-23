@@ -2,9 +2,9 @@
 
 **Feature Slug**: `garden-membership-dates`
 **Stage**: `active`
-**Status**: `ACTIVE`
+**Status**: `CLOSED: every plan item checked off; idle since 13 Nov`
 **Created**: 2026-11-11
-**Last Updated**: 2026-11-11
+**Last Updated**: `2026-11-22`
 
 ## Decision log
 
@@ -41,3 +41,9 @@ The user approved all three bounded improvements on 2026-11-11:
 - [x] Clearer Add Members staging and submission controls.
 
 Local implementation and focused proof are recorded in the [UI handoff](handoffs/claude-ui.md#admin-member-polish). Underlying permission and signing rules remain authoritative. No account removal, transaction, publication, or branch action was performed.
+
+## Closeout (2026-11-22)
+
+Closed as `closed` in the agent trust programme's plan purge (PRD-1507). Every plan item is checked off and the work is on develop. No lane receipts were certified, so it closes as closed rather than completed.
+
+Still open: nothing.

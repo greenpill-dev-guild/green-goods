@@ -2,8 +2,8 @@
 
 **Feature Slug**: domain-coherence
 **Stage**: `ideas`
-**Status**: `IDEA — residual dimension-model discovery; taxonomy research delivered separately`
-**Last Updated**: `2026-10-06`
+**Status**: `CLOSED: idea idle since 6 Oct; taxonomy research delivered`
+**Last Updated**: `2026-11-22`
 
 ## Status reconciliation (2026-10-06)
 
@@ -17,3 +17,9 @@
 4. [ ] If promoted, create current acceptance criteria, affected paths, lane ownership, and validation evidence.
 
 No implementation should start from the historical branch names or timelines in brief.md.
+
+## Closeout (2026-11-22)
+
+Closed as `closed_stale` in the agent trust programme's plan purge (PRD-1507). Its taxonomy research was delivered; the residual dimension-model discovery has been idle since 6 October with no Linear parent.
+
+Still open: nothing.

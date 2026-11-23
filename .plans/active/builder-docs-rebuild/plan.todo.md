@@ -1,9 +1,9 @@
 # Builder Docs Rebuild Plan
 
 **Feature Slug**: `builder-docs-rebuild`
-**Status**: IMPLEMENTED (PR #795 merged into `develop` on 2026-10-12 UTC; Afo's review gates stay open)
+**Status**: `CLOSED: PR #795 merged and PRD-862 is Done`
 **Created**: 2026-09-02
-**Last Updated**: 2026-10-12
+**Last Updated**: `2026-11-22`
 
 ## Decision Log
 
@@ -331,3 +331,10 @@ gardeners". The page states the behavior; whether the contract should count memb
 - Deferred (Afo, 2026-09-02): revisit the Architecture landing for stronger protocol capture once
   Phases 3-4 surround it; reassess what it should still say that Anatomy and Data Model now cover.
 - Tone rule 6 (no em dashes) applied to all Phase 3 prose.
+
+## Closeout (2026-11-22)
+
+Closed as `closed` in the agent trust programme's plan purge (PRD-1507). PR #795 merged into develop on 12 October and PRD-862 is Done. The phase receipts were never recorded.
+
+Still open:
+- Phase receipts and the Implementation Quality Contract check: dropped, the docs checks in CI now hold the generator and build

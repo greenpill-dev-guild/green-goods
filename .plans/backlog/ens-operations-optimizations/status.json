@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-04-25T23:55:33Z",
-    "updated_at": "2026-10-06T09:26:48Z"
+    "updated_at": "2026-11-22T00:00:00.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -95,6 +95,14 @@
       "status": "status_reconciled",
       "branch": null,
       "note": "Re-audit existing release-fee/funding checks and recovery UI before implementing the older cooldown/retry checklist. The source now includes sponsored-release funding checks and a support-assisted username-change surface. That does not establish the historical observability, event-correlation, smoke or alerting outcomes. Keep this separate from sender recovery and select a bounded operational gap after a fresh inventory."
+    },
+    {
+      "timestamp": "2026-11-22T00:00:00.000Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "closeout_recorded",
+      "branch": null,
+      "note": "Closeout recorded as closed_stale in the PRD-1507 plan purge: idle since 6 Oct with no Linear parent."
     }
   ],
   "taxonomy": {

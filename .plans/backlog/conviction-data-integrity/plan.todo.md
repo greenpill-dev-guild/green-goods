@@ -2,8 +2,8 @@
 
 **Feature Slug**: `conviction-data-integrity`  
 **Stage**: `backlog`
-**Status**: `BACKLOG — current-code re-audit required before activation`
-**Last Updated**: `2026-10-06`
+**Status**: `CLOSED: idle since 6 Oct with no Linear parent`
+**Last Updated**: `2026-11-22`
 
 ## Status reconciliation (2026-10-06)
 
@@ -29,3 +29,10 @@ Do not dispatch the nested historical B1/B2/B3 source hubs. Promotion to `active
 - Record one failing boundary test for each placeholder being removed.
 - Land contract/indexer changes before shared hooks and UI consumers.
 - Record plan-hub TDD evidence in the canonical lane handoffs.
+
+## Closeout (2026-11-22)
+
+Closed as `closed_stale` in the agent trust programme's plan purge (PRD-1507). Untouched since 6 October, with no Linear parent and a re-audit required before activation.
+
+Still open:
+- Any revival starts from a fresh audit in a new hub; this hub stays in Git history

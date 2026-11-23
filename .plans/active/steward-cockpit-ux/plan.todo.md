@@ -2,9 +2,9 @@
 
 **Feature Slug**: `steward-cockpit-ux`
 **Stage**: `active`
-**Status**: `IMPLEMENTED — five PRs merged; aggregate receipts and QA disposition pending`
+**Status**: `CLOSED: five PRs merged and PRD-981 is Done; the two hub QA passes never ran`
 **Created**: `2026-09-25T05:02:27.261Z`
-**Last Updated**: `2026-10-06`
+**Last Updated**: `2026-11-22`
 
 ## Status reconciliation (2026-10-06)
 
@@ -139,3 +139,11 @@ See `eval.md` for the per-PR ladder.
 After PR5 merges and the QA passes run: commit the closeout record (`Status` → `CLOSED — …`, open
 items with destinations), move the Linear children and parent to Done with a short comment, run
 `confirm-linear-sync`, then archive with `plan-hub.mjs move --to archive` in its own commit.
+
+## Closeout (2026-11-22)
+
+Closed as `closed` in the agent trust programme's plan purge (PRD-1507). All five PRs merged and PRD-981 is Done. The two hub QA passes and the aggregate receipts were never recorded, so it closes as closed.
+
+Still open:
+- QA walk of eval.md at 1280 and 375: dropped; the admin surfaces have changed since and later QA sessions cover them
+- Proof and RED/GREEN recording items: dropped, they were working rules, not deliverables

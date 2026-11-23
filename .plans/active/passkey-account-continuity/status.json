@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-16T19:35:57.040Z",
-    "updated_at": "2026-10-17T07:22:09.673Z"
+    "updated_at": "2026-11-22T00:00:00.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -329,6 +329,14 @@
       "status": "tdd_recorded",
       "branch": "feature/passkey-account-continuity",
       "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-11-22T00:00:00.000Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "closeout_recorded",
+      "branch": null,
+      "note": "Closeout recorded as closed in the PRD-1507 plan purge: PRD-1154 is Done; idle since 17 Oct."
     }
   ]
 }

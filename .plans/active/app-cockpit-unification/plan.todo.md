@@ -1,5 +1,9 @@
 # One Look for the App and the Cockpit Plan
 
+**Status**: `CLOSED: PRD-1266 is Done; idle since 6 Nov`
+
+**Last Updated**: `2026-11-22`
+
 **Feature Slug:** `app-cockpit-unification`
 **Stage:** active
 **Status:** ACTIVE: step 1's face and both halves of the type roles merged on 21 to 23 October, and the faces are served and precached; steps 1 to 3 merged on 23 October (#1197; #1191 and #1193; #1195 and #1196), with the installed-app Brave proof still pending; step 4's count badge was approved on its pair on 23 October and is in progress; each later slice starts on its approved pair
@@ -416,3 +420,11 @@ drawn at 16px, and a busy warning action keeping its colours. DL-119 and its gui
 standards-only `feature/app-cockpit-button-call-sites-guides`
 ([handoff](handoffs/claude-ui.md#step-20-call-site-pass-buttons-prd-1287),
 [eval.md](eval.md#step-20-call-site-pass-proof-buttons)).
+
+## Closeout (2026-11-22)
+
+Closed as `closed` in the agent trust programme's plan purge (PRD-1507). PRD-1266 is Done and 20 of 22 plan items are checked off. The hub has been idle since 6 November.
+
+Still open:
+- Step 13, rewrite the cockpit guide and prompt contract: dropped here; the admin DESIGN.md and design skill own that guidance
+- Render each pick before rollout: kept as a standing rule in the design skill, not a deliverable

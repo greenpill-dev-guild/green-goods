@@ -10,7 +10,7 @@
     "overall_status": "idea",
     "priority": "p2",
     "created_at": "2026-07-19T21:55:22.269Z",
-    "updated_at": "2026-10-06T09:26:48Z"
+    "updated_at": "2026-11-22T00:00:00.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -150,6 +150,14 @@
       "status": "status_reconciled",
       "branch": null,
       "note": "[RESR-6](https://linear.app/greenpill-dev-guild/issue/RESR-6) is Done for the canonical action-domain taxonomy and glossary. It does not prove the broader dimension matrix, type-system defaults or reporting proposals in this idea. Reuse that delivered taxonomy and the ontology; define any remaining conceptual research separately before authorizing implementation. The old May/June timing is historical."
+    },
+    {
+      "timestamp": "2026-11-22T00:00:00.000Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "closeout_recorded",
+      "branch": null,
+      "note": "Closeout recorded as closed_stale in the PRD-1507 plan purge: idea idle since 6 Oct; taxonomy research delivered."
     }
   ]
 }

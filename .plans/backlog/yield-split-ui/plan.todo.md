@@ -2,9 +2,9 @@
 
 **Branch**: `codex/yield-split-ui`
 **Stage**: `backlog`
-**Status**: `BACKLOG — re-audit distribution UI; guarded presets remain gated`
+**Status**: `CLOSED: idle since 6 Oct; PRD-351 stays open in Linear`
 **Created**: 2026-03-16
-**Last Updated**: `2026-10-06`
+**Last Updated**: `2026-11-22`
 
 ## Status reconciliation (2026-10-06)
 
@@ -164,3 +164,10 @@ Closeout:
 - `node scripts/harness/plan-hub.mjs validate`
 - `node scripts/harness/plan-hub.mjs linear-sync --feature yield-split-ui --json` returns parent-only while backlog and lane manifests only after activation
 - `git status -sb`
+
+## Closeout (2026-11-22)
+
+Closed as `closed_stale` in the agent trust programme's plan purge (PRD-1507). Untouched since 6 October. PRD-351 is still Todo in Linear, which keeps the backlog; the hub held no plan beyond it.
+
+Still open:
+- Yield split visibility and operator presets → PRD-351

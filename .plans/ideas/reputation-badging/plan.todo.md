@@ -8,9 +8,9 @@
 **Linear Issue**: `PRD-455`
 **Linear Source**: `source:plans`
 **Stage**: `ideas`
-**Status**: `IDEA — later portable six-badge expansion; no rollout date accepted`
+**Status**: `CLOSED: PRD-455 is Canceled`
 **Created**: `2026-04-17`
-**Last Updated**: `2026-10-06`
+**Last Updated**: `2026-11-22`
 **Historical Q2 dates (superseded)**: Lock + schema deploy **2026-04-25**; pilot rollout **2026-06-30**. No current rollout date is accepted.
 **Branch Strategy**: `feature/reputation-badging` with phase commits for independent rollback
 
@@ -435,3 +435,10 @@ PRD-455 remains Backlog. Keep this distinct from the initial three GreenWill bad
 3. **Sibling-project recognition slip to Q3** — 7.2 has downgrade fallback.
 4. **Soulbound transferability** — must be set at lock creation in Phase 0.2 (checklist enforces `transferrable=false`).
 5. **Trusted attester key compromise** — mitigated by deployment-artifact-rotation runbook; attestations revocable via EAS.
+
+## Closeout (2026-11-22)
+
+Closed as `cancelled` in the agent trust programme's plan purge (PRD-1507). PRD-455 (the Linear parent) was canceled on 9 October; the 142 scaffolding items were never started.
+
+Still open:
+- All implementation items: dropped with PRD-455
