@@ -1,5 +1,5 @@
 import { type ObjectValueNode, parse, visit } from "graphql";
-import { decodeFunctionData, encodeFunctionResult, parseAbi } from "viem";
+import { decodeFunctionData, encodeFunctionResult, type Hex, parseAbi } from "viem";
 import { describe, expect, it } from "vitest";
 
 import type { GraphQLReader } from "../modules/data/graphql-client";
@@ -8,6 +8,7 @@ import {
   type PassportVoucherChain,
   readPassportVoucherSupply,
 } from "../modules/commitment-pooling/data-public-passport-supply";
+import { ERC1967_IMPLEMENTATION_SLOT } from "../modules/commitment-pooling/proxy-implementation-pin";
 import { GREEN_GOODS_ISSUER_ROUTE } from "../modules/commitment-pooling/service-issuer-live-config";
 import type { PassportSection } from "../modules/commitment-pooling/public-passport-types";
 import type { Address } from "../types/domain";
@@ -898,6 +899,19 @@ describe("a garden's passport", () => {
     const BLOCK = { hash: `0x${"7".repeat(64)}`, number: 900n, timestamp: 1_800_000 } as const;
     const ZERO = `0x${"0".repeat(40)}`;
     type Transfer = { from: string; to: string; value?: bigint };
+    // The four upgradeable contracts the line reads, each pinned to its reviewed implementation.
+    const proxies = [tsv.token, pool.deployment, pool.registry, pool.limiter];
+    const slotOf = (proxy: string): Hex => {
+      const pin = proxies.find((entry) => same(entry.address, proxy));
+      if (!pin) throw new Error("unexpected storage read");
+      return `0x${"0".repeat(24)}${pin.implementation.address.slice(2).toLowerCase()}`;
+    };
+    const codeHashOf = (implementation: string): Hex => {
+      const pin = proxies.find((entry) => same(entry.implementation.address, implementation));
+      if (!pin) throw new Error("unexpected code read");
+      return pin.implementation.runtimeCodeHash;
+    };
+    type Pins = { slot?: (proxy: string) => Hex; codeHash?: (implementation: string) => Hex };
     // How the pilot's vouchers were set up: issued to the reserve, part of them seeded to the pool.
     const seeded: Transfer[] = [
       { from: ZERO, to: tsv.ownerReserve },
@@ -907,9 +921,19 @@ describe("a garden's passport", () => {
     const chain = (
       balances: { reserve: bigint; pool: bigint },
       history: Transfer[] = seeded,
-      asked: unknown[] = []
+      asked: unknown[] = [],
+      pins: Pins = {}
     ): PassportVoucherChain => ({
       block: async () => BLOCK,
+      storage: async (proxy, slot, block) => {
+        asked.push(block);
+        if (slot !== ERC1967_IMPLEMENTATION_SLOT) throw new Error("unexpected slot");
+        return (pins.slot ?? slotOf)(proxy);
+      },
+      codeHash: async (implementation, block) => {
+        asked.push(block);
+        return (pins.codeHash ?? codeHashOf)(implementation);
+      },
       transfers: async (of, fromBlock, toBlock) => {
         asked.push({ of: of.toLowerCase(), fromBlock, toBlock });
         return history.map((transfer) => ({ ...transfer, value: transfer.value ?? VOUCHERS }));
@@ -1052,6 +1076,50 @@ describe("a garden's passport", () => {
     expect(broken.unavailableSources).toMatchObject({ supply: true, promises: false });
     expect(broken.partialData).toBe(true);
 
+    // Each contract the line reads must still run its reviewed implementation at the block read
+    // (PRD-1592). An upgrade the pins do not know of, a recompiled implementation, a slot that
+    // holds no address, or a pin that cannot be checked shows the line as unavailable.
+    const elsewhere: Hex = `0x${"0".repeat(24)}${"e".repeat(40)}`;
+    for (const proxy of proxies) {
+      const upgraded = await supplyOf(
+        chain(ten, seeded, [], {
+          slot: (address) => (same(address, proxy.address) ? elsewhere : slotOf(address)),
+        })
+      );
+      expect(upgraded.supply).toEqual({ status: "unavailable" });
+      const recompiled = await supplyOf(
+        chain(ten, seeded, [], {
+          codeHash: (address) =>
+            same(address, proxy.implementation.address)
+              ? `0x${"f".repeat(64)}`
+              : codeHashOf(address),
+        })
+      );
+      expect(recompiled.supply).toEqual({ status: "unavailable" });
+    }
+    const notAnAddress = await supplyOf(
+      chain(ten, seeded, [], {
+        slot: (address) => `0x${"1".repeat(24)}${slotOf(address).slice(26)}`,
+      })
+    );
+    expect(notAnAddress.supply).toEqual({ status: "unavailable" });
+    for (const unreadable of [
+      {
+        ...chain(ten),
+        storage: async () => {
+          throw new Error("storage unreadable");
+        },
+      },
+      {
+        ...chain(ten),
+        codeHash: async () => {
+          throw new Error("implementation has no code");
+        },
+      },
+    ]) {
+      expect((await supplyOf(unreadable)).supply).toEqual({ status: "unavailable" });
+    }
+
     // A voucher with no reviewed issuer record fails the read: it is not "issues no voucher".
     // One that a single person issues is left out, since its supply is that person's own.
     const reviewed = GREEN_GOODS_ISSUER_ROUTE;
@@ -1072,8 +1140,18 @@ describe("a garden's passport", () => {
         block: async () => {
           throw new Error("the chain must not be read");
         },
-        call: async () => "0x",
-        transfers: async () => [],
+        call: async () => {
+          throw new Error("the chain must not be read");
+        },
+        storage: async () => {
+          throw new Error("the chain must not be read");
+        },
+        codeHash: async () => {
+          throw new Error("the chain must not be read");
+        },
+        transfers: async () => {
+          throw new Error("the chain must not be read");
+        },
       },
       route: {
         ...reviewed,
@@ -1090,8 +1168,18 @@ describe("a garden's passport", () => {
       block: async () => {
         throw new Error("the chain must not be read");
       },
-      call: async () => "0x",
-      transfers: async () => [],
+      call: async () => {
+        throw new Error("the chain must not be read");
+      },
+      storage: async () => {
+        throw new Error("the chain must not be read");
+      },
+      codeHash: async () => {
+        throw new Error("the chain must not be read");
+      },
+      transfers: async () => {
+        throw new Error("the chain must not be read");
+      },
     };
     expect((await supplyOf(silent, GARDEN)).supply).toEqual({
       status: "available",
