@@ -140,14 +140,20 @@ export function useCommitmentSettlementController(input: {
       sends?: bigint
     ): Promise<HexString> => {
       setLastAct({ kind, phase: "signing" });
-      const before = chainQuery.data ? settlementProgressKey(chainQuery.data) : null;
+      let before = chainQuery.data ? settlementProgressKey(chainQuery.data) : null;
       try {
         if (sends !== undefined) {
-          // The panel's funding read can be 30 seconds old; the send reads again.
-          const transfer = chainQuery.data?.disbursements.find(
-            (row) => row.disbursementId === sends
-          );
-          const fresh = await fundingQuery.refetch();
+          // Both of the panel's reads can be 30 seconds old, and the funding index can lag the
+          // chain. The send reads both again: the transfer's state and attempt come from the chain
+          // as it stands, so the check can hold a send the index hasn't caught up on.
+          const [freshChain, fresh] = await Promise.all([
+            chainQuery.refetch(),
+            fundingQuery.refetch(),
+          ]);
+          if (freshChain.data) before = settlementProgressKey(freshChain.data);
+          const transfer = freshChain.isError
+            ? undefined
+            : freshChain.data?.disbursements.find((row) => row.disbursementId === sends);
           const block = transfer
             ? selectQueuedTransferBlock(
                 { snapshot: fresh.data ?? null, isError: fresh.isError, hasStaleBalance: false },
@@ -179,7 +185,7 @@ export function useCommitmentSettlementController(input: {
         throw error;
       }
     },
-    [chainQuery.data, fundingQuery, mutation, refetch]
+    [chainQuery, fundingQuery, mutation, refetch]
   );
 
   const acts = useMemo<CommitmentSettlementActs>(
