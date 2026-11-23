@@ -6,11 +6,15 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 import { Client } from "@chainlink/contracts-ccip/contracts/libraries/Client.sol";
 
 import { GreenGoodsENSRegistrar } from "../../src/registries/ENSRegistrar.sol";
+import { GreenGoodsENSMemberNames } from "../../src/registries/ENSMemberNames.sol";
 import { IGreenGoodsENSRegistrar } from "../../src/interfaces/IGreenGoodsENSRegistrar.sol";
+import { IGreenGoodsENSMemberNames } from "../../src/interfaces/IGreenGoodsENSMemberNames.sol";
 import { GreenGoodsENSReceiver, UnauthorizedSender } from "../../src/registries/ENSReceiver.sol";
 import { IENSResolver } from "../../src/interfaces/IENS.sol";
 
 interface ILiveSender {
+    function HATS() external view returns (address);
+    function protocolHatId() external view returns (uint256);
     function slugOwner(bytes32 slugHash) external view returns (address);
     function slugNameType(bytes32 slugHash) external view returns (uint8);
     function ownerToSlug(address owner) external view returns (string memory);
@@ -73,6 +77,8 @@ contract CrossChainENSRegistrarForkTest is Test {
     /// @dev The block of the live sender's first registration.
     uint256 internal constant SENDER_FIRST_LOG_BLOCK = 433_714_702;
     bytes32 internal constant SUPPORT_REF = keccak256("fork proof: lost passkey");
+    /// @dev Stands in for the passkey directory's signing key.
+    uint256 internal constant DIRECTORY_KEY = uint256(keccak256("fork proof: directory signer"));
 
     ILogCheats internal constant LOGS = ILogCheats(address(uint160(uint256(keccak256("hevm cheat code")))));
 
@@ -195,6 +201,78 @@ contract CrossChainENSRegistrarForkTest is Test {
         receiver.ccipReceive(_message(address(registrar), 0, memberSlug, newAccount));
         assertEq(receiver.resolve(memberSlug), newAccount, "L1 registration follows the assignment");
         assertEq(IENSResolver(ENS_PUBLIC_RESOLVER).addr(node), newAccount, "ENS resolves the name to the new account");
+
+        _memberRegistersTheirDirectoryUsername(lostAccount, receiver);
+    }
+
+    /// @dev The registrar's proxy is upgraded to the member-names implementation, as the live one
+    /// would be. The account that lost its name above is still a garden member under the live
+    /// hat: it registers the username the directory vouches for, paid from the reserve, and
+    /// cannot register any other.
+    function _memberRegistersTheirDirectoryUsername(address account, GreenGoodsENSReceiver receiver) internal {
+        vm.selectFork(arbFork);
+        registrar.upgradeTo(address(new GreenGoodsENSMemberNames()));
+        GreenGoodsENSMemberNames names = GreenGoodsENSMemberNames(payable(address(registrar)));
+        assertEq(names.ownerToSlug(liveNames[0].owner), liveNames[0].slug, "carried-over names survive the upgrade");
+        _configureClaimsWithTheLiveHat(names, account);
+
+        string memory username = "fork-proof-returning-member";
+        uint256 deadline = block.timestamp + 10 minutes;
+        bytes memory grant = _directoryGrant(names, account, username, deadline);
+
+        // A name the directory did not vouch for is refused, as is an account that joined no garden.
+        vm.prank(account);
+        vm.expectRevert(IGreenGoodsENSMemberNames.InvalidNameGrant.selector);
+        names.claimName("some-other-name", deadline, grant);
+        address outsider = makeAddr("fork proof outsider");
+        bytes memory outsiderGrant = _directoryGrant(names, outsider, "outsider-name", deadline);
+        vm.prank(outsider);
+        vm.expectRevert(IGreenGoodsENSMemberNames.NotProtocolMember.selector);
+        names.claimName("outsider-name", deadline, outsiderGrant);
+
+        // The reserve pays through the real router; the member's account sends no ETH.
+        uint256 fee = names.getRegistrationFee(username, account, IGreenGoodsENSRegistrar.NameType.Gardener);
+        vm.deal(address(names), fee * 2);
+        vm.prank(account);
+        names.claimName(username, deadline, grant);
+        assertEq(names.ownerToSlug(account), username);
+        assertEq(address(names).balance, fee, "the reserve paid exactly the quoted fee");
+        assertTrue(names.sponsoredClaimUsed(account));
+
+        vm.selectFork(ethFork);
+        vm.prank(receiver.getRouter());
+        receiver.ccipReceive(_message(address(names), 0, username, account));
+        assertEq(receiver.resolve(username), account, "L1 registers the member's username");
+        assertEq(
+            IENSResolver(ENS_PUBLIC_RESOLVER).addr(keccak256(abi.encodePacked(BASE_NODE, keccak256(bytes(username))))),
+            account,
+            "ENS resolves the username to the member"
+        );
+    }
+
+    function _configureClaimsWithTheLiveHat(GreenGoodsENSMemberNames names, address account) internal {
+        address liveHats = ILiveSender(LIVE_SENDER).HATS();
+        uint256 liveHat = ILiveSender(LIVE_SENDER).protocolHatId();
+        names.setMembershipHat(liveHats, liveHat);
+        names.setNameAttestor(vm.addr(DIRECTORY_KEY));
+        names.setSponsorship(5, 5, 0.01 ether);
+        (bool ok, bytes memory wears) =
+            liveHats.staticcall(abi.encodeWithSignature("isWearerOfHat(address,uint256)", account, liveHat));
+        assertTrue(ok && abi.decode(wears, (bool)), "the account still wears the live garden-member hat");
+    }
+
+    function _directoryGrant(
+        GreenGoodsENSMemberNames names,
+        address account,
+        string memory username,
+        uint256 deadline
+    )
+        internal
+        view
+        returns (bytes memory)
+    {
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(DIRECTORY_KEY, names.nameGrantDigest(account, username, deadline));
+        return abi.encodePacked(r, s, v);
     }
 
     receive() external payable { }
