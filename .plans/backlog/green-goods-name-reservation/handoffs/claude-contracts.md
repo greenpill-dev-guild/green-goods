@@ -3,14 +3,15 @@
 ## Lane
 
 - Owner: Claude
-- Branch: `feature/ens-directory-vouched-names`, stacked on `feature/ens-registrar-operator-recovery` (the stack is approved, plan decision 18)
+- Branch: `feature/ens-member-names`, stacked on `feature/ens-registrar-operator-recovery` (the stack is approved, plan decision 18)
 - Status: the on-chain half of the 21 November direction is on a pull request for review; the directory, sign-up and app halves are follow-up pull requests
 
 ## Scope
 
 - `packages/contracts/src/registries/ENSMemberNames.sol`: `GreenGoodsENSMemberNames`, which extends the registrar from PRD-344 and is what its proxy is upgraded to. It adds `claimName`, the directory grant, the garden-member hat gate, one sponsored registration per account, and the daily limits and fee cap on registrations paid from the contract's balance. Its storage follows the registrar's own and its gap, with a baseline in `storage-layouts/GreenGoodsENSMemberNames.json`; the registrar itself is unchanged.
 - `packages/contracts/src/interfaces/IGreenGoodsENSMemberNames.sol`: its types, errors and events.
-- `packages/contracts/test/unit/GreenGoodsENSRegistrar.t.sol`, `packages/contracts/test/fork/CrossChainENSRegistrar.t.sol`, `packages/contracts/storage-layouts/GreenGoodsENSRegistrar.json`.
+- `packages/contracts/test/unit/GreenGoodsENSMemberNames.t.sol`, the member step in `packages/contracts/test/fork/CrossChainENSRegistrar.t.sol`, `packages/contracts/storage-layouts/GreenGoodsENSMemberNames.json` and its entry in `script/check-storage-layout.sh`.
+- A sponsored garden mint the balance cannot pay for (daily limit, fee cap or empty reserve) has its name held on L2 and `GardenRegistrationDeferred` emitted; the owner sends it with `adminResendRegistration`.
 
 ## The contract's side of the rule "one member, one name, the directory's username"
 
@@ -45,13 +46,13 @@ An independent review of this layer (a fresh agent given the code, not my conclu
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: `5e431111dc9cabdd82f6e23783073dde68051d9e`
-- Run at (UTC): 2026-11-21T22:27:51Z
+- Tested implementation commit SHA: `b9501ba36ef55bea943638a99fb9eb3f486c5587`
+- Run at (UTC): 2026-11-23T06:21:13Z
 - Exact command(s), from `packages/contracts`:
-  - `bun run test --suite solidity --profile match -- test/unit/GreenGoodsENSRegistrar.t.sol`
+  - `bun run test --suite solidity --profile match -- test/unit/GreenGoodsENSMemberNames.t.sol`
   - `ARBITRUM_FORK_RPC_URL=https://arbitrum.gateway.tenderly.co ENS_REGISTRAR_ARBITRUM_FORK_BLOCK_NUMBER=526331210 ETHEREUM_FORK_RPC_URL=https://mainnet.gateway.tenderly.co ENS_REGISTRAR_ETHEREUM_FORK_BLOCK_NUMBER=26465945 bun run test --suite solidity --profile match -- test/fork/CrossChainENSRegistrar.t.sol`
-  - `bash script/check-storage-layout.sh --contract GreenGoodsENSRegistrar`
-- Result: unit 37 passed, 0 failed. Fork 1 passed, 0 failed, 0 skipped. Storage layout matches its baseline; every row before the gap is unchanged from the registrar branch and the layout still ends at slot 151.
+  - `bash script/check-storage-layout.sh --contract GreenGoodsENSMemberNames`
+- Result: unit 16 passed, 0 failed. Fork 1 passed, 0 failed, 0 skipped. Storage layout matches its baseline: the registrar's rows and gap are unchanged and this contract's storage starts at slot 151.
 - Validated paths: `packages/contracts/src/registries/ENSMemberNames.sol`, `packages/contracts/src/interfaces/IGreenGoodsENSMemberNames.sol`, `packages/contracts/test/unit/GreenGoodsENSMemberNames.t.sol`, `packages/contracts/test/fork/CrossChainENSRegistrar.t.sol`, `packages/contracts/storage-layouts/GreenGoodsENSMemberNames.json`
 - Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- <validated paths>` printed nothing
 - Evidence-only diff command and result (if applicable): not applicable

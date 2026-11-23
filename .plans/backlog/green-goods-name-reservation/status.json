@@ -90,7 +90,7 @@
     "contracts": {
       "owner": "claude",
       "status": "in_progress",
-      "branch": "feature/ens-directory-vouched-names",
+      "branch": "feature/ens-member-names",
       "depends_on": [],
       "handoff": "handoffs/claude-contracts.md",
       "tdd": {
@@ -101,8 +101,8 @@
           "evidence": ""
         },
         "green": {
-          "command": "bun run test --suite solidity --profile match -- test/unit/GreenGoodsENSRegistrar.t.sol; and test/fork/CrossChainENSRegistrar.t.sol with both fork RPCs and its two block pins set",
-          "evidence": "Unit 37 passed, 0 failed; fork 1 passed, 0 skipped, at 5e431111dc9cabdd82f6e23783073dde68051d9e on 2026-11-21."
+          "command": "bun run test --suite solidity --profile match -- test/unit/GreenGoodsENSMemberNames.t.sol; test/fork/CrossChainENSRegistrar.t.sol with both fork RPCs and its two block pins set; bash script/check-storage-layout.sh --contract GreenGoodsENSMemberNames",
+          "evidence": "Unit 16 passed, 0 failed; fork 1 passed, 0 skipped; storage layout matches its baseline; at b9501ba36ef55bea943638a99fb9eb3f486c5587 on 2026-11-23."
         },
         "note": "The claim was written before its tests, so no failing-first run was recorded. Fallback proof: the unit suite and the live-state fork run at the tested commit."
       },
@@ -176,7 +176,7 @@
       "actor": "claude",
       "lane": "contracts",
       "status": "in_progress",
-      "branch": "feature/ens-directory-vouched-names",
+      "branch": "feature/ens-member-names",
       "note": "Directory-vouched member claim with the hat gate and sponsorship limits, stacked on the registrar branch, with unit tests and live-state fork proof on a pull request. The directory's grant endpoint, the rename with alias, sign-up confirmation and the app's username section are follow-up pull requests."
     }
   ]

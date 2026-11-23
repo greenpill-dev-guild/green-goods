@@ -1,8 +1,8 @@
 # PRD-1402 · A member registers the directory's username, on live state
 
-**Observed** 2026-11-21T22:27:51Z
+**Observed** 2026-11-21T22:27:51Z; rerun 2026-11-23T06:21:13Z
 **Forks** Arbitrum One block 526331210 and Ethereum block 26465945
-**Tested commit** `5e431111dc9cabdd82f6e23783073dde68051d9e`
+**Tested commit** `b9501ba36ef55bea943638a99fb9eb3f486c5587` (first observed at an earlier implementation, `5e431111d`, on a branch since replaced)
 **Command** `ARBITRUM_FORK_RPC_URL=<Arbitrum archive RPC> ENS_REGISTRAR_ARBITRUM_FORK_BLOCK_NUMBER=526331210 ETHEREUM_FORK_RPC_URL=<Ethereum archive RPC> ENS_REGISTRAR_ETHEREUM_FORK_BLOCK_NUMBER=26465945 bun run test --suite solidity --profile match -- test/fork/CrossChainENSRegistrar.t.sol`, from `packages/contracts`
 **Result** 1 passed, 0 failed, 0 skipped
 **Environment** The registrar cutover rehearsal in [the sender-recovery hub](../../ens-l2-sender-admin-recovery/reports/2026-11-21-live-state-fork.md), continued. Live contracts: Hats Protocol with the live garden-member hat, the CCIP router, the Ethereum receiver and the ENS public resolver. The directory's signing key is a key the test holds; no agent endpoint is involved.
