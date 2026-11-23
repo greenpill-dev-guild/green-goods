@@ -12,7 +12,7 @@ import { createEasClient, type GraphQLReader } from "./graphql-client";
  * How far a member has come, read from what the chain records of them in one garden: joined
  * only, sent work, or had work approved. Nothing is stored or set by hand (PRD-1537).
  */
-export type MemberReadinessStage = "registered" | "gettingStarted" | "contributing";
+type MemberReadinessStage = "registered" | "gettingStarted" | "contributing";
 
 export type GardenMemberReadiness =
   | { status: "loading" | "unavailable" }

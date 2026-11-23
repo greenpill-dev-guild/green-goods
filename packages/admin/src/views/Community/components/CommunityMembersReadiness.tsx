@@ -51,7 +51,7 @@ function dated(id: string, at: number, intl: IntlShape): ItemRowDetail {
 /** The row's pill, its hint and its evidence: the person row's status and two details. */
 export function readinessRowParts(
   readiness: MemberReadiness | undefined,
-  joinedAt: number | undefined,
+  joinedAt: number | null | undefined,
   intl: IntlShape
 ): {
   status: { label: string; tone: ItemRowTone };
