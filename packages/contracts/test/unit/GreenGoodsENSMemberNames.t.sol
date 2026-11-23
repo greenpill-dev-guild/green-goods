@@ -164,13 +164,14 @@ contract GreenGoodsENSMemberNamesTest is Test {
         (uint256 membersLeft, uint256 gardensLeft) = upgraded.sponsoredSendsLeftToday();
         assertEq(membersLeft + gardensLeft, 0);
 
-        // Until the owner sets the limits, a garden mint that sends nothing gets no name, as before.
+        // Until the owner sets the limits, the balance pays for no garden: a mint that sends nothing
+        // has its name held, with its registration waiting.
         vm.prank(owner);
         upgraded.finishImport();
         vm.deal(address(upgraded), 1 ether);
         vm.prank(gardenToken);
-        vm.expectRevert(IGreenGoodsENSMemberNames.DailySponsorLimitReached.selector);
-        upgraded.registerGarden("unsponsored-garden", newAccount);
+        upgraded.registerGarden("unsponsored-garden", makeAddr("unsponsored garden"));
+        assertEq(upgraded.slugOwner(keccak256("unsponsored-garden")), makeAddr("unsponsored garden"));
         vm.prank(gardenToken);
         upgraded.registerGarden{ value: FEE }("paid-garden", newAccount);
         assertEq(address(upgraded).balance, 1 ether);
@@ -186,9 +187,9 @@ contract GreenGoodsENSMemberNamesTest is Test {
 
     function testRegisterGarden_usesTheReserveWhenTheMinterSendsNothingWithinTheDailyLimit() public {
         _finishImport();
-        // No reserve: the mint's registration fails, and the garden token carries on without a name.
-        vm.prank(gardenToken);
-        vm.expectRevert(IGreenGoodsENSRegistrar.InsufficientFee.selector);
+        // A stranger is refused before any limit is counted.
+        vm.prank(stranger);
+        vm.expectRevert(IGreenGoodsENSRegistrar.NotAuthorizedCaller.selector);
         registrar.registerGarden("miyawaki-park", garden);
 
         vm.deal(address(registrar), 1 ether);
@@ -205,14 +206,55 @@ contract GreenGoodsENSMemberNamesTest is Test {
         (, gardensLeft) = registrar.sponsoredSendsLeftToday();
         assertEq(gardensLeft, 1);
 
-        // The gardens' limit is their own: two a day here, then the mint goes on without a name.
+        // The gardens' limit is their own, and members are not held up by it.
         vm.prank(gardenToken);
         registrar.registerGarden("second-garden", makeAddr("second garden"));
-        vm.prank(gardenToken);
-        vm.expectRevert(IGreenGoodsENSMemberNames.DailySponsorLimitReached.selector);
-        registrar.registerGarden("third-garden", makeAddr("third garden"));
-        // Members are not held up by it.
         _claim(member, "maya");
+    }
+
+    function testRegisterGarden_holdsTheNameWhenTheReserveCannotPayAndTheOwnerSendsItLater() public {
+        _finishImport();
+        address thirdGarden = makeAddr("third garden");
+        vm.deal(address(registrar), 1 ether);
+        vm.startPrank(gardenToken);
+        registrar.registerGarden("first-garden", makeAddr("first garden"));
+        registrar.registerGarden("second-garden", makeAddr("second garden"));
+        uint256 sent = router.count();
+
+        // Over the gardens' limit: the mint carries on, and the name is held here, not lost.
+        vm.expectEmit(true, true, false, true, address(registrar));
+        emit IGreenGoodsENSMemberNames.GardenRegistrationDeferred(thirdGarden, FEE, "third-garden");
+        registrar.registerGarden("third-garden", thirdGarden);
+        vm.stopPrank();
+        assertEq(router.count(), sent, "nothing reached L1");
+        assertEq(registrar.slugOwner(keccak256("third-garden")), thirdGarden);
+
+        // A member whose username matches cannot take it.
+        uint256 deadline = block.timestamp + 10 minutes;
+        bytes memory grant = _grant(member, "third-garden", deadline, DIRECTORY_KEY);
+        vm.prank(member);
+        vm.expectRevert(IGreenGoodsENSRegistrar.NameTaken.selector);
+        registrar.claimName("third-garden", deadline, grant);
+
+        // The owner sends the waiting registration later.
+        vm.prank(owner);
+        registrar.adminResendRegistration("third-garden", keccak256("ops-ticket-9"));
+        (, string memory slug, address holder, uint8 nameType) = _lastPayload();
+        assertEq(slug, "third-garden");
+        assertEq(holder, thirdGarden);
+        assertEq(nameType, uint8(IGreenGoodsENSRegistrar.NameType.Garden));
+
+        // An empty reserve or a fee above the cap holds the name the same way.
+        vm.deal(address(registrar), 0);
+        vm.warp(block.timestamp + 1 days);
+        vm.prank(gardenToken);
+        registrar.registerGarden("fourth-garden", makeAddr("fourth garden"));
+        assertEq(registrar.slugOwner(keccak256("fourth-garden")), makeAddr("fourth garden"));
+        vm.deal(address(registrar), 1 ether);
+        router.setFee(0.002 ether);
+        vm.prank(gardenToken);
+        registrar.registerGarden("fifth-garden", makeAddr("fifth garden"));
+        assertEq(router.count(), sent + 1, "only the owner's resend reached L1");
     }
 
     function testClaimName_registersTheDirectoryUsernameFromTheReserve() public {
@@ -381,11 +423,10 @@ contract GreenGoodsENSMemberNamesTest is Test {
             abi.encodeWithSelector(IGreenGoodsENSRegistrar.BalanceFeeCapExceeded.selector, 0.004 ether, 0.001 ether)
         );
         registrar.claimName("maya", deadline, grant);
+        // A garden mint is not refused: its name is held and its registration waits for the owner.
         vm.prank(gardenToken);
-        vm.expectRevert(
-            abi.encodeWithSelector(IGreenGoodsENSRegistrar.BalanceFeeCapExceeded.selector, 0.004 ether, 0.001 ether)
-        );
         registrar.registerGarden("miyawaki-park", garden);
+        assertEq(registrar.slugOwner(keccak256("miyawaki-park")), garden);
         assertEq(address(registrar).balance, 1 ether);
         assertFalse(registrar.sponsoredClaimUsed(member));
 
@@ -426,7 +467,7 @@ contract GreenGoodsENSMemberNamesTest is Test {
         vm.expectRevert(IGreenGoodsENSMemberNames.NameGrantTooLong.selector);
         registrar.claimName("maya", deadline, grant);
 
-        // So a grant cannot outlive the rest a released name is given: the shortest cooldown is an hour.
+        // A grant's remaining life is bounded by the shortest cooldown, an hour.
         vm.prank(owner);
         vm.expectRevert(IGreenGoodsENSRegistrar.InvalidCooldown.selector);
         registrar.setNameChangeCooldown(1 hours - 1);

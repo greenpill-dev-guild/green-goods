@@ -28,5 +28,8 @@ interface IGreenGoodsENSMemberNames {
 
     event NameAttestorUpdated(address indexed oldAttestor, address indexed newAttestor);
     event MembershipHatUpdated(address indexed hats, uint256 indexed hatId);
+    /// @notice A garden's name is held here but its L1 registration waits: the balance could not
+    /// pay for it today. The owner sends it with `adminResendRegistration`.
+    event GardenRegistrationDeferred(address indexed gardenAccount, uint256 indexed fee, string slug);
     event SponsorshipUpdated(uint32 indexed memberSendsPerDay, uint32 indexed gardenSendsPerDay, uint96 indexed maxFee);
 }

@@ -24,8 +24,8 @@ contract GreenGoodsENSMemberNames is IGreenGoodsENSMemberNames, GreenGoodsENSReg
     bytes32 private constant DOMAIN_TYPEHASH =
         keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
     bytes32 private constant NAME_GRANT_TYPEHASH = keccak256("NameGrant(address account,string name,uint256 deadline)");
-    /// @notice The longest a directory grant may run. It equals the shortest cooldown, so a grant
-    /// can never outlive the rest a released name is given.
+    /// @notice The longest a grant may still run when it is submitted. It equals the shortest
+    /// cooldown. It bounds a grant's remaining life, not its age: the directory sets short deadlines.
     uint256 public constant MAX_GRANT_LIFETIME = MIN_NAME_CHANGE_COOLDOWN;
 
     IHats public hats;
@@ -71,9 +71,26 @@ contract GreenGoodsENSMemberNames is IGreenGoodsENSMemberNames, GreenGoodsENSReg
 
     /// @notice Register a garden's name. Called by the garden token while it mints the garden.
     /// @dev `msg.value` pays the CCIP fee and the excess is refunded. A mint that sends nothing is
-    /// paid from this contract's balance, within the gardens' daily limit and the fee cap.
+    /// paid from this contract's balance, within the gardens' daily limit and the fee cap. When the
+    /// balance cannot pay today the name is still held here and its L1 registration waits, since
+    /// the garden token carries on past a failed registration and a member could otherwise take
+    /// the garden's name.
     function registerGarden(string calldata slug, address gardenAccount) external payable override {
-        _registerGarden(slug, gardenAccount, msg.value == 0 ? _countSponsoredSend(true) : 0);
+        if (msg.value > 0) {
+            _registerGarden(slug, gardenAccount, 0);
+            return;
+        }
+        if (!authorizedCallers[msg.sender] && msg.sender != owner()) revert NotAuthorizedCaller();
+        _requireImportFinished();
+        ENSSlug.validate(slug);
+        _recordName(slug, gardenAccount, NameType.Garden, false);
+        uint256 fee = this.getRegistrationFee(slug, gardenAccount, NameType.Garden);
+        if (!_sponsorsAGardenToday() || fee > sponsorship.maxFee || address(this).balance < fee + totalPendingRefunds)
+        {
+            emit GardenRegistrationDeferred(gardenAccount, fee, slug);
+            return;
+        }
+        _sendRegistration(slug, gardenAccount, NameType.Garden, _countSponsoredSend(true));
     }
 
     /// @notice The digest the directory signs to vouch that `account` holds the username `slug`.
@@ -125,6 +142,12 @@ contract GreenGoodsENSMemberNames is IGreenGoodsENSMemberNames, GreenGoodsENSReg
 
     /// @dev One more registration paid from this contract's balance today, or a revert at that
     /// group's limit. Returns the most the balance may pay for it.
+    function _sponsorsAGardenToday() private view returns (bool) {
+        Sponsorship memory limits = sponsorship;
+        uint256 used = limits.day == uint32(block.timestamp / 1 days) ? limits.gardenSendsToday : 0;
+        return used < limits.gardenSendsPerDay;
+    }
+
     function _countSponsoredSend(bool garden) internal returns (uint256 balanceFeeCap) {
         Sponsorship memory limits = sponsorship;
         uint32 today = uint32(block.timestamp / 1 days);
