@@ -86,7 +86,8 @@ contract GreenGoodsENSRegistrar is IGreenGoodsENSRegistrar, OwnableUpgradeable, 
     /// (the name moved since the support record was written) reverts instead of releasing it.
     /// @param supportReference The support record that justifies the release.
     /// @dev The name enters the usual cooldown. `msg.value` pays the CCIP fee when sent;
-    /// otherwise this contract's balance does.
+    /// otherwise this contract's balance does. L1 releases only when its own holder matches and
+    /// does not check the name's type, so the operator checks L1's holder and type first.
     function adminReleaseName(
         string calldata slug,
         address expectedOwner,

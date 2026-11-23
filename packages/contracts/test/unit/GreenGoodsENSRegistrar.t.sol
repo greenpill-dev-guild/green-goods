@@ -465,7 +465,7 @@ contract GreenGoodsENSRegistrarTest is Test {
             [address(0), l1Receiver, owner], [address(router), address(0), owner], [address(router), l1Receiver, address(0)]
         ];
         for (uint256 i; i < inputs.length; ++i) {
-            vm.expectRevert();
+            vm.expectRevert(abi.encodeWithSignature("ZeroAddress()"));
             new ERC1967Proxy(
                 implementation,
                 abi.encodeCall(

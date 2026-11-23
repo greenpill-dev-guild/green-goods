@@ -107,7 +107,7 @@ Only after sender v2 is live and verified, remove the legacy-address sponsored-r
 The previous sender cannot be paused and L1 reports nothing back when it skips a message, so the order matters.
 
 1. Deploy the registrar and its proxy. Do not authorize the garden token on it yet.
-2. Freeze the previous sender with owner calls: set its protocol hat to one nobody wears, withdraw its ETH, and remove the garden token as an authorized caller. Member claims and garden registrations through it now revert.
+2. Freeze the previous sender with owner calls: set its protocol hat to one nobody wears, withdraw its ETH, and remove the garden token as an authorized caller. Member claims and garden registrations through it now revert. Precondition: the member-names layer (PRD-1402) is ready, and the registrar's proxy is upgraded to it before step 6, since this registrar alone has no member claim. Without it, member names stop from this step until that upgrade, which needs Afo's explicit acceptance.
 3. Wait until every message the previous sender already sent has landed on L1.
 4. Build the manifest from the previous sender's registration and release events. Check every row against the sender's state and against the L1 receiver (same account, same type). Stop on any mismatch. Check the other direction too: the L1 receiver must hold no name the manifest lacks, counting its own registration events and any name its owner registered directly. A name only L1 holds would make L1 skip a later registration without a word.
 5. Import the manifest into the registrar, check the import against the sender, and end the import.
