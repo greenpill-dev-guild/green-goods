@@ -17,6 +17,7 @@ import type { Address } from "../../types/domain";
 import type { ServiceChainRead } from "./service-access-chain";
 import { serviceAddress as address, serviceUint as uint } from "./service-access-chain-values";
 import type { ServiceDeploymentPin, ServiceLiveRoute } from "./service-access-live-config";
+import { ERC1967_IMPLEMENTATION_SLOT, implementationMatchesPin } from "./proxy-implementation-pin";
 
 const OWNER = parseAbi(["function owner() view returns (address)"]);
 const TOKEN = [...OWNER, ...erc20Abi];
@@ -27,7 +28,6 @@ const SAFE_UPGRADE = parseAbi([
   "event Upgraded(address indexed implementation)",
 ]);
 const UPGRADE = parseAbi(["function upgradeTo(address implementation)"]);
-const IMPLEMENTATION_SLOT = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
 // The keyless deterministic deployer takes salt ‖ init code and leaves contractAddress empty.
 const CREATE2_DEPLOYER = "0x4e59b44847b379578588920cA78FbF26c0B4956C";
 const CREATE2_DEPLOYER_RUNTIME =
@@ -67,17 +67,18 @@ export async function verifyServiceDeploymentState(
 ) {
   const [code, slot, implementation, owner] = await Promise.all([
     chain.code(chainId, pin.address),
-    chain.storage(chainId, pin.address, IMPLEMENTATION_SLOT),
+    chain.storage(chainId, pin.address, ERC1967_IMPLEMENTATION_SLOT),
     chain.code(chainId, pin.implementation.address),
     chain.read({ chainId, address: pin.address, abi: OWNER, functionName: "owner" }),
   ]);
   if (
     code === "0x" ||
     !same(keccak256(code), pin.runtimeCodeHash) ||
-    !/^0x0{24}[a-f0-9]{40}$/i.test(slot) ||
-    !same(`0x${slot.slice(-40)}`, pin.implementation.address) ||
-    implementation === "0x" ||
-    !same(keccak256(implementation), pin.implementation.runtimeCodeHash) ||
+    !implementationMatchesPin(
+      slot,
+      implementation === "0x" ? null : keccak256(implementation),
+      pin.implementation
+    ) ||
     !pinnedOwner(address(owner), pin)
   )
     throw new Error("Service deployment receipt, implementation or owner changed");
@@ -271,7 +272,7 @@ export async function verifyServiceLiveRoute(route: ServiceLiveRoute, chain: Ser
         chain.read({ chainId: 100, address: asset.token, abi: TOKEN, functionName });
       const [code, slot, implementation, issuer, symbol, decimals] = await Promise.all([
         chain.code(100, asset.token),
-        chain.storage(100, asset.token, IMPLEMENTATION_SLOT),
+        chain.storage(100, asset.token, ERC1967_IMPLEMENTATION_SLOT),
         chain.code(100, asset.implementation.address),
         token("owner"),
         token("symbol"),
@@ -280,10 +281,11 @@ export async function verifyServiceLiveRoute(route: ServiceLiveRoute, chain: Ser
       if (
         code === "0x" ||
         !same(keccak256(code), asset.runtimeCodeHash) ||
-        !/^0x0{24}[a-f0-9]{40}$/i.test(slot) ||
-        !same(`0x${slot.slice(-40)}`, asset.implementation.address) ||
-        implementation === "0x" ||
-        !same(keccak256(implementation), asset.implementation.runtimeCodeHash) ||
+        !implementationMatchesPin(
+          slot,
+          implementation === "0x" ? null : keccak256(implementation),
+          asset.implementation
+        ) ||
         // Snapshots show the route's issuer, symbol and decimals, so the token must still agree.
         !same(address(issuer), asset.issuer) ||
         symbol !== asset.symbol ||

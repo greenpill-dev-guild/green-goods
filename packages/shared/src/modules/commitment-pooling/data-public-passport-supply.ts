@@ -1,7 +1,9 @@
-import { decodeFunctionResult, encodeFunctionData, type Hex, parseAbi } from "viem";
+import { decodeFunctionResult, encodeFunctionData, type Hex, keccak256, parseAbi } from "viem";
 import type { Address } from "../../types/domain";
 import { getRpcUrl } from "../../utils/blockchain/chain-registry";
+import { ERC1967_IMPLEMENTATION_SLOT, implementationMatchesPin } from "./proxy-implementation-pin";
 import { GREEN_GOODS_ISSUER_ROUTE } from "./service-issuer-live-config";
+import type { ServiceDeploymentPin } from "./service-access-live-config";
 import type { ServiceIssuerRoute } from "./service-issuer-types";
 import type { PassportVoucherSupply } from "./public-passport-types";
 
@@ -27,6 +29,10 @@ const SUPPLY_ABI = parseAbi([
 export interface PassportVoucherChain {
   block(): Promise<{ hash: Hex; number: bigint; timestamp: number }>;
   call(to: Address, data: Hex, blockHash: Hex): Promise<Hex>;
+  /** One storage slot of a contract. */
+  storage(account: Address, slot: Hex, blockHash: Hex): Promise<Hex>;
+  /** The keccak-256 of an account's runtime code; an account with no code is a failed read. */
+  codeHash(account: Address, blockHash: Hex): Promise<Hex>;
   /** Every transfer of the token, from its first block to the block read: both ends and amount. */
   transfers(
     token: Address,
@@ -84,6 +90,20 @@ function publicVoucherChain(deadline: AbortSignal): PassportVoucherChain {
       }
       return result as Hex;
     },
+    storage: async (account, slot, blockHash) => {
+      const result = await request("eth_getStorageAt", [account, slot, { blockHash }]);
+      if (typeof result !== "string" || !/^0x[0-9a-f]{64}$/i.test(result)) {
+        throw new Error("A voucher-chain contract's storage is unreadable");
+      }
+      return result as Hex;
+    },
+    codeHash: async (account, blockHash) => {
+      const code = await request("eth_getCode", [account, { blockHash }]);
+      if (typeof code !== "string" || !/^0x([0-9a-f]{2})+$/i.test(code)) {
+        throw new Error("A voucher-chain contract has no readable code");
+      }
+      return keccak256(code as Hex);
+    },
     transfers: async (token, fromBlock, toBlock) => {
       const logs = await request("eth_getLogs", [
         {
@@ -127,6 +147,10 @@ const same = (left: string, right: string) => left.toLowerCase() === right.toLow
  * between its issue, the garden's reserve and the reviewed pools. One transfer to or from anyone
  * else holds them back for good, and the holding limit, which is the pool's own policy, stays.
  * A voucher one person issues is left out altogether: its supply is that person's own.
+ *
+ * That rule holds only for the contracts as reviewed. The voucher, each pool, its registry and its
+ * limiter are upgradeable proxies, so at the block read each must still run its pinned
+ * implementation; an upgrade the pins do not know of fails the read (PRD-1592).
  */
 export async function readPassportVoucherSupply(
   chainId: number,
@@ -156,6 +180,24 @@ export async function readPassportVoucherSupply(
   const chain = options.chain ?? publicVoucherChain(AbortSignal.timeout(READ_TIMEOUT_MS));
   const block = await chain.block();
   const call = (to: Address, data: Hex) => chain.call(to, data, block.hash);
+  // Each contract is checked once per reading, however many vouchers or pools share it.
+  const checks = new Map<string, Promise<void>>();
+  const reviewed = (proxy: Pick<ServiceDeploymentPin, "address" | "implementation">) => {
+    const key = proxy.address.toLowerCase();
+    let check = checks.get(key);
+    if (!check) {
+      check = Promise.all([
+        chain.storage(proxy.address, ERC1967_IMPLEMENTATION_SLOT, block.hash),
+        chain.codeHash(proxy.implementation.address, block.hash),
+      ]).then(([slot, codeHash]) => {
+        if (!implementationMatchesPin(slot, codeHash, proxy.implementation)) {
+          throw new Error("A voucher-chain contract runs an implementation that was not reviewed");
+        }
+      });
+      checks.set(key, check);
+    }
+    return check;
+  };
   const totalSupply = async (token: Address) =>
     decodeFunctionResult({
       abi: SUPPLY_ABI,
@@ -204,7 +246,13 @@ export async function readPassportVoucherSupply(
         asset.ownerReserve,
         ...listedIn.map((pool) => pool.deployment.address),
       ];
-      const [total, reserve, history, pools] = await Promise.all([
+      const [, total, reserve, history, pools] = await Promise.all([
+        Promise.all(
+          [
+            asset.token,
+            ...listedIn.flatMap((pool) => [pool.deployment, pool.registry, pool.limiter]),
+          ].map(reviewed)
+        ),
         totalSupply(voucher.token),
         balanceOf(voucher.token, asset.ownerReserve),
         chain.transfers(voucher.token, asset.token.receipt.blockNumber, block.number),
