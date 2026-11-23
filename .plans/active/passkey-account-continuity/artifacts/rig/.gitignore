@@ -1,4 +1,0 @@
-# Throwaway TLS material and ad hoc runs never belong in the repository.
-*.pem
-spki.txt
-results.json
