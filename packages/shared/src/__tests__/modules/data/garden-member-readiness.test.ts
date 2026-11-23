@@ -100,13 +100,15 @@ describe("getGardenMemberReadiness", () => {
     expect(readiness[sender]).toMatchObject({ stage: "gettingStarted", firstApprovedAt: null });
   });
 
-  it("says nothing it cannot read in full: a failed decision read or a malformed work row", async () => {
+  it("reads a member as unavailable when the decisions on their work could not be read", async () => {
     const failed = await getGardenMemberReadiness(
       { ...scope, accounts: [sender] },
       reader({ works: { [sender]: [workRow(1, 1_000)] }, decisionsFail: true })
     );
     expect(failed[sender]).toEqual({ status: "unavailable" });
+  });
 
+  it("reads a member as unavailable when one of their works is malformed", async () => {
     const malformed = await getGardenMemberReadiness(
       { ...scope, accounts: [sender] },
       reader({ works: { [sender]: [workRow(1, 1_000), { id: uid(2) }] } })
