@@ -29,7 +29,7 @@ export interface WorkStatusCounts {
  * day: that day is "partial" and every later day is "unread", never empty. Days still to come
  * are "whole", since nothing of theirs can be missing.
  */
-export type WorkDayCoverage = "whole" | "partial" | "unread";
+type WorkDayCoverage = "whole" | "partial" | "unread";
 
 export interface WorkCalendarDay {
   day: WorkDayKey;
