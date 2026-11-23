@@ -31,6 +31,7 @@ function disbursement(overrides: Partial<PoolFundingDisbursement> = {}): PoolFun
     amount: 100n,
     state: "QUEUED",
     executionKey: null,
+    attempt: 1,
     ...overrides,
   };
 }
@@ -654,6 +655,7 @@ describe("selectExceededTransferLimit", () => {
     executorPaused = false,
     dispatched = recordedOnCelo,
     commandExecutor = { paused: executorPaused },
+    indexAttempt = 1,
   }: {
     quote?: { fee: bigint | null; senderPays: boolean | null } | null;
     limits?: Parameters<typeof fundingRead>[0];
@@ -666,6 +668,8 @@ describe("selectExceededTransferLimit", () => {
     dispatched?: boolean;
     /** The executor that command was recorded for; null when the read couldn't show it. */
     commandExecutor?: { paused: boolean | null } | null;
+    /** The attempt the index lists for the transfer. */
+    indexAttempt?: number;
   }) {
     const read = fundingRead({
       cap: 2_000n,
@@ -685,6 +689,7 @@ describe("selectExceededTransferLimit", () => {
             disbursementId: 8n,
             state: dispatched ? "DISPATCHED" : "QUEUED",
             executionKey: dispatched ? executionKey : null,
+            attempt: indexAttempt,
           },
         ] as PoolFundingDisbursement[],
         executions: recordedOnCelo
@@ -896,6 +901,28 @@ describe("selectExceededTransferLimit", () => {
     expect(
       selectQueuedTransferBlock(read, { disbursementId: 8n, amount: 900n, state: "DISPATCHED" })
     ).toBe(null);
+  });
+
+  it("selectQueuedTransferBlock: holds a resend the index is one attempt behind on, until it catches up", () => {
+    // Attempt 1 failed on Celo, and the transfer was requeued and dispatched again from outside
+    // the panel. The index still lists attempt 1, whose command Celo recorded, so the duplicate
+    // branch would let the resend through; it carries attempt 2's command, which Celo hasn't
+    // recorded, and could be refused after the CCIP fee is spent.
+    const read = queuedRead({
+      dispatched: true,
+      recordedOnCelo: true,
+      commandExecutor: { paused: false },
+      indexAttempt: 1,
+    });
+    const send = (attempt: number) =>
+      selectQueuedTransferBlock(read, {
+        disbursementId: 8n,
+        amount: 900n,
+        state: "DISPATCHED",
+        attempt,
+      });
+    expect(send(2)).toBe("limits_unread");
+    expect(send(1)).toBe(null);
   });
 
   it("selectQueuedTransferBlock: holds a transfer the read doesn't list", () => {

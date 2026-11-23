@@ -253,7 +253,11 @@ const SAFE_WIDE_UNREAD = [
  * on that executor's pause flag, read for its command, and not on the current one's.
  * The caller's own read of the transfer can be ahead of the funding index: one the
  * index still lists as dispatched may already be requeued, and its dispatch goes to
- * the current executor. Until the two reads agree it is a resend, it waits.
+ * the current executor. Until the two reads agree it is a resend, it waits. The same
+ * holds when the index is an attempt behind: a transfer requeued and dispatched again
+ * from outside the panel carries the next attempt's command, which Celo hasn't
+ * recorded even when it recorded the one the index still lists. Until the index
+ * reaches the caller's attempt, the resend waits too.
  */
 export function selectQueuedTransferBlock(
   funding: Omit<TransferFundingRead, "snapshot"> & {
@@ -270,7 +274,7 @@ export function selectQueuedTransferBlock(
       | "settlementUnavailableReasons"
     > | null;
   },
-  transfer: { disbursementId: bigint; amount: bigint; state?: string }
+  transfer: { disbursementId: bigint; amount: bigint; state?: string; attempt?: number | null }
 ): PoolFundingTransferBlock | null {
   const { snapshot } = funding;
   // A snapshot kept from a failed refresh is not current, so it shows nothing.
@@ -280,6 +284,9 @@ export function selectQueuedTransferBlock(
   );
   const resend = row?.state === "DISPATCHED" && row.executionKey ? row.executionKey : null;
   if (resend && transfer.state !== undefined && transfer.state !== "DISPATCHED") {
+    return "limits_unread";
+  }
+  if (resend && transfer.attempt !== undefined && row?.attempt !== transfer.attempt) {
     return "limits_unread";
   }
   const commandPaused = resend ? recordedExecutorPaused(snapshot, resend) : undefined;
