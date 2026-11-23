@@ -207,6 +207,28 @@ Actions define on-chain deployable work items with UI configurations.
 }
 ```
 
+### Metric Outputs
+
+`metricOutputs` names the numbers an action's reports add up to. Each output reads one or more
+inputs (`derivedFrom`) and has one unit. When one input means a different quantity depending on a
+select input, as the Infrastructure Milestone's value is kW for solar, kWh for a battery and Mbps
+for internet, each output names the options it counts with `when`:
+
+```json
+{
+  "key": "batteryCapacityKwh",
+  "unit": "kWh",
+  "aggregation": "sum",
+  "derivedFrom": ["milestoneValue"],
+  "when": { "milestoneType": ["Battery kWh added"] }
+}
+```
+
+The deploy validator refuses two outputs in different units that read the same single input,
+unless a `when` on the same select input keeps their options apart. A percentage (`%`) may read the
+same number as a count. `script/utils/validation.test.ts` holds every action in this file to that
+rule.
+
 ## Adding a New Action Type
 
 ### Step 1: Add Template (if needed)
@@ -339,6 +361,9 @@ Before committing changes:
 ```bash
 # Validate JSON structure
 node -e "JSON.parse(require('fs').readFileSync('config/actions.json', 'utf8'))"
+
+# Check each metric output counts one unit
+bun run --cwd packages/contracts test --suite script script/utils/validation.test.ts
 
 # Test template matching
 node -e "

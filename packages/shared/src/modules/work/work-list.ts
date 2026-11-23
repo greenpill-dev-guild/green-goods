@@ -24,7 +24,11 @@ export interface ReadWorkListOptions {
   visibility?: WorkVisibilitySnapshot;
 }
 
-function withLatestApproval(work: EASWork, approvals: EASWorkApproval[]): EASWorkListRow {
+/**
+ * A work with its latest decision: the one that stands, since a decision is changed by attesting
+ * a new one. Conflicting decisions in one timestamp leave the work undecided.
+ */
+export function withLatestApproval(work: EASWork, approvals: EASWorkApproval[]): EASWorkListRow {
   const latestTime = Math.max(...approvals.map((approval) => approval.createdAt ?? 0), 0);
   const latest = approvals.filter((approval) => (approval.createdAt ?? 0) === latestTime);
   // Conflicting decisions in the same timestamp bucket have no execution order.

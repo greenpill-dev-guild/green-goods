@@ -1,4 +1,7 @@
-import { useGardenMemberContributions } from "@green-goods/shared/hooks/garden/useGardenMemberContributions";
+import {
+  useGardenMemberContributions,
+  useGardenMemberReadiness,
+} from "@green-goods/shared/hooks/garden/useGardenMemberContributions";
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createMemoryRouter, RouterProvider, useNavigate, useSearchParams } from "react-router-dom";
@@ -15,6 +18,7 @@ import {
 
 vi.mock("@green-goods/shared/hooks/garden/useGardenMemberContributions", () => ({
   useGardenMemberContributions: vi.fn(() => ({ canView: false, byAccount: {} })),
+  useGardenMemberReadiness: vi.fn(() => ({ canView: false, byAccount: {} })),
 }));
 vi.mock("@green-goods/shared/hooks/garden/useGardenMemberHistory", () => ({
   useGardenMemberHistory: () => ({
@@ -119,6 +123,55 @@ function renderMembers(props: Parameters<typeof MembersHarness>[0] = {}) {
 describe("CommunityMembersTab", () => {
   beforeEach(() => {
     vi.mocked(useGardenMemberContributions).mockReturnValue({ canView: false, byAccount: {} });
+    vi.mocked(useGardenMemberReadiness).mockReturnValue({ canView: false, byAccount: {} });
+  });
+
+  it("shows each member's readiness stage, its evidence and a hint, and filters by stage", async () => {
+    const user = userEvent.setup();
+    const [owner, steward] = storyDirectory;
+    vi.mocked(useGardenMemberReadiness).mockReturnValue({
+      canView: true,
+      byAccount: {
+        [owner.address.toLowerCase()]: {
+          status: "read",
+          stage: "contributing",
+          firstSentAt: Date.UTC(2026, 6, 1, 12),
+          firstApprovedAt: Date.UTC(2026, 6, 3, 12),
+        },
+        [steward.address.toLowerCase()]: {
+          status: "read",
+          stage: "registered",
+          firstSentAt: null,
+          firstApprovedAt: null,
+        },
+      },
+    });
+    renderMembers();
+    // Roles until the mode is chosen; the read is asked for only once it is.
+    expect(screen.queryByText("Contributing")).not.toBeInTheDocument();
+    expect(useGardenMemberReadiness).toHaveBeenLastCalledWith(
+      expect.objectContaining({ enabled: false })
+    );
+    await user.click(screen.getByRole("button", { name: "Readiness" }));
+
+    expect(useGardenMemberReadiness).toHaveBeenLastCalledWith(
+      expect.objectContaining({ enabled: true })
+    );
+    expect(screen.getByText("First work approved Jul 3, 2026")).toBeInTheDocument();
+    expect(screen.getByText("Nothing needed now")).toBeInTheDocument();
+    expect(screen.getByText("Help them send a first report")).toBeInTheDocument();
+    expect(
+      screen.getByText(/people who share a phone are not counted separately/)
+    ).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText("Readiness stage"), "registered");
+    expect(screen.queryByText("First work approved Jul 3, 2026")).not.toBeInTheDocument();
+    expect(screen.getByText("Help them send a first report")).toBeInTheDocument();
+  });
+
+  it("offers no readiness mode to a member who may not read the records", () => {
+    renderMembers();
+    expect(screen.queryByRole("button", { name: "Readiness" })).not.toBeInTheDocument();
   });
   it("shows contribution instead of membership in a manager's compact row", () => {
     vi.mocked(useGardenMemberContributions).mockReturnValue({

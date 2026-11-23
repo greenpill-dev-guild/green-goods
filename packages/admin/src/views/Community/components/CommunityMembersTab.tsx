@@ -1,5 +1,8 @@
 import { gardenContributionDetail } from "@green-goods/shared/components/GardenContributionDate";
-import { useGardenMemberContributions } from "@green-goods/shared/hooks/garden/useGardenMemberContributions";
+import {
+  useGardenMemberContributions,
+  useGardenMemberReadiness,
+} from "@green-goods/shared/hooks/garden/useGardenMemberContributions";
 import { useGardenMemberHistory } from "@green-goods/shared/hooks/garden/useGardenMemberHistory";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { Button } from "@green-goods/shared/components/Button";
@@ -24,6 +27,14 @@ import { getRoleLabel } from "@/components/Garden/gardenUtils";
 import { MemberNameReaders, withMemberName } from "@/components/Garden/MemberNames";
 import { memberMatchesSearch } from "@/components/Garden/manageRoles";
 import { CommunityJoinRequests } from "./CommunityJoinRequests";
+import {
+  CommunityReadinessCard,
+  READINESS_STAGES,
+  type ReadinessStage,
+  readinessRowParts,
+  readinessStageLabel,
+  readinessStageOf,
+} from "./CommunityMembersReadiness";
 import { communityRoleIcons } from "./communityRoleIcons";
 
 export type CommunityMembersTabProps = Pick<
@@ -65,6 +76,24 @@ export function CommunityMembersTab({
     history.isError ? [] : history.members.map((member) => [member.account.toLowerCase(), member])
   );
   const [roleFilter, setRoleFilter] = useState<GardenRole | "all">("all");
+  // Readiness is a mode of this list, for those who may read the members' records (PRD-1537).
+  const [view, setView] = useState<"roles" | "readiness">("roles");
+  const [stageFilter, setStageFilter] = useState<ReadinessStage | "all">("all");
+  const readiness = useGardenMemberReadiness({
+    garden,
+    accounts: visibleDirectory.map((entry) => entry.address),
+    enabled: view === "readiness",
+  });
+  const showsReadiness = view === "readiness" && readiness.canView;
+  // While a member's records are still read, every row is "Not known": no stage filters yet.
+  const readingStages = Object.values(readiness.byAccount).some(
+    (entry) => entry.status === "loading"
+  );
+  const filtersStage = showsReadiness && stageFilter !== "all" && !readingStages;
+  const stageOf = useCallback(
+    (address: Address) => readinessStageOf(readiness.byAccount[address.toLowerCase()]),
+    [readiness.byAccount]
+  );
   const [names, setNames] = useState<ReadonlyMap<string, string>>(() => new Map());
   const onName = useCallback(
     (address: Address, name: string | null) =>
@@ -83,6 +112,7 @@ export function CommunityMembersTab({
       visibleDirectory.filter(
         (entry) =>
           (activeRole === "all" || entry.roles.includes(activeRole)) &&
+          (!filtersStage || stageOf(entry.address) === stageFilter) &&
           memberMatchesSearch(
             entry,
             memberSearch,
@@ -90,8 +120,25 @@ export function CommunityMembersTab({
             formatMessage
           )
       ),
-    [activeRole, formatMessage, memberSearch, names, visibleDirectory]
+    [
+      activeRole,
+      formatMessage,
+      memberSearch,
+      names,
+      filtersStage,
+      stageFilter,
+      stageOf,
+      visibleDirectory,
+    ]
   );
+  const stageCounts = useMemo(() => {
+    const counts = Object.fromEntries(READINESS_STAGES.map((stage) => [stage, 0])) as Record<
+      ReadinessStage,
+      number
+    >;
+    for (const entry of visibleDirectory) counts[stageOf(entry.address)] += 1;
+    return counts;
+  }, [stageOf, visibleDirectory]);
   const missingCriticalRoles = useMemo(
     () =>
       roleSummary.filter(
@@ -138,6 +185,23 @@ export function CommunityMembersTab({
               placeholder={formatMessage({ id: "app.garden.detail.community.memberSearch" })}
             />
 
+            {readiness.canView ? (
+              <div
+                className="flex flex-wrap gap-2"
+                role="group"
+                aria-label={formatMessage({ id: "hub.community.readiness.view" })}
+              >
+                {(["roles", "readiness"] as const).map((option) => (
+                  <AdminFilterChip
+                    key={option}
+                    label={formatMessage({ id: `hub.community.readiness.view.${option}` })}
+                    selected={view === option}
+                    onToggle={() => setView(option)}
+                  />
+                ))}
+              </div>
+            ) : null}
+
             {/* Counts live in the Members rail; these controls only filter (DL-141). */}
             <AdminSelect
               className="@[480px]:hidden"
@@ -178,19 +242,37 @@ export function CommunityMembersTab({
                 );
               })}
             </div>
+            {showsReadiness ? (
+              <AdminSelect
+                label={formatMessage({ id: "hub.community.readiness.filterAria" })}
+                value={stageFilter}
+                onChange={(event) => setStageFilter(event.target.value as ReadinessStage | "all")}
+              >
+                <option value="all">
+                  {formatMessage({ id: "hub.community.readiness.filterAll" })}
+                </option>
+                {READINESS_STAGES.map((stage) => (
+                  <option key={stage} value={stage}>
+                    {readinessStageLabel(stage, intl)}
+                  </option>
+                ))}
+              </AdminSelect>
+            ) : null}
 
             {filteredDirectory.length === 0 ? (
               <EmptyState
                 icon={<RiGroupLine className="h-6 w-6" />}
                 title={
-                  memberSearch.trim() || activeRole !== "all"
+                  memberSearch.trim() || activeRole !== "all" || filtersStage
                     ? formatMessage({ id: "app.garden.detail.community.membersEmpty" })
                     : formatMessage({ id: "app.admin.garden.members.empty" })
                 }
                 description={
-                  activeRole !== "all"
-                    ? formatMessage({ id: "hub.community.members.emptyFiltered" })
-                    : undefined
+                  filtersStage
+                    ? formatMessage({ id: "hub.community.readiness.emptyFiltered" })
+                    : activeRole !== "all"
+                      ? formatMessage({ id: "hub.community.members.emptyFiltered" })
+                      : undefined
                 }
               />
             ) : (
@@ -220,6 +302,15 @@ export function CommunityMembersTab({
                         dateTime: new Date(joinedAt).toISOString(),
                       }
                     : undefined;
+                  // In readiness mode the stage is the row's pill and its evidence and hint the
+                  // details; the role filter still narrows the list.
+                  const ready = showsReadiness
+                    ? readinessRowParts(
+                        readiness.byAccount[entry.address.toLowerCase()],
+                        joinedAt,
+                        intl
+                      )
+                    : undefined;
                   const count =
                     entry.roles.length > 1
                       ? formatMessage(
@@ -233,21 +324,25 @@ export function CommunityMembersTab({
                         address={entry.address}
                         roles={entry.roles}
                         chainId={garden.chainId}
+                        status={ready?.status}
                         details={
-                          contribution
-                            ? count
-                              ? [contribution, count]
-                              : [contribution]
-                            : joined
+                          ready
+                            ? ready.details
+                            : contribution
                               ? count
-                                ? [joined, count]
-                                : [joined]
-                              : count
-                                ? [count]
-                                : undefined
+                                ? [contribution, count]
+                                : [contribution]
+                              : joined
+                                ? count
+                                  ? [joined, count]
+                                  : [joined]
+                                : count
+                                  ? [count]
+                                  : undefined
                         }
+                        // Readiness rows give the line its width; the header still opens Manage Roles.
                         action={
-                          canManage ? (
+                          canManage && !ready ? (
                             <IconButton
                               asChild
                               emphasis="tertiary"
@@ -290,6 +385,7 @@ export function CommunityMembersTab({
               onCountGrant={keepJoinRequestCountGrant}
             />
           ) : null}
+          {showsReadiness ? <CommunityReadinessCard counts={stageCounts} /> : null}
           <AdminCard variant="elevated" className="space-y-3">
             <AdminCardTitle>{formatMessage({ id: "hub.community.members.title" })}</AdminCardTitle>
             <FactList frame="inset">
