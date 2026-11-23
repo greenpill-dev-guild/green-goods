@@ -89,35 +89,7 @@ export async function getGardenMemberHistory(
   ) {
     throw new Error("Invalid garden membership history scope");
   }
-  const where = {
-    chainId: { _eq: scope.chainId },
-    ...(scope.garden ? { garden: { _eq: scope.garden.toLowerCase() } } : {}),
-    ...(scope.account ? { account: { _eq: scope.account.toLowerCase() } } : {}),
-  };
-  const events = new Map<string, RoleEvent>();
-  const limit = 200;
-  for (let offset = 0; ; offset += limit) {
-    const { data, error } = await reader.query<{ GardenRoleEvent?: unknown[] }>(
-      QUERY,
-      { where, limit, offset },
-      "getGardenMemberHistory",
-      signal
-    );
-    if (error) throw error;
-    if (!Array.isArray(data?.GardenRoleEvent)) throw new Error("Missing garden membership history");
-    for (const value of data.GardenRoleEvent) {
-      const event = parseEvent(value, scope);
-      events.set(event.id, event);
-    }
-    if (data.GardenRoleEvent.length < limit) break;
-  }
-  const ordered = [...events.values()].sort((a, b) =>
-    a.blockNumber < b.blockNumber
-      ? -1
-      : a.blockNumber > b.blockNumber
-        ? 1
-        : a.logIndex - b.logIndex || a.id.localeCompare(b.id)
-  );
+  const ordered = await readOrderedEvents(scope, reader, signal);
   const members = new Map<string, GardenMemberHistory>();
   const recordedRoles = new Map<string, Set<GardenRole>>();
   for (const event of ordered) {
@@ -149,4 +121,92 @@ export async function getGardenMemberHistory(
     member.recordedRoles = GARDEN_ROLE_ORDER.filter((role) => recorded?.has(role));
   }
   return [...members.values()];
+}
+
+/** Every role event in scope, in chain order. */
+async function readOrderedEvents(
+  scope: GardenMemberHistoryScope,
+  reader: GraphQLReader,
+  signal?: AbortSignal
+): Promise<RoleEvent[]> {
+  const where = {
+    chainId: { _eq: scope.chainId },
+    ...(scope.garden ? { garden: { _eq: scope.garden.toLowerCase() } } : {}),
+    ...(scope.account ? { account: { _eq: scope.account.toLowerCase() } } : {}),
+  };
+  const events = new Map<string, RoleEvent>();
+  const limit = 200;
+  for (let offset = 0; ; offset += limit) {
+    const { data, error } = await reader.query<{ GardenRoleEvent?: unknown[] }>(
+      QUERY,
+      { where, limit, offset },
+      "getGardenMemberHistory",
+      signal
+    );
+    if (error) throw error;
+    if (!Array.isArray(data?.GardenRoleEvent)) throw new Error("Missing garden membership history");
+    for (const value of data.GardenRoleEvent) {
+      const event = parseEvent(value, scope);
+      events.set(event.id, event);
+    }
+    if (data.GardenRoleEvent.length < limit) break;
+  }
+  return [...events.values()].sort((a, b) =>
+    a.blockNumber < b.blockNumber
+      ? -1
+      : a.blockNumber > b.blockNumber
+        ? 1
+        : a.logIndex - b.logIndex || a.id.localeCompare(b.id)
+  );
+}
+
+/** A member's role changing in a garden: their first role (a join), a later one, or one taken away. */
+interface GardenRoleChangeEvent {
+  id: string;
+  account: Address;
+  role: GardenRole;
+  kind: "joined" | "granted" | "revoked";
+  /** When it happened, in milliseconds. */
+  at: number;
+}
+
+/**
+ * Each role change in one garden, newest first. A member's first role is their join, so a role
+ * given later is never counted as someone new; a grant of a role already held and a revoke of
+ * one not held change nothing and are left out.
+ */
+export async function getGardenRoleChanges(
+  scope: { garden: Address; chainId: number },
+  reader: GraphQLReader = greenGoodsIndexer,
+  signal?: AbortSignal
+): Promise<GardenRoleChangeEvent[]> {
+  const held = new Map<string, Set<GardenRole>>();
+  const changes: GardenRoleChangeEvent[] = [];
+  if (!Number.isSafeInteger(scope.chainId) || !isAddress(scope.garden, { strict: false })) {
+    throw new Error("Invalid garden role change scope");
+  }
+  for (const event of await readOrderedEvents(scope, reader, signal)) {
+    const roles = held.get(event.account);
+    if (event.action === "GRANTED") {
+      if (roles?.has(event.role)) continue;
+      changes.push({
+        id: event.id,
+        account: event.account,
+        role: event.role,
+        // A first role, or a return after every role was taken away, is a join.
+        kind: roles === undefined || roles.size === 0 ? "joined" : "granted",
+        at: event.timestamp,
+      });
+      held.set(event.account, new Set([...(roles ?? []), event.role]));
+    } else if (roles?.delete(event.role)) {
+      changes.push({
+        id: event.id,
+        account: event.account,
+        role: event.role,
+        kind: "revoked",
+        at: event.timestamp,
+      });
+    }
+  }
+  return changes.reverse();
 }

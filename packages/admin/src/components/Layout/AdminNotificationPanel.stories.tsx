@@ -1,12 +1,16 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
+import {
+  type HubGardenChangeRow,
+  useHubGardenChanges,
+} from "@green-goods/shared/hooks/garden/useGardenNotifications";
 import { type Action, Domain, type Work } from "@green-goods/shared/types/domain";
 import type { EASWorkListRow } from "@green-goods/shared/types/eas-responses";
 import pt from "@green-goods/shared/i18n/pt.json";
 import type { Meta, StoryObj } from "@storybook/react";
 import { IntlProvider } from "react-intl";
-import { expect, mocked, within } from "storybook/test";
+import { expect, fn, mocked, within } from "storybook/test";
 import {
   STORYBOOK_ADMIN_SHELL_SEEDS,
   STORYBOOK_PRIMARY_ADMIN_GARDEN,
@@ -72,6 +76,45 @@ const panelSeeds: Parameters<typeof withSeededQueryClient>[0] = [
   [queryKeys.works.online(STORYBOOK_PRIMARY_ADMIN_GARDEN.id, DEFAULT_CHAIN_ID), WAITING_WORK_READ],
 ];
 
+/**
+ * What changed since this device last showed the sheet (PRD-1536): a gardener who joined and a
+ * decision another steward made on the waiting work.
+ */
+function storyChanges(title = WAITING_WORK.title): HubGardenChangeRow[] {
+  const at = daysAgo(1);
+  return [
+    {
+      kind: "joined",
+      id: "role:story-join",
+      at,
+      isNew: true,
+      account: "0x4444444444444444444444444444444444444444",
+      role: "gardener",
+    },
+    {
+      kind: "workDecided",
+      id: "decision:story-1",
+      at: at - 3600,
+      isNew: true,
+      approved: true,
+      by: "0x5555555555555555555555555555555555555555",
+      work: { ...WAITING_WORK_READ[0], title },
+    },
+  ];
+}
+
+function mockHubChanges(title?: string) {
+  mocked(useHubGardenChanges).mockReturnValue({
+    changes: storyChanges(title),
+    canManage: true,
+    joinRequestsWaiting: 2,
+    isLoading: false,
+    isError: false,
+    markSeen: fn(),
+  });
+  return resetHookMocks(useHubGardenChanges);
+}
+
 const meta = {
   title: "Admin/Shell/AdminNotificationPanel",
   component: AdminNotificationPanel,
@@ -93,6 +136,7 @@ const meta = {
   args: {
     onCloseSheet: () => undefined,
   },
+  beforeEach: () => mockHubChanges(),
 } satisfies Meta<typeof AdminNotificationPanel>;
 
 export default meta;
@@ -106,7 +150,9 @@ export const SelectedGardenUpdates: Story = {
     await expect(
       await canvas.findByText("No reviews in 7 days, and 1 work is waiting.")
     ).toBeVisible();
-    await expect(await canvas.findByText("Recent activity")).toBeVisible();
+    await expect(await canvas.findByText("2 people are asking to join")).toBeVisible();
+    await expect(await canvas.findByText("Since your last visit")).toBeVisible();
+    await expect(await canvas.findByText(/joined as Gardener/)).toBeVisible();
   },
 };
 
@@ -118,15 +164,16 @@ export const SelectedGardenUpdatesPortuguese: Story = {
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByText("Atividade recente")).toBeVisible();
-    await expect(await canvas.findByText("Registro de colheita")).toBeVisible();
-    await expect(canvas.queryByText("Harvest & Yield Record")).not.toBeInTheDocument();
+    await expect(await canvas.findByText("Desde sua última visita")).toBeVisible();
+    await expect(await canvas.findByText(/aprovou Registro de colheita/)).toBeVisible();
+    await expect(canvas.queryByText(/Harvest & Yield Record/)).not.toBeInTheDocument();
   },
 };
 
 type GardensQuery = ReturnType<typeof useGardens>;
 
 export const GeneratedActionTitlePortuguese: Story = {
+  beforeEach: () => mockHubChanges("Action 1"),
   decorators: [
     withSeededQueryClient([
       ...panelSeeds,
@@ -182,7 +229,7 @@ export const CustomActionPortuguese: Story = {
   render: SelectedGardenUpdatesPortuguese.render,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByText("Colheita da comunidade")).toBeVisible();
-    await expect(canvas.queryByText("Registro de colheita")).not.toBeInTheDocument();
+    await expect(await canvas.findByText(/aprovou Colheita da comunidade/)).toBeVisible();
+    await expect(canvas.queryByText(/Registro de colheita/)).not.toBeInTheDocument();
   },
 };

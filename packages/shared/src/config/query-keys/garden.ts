@@ -10,6 +10,9 @@ export const gardensKeys = {
       garden?.toLowerCase(),
       account?.toLowerCase(),
     ] as const,
+  /** One garden's joins and role changes, for the Hub's bell. */
+  roleChanges: (garden: string | undefined, chainId: number) =>
+    ["greengoods", "gardens", chainId, "roleChanges", garden?.toLowerCase()] as const,
   memberContributions: (
     garden: string | undefined,
     accounts: readonly string[],

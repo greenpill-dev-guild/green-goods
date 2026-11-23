@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import type { GraphQLReader } from "../../modules/data/graphql-client";
-import { getGardenMemberHistory } from "../../modules/data/garden-member-history";
+import {
+  getGardenMemberHistory,
+  getGardenRoleChanges,
+} from "../../modules/data/garden-member-history";
 
 const garden = "0x1111111111111111111111111111111111111111";
 const otherGarden = "0x2222222222222222222222222222222222222222";
@@ -156,5 +159,28 @@ describe("getGardenMemberHistory", () => {
     await expect(
       getGardenMemberHistory({ garden, chainId: 42161 }, { query } as GraphQLReader)
     ).rejects.toThrow("GardenRoleEvent not found");
+  });
+});
+
+describe("getGardenRoleChanges", () => {
+  it("counts a first role as a join, a later one as a change, and a return after leaving as a join", async () => {
+    // Role 0 is gardener and 2 steward. The member leaves both, then comes back.
+    const { reader } = read([
+      event(10),
+      event(20, 2),
+      event(25, 2),
+      event(30, 2, "REVOKED"),
+      event(31, 0, "REVOKED"),
+      event(40),
+    ]);
+    const changes = await getGardenRoleChanges({ garden, chainId: 42161 }, reader);
+    expect(changes.map(({ kind, role, at }) => [kind, role, at])).toEqual([
+      ["joined", "gardener", 1_700_000_040_000],
+      ["revoked", "gardener", 1_700_000_031_000],
+      ["revoked", "steward", 1_700_000_030_000],
+      // A second grant of a role already held changes nothing and is left out.
+      ["granted", "steward", 1_700_000_020_000],
+      ["joined", "gardener", 1_700_000_010_000],
+    ]);
   });
 });
