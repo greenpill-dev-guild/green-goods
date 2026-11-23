@@ -21,7 +21,7 @@ import { type IntlShape, useIntl } from "react-intl";
 import { ReviewBatchBar } from "./ReviewBatchBar";
 import { ReviewShowOlder, ReviewShowOlderButton } from "./ReviewShowOlder";
 import { ReviewWorkbenchSkeletonRows } from "./ReviewWorkbenchSkeletonRows";
-import { ReviewWorkCard } from "./ReviewWorkCard";
+import { ReviewWorkCard, reviewWorkStatus } from "./ReviewWorkCard";
 import { reviewWorkTitle } from "./reviewWorkTitle";
 
 /**
@@ -55,6 +55,14 @@ const EMPTY_SCOPE_COPY: Record<
       defaultMessage: "Work you approve moves here from Pending.",
     },
   },
+  // Every status of one day, opened from the Activity calendar.
+  all: {
+    title: { id: "hub.work.dayEmpty", defaultMessage: "Nothing submitted this day" },
+    description: {
+      id: "hub.work.dayEmptyDescription",
+      defaultMessage: "Work a gardener sends on this day appears here.",
+    },
+  },
 };
 
 // While older work is not loaded, a scope that finds nothing in the newest page
@@ -65,6 +73,7 @@ const EMPTY_RECENT_SCOPE_TITLE: Record<ReviewWorkScope, { id: string; defaultMes
     id: "hub.work.noRecentApproved",
     defaultMessage: "Nothing approved in recent work",
   },
+  all: { id: "hub.work.dayEmpty", defaultMessage: "Nothing submitted this day" },
 };
 
 interface ReviewWorkQueueProps {
@@ -84,6 +93,8 @@ interface ReviewWorkQueueProps {
   reviewBatch?: ReviewBatch;
   /** The garden's next page of older work, while it has more than the list holds. */
   older?: ReviewOlderRecords;
+  /** Clears the chosen waiting-time band, when one narrows the list. */
+  onClearWaitingBand?: () => void;
 }
 
 /** What a decision waiting on this work says in place of its status. Always a word and a color. */
@@ -148,7 +159,7 @@ function ReviewWorkQueueItem({
   });
 
   if (asRow) {
-    const approved = work.status === "approved";
+    const ownStatus = reviewWorkStatus(work.status, formatMessage);
     const media = work.media ?? [];
     return (
       <WorkCard
@@ -162,15 +173,9 @@ function ReviewWorkQueueItem({
           imageCount: media.length,
         }}
         showGardener
-        // As on the card: a waiting work is a neutral Pending, since its age is
-        // metadata and never an alarm (DL-044); an approved one says Approved.
-        statusLabel={
-          reviewChip?.label ??
-          (approved
-            ? formatMessage({ id: "app.admin.work.filter.approved", defaultMessage: "Approved" })
-            : formatMessage({ id: "app.admin.work.filter.pending", defaultMessage: "Pending" }))
-        }
-        statusTone={reviewChip?.tone ?? (approved ? "success" : "neutral")}
+        // As on the card: the work's own status, unless a decision waiting on it says more.
+        statusLabel={reviewChip?.label ?? ownStatus.label}
+        statusTone={reviewChip?.tone ?? ownStatus.tone}
         selected={selected}
         onClick={() => onOpenWorkDetail(work.id)}
       />
@@ -232,6 +237,7 @@ function ReviewWorkQueueList({
   onClearSearch,
   reviewBatch,
   older,
+  onClearWaitingBand,
 }: ReviewWorkQueueProps) {
   const { formatMessage } = useIntl();
   const isPhone = useMediaQuery(PHONE_QUERY);
@@ -312,6 +318,34 @@ function ReviewWorkQueueList({
                 })}
               </Button>
             </div>
+          }
+        />
+      </EmptyStateShell>
+    );
+  }
+
+  // A chosen waiting-time band with nothing in it says so, rather than "All caught up" while
+  // other bands still wait.
+  if (items.length === 0 && onClearWaitingBand && !older) {
+    return (
+      <EmptyStateShell>
+        <EmptyState
+          icon={<RiCheckboxCircleLine className="h-6 w-6" />}
+          title={formatMessage({
+            id: "hub.review.work.waiting.empty.title",
+            defaultMessage: "Nothing has waited this long",
+          })}
+          description={formatMessage({
+            id: "hub.review.work.waiting.empty.description",
+            defaultMessage: "Choose another waiting time, or clear it to see all pending work.",
+          })}
+          action={
+            <Button type="button" size="sm" emphasis="secondary" onClick={onClearWaitingBand}>
+              {formatMessage({
+                id: "hub.review.work.waiting.clear",
+                defaultMessage: "Clear Waiting Time",
+              })}
+            </Button>
           }
         />
       </EmptyStateShell>

@@ -113,6 +113,7 @@ vi.mock("../hooks/assessment/useGardenAssessments", () => ({
 
 vi.mock("../hooks/commitment-pooling/useCommitmentMetadata", () => ({
   useCommitmentMetadataFor: () => null,
+  useCommitmentMetadata: () => ({ byCID: new Map(), isLoading: false, isError: false }),
 }));
 
 vi.mock("../hooks/commitment-pooling/useCommitmentJobs", () => ({
@@ -581,6 +582,50 @@ describe("useCommitmentMutation", () => {
       args: [41n, ACCOUNT, claimHash],
       chainId: 42161,
     });
+  });
+
+  // PRD-1574: an answer with no receipt that isn't a Safe proposal may still land, and the act
+  // that sent it must hear so; one waiting on a Safe's signers says that instead.
+  it("tells the act when its answer has no receipt yet and waits on no Safe", async () => {
+    const queryClient = createTestQueryClient();
+    vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue();
+    const { result } = renderHookWithProviders(() => useCommitmentMutation({ chainId: 42161 }), {
+      queryClient,
+    });
+    const claimHash = `0x${"c1".repeat(32)}` as const;
+    const accept = (onUnconfirmed: () => void) =>
+      result.current.mutateAsync({
+        action: "acceptServiceClaim",
+        commitmentId: 41n,
+        buyer: ACCOUNT,
+        expectedClaimHash: claimHash,
+        send: { onUnconfirmed },
+      });
+
+    const opaque = vi.fn();
+    mocks.sender.sendContractCall.mockResolvedValueOnce({
+      hash: "0x1234",
+      sponsored: false,
+      confirmation: "pending",
+    });
+    await act(async () => {
+      await accept(opaque);
+    });
+    expect(opaque).toHaveBeenCalledTimes(1);
+    // The callback stays with the act: the sender is never handed it.
+    expect(mocks.sender.sendContractCall.mock.lastCall?.[1]).not.toHaveProperty("onUnconfirmed");
+
+    const proposal = vi.fn();
+    mocks.sender.sendContractCall.mockResolvedValueOnce({
+      hash: `0x${"5a".repeat(32)}`,
+      sponsored: false,
+      confirmation: "pending",
+      awaiting: "safe-signers",
+    });
+    await act(async () => {
+      await accept(proposal);
+    });
+    expect(proposal).not.toHaveBeenCalled();
   });
 
   it("invalidates the chain prefix plus the directly changed entity", async () => {

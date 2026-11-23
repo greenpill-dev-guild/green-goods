@@ -1,5 +1,6 @@
 import type { Address } from "../../types/domain";
 import { isZeroAddress } from "../blockchain/address";
+import type { ReviewWaitingBand } from "../garden-detail";
 
 export type AdminWorkspaceId =
   | "home"
@@ -16,8 +17,11 @@ export type AdminReviewView = AdminReviewMode;
 export type AdminGardenMode = "health" | "activity" | "impact" | "pool";
 export type AdminCommunityMode = "members" | "coordination" | "endowment" | "payouts";
 export type AdminReviewSort = "newest" | "oldest";
-/** The Work tab's scope: work waiting for review, or work already approved. */
-export type AdminReviewWorkScope = "pending" | "approved";
+/**
+ * The Work tab's scope: work waiting for review, or work already approved. "all" is every
+ * status at once, and exists only for one day's work opened from the Activity calendar.
+ */
+export type AdminReviewWorkScope = "pending" | "approved" | "all";
 
 export type AdminSearchValue = string | number | boolean | null | undefined;
 
@@ -26,8 +30,15 @@ export interface AdminReviewRouteContext {
   /** @deprecated Use gardenId. Kept so old call sites and bookmarks can normalize safely. */
   gardenAddress?: Address | string;
   sort?: AdminReviewSort;
-  /** Pending is the default and stays out of the URL; only "approved" is written. */
+  /**
+   * The default stays out of the URL: pending, or every status when a day is named. So
+   * "approved" is always written, and "pending" only beside a day.
+   */
   scope?: AdminReviewWorkScope;
+  /** One calendar day (`YYYY-MM-DD`, the reader's clock) the Work tab is narrowed to. */
+  day?: string;
+  /** How long pending work has waited, the band the Work tab is narrowed to. */
+  waiting?: ReviewWaitingBand;
   /** A create flow that opens over the stage (DL-140). A Review URL's item holds nothing else. */
   item?: AdminReviewFlowItem;
 }
@@ -37,6 +48,12 @@ export interface AdminGardenRouteContext {
   /** @deprecated Use gardenId. Kept so old call sites and bookmarks can normalize safely. */
   gardenAddress?: Address | string;
   range?: string;
+  /** The Activity calendar's month (`YYYY-MM`) and its open day (`YYYY-MM-DD`). */
+  month?: string;
+  day?: string;
+  /** Review Health's open week (its Monday, `YYYY-MM-DD`) and which of its lists is open. */
+  week?: string;
+  list?: "submitted" | "reviewed";
   section?: string;
   item?: string;
 }
@@ -93,7 +110,12 @@ function buildReviewContextSearch(
   return {
     [ADMIN_GARDEN_ID_PARAM]: context.gardenId ?? context.gardenAddress,
     sort: context.sort,
-    scope: context.scope === "approved" ? "approved" : undefined,
+    scope:
+      context.scope === "approved" || (context.day && context.scope === "pending")
+        ? context.scope
+        : undefined,
+    day: context.day,
+    waiting: context.waiting,
     item: parseReviewFlowItem(context.item),
   };
 }
@@ -116,6 +138,10 @@ function buildGardenContextSearch(
   return {
     [ADMIN_GARDEN_ID_PARAM]: context.gardenId ?? context.gardenAddress,
     range: context.range,
+    month: context.month,
+    day: context.day,
+    week: context.week,
+    list: context.list,
     section: context.section,
     item: context.item,
   };

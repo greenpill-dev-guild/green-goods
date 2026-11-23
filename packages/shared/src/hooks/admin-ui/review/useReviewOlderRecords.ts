@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { GardenListPages } from "../../../types/garden-detail";
 import { useOnlineStatus } from "../../app/useOnlineStatus";
-import type { ReviewPipelineStage, SortDirection } from "./review.utils";
+import type { ReviewPipelineStage } from "./review.utils";
 import type { ReviewOlderRecords } from "./review.workbenchModel";
 
 /**
@@ -41,7 +41,8 @@ function useNextPage(
  * How Review reaches records older than the newest page its lists read: the
  * Work and Hypercerts tabs say when the garden has more and read the next page
  * on request. Oldest first needs the whole history, since a garden's oldest
- * work is on its last page, so that order reads the rest, page after page,
+ * work is on its last page, and so does a waiting-time band, whose older work
+ * can sit on any page; either reads the rest, page after page,
  * before the tab lists anything, as the installed app's garden Work tab does.
  * A failed or paused work read must end that reading, since its page never
  * lands.
@@ -49,7 +50,7 @@ function useNextPage(
 export function useReviewOlderRecords({
   garden,
   stage,
-  sortDirection,
+  readsAllWork,
   workPages,
   hypercertPages,
   workReadable,
@@ -57,7 +58,8 @@ export function useReviewOlderRecords({
   /** The garden in the header, whose lists these are. */
   garden: string | undefined;
   stage: ReviewPipelineStage;
-  sortDirection: SortDirection;
+  /** Oldest first, or a waiting-time band: a list that needs the garden's whole history. */
+  readsAllWork: boolean;
   workPages: GardenListPages;
   hypercertPages: GardenListPages;
   /** False while the work read is failing or paused, when no older page can land. */
@@ -67,8 +69,7 @@ export function useReviewOlderRecords({
   const work = useNextPage(workPages, garden, isOnline);
   const hypercerts = useNextPage(hypercertPages, garden, isOnline);
 
-  const wantsWorkHistory =
-    isOnline && workReadable && stage === "work" && sortDirection === "oldest";
+  const wantsWorkHistory = isOnline && workReadable && stage === "work" && readsAllWork;
   const { hasOlder: workHasOlder, onItsWay: workPageOnItsWay, ask: askWorkPage } = work;
   useEffect(() => {
     if (wantsWorkHistory && workHasOlder && !workPageOnItsWay) askWorkPage();

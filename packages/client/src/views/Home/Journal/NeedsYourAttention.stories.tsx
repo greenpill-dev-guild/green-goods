@@ -214,7 +214,7 @@ export const ReadFailedPortuguese: Story = {
 
 /** The join-request row's title in each language, for three waiting. */
 const JOIN_REQUEST_TITLES: Record<Locale, string> = {
-  en: "3 join requests",
+  en: "3 people asking to join",
   es: "3 solicitudes para unirse",
   pt: "3 solicitações para entrar",
 };

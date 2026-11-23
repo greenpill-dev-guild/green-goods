@@ -8,6 +8,7 @@ const seams = vi.hoisted(() => ({
   byUID: vi.fn(),
   approvalsForWork: vi.fn(),
   activity: vi.fn(),
+  range: vi.fn(),
   visibility: vi.fn(async () => ({
     chainId: 42161,
     excludedWorkUIDs: [] as string[],
@@ -27,6 +28,7 @@ vi.mock("../../../modules/data/eas", () => ({
   getWorkApprovalsForWork: seams.approvalsForWork,
   readWorkApprovalsForWorks: seams.approvals,
   getGardenActivitySince: seams.activity,
+  getWorksInRange: seams.range,
 }));
 
 const CONFIGURED_UID = `0x${"1".repeat(64)}`;
@@ -36,9 +38,14 @@ vi.mock("../../../config/blockchain", async (importOriginal) => ({
   getEASConfig: () => ({ WORK_APPROVAL: { uid: chain.workApprovalUID } }),
 }));
 
-const { readApprovedWorks, readGardenActivity, readWorkByUID, readWorkList } = await import(
-  "../../../modules/work/work-list"
-);
+const {
+  readApprovedWorks,
+  readGardenActivity,
+  readGardenReviewFlow,
+  readGardenWorkRange,
+  readWorkByUID,
+  readWorkList,
+} = await import("../../../modules/work/work-list");
 
 function work(id: string): EASWork {
   return {
@@ -223,6 +230,50 @@ describe("readGardenActivity", () => {
   });
 });
 
+describe("readGardenWorkRange", () => {
+  beforeEach(() => vi.clearAllMocks());
+  const GARDEN = "0x2222222222222222222222222222222222222222" as const;
+  const period = { garden: GARDEN, chainId: 42161, from: 100, to: 200 };
+
+  it("gives a period's works their latest decision and leaves an unread status unknown", async () => {
+    seams.range.mockResolvedValue({
+      works: [work("approved"), work("waiting"), work("unread")],
+      truncated: false,
+    });
+    seams.approvals.mockResolvedValue({
+      approvals: [approval("approval", "approved", true)],
+      failedWorkUIDs: ["unread"],
+    });
+
+    const range = await readGardenWorkRange(period);
+
+    expect(seams.range).toHaveBeenCalledWith(GARDEN, {
+      chainId: 42161,
+      from: 100,
+      to: 200,
+      excludedWorkUIDs: [],
+      excludedApprovalUIDs: [],
+    });
+    expect(range.complete).toBe(true);
+    // null is read and undecided; a missing approval is a status nobody could read.
+    expect(range.rows.map(({ id, approval }) => [id, approval?.id ?? approval])).toEqual([
+      ["approved", "approval"],
+      ["waiting", null],
+      ["unread", undefined],
+    ]);
+  });
+
+  it("keeps the works when no decision can be read, and says when the period was cut", async () => {
+    seams.range.mockResolvedValue({ works: [work("work")], truncated: true });
+    seams.approvals.mockRejectedValue(new Error("EAS timed out"));
+
+    const range = await readGardenWorkRange(period);
+
+    expect(range.complete).toBe(false);
+    expect(range.rows).toEqual([work("work")]);
+  });
+});
+
 describe("readWorkByUID", () => {
   it("does not reopen an excluded work through its direct link", async () => {
     seams.visibility.mockResolvedValueOnce({
@@ -313,5 +364,86 @@ describe("readApprovedWorks", () => {
       works: [],
       partial: true,
     });
+  });
+});
+
+// PRD-1578: Review Health counts a reviewed work once, in the week of its first decision.
+describe("readGardenReviewFlow", () => {
+  beforeEach(() => vi.clearAllMocks());
+  const at = (id: string, workUID: string, createdAt: number) => ({
+    ...approval(id, workUID, true),
+    createdAt,
+  });
+  const garden = "0x2222222222222222222222222222222222222222" as const;
+
+  it("places each reviewed work at its first decision, sent in the period or before it", async () => {
+    seams.range.mockResolvedValue({
+      works: [{ ...work("new"), createdAt: 150 }],
+      truncated: false,
+    });
+    seams.activity.mockResolvedValue({
+      works: [],
+      decisions: [at("d-new", "new", 160), at("d-old", "old", 170), at("d-again", "again", 180)],
+      truncated: false,
+    });
+    seams.approvals.mockResolvedValue({
+      // "again" was first decided before the period, so its later decision does not count.
+      approvals: [
+        at("d-new", "new", 160),
+        at("d-old", "old", 170),
+        at("d-first", "again", 50),
+        at("d-again", "again", 180),
+      ],
+      failedWorkUIDs: [],
+    });
+    seams.byUID.mockResolvedValue([work("old"), work("again")]);
+
+    const flow = await readGardenReviewFlow({ garden, chainId: 42161, from: 100, to: 200 });
+    expect(flow.submitted.map((row) => row.id)).toEqual(["new"]);
+    expect(flow.reviewed.map(({ work, firstDecidedAt }) => [work.id, firstDecidedAt])).toEqual([
+      ["new", 160],
+      ["old", 170],
+    ]);
+    expect(flow.reviewedReadFrom).toBeNull();
+    expect(flow.reviewedComplete).toBe(true);
+  });
+
+  it("says where a cut decision read starts, and when decision histories could not be read", async () => {
+    seams.range.mockResolvedValue({ works: [], truncated: false });
+    seams.activity.mockResolvedValue({
+      works: [],
+      decisions: [at("d-1", "w-1", 190), at("d-2", "w-2", 140)],
+      truncated: true,
+      decisionsTruncated: true,
+    });
+    seams.approvals.mockResolvedValue({ approvals: [], failedWorkUIDs: ["w-1", "w-2"] });
+    seams.byUID.mockResolvedValue([]);
+
+    const flow = await readGardenReviewFlow({ garden, chainId: 42161, from: 100, to: 200 });
+    expect(flow.reviewedReadFrom).toBe(140);
+    expect(flow.reviewedComplete).toBe(false);
+    expect(flow.reviewed).toEqual([]);
+
+    // A long submissions list beside a whole decisions list hides no decision.
+    seams.activity.mockResolvedValue({
+      works: [],
+      decisions: [],
+      truncated: true,
+      decisionsTruncated: false,
+    });
+    const whole = await readGardenReviewFlow({ garden, chainId: 42161, from: 100, to: 200 });
+    expect(whole.reviewedReadFrom).toBeNull();
+    expect(whole.reviewedComplete).toBe(true);
+
+    // A decision row that could not be read leaves the reviewed counts short.
+    seams.activity.mockResolvedValue({
+      works: [],
+      decisions: [],
+      truncated: false,
+      decisionsTruncated: false,
+      decisionsDropped: true,
+    });
+    const dropped = await readGardenReviewFlow({ garden, chainId: 42161, from: 100, to: 200 });
+    expect(dropped.reviewedComplete).toBe(false);
   });
 });

@@ -402,4 +402,29 @@ describe("Review lists with older records", () => {
     expect(screen.getByText("Older hypercerts aren't loaded yet.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Show Older Hypercerts" })).toBeInTheDocument();
   });
+
+  // PRD-1577: a waiting-time band with nothing in it says so and offers to clear it, rather
+  // than "All caught up" while other bands still wait.
+  it("says an empty waiting-time band holds nothing and offers to clear it", () => {
+    const clear = vi.fn();
+    renderWithIntl(
+      <ReviewWorkQueue
+        items={[]}
+        scope="pending"
+        worksLoading={false}
+        hasDataError={false}
+        normalizedSearch=""
+        debouncedSearch=""
+        actionsMap={new Map()}
+        selectedWorkId={undefined}
+        onOpenWorkDetail={vi.fn()}
+        onClearSearch={vi.fn()}
+        onClearWaitingBand={clear}
+      />
+    );
+    expect(screen.getByText("Nothing has waited this long")).toBeInTheDocument();
+    expect(screen.queryByText("All caught up")).toBeNull();
+    screen.getByRole("button", { name: "Clear Waiting Time" }).click();
+    expect(clear).toHaveBeenCalledTimes(1);
+  });
 });

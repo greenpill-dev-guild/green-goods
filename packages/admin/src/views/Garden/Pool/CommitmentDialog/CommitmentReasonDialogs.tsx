@@ -23,8 +23,11 @@ interface ReasonDialogProps {
   target?: ReactNode;
 }
 
-/** `untaken`: nobody has taken the promise up yet, so the cancel's words speak to that. */
-type CancelReasonDialogProps = ReasonDialogProps & { untaken?: boolean };
+/**
+ * `untaken`: nobody has taken the promise up yet, so the cancel's words speak to that.
+ * `escrowed`: a voucher booking holds the member's vouchers in escrow (PRD-1462).
+ */
+type CancelReasonDialogProps = ReasonDialogProps & { untaken?: boolean; escrowed?: boolean };
 
 /**
  * The three reasoned acts on a live record — call it off, mark it ready over
@@ -39,6 +42,7 @@ export function CommitmentReasonDialogs({
   blockedReason,
   target,
   untaken = false,
+  escrowed = false,
 }: CancelReasonDialogProps) {
   const { formatMessage } = useIntl();
 
@@ -61,11 +65,17 @@ export function CommitmentReasonDialogs({
                 defaultMessage:
                   "Nobody has taken this up yet. Canceling takes it out of the pool. The record and your reason stay in its history, where whoever made it, or asked to take it up, can read why.",
               })
-            : formatMessage({
-                id: "hub.garden.pool.commitment.cancel.description",
-                defaultMessage:
-                  "Accepted becomes Canceled with a recorded reason. Committed units release; the member sees the reason, never “canceled” alone.",
-              })
+            : escrowed
+              ? formatMessage({
+                  id: "hub.garden.pool.commitment.cancel.descriptionEscrowed",
+                  defaultMessage:
+                    "Accepted becomes Canceled with a recorded reason, and the member sees the reason, never “canceled” alone. Committed units release, but the member’s vouchers stay in escrow until the issuer proposes a return from Review Promises.",
+                })
+              : formatMessage({
+                  id: "hub.garden.pool.commitment.cancel.description",
+                  defaultMessage:
+                    "Accepted becomes Canceled with a recorded reason. Committed units release; the member sees the reason, never “canceled” alone.",
+                })
         }
         confirmLabel={formatMessage({
           id: "hub.garden.pool.commitment.cancel.confirm",
@@ -305,7 +315,7 @@ export function CommitmentDeclineClaimDialog({
             party={{
               label: formatMessage({
                 id: "hub.garden.pool.target.requestFrom",
-                defaultMessage: "Request from",
+                defaultMessage: "Asked to take it up",
               }),
               value: <AddressDisplay address={open.claimant} interactive={false} />,
             }}
@@ -314,16 +324,16 @@ export function CommitmentDeclineClaimDialog({
       }
       title={formatMessage({
         id: "hub.garden.pool.declineClaim.title",
-        defaultMessage: "Decline This Request",
+        defaultMessage: "Decline This Take-Up",
       })}
       description={formatMessage({
         id: "hub.garden.pool.declineClaim.description",
         defaultMessage:
-          "Only this request is declined; others stay pending and the promise stays claimable. The person sees your reason and may ask again.",
+          "Only this person is declined; anyone else who asked stays waiting, and the promise stays open to take up. They see your reason and may ask again.",
       })}
       confirmLabel={formatMessage({
         id: "hub.garden.pool.declineClaim.confirm",
-        defaultMessage: "Decline Request",
+        defaultMessage: "Decline",
       })}
       cancelLabel={formatMessage({
         id: "hub.garden.pool.declineClaim.keep",

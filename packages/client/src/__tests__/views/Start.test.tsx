@@ -273,7 +273,7 @@ describe("WorkStart", () => {
     const { container } = renderStart({ start });
 
     const section = container.querySelector('[data-component="StartAsks"]') as HTMLElement;
-    expect(within(section).getByRole("heading", { name: "Take Up an Ask" })).toBeVisible();
+    expect(within(section).getByRole("heading", { name: "Take Up a Request" })).toBeVisible();
     expect(
       within(section).getByText(
         "Taking one up opens 3 wallet or passkey prompts: the take-up, the work and its link."
@@ -283,7 +283,7 @@ describe("WorkStart", () => {
     expect(cards).toHaveLength(2);
     expect(within(cards[0]).getByText("Node uptime log")).toBeVisible();
     expect(within(cards[1]).getByText("Hub keys handover")).toBeVisible();
-    expect(within(cards[1]).getByText("Ask")).toBeVisible();
+    expect(within(cards[1]).getByText("Request")).toBeVisible();
     expect(
       container.querySelector('[data-component="WorkStart"] [data-component="LogWorkOnItsOwn"]')
         ?.previousElementSibling

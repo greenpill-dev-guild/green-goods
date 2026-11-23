@@ -65,15 +65,22 @@ const ROUTE_ITEM_CLOSE_SETTLE_MS = 500;
  * click goes back once. The check lives in a ref because a send's success closes
  * the dialog with a callback from the moment it was sent.
  */
-export function useRouteItemClose(itemInUrl: boolean): () => void {
+export function useRouteItemClose(itemInUrl: boolean, param = "item"): () => void {
   const navigate = useNavigate();
   const navigationType = useNavigationType();
   const { updateSearch } = useCanvasSearchParams();
   const entry = useRef<"none" | "pushed" | "direct">("none");
   const lastCloseAt = useRef<number | null>(null);
+  // How the item came into the URL decides how it leaves, so it is read only as the item
+  // arrives. A replace while it stays (a dialog switching what it shows) keeps a pushed entry
+  // pushed, and Back still has the page beneath to return to.
   useEffect(() => {
-    entry.current = !itemInUrl ? "none" : navigationType === "PUSH" ? "pushed" : "direct";
-    if (!itemInUrl) lastCloseAt.current = null;
+    if (!itemInUrl) {
+      entry.current = "none";
+      lastCloseAt.current = null;
+    } else if (entry.current === "none") {
+      entry.current = navigationType === "PUSH" ? "pushed" : "direct";
+    }
   }, [itemInUrl, navigationType]);
 
   return useCallback(() => {
@@ -83,6 +90,6 @@ export function useRouteItemClose(itemInUrl: boolean): () => void {
     }
     lastCloseAt.current = now;
     if (entry.current === "pushed") navigate(-1);
-    else if (entry.current === "direct") updateSearch({ item: undefined });
-  }, [navigate, updateSearch]);
+    else if (entry.current === "direct") updateSearch({ [param]: undefined });
+  }, [navigate, param, updateSearch]);
 }

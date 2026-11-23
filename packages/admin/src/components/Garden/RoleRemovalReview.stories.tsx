@@ -97,3 +97,13 @@ export const EveryOutcome: Story = {
     ],
   },
 };
+
+/** A Safe signs by proposal: the removal waits for its other signers and is never sent twice. */
+export const WaitingForSigners: Story = {
+  args: {
+    people: [
+      { person: personOf(KWAME), pairs: [{ role: "evaluator", status: "removed" }] },
+      { person: personOf(CHIDI), pairs: [{ role: "evaluator", status: "proposed" }] },
+    ],
+  },
+};

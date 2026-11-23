@@ -11,7 +11,9 @@ import { createLiveReportingCatalog } from "../services/reporting/live-catalog";
 import { createLiveReportingChain } from "../services/reporting/live-chain";
 import { createLiveDelegation } from "../services/reporting/live-delegation";
 import { createLiveGardenDirectory } from "../services/reporting/live-gardens";
+import { readControl } from "../services/reporting/controls";
 import { extractWithOpenAI } from "../services/reporting/model-extraction";
+import { planWithOpenAI } from "../services/reporting/model-planner";
 import { routeWithJev } from "../services/reporting/model-routing";
 import type { ReportingCore } from "../services/reporting/runtime";
 import type { InboundMediaFetcher, OutboundTransport } from "../services/reporting/transport";
@@ -60,7 +62,13 @@ export function createLiveReportingRuntime(input: {
     fetchInstructions: (cid) => getJsonByHash(cid, { timeoutMs: 5_000 }),
   });
   const { interpretation, openai } = config;
+  // The planner reads its switch from the core, which exists once the runtime below is made.
+  let core: ReportingCore | null = null;
   const interpreter = createModelInterpreter({
+    plan: openai
+      ? (request, signal, meter) => planWithOpenAI(openai, request, signal, meter)
+      : null,
+    planning: () => core !== null && readControl(core, "dialogue_planner").enabled,
     route:
       interpretation.provider === "jev"
         ? (request, signal, meter) => routeWithJev(interpretation, request, signal, meter)
@@ -69,7 +77,7 @@ export function createLiveReportingRuntime(input: {
       ? (request, signal, meter) => extractWithOpenAI(openai, request, signal, meter)
       : null,
   });
-  return createReportingRuntime({
+  const runtime = createReportingRuntime({
     config,
     ...delegation,
     chainId: input.chainId,
@@ -92,4 +100,6 @@ export function createLiveReportingRuntime(input: {
     ...(input.workerId ? { workerId: input.workerId } : {}),
     ...(input.jobs ? { jobs: input.jobs } : {}),
   });
+  core = runtime.core;
+  return runtime;
 }

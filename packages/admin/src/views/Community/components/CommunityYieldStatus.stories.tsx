@@ -36,3 +36,16 @@ function wiring(status: "connected" | "missing-resolver-wiring" | "mismatch") {
 export const Connected: Story = { decorators: [wiring("connected")] };
 export const MissingWiring: Story = { decorators: [wiring("missing-resolver-wiring")] };
 export const MismatchedWiring: Story = { decorators: [wiring("mismatch")] };
+
+/** Governance is off and the signal-pool read failed, so the rail is the only place to try again. */
+export const PoolReadFailed: Story = {
+  decorators: [
+    withSeededQueryClient([
+      [
+        queryKeys.yield.wiring(gardenId, DEFAULT_CHAIN_ID),
+        { readStatus: "unavailable", gardenAddress: gardenId, issues: [] },
+      ],
+    ]),
+  ],
+  args: { onRereadPools: () => undefined },
+};

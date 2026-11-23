@@ -41,6 +41,7 @@ vi.mock("@green-goods/shared/hooks/garden/useGardenOperations", () => ({
     available: false,
   }),
   useRemoveMemberRoles: () => ({ account: null, check: vi.fn(), remove: vi.fn() }),
+  useSubRoleCheck: () => vi.fn(),
 }));
 // The steward has an ENS name; the owner has none, so their row shows a short address.
 vi.mock("@green-goods/shared/hooks/ens/useAddressDisplayName", () => ({

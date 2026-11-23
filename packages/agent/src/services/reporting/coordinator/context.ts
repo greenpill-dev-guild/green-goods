@@ -76,7 +76,9 @@ export type TurnPlan =
 const TEXT_ANSWER_PROMPTS = new Set([
   "select_garden",
   "select_action",
+  "suggest_last",
   "field",
+  "fields",
   "time",
   "time_unit",
   "title",

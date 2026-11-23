@@ -20,6 +20,7 @@ export {
   getGardenActivitySince,
   getWorkApprovalsForWorks,
   getWorkListPage,
+  getWorksInRange,
   readWorkApprovalsForWorks,
   WORK_LIST_PAGE_SIZE,
 } from "./eas-work-list";

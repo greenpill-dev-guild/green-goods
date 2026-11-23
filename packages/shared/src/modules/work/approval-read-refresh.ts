@@ -20,6 +20,8 @@ export function refreshApprovalReads(
       [
         onlineKey,
         activityKey,
+        // A calendar month or a Review day holds the work's status from before the decision.
+        worksKeys.ranges(gardenId, chainId),
         workApprovalsKeys.all,
         approvalsKeys.all,
         ...Array.from(workUIDs, (uid) => worksKeys.byUID(uid, chainId)),

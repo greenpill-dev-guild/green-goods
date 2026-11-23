@@ -77,6 +77,8 @@ export function bookingSentence(ctx: BookingContext): string {
           of: Number(ctx.serviceUnits),
         });
       return profile === "access" ? t("rd.n.proposed.b", values) : t("rd.n.proposed.t");
+    case "returnDue":
+      return t(one ? "rd.n.returnDue1.b" : "rd.n.returnDue.b", values);
     case "transfersPending":
       return refund > 0n ? t("rd.n.legsBack.b", values) : t("rd.n.legsSun.b");
     case "returnFailed":
@@ -91,7 +93,7 @@ export function bookingSentence(ctx: BookingContext): string {
             ? t("rd.n.keptBack.b", values)
             : t("rd.n.kept.b");
       // Settled before the promise closes: where the vouchers went, then the one step left.
-      if (coreState !== "CANCELLED")
+      if (coreState !== "CANCELLED" && coreState !== "EXPIRED")
         return refund > 0n
           ? t("rd.n.settledBack.b", values)
           : t("rd.n.settled.b", { ...values, unit: unit(release) });

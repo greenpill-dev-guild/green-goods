@@ -111,6 +111,26 @@ describe("ReviewWorkCard", () => {
     expect(screen.queryByText("Review")).not.toBeInTheDocument();
   });
 
+  it("says Rejected for rejected work, as a day's list of every status shows it", () => {
+    renderCard({
+      work: {
+        id: "0xrejected",
+        title: "Planted 50 native saplings",
+        actionUID: 1,
+        gardenerAddress: "0x1234567890abcdef1234567890abcdef12345678" as `0x${string}`,
+        gardenAddress: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd" as `0x${string}`,
+        feedback: "",
+        metadata: "{}",
+        media: [],
+        createdAt: Date.now() / 1000 - 3600,
+        status: "rejected",
+      },
+    });
+    expect(screen.getByText("Rejected")).toBeInTheDocument();
+    expect(screen.queryByText("Pending")).not.toBeInTheDocument();
+    expect(screen.getByText("Rejected").closest(".bg-error-lighter")).not.toBeNull();
+  });
+
   it("renders a friendly relative timestamp instead of an ISO timestamp", () => {
     const { container } = renderCard({
       work: {

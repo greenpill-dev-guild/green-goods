@@ -93,6 +93,22 @@ export const WorkQueue: Story = {
   },
 };
 
+// Pending work narrowed to how long it has waited (PRD-1577): the waiting chips sit beside
+// Pending and Approved, plain ink at every age. Like WorkQueue, its work needs live indexer data.
+export const WaitingBand: Story = {
+  args: { initialPath: "/review/work?waiting=weeks1to2" },
+  decorators: reviewDecorators(),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(
+      await canvas.findByRole("group", { name: "Waiting time" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
+    ).toBeVisible();
+    await expect(
+      await canvas.findByRole("button", { name: /1 to 2 Weeks/ }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
+    ).toHaveAttribute("aria-pressed", "true");
+  },
+};
+
 export const WorkDetail: Story = {
   tags: ["visual-harness"],
   args: { initialPath: "/review/work/work-rio-canopy-1?sort=newest" },
