@@ -102,6 +102,30 @@ export const Open: Story = {
   },
 };
 
+/**
+ * A promise with one target leads its row with how much of that target is approved (PRD-1538):
+ * the waste pickups promise, 34 of 40 approved.
+ */
+export const TargetProgress: Story = {
+  tags: ["storybook-ci"],
+  args: {
+    console: storyPoolConsole({
+      commitments: [
+        {
+          ...STORY_COMMITMENTS[0],
+          requirements: [{ actionUID: 1n, requiredCount: 40 }],
+          requirementsApproved: [34],
+        },
+        ...STORY_COMMITMENTS.slice(1),
+      ],
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByText("34 of 40 approved")).toBeVisible();
+  },
+};
+
 /** Ten copies made together, five days in: one group row among the pool's own. */
 export const WithGroup: Story = {
   args: {

@@ -1,4 +1,9 @@
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
+import type { CommitmentDialogController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import { type Action, Domain } from "@green-goods/shared/types/domain";
+import { withSeededQueryClient } from "../../../../../../shared/.storybook/decorators";
 import type { Meta, StoryObj } from "@storybook/react";
+import { expect, within } from "storybook/test";
 import {
   STORY_ANA,
   STORY_JOAO,
@@ -76,5 +81,79 @@ export const ConfirmedByGardenFallback: Story = {
       confirmationPath: "POOL_FALLBACK",
       fallbackReason: "Confirmed on a site visit; the recipient has no device.",
     }),
+  },
+};
+
+/**
+ * A promise with a target is the goal (PRD-1538): 30 waste pickups, 26 sent toward it and 24
+ * approved, in the action's own count. A second target in another action keeps its own line.
+ */
+const storyAction = (uid: number, slug: string, title: string): Action => ({
+  id: `${STORY_CHAIN}-${uid}`,
+  slug,
+  title,
+  inputs: [],
+  description: "",
+  domain: Domain.WASTE,
+  capitals: [],
+  media: [],
+  createdAt: 0,
+  startTime: 0,
+  endTime: 0,
+});
+const STORY_CHAIN = storyCommitment().chainId;
+
+export const WasteTargets: Story = {
+  tags: ["storybook-ci"],
+  decorators: [
+    withSeededQueryClient([
+      [
+        queryKeys.actions.byUIDs(STORY_CHAIN, [1, 2]),
+        [
+          storyAction(1, "waste.pickup", "Waste pickup"),
+          storyAction(2, "waste.sorting", "Sorting session"),
+        ],
+      ],
+    ]),
+  ],
+  args: {
+    detail: {
+      ...(dialog.detail as NonNullable<CommitmentDialogController["detail"]>),
+      requirements: [
+        { requirementIndex: 0, actionUID: 1n, requiredCount: 30, approvedCount: 24 },
+        { requirementIndex: 1, actionUID: 2n, requiredCount: 10, approvedCount: 3 },
+      ].map((row) => ({
+        ...row,
+        id: `42161-7-${row.requirementIndex}`,
+        chainId: 42161,
+        commitmentId: 7n,
+        creationSeen: true as const,
+        domain: 3,
+        createdAt: 0,
+        updatedAt: 0,
+      })),
+      workAttributions: Array.from({ length: 30 }, (_, index) => ({
+        id: `42161-work-${index}`,
+        chainId: 42161,
+        workUID: `0x${index.toString(16).padStart(64, "0")}` as `0x${string}`,
+        commitmentId: 7n,
+        linkSeen: true as const,
+        contributor: STORY_ANA,
+        requirementIndex: index < 26 ? 0 : 1,
+        operationKey: null,
+        linked: true,
+        creditActive: true,
+        linkedBy: STORY_ANA,
+        linkedAt: 0,
+        unlinkedBy: null,
+        unlinkedAt: null,
+        updatedAt: 0,
+      })),
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("24 approved, 26 reported, of 30")).toBeVisible();
+    await expect(canvas.getByText("3 approved, 4 reported, of 10")).toBeVisible();
   },
 };
