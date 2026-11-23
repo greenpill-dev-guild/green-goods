@@ -24,7 +24,7 @@ interface GardenRoleChange {
 export interface PromiseDecision {
   id: string;
   commitmentId: bigint;
-  decision: "accepted" | "declined" | "confirmed" | "cancelled" | "resolved";
+  decision: "confirmed" | "canceled";
   by: Address;
   /** Seconds. */
   at: number;

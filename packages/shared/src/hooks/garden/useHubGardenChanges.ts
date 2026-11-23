@@ -20,25 +20,14 @@ import { readGardenActivity } from "../../modules/work/work-list";
 import { useGardenNotificationsSeenStore } from "../../stores/useGardenNotificationsSeenStore";
 import type { Address, Garden } from "../../types/domain";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
-import {
-  useCommitmentActivity,
-  useCommitmentPools,
-} from "../commitment-pooling/useCommitmentPooling";
+import { getPromiseDecisions } from "../../modules/commitment-pooling/data-activity";
+import { useCommitmentPools, useCommitments } from "../commitment-pooling/useCommitmentPooling";
 import { useHasRole } from "../roles/useHasRole";
 import { workVisibilityQuery } from "../work/useWorkVisibility";
 import { useGardenPermissions } from "./useGardenPermissions";
 import { useJoinRequestCount } from "./useJoinRequestCount";
 
 const nowInSeconds = () => Math.floor(Date.now() / 1000);
-
-/** The pool events that are a steward's decision on a promise, and what each decided. */
-const PROMISE_DECISIONS: Record<string, PromiseDecision["decision"]> = {
-  ACCEPTED: "accepted",
-  CLAIM_DECLINED: "declined",
-  CONFIRMATION_RECORDED: "confirmed",
-  CANCELLED: "cancelled",
-  DISPUTE_RESOLVED: "resolved",
-};
 
 /** One change in the Hub's bell, and whether this device has shown it yet. */
 export type HubGardenChangeRow = HubGardenChange & { isNew: boolean };
@@ -96,9 +85,27 @@ export function useHubGardenChanges(garden: Garden | undefined) {
   });
   const poolsRead = useCommitmentPools({ chainId, garden: gardenId as Address });
   const poolId = poolsRead.pools[0]?.poolId;
-  // Without the pool's id this read would cover the whole chain, so it reads pool 0, which holds
-  // nothing, until the id is known.
-  const promiseRead = useCommitmentActivity({ chainId, poolId: poolId ?? 0n, limit: 100 });
+  const readsPromises = canDecidePromises && poolId !== undefined;
+  // The pool's promises, the Promises tab's own read; without the pool's id it would read every
+  // promise on the chain, so it waits for it.
+  const promisesRead = useCommitments({ chainId, poolId }, { enabled: readsPromises });
+  const promiseIds = useMemo(
+    () => (promisesRead.data ?? []).map((commitment) => commitment.id).sort(),
+    [promisesRead.data]
+  );
+  // A decision event carries no pool, so the pool's decisions are read by its promises.
+  const promiseRead = useQuery({
+    queryKey: gardensKeys.promiseDecisions(gardenId, chainId, promiseIds),
+    queryFn: () =>
+      getPromiseDecisions({
+        chainId,
+        commitmentEntityIds: promiseIds,
+        since: nowInSeconds() - NEW_NOTIFICATION_WINDOW_SECONDS,
+      }),
+    enabled: readsPromises && promiseIds.length > 0,
+    staleTime: 30_000,
+    retry: false,
+  });
 
   const scope = gardenNotificationsScope(chainId, account, gardenId);
   const hubScope = scope ? `hub:${scope}` : null;
@@ -122,31 +129,13 @@ export function useHubGardenChanges(garden: Garden | undefined) {
   const [now] = useState(nowInSeconds);
   const { data: roleChanges } = roleRead;
   const { data: activity } = activityRead;
-  const { events: poolEvents } = promiseRead;
+  const { data: promiseDecisionRows } = promiseRead;
   const changes = useMemo<HubGardenChangeRow[]>(() => {
     if (!account) return [];
     const since = now - NEW_NOTIFICATION_WINDOW_SECONDS;
-    const promiseDecisions: PromiseDecision[] =
-      poolId === undefined
-        ? []
-        : poolEvents.flatMap((event) => {
-            const decision = PROMISE_DECISIONS[event.eventType];
-            return decision &&
-              event.actor &&
-              event.commitmentId !== null &&
-              event.poolId === poolId &&
-              event.timestamp > since
-              ? [
-                  {
-                    id: event.id,
-                    commitmentId: event.commitmentId,
-                    decision,
-                    by: event.actor,
-                    at: event.timestamp,
-                  },
-                ]
-              : [];
-          });
+    const promiseDecisions: PromiseDecision[] = (promiseDecisionRows ?? []).filter(
+      (decision) => decision.at > since
+    );
     return deriveHubGardenChanges({
       account,
       canManageMembers: canManage,
@@ -167,8 +156,7 @@ export function useHubGardenChanges(garden: Garden | undefined) {
     joinRequestsRecord,
     joinRequestsWaiting,
     now,
-    poolEvents,
-    poolId,
+    promiseDecisionRows,
     record,
     roleChanges,
   ]);

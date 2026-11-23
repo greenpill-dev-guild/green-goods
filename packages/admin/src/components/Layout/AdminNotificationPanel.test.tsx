@@ -34,9 +34,10 @@ const mockHub = vi.hoisted(() => ({
   canManage: true,
   joinRequestsWaiting: undefined as number | undefined,
   markSeen: vi.fn(),
+  isLoading: false,
 }));
 vi.mock("@green-goods/shared/hooks/garden/useGardenNotifications", () => ({
-  useHubGardenChanges: () => ({ ...mockHub, isLoading: false, isError: false }),
+  useHubGardenChanges: () => ({ isError: false, ...mockHub }),
 }));
 
 vi.mock("@green-goods/shared/hooks/roles/useEffectiveToolbarPermissions", () => ({
@@ -177,6 +178,24 @@ describe("AdminNotificationPanel", () => {
     expect(screen.queryByText(/Evaluator role/)).not.toBeInTheDocument();
     panel.unmount();
     expect(mockHub.markSeen).toHaveBeenCalledWith([expect.objectContaining({ id: "role:r1" })]);
+  });
+
+  it("counts nothing as seen that a still-loading sheet never showed", () => {
+    mockHub.changes = [
+      {
+        kind: "joined",
+        id: "role:r1",
+        at: Math.floor(Date.now() / 1000),
+        isNew: true,
+        account: "0x3333333333333333333333333333333333333333",
+        role: "gardener",
+      },
+    ];
+    mockHub.isLoading = true;
+    const panel = renderPanel();
+    panel.unmount();
+    expect(mockHub.markSeen).toHaveBeenCalledWith([]);
+    mockHub.isLoading = false;
   });
 
   it("counts join requests and long waits, each opening its filtered list, only for who can act", () => {

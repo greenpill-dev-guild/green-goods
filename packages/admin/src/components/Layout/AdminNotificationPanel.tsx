@@ -146,10 +146,19 @@ export function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => v
   // What changed is listed until this device has shown it: what the sheet opened with stays
   // on screen while it is open, and counts as shown once it closes (PRD-1536).
   const changes = useMemo(() => hub.changes.filter((change) => change.isNew), [hub.changes]);
-  const shown = useRef(changes);
-  shown.current = changes;
-  const { markSeen } = hub;
-  useEffect(() => () => markSeen(shown.current), [markSeen]);
+  const loading =
+    workspace.fetching ||
+    workspace.fetchingAssessments ||
+    workspace.worksLoading ||
+    workspace.hypercertsLoading ||
+    workspace.allocationsLoading ||
+    workspace.vaultsLoading ||
+    hub.isLoading;
+  // Only what the sheet showed counts as seen, and in the scope it was shown in: a garden
+  // switched while the sheet is open marks nothing of the new garden in the old one.
+  const shown = useRef({ markSeen: hub.markSeen, items: [] as typeof changes });
+  if (!loading) shown.current = { markSeen: hub.markSeen, items: changes };
+  useEffect(() => () => shown.current.markSeen(shown.current.items), []);
 
   const [names, setNames] = useState<ReadonlyMap<string, string>>(() => new Map());
   const onName = useCallback(
@@ -203,7 +212,15 @@ export function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => v
     }
     for (const alert of derived.overviewAlerts) {
       // Waiting work is counted by its band above, each opening its own filtered list.
-      if (alert.key === "work-warning") continue;
+      // Past the queue read's floor the bands miss older work, so the week alert stays then.
+      const counted = reviewQueue.waitingByBand.weeks1to2 + reviewQueue.waitingByBand.over2w;
+      if (
+        alert.key === "work-warning" &&
+        (reviewQueue.waitingByBandComplete || counted >= reviewQueue.waitingOverWeekCount)
+      ) {
+        continue;
+      }
+      if (alert.key === "work-warning" && !hub.canManage) continue;
       if (alert.key === "work-critical" && !hub.canManage) continue;
       attention.push({
         id: `alert-${alert.key}`,
@@ -264,11 +281,7 @@ export function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => v
 
   return (
     <>
-      <NotificationPanel
-        sections={sections}
-        scopeLabel={scopeLabel}
-        isLoading={workspace.fetching || workspace.worksLoading || hub.isLoading}
-      />
+      <NotificationPanel sections={sections} scopeLabel={scopeLabel} isLoading={loading} />
       <MemberNameReaders addresses={people} onName={onName} />
     </>
   );

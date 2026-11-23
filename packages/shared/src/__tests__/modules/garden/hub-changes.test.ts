@@ -1,4 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { getPromiseDecisions } from "../../../modules/commitment-pooling/data-activity";
+import type { GraphQLReader } from "../../../modules/data/graphql-client";
 import { deriveHubGardenChanges } from "../../../modules/garden/hub-changes";
 import type { EASWorkListRow } from "../../../types/eas-responses";
 
@@ -58,7 +60,7 @@ const sources = {
     {
       id: "p1",
       commitmentId: 9n,
-      decision: "accepted" as const,
+      decision: "canceled" as const,
       by: other as `0x${string}`,
       at: 800,
     },
@@ -112,5 +114,43 @@ describe("the Hub bell's changes", () => {
     expect(changes.find((change) => change.kind === "roleGranted")).toMatchObject({
       role: "evaluator",
     });
+  });
+});
+
+describe("a pool's promise decisions", () => {
+  it("reads confirmations and cancellations by the pool's promises, with the steward who decided", async () => {
+    const query = vi.fn(async () => ({
+      data: {
+        CommitmentEvent: [
+          { id: "e2", commitmentId: "9", eventType: "CANCELLED", actor: other, timestamp: 900 },
+          {
+            id: "e1",
+            commitmentId: "9",
+            eventType: "CONFIRMATION_RECORDED",
+            actor: me,
+            timestamp: 800,
+          },
+        ],
+      },
+    }));
+    const decisions = await getPromiseDecisions(
+      { chainId: 42161, commitmentEntityIds: ["42161-9"], since: 100 },
+      { query } as unknown as GraphQLReader
+    );
+    expect(decisions.map(({ decision, at }) => [decision, at])).toEqual([
+      ["canceled", 900],
+      ["confirmed", 800],
+    ]);
+    // A decision event carries no pool, so the read names the pool's promises.
+    expect(query.mock.calls[0][1]).toMatchObject({ ids: ["42161-9"], since: 100 });
+    expect(String(query.mock.calls[0][0])).toContain("CONFIRMATION_RECORDED, CANCELLED");
+    // No promises, no read.
+    query.mockClear();
+    await expect(
+      getPromiseDecisions({ chainId: 42161, commitmentEntityIds: [], since: 100 }, {
+        query,
+      } as unknown as GraphQLReader)
+    ).resolves.toEqual([]);
+    expect(query).not.toHaveBeenCalled();
   });
 });

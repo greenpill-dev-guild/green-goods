@@ -376,15 +376,33 @@ vi.mock("@green-goods/shared/hooks/garden/useGardenDerivedState", () => ({
         onAction: () => openSection("work", "queue"),
       },
     ],
-    activityEvents: [
+    activityEvents: [],
+    reviewQueue: {
+      waitingByBand: { under2d: 0, days2to7: 0, weeks1to2: 0, over2w: 0 },
+      waitingByBandComplete: true,
+      waitingOverWeekCount: 0,
+    },
+  }),
+}));
+
+// The Hub bell's changes since this device last showed the sheet (PRD-1536).
+vi.mock("@green-goods/shared/hooks/garden/useGardenNotifications", () => ({
+  useHubGardenChanges: () => ({
+    changes: [
       {
-        id: "activity-1",
-        title: "Impact report minted",
-        description: "Hypercert created",
-        timestamp: Date.now(),
-        href: "/garden/impact/hypercerts/hc-1",
+        kind: "joined",
+        id: "role:r1",
+        at: Math.floor(Date.now() / 1000),
+        isNew: true,
+        account: "0x3333333333333333333333333333333333333333",
+        role: "gardener",
       },
     ],
+    canManage: true,
+    joinRequestsWaiting: undefined,
+    isLoading: false,
+    isError: false,
+    markSeen: () => {},
   }),
 }));
 
@@ -827,7 +845,7 @@ describe("CanvasLayout", () => {
     });
     expect(screen.getByTestId("notification-panel")).toHaveAttribute("data-loading", "false");
     expect(screen.getByText("3 work submissions need review")).toBeInTheDocument();
-    expect(screen.getByText("Impact report minted")).toBeInTheDocument();
+    expect(screen.getByText(/joined as Gardener/)).toBeInTheDocument();
   });
 
   it("keeps notifications empty until a garden detail record exists", async () => {
