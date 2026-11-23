@@ -117,12 +117,18 @@ export function useHubGardenChanges(garden: Garden | undefined) {
   );
   const noteJoinRequests = useGardenNotificationsSeenStore((state) => state.noteJoinRequests);
   const writeSeen = useGardenNotificationsSeenStore((state) => state.markSeen);
+  // As in the installed app's bell: a browser that no longer holds a count grant drops the record,
+  // since nothing here can read the queue again until a new grant does.
   const joinRequestsWaiting = joinRequestRead.waiting;
+  const holdsJoinRequestGrant = joinRequestRead.hasGrant;
   useEffect(() => {
-    if (hubScope && joinRequestsWaiting !== undefined) {
+    if (!hubScope) return;
+    if (canManage && !holdsJoinRequestGrant) {
+      noteJoinRequests(hubScope, 0, nowInSeconds());
+    } else if (joinRequestsWaiting !== undefined) {
       noteJoinRequests(hubScope, joinRequestsWaiting, nowInSeconds());
     }
-  }, [hubScope, joinRequestsWaiting, noteJoinRequests]);
+  }, [hubScope, canManage, holdsJoinRequestGrant, joinRequestsWaiting, noteJoinRequests]);
 
   // Newness is judged against the moment the sheet opened, so a list does not empty itself
   // while it is on screen.

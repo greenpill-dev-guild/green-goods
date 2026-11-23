@@ -119,7 +119,7 @@ describe("the Hub bell's changes", () => {
 
 describe("a pool's promise decisions", () => {
   it("reads confirmations and cancellations by the pool's promises, with the steward who decided", async () => {
-    const query = vi.fn(async () => ({
+    const query = vi.fn(async (_document: string, _variables: unknown) => ({
       data: {
         CommitmentEvent: [
           { id: "e2", commitmentId: "9", eventType: "CANCELLED", actor: other, timestamp: 900 },
