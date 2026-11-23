@@ -50,6 +50,14 @@ describe("Review Work tab scopes", () => {
   }) => {
     expect(idsOf(filterWorksByScope(works, scope, actions, search, sort))).toEqual(expected);
   });
+
+  it("leaves a work whose status could not be read out of Pending, and keeps it on the day", () => {
+    const unread = new Set(["pending-new"]);
+    expect(idsOf(filterWorksByScope(works, "pending", actions, "", "oldest", unread))).toEqual([
+      "pending-old",
+    ]);
+    expect(filterWorksByScope(works, "all", actions, "", "oldest", unread)).toHaveLength(5);
+  });
 });
 
 describe("Review record lists", () => {

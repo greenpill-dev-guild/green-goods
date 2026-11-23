@@ -195,6 +195,11 @@ export interface GardenWorkRange {
   rows: EASWorkListRow[];
   /** False when the period holds more works than one read lists, so some are missing. */
   complete: boolean;
+  /**
+   * When the read was cut, the moment (seconds) it reached: the period's works after it are
+   * missing, and so may be more works at that moment. Null when the period was read in full.
+   */
+  readThrough: number | null;
   /** When each work left out as malformed was sent (seconds; NaN when that is unreadable too). */
   droppedAt: number[];
 }
@@ -220,13 +225,13 @@ export function readGardenWorkRange({
 }): Promise<GardenWorkRange> {
   return inTurn(async () => {
     const exclusions = visibility ?? (await readWorkVisibility(chainId));
-    const { works, truncated, droppedAt } = await getWorksInRange(garden, {
+    const { works, truncated, readThrough, droppedAt } = await getWorksInRange(garden, {
       ...exclusions,
       chainId,
       from,
       to,
     });
-    if (works.length === 0) return { rows: [], complete: !truncated, droppedAt };
+    if (works.length === 0) return { rows: [], complete: !truncated, readThrough, droppedAt };
     let approvals: EASWorkApproval[];
     let unread: Set<string>;
     try {
@@ -241,7 +246,7 @@ export function readGardenWorkRange({
         error,
         garden,
       });
-      return { rows: works, complete: !truncated, droppedAt };
+      return { rows: works, complete: !truncated, readThrough, droppedAt };
     }
     const byWork = groupByWork(approvals);
     return {
@@ -250,6 +255,7 @@ export function readGardenWorkRange({
         return unread.has(key) ? work : withLatestApproval(work, byWork.get(key) ?? []);
       }),
       complete: !truncated,
+      readThrough,
       droppedAt,
     };
   });

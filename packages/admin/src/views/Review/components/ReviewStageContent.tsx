@@ -24,6 +24,8 @@ interface ReviewStageContentProps {
   /** The Work tab's list for its current scope. */
   works: Work[];
   workScope: ReviewWorkScope;
+  /** Works on a day's list whose status could not be read. */
+  unknownIds?: ReadonlySet<string>;
   /** Clears the chosen waiting-time band, when one narrows the Work list. */
   onClearWaitingBand?: () => void;
   assessments: ReviewAssessmentListItem[];
@@ -62,6 +64,7 @@ export function ReviewStageContent({
   stage,
   works,
   workScope,
+  unknownIds,
   onClearWaitingBand,
   assessments,
   hypercerts,
@@ -98,6 +101,7 @@ export function ReviewStageContent({
       <ReviewWorkQueue
         items={works}
         scope={workScope}
+        unknownIds={unknownIds}
         worksLoading={worksLoading}
         hasDataError={hasDataError}
         normalizedSearch={normalizedSearch}

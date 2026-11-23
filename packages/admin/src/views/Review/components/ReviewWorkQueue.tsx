@@ -80,6 +80,8 @@ interface ReviewWorkQueueProps {
   items: Work[];
   /** Which of the Work tab's scopes `items` holds: it decides the empty state. */
   scope: ReviewWorkScope;
+  /** Works whose status could not be read: each says status unread, never Pending. */
+  unknownIds?: ReadonlySet<string>;
   worksLoading: boolean;
   hasDataError: boolean;
   normalizedSearch: string;
@@ -139,6 +141,8 @@ interface ReviewWorkQueueItemProps {
   /** The phone's work row in place of the photo-grid card. */
   asRow: boolean;
   reviewChip?: ReviewChip;
+  /** The work's decisions could not be read. */
+  statusUnread?: boolean;
   onOpenWorkDetail: (workId: string) => void;
 }
 
@@ -151,15 +155,16 @@ function ReviewWorkQueueItem({
   eagerImages,
   asRow,
   reviewChip,
+  statusUnread = false,
   onOpenWorkDetail,
 }: ReviewWorkQueueItemProps) {
   const { formatMessage } = useIntl();
   const { display: gardenerDisplayName } = useAddressDisplayName(work.gardenerAddress, {
     list: true,
   });
+  const ownStatus = reviewWorkStatus(work.status, formatMessage, statusUnread);
 
   if (asRow) {
-    const ownStatus = reviewWorkStatus(work.status, formatMessage);
     const media = work.media ?? [];
     return (
       <WorkCard
@@ -193,9 +198,10 @@ function ReviewWorkQueueItem({
       gardenerDisplayName={gardenerDisplayName}
       // The card reads its own state: a waiting card is a neutral Pending with
       // its age, since age is metadata and never an alarm (DL-044); an
-      // approved card says Approved. A decision waiting on it says so instead.
-      statusLabel={reviewChip?.label}
-      statusTone={reviewChip?.tone}
+      // approved card says Approved, and an unread one says so. A decision
+      // waiting on it says so instead.
+      statusLabel={reviewChip?.label ?? (statusUnread ? ownStatus.label : undefined)}
+      statusTone={reviewChip?.tone ?? (statusUnread ? ownStatus.tone : undefined)}
       layout={layout}
       selected={selected}
       eagerImages={eagerImages}
@@ -238,6 +244,7 @@ function ReviewWorkQueueList({
   reviewBatch,
   older,
   onClearWaitingBand,
+  unknownIds,
 }: ReviewWorkQueueProps) {
   const { formatMessage } = useIntl();
   const isPhone = useMediaQuery(PHONE_QUERY);
@@ -392,6 +399,7 @@ function ReviewWorkQueueList({
                 eagerImages={index < 6}
                 asRow={isPhone}
                 reviewChip={reviewChipFor(reviewBatch, work.id, formatMessage)}
+                statusUnread={unknownIds?.has(work.id) ?? false}
                 onOpenWorkDetail={onOpenWorkDetail}
               />
             </li>

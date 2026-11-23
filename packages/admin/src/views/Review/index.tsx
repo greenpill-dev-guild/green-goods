@@ -278,6 +278,7 @@ export default function ReviewView() {
                   stage={review.stage}
                   works={review.scopedWorks}
                   workScope={review.workScope}
+                  unknownIds={review.workDay ? review.workDayUnknownIds : undefined}
                   onClearWaitingBand={
                     review.waitingBand
                       ? () => review.handleWaitingBandChange(review.waitingBand!)

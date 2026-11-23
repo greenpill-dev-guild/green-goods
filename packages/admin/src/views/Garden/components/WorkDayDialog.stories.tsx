@@ -5,6 +5,8 @@ import { withAdminIdentity, withRouter } from "../../../../../shared/.storybook/
 import {
   STORY_CALENDAR_WORKS,
   storyBusyDay,
+  storyCutCalendar,
+  storyDayKey,
   storyWorkCalendar,
 } from "../../../../../shared/.storybook/workCalendarFixtures";
 import { WorkDayDialog } from "./WorkDayDialog";
@@ -45,5 +47,30 @@ export const BusyDay: Story = {
     await expect(within(dialog).getByRole("button", { name: "View in Work" })).toBeEnabled();
     await userEvent.keyboard("{Escape}");
     await expect(args.calendar.handleCloseDay).toHaveBeenCalled();
+  },
+};
+
+/** A day after the point a cut month read stopped: not read, never empty, and still in Work. */
+export const NotReadDay: Story = {
+  args: { calendar: storyCutCalendar(storyDayKey(1)) },
+  tags: ["storybook-ci"],
+  play: async () => {
+    const dialog = await screen.findByRole("dialog");
+    await expect(within(dialog).getByText("This month is only partly read")).toBeInTheDocument();
+    await expect(within(dialog).queryByText("Nothing submitted this day")).toBeNull();
+    await expect(within(dialog).getByRole("button", { name: "View in Work" })).toBeEnabled();
+  },
+};
+
+/** The day a cut month read stopped in: what was read, said to be a minimum. */
+export const PartlyReadDay: Story = {
+  args: { calendar: storyCutCalendar(storyDayKey(4)) },
+  tags: ["storybook-ci"],
+  play: async () => {
+    const dialog = await screen.findByRole("dialog");
+    await expect(within(dialog).getByText("This day is only partly read")).toBeInTheDocument();
+    await expect(
+      within(dialog).getByText("at least 2 submissions: 1 approved, 1 rejected")
+    ).toBeInTheDocument();
   },
 };
