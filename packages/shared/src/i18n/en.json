@@ -9220,6 +9220,7 @@
   "hub.community.readiness.view.readiness": "Readiness",
   "hub.community.readiness.filterAria": "Readiness stage",
   "hub.community.readiness.filterAll": "Every stage",
+  "hub.community.readiness.emptyFiltered": "Nobody in this list is at this stage.",
   "hub.community.readiness.stage.registered": "Registered",
   "hub.community.readiness.stage.gettingStarted": "Getting started",
   "hub.community.readiness.stage.contributing": "Contributing",

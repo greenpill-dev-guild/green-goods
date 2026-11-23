@@ -85,6 +85,11 @@ export function CommunityMembersTab({
     enabled: view === "readiness",
   });
   const showsReadiness = view === "readiness" && readiness.canView;
+  // While a member's records are still read, every row is "Not known": no stage filters yet.
+  const readingStages = Object.values(readiness.byAccount).some(
+    (entry) => entry.status === "loading"
+  );
+  const filtersStage = showsReadiness && stageFilter !== "all" && !readingStages;
   const stageOf = useCallback(
     (address: Address) => readinessStageOf(readiness.byAccount[address.toLowerCase()]),
     [readiness.byAccount]
@@ -107,7 +112,7 @@ export function CommunityMembersTab({
       visibleDirectory.filter(
         (entry) =>
           (activeRole === "all" || entry.roles.includes(activeRole)) &&
-          (!showsReadiness || stageFilter === "all" || stageOf(entry.address) === stageFilter) &&
+          (!filtersStage || stageOf(entry.address) === stageFilter) &&
           memberMatchesSearch(
             entry,
             memberSearch,
@@ -120,7 +125,7 @@ export function CommunityMembersTab({
       formatMessage,
       memberSearch,
       names,
-      showsReadiness,
+      filtersStage,
       stageFilter,
       stageOf,
       visibleDirectory,
@@ -258,16 +263,16 @@ export function CommunityMembersTab({
               <EmptyState
                 icon={<RiGroupLine className="h-6 w-6" />}
                 title={
-                  memberSearch.trim() ||
-                  activeRole !== "all" ||
-                  (showsReadiness && stageFilter !== "all")
+                  memberSearch.trim() || activeRole !== "all" || filtersStage
                     ? formatMessage({ id: "app.garden.detail.community.membersEmpty" })
                     : formatMessage({ id: "app.admin.garden.members.empty" })
                 }
                 description={
-                  activeRole !== "all" || (showsReadiness && stageFilter !== "all")
-                    ? formatMessage({ id: "hub.community.members.emptyFiltered" })
-                    : undefined
+                  filtersStage
+                    ? formatMessage({ id: "hub.community.readiness.emptyFiltered" })
+                    : activeRole !== "all"
+                      ? formatMessage({ id: "hub.community.members.emptyFiltered" })
+                      : undefined
                 }
               />
             ) : (

@@ -9220,6 +9220,7 @@
   "hub.community.readiness.view.readiness": "Preparación",
   "hub.community.readiness.filterAria": "Etapa de preparación",
   "hub.community.readiness.filterAll": "Todas las etapas",
+  "hub.community.readiness.emptyFiltered": "Nadie en esta lista está en esta etapa.",
   "hub.community.readiness.stage.registered": "Registrado",
   "hub.community.readiness.stage.gettingStarted": "Empezando",
   "hub.community.readiness.stage.contributing": "Contribuyendo",

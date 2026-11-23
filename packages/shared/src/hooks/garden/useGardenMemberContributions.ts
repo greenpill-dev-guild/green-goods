@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { gardensKeys } from "../../config/query-keys/garden";
 import {
   getGardenMemberContributions,
@@ -93,12 +94,16 @@ export function useGardenMemberReadiness({
     staleTime: 30_000,
     retry: false,
   });
-  const byAccount: Record<string, MemberReadiness> = {};
-  if (active) {
-    for (const account of members)
-      byAccount[account] = query.isError
+  const memberKey = members.join(",");
+  // One object per answer, so the list's filters and counts recompute only when it changes.
+  const byAccount = useMemo(() => {
+    const entries: Record<string, MemberReadiness> = {};
+    if (!active) return entries;
+    for (const account of memberKey.split(","))
+      entries[account] = query.isError
         ? { status: "unavailable" }
         : (query.data?.[account] ?? { status: "loading" });
-  }
+    return entries;
+  }, [active, memberKey, query.data, query.isError]);
   return { canView, byAccount };
 }

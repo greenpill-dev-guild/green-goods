@@ -2,8 +2,10 @@ import { isAddress } from "viem";
 import { getEASConfig } from "../../config/blockchain";
 import type { Address } from "../../types/domain";
 import { isZeroBytes32 } from "../../utils/blockchain/bytes";
+import { withLatestApproval } from "../work/work-list";
 import { readWorkVisibility, type WorkVisibilitySnapshot } from "../work/work-visibility";
 import { readWorkApprovalsForWorks } from "./eas-work-list";
+import { parseDataToWork } from "./eas-parse";
 import { easStoredAddress, validatedAttestations } from "./eas-read-validation";
 import { easGraphQL } from "./graphql";
 import { createEasClient, type GraphQLReader } from "./graphql-client";
@@ -21,7 +23,10 @@ export type GardenMemberReadiness =
       stage: MemberReadinessStage;
       /** When their first work in the garden was sent (ms); null when none was. */
       firstSentAt: number | null;
-      /** When the first decision approving their work landed (ms); null when none has. */
+      /**
+       * When the earliest of their approved works was approved (ms), each work by the decision
+       * that stands; null when none of their work stands approved.
+       */
       firstApprovedAt: number | null;
     };
 
@@ -78,14 +83,15 @@ async function readOne(
       ? { id: { notIn: [...visibility.excludedWorkUIDs] } }
       : {}),
   };
-  const works: { id: string; at: number }[] = [];
+  const works: { id: string; at: number; row: Parameters<typeof withLatestApproval>[0] }[] = [];
   let whole = false;
   for (let page = 0; page < MAX_PAGES; page++) {
     signal?.throwIfAborted();
     const { data, error } = await reader.query(
       QUERY,
       { where, take: PAGE_SIZE, skip: page * PAGE_SIZE },
-      "getMemberReadinessWorks"
+      "getMemberReadinessWorks",
+      signal
     );
     if (error || !Array.isArray(data?.attestations)) throw error ?? new Error("Works unavailable");
     // A row that could not be read is one this member's evidence cannot rule out.
@@ -95,7 +101,15 @@ async function readOne(
       if (row.attester.toLowerCase() !== account.toLowerCase()) {
         throw new Error("Work outside the member's evidence");
       }
-      works.push({ id: row.id, at: Number(row.timeCreated) * 1000 });
+      works.push({
+        id: row.id,
+        at: Number(row.timeCreated) * 1000,
+        row: parseDataToWork(
+          row.id,
+          { attester: row.attester, recipient: row.recipient, time: Number(row.timeCreated) },
+          row.decodedDataJson
+        ),
+      });
     }
     if (data.attestations.length < PAGE_SIZE) {
       whole = true;
@@ -103,28 +117,34 @@ async function readOne(
     }
   }
   const firstSentAt = works[0]?.at ?? null;
-  // A chain with no decision schema can approve nothing, so no member there has approved work.
-  if (works.length === 0 || isZeroBytes32(config.WORK_APPROVAL.uid)) {
-    return {
-      status: "read",
-      stage: readinessStage(firstSentAt, null),
-      firstSentAt,
-      firstApprovedAt: null,
-    };
+  if (works.length === 0) {
+    return { status: "read", stage: "registered", firstSentAt: null, firstApprovedAt: null };
   }
-  const { approvals, failedWorkUIDs } = await readWorkApprovalsForWorks(
+  // On a chain with no decision schema whether work is approved is unknown, not "no".
+  if (isZeroBytes32(config.WORK_APPROVAL.uid)) return { status: "unavailable" };
+  const { approvals, failedWorkUIDs, dropped } = await readWorkApprovalsForWorks(
     works.map((work) => work.id),
     scope.chainId,
     reader
   );
   if (failedWorkUIDs.length > 0) return { status: "unavailable" };
   const excluded = new Set(visibility.excludedApprovalUIDs.map((uid) => uid.toLowerCase()));
-  const approvedAt = approvals
-    .filter((approval) => approval.approved && !excluded.has(approval.id.toLowerCase()))
-    .map((approval) => approval.createdAt * 1000);
+  const byWork = new Map<string, typeof approvals>();
+  for (const approval of approvals) {
+    if (excluded.has(approval.id.toLowerCase())) continue;
+    const key = approval.workUID.toLowerCase();
+    byWork.set(key, [...(byWork.get(key) ?? []), approval]);
+  }
+  // A work counts as approved by the decision that stands, its latest, as Review reads it: an
+  // approval a later decision reversed does not count.
+  const approvedAt = works.flatMap((work) => {
+    const latest = withLatestApproval(work.row, byWork.get(work.id.toLowerCase()) ?? []).approval;
+    return latest?.approved ? [latest.createdAt * 1000] : [];
+  });
   const firstApprovedAt = approvedAt.length > 0 ? Math.min(...approvedAt) : null;
-  // Past the read's limit, a member with no approval found may still have one.
-  if (firstApprovedAt === null && !whole) return { status: "unavailable" };
+  // A decision row that could not be read, or a work past the read's limit, may hide the
+  // approval that would make this member contributing.
+  if (firstApprovedAt === null && (!whole || dropped > 0)) return { status: "unavailable" };
   return {
     status: "read",
     stage: readinessStage(firstSentAt, firstApprovedAt),

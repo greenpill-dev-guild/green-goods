@@ -100,6 +100,25 @@ describe("getGardenMemberReadiness", () => {
     expect(readiness[sender]).toMatchObject({ stage: "gettingStarted", firstApprovedAt: null });
   });
 
+  it("counts a work by the decision that stands, so a reversed approval does not count", async () => {
+    const readiness = await getGardenMemberReadiness(
+      { ...scope, accounts: [sender] },
+      reader({
+        works: { [sender]: [workRow(1, 1_000)] },
+        decisions: [decisionRow(10, 1, 1_500, true), decisionRow(11, 1, 1_600, false)],
+      })
+    );
+    expect(readiness[sender]).toMatchObject({ stage: "gettingStarted", firstApprovedAt: null });
+  });
+
+  it("reads a member as unavailable when a decision row on their work could not be read", async () => {
+    const readiness = await getGardenMemberReadiness(
+      { ...scope, accounts: [sender] },
+      reader({ works: { [sender]: [workRow(1, 1_000)] }, decisions: [{ id: uid(12) }] })
+    );
+    expect(readiness[sender]).toEqual({ status: "unavailable" });
+  });
+
   it("reads a member as unavailable when the decisions on their work could not be read", async () => {
     const failed = await getGardenMemberReadiness(
       { ...scope, accounts: [sender] },
