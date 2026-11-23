@@ -57,6 +57,7 @@ vi.mock("@green-goods/shared/hooks/profile/useProfileAvatar", async (importOrigi
 }));
 vi.mock("@green-goods/shared/hooks/garden/useGardenMemberContributions", () => ({
   useGardenMemberContributions: () => ({ canView: false, byAccount: {} }),
+  useGardenMemberReadiness: () => ({ canView: false, byAccount: {} }),
 }));
 vi.mock("@green-goods/shared/hooks/garden/useGardenMemberHistory", () => ({
   useGardenMemberHistory: () => ({
