@@ -116,7 +116,7 @@ The harness's built-in `/code-review` (effort levels, verify pass). Say so and u
 Zero or missing deployment addresses on new contract work are a pending broadcast, unless a broadcast was claimed or the deploy, persist, or config path itself is missing.
 
 ### Immutable records
-Dated reports under `.plans/**/reports/`.
+Dated reports already under `.plans/**/reports/`; no new ones are added.
 
 ### Tracker
 Linear, through `.claude/context/linear-routing-rules.md`; prompt before creating anything.
@@ -296,7 +296,7 @@ Every prompt for an agent starting active implementation begins with this gate a
 - Stale plans: the weekly `/audit drift plans` pass reviews any plan untouched for 14+ days or whose work already merged; close with an honest resolution (`closed_stale`, `paused`, ...).
 - Raw transcripts and meeting notes go in `notes/`, Customer Needs, or safe comments on linked Linear or PR records, never in `.plans/`.
 - Accepted audit findings go to Linear after approval.
-- Dated reports under `.plans/**/reports/` are immutable: never edit or delete one; add a new correction, closure, or superseding report that links the historical input.
+- Dated reports already under `.plans/**/reports/` are immutable: never edit or delete one outside its hub's closeout. Hubs take no new reports: put a correction or closure in `plan.todo.md`, the pull request, or Linear. The regrowth check fails a new report or prototype file under `.plans/`.
 
 ### Templates
 - Header fields: `**Linear Issue**: PRD-### (optional)`, `**Linear Project**: <bounded project name> (optional)`, `**Linear Source**: source:plans (only when mirrored to Linear)`.
@@ -376,7 +376,7 @@ For an owning Plan Hub, read its `status.json` links and its document map first,
 Repository-health or drift classification → `audit`.
 
 ### Durable evidence
-Follow the owning repository convention: one focused evidence artifact, as a report in the owning Plan Hub only when it is direct evidence for that feature (dated reports there are immutable). Accepted product or architecture decisions return to `plan` and enter the canonical Plan Hub files.
+Follow the owning repository convention: return the evidence in the response or the pull request; for plan-backed work, record the result in the owning Plan Hub's `plan.todo.md`. Plan Hubs take no new report files. Accepted product or architecture decisions return to `plan` and enter the canonical Plan Hub files.
 
 ### Mapping workflow
 Wayfinder. The map-ready handoff is its escalation contract; it does not implement Wayfinder.

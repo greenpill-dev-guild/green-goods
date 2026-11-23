@@ -30,13 +30,15 @@ Every new feature or polish effort should live in a dedicated folder:
   eval.md
   status.json
   handoffs/
-  reports/
   artifacts/
 ```
 
 Ideas and backlog hubs keep the four canonical documents plus `status.json`.
-Lane handoff files are created when the hub moves to `active`; `reports/` and
-`artifacts/` are added only when they contain real evidence.
+Lane handoff files are created when the hub moves to `active`; `artifacts/` is added only
+for pictures or data that are real evidence. Hubs take no new reports or prototype code: record
+results in `plan.todo.md`, the pull request's Verification section, or Linear, and keep prototypes
+on a branch, in Storybook, or in an artifact. The regrowth check
+(`scripts/quality/check-regrowth.mjs`) fails a change that adds either.
 
 `status.json` is the machine-readable source of truth for explicit lane state. Queue readiness is computed by `node scripts/harness/plan-hub.mjs list` from `status.json` plus any required branch trigger.
 
@@ -53,8 +55,8 @@ The Markdown files are the human-readable context:
 - `plan.todo.md`: research/plan gate and implementation sequencing
 - `eval.md`: release gates, QA, and acceptance checks
 - `handoffs/`: short lane-to-lane handoff files
-- `reports/`: verification outputs, follow-up notes, release summaries
-- `artifacts/`: screenshots, logs, scratch outputs that should stay near the plan
+- `reports/`: older hubs only; no new files
+- `artifacts/`: screenshots and data that stay near the plan
 
 ## Control-Surface Rules
 

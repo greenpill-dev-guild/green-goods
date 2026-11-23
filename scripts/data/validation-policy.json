@@ -1601,7 +1601,7 @@
     {
       "id": "regrowth",
       "command": "node scripts/quality/check-regrowth.mjs",
-      "risk": "Text the purge removed grows back: banners, commented-out code, labels or restating notes on added lines of package source, or new report-style markdown outside .plans/ and docs/.",
+      "risk": "Text the purge removed grows back: banners, commented-out code, labels or restating notes on added lines of package source; new report-style markdown anywhere, plan hubs included; new markdown outside docs/ pages, routines and release folders; or prototype code in a plan hub.",
       "expectedSignal": "regrowth: nothing regrown since <base>",
       "freshness": "exact-inputs-and-toolchain",
       "budgetSeconds": 30,

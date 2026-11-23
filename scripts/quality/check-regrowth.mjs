@@ -4,9 +4,13 @@
 // - Comments the comment codemod's narrow pass removes (banners, commented-out code, labels and
 //   notes that restate a name) on added lines of package source (`packages/*/src`, tests aside).
 //   The codemod decides, so a comment whose place carries its meaning stays allowed.
-// - New markdown that reads as a report (an audit, findings, a summary, a dated note) anywhere
-//   outside `.plans/` and `docs/`, and any other new markdown outside those folders, the guidance
-//   folders and the conventional names (README.md, AGENTS.md and the like).
+// - New markdown that reads as a report (an audit, findings, a summary, a dated note), anywhere:
+//   a plan hub keeps its brief, spec, plan, eval and handoffs, and results go in the plan, the pull
+//   request or Linear. Under `docs/`, new markdown belongs in the published pages, the routines or
+//   a release's folder. Elsewhere, new markdown is limited to the guidance folders and the
+//   conventional names (README.md, AGENTS.md and the like).
+// - New prototype code (scripts, pages, styles) in a plan hub; prototypes live on a branch, in
+//   Storybook or in an artifact.
 //
 // Existing text is not judged: a file is compared with the merge base, so only its added lines
 // and added files count.
@@ -28,7 +32,12 @@ const TEST_PATH = /(^|\/)(__tests__|__mocks__|test|tests)\/|\.(test|spec|stories
 const GENERATED = /\.d\.[cm]?ts$|(^|\/)(generated|vendor|dist)\/|\.generated\./;
 
 const MARKDOWN = /\.(md|mdx)$/i;
-const MARKDOWN_HOMES = [".plans/", "docs/"];
+const PLANS = ".plans/";
+// Published pages and release folders are named for what they document, so their names are not judged.
+const DOCS_UNJUDGED = [/^docs\/docs\//, /^docs\/releases\/\d+\.\d+\.\d+[^/]*\//];
+const DOCS_ROUTINES = "docs/routines/";
+const DOCS_ROOT_FILE = /^docs\/[^/]+$/;
+const PROTOTYPE_CODE = /\.(ts|tsx|js|jsx|mjs|cjs|mts|cts|html?|css|scss|vue|svelte)$/i;
 const GUIDANCE_FOLDERS = [".claude/", ".agents/", ".codex/", ".github/"];
 // A skill's references are its templates, a report template included.
 const SKILL_FOLDERS = [".claude/skills/", ".agents/skills/"];
@@ -41,17 +50,48 @@ export function isPackageSource(file) {
   return PACKAGE_SOURCE.test(file) && !TEST_PATH.test(file) && !GENERATED.test(file);
 }
 
+const REPORT_HOME = "record results in the hub's plan.todo.md, the pull request's Verification, or Linear";
+
+/** Why a new file may not be added to a plan hub, or null when it may. */
+export function planProblem(file) {
+  if (!file.startsWith(PLANS)) return null;
+  if (PROTOTYPE_CODE.test(file)) {
+    return "is prototype code in a plan hub; keep prototypes on a branch, in Storybook or in an artifact";
+  }
+  if (!MARKDOWN.test(file)) return null;
+  if (file.split("/").includes("reports") || REPORT_NAME.test(path.posix.basename(file).replace(MARKDOWN, ""))) {
+    return `reads as a report; plan hubs take no new reports, so ${REPORT_HOME}`;
+  }
+  return null;
+}
+
 /** Why a new markdown file may not be added where it is, or null when it may. */
 export function markdownProblem(file) {
   if (!MARKDOWN.test(file)) return null;
-  if ([...MARKDOWN_HOMES, ...SKILL_FOLDERS].some((home) => file.startsWith(home))) return null;
+  if (file.startsWith(PLANS)) return planProblem(file);
+  if (SKILL_FOLDERS.some((home) => file.startsWith(home))) return null;
+  if (DOCS_UNJUDGED.some((home) => home.test(file))) return null;
   const name = path.posix.basename(file);
   if (REPORT_NAME.test(name.replace(MARKDOWN, ""))) {
-    return "reads as a report; reports belong in the plan's hub under .plans/, or in Linear";
+    return `reads as a report; ${REPORT_HOME}`;
+  }
+  if (file.startsWith(DOCS_ROUTINES)) return null;
+  if (DOCS_ROOT_FILE.test(file)) {
+    return CONVENTIONAL_NAMES.test(name) || /\.generated\.mdx?$/i.test(name)
+      ? null
+      : "is new markdown at the root of docs/; put pages in docs/docs/ and routines in docs/routines/";
+  }
+  if (file.startsWith("docs/")) {
+    return "is new markdown outside docs/docs/, docs/routines/ and a release folder; published pages go in docs/docs/";
   }
   if (GUIDANCE_FOLDERS.some((folder) => file.startsWith(folder))) return null;
   if (CONVENTIONAL_NAMES.test(name)) return null;
   return "is new markdown outside .plans/ and docs/; put documentation in docs/ and plan notes in their hub";
+}
+
+/** Why a file may not be added where it is, or null when it may. */
+export function newFileProblem(file) {
+  return markdownProblem(file) ?? planProblem(file);
 }
 
 /** Line numbers (1-based, in the new file) that a unified diff with no context adds. */
@@ -104,8 +144,8 @@ export function judge(root, ref) {
   for (const [file, { how, from }] of changedPaths(root, ref)) {
     if (how === "D") continue;
     // A move lands markdown somewhere new, unless the file was already where it may not be.
-    if (how === "A" || (from && !markdownProblem(from))) {
-      const problem = markdownProblem(file);
+    if (how === "A" || (from && !newFileProblem(from))) {
+      const problem = newFileProblem(file);
       if (problem) problems.push(`${file}: ${problem}.`);
     }
     if (!isPackageSource(file)) continue;
@@ -145,7 +185,7 @@ function main(argv = process.argv.slice(2)) {
   for (const problem of problems) console.error(`regrowth: ${problem}`);
   if (problems.length) {
     console.error(
-      "regrowth: delete the comment (the code or a name should carry it), and move a report into its plan hub or Linear.",
+      "regrowth: delete the comment (the code or a name should carry it); put results in the plan, the pull request or Linear, and prototypes on a branch.",
     );
     return 1;
   }

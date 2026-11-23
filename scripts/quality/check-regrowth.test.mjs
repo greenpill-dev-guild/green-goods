@@ -6,12 +6,18 @@ import path from "node:path";
 import test from "node:test";
 
 import { fixtureGitEnvironment } from "../lib/dev-shared.js";
-import { addedLines, isPackageSource, judge, markdownProblem, regrownComments } from "./check-regrowth.mjs";
+import { addedLines, isPackageSource, judge, markdownProblem, newFileProblem, regrownComments } from "./check-regrowth.mjs";
 
 test("new markdown is allowed in its homes, guidance folders and conventional names only", () => {
   for (const file of [
-    ".plans/active/hub/findings-2026-11-21.md",
+    ".plans/active/hub/brief.md",
+    ".plans/active/hub/settlement-spec.md",
+    ".plans/active/hub/handoffs/codex-contracts.md",
     "docs/docs/builders/quality/index.mdx",
+    "docs/docs/community/gardener-guide/report-in-chat.mdx",
+    "docs/releases/2.1.0/release-notes.md",
+    "docs/routines/health-watch.md",
+    "docs/README.md",
     "packages/agent/README.md",
     "packages/client/DESIGN.md",
     ".claude/skills/review/SKILL.md",
@@ -28,8 +34,27 @@ test("new markdown is allowed in its homes, guidance folders and conventional na
     ".claude/context/audit-2026-11-21.md",
     "scripts/handoff.md",
     "SUMMARY.md",
+    ".plans/active/hub/findings-2026-11-21.md",
+    ".plans/active/hub/reports/closeout.md",
+    ".plans/backlog/hub/audit.md",
+    "docs/routines/2026-11-21-run-notes.md",
+    "docs/plans/roadmap.md",
+    "docs/handover.md",
   ]) {
     assert.ok(markdownProblem(file), file);
+  }
+});
+
+test("a plan hub takes no new prototype code, and its pictures and data stay allowed", () => {
+  for (const file of [
+    ".plans/active/hub/hifi/screens.ts",
+    ".plans/active/hub/artifacts/prototype.html",
+    ".plans/ideas/hub/demo.mjs",
+  ]) {
+    assert.ok(newFileProblem(file), file);
+  }
+  for (const file of [".plans/active/hub/status.json", ".plans/active/hub/artifacts/capture-375.png", "scripts/harness/plan-hub.mjs"]) {
+    assert.equal(newFileProblem(file), null, file);
   }
 });
 
@@ -111,11 +136,15 @@ test("the check judges a change against its merge base, uncommitted and untracke
   git("mv", "packages/indexer/legacy-notes.md", "packages/indexer/kept-notes.md");
   assert.deepEqual(judge(root, changed).problems, []);
   mkdirSync(path.join(root, ".plans/active/hub"), { recursive: true });
-  write(".plans/active/hub/findings.md", "plan\n");
+  write(".plans/active/hub/sketch.md", "plan\n");
+  write(".plans/backlog/staged/reports/2026-10-01-proof.md", "old report\n");
   git("add", ".");
   git("commit", "-q", "-m", "plan note");
   const planned = git("rev-parse", "HEAD").trim();
-  git("mv", ".plans/active/hub/findings.md", "packages/shared/findings.md");
+  git("mv", ".plans/active/hub/sketch.md", "packages/shared/sketch.md");
+  assert.equal(judge(root, planned).problems.length, 1);
+  // A hub that changes stage carries its old reports with it.
+  git("mv", ".plans/backlog/staged", ".plans/active/staged");
   assert.equal(judge(root, planned).problems.length, 1);
   assert.ok(problems.some((problem) => problem.startsWith("packages/shared/src/old.ts:3: new label comment")));
   assert.ok(problems.some((problem) => problem.startsWith("packages/shared/src/new.ts:1: new banner comment")));

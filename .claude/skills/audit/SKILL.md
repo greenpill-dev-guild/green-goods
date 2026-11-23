@@ -271,8 +271,8 @@ Unverifiable findings get dropped.
 ## Part 6: Report Generation
 
 Return the report in the response. If the user explicitly requests a durable artifact,
-use an existing feature hub report when the audit is feature-specific; otherwise route
-accepted work to Linear rather than creating a generic audit folder. Report shape:
+record a feature-specific result in that hub's `plan.todo.md`; otherwise route accepted work
+to Linear. Never add a report file under `.plans/` or a generic audit folder. Report shape:
 
 ```markdown
 # Audit Report - [Date]
