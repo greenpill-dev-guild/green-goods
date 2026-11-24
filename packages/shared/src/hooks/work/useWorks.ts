@@ -191,9 +191,10 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
         queuedPreviews.has(job.id) ? { ...work, media: queuedPreviews.get(job.id)! } : work
       );
     }
-    // Every work whose decisions this read could not say: those with no status at all, and those
-    // showing a status cached from an earlier read because this read's approvals failed.
-    const statusUnknownIds = new Set(resolved.unknownIds);
+    // Every work whose decisions this read could not say: those with no status at all, those
+    // showing a status cached from an earlier read because this read's approvals failed, and
+    // stored works this read left out, still shown with their earlier status.
+    const statusUnknownIds = new Set([...resolved.unknownIds, ...resolved.retainedIds]);
     for (const row of remoteData ?? []) {
       if (isVisible(row.id) && row.approval === undefined) statusUnknownIds.add(row.id);
     }

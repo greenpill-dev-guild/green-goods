@@ -509,6 +509,31 @@ describe("hooks/work/useWorks", () => {
     expect(result.current.unknownIds.has("w1")).toBe(true);
   });
 
+  it("names a work a later read left out, though it still shows from the stored read", async () => {
+    const work = {
+      id: "w1",
+      title: "W1",
+      actionUID: 1,
+      gardenerAddress: "0x1",
+      gardenAddress: TEST_GARDEN,
+      feedback: "",
+      metadata: "{}",
+      media: [],
+      createdAt: 1000,
+      status: "pending" as const,
+    };
+    mockGetWorkListPage.mockResolvedValue([work]);
+    mockGetWorkApprovalsForWorks.mockResolvedValue([]);
+    const { result } = renderHookWithProviders(() => useWorks(TEST_GARDEN), { queryClient });
+    await waitFor(() => expect(result.current.hasUnknownStatuses).toBe(false));
+
+    // The indexer briefly returns nothing: the stored work stays, but its status is not current.
+    mockGetWorkListPage.mockResolvedValue([]);
+    act(() => result.current.refetch());
+    await waitFor(() => expect(result.current.unknownIds.has("w1")).toBe(true));
+    expect(result.current.works.map((item) => item.id)).toContain("w1");
+  });
+
   it("marks work as rejected when approval.approved is false", async () => {
     const works = [
       {
