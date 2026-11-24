@@ -8,6 +8,7 @@ import { act, waitFor } from "@testing-library/react";
 import { encodeAbiParameters, encodeEventTopics, type Hex, type Log, parseAbi, toHex } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getEASConfig } from "../../../config/blockchain";
+import { INDEXER_LAG_SCHEDULE_MS } from "../../../config/query-keys/constants";
 import { gardensKeys } from "../../../config/query-keys/garden";
 import { worksKeys } from "../../../config/query-keys/work";
 import { useMutationLock } from "../../../hooks/utils/useMutationLock";
@@ -506,6 +507,30 @@ describe("useBatchWorkApproval", () => {
       queryKey: gardensKeys.memberReadinessForGarden(garden, chainId),
     });
     expect(invalidate).not.toHaveBeenCalledWith({ queryKey: worksKeys.merged(other, chainId) });
+  });
+
+  it("keeps rereading the garden a send landed in after another garden opens", async () => {
+    const { decide, garden, landed, listWorks, queryClient } = setup();
+    const decision = decide();
+    listWorks([decision]);
+    landed(decision);
+    const readiness = gardensKeys.memberReadinessForGarden(garden, chainId);
+    const { result, rerender } = renderHookWithProviders(
+      ({ open }: { open: Address }) => useBatchWorkApproval(open),
+      { queryClient, initialProps: { open: garden } }
+    );
+
+    await act(() => result.current.send([decision]));
+    rerender({ open: random(20) as Address });
+    const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+
+    // The first indexer follow-up (2s, real time: its wait starts once a refetch settles, which
+    // fake timers do not drive) fires after the switch and still rereads the send's garden.
+    await waitFor(
+      () =>
+        expect(invalidate).toHaveBeenCalledWith({ queryKey: readiness }, { cancelRefetch: false }),
+      { timeout: INDEXER_LAG_SCHEDULE_MS[0] * 2 }
+    );
   });
 
   it("lets go of a decision whose held send turned out to revert", async () => {
