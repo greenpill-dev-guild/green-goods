@@ -52,8 +52,9 @@ interface UseWorkApprovalParams {
   draft: WorkApprovalDraft;
   work: Work;
   /**
-   * Asked once more right before anything is signed or queued: false when the work can no longer
-   * be decided (its status turned unknown or decided while the decision was being prepared).
+   * Asked once more as the send starts, before anything is signed, queued or shown as decided:
+   * false when the work can no longer be decided (its status turned unknown or decided while the
+   * decision was being prepared).
    */
   stillDecidable?: () => boolean;
 }
@@ -280,13 +281,7 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
   });
 
   const mutation = useMutation({
-    mutationFn: async ({
-      draft,
-      work,
-      stillDecidable,
-    }: UseWorkApprovalParams): Promise<SubmitApprovalOutcome> => {
-      // The last moment before a wallet is asked or a decision is queued.
-      if (stillDecidable && !stillDecidable()) throw new DecisionWithdrawnError();
+    mutationFn: async ({ draft, work }: UseWorkApprovalParams): Promise<SubmitApprovalOutcome> => {
       if (DEBUG_ENABLED) {
         debugLog("[useWorkApproval] Starting approval submission", {
           authMode,
@@ -319,7 +314,10 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
     },
     onMutate: async (variables) => {
       if (!variables) return;
-      const { draft, work } = variables;
+      const { draft, work, stillDecidable } = variables;
+      // Asked before anything starts: no wallet, no event, and no optimistic status of this
+      // steward's own, which the form would otherwise read as the work being decided already.
+      if (stillDecidable && !stillDecidable()) throw new DecisionWithdrawnError();
       trackWorkApprovalStarted({
         workUID: draft.workUID,
         gardenAddress: work.gardenAddress,
