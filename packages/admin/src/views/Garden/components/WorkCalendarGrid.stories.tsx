@@ -1,6 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, userEvent, within } from "storybook/test";
-import { storyWorkCalendar } from "../../../../../shared/.storybook/workCalendarFixtures";
+import {
+  storyCutCalendar,
+  storyDayKey,
+  storyWorkCalendar,
+} from "../../../../../shared/.storybook/workCalendarFixtures";
 import { WorkCalendarGrid } from "./WorkCalendarGrid";
 
 const meta = {
@@ -47,4 +51,23 @@ export const DayList: Story = {
       </div>
     ),
   ],
+};
+
+/**
+ * A month cut four days back, at phone width: each day the read never reached is a row of its
+ * own that opens its dialog, as the grid's day does, so a phone can reach View in Work.
+ */
+export const CutDayList: Story = {
+  tags: ["storybook-ci"],
+  args: { calendar: storyCutCalendar() },
+  decorators: DayList.decorators,
+  play: async ({ args, canvasElement }) => {
+    const list = within(canvasElement).getByRole("list", {
+      name: "January 2026, newest day first",
+    });
+    const unread = within(list).getAllByRole("button", { name: /: not read$/ });
+    await expect(unread.length).toBeGreaterThan(0);
+    await userEvent.click(unread[unread.length - 1]);
+    await expect(args.calendar.handleOpenDay).toHaveBeenCalledWith(storyDayKey(3));
+  },
 };
