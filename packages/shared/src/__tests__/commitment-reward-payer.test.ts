@@ -6,7 +6,15 @@ import { describe, expect, it, vi } from "vitest";
 
 import { usePromiseRewardShares } from "../hooks/commitment-pooling/useRewardShares";
 import type { RewardLeg } from "../modules/commitment-pooling/reward-legs";
-import { decodeFunctionData, type Hex, parseAbi, RpcRequestError, slice, sliceHex } from "viem";
+import {
+  decodeFunctionData,
+  type Hex,
+  parseAbi,
+  RpcRequestError,
+  slice,
+  sliceHex,
+  TimeoutError,
+} from "viem";
 import { UserOperationExecutionError } from "viem/account-abstraction";
 import {
   REWARD_SAFE_ABI,
@@ -531,6 +539,21 @@ describe("paying reward shares from the garden's Safe", () => {
     seating.sendContractCall.mockRejectedValueOnce(refusal());
     await expect(seating.sync()).resolves.toEqual({ status: "unsponsored", partly: false });
 
+    // A removal went out, then the steward declined to sign their seat.
+    const halfway = setup({ owners: [CO_OWNER, GATE], invalid: [CO_OWNER] });
+    halfway.sendContractCall.mockImplementationOnce(async (_call, options) => {
+      await options?.onBeforeBroadcast?.();
+      return { hash: "0xabc" as Hex };
+    });
+    halfway.sendContractCall.mockRejectedValueOnce(
+      Object.assign(new Error("User rejected the request."), { code: 4001 })
+    );
+    await expect(halfway.sync()).resolves.toEqual({
+      status: "not-synced",
+      miss: "declined",
+      partly: true,
+    });
+
     // A revert met while estimating names the paymaster among its arguments: still a refusal.
     const reverting = setup({ approvedBy: [CO_OWNER], sponsored: true });
     reverting.sendContractCall.mockRejectedValueOnce(
@@ -550,6 +573,25 @@ describe("paying reward shares from the garden's Safe", () => {
       )
     );
     await expect(reverting.pay("pay")).resolves.toEqual({ status: "not-paid", miss: "refused" });
+
+    // A bundler's refusal isn't the sponsor's, and a paymaster that never answered refused nothing.
+    const bundled = setup({ approvedBy: [CO_OWNER], sponsored: true });
+    bundled.sendContractCall.mockRejectedValueOnce(
+      new RpcRequestError({
+        body: { jsonrpc: "2.0", id: 3, method: "eth_estimateUserOperationGas", params: [] },
+        error: { code: -32500, message: "AA21 didn't pay prefund" },
+        url: "https://bundler.example/rpc",
+      })
+    );
+    await expect(bundled.pay("pay")).resolves.toMatchObject({ status: "not-paid" });
+    const silent = setup({ approvedBy: [CO_OWNER], sponsored: true });
+    silent.sendContractCall.mockRejectedValueOnce(
+      new TimeoutError({
+        body: { jsonrpc: "2.0", id: 4, method: "pm_getPaymasterData", params: [] },
+        url: "https://paymaster.example/rpc",
+      })
+    );
+    await expect(silent.pay("pay")).resolves.toMatchObject({ status: "not-paid" });
 
     // A wallet pays its own gas: the same words don't make its failure a sponsor's refusal.
     const wallet = setup({ approvedBy: [CO_OWNER] });

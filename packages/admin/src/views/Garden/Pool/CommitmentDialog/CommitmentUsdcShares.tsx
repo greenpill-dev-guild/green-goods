@@ -520,7 +520,18 @@ export function CommitmentUsdcSharesSection({
 
   const sync = async () => {
     const outcome: RewardSafeSyncOutcome = await rewardShares.syncSigners();
-    if (outcome.status === "synced") {
+    if (outcome.status === "synced" && !outcome.confirmed) {
+      toastService.info({
+        title: formatMessage({
+          id: "hub.garden.pool.safeShares.toast.syncUnconfirmed",
+          defaultMessage: "Update sent, not confirmed yet",
+        }),
+        message: formatMessage({
+          id: "hub.garden.pool.safeShares.toast.syncUnconfirmedHint",
+          defaultMessage: "The signers show as updated once it lands.",
+        }),
+      });
+    } else if (outcome.status === "synced") {
       toastService.success({
         title: formatMessage({
           id: "hub.garden.pool.safeShares.toast.synced",
@@ -555,6 +566,17 @@ export function CommitmentUsdcSharesSection({
               defaultMessage:
                 "Nothing was sent. Try again later, and tell the Green Goods team if it keeps happening.",
             }),
+      });
+    } else if (outcome.status === "not-synced" && outcome.partly) {
+      toastService.info({
+        title: formatMessage({
+          id: "hub.garden.pool.safeShares.toast.syncPartly",
+          defaultMessage: "Part of the update went out",
+        }),
+        message: formatMessage({
+          id: "hub.garden.pool.safeShares.toast.syncPartlyHint",
+          defaultMessage: "Check the Safe's signers, then update what's left.",
+        }),
       });
     } else if (outcome.status !== "not-synced" || outcome.miss !== "declined") {
       toastService.error({

@@ -538,7 +538,7 @@ export async function sendRewardSharePayment(input: {
 }
 
 export type RewardSafeSyncOutcome =
-  /** The signers are current, or the update went out (`confirmed` says whether it landed). */
+  /** The signers are current, or every change went out (`confirmed` says whether all landed). */
   | { status: "synced"; confirmed: boolean }
   | { status: "refused-before-asking"; refusal: "not-a-steward" | "unreadable" }
   /**
@@ -546,7 +546,8 @@ export type RewardSafeSyncOutcome =
    * earlier change already went out.
    */
   | { status: "unsponsored"; partly: boolean }
-  | { status: "not-synced"; miss: SeedCopyMiss };
+  /** A change didn't go through. `partly` says an earlier change already went out. */
+  | { status: "not-synced"; miss: SeedCopyMiss; partly: boolean };
 
 /**
  * Brings a garden Safe's signers up to date from a steward's own account before they approve: the
@@ -595,21 +596,28 @@ export async function sendRewardSafeSync(input: {
     return { status: "refused-before-asking", refusal: "unreadable" };
   }
   if (calls.length === 0) return { status: "synced", confirmed: true };
-  // `crossed` says whether any update went out; `current` whether the one being sent did.
-  let crossed = false;
+  // `current` says whether the change being sent went out; `done` counts the changes that did.
   let current = false;
-  const options = { onBeforeBroadcast: async () => void (crossed = current = true) };
+  let done = 0;
+  const options = { onBeforeBroadcast: async () => void (current = true) };
   try {
     let confirmed = true;
     for (const call of calls) {
       current = false;
       const sent = await sender.sendContractCall(call, options);
+      done += 1;
       if (sent.confirmation === "pending") confirmed = false;
     }
     return { status: "synced", confirmed };
   } catch (error) {
-    if (current && mayStillLand(error)) return { status: "synced", confirmed: false };
-    if (unsponsored(sender, error, current)) return { status: "unsponsored", partly: crossed };
-    return { status: "not-synced", miss: missOfSend(error, !crossed) };
+    const partly = done > 0;
+    // The change may still land, but any after it never went out.
+    if (current && mayStillLand(error)) {
+      return done === calls.length - 1
+        ? { status: "synced", confirmed: false }
+        : { status: "not-synced", miss: "failed", partly: true };
+    }
+    if (unsponsored(sender, error, current)) return { status: "unsponsored", partly };
+    return { status: "not-synced", miss: missOfSend(error, !current && !partly), partly };
   }
 }

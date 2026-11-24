@@ -149,14 +149,23 @@ function someInErrorChain(
   );
 }
 
+/** The paymaster never answered: a timeout, or a request that got no HTTP response at all. */
+function unanswered(node: unknown): boolean {
+  if (!(node instanceof Error)) return false;
+  if (node.name === "TimeoutError") return true;
+  return node.name === "HttpRequestError" && (node as { status?: unknown }).status === undefined;
+}
+
 /**
- * Whether the gas sponsor turned an operation down: the paymaster's own request (`pm_*`) failed,
- * and nothing in the error says the operation would revert. A revert met while estimating also
- * names the paymaster among its arguments, so the word alone proves nothing. Only a send known not
- * to have gone out may be read this way.
+ * Whether the gas sponsor turned an operation down: the paymaster answered its own request
+ * (`pm_*`) with a refusal, and nothing in the error says the operation would revert. A revert met
+ * while estimating also names the paymaster among its arguments, so the word alone proves nothing,
+ * and a paymaster that never answered refused nothing. Only a send known not to have gone out may
+ * be read this way.
  */
 export function isSponsorshipRefusedError(error: unknown): boolean {
-  if (hasMessageInErrorChain(error, REVERT_PATTERNS)) return false;
+  if (hasMessageInErrorChain(error, REVERT_PATTERNS) || someInErrorChain(error, unanswered))
+    return false;
   return someInErrorChain(error, (node) => PAYMASTER_REQUEST.test(extractErrorMessage(node)));
 }
 
