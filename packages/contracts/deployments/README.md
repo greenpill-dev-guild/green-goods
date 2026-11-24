@@ -28,6 +28,17 @@ the zero-address sentinel:
 **PR review note:** Afo confirms the `gardenerRegistry` and
 `gardenerAccountLogic` labels at PR review.
 
+## Garden reward Safes
+
+`42161-reward-safes.json` names each garden's Safe on Arbitrum One that holds the USDC for its
+promise rewards and pays them through `RewardPayer` (PRD-1556). A garden's own account never holds
+USDC. The app offers a USDC part at Create, and pays one, only for a garden listed here, and a
+Request a garden takes up pays its USDC to that garden's Safe. Each entry is
+`{ "tokenId": <garden token id>, "garden": "<garden account>", "safe": "<Safe address>" }`; an entry
+with a zero or malformed address, a garden named twice, a Safe two gardens share, or a garden as
+its own Safe is ignored, so that garden pays no USDC. Add an entry by pull request once the Safe
+exists on Arbitrum with the garden's stewards as owners.
+
 ## Consumer guard pattern
 
 If future code reaches one of these addresses, give it a subsystem-specific

@@ -4,7 +4,8 @@
  * A reward can pay in more than one token (PRD-1556). The G$ part is the
  * promise's on-chain consideration: G$ on Celo, paid through settlement from
  * the paying garden's Safe. Any other part is declared in the promise's
- * metadata at Create and paid from the steward's own wallet. A reward with only
+ * metadata at Create and paid from the paying garden's Safe on the promise's
+ * chain, never from a garden's own account. A reward with only
  * a G$ part reads exactly as it did before there were parts.
  *
  * Tokens come from the app's token registry (`config/tokens`), which pins each
@@ -27,8 +28,8 @@ import {
 } from "./metadata";
 import type { CommitmentReadModel } from "./types-core";
 
-/** How a part is paid: through Celo settlement from the garden's Safe, or from the steward's wallet. */
-export type RewardLegRail = "celo-settlement" | "steward-wallet";
+/** How a part is paid: through Celo settlement from the garden's Celo Safe, or from its Safe on the promise's chain. */
+export type RewardLegRail = "celo-settlement" | "garden-safe";
 
 export interface RewardLeg {
   rail: RewardLegRail;
@@ -128,7 +129,7 @@ export function promiseRewardLegsOf(
       continue;
     }
     legs.push({
-      rail: "steward-wallet",
+      rail: "garden-safe",
       chainId: declared.chainId,
       token: token.address,
       symbol: token.symbol,
@@ -165,7 +166,7 @@ export function rewardUsdcToken(chainId: number) {
 
 /**
  * The USDC part a seeding answer declares: the same dollars as its G$ part, in
- * USDC on the promise's chain, paid from the steward's wallet once it's kept.
+ * USDC on the promise's chain, paid from the garden's Safe once it's kept.
  * The two parts are balanced 1:1 in dollars at the G$ price read at Create.
  * Undefined when the answer asks for no match, has no G$ part set in dollars, or
  * the chain has no USDC to pay in.

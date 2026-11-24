@@ -333,6 +333,10 @@ export function createShouldDehydrateQuery({
     // clock moved, it would move the chain's clock with it.
     if (key[1] === "commitment-pooling" && key[3] === "chain-clock") return false;
 
+    // A garden Safe's payment is read afresh: a restored copy could show approvals the Safe has
+    // since moved past, so its owners would approve a transaction that can no longer run.
+    if (key[1] === "commitment-pooling" && key[3] === "reward-safe-payment") return false;
+
     // A list whose instructions fell back to the built-in copy stays usable for
     // this session but must not become the durable offline copy.
     if (key[1] === "actions" && hasFallbackInstructions(query.state.data)) return false;

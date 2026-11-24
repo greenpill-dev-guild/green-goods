@@ -33,8 +33,8 @@ export interface SeedRewardSectionProps {
  * Yes pays in G$ through the garden's settlement account, and waits, with its
  * reason, until that account is active. The steward enters dollars; the G$
  * amount is converted at today's rate when the promises are created and fixed
- * from then. Where this chain can pay it, the steward may match the G$ with the
- * same dollars in USDC, paid from their own wallet once each is kept (PRD-1556):
+ * from then. Where this garden can pay it, the steward may match the G$ with the
+ * same dollars in USDC, paid from the garden's Safe once each is kept (PRD-1556):
  * the two parts are balanced 1:1 at the price read at Create. Nothing here pays
  * anyone or reserves anything.
  */
@@ -196,7 +196,7 @@ export function SeedRewardSection({
                     }),
                     description: formatMessage({
                       id: "hub.garden.pool.seed.rewardPaidInMatchedHint",
-                      defaultMessage: "The same amount again in USDC, from your wallet",
+                      defaultMessage: "The same amount again in USDC, from this garden's Safe",
                     }),
                   },
                 ]}
@@ -209,7 +209,7 @@ export function SeedRewardSection({
                   {
                     id: "hub.garden.pool.seed.rewardMatchedSummary",
                     defaultMessage:
-                      "Each one pays {amount} in G$ and {amount} in USDC once it's kept, shared by whoever keeps it. You pay the USDC from your own wallet then. Nothing is reserved or paid here.",
+                      "Each one pays {amount} in G$ and {amount} in USDC once it's kept, shared by whoever keeps it. The USDC is paid from this garden's Safe then. Nothing is reserved or paid here.",
                   },
                   { amount: formatUsd(cents, locale) }
                 )

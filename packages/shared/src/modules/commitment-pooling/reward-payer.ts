@@ -1,12 +1,14 @@
 /**
- * Paying a reward's wallet-paid parts
+ * Paying a reward's Safe-paid parts
  *
- * A part of a promise's reward that isn't G$ is paid from the steward's own
- * wallet through the reward payer (`RewardPayer.sol`, PRD-1556). The payer
- * knows nothing about promises: a share names the promise, the token, the
- * gardener and the exact amount, and the payer moves exactly that amount once.
- * So the share has to be computed the same way everywhere, here, in the
- * indexer and by anyone checking a receipt: this module owns that computation.
+ * A part of a promise's reward that isn't G$ is held by the paying garden in its
+ * Safe on the promise's chain and paid from that Safe through the reward payer
+ * (`RewardPayer.sol`, PRD-1556), the way the garden's Celo Safe holds and pays
+ * its G$. A garden's own account never holds it. The payer knows nothing about
+ * promises: a share names the promise, the token, the gardener and the exact
+ * amount, and the payer moves exactly that amount once. So the share has to be
+ * computed the same way everywhere, here, in the indexer and by anyone checking
+ * a receipt: this module owns that computation.
  *
  * A part is split among the people the promise's G$ payout plan pays, by the
  * payment weights that plan fixed. Someone the plan gives nothing (weight zero)
@@ -19,7 +21,8 @@
 
 import { encodeAbiParameters, getAddress, type Hex, keccak256, type PublicClient } from "viem";
 import type { Address } from "../../types/domain";
-import type { RewardLeg } from "./reward-legs";
+import { getGardenRewardSafe, getRewardPayerDeployment } from "../../utils/blockchain/contracts";
+import { type RewardLeg, rewardUsdcToken } from "./reward-legs";
 import type { SettlementChainPlan, SettlementChainRow } from "./settlement-workflow-types";
 
 export const REWARD_PAYER_ABI = [
@@ -128,7 +131,7 @@ export function rewardLegShares(input: {
     return [];
   }
   const recipients = input.recipients.filter((entry) => entry.weightBps > 0);
-  if (leg.rail !== "steward-wallet" || leg.amount <= 0n || recipients.length === 0) return [];
+  if (leg.rail !== "garden-safe" || leg.amount <= 0n || recipients.length === 0) return [];
   const ordered = recipients
     .map((entry) => ({ recipient: getAddress(entry.recipient), weight: BigInt(entry.weightBps) }))
     .sort((a, b) => (a.recipient.toLowerCase() < b.recipient.toLowerCase() ? -1 : 1));
@@ -150,55 +153,65 @@ export function rewardLegShares(input: {
 }
 
 /**
- * Who a reward's wallet-paid part is split among, as the G$ payout plan pays:
- * the garden a Request pays when a garden took it up, whole, or else each
- * contributor by the payment weight the plan fixed. The Hub and the app both
- * read the split here, so they always compute the same shares.
+ * Who a reward's Safe-paid part is split among, as the G$ payout plan pays: the
+ * garden a Request pays when a garden took it up, whole, through that garden's
+ * own Safe on the promise's chain, or else each contributor by the payment
+ * weight the plan fixed. A garden's own account never receives the part, so a
+ * beneficiary garden with no Safe recorded there has no share until it has one.
+ * The Hub and the app both read the split here, so they always compute the same
+ * shares.
  */
 export function rewardShareRecipientsOf(
   plan: Pick<SettlementChainPlan, "payoutKind" | "beneficiaryGarden">,
-  rows: readonly Pick<SettlementChainRow, "contributor" | "paymentWeightBps">[]
+  rows: readonly Pick<SettlementChainRow, "contributor" | "paymentWeightBps">[],
+  chainId: number
 ): RewardShareRecipient[] {
   if (plan.payoutKind === "GARDEN_BENEFICIARY") {
-    return plan.beneficiaryGarden ? [{ recipient: plan.beneficiaryGarden, weightBps: 10_000 }] : [];
+    // The garden's Safe on the promise's chain, never the garden's own account.
+    const safe = getGardenRewardSafe(chainId, plan.beneficiaryGarden);
+    return safe ? [{ recipient: safe, weightBps: 10_000 }] : [];
   }
   return rows.map((row) => ({ recipient: row.contributor, weightBps: row.paymentWeightBps }));
 }
 
 /**
- * Whether a share needs nothing more: the payer recorded it as paid, or it is the
- * paying steward's own. The payer refuses a payment to oneself, so a steward the
- * split also pays leaves their own share unpaid on chain while paying everyone
- * else's; an unpaid share whose recipient paid another share of the same part is
- * that steward's.
+ * Whether a Request a garden took up has nowhere to receive its Safe-paid part yet: the plan pays
+ * that garden, and the garden has no Safe recorded on the promise's chain.
  */
-export function rewardShareSettled(
-  share: { recipient: Address; token: Address; paidBy: Address | null | undefined },
-  shares: readonly { token: Address; paidBy: Address | null | undefined }[]
+export function rewardBeneficiarySafeMissing(
+  plan: Pick<SettlementChainPlan, "payoutKind" | "beneficiaryGarden">,
+  chainId: number
 ): boolean {
-  if (share.paidBy) return true;
-  const recipient = share.recipient.toLowerCase();
-  const token = share.token.toLowerCase();
-  return shares.some(
-    (other) => other.token.toLowerCase() === token && other.paidBy?.toLowerCase() === recipient
+  return (
+    plan.payoutKind === "GARDEN_BENEFICIARY" &&
+    getGardenRewardSafe(chainId, plan.beneficiaryGarden) === null
   );
 }
 
 /**
- * The shares one account would still pay: read as unpaid, not settled as another
- * steward's own, and not the account's own. One list for the Hub's Pay button and
- * the payment, so a co-steward is never asked to pay a share a steward already kept.
+ * The shares a garden's Safe would still pay: read as unpaid, and not owed to the Safe itself,
+ * which the payer refuses. One list for the Hub's Pay button and the payment.
  */
 export function rewardSharesOwed<
-  Share extends { recipient: Address; token: Address; paidBy: Address | null | undefined },
->(shares: readonly Share[], payingAccount: Address | null | undefined): Share[] {
-  const account = payingAccount?.toLowerCase();
-  return shares.filter(
-    (share) =>
-      share.paidBy === null &&
-      share.recipient.toLowerCase() !== account &&
-      !rewardShareSettled(share, shares)
-  );
+  Share extends { recipient: Address; paidBy: Address | null | undefined },
+>(shares: readonly Share[], payingSafe: Address | null | undefined): Share[] {
+  const safe = payingSafe?.toLowerCase();
+  return shares.filter((share) => share.paidBy === null && share.recipient.toLowerCase() !== safe);
+}
+
+/**
+ * How a garden pays the Safe-paid USDC part of its promises' rewards on a chain: from its
+ * recorded Safe, through the reward payer. Null unless the chain lists USDC, the payer is
+ * recorded, and the garden's Safe is recorded; with no Safe a garden offers and pays no USDC.
+ */
+export function gardenRewardPayment(
+  chainId: number,
+  garden: Address | null | undefined
+): { payer: Address; safe: Address; token: Address } | null {
+  const token = rewardUsdcToken(chainId);
+  const payer = getRewardPayerDeployment(chainId)?.address ?? null;
+  const safe = getGardenRewardSafe(chainId, garden);
+  return token && payer && safe ? { payer, safe, token: token.address as Address } : null;
 }
 
 /** How many blocks one log query spans at first; public Arbitrum RPCs refuse much wider ranges. */

@@ -203,8 +203,9 @@ export async function readCommitmentSettlementChainState(
 
 /**
  * Who a promise's G$ payout plan pays and in what proportions, for splitting a
- * part paid from the steward's wallet the same way (PRD-1556): each contributor
- * and their payment weight, and whether the plan is finalized, which fixes them.
+ * part paid from the garden's Safe the same way (PRD-1556): each contributor, or
+ * the Safe of a garden that took up a Request, with their payment weight, and
+ * whether the plan is finalized, which fixes them.
  * Null while the promise has no plan. A lighter read than the steward's whole
  * settlement state, for the gardener's view of their reward.
  */
@@ -240,5 +241,8 @@ export async function readPayoutShareRecipients(input: {
       mapRow(contributor, await settle("contributorPayoutOf", [payoutPlanId, contributor]))
     )
   );
-  return { finalized: plan.finalized, recipients: rewardShareRecipientsOf(plan, rows) };
+  return {
+    finalized: plan.finalized,
+    recipients: rewardShareRecipientsOf(plan, rows, input.chainId),
+  };
 }
