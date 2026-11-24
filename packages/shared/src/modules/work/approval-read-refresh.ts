@@ -1,5 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
+import { gardensKeys } from "../../config/query-keys/garden";
 import { approvalsKeys, workApprovalsKeys, worksKeys } from "../../config/query-keys/work";
 
 type ApprovalRefresh = { workUIDs: Set<string>; timer?: ReturnType<typeof setTimeout> };
@@ -22,6 +23,8 @@ export function refreshApprovalReads(
         activityKey,
         // A calendar month or a Review day holds the work's status from before the decision.
         worksKeys.ranges(gardenId, chainId),
+        // A first approval moves a gardener's readiness stage.
+        gardensKeys.memberReadinessForGarden(gardenId, chainId),
         workApprovalsKeys.all,
         approvalsKeys.all,
         ...Array.from(workUIDs, (uid) => worksKeys.byUID(uid, chainId)),

@@ -8,6 +8,7 @@ import { act, waitFor } from "@testing-library/react";
 import { encodeAbiParameters, encodeEventTopics, type Hex, type Log, parseAbi, toHex } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getEASConfig } from "../../../config/blockchain";
+import { gardensKeys } from "../../../config/query-keys/garden";
 import { worksKeys } from "../../../config/query-keys/work";
 import { useMutationLock } from "../../../hooks/utils/useMutationLock";
 import { useBatchWorkApproval } from "../../../hooks/work/useBatchWorkApproval";
@@ -500,6 +501,10 @@ describe("useBatchWorkApproval", () => {
     expect(invalidate).toHaveBeenCalledWith({ queryKey: worksKeys.merged(garden, chainId) });
     // The calendar's months and Review's days hold statuses from before the decision.
     expect(invalidate).toHaveBeenCalledWith({ queryKey: worksKeys.ranges(garden, chainId) });
+    // So do the Gardeners view's readiness stages.
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: gardensKeys.memberReadinessForGarden(garden, chainId),
+    });
     expect(invalidate).not.toHaveBeenCalledWith({ queryKey: worksKeys.merged(other, chainId) });
   });
 

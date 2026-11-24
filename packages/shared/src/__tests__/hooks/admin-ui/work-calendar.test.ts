@@ -2,6 +2,7 @@ import { act, renderHook } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { gardensKeys } from "../../../config/query-keys/garden";
 import { worksKeys } from "../../../config/query-keys/work";
 import { useCalendarNow } from "../../../hooks/admin-ui/garden/useCalendarNow";
 import { useGardenWorkCalendar } from "../../../hooks/admin-ui/garden/useGardenWorkCalendar";
@@ -14,6 +15,7 @@ import {
   workMonthRange,
 } from "../../../hooks/admin-ui/garden/workCalendar";
 import { parseWorkScope } from "../../../hooks/admin-ui/review/review.utils";
+import { useReviewWorkDay } from "../../../hooks/admin-ui/review/useReviewWorkDay";
 import { resolveReviewRouteState } from "../../../hooks/admin-ui/review/review.workbenchModel";
 import { adminRoutes } from "../../../utils/navigation/admin-routes";
 import { createMockWork } from "../../test-utils/mock-factories";
@@ -189,6 +191,14 @@ describe("a decision made from the calendar's day", () => {
       true
     );
   });
+
+  it("rereads the garden's Gardeners readiness, so a member's stage follows the decision", () => {
+    const client = createTestQueryClient();
+    const readiness = gardensKeys.memberReadiness("0xGarden", ["0xMember"], 42161);
+    client.setQueryData(readiness, {});
+    refreshApprovalReads(client, 42161, { gardenId: "0xGarden", workUID: "0xwork" }, false);
+    expect(client.getQueryState(readiness)?.isInvalidated).toBe(true);
+  });
 });
 
 describe("the calendar's URL", () => {
@@ -250,5 +260,34 @@ describe("the calendar's URL", () => {
     expect(result.current.calendar.state).toBe("ready");
     expect(result.current.calendar.refreshFailed).toBe(true);
     expect(result.current.calendar.stale).toBe(false);
+  });
+});
+
+describe("Show Whole Day on a Review day", () => {
+  it("drops only the scope, so the day stays open on every status", () => {
+    const updateSearch = vi.fn();
+    const { result } = renderHook(() =>
+      useReviewWorkDay({
+        gardenId: "0xgarden",
+        day: "2026-11-20",
+        workScope: "pending",
+        updateSearch,
+      })
+    );
+    act(() => result.current.handleShowWholeDay?.());
+    expect(updateSearch).toHaveBeenCalledWith({ scope: undefined });
+    expect(parseWorkScope(undefined, true)).toBe("all");
+  });
+
+  it("is not offered off a day", () => {
+    const { result } = renderHook(() =>
+      useReviewWorkDay({
+        gardenId: "0xgarden",
+        day: null,
+        workScope: "pending",
+        updateSearch: vi.fn(),
+      })
+    );
+    expect(result.current.handleShowWholeDay).toBeUndefined();
   });
 });
