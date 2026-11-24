@@ -166,6 +166,8 @@ export function CommitmentUsdcShares({
   const balanceShort = payment?.status === "refused" && payment.refusal === "insufficient-balance";
   const approvalsUnreadable =
     paymentReadFailed || (payment?.status === "refused" && payment.refusal === "unreadable");
+  // A share was paid since the list was read; the shares read again, and the list catches up.
+  const paidSinceRead = payment?.status === "refused" && payment.refusal === "already-paid";
 
   return (
     <section
@@ -227,6 +229,14 @@ export function CommitmentUsdcShares({
                 id: "hub.garden.pool.safeShares.paymentReadError",
                 defaultMessage:
                   "Couldn't read the Safe's approvals for this payment. Nothing can be approved until it reads.",
+              })}
+            </Alert>
+          ) : null}
+          {paidSinceRead ? (
+            <Alert variant="info">
+              {formatMessage({
+                id: "hub.garden.pool.safeShares.toast.alreadyPaid",
+                defaultMessage: "A share is already paid. Read again before paying.",
               })}
             </Alert>
           ) : null}

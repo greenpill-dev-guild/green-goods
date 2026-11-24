@@ -170,6 +170,18 @@ export const SafeHoldsTooLittle: Story = {
   },
 };
 
+/** A share was paid since the list was read: it says so, offers nothing, and the list reads again. */
+export const ASharePaidSinceTheListRead: Story = {
+  args: { payment: { status: "refused", refusal: "already-paid" } },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(
+      canvas.getByText("A share is already paid. Read again before paying.")
+    ).toBeVisible();
+    await expect(canvas.queryByRole("button")).toBeNull();
+  },
+};
+
 /** While the Safe's approvals read, Pay waits: busy, and a press does nothing. */
 export const WhileTheApprovalsRead: Story = {
   args: { payment: null, paymentReading: true },
