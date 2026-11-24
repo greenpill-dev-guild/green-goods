@@ -115,11 +115,22 @@ export function ReviewForm({
   // unknown, or that it is decided, the decision started earlier is not sent. The layout effect
   // runs within the commit that changes them, so no later task reads the old answer. The reason
   // dialog closes too, so it cannot reopen by itself when the form comes back.
-  // It speaks for the work the form shows now, so a decision started on another work is dropped.
-  const canStillDecide = useRef({ workId: work.id, allowed: !statusUnread && !isReviewed });
+  // Each time the form cannot decide, or shows another work, the epoch moves on: a decision is
+  // sent only while its epoch stands, so one dropped once stays dropped when the work comes back.
+  const decisionEpoch = useRef({
+    epoch: 0,
+    workId: work.id,
+    allowed: !statusUnread && !isReviewed,
+  });
   useLayoutEffect(() => {
     const allowed = !statusUnread && !isReviewed;
-    canStillDecide.current = { workId: work.id, allowed };
+    const previous = decisionEpoch.current;
+    const moved = !allowed || previous.workId !== work.id;
+    decisionEpoch.current = {
+      epoch: moved ? previous.epoch + 1 : previous.epoch,
+      workId: work.id,
+      allowed,
+    };
     if (!allowed) setRejectDialogOpen(false);
   }, [work.id, statusUnread, isReviewed]);
 
@@ -145,6 +156,7 @@ export function ReviewForm({
     // An approval needs a confidence level; a rejection needs a reason.
     if (approved ? formData.confidence < Confidence.LOW : !formData.feedback) return false;
 
+    const startedIn = decisionEpoch.current.epoch;
     setSubmittingAction(toBatch ? "batch" : approved ? "approve" : "reject");
     setIsSubmitting(true);
 
@@ -169,8 +181,8 @@ export function ReviewForm({
         }
       }
 
-      const now = canStillDecide.current;
-      if (now.workId !== work.id || !now.allowed) return false;
+      const now = decisionEpoch.current;
+      if (now.epoch !== startedIn || now.workId !== work.id || !now.allowed) return false;
 
       const draft: WorkApprovalDraft = {
         actionUID: work.actionUID,
