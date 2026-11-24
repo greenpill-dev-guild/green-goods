@@ -4,6 +4,7 @@ import type { ApprovalJobPayload, Job } from "../../types/job-queue";
 import { buildApprovalAttestContractCall } from "../../utils/eas/transaction-builder";
 import type { TransactionSender } from "../transactions/types";
 import { createEasLandedLookup } from "../work/eas-landed-lookup";
+import { ApprovalAlreadyDecidedError } from "../work/submit-approval-command";
 import { buildQueuedApprovalDraft } from "../work/queued-work-draft";
 import { sendWithCheckpoint, settleRecordedSend } from "../work/send-with-checkpoint";
 import { settleStrandedDecisionIntent, type StrandedDecisionLookup } from "../work/stranded-intent";
@@ -40,6 +41,8 @@ export interface ApprovalJobExecutorDeps {
   reads?: SendChainReads;
   /** Whether the decision landed; the default reads the steward's own decisions on EAS. */
   lookUpLanded?: StrandedDecisionLookup;
+  /** Whether the chain already holds a decision for the work; the default reads it as a batch does. */
+  isDecided?: (workUID: string) => Promise<boolean>;
 }
 
 /**
@@ -95,6 +98,14 @@ export async function executeApprovalJob(
     forgetWorkBroadcast(job.id);
     return hash;
   }
+
+  // A decision kept for later, offline or for Upload all, may have been made elsewhere since: a
+  // second one is never sent. A read that cannot tell throws, and the job waits to try again.
+  const isDecided =
+    deps.isDecided ??
+    (async (workUID: string) =>
+      (await import("../work/review-chain")).createReviewChain(chainId).isDecided(workUID));
+  if (await isDecided(payload.workUID)) throw new ApprovalAlreadyDecidedError();
 
   // Encode approval attestation data (no IPFS upload needed)
   const encodeApproval =
