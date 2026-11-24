@@ -15,7 +15,6 @@ import {
 } from "viem";
 import SourceABI from "@green-goods/contracts/abis/VoucherRedemptionModule.json";
 import { createServiceIssuerOperations } from "../modules/commitment-pooling/service-issuer-operations";
-import { serviceActorAccountSupported } from "../modules/commitment-pooling/service-actor-session";
 import {
   issuerDeserialize,
   issuerSerialize,
@@ -49,7 +48,10 @@ import {
   serviceIssuerDelistingRecord,
   serviceIssuerGovernanceDrafts,
 } from "../modules/commitment-pooling/service-issuer-governance";
-import { assertServiceActor } from "../modules/commitment-pooling/service-actor-session";
+import {
+  assertServiceActor,
+  serviceActorAccountSupported,
+} from "../modules/commitment-pooling/service-actor-session";
 import type { GraphQLReader } from "../modules/data/graphql-client";
 import { discoverIssuerVoucherSetups } from "../modules/commitment-pooling/data-voucher-service";
 
