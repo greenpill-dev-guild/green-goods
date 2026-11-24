@@ -20,12 +20,14 @@ import { compareAddresses } from "@green-goods/shared/utils/blockchain/address";
 import { parseAndFormatError } from "@green-goods/shared/utils/errors/contract-errors";
 import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { localizeCanonicalActionTitle } from "@/components/Action/actionDisplay";
 import { AdminReasonDialog } from "@/components/AdminReasonDialog";
 import {
+  isBlockedNoticeState,
+  ReviewBlockedNotice,
   ReviewDecisionSubject,
   ReviewSummary,
   reviewFormState,
@@ -49,6 +51,8 @@ interface ReviewFormProps {
   canReview: boolean;
   canApproveOrReject: boolean;
   isReviewed: boolean;
+  /** Its decisions could not be read: Approve and Reject wait until its status is known. */
+  statusUnread?: boolean;
   layout?: "page" | "sheet";
   onSuccess?: (approved: boolean) => void;
 }
@@ -60,6 +64,7 @@ export function ReviewForm({
   canReview,
   canApproveOrReject,
   isReviewed,
+  statusUnread = false,
   layout = "page",
   onSuccess,
 }: ReviewFormProps) {
@@ -106,6 +111,29 @@ export function ReviewForm({
   // shares the batch's lock, which would hand it the batch's result as its own.
   const isDecisionPaused = isSubmitting || reviewBatch.isSettlingHold || reviewBatch.isSending;
 
+  // A decision is sent after its note uploads. If a read says meanwhile that the work's status is
+  // unknown, or that it is decided, the decision started earlier is not sent. The layout effect
+  // runs within the commit that changes them, so no later task reads the old answer. The reason
+  // dialog closes too, so it cannot reopen by itself when the form comes back.
+  // Each time the form cannot decide, or shows another work, the epoch moves on: a decision is
+  // sent only while its epoch stands, so one dropped once stays dropped when the work comes back.
+  const decisionEpoch = useRef({
+    epoch: 0,
+    workId: work.id,
+    allowed: !statusUnread && !isReviewed,
+  });
+  useLayoutEffect(() => {
+    const allowed = !statusUnread && !isReviewed;
+    const previous = decisionEpoch.current;
+    const moved = !allowed || previous.workId !== work.id;
+    decisionEpoch.current = {
+      epoch: moved ? previous.epoch + 1 : previous.epoch,
+      workId: work.id,
+      allowed,
+    };
+    if (!allowed) setRejectDialogOpen(false);
+  }, [work.id, statusUnread, isReviewed]);
+
   /**
    * Sends the decision, or keeps it for the batch. A rejection always carries
    * the steward's reason as its feedback (DL-048); an approval keeps the
@@ -128,6 +156,7 @@ export function ReviewForm({
     // An approval needs a confidence level; a rejection needs a reason.
     if (approved ? formData.confidence < Confidence.LOW : !formData.feedback) return false;
 
+    const startedIn = decisionEpoch.current.epoch;
     setSubmittingAction(toBatch ? "batch" : approved ? "approve" : "reject");
     setIsSubmitting(true);
 
@@ -151,6 +180,9 @@ export function ReviewForm({
           return false;
         }
       }
+
+      const now = decisionEpoch.current;
+      if (now.epoch !== startedIn || now.workId !== work.id || !now.allowed) return false;
 
       const draft: WorkApprovalDraft = {
         actionUID: work.actionUID,
@@ -216,6 +248,7 @@ export function ReviewForm({
 
   const blockedState = reviewFormState({
     isReviewed,
+    isStatusUnread: statusUnread,
     isHeld,
     isStaged: Boolean(stagedReview),
     isOwnSubmission,
@@ -237,6 +270,8 @@ export function ReviewForm({
 
             {blockedState === "reviewed" ? (
               <ReviewSummary work={work} />
+            ) : isBlockedNoticeState(blockedState) ? (
+              <ReviewBlockedNotice state={blockedState} />
             ) : blockedState === "held" ? (
               reviewBatch.holdFeedback && (
                 <TxHoldFeedback {...reviewBatch.holdFeedback} className="mt-4" />
@@ -247,54 +282,6 @@ export function ReviewForm({
                 disabled={reviewBatch.isSending}
                 onRemove={handleRemoveFromBatch}
               />
-            ) : blockedState === "self-review" ? (
-              <div className="mt-4 rounded-xl border border-information-light bg-information-lighter p-4">
-                <p className="type-body font-medium text-information-dark">
-                  {formatMessage({
-                    id: "app.work.detail.reviewBlocked.selfReviewTitle",
-                    defaultMessage: "Independent review required",
-                  })}
-                </p>
-                <p className="mt-1 type-body text-information-dark">
-                  {formatMessage({
-                    id: "app.work.detail.reviewBlocked.selfReviewMessage",
-                    defaultMessage:
-                      "You submitted this work. Another garden steward must approve or reject it.",
-                  })}
-                </p>
-              </div>
-            ) : blockedState === "expired" ? (
-              <div className="mt-4 rounded-xl border border-warning-light bg-warning-lighter/70 p-4">
-                <p className="type-body font-medium text-warning-dark">
-                  {formatMessage({
-                    id: "app.work.detail.reviewBlocked.expiredTitle",
-                    defaultMessage: "Action expired",
-                  })}
-                </p>
-                <p className="mt-1 type-body text-warning-dark">
-                  {formatMessage({
-                    id: "app.work.detail.reviewBlocked.expiredMessage",
-                    defaultMessage:
-                      "This action is no longer active, so new approval decisions are blocked.",
-                  })}
-                </p>
-              </div>
-            ) : blockedState === "role-blocked" ? (
-              <div className="mt-4 rounded-xl border border-information-light bg-information-lighter p-4">
-                <p className="type-body font-medium text-information-dark">
-                  {formatMessage({
-                    id: "app.work.detail.reviewBlocked.stewardTitle",
-                    defaultMessage: "Owner or steward access required",
-                  })}
-                </p>
-                <p className="mt-1 type-body text-information-dark">
-                  {formatMessage({
-                    id: "app.work.detail.reviewBlocked.stewardMessage",
-                    defaultMessage:
-                      "Only garden owners or stewards can approve or reject work for this garden.",
-                  })}
-                </p>
-              </div>
             ) : blockedState === "actionable" ? (
               <form onSubmit={(e) => e.preventDefault()} className="mt-4 space-y-5">
                 {/* Confidence Selector */}
