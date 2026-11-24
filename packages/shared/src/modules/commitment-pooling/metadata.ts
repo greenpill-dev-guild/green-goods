@@ -62,7 +62,7 @@ export interface CommitmentRewardRecord {
 }
 
 /**
- * A part of the reward paid in another token from the steward's own wallet,
+ * A part of the reward paid in another token from the paying garden's Safe,
  * declared at Create (PRD-1556): the token on its chain, what the whole reward
  * carries in it, and the dollars that amount stands for. The chain never reads
  * it, but the CID that holds it can't change after Create, so it is part of the
