@@ -40,6 +40,7 @@ import {
 } from "../transactions/types";
 import { sendWithCheckpoint } from "./send-with-checkpoint";
 import { SimulationRejected } from "./simulation-rejected";
+import { UploadItemAlreadyDone, UploadItemUnchecked } from "./upload-item-refusals";
 import { isUploadJob, queuedUploadStatus, type UploadPreparation } from "./upload-state";
 import { UnpublishablePhotoError } from "./work-attachments";
 import { forgetWorkBroadcast } from "./work-confirmation";
@@ -236,6 +237,8 @@ export async function uploadQueuedWork(
     const claims = await ports.acquire(ids);
     const stopHolding = ports.hold([...claims.values()]);
     let confirmedItems: ChunkItem[] = [];
+    /** Items already done elsewhere, left out of the call for the queue to clear. */
+    const alreadyDone: string[] = [];
     try {
       // Each item's send is held from here until its answer. One another tab
       // holds is mid-send there, perhaps frozen with its prompt open, so it is
@@ -244,6 +247,15 @@ export async function uploadQueuedWork(
     } finally {
       stopHolding();
       await Promise.allSettled([...claims.values()].map((claim) => claim.release()));
+      // The queue reads each one again and clears it, saying why; one it cannot read waits.
+      for (const id of alreadyDone) {
+        await ports.processJob(id, explicitSend).catch((error: unknown) => {
+          logger.warn("[UploadAll] An item already done is left for the queue", {
+            jobId: id,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        });
+      }
       // The queue confirms each sent item and finishes it the way every send finishes.
       // One it cannot finish now keeps its recorded send for the next confirmation pass.
       for (const { job } of confirmedItems) {
@@ -277,6 +289,17 @@ export async function uploadQueuedWork(
           });
           items.push({ job, claim, attestation });
         } catch (error) {
+          if (error instanceof UploadItemAlreadyDone) {
+            alreadyDone.push(id);
+            continue;
+          }
+          // Not known to be still wanted, so not sent: it stays ready for the next tap.
+          if (error instanceof UploadItemUnchecked) {
+            logger.warn("[UploadAll] Queued item could not be checked before sending", {
+              jobId: id,
+            });
+            continue;
+          }
           if (error instanceof UploadPolicyRequiredError) {
             await flagItem(claim, id, {
               status: "blocked",
@@ -405,7 +428,8 @@ export async function uploadQueuedWork(
         const result = await ports.processJob(job.id, explicitSend);
         if (result.success && !result.skipped) sent += 1;
         if (result.error === "send-cancelled") return { status: "declined", sent, flagged };
-        if (result.success || result.skipped) continue;
+        // Already done elsewhere: the queue cleared it, so nothing is left to attend to.
+        if (result.success || result.skipped || result.alreadyDone) continue;
         // One item the queue retired is that item's answer: it is counted for
         // the person and the rest still go. A send that failed outright ends
         // the run, since carrying on would report the remainder as uploaded.

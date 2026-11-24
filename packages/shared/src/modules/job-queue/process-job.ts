@@ -315,7 +315,12 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
         const errorMessage = `unavailable:${execution.reason}`;
         await clearSettledJob(jobId, deps);
         deps.events.emit("job:failed", { jobId, job, error: errorMessage });
-        return { success: false, error: errorMessage };
+        // The try that started ends here, sending nothing; nothing failed.
+        deps.analytics.jobSkipped(job.kind, execution.reason, {
+          explicit: Boolean(context.explicit),
+          started: true,
+        });
+        return { success: false, error: errorMessage, alreadyDone: true };
       }
       if (execution.status === "identity-conflict" || execution.status === "unavailable") {
         const prefix = execution.status === "unavailable" ? "unavailable" : "identity_conflict";

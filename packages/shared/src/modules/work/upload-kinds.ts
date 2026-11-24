@@ -38,8 +38,10 @@ import {
   buildQueuedWorkDraft,
   resolveQueuedWorkTitle,
 } from "./queued-work-draft";
+import { UploadItemAlreadyDone, UploadItemUnchecked } from "./upload-item-refusals";
 import type { UploadPreparation } from "./upload-state";
 import { assertWorkUploadConsent } from "./upload-policy";
+import { APPROVAL_ALREADY_DECIDED_REASON } from "./submit-approval-command";
 
 // The simulation and the encoders load on first use: the offline shell must not carry them.
 type Simulation = typeof import("./simulate");
@@ -54,6 +56,8 @@ export interface UploadKindDependencies {
   encodeWork: Encoders["encodeWorkData"];
   encodeApproval: Encoders["encodeWorkApprovalData"];
   easConfig: (chainId: number) => EASConfig;
+  /** Whether the work already has a decision on chain. */
+  isDecided: (chainId: number, workUID: string) => Promise<boolean>;
 }
 
 export interface UploadKindContext {
@@ -195,6 +199,19 @@ const approval: UploadKind<ApprovalJobPayload> = {
   },
 
   async attestation(job, { chainId, dependencies = {} }) {
+    // The resolver accepts a second decision on the same work, so the chain is read right before
+    // this one goes, as for a decision the queue sends (PRD-1602).
+    const isDecided =
+      dependencies.isDecided ??
+      (async (onChain: number, workUID: string) =>
+        (await import("./review-chain")).createReviewChain(onChain).isDecided(workUID));
+    let decided: boolean;
+    try {
+      decided = await isDecided(chainId, job.payload.workUID);
+    } catch (error) {
+      throw new UploadItemUnchecked(error);
+    }
+    if (decided) throw new UploadItemAlreadyDone(APPROVAL_ALREADY_DECIDED_REASON);
     const encodeApproval =
       dependencies.encodeApproval ?? (await loadEncoders()).encodeWorkApprovalData;
     const easConfig = (dependencies.easConfig ?? getEASConfig)(chainId);

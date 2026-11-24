@@ -368,6 +368,7 @@ describe("modules/job-queue", () => {
       await expect(jobQueue.processJob(jobId, { transactionSender: sender })).resolves.toEqual({
         success: false,
         error: "unavailable:work-already-decided",
+        alreadyDone: true,
       });
     } finally {
       stopListening();
@@ -382,6 +383,13 @@ describe("modules/job-queue", () => {
     expect(failed).toHaveBeenCalledWith(
       expect.objectContaining({ jobId, error: "unavailable:work-already-decided" })
     );
+    // The try that started says how it ended, and nothing counts it as a failure.
+    const events = vi.mocked(track).mock.calls.map(([event, properties]) => [event, properties]);
+    expect(events).toContainEqual([
+      "offline_job_skipped",
+      { job_kind: "approval", reason: "work-already-decided", explicit: false, started: true },
+    ]);
+    expect(events.map(([event]) => event)).not.toContain("offline_job_permanently_failed");
   });
 
   it("ends a wallet's wait for a decision's receipt at the queue's limit, as still confirming", async () => {

@@ -11,6 +11,10 @@ import {
   type TransactionSender,
 } from "../../../modules/transactions/types";
 import { SimulationRejected } from "../../../modules/work/simulation-rejected";
+import {
+  UploadItemAlreadyDone,
+  UploadItemUnchecked,
+} from "../../../modules/work/upload-item-refusals";
 import { uploadKindOf } from "../../../modules/work/upload-kinds";
 import {
   uploadQueuedWork,
@@ -695,6 +699,78 @@ describe("Upload all", () => {
     });
     expect(store.get(unreadable.id)?.meta).not.toHaveProperty("preparation");
     expect(store.get(good.id)?.meta?.preparation).toMatchObject({ status: "ready" });
+  });
+
+  it("leaves a decision on a work decided elsewhere out of the call, for the queue to clear", async () => {
+    const [kept, decided] = [work(), decision()];
+    const { ports, store, released } = harness([kept, decided]);
+    const attest = vi.mocked(ports.attestation).getMockImplementation()!;
+    vi.mocked(ports.attestation).mockImplementation(async (job, context) => {
+      if (job.id === decided.id) throw new UploadItemAlreadyDone("work-already-decided");
+      return attest(job, context);
+    });
+    vi.mocked(ports.processJob).mockImplementation(async (jobId) =>
+      jobId === decided.id
+        ? { success: false, error: "unavailable:work-already-decided", alreadyDone: true }
+        : { success: true, txHash: TX }
+    );
+    const sender = createMockTransactionSender();
+
+    // Nothing needs the person's attention: the queue says it was already reviewed.
+    await expect(upload(ports, sender)).resolves.toEqual({
+      status: "uploaded",
+      sent: 1,
+      flagged: 0,
+    });
+    expect(sender.sendContractCall).toHaveBeenCalledOnce();
+    expect(sendOf(store, decided.id)).toBeUndefined();
+    // The queue clears it once this tap has let go of it, rereading the chain as it does.
+    const clearing = vi.mocked(ports.processJob).mock.invocationCallOrder[
+      vi.mocked(ports.processJob).mock.calls.findIndex(([id]) => id === decided.id)
+    ];
+    expect(clearing).toBeGreaterThan(released.mock.invocationCallOrder[0]);
+    expect(ports.processJob).toHaveBeenCalledWith(
+      decided.id,
+      expect.objectContaining({ explicit: true })
+    );
+  });
+
+  it("holds back, unsent and ready, a decision whose work could not be checked", async () => {
+    const [kept, unchecked] = [work(), decision()];
+    const { ports, store } = harness([kept, unchecked]);
+    const attest = vi.mocked(ports.attestation).getMockImplementation()!;
+    vi.mocked(ports.attestation).mockImplementation(async (job, context) => {
+      if (job.id === unchecked.id) throw new UploadItemUnchecked(new Error("timed out"));
+      return attest(job, context);
+    });
+    const sender = createMockTransactionSender();
+
+    await expect(upload(ports, sender)).resolves.toEqual({
+      status: "uploaded",
+      sent: 1,
+      flagged: 0,
+    });
+    expect(sendOf(store, unchecked.id)).toBeUndefined();
+    expect(store.get(unchecked.id)?.meta?.preparation).toMatchObject({ status: "ready" });
+    expect(ports.processJob).not.toHaveBeenCalledWith(unchecked.id, expect.anything());
+  });
+
+  it("counts nothing for attention when an embedded wallet's decision turns out already decided", async () => {
+    const [first, decided] = [work(), decision()];
+    const { ports } = harness([first, decided]);
+    const sender = createMockTransactionSender({ authMode: "embedded" });
+    vi.mocked(ports.processJob).mockImplementation(async (jobId) =>
+      jobId === decided.id
+        ? { success: false, error: "unavailable:work-already-decided", alreadyDone: true }
+        : { success: true, txHash: TX }
+    );
+
+    // The queue cleared it from Your Work, so nothing is left there to attend to.
+    await expect(upload(ports, sender)).resolves.toEqual({
+      status: "uploaded",
+      sent: 1,
+      flagged: 0,
+    });
   });
 
   it("keeps work ahead of decisions across the call limit, and reports what went before a later prompt is declined", async () => {

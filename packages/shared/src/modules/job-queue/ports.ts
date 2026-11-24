@@ -37,6 +37,8 @@ export interface ProcessJobResult {
   txHash?: string;
   error?: string;
   skipped?: boolean;
+  /** What the job would do was already done elsewhere, so the queue cleared it unsent. */
+  alreadyDone?: boolean;
 }
 
 export interface FlushContext extends ProcessJobContext {
