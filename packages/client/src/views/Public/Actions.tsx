@@ -166,6 +166,12 @@ const DOMAIN_EXPLAINERS: readonly DomainExplainer[] = [
   },
 ] as const;
 
+/** The gateway link to an action's published instructions; none for a fallback or no reference. */
+function actionSourceHref(action: Action | null): string | undefined {
+  if (!action?.instructions || action.instructionsFallback) return undefined;
+  return parseIPFSReference(action.instructions) ? resolveIPFSUrl(action.instructions) : undefined;
+}
+
 /**
  * Actions — readable public Action library.
  *
@@ -176,12 +182,6 @@ const DOMAIN_EXPLAINERS: readonly DomainExplainer[] = [
  *
  * No create/edit controls — each card opens a read-only source dialog.
  */
-/** The gateway link to an action's published instructions; none for a fallback or no reference. */
-function actionSourceHref(action: Action | null): string | undefined {
-  if (!action?.instructions || action.instructionsFallback) return undefined;
-  return parseIPFSReference(action.instructions) ? resolveIPFSUrl(action.instructions) : undefined;
-}
-
 export default function ActionsGallery() {
   const { formatMessage, locale } = useIntl();
   const { data: actions = [], isLoading, isError, refetch } = useActions();

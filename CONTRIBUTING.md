@@ -10,7 +10,7 @@ Both modes use live Arbitrum; transaction confirmations can affect production.
 
 ## Contribution Flow
 
-1. Pick a scoped task from the Linear backlog (or discuss the change with maintainers first via Discord). Green Goods tracks all work in Linear — GitHub is for PRs and code review only.
+1. Pick a scoped task from the Linear backlog (or discuss the change with maintainers first through the [Contact page](https://greengoods.app/contact)). Green Goods tracks all work in Linear — GitHub is for PRs and code review only.
 2. Create a focused branch from `develop` (see [Branch Model](#branch-model) below).
 3. Keep the change inside the smallest sensible package boundary.
 4. Add or update tests when behavior changes.
@@ -82,4 +82,5 @@ Formatting changes use `bun run format`; `bun run format --check` is read-only.
 
 ## Stay in touch
 
+- Write to the team through the [Contact page](https://greengoods.app/contact).
 - The [Code of Conduct](./CODE_OF_CONDUCT.md) applies everywhere. Report security issues through the [Security Policy](./SECURITY.md), not public issues.

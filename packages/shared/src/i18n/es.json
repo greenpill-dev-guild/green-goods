@@ -6574,6 +6574,7 @@
   "public.impact.evidence.emptyKicker": "Leyendo el libro",
   "public.impact.evidence.error": "La evidencia no está disponible. Inténtalo de nuevo en unos minutos.",
   "public.impact.evidence.noSource": "Fuente pendiente",
+  "public.impact.evidence.sourceRecorded": "Fuente registrada",
   "public.impact.evidence.partialData": "Mostrando la evidencia más reciente que pudimos cargar. Puede haber más en los jardines.",
   "public.impact.evidence.partialDataKicker": "Leyendo la fuente",
   "public.impact.evidence.resetFilters": "Limpiar filtros",

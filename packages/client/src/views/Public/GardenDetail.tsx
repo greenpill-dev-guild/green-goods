@@ -139,7 +139,11 @@ export default function GardenDetail() {
           title={`${identity.name} | Green Goods`}
           description={identity.description || undefined}
           url={`${PUBLIC_SOCIAL_PREVIEW_ORIGIN}/gardens/${encodeURIComponent(identity.slug)}`}
-          image={identity.bannerImage ? resolveImageUrl(identity.bannerImage) : undefined}
+          image={
+            identity.bannerImage
+              ? new URL(resolveImageUrl(identity.bannerImage), PUBLIC_SOCIAL_PREVIEW_ORIGIN).href
+              : undefined
+          }
         />
       ) : null}
       {/* Unlisted means unlisted to crawlers too. */}

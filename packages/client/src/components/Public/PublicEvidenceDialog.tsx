@@ -292,6 +292,15 @@ export function PublicEvidenceDialog({ open, onClose, record, garden }: PublicEv
             })}
             <span aria-hidden="true">↗</span>
           </a>
+        ) : record.sourceAvailable ? (
+          // A source exists but has no page to open, as with a minted certificate.
+          <span className="inline-flex items-center gap-2 font-mono text-[11px] font-medium tracking-[0.04em] text-domain-agro">
+            <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-domain-agro" />
+            {formatMessage({
+              id: "public.impact.evidence.sourceRecorded",
+              defaultMessage: "Source recorded",
+            })}
+          </span>
         ) : (
           <span className="inline-flex items-center gap-2 border-b border-domain-solar/40 pb-0.5 font-mono text-[11px] font-medium tracking-[0.04em] text-domain-solar">
             <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-domain-solar" />

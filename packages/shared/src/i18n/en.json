@@ -6574,6 +6574,7 @@
   "public.impact.evidence.emptyKicker": "Reading the ledger",
   "public.impact.evidence.error": "Evidence is temporarily unavailable. Please try again in a few minutes.",
   "public.impact.evidence.noSource": "Source pending",
+  "public.impact.evidence.sourceRecorded": "Source recorded",
   "public.impact.evidence.partialData": "Showing the most recent evidence we could load. More may be available across gardens.",
   "public.impact.evidence.partialDataKicker": "Reading the source",
   "public.impact.evidence.resetFilters": "Reset Filters",

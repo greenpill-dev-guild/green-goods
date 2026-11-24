@@ -10,21 +10,24 @@ function focusTarget(target: Exclude<SearchFocusTarget, null>): void {
     document.querySelector<HTMLElement>("main article h1, main h1") ??
     document.querySelector<HTMLElement>("main");
   if (!element) return;
-  // Headings take focus without joining the tab order.
-  if (!element.hasAttribute("tabindex")) element.setAttribute("tabindex", "-1");
+  // As Docusaurus focuses programmatically: take focus without joining the tab order, then let
+  // the element go back to how it was, so a later click inside it does not focus it.
+  const hadTabIndex = element.hasAttribute("tabindex");
+  if (!hadTabIndex) element.setAttribute("tabindex", "-1");
   // The router has already placed the page; focusing must not move it again.
   element.focus({preventScroll: true});
+  if (!hadTabIndex) element.removeAttribute("tabindex");
 }
 
 export function onRouteDidUpdate({
   location,
   previousLocation,
 }: {
-  location: {search: string; hash: string};
-  previousLocation: unknown;
+  location: {pathname: string; search: string; hash: string};
+  previousLocation: {pathname: string; search: string; hash: string} | null;
 }): void {
   if (!ExecutionEnvironment.canUseDOM || !previousLocation) return;
-  const target = searchFocusTarget(location);
+  const target = searchFocusTarget(location, previousLocation);
   if (!target) return;
   // After the new page has painted, so its heading is in the document.
   window.requestAnimationFrame(() => focusTarget(target));

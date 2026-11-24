@@ -91,9 +91,15 @@ describe("Public evidence explorer links", () => {
       `https://arbitrum.easscan.org/attestation/view/${UID}`
     );
     cleanup();
-    renderDialog({ ...record, easUid: undefined, sourceAvailable: true });
+    renderDialog({ ...record, easUid: undefined, sourceAvailable: false });
     expect(screen.queryByRole("link", { name: /View Source/ })).not.toBeInTheDocument();
     expect(screen.getByText("Source pending")).toBeInTheDocument();
+    cleanup();
+    // A minted certificate has a source but no attestation to link: it never reads as pending.
+    renderDialog({ ...record, kind: "certificate", easUid: undefined, sourceAvailable: true });
+    expect(screen.queryByText("Source pending")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /View Source/ })).not.toBeInTheDocument();
+    expect(screen.getByText("Source recorded")).toBeInTheDocument();
   });
 
   it("does not invent an explorer link or citation when the attestation is absent", () => {

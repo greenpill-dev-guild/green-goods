@@ -435,11 +435,10 @@ export const GardenWork: React.FC = () => {
           onViewAttestation={canViewAttestation ? handleViewAttestation : undefined}
           notice={
             retryNotice ??
-            (ownPendingWork ? (
+            // Which notice is true waits on the garden's reviewers; the acts stay hidden.
+            (ownPendingWork && garden !== undefined ? (
               <OwnWorkReviewNotice
-                soleReviewer={
-                  garden !== undefined && !hasOtherWorkReviewer(garden, work.gardenerAddress)
-                }
+                soleReviewer={!hasOtherWorkReviewer(garden, work.gardenerAddress)}
               />
             ) : null)
           }

@@ -28,6 +28,18 @@ describe("searchFocusTarget", () => {
     });
   });
 
+  test("moves focus only on arrival, not on a later anchor link within the same page", () => {
+    const arrived = {pathname: "/guide", search: "?_highlight=garden", hash: "#create"};
+    assert.equal(
+      searchFocusTarget({...arrived, hash: "#next-step"}, arrived),
+      null,
+    );
+    assert.deepEqual(searchFocusTarget(arrived, {pathname: "/", search: "", hash: ""}), {
+      kind: "anchor",
+      id: "create",
+    });
+  });
+
   test("leaves focus alone on any navigation that did not come from search", () => {
     assert.equal(searchFocusTarget({search: "", hash: "#install"}), null);
     assert.equal(searchFocusTarget({search: "?tab=steward", hash: ""}), null);

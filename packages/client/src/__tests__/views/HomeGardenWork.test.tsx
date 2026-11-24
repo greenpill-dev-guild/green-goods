@@ -662,12 +662,12 @@ describe("Home garden work detail", () => {
 
   it("tells a garden's only steward that their own pending work needs another steward", () => {
     const steward = "0x3333333333333333333333333333333333333333";
-    const renderOwnWork = (garden: { stewards: string[]; owners: string[] }) => {
+    const renderOwnWork = (garden: { stewards: string[]; owners: string[] } | undefined) => {
       mockUseUser.mockReturnValue({ user: { id: steward }, smartAccountClient: null });
       mockUseWorkDetailController.mockReturnValue({
         ...mockUseWorkDetailController(),
         viewingMode: "steward",
-        garden: { id: "garden-1", evaluators: [], ...garden },
+        garden: garden ? { id: "garden-1", evaluators: [], ...garden } : undefined,
         work: {
           id: "0xwork",
           actionUID: "1",
@@ -726,6 +726,45 @@ describe("Home garden work detail", () => {
     expect(screen.queryByText("app.work.detail.soleReviewer.title")).toBeNull();
     expect(screen.getByText("app.work.detail.reviewBlocked.selfReviewMessage")).toBeInTheDocument();
     expect(screen.queryByTestId("work-approval-action-bar")).toBeNull();
+  });
+
+  it("holds a steward's own work without a notice until its garden says who else reviews", () => {
+    const steward = "0x3333333333333333333333333333333333333333";
+    mockUseUser.mockReturnValue({ user: { id: steward }, smartAccountClient: null });
+    mockUseWorkDetailController.mockReturnValue({
+      ...mockUseWorkDetailController(),
+      viewingMode: "steward",
+      garden: undefined,
+      work: {
+        id: "0xwork",
+        actionUID: "1",
+        gardenerAddress: steward,
+        status: "pending",
+        createdAt: Date.now(),
+        media: [],
+      },
+    });
+    render(
+      createElement(
+        MemoryRouter,
+        { initialEntries: ["/home/garden-1/work/0xwork"] },
+        createElement(
+          IntlProvider,
+          { locale: "en", messages: {}, onError: () => {} },
+          createElement(
+            Routes,
+            null,
+            createElement(Route, {
+              path: "/home/:id/work/:workId",
+              element: createElement(GardenWork),
+            })
+          )
+        )
+      )
+    );
+    expect(screen.queryByTestId("work-approval-action-bar")).toBeNull();
+    expect(screen.queryByText("app.work.detail.reviewBlocked.selfReviewTitle")).toBeNull();
+    expect(screen.queryByText("app.work.detail.soleReviewer.title")).toBeNull();
   });
 
   it("still offers another steward Approve and Reject on a steward's pending work", () => {
