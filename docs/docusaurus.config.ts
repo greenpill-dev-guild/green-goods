@@ -47,6 +47,7 @@ const config: Config = {
 
   clientModules: [
     './src/clientModules/mermaidExpand.ts',
+    './src/clientModules/searchResultFocus.ts',
   ],
 
   // Even if you don't use internationalization, you can use this field to set
