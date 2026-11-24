@@ -5,7 +5,6 @@ import {
   promiseRewardLegsOf,
   type RewardLeg,
   type RewardShareState,
-  rewardShareSettled,
   usePromiseRewardShares,
   useRewardShareTransaction,
 } from "@green-goods/shared/commitment-pooling";
@@ -55,8 +54,8 @@ const WEI_PER_GOOD_DOLLAR = 10n ** 18n;
 
 /**
  * A promise's reward, or null when it carries none: its G$ part paid through
- * settlement, and the parts declared at Create to be paid from the steward's
- * wallet. An external payout record on its own is not shown here.
+ * settlement, and the parts declared at Create to be paid from the paying
+ * garden's Safe. An external payout record on its own is not shown here.
  */
 export function promiseRewardOf(
   commitment: RewardRecord,
@@ -65,7 +64,7 @@ export function promiseRewardOf(
   const read = promiseRewardLegsOf(commitment, metadata);
   if (!read) return null;
   const goodDollar = read.legs.find((leg) => leg.rail === "celo-settlement");
-  const others = read.legs.filter((leg) => leg.rail === "steward-wallet");
+  const others = read.legs.filter((leg) => leg.rail === "garden-safe");
   return {
     wei: goodDollar?.amount ?? 0n,
     centsAsSet: goodDollar?.usdCentsAsSet ?? null,
@@ -297,7 +296,6 @@ const PART_MESSAGE_ID = {
   afterKept: "app.commitment.reward.part.afterKept",
   notPaidYet: "app.commitment.reward.part.notPaidYet",
   paid: "app.commitment.reward.part.paid",
-  own: "app.commitment.reward.part.own",
   unknown: "app.commitment.reward.part.goodDollars",
 } as const;
 
@@ -314,18 +312,16 @@ export function rewardLinePayout(
 }
 
 /**
- * One wallet-paid part's row: its amount, network and where it stands. A reader
- * the split pays sees their own share and its transaction once paid; a steward
- * reads their own unpaid share as theirs, since the payer never pays one to oneself.
- * Anyone else sees the part as paid only when every share is settled. Until the
- * plan and the payer have answered, or when either read fails, the row names
- * the amount and network only.
+ * One Safe-paid part's row: its amount, network and where it stands. A reader
+ * the split pays sees their own share and its transaction once the garden's Safe
+ * has paid it. Anyone else sees the part as paid only when every share is paid.
+ * Until the plan and the payer have answered, or when either read fails, the row
+ * names the amount and network only.
  */
 function RewardPartRow({
   leg,
   shares,
   viewer,
-  stewards,
   payout,
   network,
   unknown,
@@ -333,7 +329,6 @@ function RewardPartRow({
   leg: RewardLeg;
   shares: readonly RewardShareState[];
   viewer: Address | null;
-  stewards: readonly Address[];
   payout: RewardPayout;
   network: string;
   /** The reads behind the state haven't answered, or failed. */
@@ -345,29 +340,15 @@ function RewardPartRow({
   const own = viewer
     ? ofLeg.find((share) => share.recipient.toLowerCase() === viewer.toLowerCase())
     : undefined;
-  // A steward's unpaid share is theirs to keep, before and after they pay everyone else's.
-  const ownKept =
-    own !== undefined &&
-    !own.paidBy &&
-    (stewards.some((steward) => steward.toLowerCase() === viewer?.toLowerCase()) ||
-      rewardShareSettled(own, ofLeg));
   const paid = own
     ? Boolean(own.paidBy)
-    : ofLeg.length > 0 && ofLeg.every((share) => rewardShareSettled(share, ofLeg));
+    : ofLeg.length > 0 && ofLeg.every((share) => Boolean(share.paidBy));
   const transaction = useRewardShareTransaction({
     chainId: leg.chainId,
     shareId: own?.paidBy ? own.shareId : null,
   });
   const state =
-    payout === "afterKept"
-      ? "afterKept"
-      : unknown
-        ? "unknown"
-        : ownKept
-          ? "own"
-          : paid
-            ? "paid"
-            : "notPaidYet";
+    payout === "afterKept" ? "afterKept" : unknown ? "unknown" : paid ? "paid" : "notPaidYet";
   const amount = formatMessage(
     { id: "app.commitment.reward.tokenAmount" },
     {
@@ -399,7 +380,7 @@ function RewardPartRow({
 
 /**
  * Each part of a reward paid in more than one token, as its own row: the token,
- * the network it is paid on, and where it stands (PRD-1556). Wallet-paid shares
+ * the network it is paid on, and where it stands (PRD-1556). Safe-paid shares
  * are computed from the promise's G$ payout plan, the same way the steward's Hub
  * computes them, and read from the reward payer. The G$ part's row says it is due
  * once kept; after that its delivery is shown by the wallet's settlement receipts,
@@ -410,15 +391,12 @@ export function PromiseRewardParts({
   chainId,
   commitmentId,
   viewer,
-  stewards = [],
   payout,
 }: {
   reward: PromiseReward;
   chainId: number;
   commitmentId: bigint;
   viewer: Address | null;
-  /** The paying garden's stewards, whose own share is never sent to them. */
-  stewards?: readonly Address[];
   payout: RewardPayout;
 }) {
   const intl = useIntl();
@@ -456,7 +434,6 @@ export function PromiseRewardParts({
           leg={leg}
           shares={shares}
           viewer={viewer}
-          stewards={stewards}
           payout={payout}
           network={network(leg.chainId)}
           unknown={isReading || readFailed}

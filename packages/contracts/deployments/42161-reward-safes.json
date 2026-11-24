@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 1,
+  "chainId": 42161,
+  "description": "Each garden's Safe on Arbitrum One that holds the USDC for its promise rewards and pays them through RewardPayer (PRD-1556). A garden's own account never holds USDC. A garden missing here has no USDC part: the Hub offers none at Create and pays none. An entry names the garden's token id, its garden account and the Safe: { \"tokenId\": 2, \"garden\": \"0x...\", \"safe\": \"0x...\" }.",
+  "safes": []
+}

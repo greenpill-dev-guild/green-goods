@@ -1,20 +1,22 @@
 /**
  * useRewardShares Hook
  *
- * The wallet-paid shares of one promise's reward (PRD-1556): what each person
- * the promise pays is owed in each part, whether the reward payer has recorded
- * it as paid, and a way for the steward to pay what is still owed from their own
- * wallet. The shares are computed in `modules/commitment-pooling/reward-payer`,
- * the paid state is read from the payer on its chain, and a payment goes through
- * `reward-pay-send`, which reads again before asking for any signature.
+ * The Safe-paid shares of one promise's reward (PRD-1556): what each person the
+ * promise pays is owed in each part, whether the reward payer has recorded it as
+ * paid, and how the paying garden's Safe pays what is still owed: one Safe
+ * transaction its owners approve from their own accounts. The shares are
+ * computed in `modules/commitment-pooling/reward-payer`, the paid state is read
+ * from the payer on its chain, and a payment goes through `reward-pay-send`,
+ * which reads again before asking for any signature.
  *
  * @module hooks/commitment-pooling/useRewardShares
  */
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import {
+  gardenRewardPayment,
   type RewardPayerShare,
   type RewardShareRecipient,
   readRewardShareTransaction,
@@ -26,6 +28,7 @@ import {
   createRewardPayChain,
   type RewardPayOutcome,
   type RewardPayStep,
+  readRewardSafePayment,
   sendRewardSharePayment,
 } from "../../modules/commitment-pooling/reward-pay-send";
 import type { RewardLeg } from "../../modules/commitment-pooling/reward-legs";
@@ -43,7 +46,7 @@ export interface RewardShareState extends RewardPayerShare {
 }
 
 interface RewardSharesInput {
-  /** The chain the promise and its wallet-paid parts live on (Arbitrum for the pilot). */
+  /** The chain the promise and its Safe-paid parts live on (Arbitrum for the pilot). */
   chainId: number;
   commitmentId: bigint;
   legs: readonly RewardLeg[];
@@ -102,26 +105,78 @@ function unanswered(enabled: boolean, read: { data: unknown }): boolean {
   return enabled && read.data === undefined;
 }
 
-/** A promise's wallet-paid shares, and paying what is owed from the steward's wallet. */
-export function useRewardShares(input: RewardSharesInput) {
-  const { chainId } = input;
+/**
+ * A promise's Safe-paid shares, and paying what is owed from the paying garden's Safe: where the
+ * Safe's payment of the owed shares stands, and the connected owner's step towards it.
+ */
+export function useRewardShares(
+  input: RewardSharesInput & {
+    /** The garden that pays: its Safe on the promise's chain holds and pays the part. */
+    garden: Address | null;
+    /** The part being paid, by its token. */
+    token: Address | null;
+  }
+) {
+  const { chainId, commitmentId } = input;
   const { payer, shares: states, queryKey, isReading, readFailed } = useRewardShareStates(input);
   const queryClient = useQueryClient();
   const sender = useTransactionSender();
   const account = usePrimaryAddress();
   const [step, setStep] = useState<RewardPayStep | null>(null);
   const [isPaying, setIsPaying] = useState(false);
+  const safe = gardenRewardPayment(chainId, input.garden)?.safe ?? null;
+  const token = input.token;
+  const part = token
+    ? states.filter((share) => share.token.toLowerCase() === token.toLowerCase())
+    : [];
+  // A share whose paid state hasn't answered is neither owed nor paid yet.
+  const answered = part.length > 0 && part.every((share) => share.paidBy !== undefined);
+  const owed = answered ? rewardSharesOwed(part, safe) : [];
+  const owedIds = owed.map((share) => share.shareId).join(",");
+  const paymentKey = commitmentPoolingKeys.rewardSafePayment(
+    chainId,
+    commitmentId,
+    safe ?? "",
+    owedIds
+  );
+  const paymentEnabled = Boolean(payer && safe) && owed.length > 0;
+  const payment = useQuery({
+    queryKey: paymentKey,
+    queryFn: () =>
+      readRewardSafePayment({
+        chain: createRewardPayChain(chainId),
+        payer: payer as Address,
+        safe: safe as Address,
+        partShares: part,
+        shown: owed,
+      }),
+    enabled: paymentEnabled,
+    // Approvals, the nonce and the balance change on chain without this app, so the section reads
+    // them afresh whenever it opens rather than from a read made minutes ago.
+    staleTime: 0,
+    refetchOnMount: "always",
+  });
+
+  // A payment read that finds a share paid since the shares were read: read the shares again, so
+  // the owed list, and the payment built from it, catch up. Keyed on what the shares read was
+  // asked, so it rereads once per stale list, never per render.
+  const stale = payment.data?.status === "refused" && payment.data.refusal === "already-paid";
+  const shareIds = states.map((share) => share.shareId).join(",");
+  useEffect(() => {
+    if (!stale) return;
+    void queryClient.invalidateQueries({
+      queryKey: commitmentPoolingKeys.rewardShares(chainId, commitmentId, shareIds),
+    });
+  }, [stale, owedIds, shareIds, chainId, commitmentId, queryClient]);
 
   /**
-   * Pay every share still owed in one part's token; reads again before any
-   * signature. A share of the paying steward's own is left out, since the payer
-   * refuses a payment to oneself, and so is one another steward already kept.
+   * The connected owner's step towards paying every share still owed in the part: their approval
+   * of the Safe's payment, or the payment itself when theirs completes the threshold. It reads
+   * again before any signature.
    */
-  const payOwed = async (token: Address): Promise<RewardPayOutcome> => {
-    if (!payer || !sender || !account) {
-      return { status: "refused-before-asking", refusal: "no-shares" };
-    }
-    const part = states.filter((share) => share.token.toLowerCase() === token.toLowerCase());
+  const payOwed = async (intent: "approve" | "pay"): Promise<RewardPayOutcome> => {
+    if (!payer || !safe) return { status: "refused-before-asking", refusal: "no-shares" };
+    if (!sender || !account) return { status: "refused-before-asking", refusal: "not-an-owner" };
     setIsPaying(true);
     try {
       return await sendRewardSharePayment({
@@ -129,32 +184,49 @@ export function useRewardShares(input: RewardSharesInput) {
         chain: createRewardPayChain(chainId),
         chainId,
         payer,
+        safe,
         account,
+        intent,
         partShares: part,
-        shown: rewardSharesOwed(part, account),
+        shown: owed,
         onStep: setStep,
       });
     } finally {
       setIsPaying(false);
       setStep(null);
-      await queryClient.invalidateQueries({ queryKey });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey }),
+        queryClient.invalidateQueries({ queryKey: paymentKey }),
+      ]);
     }
   };
 
   return {
     /** Null until the payer is deployed on this chain: nothing can be paid or read. */
     payer,
+    /** The paying garden's Safe; null when the garden has none recorded on this chain. */
+    safe,
     shares: states,
+    /** The part's shares still owed, once every share's paid state has answered. */
+    owed,
     isReading,
     readFailed,
+    /** Where the Safe's payment of the owed shares stands, read afresh. */
+    payment: payment.data ?? null,
+    paymentReading: unanswered(paymentEnabled, payment) && !payment.isError,
+    paymentReadFailed: payment.isError,
+    /** The connected account, which pays only as one of the Safe's owners. */
+    account: account ?? null,
     payOwed,
+    /** Reads the Safe's balance and approvals again, as after funding it or another owner's approval. */
+    recheckPayment: () => void payment.refetch(),
     isPaying,
     step,
   };
 }
 
 /**
- * A promise's wallet-paid shares for anyone reading the reward, a gardener
+ * A promise's Safe-paid shares for anyone reading the reward, a gardener
  * included: it reads who the G$ payout plan pays, splits each part the same way
  * the steward's Hub does and reads which shares the payer has recorded. Before
  * the plan is finalized there is no split, so no shares.

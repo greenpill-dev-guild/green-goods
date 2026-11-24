@@ -30,12 +30,13 @@ export * from "./proof-draft-repository";
 export * from "./reasons";
 export * from "./reward-legs";
 export {
+  gardenRewardPayment,
+  rewardBeneficiarySafeMissing,
   rewardShareRecipientsOf,
-  rewardShareSettled,
   rewardSharesOwed,
   type RewardShareRecipient,
 } from "./reward-payer";
-export type { RewardPayOutcome } from "./reward-pay-send";
+export type { RewardPayOutcome, RewardSafePaymentRead } from "./reward-pay-send";
 export * from "./selectors";
 export * from "./service-access";
 export { liveVoucherIssuerName } from "./service-access-live-config";

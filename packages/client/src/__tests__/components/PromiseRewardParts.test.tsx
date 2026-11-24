@@ -1,7 +1,7 @@
 /**
  * Where a kept promise's USDC part stands, row by row, as its reader sees it: the
- * paying steward's own share stays theirs, and nothing reads as paid or owed until
- * the plan and payer reads have answered.
+ * garden's Safe pays every share, a steward's own included, and nothing reads as
+ * paid or owed until the plan and payer reads have answered.
  */
 
 import type { RewardLeg, RewardShareState } from "@green-goods/shared/commitment-pooling";
@@ -29,8 +29,9 @@ const { PromiseRewardParts } = await import("../../components/Features/Commitmen
 const USDC = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831" as Address;
 const STEWARD = "0x1111111111111111111111111111111111111111" as Address;
 const GARDENER = "0x2222222222222222222222222222222222222222" as Address;
+const SAFE = "0x5afe5afe5afe5afe5afe5afe5afe5afe5afe5afe" as Address;
 const LEG: RewardLeg = {
-  rail: "steward-wallet",
+  rail: "garden-safe",
   chainId: 42161,
   token: USDC,
   symbol: "USDC",
@@ -53,23 +54,23 @@ const share = (recipient: Address, amount: bigint, paidBy: Address | null | unde
 describe("PromiseRewardParts", () => {
   it.each([
     {
-      reader: "the steward, after paying everyone else",
+      reader: "a steward the split pays, before the Safe pays them",
       viewer: STEWARD,
-      shares: [share(STEWARD, 12_000_000n, null), share(GARDENER, 8_000_000n, STEWARD)],
+      shares: [share(STEWARD, 12_000_000n, null), share(GARDENER, 8_000_000n, SAFE)],
       isReading: false,
-      text: "12 USDC on Arbitrum One, your own share",
+      text: "12 USDC on Arbitrum One, not paid yet",
     },
     {
-      reader: "the gardener the steward paid",
+      reader: "the gardener the Safe paid",
       viewer: GARDENER,
-      shares: [share(STEWARD, 12_000_000n, null), share(GARDENER, 8_000_000n, STEWARD)],
+      shares: [share(STEWARD, 12_000_000n, null), share(GARDENER, 8_000_000n, SAFE)],
       isReading: false,
       text: "8 USDC on Arbitrum One, paid",
     },
     {
-      reader: "anyone else, once every share is settled",
+      reader: "anyone else, only once every share is paid",
       viewer: null,
-      shares: [share(STEWARD, 12_000_000n, null), share(GARDENER, 8_000_000n, STEWARD)],
+      shares: [share(STEWARD, 12_000_000n, SAFE), share(GARDENER, 8_000_000n, SAFE)],
       isReading: false,
       text: "20 USDC on Arbitrum One, paid",
     },
@@ -90,7 +91,6 @@ describe("PromiseRewardParts", () => {
         chainId={42161}
         commitmentId={19n}
         viewer={viewer}
-        stewards={[STEWARD]}
         payout="paid"
       />
     );
@@ -111,7 +111,6 @@ describe("PromiseRewardParts", () => {
         chainId={42161}
         commitmentId={19n}
         viewer={null}
-        stewards={[STEWARD]}
         payout={payout}
       />
     );

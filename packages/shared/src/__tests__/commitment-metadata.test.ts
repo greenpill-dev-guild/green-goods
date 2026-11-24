@@ -296,7 +296,7 @@ describe("commitment reward legs, declared at Create", () => {
     expect(read?.incomplete).toBe(false);
     expect(read?.legs.map((leg) => [leg.rail, leg.symbol, leg.chainId, leg.amount])).toEqual([
       ["celo-settlement", "G$", 42220, wei],
-      ["steward-wallet", "USDC", 42161, 5_000_000n],
+      ["garden-safe", "USDC", 42161, 5_000_000n],
     ]);
     expect(rewardCentsAsSetTotal(read!)).toBe(1_000n);
   });

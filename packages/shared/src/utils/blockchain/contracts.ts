@@ -5,7 +5,7 @@
  * Re-exports from config and imports ABIs from @green-goods/contracts.
  */
 
-import { type Abi, type Address, createPublicClient, http } from "viem";
+import { type Abi, type Address, createPublicClient, getAddress, http } from "viem";
 import { getChain as getChainFromConfig } from "../../config/chains";
 import type {
   MarketplaceContractAddresses,
@@ -28,6 +28,7 @@ import ICommitmentRegistryABIJson from "@green-goods/contracts/abis/ICommitmentR
 import EASABIJson from "@green-goods/contracts/abis/MockEAS.json";
 // Import deployment configurations
 import deployment42161 from "@green-goods/contracts/deployments/42161-latest.json";
+import rewardSafes42161 from "@green-goods/contracts/deployments/42161-reward-safes.json";
 import deployment42220 from "@green-goods/contracts/deployments/42220-latest.json";
 import deployment11155111 from "@green-goods/contracts/deployments/11155111-latest.json";
 import networksConfig from "@green-goods/contracts/deployments/networks.json";
@@ -151,6 +152,77 @@ export function getRewardPayerDeployment(
     return null;
   }
   return { address, deployBlock: BigInt(block) };
+}
+
+/** Each chain's garden reward Safes, as `deployments/<chainId>-reward-safes.json` records them. */
+const REWARD_SAFE_RECORDS: Readonly<Record<number, unknown>> = { 42161: rewardSafes42161 };
+const rewardSafesByChain = new Map<number, ReadonlyMap<string, Address>>();
+
+/**
+ * The gardens a chain's record names, each with its Safe. An entry is left out when either address
+ * is malformed, zero or not EIP-55 checksummed, when it names the garden as its own Safe, or when
+ * its garden or Safe appears in another entry too: a record the app can't read exactly pays from
+ * nowhere.
+ */
+function rewardSafesOf(chainId: number): ReadonlyMap<string, Address> {
+  const cached = rewardSafesByChain.get(chainId);
+  if (cached) return cached;
+  const record = REWARD_SAFE_RECORDS[chainId] as
+    | { schemaVersion?: unknown; chainId?: unknown; safes?: unknown }
+    | undefined;
+  const rows =
+    record?.schemaVersion === 1 && record.chainId === chainId && Array.isArray(record.safes)
+      ? (record.safes as unknown[])
+      : [];
+  // A row that isn't an object names nothing: it is skipped, and the other gardens still read.
+  const entries = rows.map((row) =>
+    row !== null && typeof row === "object" ? (row as { garden?: unknown; safe?: unknown }) : {}
+  );
+  // Every well-formed address counts towards a repeat, checksummed or not, so a mistyped copy of
+  // a garden or Safe still takes both entries out rather than leaving one to be picked.
+  const wellFormed = (value: unknown) =>
+    typeof value === "string" && isConfiguredAddress(value as Address)
+      ? (value.toLowerCase() as Address)
+      : null;
+  const checksummed = (value: unknown) => {
+    try {
+      return typeof value === "string" && getAddress(value) === value;
+    } catch {
+      return false;
+    }
+  };
+  const pairs = entries.map((entry) => ({
+    garden: wellFormed(entry.garden),
+    safe: wellFormed(entry.safe),
+    exact: checksummed(entry.garden) && checksummed(entry.safe),
+  }));
+  const count = new Map<string, number>();
+  for (const { garden, safe } of pairs) {
+    for (const address of [garden, safe]) {
+      if (address) count.set(address, (count.get(address) ?? 0) + 1);
+    }
+  }
+  const safes = new Map<string, Address>();
+  for (const { garden, safe, exact } of pairs) {
+    if (!garden || !safe || !exact || garden === safe) continue;
+    if (count.get(garden) !== 1 || count.get(safe) !== 1) continue;
+    safes.set(garden, getAddress(safe));
+  }
+  rewardSafesByChain.set(chainId, safes);
+  return safes;
+}
+
+/**
+ * The Safe a garden holds its reward USDC in and pays promise rewards from on a chain
+ * (PRD-1556); null when the chain's record names none. A garden's own account never holds USDC,
+ * so a garden without a recorded Safe has no USDC part to offer or pay.
+ */
+export function getGardenRewardSafe(
+  chainId: number,
+  garden: Address | null | undefined
+): Address | null {
+  if (!garden) return null;
+  return rewardSafesOf(chainId).get(garden.toLowerCase()) ?? null;
 }
 
 function getMarketplaceContractAddresses(
