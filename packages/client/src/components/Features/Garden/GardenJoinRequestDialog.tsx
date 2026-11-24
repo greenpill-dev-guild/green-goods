@@ -211,6 +211,7 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
     );
   }
   const requestState = join.request?.state;
+  const showsForm = requestState !== "pending" && requestState !== "welcomed";
   // A welcomed request leaves nothing to act on; the dialog's close button ends it.
   const actions: SheetActionsProps | undefined =
     requestState === "pending"
@@ -307,8 +308,10 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
           defaultMessage: "Follow along after asking to join this garden.",
         })}
         size="lg"
-        sheetSize="full"
-        bodyClassName="sm:h-[30rem]"
+        // The introduction form takes the room it needs; once a request is sent or welcomed only
+        // its status is left, so the sheet and the dialog are only as tall as it (PRD-1208).
+        sheetSize={showsForm ? "full" : "compact"}
+        bodyClassName={showsForm ? "sm:h-[30rem]" : undefined}
         actions={actions}
       >
         <div className="space-y-4">
@@ -329,7 +332,7 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
               hasCheckedStatus={join.hasCheckedStatus}
             />
           </div>
-          {join.request?.state !== "pending" && join.request?.state !== "welcomed" ? (
+          {showsForm ? (
             <form id={formId} className="space-y-4" onSubmit={submit}>
               {accountName ? (
                 <p className="text-sm text-text-sub-600">

@@ -7,12 +7,11 @@
 import { describe, expect, it } from "vitest";
 
 import { groupCommitmentsForDisplay } from "../modules/commitment-pooling/display-groups";
-import type { DueClock } from "../modules/commitment-pooling/due-dates";
+import { type DueClock, isOpenToTakeUp } from "../modules/commitment-pooling/due-dates";
 import {
   findDisplayGroup,
   groupTakeUpCounts,
   isAtTakeUpLimit,
-  isOpenToTakeUp,
   pickCopyToTakeUp,
   selectGroupTakeUpBar,
   selectPoolListEntries,

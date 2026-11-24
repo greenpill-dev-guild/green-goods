@@ -77,7 +77,7 @@ export function GardenPromiseGroup() {
   const { state: takeUpState, reset } = controller.takeUp;
   // Today's G$ price is read only for a reward whose dollars can't be read from its record.
   const { rewards, open } = controller.group
-    ? groupRewardsOf(controller.group.children, controller.metadata)
+    ? groupRewardsOf(controller.group.children, controller.metadata, controller.dueClock)
     : { rewards: [], open: false };
   const price = useGoodDollarPrice({ enabled: rewardsNeedPrice(rewards) });
   const back = () => navigate(-1);
