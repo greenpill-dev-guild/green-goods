@@ -46,7 +46,8 @@ from the release operation, by pull request:
   `config/reward-safes-release.json` and prints one factory call per garden.
 - `bun run contracts -- release reward-safes --mode simulate --plan <plan>` runs them on an owned
   fork.
-- The deployer broadcasts the calls.
+- `bun run contracts -- release reward-safes --mode broadcast --plan <plan>` sends each call not yet
+  live, signed by the deployer's keystore.
 - `bun run contracts -- release reward-safes --mode verify --plan <plan>` checks each gate and its
   Safe and adds them here.
 

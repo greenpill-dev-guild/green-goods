@@ -4,6 +4,7 @@ import path from "node:path";
 import { AbiCoder, Interface, ZeroAddress } from "ethers";
 import { describe, expect, it } from "vitest";
 import {
+  assertPlanInManifest,
   HSG,
   inspectRewardSafeManifest,
   mergeRewardSafeRecord,
@@ -31,6 +32,17 @@ describe("garden reward Safe release", () => {
       breakIt(m);
       expect(() => inspectRewardSafeManifest(m)).toThrow();
     }
+    // Verify records only what the committed manifest names, under its release and deployer.
+    const committed = inspectRewardSafeManifest(manifest());
+    const plan = { releaseId: committed.releaseId, deployer: committed.deployer, calls: committed.gardens };
+    expect(() => assertPlanInManifest(plan, committed)).not.toThrow();
+    expect(() => assertPlanInManifest({ ...plan, releaseId: "another-release" }, committed)).toThrow();
+    expect(() =>
+      assertPlanInManifest(
+        { ...plan, calls: [{ tokenId: 99, garden: "0x0000000000000000000000000000000000000Ab1" }] },
+        committed,
+      ),
+    ).toThrow(/not in the committed manifest/);
   });
 
   it("asks the factory for a locked gate over the steward hat, one signer alone and two once there are two", () => {

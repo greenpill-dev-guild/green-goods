@@ -16,6 +16,7 @@ import {
   toQuantity,
   ZeroAddress,
 } from "ethers";
+import { execCastCaptured } from "../utils/cast-env";
 import { redactRpcUrlsInText } from "../utils/cli-parser";
 import { assertIsolatedRpc, minedIsolatedReceipt, startIsolatedFork } from "../utils/isolated-fork";
 import { NetworkManager } from "../utils/network";
@@ -349,6 +350,65 @@ async function simulate(plan: RewardSafePlan, upstream: string) {
   }
 }
 
+/**
+ * Verify records only gardens the committed manifest names, under its release and deployer: a plan
+ * that was edited, or written for another release, records nothing.
+ */
+export function assertPlanInManifest(
+  plan: { releaseId: string; deployer: string; calls: ReadonlyArray<{ tokenId: number; garden: string }> },
+  manifest: RewardSafeManifest,
+) {
+  if (plan.releaseId !== manifest.releaseId || plan.deployer !== manifest.deployer)
+    throw new Error("The plan was written for another release or deployer");
+  for (const call of plan.calls) {
+    if (!manifest.gardens.some((g) => g.tokenId === call.tokenId && g.garden === call.garden))
+      throw new Error(`Garden ${call.garden} is not in the committed manifest`);
+  }
+}
+
+/**
+ * Sends each planned call whose gate isn't live yet, one at a time, signed by the deployer's
+ * keystore, and checks its gate exists before the next. A gate already live is skipped, so a
+ * broadcast that stopped part-way runs again safely.
+ */
+async function broadcast(plan: RewardSafePlan, provider: JsonRpcProvider, upstream: string) {
+  const sent: Array<{ tokenId: number; gate: string; transactionHash: string | null }> = [];
+  for (const call of plan.calls) {
+    if ((await provider.getCode(call.gate)) !== "0x") {
+      sent.push({ tokenId: call.tokenId, gate: call.gate, transactionHash: null });
+      continue;
+    }
+    const output = execCastCaptured(
+      [
+        "send",
+        call.to,
+        "--data",
+        call.data,
+        "--value",
+        "0",
+        "--chain",
+        String(REWARD_SAFE_CHAIN_ID),
+        "--rpc-url",
+        upstream,
+        "--account",
+        process.env.FOUNDRY_KEYSTORE_ACCOUNT ?? "green-goods-deployer",
+        "--json",
+      ],
+      { cwd: CONTRACTS_ROOT, inputStdio: "inherit" },
+      `Reward Safe gate for garden ${call.tokenId}`,
+    );
+    const receipt = JSON.parse(output) as { status?: string; transactionHash?: string };
+    if (receipt.status !== "0x1" || !receipt.transactionHash)
+      throw new Error(`The gate for garden ${call.tokenId} was not created`);
+    for (let attempt = 0; (await provider.getCode(call.gate)) === "0x"; attempt++) {
+      if (attempt === 10) throw new Error(`No gate at ${call.gate} after ${receipt.transactionHash}`);
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+    sent.push({ tokenId: call.tokenId, gate: call.gate, transactionHash: receipt.transactionHash });
+  }
+  return sent;
+}
+
 async function main() {
   const { values } = parseArgs({
     strict: true,
@@ -357,19 +417,22 @@ async function main() {
       "plan-only": { type: "boolean" },
       simulate: { type: "boolean" },
       verify: { type: "boolean" },
+      broadcast: { type: "boolean" },
       manifest: { type: "string" },
       plan: { type: "string" },
       output: { type: "string" },
     },
   });
-  const modes = [values["plan-only"], values.simulate, values.verify].filter(Boolean).length;
+  const modes = [values["plan-only"], values.simulate, values.broadcast, values.verify].filter(Boolean).length;
   if (
     modes !== 1 ||
     (values["plan-only"] && values.plan) ||
     (!values["plan-only"] && !values.plan) ||
-    (values.verify && values.output)
+    ((values.verify || values.broadcast) && values.output)
   )
-    throw new Error("Select one reward Safe mode: --plan-only, --simulate --plan <file> or --verify --plan <file>");
+    throw new Error(
+      "Select one reward Safe mode: --plan-only, or --simulate, --broadcast or --verify with --plan <file>",
+    );
   const manifestPath = releaseJsonPath(
     path.join(CONTRACTS_ROOT, "config"),
     values.manifest ?? "config/reward-safes-release.json",
@@ -381,6 +444,7 @@ async function main() {
       // A broadcast gate is checked against what its garden's hats give now, not against a commit:
       // its CREATE2 address already binds the exact setup it was created with.
       const input = JSON.parse(readFileSync(releaseJsonPath(OUTPUT_DIRECTORY, values.plan!), "utf8")) as RewardSafePlan;
+      assertPlanInManifest(input, inspectRewardSafeManifest(JSON.parse(readFileSync(manifestPath, "utf8"))));
       const calls = await readGardens(
         provider,
         input.calls.map(({ tokenId, garden }) => ({ tokenId, garden })),
@@ -422,12 +486,8 @@ async function main() {
             state: "planned",
             output: path.relative(CONTRACTS_ROOT, output),
             broadcastBy: plan.deployer,
-            calls: pending.map((call) => ({
-              tokenId: call.tokenId,
-              garden: call.garden,
-              gate: call.gate,
-              command: `cast send ${call.to} ${call.data} --rpc-url "$ARBITRUM_RPC_URL" --account green-goods-deployer`,
-            })),
+            calls: pending.map((call) => ({ tokenId: call.tokenId, garden: call.garden, gate: call.gate })),
+            next: "simulate, then broadcast, then verify, each with --plan " + path.relative(CONTRACTS_ROOT, output),
             alreadyDeployed: plan.calls.filter((call) => !pending.includes(call)).map((call) => call.gate),
             liveBroadcast: false,
           },
@@ -440,6 +500,11 @@ async function main() {
     const input = JSON.parse(readFileSync(releaseJsonPath(OUTPUT_DIRECTORY, values.plan!), "utf8"));
     if (JSON.stringify(input) !== JSON.stringify(plan))
       throw new Error("The plan no longer matches the committed manifest and live garden hats; plan again");
+    if (values.broadcast) {
+      const sent = await broadcast(plan, provider, upstream);
+      console.log(JSON.stringify({ state: "broadcast", sent, next: "verify with the same --plan" }, null, 2));
+      return;
+    }
     const result = await simulate(plan, upstream);
     const output = releaseJsonPath(
       OUTPUT_DIRECTORY,

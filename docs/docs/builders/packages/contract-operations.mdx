@@ -8,7 +8,7 @@ generated: true
 generator: scripts/docs/generate.mjs
 generated_from:
   - packages/contracts/script/cli/operations.mjs
-source_digest: "sha256:96176b2b64cc673888dfaf8b2649171c2d5f237c48e73b7814180537555b5e89"
+source_digest: "sha256:c7c9289c26a9021e910a3ead2affed329facdf4228e32f07d8465b03035b1eb2"
 source_of_truth:
   - packages/contracts/script/cli/operations.mjs
 ---
@@ -157,7 +157,7 @@ Options: `--manifest <value>`, `--plan <value>`, `--output <value>`.
 |---|---|---|
 | <CopyCommand command="bun run contracts -- release vouchers --mode &lt;mode&gt;" /> | not network-scoped | preflight, plan, simulate |
 | <CopyCommand command="bun run contracts -- release steward-safe --mode &lt;mode&gt;" /> | not network-scoped | preflight, plan, simulate |
-| <CopyCommand command="bun run contracts -- release reward-safes --mode &lt;mode&gt;" /> | not network-scoped | plan, simulate, verify |
+| <CopyCommand command="bun run contracts -- release reward-safes --mode &lt;mode&gt;" /> | not network-scoped | plan, simulate, broadcast, verify |
 
 Options: `--manifest <value>`, `--members <value>`, `--receipts <value>`, `--plan <value>`, `--output <value>`.
 
