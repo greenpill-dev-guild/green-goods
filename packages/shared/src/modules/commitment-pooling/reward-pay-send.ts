@@ -141,7 +141,7 @@ export function createRewardPayChain(chainId: number): RewardPayChain {
 }
 
 /** Why a payment wasn't asked for, read before any signature. */
-export type RewardPayRefusal =
+type RewardPayRefusal =
   | "no-shares"
   | "mixed-tokens"
   /** A share is owed to the Safe itself, which the payer refuses. */
@@ -160,7 +160,7 @@ export type RewardPayRefusal =
   | "unreadable";
 
 /** The one Safe transaction that pays a part's owed shares, as every owner builds it. */
-export interface RewardSafeTransaction {
+interface RewardSafeTransaction {
   safe: Address;
   to: Address;
   data: Hex;
