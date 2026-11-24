@@ -630,7 +630,7 @@ describe("providers/JobQueueProvider", () => {
             job: {
               id: "approval-job-1",
               kind: "approval",
-              chainId: 11155111,
+              chainId: 42161,
               payload: {
                 actionUID: 1,
                 workUID: "work-1",
@@ -651,9 +651,17 @@ describe("providers/JobQueueProvider", () => {
       });
 
       await waitFor(() => {
-        expect(mockSharedQueryClient.invalidateQueries).toHaveBeenCalledWith({
-          queryKey: queryKeys.approvals.all,
-        });
+        expect(mockSharedQueryClient.invalidateQueries).toHaveBeenCalledWith(
+          { queryKey: queryKeys.approvals.all },
+          { cancelRefetch: false }
+        );
+      });
+      // The decision lands only now, so readiness is read again too, on the job's own chain.
+      await waitFor(() => {
+        expect(mockSharedQueryClient.invalidateQueries).toHaveBeenCalledWith(
+          { queryKey: queryKeys.gardens.memberReadinessForGarden("0xgarden", 42161) },
+          { cancelRefetch: false }
+        );
       });
     });
 
