@@ -4346,6 +4346,8 @@
   "app.work.detail.requiredForApproval": "obrigatório para aprovação",
   "app.work.detail.reviewBlocked.expiredMessage": "Esta ação não está mais ativa, então novas decisões de aprovação estão bloqueadas.",
   "app.work.detail.reviewBlocked.expiredTitle": "Ação expirada",
+  "app.work.detail.reviewBlocked.statusUnreadMessage": "As decisões deste trabalho ainda não foram lidas ou não puderam ser lidas, então ele já pode ter sido decidido. Aprovar e Rejeitar voltam quando o status for lido. Atualize para ler de novo.",
+  "app.work.detail.reviewBlocked.statusUnreadTitle": "Status desconhecido",
   "app.work.detail.reviewBlocked.stewardMessage": "Somente proprietários ou responsáveis do jardim podem aprovar ou rejeitar trabalho neste jardim.",
   "app.work.detail.reviewBlocked.stewardTitle": "Acesso de dono ou responsável necessário",
   "app.work.detail.reviewBlocked.selfReviewMessage": "Você enviou este trabalho. Outro responsável do jardim deve aprová-lo ou rejeitá-lo.",

@@ -3,9 +3,10 @@
  */
 
 import type { Address, Work } from "@green-goods/shared/types/domain";
-import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { reviewFormState } from "@/views/Garden/WorkDetail/helpers";
 import { ReviewForm } from "@/views/Garden/WorkDetail/ReviewForm";
 import { renderWithProviders as render } from "../test-utils";
 
@@ -221,7 +222,7 @@ const TEST_WORK: Work = {
   status: "pending",
 };
 
-function renderReviewForm(work = TEST_WORK, onSuccess?: () => void) {
+function renderReviewForm(work = TEST_WORK, onSuccess?: () => void, statusUnread = false) {
   return render(
     <IntlProvider locale="en" messages={messages}>
       <ReviewForm
@@ -230,6 +231,7 @@ function renderReviewForm(work = TEST_WORK, onSuccess?: () => void) {
         canReview
         canApproveOrReject
         isReviewed={false}
+        statusUnread={statusUnread}
         onSuccess={onSuccess}
       />
     </IntlProvider>
@@ -368,6 +370,29 @@ describe("ReviewForm", () => {
     expect(screen.getByRole("button", { name: "Approve" })).toBeEnabled();
   });
 
+  it("does not reopen the reason dialog by itself once a work's status is known again", async () => {
+    const form = (statusUnread: boolean) => (
+      <IntlProvider locale="en" messages={messages}>
+        <ReviewForm
+          work={TEST_WORK}
+          gardenName="Demo Garden"
+          canReview
+          canApproveOrReject
+          isReviewed={false}
+          statusUnread={statusUnread}
+        />
+      </IntlProvider>
+    );
+    const { rerender } = render(form(false));
+    fireEvent.click(screen.getByRole("button", { name: "Reject" }));
+    await screen.findByRole("dialog", { name: "Reject Work" });
+
+    rerender(form(true));
+    rerender(form(false));
+
+    expect(screen.queryByRole("dialog", { name: "Reject Work" })).not.toBeInTheDocument();
+  });
+
   it("asks why before rejecting, starting from the feedback, and sends the reason as feedback", async () => {
     renderReviewForm();
     fireEvent.change(screen.getByRole("textbox", { name: /Feedback/ }), {
@@ -473,6 +498,96 @@ describe("ReviewForm", () => {
         );
       });
       expect(mockUploadFile).toHaveBeenCalledOnce();
+    });
+
+    it("sends nothing if the status turns unread while its note uploads", async () => {
+      let finishUpload = (_value: { cid: string }) => {};
+      mockUploadFile.mockReturnValue(new Promise((resolve) => (finishUpload = resolve)));
+      const form = (statusUnread: boolean) => (
+        <IntlProvider locale="en" messages={messages}>
+          <ReviewForm
+            work={TEST_WORK}
+            gardenName="Demo Garden"
+            canReview
+            canApproveOrReject
+            isReviewed={false}
+            statusUnread={statusUnread}
+          />
+        </IntlProvider>
+      );
+      const { rerender } = render(form(false));
+      fireEvent.click(screen.getByRole("button", { name: "Set medium confidence" }));
+      fireEvent.click(screen.getByTestId("audio-recorder"));
+      fireEvent.click(addToBatch());
+      await waitFor(() => expect(mockUploadFile).toHaveBeenCalledOnce());
+
+      rerender(form(true));
+      await act(async () => finishUpload({ cid: "audio-cid" }));
+
+      await waitFor(() => expect(mockUploadJSON).toHaveBeenCalled());
+      expect(mockReviewBatch.stage).not.toHaveBeenCalled();
+      expect(mockApprovalMutation.mutateAsync).not.toHaveBeenCalled();
+    });
+
+    it("sends nothing for a work the form has moved on from while its note uploaded", async () => {
+      let finishUpload = (_value: { cid: string }) => {};
+      mockUploadFile.mockReturnValue(new Promise((resolve) => (finishUpload = resolve)));
+      const form = (work: Work) => (
+        <IntlProvider locale="en" messages={messages}>
+          <ReviewForm
+            work={work}
+            gardenName="Demo Garden"
+            canReview
+            canApproveOrReject
+            isReviewed={false}
+          />
+        </IntlProvider>
+      );
+      const { rerender } = render(form(TEST_WORK));
+      fireEvent.click(screen.getByRole("button", { name: "Set medium confidence" }));
+      fireEvent.click(screen.getByTestId("audio-recorder"));
+      fireEvent.click(addToBatch());
+      await waitFor(() => expect(mockUploadFile).toHaveBeenCalledOnce());
+
+      // The inspector now shows another work, whose status is known.
+      rerender(form({ ...TEST_WORK, id: "0xOtherWork" }));
+      await act(async () => finishUpload({ cid: "audio-cid" }));
+
+      await waitFor(() => expect(mockUploadJSON).toHaveBeenCalled());
+      expect(mockReviewBatch.stage).not.toHaveBeenCalled();
+      expect(mockApprovalMutation.mutateAsync).not.toHaveBeenCalled();
+    });
+
+    it("keeps a decision dropped once, even when its work comes back decidable", async () => {
+      let finishUpload = (_value: { cid: string }) => {};
+      mockUploadFile.mockReturnValue(new Promise((resolve) => (finishUpload = resolve)));
+      const form = (work: Work, statusUnread: boolean) => (
+        <IntlProvider locale="en" messages={messages}>
+          <ReviewForm
+            work={work}
+            gardenName="Demo Garden"
+            canReview
+            canApproveOrReject
+            isReviewed={false}
+            statusUnread={statusUnread}
+          />
+        </IntlProvider>
+      );
+      const { rerender } = render(form(TEST_WORK, false));
+      fireEvent.click(screen.getByRole("button", { name: "Set medium confidence" }));
+      fireEvent.click(screen.getByTestId("audio-recorder"));
+      fireEvent.click(addToBatch());
+      await waitFor(() => expect(mockUploadFile).toHaveBeenCalledOnce());
+
+      // The work turns unknown, the inspector moves on and comes back once it is known again.
+      rerender(form(TEST_WORK, true));
+      rerender(form({ ...TEST_WORK, id: "0xOtherWork" }, false));
+      rerender(form(TEST_WORK, false));
+      await act(async () => finishUpload({ cid: "audio-cid" }));
+
+      await waitFor(() => expect(mockUploadJSON).toHaveBeenCalled());
+      expect(mockReviewBatch.stage).not.toHaveBeenCalled();
+      expect(mockApprovalMutation.mutateAsync).not.toHaveBeenCalled();
     });
 
     it("keeps nothing when the note can't upload, and says so", async () => {
@@ -621,6 +736,31 @@ describe("ReviewForm", () => {
     expect(screen.queryByRole("button", { name: "Approve" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Reject" })).not.toBeInTheDocument();
     expect(mockApprovalMutation.mutateAsync).not.toHaveBeenCalled();
+  });
+
+  it("offers no decision on a work whose status could not be read, since it may be decided", () => {
+    renderReviewForm(TEST_WORK, undefined, true);
+
+    expect(screen.getByRole("status")).toHaveTextContent("Status not known");
+    expect(screen.queryByRole("button", { name: "Approve" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reject" })).not.toBeInTheDocument();
+  });
+
+  it("keeps a decided work's summary even when the day could not read its status", () => {
+    const decided = {
+      isReviewed: true,
+      isStatusUnread: true,
+      isHeld: false,
+      isStaged: false,
+      isOwnSubmission: false,
+      isActionExpired: false,
+      canReview: true,
+      canApproveOrReject: true,
+    };
+    expect(reviewFormState(decided)).toBe("reviewed");
+    expect(reviewFormState({ ...decided, isReviewed: false })).toBe("status-unread");
+    // A held send keeps its own controls (check again, move on) ahead of the unread notice.
+    expect(reviewFormState({ ...decided, isReviewed: false, isHeld: true })).toBe("held");
   });
 
   it("shows the named submitter’s full account address in both decision surfaces", () => {
