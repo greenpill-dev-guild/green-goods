@@ -90,6 +90,11 @@ export interface PoolConsoleModel {
     past: CommitmentReadModel[];
   };
   isPaused: boolean;
+  /**
+   * The chain's clock this model was read on (Unix seconds). A season or campaign reads on it
+   * (`cycleStanding`, DL-162), so the Hub calls an Open cycle past its end Ended, as the app does.
+   */
+  now: bigint;
 }
 
 const TERMINAL_CYCLE_STATES = new Set<string>(["RECONCILED", "COMPOSTED", "CANCELLED"]);
@@ -181,6 +186,7 @@ export function selectPoolConsoleModel(input: {
     },
     groups: { open, confirmed, past },
     isPaused: status === "paused",
+    now: input.now,
   };
 }
 
