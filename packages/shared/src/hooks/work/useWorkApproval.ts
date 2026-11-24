@@ -51,6 +51,19 @@ import {
 interface UseWorkApprovalParams {
   draft: WorkApprovalDraft;
   work: Work;
+  /**
+   * Asked once more right before anything is signed or queued: false when the work can no longer
+   * be decided (its status turned unknown or decided while the decision was being prepared).
+   */
+  stillDecidable?: () => boolean;
+}
+
+/** Nothing was signed or sent: the work could no longer be decided when the send began. */
+class DecisionWithdrawnError extends Error {
+  constructor() {
+    super("This work can no longer be decided here.");
+    this.name = "DecisionWithdrawnError";
+  }
 }
 
 interface UseWorkApprovalDependencies {
@@ -156,6 +169,11 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
 
   const reportApprovalError = useCallback(
     (error: unknown, completion: WorkApprovalCompletion) => {
+      // Withdrawn before anything was signed: the review form already says why.
+      if (error instanceof DecisionWithdrawnError) {
+        toastService.dismiss("approval-submit");
+        return;
+      }
       // Refused before the wallet was asked: nothing was signed or sent.
       if (error instanceof ApprovalConnectionUnconfirmedError) {
         toastService.info({
@@ -262,7 +280,13 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
   });
 
   const mutation = useMutation({
-    mutationFn: async ({ draft, work }: UseWorkApprovalParams): Promise<SubmitApprovalOutcome> => {
+    mutationFn: async ({
+      draft,
+      work,
+      stillDecidable,
+    }: UseWorkApprovalParams): Promise<SubmitApprovalOutcome> => {
+      // The last moment before a wallet is asked or a decision is queued.
+      if (stillDecidable && !stillDecidable()) throw new DecisionWithdrawnError();
       if (DEBUG_ENABLED) {
         debugLog("[useWorkApproval] Starting approval submission", {
           authMode,
@@ -440,7 +464,7 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
         gardenId: variables.work.gardenAddress,
         workUID: variables.draft.workUID,
       };
-      if (isCancelledTxError(error)) lifecycle.cancel();
+      if (isCancelledTxError(error) || error instanceof DecisionWithdrawnError) lifecycle.cancel();
       else lifecycle.fail();
       decisionCacheRef.current = null;
       reportApprovalError(error, completion);

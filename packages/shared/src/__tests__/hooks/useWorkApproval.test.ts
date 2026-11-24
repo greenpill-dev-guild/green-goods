@@ -52,6 +52,7 @@ vi.mock("../../components/Toast/toast.service", () => ({
     success: vi.fn(),
     error: vi.fn(),
     info: vi.fn(),
+    dismiss: vi.fn(),
   },
 }));
 
@@ -232,6 +233,28 @@ describe("hooks/work/useWorkApproval", () => {
         finishRead([]);
         unsubscribe();
       }
+    });
+
+    it("sends nothing, and says nothing, when the work can no longer be decided by send time", async () => {
+      const { result } = renderHook(
+        () => useWorkApproval({ jobQueue: { processJob: queueProcessJob } }),
+        { wrapper: createWrapper() }
+      );
+
+      await act(async () => {
+        await result.current
+          .mutateAsync({
+            draft: createMockWorkApprovalDraft({ approved: true }),
+            work: createMockWork(),
+            stillDecidable: () => false,
+          })
+          .catch(() => undefined);
+      });
+
+      expect(submitApprovalDirectly).not.toHaveBeenCalled();
+      expect(submitApprovalToQueue).not.toHaveBeenCalled();
+      expect(toastService.error).not.toHaveBeenCalled();
+      expect(toastService.dismiss).toHaveBeenCalledWith("approval-submit");
     });
 
     it("calls submitApprovalDirectly for wallet users", async () => {

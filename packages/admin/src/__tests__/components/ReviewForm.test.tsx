@@ -590,6 +590,24 @@ describe("ReviewForm", () => {
       expect(mockApprovalMutation.mutateAsync).not.toHaveBeenCalled();
     });
 
+    it("drops the decision of a form that closes while its note uploads", async () => {
+      let finishUpload = (_value: { cid: string }) => {};
+      mockUploadFile.mockReturnValue(new Promise((resolve) => (finishUpload = resolve)));
+      const onSuccess = vi.fn();
+      const { unmount } = renderReviewForm(TEST_WORK, onSuccess);
+      fireEvent.click(screen.getByRole("button", { name: "Set medium confidence" }));
+      fireEvent.click(screen.getByTestId("audio-recorder"));
+      fireEvent.click(addToBatch());
+      await waitFor(() => expect(mockUploadFile).toHaveBeenCalledOnce());
+
+      unmount();
+      await act(async () => finishUpload({ cid: "audio-cid" }));
+
+      await waitFor(() => expect(mockUploadJSON).toHaveBeenCalled());
+      expect(mockReviewBatch.stage).not.toHaveBeenCalled();
+      expect(onSuccess).not.toHaveBeenCalled();
+    });
+
     it("keeps nothing when the note can't upload, and says so", async () => {
       mockUploadFile.mockRejectedValue(new Error("offline"));
       const onSuccess = vi.fn();

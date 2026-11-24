@@ -126,8 +126,11 @@ describe("useResolvedWorkDetail", () => {
     rerender();
     expect(result.current.statusUnread).toBe(true);
 
-    // This session's first read has not landed over a restored copy.
+    // This session's first read has not landed over a restored copy, online or offline.
     mockUseWorks.mockReturnValue({ ...read, readThisSession: false, isFetching: true });
+    rerender();
+    expect(result.current.statusUnread).toBe(true);
+    mockUseWorks.mockReturnValue({ ...read, readThisSession: false, isFetching: false });
     rerender();
     expect(result.current.statusUnread).toBe(true);
 

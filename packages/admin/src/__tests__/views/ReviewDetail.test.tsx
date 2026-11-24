@@ -603,6 +603,9 @@ describe("WorkDetail view", () => {
     expect(statusUnread()).toBe(true);
     rerenderWith({ dayStatusUnread: false, unknownWorkIds: new Set(["0xWork"]) });
     expect(statusUnread()).toBe(true);
+    // A work the day's latest read no longer lists is not vouched for either.
+    rerenderWith({ dayStatusUnread: false, unknownWorkIds: new Set(), selectedWork: undefined });
+    expect(statusUnread()).toBe(true);
 
     // On a day, the day's own read of the work goes to the inspector, which may be fresher.
     const dayWork = { ...base.selectedWork, status: "approved" as const };

@@ -134,14 +134,14 @@ export function useResolvedWorkDetail(workId: string | undefined) {
     : false;
   const isReviewed = work?.status === "approved" || work?.status === "rejected";
   // No decision is offered on a work whose status is not current: its decisions could not be read,
-  // the garden's read failed or this session's first read has not landed (a restored copy may
-  // be old), or the work is not in the current read at all (the garden list's copy, or the
+  // the garden's read failed or this session has not read the garden yet (a restored copy may be
+  // old, online or off), or the work is not in the current read at all (the garden list's copy, or the
   // snapshot kept after it left the read).
   const statusUnread = Boolean(
     work &&
       (unknownIds?.has(work.id) ||
         worksQueryError ||
-        (readThisSession === false && worksFetching) ||
+        readThisSession === false ||
         !works.some((candidate) => candidate.id === work.id))
   );
 
