@@ -19,7 +19,11 @@ import { sortByCreatedAt } from "../../utils/time";
 import { useOnlineStatus } from "../app/useOnlineStatus";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useLiveQuery } from "../utils/useLiveQuery";
-import { gardenWorkListQuery, workSessionStartedAt } from "./gardenWorkListQuery";
+import {
+  gardenReadThisSession,
+  gardenWorkListQuery,
+  workSessionStartedAt,
+} from "./gardenWorkListQuery";
 import { useQueuedWorkPreviews } from "./useQueuedWorkPreviews";
 import { useSendingWork } from "./useSendingWork";
 import { useWorkVisibility } from "./useWorkVisibility";
@@ -352,7 +356,12 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
      * Whether this session has read the garden's rows. Until then they are a
      * copy restored from an earlier session, however old.
      */
-    readThisSession: visibility.isReady && online.dataUpdatedAt >= workSessionStartedAt(),
+    // Counted from the read itself: a decision this device writes into the list moves its update
+    // time, yet it is no read of the garden.
+    readThisSession:
+      visibility.isReady &&
+      online.dataUpdatedAt >= workSessionStartedAt() &&
+      gardenReadThisSession(gardenId, chainId),
     /** Widen the window by one page and read it; a no-op offline. */
     loadOlderWork,
     isLoadingOlder: online.isFetching && take > WORK_LIST_PAGE_SIZE,

@@ -253,6 +253,42 @@ describe("hooks/work/useWorks", () => {
     await waitFor(() => expect(result.current.readThisSession).toBe(true));
   });
 
+  it("does not count a decision written into a restored list as reading the garden", async () => {
+    // A garden no other test reads: what this session has read is kept for the whole session.
+    const garden = "0x4444444444444444444444444444444444444444";
+    const key = ["works", "online", garden, TEST_CHAIN_ID];
+    const restored = [
+      {
+        id: "w1",
+        title: "W1",
+        actionUID: 1,
+        gardenerAddress: "0x1",
+        gardenAddress: garden,
+        feedback: "",
+        metadata: "{}",
+        media: [],
+        createdAt: 1000,
+        status: "pending" as const,
+      },
+    ];
+    let finishRead = (_rows: unknown) => {};
+    mockGetWorkListPage.mockReturnValue(new Promise((resolve) => (finishRead = resolve)));
+    queryClient.setQueryData(key, restored, { updatedAt: 1 });
+    const { result } = renderHookWithProviders(() => useWorks(garden), { queryClient });
+
+    // A decision this device just recorded is written into the list with the current time.
+    await act(async () => {
+      queryClient.setQueryData(key, [{ ...restored[0], status: "approved" as const }]);
+    });
+    // Once the visibility read is in, only the list's own read is missing.
+    await waitFor(() => expect(result.current.works[0]?.status).toBe("approved"));
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 20)));
+    expect(result.current.readThisSession).toBe(false);
+
+    await act(async () => finishRead(restored));
+    await waitFor(() => expect(result.current.readThisSession).toBe(true));
+  });
+
   it("reads one lookahead row, offers older work, and widens the shared window", async () => {
     const page = (count: number, offset = 0) =>
       Array.from({ length: count }, (_, index) => ({
