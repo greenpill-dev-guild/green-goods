@@ -39,8 +39,11 @@ Request a garden takes up pays its USDC to that garden's Safe. Each entry is
 `{ "tokenId": <garden token id>, "garden": "<garden account>", "safe": "<Safe>", "gate": "<Hats
 Signer Gate>", "signerHat": "<steward hat id, decimal>" }`, every address EIP-55 checksummed. An
 entry with a zero, malformed or unchecksummed address, a signer hat that isn't a positive whole
-number, or an address that appears twice is ignored, so that garden pays no USDC. Add an entry by
-pull request once the gate and its Safe exist on Arbitrum.
+number, or an address that appears twice is ignored, so that garden pays no USDC. Entries come
+from `bun run contracts -- release reward-safes`: `plan` reads each garden in
+`config/reward-safes-release.json` and prints one factory call per garden, `simulate` runs them on
+an owned fork, the deployer broadcasts them, and `verify` checks each gate and its Safe and adds
+them here, by pull request.
 
 An entry never changes once its Safe has paid or received a share, and `rewardPayer` is never
 replaced without carrying its paid shares over. The payer records a share as paid under an id that
