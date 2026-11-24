@@ -60,6 +60,19 @@ export function isPastDue(promise: DueDated, clock: DueClock): boolean {
   return isPast(effectiveDueDate(promise, clock.cycleEndTimes), clock.now);
 }
 
+const OPEN = new Set<string>(["OFFERED", "REQUESTED"]);
+
+/**
+ * Whether anyone could take this copy up now: published, untaken, not ended, and not past due
+ * (`isPastDue`), so a promise the chain would let anyone expire is offered for take-up nowhere.
+ */
+export function isOpenToTakeUp(
+  copy: Pick<CommitmentReadModel, "onchainState" | "derivedState" | "dueDate" | "cycleId">,
+  clock: DueClock
+): boolean {
+  return OPEN.has(copy.onchainState) && OPEN.has(copy.derivedState) && !isPastDue(copy, clock);
+}
+
 /**
  * How a season or campaign reads, in the words of `app.pool.cycleState.*`: its on-chain state,
  * except that an Open cycle past its end is ended until a steward closes it (DL-162).
