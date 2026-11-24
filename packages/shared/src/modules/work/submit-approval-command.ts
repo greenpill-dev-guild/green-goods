@@ -68,6 +68,12 @@ export class ApprovalAlreadyDecidedError extends Error {
   }
 }
 
+/**
+ * Why the queue settles a kept decision without sending it: the chain already holds a decision
+ * for the work. A job failed for it reads `unavailable:` and then this reason.
+ */
+export const APPROVAL_ALREADY_DECIDED_REASON = "work-already-decided";
+
 /** The chain could not say whether the work is decided, so nothing was sent: unknown is not "no". */
 export class ApprovalDecisionUnreadError extends Error {
   constructor(cause: unknown) {
@@ -119,6 +125,9 @@ export async function submitApproval(
       return { hash: processed.txHash as `0x${string}`, kind: "processed" };
     }
     if (!processed.success && processed.error && !processed.skipped) {
+      if (processed.error === `unavailable:${APPROVAL_ALREADY_DECIDED_REASON}`) {
+        throw new ApprovalAlreadyDecidedError();
+      }
       throw new Error(processed.error);
     }
   }

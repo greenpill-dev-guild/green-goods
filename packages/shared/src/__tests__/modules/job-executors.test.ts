@@ -52,11 +52,6 @@ import { createMockTransactionSender } from "../test-utils/transaction-fakes";
 import { sendLockName, stubWebLocks } from "../test-utils/web-locks";
 
 // An untitled job looks its action up; keep that lookup off the network.
-// A kept decision is rechecked on chain before it sends; these tests send undecided works.
-vi.mock("../../modules/work/review-chain", () => ({
-  createReviewChain: () => ({ isDecided: async () => false }),
-}));
-
 vi.mock("../../modules/data/greengoods", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../modules/data/greengoods")>()),
   getActions: vi.fn(async () => []),
@@ -64,6 +59,11 @@ vi.mock("../../modules/data/greengoods", async (importOriginal) => ({
 
 import { MOCK_TX_HASH } from "../test-utils/mock-factories";
 import { uploadConsent } from "../test-utils/upload-policy";
+
+// A kept decision is rechecked on chain before it sends; these tests send undecided works.
+vi.mock("../../modules/work/review-chain", () => ({
+  createReviewChain: () => ({ isDecided: async () => false }),
+}));
 
 const USER = "0x1111111111111111111111111111111111111111" as Address;
 const GARDEN = "0x2222222222222222222222222222222222222222" as Address;

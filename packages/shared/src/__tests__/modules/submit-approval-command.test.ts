@@ -75,6 +75,18 @@ describe("submitApproval", () => {
     expect(dependencies.decisions.isDecided).not.toHaveBeenCalled();
   });
 
+  it("says a sponsored decision the queue found decided on chain was already reviewed", async () => {
+    const dependencies = ports();
+    vi.mocked(dependencies.queue.process).mockResolvedValue({
+      success: false,
+      error: "unavailable:work-already-decided",
+    });
+
+    await expect(
+      submitApproval(command({ authMode: "passkey" }), dependencies)
+    ).rejects.toBeInstanceOf(ApprovalAlreadyDecidedError);
+  });
+
   it("sends nothing when the chain cannot say whether the work is decided", async () => {
     const dependencies = ports({
       decisions: { isDecided: vi.fn().mockRejectedValue(new Error("rpc down")) },
