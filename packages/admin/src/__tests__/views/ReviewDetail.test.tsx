@@ -546,6 +546,45 @@ describe("WorkDetail view", () => {
     expect(onNavigateToBase).toHaveBeenCalledTimes(1);
   });
 
+  it("holds the inspector's decision while its day's statuses are not read, or its own is not", () => {
+    const base = {
+      routeSheetContentId: "work-detail:0xWork",
+      routeWorkId: "0xWork",
+      routeCertificationId: undefined,
+      activeWorkDetailId: null,
+      selectedWork: mockUseWorks().works[0],
+      selectedCertification: undefined,
+      isResolvingSelection: false,
+      canManage: true,
+      chainId: 11155111,
+      reviewContext: { gardenId: "0xGarden", sort: "newest" as const },
+      closeTo: "/review/work?gardenId=0xGarden&sort=newest",
+      onNavigateToBase: vi.fn(),
+      onBeforeClose: vi.fn(),
+    };
+    const statusUnread = () =>
+      (
+        mockUseRouteBackedLeftSheetConfig.mock.calls.at(-1)?.[0] as {
+          content: React.ReactElement<{ statusUnread?: boolean }>;
+        }
+      ).content.props.statusUnread;
+    const { rerender } = renderWithIntl("en", React.createElement(ReviewSheetDescriptor, base));
+    expect(statusUnread()).toBe(false);
+
+    const rerenderWith = (props: Partial<React.ComponentProps<typeof ReviewSheetDescriptor>>) =>
+      rerender(
+        React.createElement(IntlProvider, {
+          locale: "en",
+          messages,
+          children: React.createElement(ReviewSheetDescriptor, { ...base, ...props }),
+        })
+      );
+    rerenderWith({ dayStatusUnread: true, unknownWorkIds: new Set() });
+    expect(statusUnread()).toBe(true);
+    rerenderWith({ dayStatusUnread: false, unknownWorkIds: new Set(["0xWork"]) });
+    expect(statusUnread()).toBe(true);
+  });
+
   it("clears the inspector descriptor when the route closes with retained work", () => {
     const props = {
       routeSheetContentId: "work-detail:0xWork",
