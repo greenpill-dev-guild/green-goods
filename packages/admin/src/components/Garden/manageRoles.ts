@@ -22,7 +22,7 @@ export interface RolePair {
 }
 
 /** The people in a roster, each once, in the order their highest role first appears. */
-export function peopleFromRoster(roleMembers: Record<GardenRole, Address[]>): MemberPerson[] {
+function peopleFromRoster(roleMembers: Record<GardenRole, Address[]>): MemberPerson[] {
   const byAddress = new Map<string, MemberPerson>();
   for (const role of GARDEN_ROLE_ORDER) {
     for (const address of roleMembers[role] ?? []) {
@@ -91,7 +91,7 @@ export function grantableRoles(
  * so an Owner's row offers a Steward nothing; an Owner, or the protocol team granting Steward,
  * may add to anyone.
  */
-export function canAddRolesTo(
+function canAddRolesTo(
   person: Pick<MemberPerson, "roles">,
   viewer: Pick<ManageRolesViewer, "isOwner" | "canManageStewards">
 ): boolean {
