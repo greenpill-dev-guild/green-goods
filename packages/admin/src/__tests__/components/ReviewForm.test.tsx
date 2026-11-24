@@ -558,6 +558,38 @@ describe("ReviewForm", () => {
       expect(mockApprovalMutation.mutateAsync).not.toHaveBeenCalled();
     });
 
+    it("keeps a decision dropped once, even when its work comes back decidable", async () => {
+      let finishUpload = (_value: { cid: string }) => {};
+      mockUploadFile.mockReturnValue(new Promise((resolve) => (finishUpload = resolve)));
+      const form = (work: Work, statusUnread: boolean) => (
+        <IntlProvider locale="en" messages={messages}>
+          <ReviewForm
+            work={work}
+            gardenName="Demo Garden"
+            canReview
+            canApproveOrReject
+            isReviewed={false}
+            statusUnread={statusUnread}
+          />
+        </IntlProvider>
+      );
+      const { rerender } = render(form(TEST_WORK, false));
+      fireEvent.click(screen.getByRole("button", { name: "Set medium confidence" }));
+      fireEvent.click(screen.getByTestId("audio-recorder"));
+      fireEvent.click(addToBatch());
+      await waitFor(() => expect(mockUploadFile).toHaveBeenCalledOnce());
+
+      // The work turns unknown, the inspector moves on and comes back once it is known again.
+      rerender(form(TEST_WORK, true));
+      rerender(form({ ...TEST_WORK, id: "0xOtherWork" }, false));
+      rerender(form(TEST_WORK, false));
+      await act(async () => finishUpload({ cid: "audio-cid" }));
+
+      await waitFor(() => expect(mockUploadJSON).toHaveBeenCalled());
+      expect(mockReviewBatch.stage).not.toHaveBeenCalled();
+      expect(mockApprovalMutation.mutateAsync).not.toHaveBeenCalled();
+    });
+
     it("keeps nothing when the note can't upload, and says so", async () => {
       mockUploadFile.mockRejectedValue(new Error("offline"));
       const onSuccess = vi.fn();
