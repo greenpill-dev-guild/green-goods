@@ -340,6 +340,29 @@ export const DayWithUnreadStatus: Story = {
   },
 };
 
+/**
+ * The same day narrowed to Pending, when its only work has no status read: it is not known to
+ * be waiting, so Pending says so and points to the day's whole list, never "All caught up".
+ */
+export const DayPendingWithUnreadStatus: Story = {
+  tags: ["storybook-ci"],
+  args: {
+    scope: "pending",
+    items: [],
+    unknownIds: new Set([PENDING_WORK[2].id]),
+    onShowWholeDay: fn(),
+    worksLoading: false,
+    hasDataError: false,
+  },
+  play: async ({ args, canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.queryByText("All caught up")).toBeNull();
+    await expect(canvas.getByText("Some statuses could not be read")).toBeVisible();
+    await userEvent.click(canvas.getByRole("button", { name: "Show Whole Day" }));
+    await expect(args.onShowWholeDay).toHaveBeenCalledOnce();
+  },
+};
+
 export const NoApprovedWork: Story = {
   args: {
     scope: "approved",

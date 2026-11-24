@@ -4,7 +4,7 @@ import { WalletReconnectRequiredError } from "../../utils/errors/unsent-failures
 import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
-import { batchKeys } from "../../config/query-keys/garden";
+import { batchKeys, gardensKeys } from "../../config/query-keys/garden";
 import { approvalsKeys, workApprovalsKeys, worksKeys } from "../../config/query-keys/work";
 import { track } from "../../modules/app/posthog";
 import { isBatchEnabled } from "../../modules/transactions/batch-enablement";
@@ -88,6 +88,9 @@ export function useBatchWorkApproval(
     void queryClient.invalidateQueries({ queryKey: worksKeys.online(gardenAddress, chainId) });
     void queryClient.invalidateQueries({ queryKey: worksKeys.merged(gardenAddress, chainId) });
     void queryClient.invalidateQueries({ queryKey: worksKeys.ranges(gardenAddress, chainId) });
+    void queryClient.invalidateQueries({
+      queryKey: gardensKeys.memberReadinessForGarden(gardenAddress, chainId),
+    });
     void queryClient.invalidateQueries({ queryKey: workApprovalsKeys.all });
     void queryClient.invalidateQueries({ queryKey: approvalsKeys.all });
   };

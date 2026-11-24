@@ -49,6 +49,9 @@ export const gardensKeys = {
       garden?.toLowerCase(),
       [...accounts].map((account) => account.toLowerCase()).sort(),
     ] as const,
+  /** Every Gardeners readiness read of one garden, whoever it covers: reread once its work changes. */
+  memberReadinessForGarden: (garden: string | undefined, chainId: number | undefined) =>
+    ["greengoods", "gardens", chainId, "memberReadiness", garden?.toLowerCase()] as const,
   detail: (gardenId: string, chainId: number) =>
     ["greengoods", "gardens", "detail", gardenId, chainId] as const,
   profileMemberships: (account: string | undefined, chainId: number) =>

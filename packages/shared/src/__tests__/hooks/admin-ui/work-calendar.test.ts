@@ -2,6 +2,7 @@ import { act, renderHook } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { gardensKeys } from "../../../config/query-keys/garden";
 import { worksKeys } from "../../../config/query-keys/work";
 import { useCalendarNow } from "../../../hooks/admin-ui/garden/useCalendarNow";
 import { useGardenWorkCalendar } from "../../../hooks/admin-ui/garden/useGardenWorkCalendar";
@@ -188,6 +189,14 @@ describe("a decision made from the calendar's day", () => {
     expect(prefixes.some((prefix) => prefix.every((part, index) => part === day[index]))).toBe(
       true
     );
+  });
+
+  it("rereads the garden's Gardeners readiness, so a member's stage follows the decision", () => {
+    const client = createTestQueryClient();
+    const readiness = gardensKeys.memberReadiness("0xGarden", ["0xMember"], 42161);
+    client.setQueryData(readiness, {});
+    refreshApprovalReads(client, 42161, { gardenId: "0xGarden", workUID: "0xwork" }, false);
+    expect(client.getQueryState(readiness)?.isInvalidated).toBe(true);
   });
 });
 
